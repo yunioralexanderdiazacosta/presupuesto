@@ -1,7 +1,7 @@
 <script setup>
 import { computed, ref } from 'vue';
 import { Link, router, Head, usePage, useForm } from '@inertiajs/vue3';
-import Swal from 'sweetalert2';
+//import Swal from 'sweetalert2';
 import AppLayout from '@/Layouts/AppLayout.vue';
 import Table from '@/Components/Table.vue';
 import Empty from '@/Components/Empty.vue';
