@@ -1,91 +1,71 @@
 <script setup>
-import { computed, onMounted, onUnmounted, watch } from 'vue';
-
+import { computed } from 'vue';
 const props = defineProps({
-    show: {
-        type: Boolean,
-        default: false,
+    id: {
+        require: true,
+        type: String,
     },
     maxWidth: {
         type: String,
-        default: '2xl',
+        default: 'md',
     },
-    closeable: {
-        type: Boolean,
-        default: true,
-    },
-});
-
-const emit = defineEmits(['close']);
-
-watch(() => props.show, () => {
-    if (props.show) {
-        document.body.style.overflow = 'hidden';
-    } else {
-        document.body.style.overflow = null;
-    }
-});
-
-const close = () => {
-    if (props.closeable) {
-        emit('close');
-    }
-};
-
-const closeOnEscape = (e) => {
-    if (e.key === 'Escape' && props.show) {
-        close();
-    }
-};
-
-onMounted(() => document.addEventListener('keydown', closeOnEscape));
-
-onUnmounted(() => {
-    document.removeEventListener('keydown', closeOnEscape);
-    document.body.style.overflow = null;
-});
+})
 
 const maxWidthClass = computed(() => {
     return {
-        'sm': 'sm:max-w-sm',
-        'md': 'sm:max-w-md',
-        'lg': 'sm:max-w-lg',
-        'xl': 'sm:max-w-xl',
-        '2xl': 'sm:max-w-2xl',
+        'sm': 'modal-sm',
+        'md': 'mw650px',
+        'lg': 'modal-lg',
+        'xl': 'modal-xl',
+        'mw': ''
     }[props.maxWidth];
 });
 </script>
-
 <template>
-    <teleport to="body">
-        <transition leave-active-class="duration-200">
-            <div v-show="show" class="fixed inset-0 overflow-y-auto px-4 py-6 sm:px-0 z-50" scroll-region>
-                <transition
-                    enter-active-class="ease-out duration-300"
-                    enter-from-class="opacity-0"
-                    enter-to-class="opacity-100"
-                    leave-active-class="ease-in duration-200"
-                    leave-from-class="opacity-100"
-                    leave-to-class="opacity-0"
-                >
-                    <div v-show="show" class="fixed inset-0 transform transition-all" @click="close">
-                        <div class="absolute inset-0 bg-gray-500 opacity-75" />
+    <div class="modal fade" :id="id" tabindex="-1" aria-hidden="true">
+        <!--begin::Modal dialog-->
+        <div class="modal-dialog modal-dialog-centered" :class="maxWidthClass">
+            <!--begin::Modal content-->
+            <div class="modal-content rounded">
+                <!--begin::Modal header-->
+                <div class="modal-header pb-0 border-0 justify-content-end">
+                    <!--begin::Close-->
+                    <div class="btn btn-sm btn-icon btn-active-color-primary" data-bs-dismiss="modal">
+                        <!--begin::Svg Icon | path: icons/duotune/arrows/arr061.svg-->
+                        <span class="svg-icon svg-icon-1">
+                            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                <rect opacity="0.5" x="6" y="17.3137" width="16" height="2" rx="1" transform="rotate(-45 6 17.3137)" fill="currentColor" />
+                                <rect x="7.41422" y="6" width="16" height="2" rx="1" transform="rotate(45 7.41422 6)" fill="currentColor" />
+                            </svg>
+                        </span>
+                        <!--end::Svg Icon-->
                     </div>
-                </transition>
-
-                <transition
-                    enter-active-class="ease-out duration-300"
-                    enter-from-class="opacity-0 translate-y-4 sm:translate-y-0 sm:scale-95"
-                    enter-to-class="opacity-100 translate-y-0 sm:scale-100"
-                    leave-active-class="ease-in duration-200"
-                    leave-from-class="opacity-100 translate-y-0 sm:scale-100"
-                    leave-to-class="opacity-0 translate-y-4 sm:translate-y-0 sm:scale-95"
-                >
-                    <div v-show="show" class="mb-6 bg-white rounded-lg overflow-hidden shadow-xl transform transition-all sm:w-full sm:mx-auto" :class="maxWidthClass">
-                        <slot v-if="show" />
-                    </div>
-                </transition>
+                    <!--end::Close-->
+                </div>
+                <!--begin::Modal header-->
+                <!--begin::Modal body-->
+                <div class="modal-body scroll-y px-10 px-lg-15 pt-0 pb-15">
+                    <!--begin:Form-->
+                        <!--begin::Heading-->
+                        <div class="mb-13 text-center">
+                            <slot name="header"></slot>
+                        </div>
+                        <!--end::Heading-->
+                        <!--begin::Body-->
+                        <slot name="body"></slot>
+                        <!--end::Body-->
+                        <div class="separator separator-dashed my-6"></div>
+                        <!--begin::Actions-->
+                        <div class="text-center">
+                            <slot name="footer"></slot>
+                        </div>
+                        <!--end::Actions-->
+                    <!--end:Form-->
+                </div>
+                <!--end::Modal body-->
             </div>
-        </transition>
-    </teleport>
+            <!--end::Modal content-->
+        </div>
+        <!--end::Modal dialog-->
+    </div>
 </template>

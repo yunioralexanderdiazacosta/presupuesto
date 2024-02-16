@@ -19,6 +19,8 @@
         "vue": "^3.2.31"
     },
     "dependencies": {
-        "vue-gates": "^2.1.2"
+        "@vueform/multiselect": "^2.6.6",
+        "vue-gates": "^2.1.2",
+        "vue-sweetalert2": "^5.0.5"
     }
 }
