@@ -18,7 +18,7 @@ const change = (position) => {
 }
 </script>
 <template>
-    <div class="menu-item">
+    <div class="menu-item" v-role:any="item.role">
         <!--begin:Menu link-->
         <Link class="menu-link" :href="route(item.link)">
             <span class="menu-icon">

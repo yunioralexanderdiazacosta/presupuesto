@@ -17,7 +17,7 @@ defineEmits(['update']);
             <TeamForm :form="form" />
         </template>
         <template #footer>
-            <button type="button" id="kt_modal_update_membership_cancel" data-bs-dismiss="modal" class="btn btn-light me-3">Cerrar</button>
+            <button type="button" id="kt_modal_update_team_cancel" data-bs-dismiss="modal" class="btn btn-light me-3">Cerrar</button>
             <button type="button" @click="$emit('update')" :disabled="form.processing" id="kt_modal_update_team_submit" class="btn btn-primary">
                 <span class="indicator-label">Actualizar</span>
             </button>

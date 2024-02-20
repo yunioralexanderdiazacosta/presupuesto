@@ -29,6 +29,9 @@ class User extends Authenticatable
         'name',
         'email',
         'password',
+        'team_id',
+        'observations',
+        'status'
     ];
 
     /**
@@ -50,6 +53,7 @@ class User extends Authenticatable
      */
     protected $casts = [
         'email_verified_at' => 'datetime',
+        'status' => 'boolean'
     ];
 
     /**
@@ -60,4 +64,9 @@ class User extends Authenticatable
     protected $appends = [
         'profile_photo_url',
     ];
+
+    public function team()
+    {
+        return $this->belongsTo(Team::class);
+    }
 }

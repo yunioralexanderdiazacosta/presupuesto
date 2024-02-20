@@ -7,6 +7,8 @@ import { resolvePageComponent } from 'laravel-vite-plugin/inertia-helpers';
 import { ZiggyVue } from '../../vendor/tightenco/ziggy/dist/vue.m';
 import VueGates from 'vue-gates';
 import rolesAndPermissions from './plugin';
+import FloatingVue from 'floating-vue';
+import 'floating-vue/dist/style.css';
 
 const appName = import.meta.env.VITE_APP_NAME || 'Laravel';
 
@@ -19,6 +21,7 @@ createInertiaApp({
             .use(ZiggyVue)
             .use(VueGates)
             .use(rolesAndPermissions)
+            .use(FloatingVue)
             .mount(el);
     },
     progress: {

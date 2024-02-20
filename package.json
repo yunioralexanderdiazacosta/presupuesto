@@ -20,6 +20,8 @@
     },
     "dependencies": {
         "@vueform/multiselect": "^2.6.6",
+        "floating-vue": "^5.2.2",
+        "moment": "^2.30.1",
         "vue-gates": "^2.1.2",
         "vue-sweetalert2": "^5.0.5"
     }

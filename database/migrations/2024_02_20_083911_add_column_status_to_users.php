@@ -12,8 +12,7 @@ return new class extends Migration
     public function up(): void
     {
         Schema::table('users', function (Blueprint $table) {
-            $table->text('observations')->nullable();
-            $table->foreignId('team_id')->nullable()->constrained()->cascadeOnDelete();
+            $table->boolean('status')->default(1);
         });
     }
 
@@ -23,8 +22,7 @@ return new class extends Migration
     public function down(): void
     {
         Schema::table('users', function (Blueprint $table) {
-            $table->dropColumn('observations');
-            $table->dropColumn('team_id');
+            //$table->dropColumn('status');
         });
     }
 };

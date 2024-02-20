@@ -81,6 +81,10 @@ const visibility = () => {
                                     <div class="text-gray-500 fw-semibold fs-6">Utilice sus credenciales para acceder a su cuenta</div>
                                     <!--end::Subtitle=-->
                                 </div>
+
+                                <div v-if="$page.props.error" class="alert alert-danger text-sm p-2 mb-10" role="alert">
+                                    <div class="fw-bold">{{$page.props.error}}</div>
+                                </div>
                                 <!--begin::Heading-->
 
                                 <!--begin::Input group=-->

@@ -17,7 +17,7 @@ defineEmits(['store']);
             <TeamForm :form="form" />
         </template>
         <template #footer>
-            <button type="button" id="kt_modal_add_membership_cancel" data-bs-dismiss="modal" class="btn btn-light me-3">Cerrar</button>
+            <button type="button" id="kt_modal_add_team_cancel" data-bs-dismiss="modal" class="btn btn-light me-3">Cerrar</button>
             <button type="button" @click="$emit('store')" :disabled="form.processing" id="kt_modal_add_team_submit" class="btn btn-primary">
                 <span class="indicator-label">Guardar</span>
             </button>

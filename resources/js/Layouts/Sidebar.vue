@@ -25,13 +25,15 @@ const items = [
         title: 'Empresas',
         icon: `<i class="bi bi-building"></i>`,
         link: 'teams.index',
-        subitems: []
+        subitems: [],
+        role: 'Super Admin'
     },
     {
         title: 'Ppto. Agroquimicos',
         icon: `<i class="bi bi-card-checklist"></i>`,
         link: 'agrochemicals.index',
-        subitems: []
+        subitems: [],
+        role: 'Admin'
     }
 ];
 </script>

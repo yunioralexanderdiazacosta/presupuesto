@@ -8,9 +8,20 @@ const props = defineProps({
 </script>
 <template>
     <div class="fv-row mb-8">
+        <label class="required fs-6 fw-semibold mb-2">Nombre del contacto</label>
+        <TextInput
+            id="name"
+            v-model="form.name"
+            class="form-control form-control-solid"
+            type="text"
+        />
+        <InputError class="mt-2" :message="form.errors.team_name" />
+    </div>
+
+    <div class="fv-row mb-8">
         <label class="required fs-6 fw-semibold mb-2">Nombre de la empresa</label>
         <TextInput
-            id="expired_at"
+            id="team_name"
             v-model="form.team_name"
             class="form-control form-control-solid"
             type="text"
