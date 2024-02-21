@@ -29,6 +29,20 @@ const items = [
         role: 'Super Admin'
     },
     {
+        title: 'Presupuestos',
+        icon: `<i class="bi bi-card-checklist"></i>`,
+        link: 'budgets.index',
+        subitems: [],
+        role: 'Admin'
+    },
+    {
+        title: 'Centros de costo',
+        icon: `<i class="bi bi-card-checklist"></i>`,
+        link: 'cost.centers.index',
+        subitems: [],
+        role: 'Admin'
+    },
+    {
         title: 'Ppto. Agroquimicos',
         icon: `<i class="bi bi-card-checklist"></i>`,
         link: 'agrochemicals.index',

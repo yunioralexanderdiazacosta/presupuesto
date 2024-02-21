@@ -23,8 +23,8 @@ class RoleSeeder extends Seeder
         $roleNormal     = Role::create(['name' => 'Normal']);
 
         $user = User::create([
-            'name'                  => 'Super Admin',
-            'email'                 => 'superadmin@example',
+            'name'                  => 'Administrador',
+            'email'                 => 'admin@example.com',
             'password'              => Hash::make('1234'),
         ]);
 

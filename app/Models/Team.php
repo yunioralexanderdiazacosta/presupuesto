@@ -15,4 +15,9 @@ class Team extends Model
     {
         return $this->hasMany(User::class);
     }
+
+    public function budgets()
+    {
+        return $this->hasMany(budget::class);
+    }
 }
