@@ -6,16 +6,6 @@
 	defineProps({
 		form: Object
 	});
-
-    const months = [
-        'Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'
-    ];
-
-    const cc = [];
-
-    const families = [];
-
-    const units = [];
 </script>
 <script setup></script>
 <template>
@@ -24,10 +14,11 @@
             <div class="fv-row mb-8">
                 <label for="cc" class="form-label required fs-6 fw-bold mb-3">CC</label>
                 <Multiselect
+                    mode="tags"
                     :placeholder="'Seleccione CC'"
                     v-model="form.cc"
                     :close-on-select="false"
-                    :options="cc"
+                    :options="$page.props.costCenters"
                     class="multiselect-blue form-control"
                     :class="{'is-invalid': form.errors.cc}"
                     :searchable="true"
@@ -40,14 +31,14 @@
                 <label for="families" class="form-label required fs-6 fw-bold mb-3">Familia</label>
                 <Multiselect
                     :placeholder="'Seleccione familia'"
-                    v-model="form.family"
+                    v-model="form.subfamily_id"
                     :close-on-select="false"
-                    :options="families"
+                    :options="$page.props.subfamilies"
                     class="multiselect-blue form-control"
-                    :class="{'is-invalid': form.errors.family}"
+                    :class="{'is-invalid': form.errors.subfamily_id}"
                     :searchable="true"
                 />
-                <InputError class="mt-2" :message="form.errors.family" />
+                <InputError class="mt-2" :message="form.errors.family_id" />
             </div>
         </div>
     </div>
@@ -70,14 +61,14 @@
                 <label for="familia" class="form-label required fs-6 fw-bold mb-3">Unidad</label>
                 <Multiselect
                     :placeholder="'Seleccione unidad'"
-                    v-model="form.unit"
+                    v-model="form.unit_id"
                     :close-on-select="false"
-                    :options="units"
+                    :options="$page.props.units"
                     class="multiselect-blue form-control"
-                    :class="{'is-invalid': form.errors.unit}"
+                    :class="{'is-invalid': form.errors.unit_id}"
                     :searchable="true"
                 />
-                <InputError class="mt-2" :message="form.errors.unit" />
+                <InputError class="mt-2" :message="form.errors.unit_id" />
             </div>
         </div>
     </div>
@@ -91,6 +82,7 @@
                     v-model="form.dose_type"
                     class="form-control form-control-solid"
                     type="text"
+                    :class="{'is-invalid': form.errors.dose_type}"
                 />
                 <InputError class="mt-2" :message="form.errors.dose_type" />
             </div>
@@ -102,7 +94,9 @@
                     id="dose"
                     v-model="form.dose"
                     class="form-control form-control-solid"
-                    type="text"
+                    type="number"
+                    step="0.00"
+                    :class="{'is-invalid': form.errors.dose}"
                 />
                 <InputError class="mt-2" :message="form.errors.dose" />
             </div>
@@ -115,11 +109,12 @@
                 <label class="required fs-6 fw-semibold mb-2">Mojamiento</label>
                 <TextInput
                     id="product_name"
-                    v-model="form.product_name"
+                    v-model="form.mojamiento"
                     class="form-control form-control-solid"
-                    type="text"
+                    type="number"
+                    :class="{'is-invalid': form.errors.mojamiento}"
                 />
-                <InputError class="mt-2" :message="form.errors.product_name" />
+                <InputError class="mt-2" :message="form.errors.mojamiento" />
             </div>
         </div>
         <div class="col-lg-6">
@@ -129,7 +124,8 @@
                     id="price"
                     v-model="form.price"
                     class="form-control form-control-solid"
-                    type="text"
+                    type="number"
+                    :class="{'is-invalid': form.errors.price}"
                 />
                 <InputError class="mt-2" :message="form.errors.price" />
             </div>
@@ -143,7 +139,7 @@
             :placeholder="'Seleccione meses'"
             v-model="form.months"
             :close-on-select="false"
-            :options="months"
+            :options="$page.props.months"
             class="multiselect-blue form-control"
             :class="{'is-invalid': form.errors.months}"
             :searchable="true"

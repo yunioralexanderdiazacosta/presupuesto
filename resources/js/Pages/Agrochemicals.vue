@@ -10,78 +10,65 @@ import CreateAgrochemicalModal from '@/Components/Agrochemicals/CreateAgrochemic
 import EditAgrochemicalModal from '@/Components/Agrochemicals/EditAgrochemicalModal.vue';
 
 const props = defineProps({
-    teams: {
-        type: Object,
-        default: {
-            data: [],
-            links: []
-        }
-    }
+    agrochemicals: Object
 });
 
 const form = useForm({
     product_name: '',
-    price: ''
+    dose_type: '',
+    dose: '',
+    price: '',
+    mojamiento: '',
+    subfamily_id: '',
+    unit_id: '',
+    observations: '',
+    cc: [],
+    months: []
 });
 
-const title = 'Presupuesto Agroquimicos';
+const title = 'Agroquimicos';
 
 const links = [{ title: 'Tablero', link: 'dashboard' }, { title: title, active: true }];
 
 const openAdd = () => {
-    //form.reset();
+    form.reset();
     $('#createAgrochemicalModal').modal('show');
 }
 
-const openEdit = (team) => {
-    //form.reset();
-    //form.id = membership.id;    
-    //$('#editMembershipModal').modal('show');
+const openEdit = (agrochemical) => {
+    form.reset();
+    form.id = agrochemical.id;
+    form.product_name = agrochemical.product_name;
+    form.dose_type = agrochemical.dose_type;
+    form.dose = agrochemical.dose;
+    form.price = agrochemical.price;
+    form.mojamiento = agrochemical.mojamiento;
+    form.subfamily_id = agrochemical.subfamily_id;
+    form.unit_id = agrochemical.unit_id;
+    form.observations = agrochemical.observations;
+    form.cc = agrochemical.cc;
+    form.months = agrochemical.months; 
+    $('#editAgrochemicalModal').modal('show');
 }
 
-const onDeleted = (id) => {
-    /*
-    Swal.fire({
-        title: wTrans('¿Estás seguro de que quieres eliminar el registro?').value,
-        icon: 'warning',
-        showCancelButton: true,
-        confirmButtonColor: 'rgb(0, 158, 247)',
-        cancelButtonColor: '#6e6e6e',
-        cancelButtonText: wTrans('Cancelar').value,
-        confirmButtonText: wTrans('Confirmar').value,
-    }).then((result) => {
-        if (result.isConfirmed) {
-            router.delete(route('manage.users.delete', id), {
-                preserveScroll: true,
-                onSuccess: () => {
-                    msgSuccess('Registro eliminado correctamente');
-                }
-            });
+const storeAgrochemical = () => {
+    form.post(route('agrochemicals.store'), {
+        preserveScroll: true,
+        onSuccess: () => {
+            form.reset();
+            $('#createAgrochemicalModal').modal('hide');
+            msgSuccess('Guardado correctamente');
         }
     });
-    */
 }
 
-/*
-const onAction = (id, status) => {
-    const msgStatus = status == 1 ? 'activar' : 'suspender';
-
-    Swal.fire({
-        title: '¿Estás seguro de que desea ' + msgStatus + ' esta cuenta?',
-        icon: 'warning',
-        showCancelButton: true,
-        confirmButtonColor: 'rgb(0, 158, 247)',
-        cancelButtonColor: '#6e6e6e',
-        cancelButtonText: wTrans('Cancelar').value,
-        confirmButtonText: wTrans('Confirmar').value,
-    }).then((result) => {
-        if (result.isConfirmed) {
-            router.post(route('manage.users.activate.inactivate', id), {status: status}, {
-                preserveScroll: true,
-                onSuccess: () => {
-                    msgSuccess('Acción realizada correctamente');
-                }
-            });
+const updateAgrochemical = () => {
+    form.post(route('agrochemicals.update', form.id), {
+        preserveScroll: true,
+        onSuccess: () => {
+            form.reset();
+            $('#editAgrochemicalModal').modal('hide');
+            msgSuccess('Guardado correctamente');
         }
     });
 }
@@ -96,6 +83,28 @@ const msgSuccess = (msg) => {
     });
 };
 
+const onDeleted = (id) => {
+    Swal.fire({
+        title: '¿Estás seguro de que quieres eliminar el registro?',
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonColor: 'rgb(0, 158, 247)',
+        cancelButtonColor: '#6e6e6e',
+        cancelButtonText: 'Cancelar',
+        confirmButtonText: 'Confirmar',
+    }).then((result) => {
+        if (result.isConfirmed) {
+            router.delete(route('agrochemicals.delete', id), {
+                preserveScroll: true,
+                onSuccess: () => {
+                    msgSuccess('Registro eliminado correctamente');
+                }
+            });
+        }
+    });
+}
+
+/*
 const onFilter = () => {
   router.get(route('manage.providers', {term: term.value, plan: plan.value, membership: membership.value}), { preserveState: true});  
 }
@@ -123,7 +132,7 @@ const onFilter = () => {
                         <!--end::Page title-->
                         <!--begin::Actions-->
                         <div class="d-flex align-items-center gap-2 gap-lg-3">
-                            <button type="button" @click="openAdd()" class="btn btn-sm fw-bold btn-primary">Agregar presupuesto</button>
+                            <button type="button" @click="openAdd()" class="btn btn-sm fw-bold btn-primary">Agregar agroquimico</button>
                         </div>
                         <!--end::Actions-->
                     </div>
@@ -157,66 +166,34 @@ const onFilter = () => {
                             <!--end::Card header-->
                             <!--begin::Card body-->
                             <div class="card-body pt-0">
-                                <Table :id="'providers'" :total="teams.data.length" :links="teams.links">
+                                <Table :id="'providers'" :total="agrochemicals.length" :links="agrochemicals.links">
                                     <!--begin::Table head-->
                                     <template #header>
                                         <!--begin::Table row-->
                                         <th width="min-w-100px">Nombre</th>
-                                        <th width="min-w-100px">Correo Electronico</th>
-                                        <th width="min-w-100px">F. Registro</th>
-                                        <th width="min-w-100px">Estatus</th>
+                                        <th width="min-w-100px">Familia</th>
+                                        <th width="min-w-100px">Unidad</th>
+                                        <th width="min-w-100px">Precio</th>
                                         <th width="min-w-150px" class="text-end">Acciones</th>
                                         <!--end::Table row-->
                                     </template>
                                     <!--end::Table head-->
                                     <!--begin::Table body-->
                                     <template #body>
-                                        <template v-if="teams.total == 0">
+                                        <template v-if="agrochemicals.total == 0">
                                             <Empty colspan="5" />
                                         </template>
                                         <template v-else>
-                                            <tr v-for="(team, index) in teams.data" :key="index">
-                                                <td class="d-flex align-items-center">
-                                                    <!--begin::Avatar-->
-                                                    <div class="symbol symbol-circle symbol-50px overflow-hidden me-3">
-                                                        <Link :href="'#'">
-                                                            <div class="symbol-label">
-                                                                <img :src="team.user.profile_photo_url" :alt="team.user.name" class="w-100" />
-                                                            </div>
-                                                        </Link>
-                                                    </div>
-                                                    <!--end::Avatar-->
-                                                    <!--begin::User details-->
-                                                    <div class="d-flex flex-column">
-                                                        <Link :href="route('manage.users.edit', user.id)" class="text-dark text-hover-primary fw-bold mb-1">{{user.name}}</Link>
-                                                        <span>{{user.email}}</span>
-                                                    </div>
-                                                    <!--begin::User details-->
-                                                </td>
+                                            <tr v-for="(agrochemical, index) in agrochemicals.data" :key="index">
                                                 <td>
-                                                   
+                                                    <span class="text-dark  fw-bold mb-1">{{agrochemical.product_name}}</span>
                                                 </td>
-                                                <td>
-                                                    
-                                                
-                                                </td>
-                                                <td>
-                                                    <!--
-                                                    <span class="badge badge-light-success" v-if="provider.status == 1">Activo</span>
-                                                    <span class="badge badge-light-danger" v-else>Suspendido</span>-->
-                                                </td>
+                                                <td>{{agrochemical.subfamily.name}}</td>
+                                                <td>{{agrochemical.unit.name}}</td>
+                                                <td>{{agrochemical.price}}</td>
                                                 <td class="text-end">
-                                                    <!--begin::Impersonate-->
-                                                    <!--
-                                                    <Link v-tooltip="'Conectarse'" :href="route('manage.users.impersonate', provider.id)" class="btn btn-icon btn-active-light-primary w-30px h-30px me-3">
-                                                        <span class="svg-icon svg-icon-3">
-                                                            <i class="fas fa-sign-in-alt fs-10"></i>
-                                                        </span>
-                                                    </Link>-->
-                                                    <!--end::Impersonate-->
                                                     <!--begin::Update-->
-                                                    <!--
-                                                    <Link v-tooltip="'Editar'" class="btn btn-icon btn-active-light-primary w-30px h-30px me-3" :href="route('manage.users.edit', provider.id)">
+                                                    <button type="button" @click="openEdit(agrochemical)" v-tooltip="'Editar'" class="btn btn-icon btn-active-light-primary w-30px h-30px me-3">
                                                         
                                                         <span class="svg-icon svg-icon-3">
                                                         <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -224,31 +201,10 @@ const onFilter = () => {
                                                             <path d="M5.574 21.3L3.692 21.928C3.46591 22.0032 3.22334 22.0141 2.99144 21.9594C2.75954 21.9046 2.54744 21.7864 2.3789 21.6179C2.21036 21.4495 2.09202 21.2375 2.03711 21.0056C1.9822 20.7737 1.99289 20.5312 2.06799 20.3051L2.696 18.422L5.574 21.3ZM4.13499 14.105L9.891 19.861L19.245 10.507L13.489 4.75098L4.13499 14.105Z" fill="currentColor"></path>
                                                         </svg>
                                                         </span>
-                                                    </Link>-->
-                                                    <!--end::Update-->
-                                                    <!--begin::Inactivate-->
-                                                    <!--
-                                                    <button type="button" v-tooltip="'Suspender'"  @click="onAction(provider.id, 0)" v-if="provider.status == 1" class="btn btn-icon btn-active-light-primary w-30px h-30px me-3">
-                                                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                                                            <rect opacity="0.3" x="2" y="2" width="20" height="20" rx="10" fill="currentColor"/>
-                                                            <rect x="7" y="15.3137" width="12" height="2" rx="1" transform="rotate(-45 7 15.3137)" fill="currentColor"/>
-                                                            <rect x="8.41422" y="7" width="12" height="2" rx="1" transform="rotate(45 8.41422 7)" fill="currentColor"/>
-                                                        </svg>
                                                     </button>
-                                                     -->
-                                                    <!--end::Inactivate-->
-                                                    <!--begin::Activate-->
-                                                    <!--
-                                                    <button type="button" v-tooltip="'Activar'"  @click="onAction(provider.id, 1)" v-if="provider.status == 0" class="btn btn-icon btn-active-light-primary w-30px h-30px me-3">
-                                                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                                                            <rect opacity="0.3" x="2" y="2" width="20" height="20" rx="10" fill="currentColor"/>
-                                                            <path d="M10.4343 12.4343L8.75 10.75C8.33579 10.3358 7.66421 10.3358 7.25 10.75C6.83579 11.1642 6.83579 11.8358 7.25 12.25L10.2929 15.2929C10.6834 15.6834 11.3166 15.6834 11.7071 15.2929L17.25 9.75C17.6642 9.33579 17.6642 8.66421 17.25 8.25C16.8358 7.83579 16.1642 7.83579 15.75 8.25L11.5657 12.4343C11.2533 12.7467 10.7467 12.7467 10.4343 12.4343Z" fill="currentColor"/>
-                                                        </svg>
-                                                    </button>-->
-                                                    <!--end::Activate-->
+                                                    <!--end::Update-->
                                                     <!--begin::Delete-->
-                                                    <!--
-                                                    <button type="button" v-tooltip="'Eliminar'"  @click="onDeleted(provider.id)" class="btn btn-icon btn-active-light-primary w-30px h-30px">
+                                                    <button type="button" v-tooltip="'Eliminar'" @click="onDeleted(agrochemical.id)" class="btn btn-icon btn-active-light-primary w-30px h-30px">
                                                         <span class="svg-icon svg-icon-3">
                                                             <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
                                                                 <path d="M5 9C5 8.44772 5.44772 8 6 8H18C18.5523 8 19 8.44772 19 9V18C19 19.6569 17.6569 21 16 21H8C6.34315 21 5 19.6569 5 18V9Z" fill="currentColor" />
@@ -257,7 +213,6 @@ const onFilter = () => {
                                                             </svg>
                                                         </span>
                                                     </button>
-                                                    -->
                                                     <!--end::Delete-->
                                                 </td>
                                             </tr>
@@ -271,7 +226,7 @@ const onFilter = () => {
                 </div>
             </div>
         </div>
-        <CreateAgrochemicalModal :form="form" />
-        <EditAgrochemicalModal :form="form" />
+        <CreateAgrochemicalModal @store="storeAgrochemical" :form="form" />
+        <EditAgrochemicalModal @update="updateAgrochemical" :form="form" />
     </AppLayout>
 </template>

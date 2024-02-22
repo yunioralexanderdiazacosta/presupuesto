@@ -16,6 +16,9 @@ use App\Http\Controllers\Budgets\DeleteBudgetController;
 use App\Http\Controllers\CostCenters\StoreCostCenterController;
 use App\Http\Controllers\CostCenters\UpdateCostCenterController;
 use App\Http\Controllers\CostCenters\DeleteCostCenterController;
+use App\Http\Controllers\Agrochemicals\StoreAgrochemicalController;
+use App\Http\Controllers\Agrochemicals\UpdateAgrochemicalController;
+use App\Http\Controllers\Agrochemicals\DeleteAgrochemicalController;
 use Inertia\Inertia;
 
 /*
@@ -64,4 +67,8 @@ Route::middleware([
     Route::post('/cost-centers/store', StoreCostCenterController::class)->name('cost.centers.store');
     Route::post('/cost-centers/{costCenter}/update', UpdateCostCenterController::class)->name('cost.centers.update');
     Route::delete('/cost-centers/{costCenter}/delete', DeleteCostCenterController::class)->name('cost.centers.delete');
+
+    Route::post('/agrochemicals/store', StoreAgrochemicalController::class)->name('agrochemicals.store');
+    Route::post('/agrochemicals/{agrochemical}/update', UpdateAgrochemicalController::class)->name('agrochemicals.update');
+    Route::delete('/agrochemicals/{agrochemical}/delete', DeleteAgrochemicalController::class)->name('agrochemicals.delete');
 });
