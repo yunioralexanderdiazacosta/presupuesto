@@ -12,13 +12,13 @@ class UpdateAgrochemicalController extends Controller
     {
          
         $agrochemical->product_name = $request->product_name;
-        $agrochemical->dose_type    = $request->dose_type;
         $agrochemical->dose         = $request->dose;
         $agrochemical->price        = $request->price;
         $agrochemical->mojamiento   = $request->mojamiento;
         $agrochemical->observations = $request->observations;
         $agrochemical->subfamily_id = $request->subfamily_id;
         $agrochemical->unit_id      = $request->unit_id;
+        $agrochemical->dose_type_id = $request->dose_type_id;
         $agrochemical->save(); 
 
         $agrochemical->items()->detach();

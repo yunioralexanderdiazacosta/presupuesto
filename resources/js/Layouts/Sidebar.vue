@@ -43,9 +43,16 @@ const items = [
         role: 'Admin'
     },
     {
-        title: 'Ppto. Agroquimicos',
+        title: 'Agroquimicos',
         icon: `<i class="bi bi-card-checklist"></i>`,
         link: 'agrochemicals.index',
+        subitems: [],
+        role: 'Admin'
+    },
+    {
+        title: 'Fertilizantes',
+        icon: `<i class="bi bi-card-checklist"></i>`,
+        link: 'fertilizers.index',
         subitems: [],
         role: 'Admin'
     }

@@ -18,6 +18,11 @@ class CostCenter extends Model
 
     public function agrochemicals()
     {
-        return $this->belongsToMany(Agrochemicals::class, 'agrochemical_items', 'cost_center_id', 'agrochemical_id');
+        return $this->belongsToMany(Agrochemical::class, 'agrochemical_items', 'cost_center_id', 'agrochemical_id');
+    }
+
+    public function fertilizers()
+    {
+         return $this->belongsToMany(Fertilizer::class, 'fertilizer_items', 'cost_center_id', 'fertilizer_id');
     }    
 }

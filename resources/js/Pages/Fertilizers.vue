@@ -6,68 +6,64 @@ import AppLayout from '@/Layouts/AppLayout.vue';
 import Table from '@/Components/Table.vue';
 import Empty from '@/Components/Empty.vue';
 import Breadcrumb from '@/Components/Breadcrumb.vue';
-import CreateAgrochemicalModal from '@/Components/Agrochemicals/CreateAgrochemicalModal.vue';
-import EditAgrochemicalModal from '@/Components/Agrochemicals/EditAgrochemicalModal.vue';
+import CreateFertilizerModal from '@/Components/Fertilizers/CreateFertilizerModal.vue';
+import EditFertilizerModal from '@/Components/Fertilizers/EditFertilizerModal.vue';
 
 const props = defineProps({
-    agrochemicals: Object
+    fertilizers: Object
 });
 
 const form = useForm({
     product_name: '',
     dose: '',
     price: '',
-    mojamiento: '',
     subfamily_id: '',
     unit_id: '',
-    dose_type_id: '',
     observations: '',
     cc: [],
     months: []
 });
 
-const title = 'Agroquimicos';
+const title = 'Fertilizantes';
 
 const links = [{ title: 'Tablero', link: 'dashboard' }, { title: title, active: true }];
 
 const openAdd = () => {
     form.reset();
-    $('#createAgrochemicalModal').modal('show');
+    $('#createFertilizerModal').modal('show');
 }
 
-const openEdit = (agrochemical) => {
+const openEdit = (fertilizer) => {
     form.reset();
-    form.id = agrochemical.id;
-    form.product_name = agrochemical.product_name;
-    form.dose = agrochemical.dose;
-    form.price = agrochemical.price;
-    form.mojamiento = agrochemical.mojamiento;
-    form.subfamily_id = agrochemical.subfamily_id;
-    form.unit_id = agrochemical.unit_id;
-    form.dose_type_id = agrochemical.dose_type_id;
-    form.observations = agrochemical.observations;
-    form.cc = agrochemical.cc;
-    form.months = agrochemical.months; 
-    $('#editAgrochemicalModal').modal('show');
+    form.id = fertilizer.id;
+    form.product_name = fertilizer.product_name;
+    form.dose = fertilizer.dose;
+    form.price = fertilizer.price;
+    form.subfamily_id = fertilizer.subfamily_id;
+    form.unit_id = fertilizer.unit_id;
+    form.observations = fertilizer.observations;
+    form.cc = fertilizer.cc;
+    form.months = fertilizer.months; 
+    $('#editFertilizerModal').modal('show');
 }
 
-const storeAgrochemical = () => {
-    form.post(route('agrochemicals.store'), {
+const storeFertilizer = () => {
+    form.post(route('fertilizers.store'), {
         preserveScroll: true,
         onSuccess: () => {
             form.reset();
-            $('#createAgrochemicalModal').modal('hide');
+            $('#createFertilizerModal').modal('hide');
             msgSuccess('Guardado correctamente');
         }
     });
 }
 
-const updateAgrochemical = () => {
-    form.post(route('agrochemicals.update', form.id), {
+const updateFertilizer = () => {
+    form.post(route('fertilizers.update', form.id), {
         preserveScroll: true,
         onSuccess: () => {
             form.reset();
-            $('#editAgrochemicalModal').modal('hide');
+            $('#editFertilizerModal').modal('hide');
             msgSuccess('Guardado correctamente');
         }
     });
@@ -94,7 +90,7 @@ const onDeleted = (id) => {
         confirmButtonText: 'Confirmar',
     }).then((result) => {
         if (result.isConfirmed) {
-            router.delete(route('agrochemicals.delete', id), {
+            router.delete(route('fertilizers.delete', id), {
                 preserveScroll: true,
                 onSuccess: () => {
                     msgSuccess('Registro eliminado correctamente');
@@ -132,7 +128,7 @@ const onFilter = () => {
                         <!--end::Page title-->
                         <!--begin::Actions-->
                         <div class="d-flex align-items-center gap-2 gap-lg-3">
-                            <button type="button" @click="openAdd()" class="btn btn-sm fw-bold btn-primary">Agregar agroquimico</button>
+                            <button type="button" @click="openAdd()" class="btn btn-sm fw-bold btn-primary">Agregar fertilizante</button>
                         </div>
                         <!--end::Actions-->
                     </div>
@@ -166,7 +162,7 @@ const onFilter = () => {
                             <!--end::Card header-->
                             <!--begin::Card body-->
                             <div class="card-body pt-0">
-                                <Table :id="'providers'" :total="agrochemicals.length" :links="agrochemicals.links">
+                                <Table :id="'fertilizers'" :total="fertilizers.length" :links="fertilizers.links">
                                     <!--begin::Table head-->
                                     <template #header>
                                         <!--begin::Table row-->
@@ -180,20 +176,20 @@ const onFilter = () => {
                                     <!--end::Table head-->
                                     <!--begin::Table body-->
                                     <template #body>
-                                        <template v-if="agrochemicals.total == 0">
+                                        <template v-if="fertilizers.total == 0">
                                             <Empty colspan="5" />
                                         </template>
                                         <template v-else>
-                                            <tr v-for="(agrochemical, index) in agrochemicals.data" :key="index">
+                                            <tr v-for="(fertilizer, index) in fertilizers.data" :key="index">
                                                 <td>
-                                                    <span class="text-dark  fw-bold mb-1">{{agrochemical.product_name}}</span>
+                                                    <span class="text-dark  fw-bold mb-1">{{fertilizer.product_name}}</span>
                                                 </td>
-                                                <td>{{agrochemical.subfamily.name}}</td>
-                                                <td>{{agrochemical.unit.name}}</td>
-                                                <td>{{agrochemical.price}}</td>
+                                                <td>{{fertilizer.subfamily.name}}</td>
+                                                <td>{{fertilizer.unit.name}}</td>
+                                                <td>{{fertilizer.price}}</td>
                                                 <td class="text-end">
                                                     <!--begin::Update-->
-                                                    <button type="button" @click="openEdit(agrochemical)" v-tooltip="'Editar'" class="btn btn-icon btn-active-light-primary w-30px h-30px me-3">
+                                                    <button type="button" @click="openEdit(fertilizer)" v-tooltip="'Editar'" class="btn btn-icon btn-active-light-primary w-30px h-30px me-3">
                                                         
                                                         <span class="svg-icon svg-icon-3">
                                                         <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -204,7 +200,7 @@ const onFilter = () => {
                                                     </button>
                                                     <!--end::Update-->
                                                     <!--begin::Delete-->
-                                                    <button type="button" v-tooltip="'Eliminar'" @click="onDeleted(agrochemical.id)" class="btn btn-icon btn-active-light-primary w-30px h-30px">
+                                                    <button type="button" v-tooltip="'Eliminar'" @click="onDeleted(fertilizer.id)" class="btn btn-icon btn-active-light-primary w-30px h-30px">
                                                         <span class="svg-icon svg-icon-3">
                                                             <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
                                                                 <path d="M5 9C5 8.44772 5.44772 8 6 8H18C18.5523 8 19 8.44772 19 9V18C19 19.6569 17.6569 21 16 21H8C6.34315 21 5 19.6569 5 18V9Z" fill="currentColor" />
@@ -226,7 +222,7 @@ const onFilter = () => {
                 </div>
             </div>
         </div>
-        <CreateAgrochemicalModal @store="storeAgrochemical" :form="form" />
-        <EditAgrochemicalModal @update="updateAgrochemical" :form="form" />
+        <CreateFertilizerModal @store="storeFertilizer" :form="form" />
+        <EditFertilizerModal @update="updateFertilizer" :form="form" />
     </AppLayout>
 </template>

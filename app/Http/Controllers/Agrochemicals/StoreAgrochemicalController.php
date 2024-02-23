@@ -12,13 +12,13 @@ class StoreAgrochemicalController extends Controller
     {
         $agrochemical = Agrochemical::create([
             'product_name'  => $request->product_name,
-            'dose_type'     => $request->dose_type,
             'dose'          => $request->dose,
             'price'         => $request->price,
             'mojamiento'    => $request->mojamiento,
             'observations'  => $request->observations,
             'subfamily_id'  => $request->subfamily_id,
-            'unit_id'       => $request->unit_id 
+            'unit_id'       => $request->unit_id,
+            'dose_type_id'  => $request->dose_type_id 
         ]);
 
         foreach($request->get('cc') as $cc){

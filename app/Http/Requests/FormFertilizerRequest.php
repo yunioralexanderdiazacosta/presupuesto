@@ -4,7 +4,7 @@ namespace App\Http\Requests;
 
 use Illuminate\Foundation\Http\FormRequest;
 
-class FormAgrochemicalRequest extends FormRequest
+class FormFertilizerRequest extends FormRequest
 {
     /**
      * Determine if the user is authorized to make this request.
@@ -25,10 +25,8 @@ class FormAgrochemicalRequest extends FormRequest
             'product_name' => 'required',
             'dose' => 'required',
             'price' => 'required',
-            'mojamiento' => 'required',
             'subfamily_id' => 'required',
-            'unit_id' => 'required',
-            'dose_type_id' => 'required'
+            'unit_id' => 'required'
         ];
     }
 }

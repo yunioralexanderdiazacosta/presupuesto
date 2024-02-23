@@ -52,6 +52,7 @@
                     v-model="form.product_name"
                     class="form-control form-control-solid"
                     type="text"
+                    :class="{'is-invalid': form.errors.product_name}"
                 />
                 <InputError class="mt-2" :message="form.errors.product_name" />
             </div>
@@ -76,21 +77,6 @@
     <div class="row">
         <div class="col-lg-6">
             <div class="fv-row mb-8">
-                <label class="required fs-6 fw-semibold mb-2">Tipo de dosis</label>
-                <Multiselect
-                    :placeholder="'Seleccione tipo de dosis'"
-                    v-model="form.dose_type_id"
-                    :close-on-select="false"
-                    :options="$page.props.doseTypes"
-                    class="multiselect-blue form-control"
-                    :class="{'is-invalid': form.errors.dose_type_id}"
-                    :searchable="true"
-                />
-                <InputError class="mt-2" :message="form.errors.dose_type_id" />
-            </div>
-        </div>
-        <div class="col-lg-6">
-            <div class="fv-row mb-8">
                 <label class="required fs-6 fw-semibold mb-2">Dosis</label>
                 <TextInput
                     id="dose"
@@ -103,22 +89,7 @@
                 <InputError class="mt-2" :message="form.errors.dose" />
             </div>
         </div>
-    </div>
 
-    <div class="row">
-        <div class="col-lg-6">
-            <div class="fv-row mb-8">
-                <label class="required fs-6 fw-semibold mb-2">Mojamiento</label>
-                <TextInput
-                    id="product_name"
-                    v-model="form.mojamiento"
-                    class="form-control form-control-solid"
-                    type="number"
-                    :class="{'is-invalid': form.errors.mojamiento}"
-                />
-                <InputError class="mt-2" :message="form.errors.mojamiento" />
-            </div>
-        </div>
         <div class="col-lg-6">
             <div class="fv-row mb-8">
                 <label class="required fs-6 fw-semibold mb-2">Precio</label>

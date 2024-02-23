@@ -3,6 +3,7 @@
 use Illuminate\Foundation\Application;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\AgrochemicalsController;
+use App\Http\Controllers\FertilizersController;
 use App\Http\Controllers\TeamsController;
 use App\Http\Controllers\BudgetsController;
 use App\Http\Controllers\CostCentersController;
@@ -19,6 +20,9 @@ use App\Http\Controllers\CostCenters\DeleteCostCenterController;
 use App\Http\Controllers\Agrochemicals\StoreAgrochemicalController;
 use App\Http\Controllers\Agrochemicals\UpdateAgrochemicalController;
 use App\Http\Controllers\Agrochemicals\DeleteAgrochemicalController;
+use App\Http\Controllers\Fertilizers\StoreFertilizerController;
+use App\Http\Controllers\Fertilizers\UpdateFertilizerController;
+use App\Http\Controllers\Fertilizers\DeleteFertilizerController;
 use Inertia\Inertia;
 
 /*
@@ -53,6 +57,7 @@ Route::middleware([
     Route::get('/teams', TeamsController::class)->name('teams.index');
     Route::get('/budgets', BudgetsController::class)->name('budgets.index');
     Route::get('/agrochemicals', AgrochemicalsController::class)->name('agrochemicals.index');
+    Route::get('/fertilizers', FertilizersController::class)->name('fertilizers.index');
     Route::get('/cost-centers', CostCentersController::class)->name('cost.centers.index');
 
     Route::post('/teams/store', StoreTeamController::class)->name('teams.store');
@@ -71,4 +76,8 @@ Route::middleware([
     Route::post('/agrochemicals/store', StoreAgrochemicalController::class)->name('agrochemicals.store');
     Route::post('/agrochemicals/{agrochemical}/update', UpdateAgrochemicalController::class)->name('agrochemicals.update');
     Route::delete('/agrochemicals/{agrochemical}/delete', DeleteAgrochemicalController::class)->name('agrochemicals.delete');
+
+     Route::post('/fertilizers/store', StoreFertilizerController::class)->name('fertilizers.store');
+    Route::post('/fertilizers/{fertilizer}/update', UpdateFertilizerController::class)->name('fertilizers.update');
+    Route::delete('/fertilizers/{fertilizer}/delete', DeleteFertilizerController::class)->name('fertilizers.delete');
 });
