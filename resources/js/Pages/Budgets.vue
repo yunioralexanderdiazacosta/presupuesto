@@ -22,6 +22,10 @@ const form = useForm({
     observations: ''    
 });
 
+const formBudget = useForm({
+    budget_id: ''
+});
+
 const title = 'Presupuestos';
 
 const links = [{ title: 'Tablero', link: 'dashboard' }, { title: title, active: true }];
@@ -70,6 +74,17 @@ const msgSuccess = (msg) => {
         title: msg,
         showConfirmButton: false,
         timer: 1000
+    });
+}
+
+const openBudget = (id) => {
+    formBudget.budget_id = id;
+     formBudget.post(route('select.budget.save'), {
+        preserveScroll: true,
+        onSuccess: () => {
+            formBudget.reset();
+            router.get('dashboard');
+        }
     });
 }
 
@@ -178,6 +193,13 @@ const onFilter = () => {
                                                 <td>{{budget.season}}</td>
                                                 <td>{{budget.month.name}}</td>
                                                 <td class="text-end">
+                                                     <!--begin::Update-->
+                                                    <button type="button" v-tooltip="'Ver'" class="btn btn-icon btn-active-light-primary w-30px h-30px me-3" @click="openBudget(budget.id)">
+                                                        <span class="svg-icon svg-icon-3">
+                                                            <i class="fas fa-eye"></i>
+                                                        </span>
+                                                    </button>
+                                                    <!--end::Update-->
                                                     <!--begin::Update-->
                                                     <button type="button" v-tooltip="'Editar'" class="btn btn-icon btn-active-light-primary w-30px h-30px me-3" @click="openEdit(budget)">
                                                         <span class="svg-icon svg-icon-3">
