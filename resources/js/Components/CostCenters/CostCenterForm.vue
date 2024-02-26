@@ -32,7 +32,7 @@
         />
         <InputError class="mt-2" :message="form.errors.surface" />
     </div>
-       
+    <!--
     <div class="fv-row mb-3">
         <label for="month" class="form-label required fs-6 fw-bold mb-3">Presupuesto</label>
         <Multiselect
@@ -45,7 +45,7 @@
             :searchable="true"
         />
         <InputError class="mt-2" :message="form.errors.budget_id" />
-    </div>
+    </div>-->
 </template>
 <style src="@vueform/multiselect/themes/default.css"></style>
 <style>

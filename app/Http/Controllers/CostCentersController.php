@@ -14,17 +14,16 @@ class CostCentersController extends Controller
     {
         $user = Auth::user();
 
-        $budgets = Budget::where('team_id', $user->team_id)->get()->transform(function($budget){
-            return [
-                'label' => $budget->name,
-                'value' => $budget->id
-            ];
-        });
+        $budget_id = session('budget_id');
 
-        $costCenters = CostCenter::with('budget')->whereHas('budget.team', function($query) use ($user){
+        $budgets = [];
+
+        $budget = Budget::select('name')->where('id', $budget_id)->first();
+
+        $costCenters = CostCenter::where('budget_id', $budget_id)->whereHas('budget.team', function($query) use ($user){
             $query->where('team_id', $user->team_id);
         })->paginate(10);
 
-        return Inertia::render('CostCenters', compact('costCenters', 'budgets'));
+        return Inertia::render('CostCenters', compact('costCenters', 'budget', 'budgets'));
     }   
 }
