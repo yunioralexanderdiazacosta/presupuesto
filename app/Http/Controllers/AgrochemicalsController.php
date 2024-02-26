@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use App\Models\Budget;
 use App\Models\Subfamily;
 use App\Models\CostCenter;
 use App\Models\Unit;
@@ -18,6 +19,10 @@ class AgrochemicalsController extends Controller
     public function __invoke()
     {
         $user = Auth::user();
+
+        $budget_id = session('budget_id');
+
+        $budget = Budget::select('name')->where('id', $budget_id)->first();
 
         $subfamilies = Subfamily::get()->transform(function($subfamily){
             return [
@@ -47,7 +52,7 @@ class AgrochemicalsController extends Controller
             ];
         });
 
-        $costCenters = CostCenter::select('id', 'name')->whereHas('budget.team', function($query) use ($user){
+        $costCenters = CostCenter::select('id', 'name')->where('budget_id', $budget_id)->whereHas('budget.team', function($query) use ($user){
             $query->where('team_id', $user->team_id);
         })->get()->transform(function($costCenter){
             return [
@@ -56,7 +61,9 @@ class AgrochemicalsController extends Controller
             ];
         });
 
-        $agrochemicals = Agrochemical::with('subfamily:id,name', 'unit:id,name', 'items:id')->paginate(10)->through(function($agrochemical){
+        $agrochemicals = Agrochemical::with('subfamily:id,name', 'unit:id,name', 'items:id')->whereHas('items', function($query) use ($costCenters){
+            $query->whereIn('cost_center_id', $costCenters->pluck('value'));
+        })->paginate(10)->through(function($agrochemical){
             $items = $agrochemical->items->pluck('pivot');
             $months = array_column($items->toArray(), 'month_id');
             $cc = array_column($items->toArray(), 'cost_center_id');
@@ -78,6 +85,6 @@ class AgrochemicalsController extends Controller
             ];
         });
 
-        return Inertia::render('Agrochemicals', compact('units', 'subfamilies', 'months', 'costCenters', 'agrochemicals', 'doseTypes'));
+        return Inertia::render('Agrochemicals', compact('units', 'subfamilies', 'months', 'costCenters', 'agrochemicals', 'doseTypes', 'budget'));
     }
 }

@@ -6,6 +6,7 @@ import AppLayout from '@/Layouts/AppLayout.vue';
 import Table from '@/Components/Table.vue';
 import Empty from '@/Components/Empty.vue';
 import Breadcrumb from '@/Components/Breadcrumb.vue';
+import TitleBudget from '@/Components/Budgets/TitleBudget.vue';
 import CreateFertilizerModal from '@/Components/Fertilizers/CreateFertilizerModal.vue';
 import EditFertilizerModal from '@/Components/Fertilizers/EditFertilizerModal.vue';
 
@@ -139,6 +140,9 @@ const onFilter = () => {
                 <div id="kt_app_content" class="app-content flex-column-fluid">
                     <!--begin::Content container-->
                     <div id="kt_app_content_container" class="app-container container-xxl">
+                        <!--begin::Budget-->
+                        <TitleBudget></TitleBudget>
+                        <!--end:Budget-->
                         <!--begin::Card-->
                         <div class="card card-flush">
                             <!--begin::Card header-->

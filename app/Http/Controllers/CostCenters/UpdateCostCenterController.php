@@ -13,7 +13,6 @@ class UpdateCostCenterController extends Controller
     {
         $costCenter->name = $request->name;
         $costCenter->surface = $request->surface;
-        $costCenter->budget_id = $request->budget_id;
         $costCenter->save();
     }
 }

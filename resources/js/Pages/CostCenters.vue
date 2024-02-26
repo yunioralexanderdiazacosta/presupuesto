@@ -7,19 +7,23 @@ import AppLayout from '@/Layouts/AppLayout.vue';
 import Table from '@/Components/Table.vue';
 import Empty from '@/Components/Empty.vue';
 import Breadcrumb from '@/Components/Breadcrumb.vue';
+import TitleBudget from '@/Components/Budgets/TitleBudget.vue';
 import CreateCostCenterModal from '@/Components/CostCenters/CreateCostCenterModal.vue';
 import EditCostCenterModal from '@/Components/CostCenters/EditCostCenterModal.vue';
 
 const props = defineProps({
-    costCenters: Object
+    costCenters: Object,
+    budget: Object
 });
 
 const form = useForm({
     id: null,
     name: '',
     surface: null,
-    budget_id: ''    
+    //budget_id: ''    
 });
+
+const path = computed(() =>usePage().props.public_path);
 
 const title = 'Centros de costo';
 
@@ -35,7 +39,7 @@ const openEdit = (costCenter) => {
     form.id = costCenter.id; 
     form.name = costCenter.name;
     form.surface = costCenter.surface; 
-    form.budget_id = costCenter.budget_id; 
+    //form.budget_id = costCenter.budget_id; 
     $('#editCostCenterModal').modal('show');
 }
 
@@ -131,6 +135,9 @@ const onFilter = () => {
                 <div id="kt_app_content" class="app-content flex-column-fluid">
                     <!--begin::Content container-->
                     <div id="kt_app_content_container" class="app-container container-xxl">
+                        <!--begin::Budget-->
+                        <TitleBudget></TitleBudget>
+                        <!--end:Budget-->
                         <!--begin::Card-->
                         <div class="card card-flush">
                             <!--begin::Card header-->
@@ -159,8 +166,7 @@ const onFilter = () => {
                                     <template #header>
                                         <!--begin::Table row-->
                                         <th width="min-w-150px">Nombre</th>
-                                        <th width="min-w-150px">Presupuesto</th>
-                                        <th width="min-w-50px">Superficie</th>
+                                        <th width="min-w-150px">Superficie</th>
                                         <th width="min-w-150px" class="text-end">Acciones</th>
                                         <!--end::Table row-->
                                     </template>
@@ -173,7 +179,6 @@ const onFilter = () => {
                                         <template v-else>
                                             <tr v-for="(costCenter, index) in costCenters.data" :key="index">
                                                 <td><span class="text-dark text-hover-primary fw-bold mb-1">{{costCenter.name}}</span></td>
-                                                <td>{{costCenter.budget.name}}</td>
                                                 <td>{{costCenter.surface}}</td>
                                                 <td class="text-end">
                                                     <!--begin::Update-->

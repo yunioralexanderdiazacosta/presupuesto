@@ -23,8 +23,7 @@ class FormCostCenterRequest extends FormRequest
     {
         return [
             'name' => 'required',
-            'surface' => 'required',
-            'budget_id' => 'required'
+            'surface' => 'required'
         ];
     }
 }

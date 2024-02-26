@@ -7,6 +7,7 @@ use App\Http\Controllers\FertilizersController;
 use App\Http\Controllers\TeamsController;
 use App\Http\Controllers\BudgetsController;
 use App\Http\Controllers\CostCentersController;
+use App\Http\Controllers\SelectBudgetController;
 use App\Http\Controllers\Teams\StoreTeamController;
 use App\Http\Controllers\Teams\UpdateTeamController;
 use App\Http\Controllers\Teams\DeleteTeamController;
@@ -14,6 +15,7 @@ use App\Http\Controllers\Teams\ActivateInactivateTeamController;
 use App\Http\Controllers\Budgets\StoreBudgetController;
 use App\Http\Controllers\Budgets\UpdateBudgetController;
 use App\Http\Controllers\Budgets\DeleteBudgetController;
+use App\Http\Controllers\Budgets\SaveBudgetController;
 use App\Http\Controllers\CostCenters\StoreCostCenterController;
 use App\Http\Controllers\CostCenters\UpdateCostCenterController;
 use App\Http\Controllers\CostCenters\DeleteCostCenterController;
@@ -50,15 +52,9 @@ Route::middleware([
     config('jetstream.auth_session'),
     'verified',
 ])->group(function () {
-    Route::get('/dashboard', function () {
-        return Inertia::render('Dashboard');
-    })->name('dashboard');
 
     Route::get('/teams', TeamsController::class)->name('teams.index');
     Route::get('/budgets', BudgetsController::class)->name('budgets.index');
-    Route::get('/agrochemicals', AgrochemicalsController::class)->name('agrochemicals.index');
-    Route::get('/fertilizers', FertilizersController::class)->name('fertilizers.index');
-    Route::get('/cost-centers', CostCentersController::class)->name('cost.centers.index');
 
     Route::post('/teams/store', StoreTeamController::class)->name('teams.store');
     Route::post('teams/{user}/update', UpdateTeamController::class)->name('teams.update');
@@ -68,16 +64,28 @@ Route::middleware([
     Route::post('/budgets/store', StoreBudgetController::class)->name('budgets.store');
     Route::post('/budgets/{budget}/update', UpdateBudgetController::class)->name('budgets.update');
     Route::delete('/budgets/{budget}/delete', DeleteBudgetController::class)->name('budgets.delete');
+    
+    Route::middleware(['check.selected.budget'])->group(function () {
+        Route::get('/dashboard', function () {
+            return Inertia::render('Dashboard');
+        })->name('dashboard');
 
-    Route::post('/cost-centers/store', StoreCostCenterController::class)->name('cost.centers.store');
-    Route::post('/cost-centers/{costCenter}/update', UpdateCostCenterController::class)->name('cost.centers.update');
-    Route::delete('/cost-centers/{costCenter}/delete', DeleteCostCenterController::class)->name('cost.centers.delete');
+        Route::get('/agrochemicals', AgrochemicalsController::class)->name('agrochemicals.index');
+        Route::get('/fertilizers', FertilizersController::class)->name('fertilizers.index');
+        Route::get('/cost-centers', CostCentersController::class)->name('cost.centers.index');
 
-    Route::post('/agrochemicals/store', StoreAgrochemicalController::class)->name('agrochemicals.store');
-    Route::post('/agrochemicals/{agrochemical}/update', UpdateAgrochemicalController::class)->name('agrochemicals.update');
-    Route::delete('/agrochemicals/{agrochemical}/delete', DeleteAgrochemicalController::class)->name('agrochemicals.delete');
+        Route::post('/cost-centers/store', StoreCostCenterController::class)->name('cost.centers.store');
+        Route::post('/cost-centers/{costCenter}/update', UpdateCostCenterController::class)->name('cost.centers.update');
+        Route::delete('/cost-centers/{costCenter}/delete', DeleteCostCenterController::class)->name('cost.centers.delete');
 
-     Route::post('/fertilizers/store', StoreFertilizerController::class)->name('fertilizers.store');
-    Route::post('/fertilizers/{fertilizer}/update', UpdateFertilizerController::class)->name('fertilizers.update');
-    Route::delete('/fertilizers/{fertilizer}/delete', DeleteFertilizerController::class)->name('fertilizers.delete');
+        Route::post('/agrochemicals/store', StoreAgrochemicalController::class)->name('agrochemicals.store');
+        Route::post('/agrochemicals/{agrochemical}/update', UpdateAgrochemicalController::class)->name('agrochemicals.update');
+        Route::delete('/agrochemicals/{agrochemical}/delete', DeleteAgrochemicalController::class)->name('agrochemicals.delete');
+
+         Route::post('/fertilizers/store', StoreFertilizerController::class)->name('fertilizers.store');
+        Route::post('/fertilizers/{fertilizer}/update', UpdateFertilizerController::class)->name('fertilizers.update');
+        Route::delete('/fertilizers/{fertilizer}/delete', DeleteFertilizerController::class)->name('fertilizers.delete');
+    });
+    Route::get('/select-budge', SelectBudgetController::class)->name('select.budget');
+    Route::post('/select-budget/save', SaveBudgetController::class)->name('select.budget.save');
 });
