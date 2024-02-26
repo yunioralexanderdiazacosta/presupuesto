@@ -22,8 +22,10 @@ class BudgetsController extends Controller
             ];
         });
 
+        $budget_id = session('budget_id');
+
         $budgets = Budget::with('month')->where('team_id', $user->team_id)->paginate(10);
 
-        return Inertia::render('Budgets', compact('months', 'budgets'));
+        return Inertia::render('Budgets', compact('months', 'budgets', 'budget_id'));
     }
 }
