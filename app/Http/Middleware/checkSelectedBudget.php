@@ -22,8 +22,7 @@ class checkSelectedBudget
             if ($user && $request->session()->has('budget_id') == null) {
                 return Redirect::route('select.budget');
             }
-
-            return $next($request);
         }
+        return $next($request);
     }
 }
