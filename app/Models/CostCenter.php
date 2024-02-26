@@ -9,7 +9,7 @@ class CostCenter extends Model
 {
     use HasFactory;
 
-    protected $fillable = ['name', 'surface', 'budget_id'];
+    protected $fillable = ['name', 'surface', 'budget_id', 'observations'];
 
     public function budget()
     {

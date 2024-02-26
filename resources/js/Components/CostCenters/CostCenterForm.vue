@@ -32,6 +32,12 @@
         />
         <InputError class="mt-2" :message="form.errors.surface" />
     </div>
+
+    <div class="fv-row mb-8">
+        <label for="observations" class="form-label fs-6 fw-bold mb-3">Observaciones</label>
+        <textarea v-model="form.observations" rows="3" class="form-control form-control-lg form-control-solid mb-3 mb-lg-0" :class="{'is-invalid': form.errors.observations }"></textarea>
+        <InputError class="mt-2" :message="form.errors.observations" />
+    </div>
     <!--
     <div class="fv-row mb-3">
         <label for="month" class="form-label required fs-6 fw-bold mb-3">Presupuesto</label>

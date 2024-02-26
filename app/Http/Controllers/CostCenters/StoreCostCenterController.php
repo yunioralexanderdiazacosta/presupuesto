@@ -15,6 +15,7 @@ class StoreCostCenterController extends Controller
         CostCenter::create([
             'name' => $request->name,
             'surface' => $request->surface,
+            'observations' => $request->observations,
             'budget_id' => $budget_id
         ]);
     }

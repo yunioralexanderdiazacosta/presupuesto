@@ -19,6 +19,7 @@ const props = defineProps({
 const form = useForm({
     id: null,
     name: '',
+    observations: '',
     surface: null,
     //budget_id: ''    
 });
@@ -39,6 +40,7 @@ const openEdit = (costCenter) => {
     form.id = costCenter.id; 
     form.name = costCenter.name;
     form.surface = costCenter.surface; 
+    form.observations = costCenter.observations; 
     //form.budget_id = costCenter.budget_id; 
     $('#editCostCenterModal').modal('show');
 }
@@ -167,6 +169,7 @@ const onFilter = () => {
                                         <!--begin::Table row-->
                                         <th width="min-w-150px">Nombre</th>
                                         <th width="min-w-150px">Superficie</th>
+                                        <th width="min-w-150px">Observaciones</th>
                                         <th width="min-w-150px" class="text-end">Acciones</th>
                                         <!--end::Table row-->
                                     </template>
@@ -180,6 +183,7 @@ const onFilter = () => {
                                             <tr v-for="(costCenter, index) in costCenters.data" :key="index">
                                                 <td><span class="text-dark text-hover-primary fw-bold mb-1">{{costCenter.name}}</span></td>
                                                 <td>{{costCenter.surface}}</td>
+                                                <td>{{costCenter.observations}}</td>
                                                 <td class="text-end">
                                                     <!--begin::Update-->
                                                     <button type="button" v-tooltip="'Editar'" class="btn btn-icon btn-active-light-primary w-30px h-30px me-3" @click="openEdit(costCenter)">
