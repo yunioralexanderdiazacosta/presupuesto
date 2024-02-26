@@ -11,7 +11,8 @@ import CreateBudgetModal from '@/Components/Budgets/CreateBudgetModal.vue';
 import EditBudgetModal from '@/Components/Budgets/EditBudgetModal.vue';
 
 const props = defineProps({
-    budgets: Object
+    budgets: Object,
+    budget_id: String
 });
 
 const form = useForm({
@@ -189,17 +190,17 @@ const onFilter = () => {
                                         </template>
                                         <template v-else>
                                             <tr v-for="(budget, index) in budgets.data" :key="index">
-                                                <td><span class="text-dark text-hover-primary fw-bold mb-1">{{budget.name}}</span></td>
+                                                <td><span class="fw-bold mb-1" :class="{'text-primary': budget.id == budget_id, 'text-dark': budget.id != budget_id }">{{budget.name}}</span></td>
                                                 <td>{{budget.season}}</td>
                                                 <td>{{budget.month.name}}</td>
                                                 <td class="text-end">
-                                                     <!--begin::Update-->
-                                                    <button type="button" v-tooltip="'Ver'" class="btn btn-icon btn-active-light-primary w-30px h-30px me-3" @click="openBudget(budget.id)">
+                                                     <!--begin::View-->
+                                                    <button type="button" :class="{'btn-primary disabled': budget.id == budget_id}" v-tooltip="budget.id == budget_id ? 'Seleccionado actualmente' : 'Ver'" class="btn btn-icon btn-active-light-primary w-30px h-30px me-3" @click="openBudget(budget.id)">
                                                         <span class="svg-icon svg-icon-3">
                                                             <i class="fas fa-eye"></i>
                                                         </span>
                                                     </button>
-                                                    <!--end::Update-->
+                                                    <!--end::View-->
                                                     <!--begin::Update-->
                                                     <button type="button" v-tooltip="'Editar'" class="btn btn-icon btn-active-light-primary w-30px h-30px me-3" @click="openEdit(budget)">
                                                         <span class="svg-icon svg-icon-3">
