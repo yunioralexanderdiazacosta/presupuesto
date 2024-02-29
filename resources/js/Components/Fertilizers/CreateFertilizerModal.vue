@@ -9,7 +9,7 @@ const props = defineProps({
 defineEmits(['store']);
 </script>
 <template>
-    <Modal :maxWidth="'lg'" :id="'createFertilizerModal'">
+    <Modal :maxWidth="'xl'" :id="'createFertilizerModal'">
         <template #header>
             <h1 class="mb-3">Agregar fertilizante</h1>
         </template>
