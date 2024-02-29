@@ -56,17 +56,14 @@
         </div>
         <div class="col-lg-6">
             <div class="fv-row mb-8">
-                <label for="familia" class="form-label required fs-6 fw-bold mb-3">Unidad</label>
-                <Multiselect
-                    :placeholder="'Seleccione unidad'"
-                    v-model="form.unit_id"
-                    :close-on-select="false"
-                    :options="$page.props.units"
-                    class="multiselect-blue form-control"
-                    :class="{'is-invalid': form.errors.unit_id}"
-                    :searchable="true"
-                />
-                <InputError class="mt-2" :message="form.errors.unit_id" />
+                <label for="unit" class="form-label required fs-6 fw-bold mb-3">Unidad</label><br>
+                <template v-for="value in $page.props.units">
+                    <div class="form-check form-check-solid form-check-inline mb-3 mt-3">
+                        <input class="form-check-input" type="radio" v-model="form.unit_id" :id="'kt_unit_'+value.id" :value="value.value">
+                        <label class="form-check-label ps-1" :for="'kt_unit_'+value.id">{{value.label}}</label>
+                    </div>
+                </template>
+                <small class="text-danger mt-2" :v-if="form.errors.unit_id">{{form.errors.unit_id}}</small>
             </div>
         </div>
     </div>
@@ -74,17 +71,14 @@
     <div class="row">
         <div class="col-lg-6">
             <div class="fv-row mb-8">
-                <label class="required fs-6 fw-semibold mb-2">Tipo de dosis</label>
-                <Multiselect
-                    :placeholder="'Seleccione tipo de dosis'"
-                    v-model="form.dose_type_id"
-                    :close-on-select="false"
-                    :options="$page.props.doseTypes"
-                    class="multiselect-blue form-control"
-                    :class="{'is-invalid': form.errors.dose_type_id}"
-                    :searchable="true"
-                />
-                <InputError class="mt-2" :message="form.errors.dose_type_id" />
+                <label class="required fs-6 fw-semibold mb-2">Tipo de dosis</label><br>
+                <template v-for="value in $page.props.doseTypes">
+                    <div class="form-check form-check-solid form-check-inline mb-3 mt-3">
+                        <input class="form-check-input" type="radio" v-model="form.dose_type_id" :id="'kt_unit_'+value.id" :value="value.value">
+                        <label class="form-check-label ps-1" :for="'kt_unit_'+value.id">{{value.label}}</label>
+                    </div>
+                </template>
+                <small class="text-danger mt-2" :v-if="form.errors.dose_type_id">{{form.errors.dose_type_id}}</small>
             </div>
         </div>
         <div class="col-lg-6">
