@@ -22,6 +22,7 @@
                     class="multiselect-blue form-control"
                     :class="{'is-invalid': form.errors.cc}"
                     :searchable="true"
+                    :hide-selected="false"
                 />
                 <InputError class="mt-2" :message="form.errors.cc" />
             </div>
@@ -135,18 +136,14 @@
     </div>
 
     <div class="fv-row mb-3">
-        <label for="months" class="form-label required fs-6 fw-bold mb-3">Meses</label>
-        <Multiselect
-            mode="tags"
-            :placeholder="'Seleccione meses'"
-            v-model="form.months"
-            :close-on-select="false"
-            :options="$page.props.months"
-            class="multiselect-blue form-control"
-            :class="{'is-invalid': form.errors.months}"
-            :searchable="true"
-        />
-        <InputError class="mt-2" :message="form.errors.months" />
+        <label for="months" class="form-label required fs-6 fw-bold mb-3">Meses</label><br>
+        <template v-for="value in $page.props.months">
+        <div class="form-check form-check-solid form-check-inline mb-3">
+            <input class="form-check-input" type="checkbox" v-model="form.months" :id="'kt_month_'+value.id" :value="value.value">
+            <label class="form-check-label ps-2" :for="'kt_month_'+value.id">{{value.label}}</label>
+        </div>
+        </template>
+        <small class="text-danger">{{form.errors.months}}</small> 
     </div>
 
     <div class="fv-row mb-3">
