@@ -23,7 +23,7 @@ class FertilizersController extends Controller
 
         $budget = Budget::select('name')->where('id', $budget_id)->first();
 
-        $subfamilies = Subfamily::get()->transform(function($subfamily){
+        $subfamilies = Subfamily::where('id_form', 2)->get()->transform(function($subfamily){
             return [
                 'label' => $subfamily->name,
                 'value' => $subfamily->id
