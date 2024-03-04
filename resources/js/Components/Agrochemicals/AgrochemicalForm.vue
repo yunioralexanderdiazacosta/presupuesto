@@ -29,14 +29,18 @@
         </div>
         <div class="col-lg-6">
             <div class="fv-row mb-8">
-                <label for="families" class="form-label required fs-6 fw-bold mb-3">Familia</label><br>
-                <template v-for="value in $page.props.subfamilies">
-                    <div class="form-check form-check-solid form-check-inline mb-3">
-                        <input class="form-check-input" type="radio" v-model="form.subfamily_id" :id="'kt_month_'+value.id" :value="value.value">
-                        <label class="form-check-label ps-1" :for="'kt_month_'+value.id">{{value.label}}</label>
-                    </div>
-                </template>
-                <small class="text-danger mt-2" v-if="form.errors.family_id">{{form.errors.family_id}}</small>
+                <label for="families" class="form-label required fs-6 fw-bold mb-3">Familia</label>
+                <Multiselect
+                    :placeholder="'Seleccione familia'"
+                    v-model="form.subfamily_id"
+                    :close-on-select="false"
+                    :options="$page.props.subfamilies"
+                    class="multiselect-blue form-control"
+                    :class="{'is-invalid': form.errors.subfamily_id}"
+                    :searchable="true"
+                    :hide-selected="false"
+                />
+                <InputError class="mt-2" :message="form.errors.subfamily_id" />
             </div>
         </div>
     </div>
