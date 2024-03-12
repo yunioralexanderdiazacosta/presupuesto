@@ -14,6 +14,23 @@ const props = defineProps({
     agrochemicals: Object
 });
 
+const formMultiple = useForm({
+    subfamily_id: '',
+    cc: [],
+    products: [
+        {
+            product_name: '',
+            dose: '',
+            price: '',
+            mojamiento: '',
+            unit_id: '',
+            dose_type_id: '',
+            observations: '',
+            months: []
+        }
+    ]
+});
+
 const form = useForm({
     product_name: '',
     dose: '',
@@ -53,10 +70,10 @@ const openEdit = (agrochemical) => {
 }
 
 const storeAgrochemical = () => {
-    form.post(route('agrochemicals.store'), {
+    formMultiple.post(route('agrochemicals.store'), {
         preserveScroll: true,
         onSuccess: () => {
-            form.reset();
+            formMultiple.reset();
             $('#createAgrochemicalModal').modal('hide');
             msgSuccess('Guardado correctamente');
         }
@@ -230,7 +247,7 @@ const onFilter = () => {
                 </div>
             </div>
         </div>
-        <CreateAgrochemicalModal @store="storeAgrochemical" :form="form" />
+        <CreateAgrochemicalModal @store="storeAgrochemical" :form="formMultiple" />
         <EditAgrochemicalModal @update="updateAgrochemical" :form="form" />
     </AppLayout>
 </template>

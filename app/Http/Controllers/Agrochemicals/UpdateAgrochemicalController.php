@@ -3,12 +3,12 @@
 namespace App\Http\Controllers\Agrochemicals;
 
 use App\Http\Controllers\Controller;
-use App\Http\Requests\FormAgrochemicalRequest;
+use App\Http\Requests\Agrochemicals\UpdateAgrochemicalRequest;
 use App\Models\Agrochemical;
 
 class UpdateAgrochemicalController extends Controller
 {
-    public function __invoke(Agrochemical $agrochemical, FormAgrochemicalRequest $request)
+    public function __invoke(Agrochemical $agrochemical, UpdateAgrochemicalRequest $request)
     {
          
         $agrochemical->product_name = $request->product_name;

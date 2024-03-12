@@ -3,26 +3,30 @@
 namespace App\Http\Controllers\Fertilizers;
 
 use App\Http\Controllers\Controller;
-use App\Http\Requests\FormFertilizerRequest;
+use App\Http\Requests\Fertilizers\StoreFertilizerRequest;
 use Illuminate\Http\Request;
 use App\Models\Fertilizer;
 
 class StoreFertilizerController extends Controller
 {
-    public function __invoke(FormFertilizerRequest $request)
+    public function __invoke(StoreFertilizerRequest $request)
     {
-        $fertilizer = Fertilizer::create([
-            'product_name'  => $request->product_name,
-            'dose'          => $request->dose,
-            'price'         => $request->price,
-            'observations'  => $request->observations,
-            'subfamily_id'  => $request->subfamily_id,
-            'unit_id'       => $request->unit_id 
-        ]);
+        $products = $request->get('products');
 
-        foreach($request->get('cc') as $cc){
-            foreach($request->get('months') as $month){
-                $fertilizer->items()->attach($cc, ['month_id' => $month]);
+        foreach($products as $product){
+            $fertilizer = Fertilizer::create([
+                'product_name'  => $product['product_name'],
+                'dose'          => $product['dose'],
+                'price'         => $product['price'],
+                'observations'  => $product['observations'],
+                'unit_id'       => $product['unit_id'],
+                'subfamily_id'  => $request->subfamily_id,
+            ]);
+
+            foreach($request->get('cc') as $cc){
+                foreach($product['months'] as $month){
+                    $fertilizer->items()->attach($cc, ['month_id' => $month]);
+                }
             }
         }
     }

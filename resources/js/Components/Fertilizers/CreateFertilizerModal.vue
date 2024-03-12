@@ -1,5 +1,5 @@
 <script setup>
-import FertilizerForm from './FertilizerForm.vue';
+import FertilizerForm from './FertilizerFormMultiple.vue';
 import Modal from '@/Components/Modal.vue';
 
 const props = defineProps({

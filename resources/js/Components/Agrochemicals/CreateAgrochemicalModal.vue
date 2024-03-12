@@ -1,5 +1,5 @@
 <script setup>
-import AgrochemicalForm from './AgrochemicalForm.vue';
+import AgrochemicalForm from './AgrochemicalFormMultiple.vue';
 import Modal from '@/Components/Modal.vue';
 
 const props = defineProps({

@@ -14,6 +14,21 @@ const props = defineProps({
     fertilizers: Object
 });
 
+const formMultiple = useForm({
+    subfamily_id: '',
+    cc: [],
+    products: [
+        {
+            product_name: '',
+            dose: '',
+            price: '',
+            unit_id: '',
+            observations: '',
+            months: []
+        }
+    ]
+});
+
 const form = useForm({
     product_name: '',
     dose: '',
@@ -49,10 +64,10 @@ const openEdit = (fertilizer) => {
 }
 
 const storeFertilizer = () => {
-    form.post(route('fertilizers.store'), {
+    formMultiple.post(route('fertilizers.store'), {
         preserveScroll: true,
         onSuccess: () => {
-            form.reset();
+            formMultiple.reset();
             $('#createFertilizerModal').modal('hide');
             msgSuccess('Guardado correctamente');
         }
@@ -226,7 +241,7 @@ const onFilter = () => {
                 </div>
             </div>
         </div>
-        <CreateFertilizerModal @store="storeFertilizer" :form="form" />
+        <CreateFertilizerModal @store="storeFertilizer" :form="formMultiple" />
         <EditFertilizerModal @update="updateFertilizer" :form="form" />
     </AppLayout>
 </template>

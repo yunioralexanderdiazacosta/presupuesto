@@ -1,10 +1,10 @@
 <?php
 
-namespace App\Http\Requests;
+namespace App\Http\Requests\Agrochemicals;
 
 use Illuminate\Foundation\Http\FormRequest;
 
-class FormAgrochemicalRequest extends FormRequest
+class StoreAgrochemicalRequest extends FormRequest
 {
     /**
      * Determine if the user is authorized to make this request.

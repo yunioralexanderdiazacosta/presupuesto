@@ -1,11 +1,11 @@
 <script setup>
     import Multiselect from '@vueform/multiselect';
-	import TextInput from '@/Components/TextInput.vue';
-	import InputError from '@/Components/InputError.vue';
+    import TextInput from '@/Components/TextInput.vue';
+    import InputError from '@/Components/InputError.vue';
 
-	defineProps({
-		form: Object
-	});
+    defineProps({
+        form: Object
+    });
 </script>
 <script setup></script>
 <template>

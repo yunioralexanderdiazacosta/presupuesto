@@ -1,10 +1,10 @@
 <?php
 
-namespace App\Http\Requests;
+namespace App\Http\Requests\Fertilizers;
 
 use Illuminate\Foundation\Http\FormRequest;
 
-class FormAgrochemicalRequest extends FormRequest
+class UpdateFertilizerRequest extends FormRequest
 {
     /**
      * Determine if the user is authorized to make this request.
@@ -22,16 +22,11 @@ class FormAgrochemicalRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'cc' => 'required',
+            'product_name' => 'required',
+            'dose' => 'required',
+            'price' => 'required',
             'subfamily_id' => 'required',
-            'products' => 'required|array',
-            'products.*.product_name' => 'required',
-            'products.*.unit_id' => 'required',
-            'products.*.dose' => 'required',
-            'products.*.mojamiento' => 'required',
-            'products.*.price' => 'required',
-            'products.*.months' => 'required',
-            'products.*.dose_type_id' => 'required'
+            'unit_id' => 'required'
         ];
     }
 }

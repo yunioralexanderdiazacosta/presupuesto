@@ -3,12 +3,12 @@
 namespace App\Http\Controllers\Fertilizers;
 
 use App\Http\Controllers\Controller;
-use App\Http\Requests\FormFertilizerRequest;
+use App\Http\Requests\Fertilizers\UpdateFertilizerRequest;
 use App\Models\Fertilizer;
 
 class UpdateFertilizerController extends Controller
 {
-    public function __invoke(Fertilizer $fertilizer, FormFertilizerRequest $request)
+    public function __invoke(Fertilizer $fertilizer, UpdateFertilizerRequest $request)
     {
         $fertilizer->product_name = $request->product_name;
         $fertilizer->dose         = $request->dose;
