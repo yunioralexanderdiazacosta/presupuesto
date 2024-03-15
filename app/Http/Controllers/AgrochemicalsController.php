@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
 use App\Models\Budget;
 use App\Models\Subfamily;
 use App\Models\CostCenter;
@@ -85,6 +86,102 @@ class AgrochemicalsController extends Controller
             ];
         });
 
-        return Inertia::render('Agrochemicals', compact('units', 'subfamilies', 'months', 'costCenters', 'agrochemicals', 'doseTypes', 'budget'));
+        $data = Agrochemical::from('agrochemicals as a')
+        ->join('agrochemical_items as ai', 'a.id', 'ai.agrochemical_id')
+        ->join('cost_centers as cc', 'ai.cost_center_id', 'cc.id')
+        ->select('ai.cost_center_id', 'cc.name', 'cc.surface')
+        ->whereIn('ai.cost_center_id', $costCenters->pluck('value'))
+        ->groupBy('ai.cost_center_id', 'cc.name', 'cc.surface')
+        ->get()
+        ->transform(function($value) use ($costCenters){
+            return [
+                'id' => $value->cost_center_id,
+                'name' => $value->name,
+                'subfamilies' => $this->getSubfamilies($value->cost_center_id, $value->surface)
+            ];
+        });
+
+        return Inertia::render('Agrochemicals', compact('units', 'subfamilies', 'months', 'costCenters', 'agrochemicals', 'data', 'doseTypes', 'budget'));
+    }
+
+    private function getSubfamilies($costCenterId, $surface)
+    {
+        $subfamilies = Agrochemical::from('agrochemicals as a')
+        ->join('agrochemical_items as ai', 'a.id', 'ai.agrochemical_id')
+        ->join('subfamilies as s', 'a.subfamily_id', 's.id')
+        ->select('s.id', 's.name')
+        ->where('ai.cost_center_id', $costCenterId)
+        ->groupBy('s.id', 's.name')
+        ->get()
+        ->transform(function($subfamily) use ($costCenterId, $surface){
+            return [
+                'id' => $subfamily->id,
+                'name' => $subfamily->name,
+                'products' => $this->getProducts($subfamily->id, $costCenterId, $surface)
+            ];
+        });
+
+        return $subfamilies;
+    }
+
+    private function getProducts($subfamilyId, $costCenterId, $surface)
+    {
+        $products = Agrochemical::from('agrochemicals as a')
+        ->join('agrochemical_items as ai', 'a.id', 'ai.agrochemical_id')
+        ->join('units as u', 'a.unit_id', 'u.id')
+        ->select('a.id', 'a.product_name', 'a.price', 'a.dose_type_id', 'a.dose', 'a.mojamiento', 'u.name')
+        ->where('ai.cost_center_id', $costCenterId)
+        ->where('a.subfamily_id', $subfamilyId)
+        ->groupBy('a.id', 'a.product_name', 'a.price', 'a.dose_type_id', 'a.dose', 'a.mojamiento', 'u.name')
+        ->get()
+        ->transform(function($value) use ($surface){
+            if($value->dose_type_id == 1){
+                $quantityFirst = round($value->dose * $surface, 2);
+            }elseif($value->dose_type_id == 2){
+                $quantityFirst = round((($value->mojamiento / 100) * $value->dose * $surface), 2);
+            }
+            $amountFirst = round($value->price * $quantityFirst, 2);
+            $data = $this->getMonths($value->id, $quantityFirst, $amountFirst); 
+
+            return [
+                'id'            => $value->id,
+                'name'          => $value->product_name,
+                'unit'          => $value->name,
+                'totalQuantity' => $data['totalQuantity'],
+                'totalAmount'   => $data['totalAmount'],
+                'months'        => $data['months']
+            ];
+        });
+
+        return $products;
+    }
+
+    private function getMonths($agrochemicalId, $quantity, $amount)
+    {
+        $data = Month::get();
+
+        $months = [];
+        $totalAmount = 0;
+        $totalQuantity = 0;
+        foreach($data as $month)
+        {
+            $count = DB::table('agrochemical_items')
+            ->select('agrochemical_id')
+            ->where('agrochemical_id', $agrochemicalId)
+            ->where('month_id', $month->id)
+            ->count();
+
+            $amountMonth = $count > 0 ? $amount : 0;
+            $quantityMonth = $count > 0 ? $quantity : 0;
+            $totalAmount += $amountMonth;
+            $totalQuantity += $quantityMonth;
+            array_push($months, $amountMonth);        
+        }
+
+        return [
+            'months' => $months,
+            'totalAmount' => round($totalAmount, 2),
+            'totalQuantity' => round($totalQuantity,2)
+        ];
     }
 }

@@ -48,7 +48,7 @@
                 <Multiselect
                     :placeholder="'Seleccione familia'"
                     v-model="form.subfamily_id"
-                    :close-on-select="false"
+                    :close-on-select="true"
                     :options="$page.props.subfamilies"
                     class="multiselect-blue form-control"
                     :class="{'is-invalid': form.errors.subfamily_id}"
