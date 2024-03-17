@@ -197,7 +197,7 @@ const onFilter = () => {
                                             <template #header>
                                                 <!--begin::Table row-->
                                                 <th width="min-w-100px">Nombre</th>
-                                                <th width="min-w-100px">Familia</th>
+                                                <th width="min-w-100px">SubFamilia</th>
                                                 <th width="min-w-100px">Unidad</th>
                                                 <th width="min-w-100px">Precio</th>
                                                 <th width="min-w-150px" class="text-end">Acciones</th>
