@@ -169,13 +169,13 @@ const onFilter = () => {
                                                                 
                                     <li class="nav-item" role="presentation">
                                         <a class="nav-link active" data-bs-toggle="tab" href="#kt_table_1" role="tab" aria-selected="true">
-                                            Tabla 1
+                                            Edicion
                                         </a>
                                     </li>
                                                 
                                     <li class="nav-item" role="presentation">
                                         <a class="nav-link" data-bs-toggle="tab" href="#kt_table_2" role="tab" aria-selected="false" tabindex="-1">
-                                            Tabla 2                 
+                                            Detalle                 
                                         </a>
                                     </li>
                                 </ul>
