@@ -174,13 +174,13 @@ const onFilter = () => {
                                                                 
                                     <li class="nav-item" role="presentation">
                                         <a class="nav-link active" data-bs-toggle="tab" href="#kt_table_1" role="tab" aria-selected="true">
-                                            Tabla 1
+                                            Edicion
                                         </a>
                                     </li>
                                                 
                                     <li class="nav-item" role="presentation">
                                         <a class="nav-link" data-bs-toggle="tab" href="#kt_table_2" role="tab" aria-selected="false" tabindex="-1">
-                                            Tabla 2                 
+                                            Detalle                 
                                         </a>
                                     </li>
                                 </ul>
@@ -257,7 +257,7 @@ const onFilter = () => {
                                                 <!--begin::Table head-->
                                                 <thead>
                                                     <tr class="fw-bold text-muted">
-                                                        <th class="min-w-150px">Centro de costo</th>
+                                                        <th class="min-w-150px">CC</th>
                                                         <th>Subfamilia</th>
                                                         <th class="min-w-100px">Producto</th>
                                                         <th>Cantidad Total</th>
