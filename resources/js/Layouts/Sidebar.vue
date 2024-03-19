@@ -55,6 +55,13 @@ const items = [
         link: 'fertilizers.index',
         subitems: [],
         role: 'Admin'
+    },
+    {
+        title: 'Mano de Obra',
+        icon: `<i class="bi bi-card-checklist"></i>`,
+        link: 'manpowers.index',
+        subitems: [],
+        role: 'Admin'
     }
 ];
 </script>

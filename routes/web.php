@@ -25,6 +25,7 @@ use App\Http\Controllers\Agrochemicals\DeleteAgrochemicalController;
 use App\Http\Controllers\Fertilizers\StoreFertilizerController;
 use App\Http\Controllers\Fertilizers\UpdateFertilizerController;
 use App\Http\Controllers\Fertilizers\DeleteFertilizerController;
+use App\Http\Controllers\ManPowersController;
 use Inertia\Inertia;
 
 /*
@@ -73,6 +74,7 @@ Route::middleware([
         Route::get('/agrochemicals', AgrochemicalsController::class)->name('agrochemicals.index');
         Route::get('/fertilizers', FertilizersController::class)->name('fertilizers.index');
         Route::get('/cost-centers', CostCentersController::class)->name('cost.centers.index');
+        Route::get('/manpowers', ManPowersController::class)->name('manpowers.index');
 
         Route::post('/cost-centers/store', StoreCostCenterController::class)->name('cost.centers.store');
         Route::post('/cost-centers/{costCenter}/update', UpdateCostCenterController::class)->name('cost.centers.update');
