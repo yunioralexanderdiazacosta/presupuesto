@@ -15,6 +15,8 @@ const props = defineProps({
     data: Array
 });
 
+var acum = ref(0);
+
 const formMultiple = useForm({
     subfamily_id: '',
     cc: [],
@@ -121,6 +123,11 @@ const onDeleted = (id) => {
             });
         }
     });
+}
+
+const acum_products = (quantity) => {
+    acum.value = acum.value + quantity;
+    return acum.value;
 }
 
 /*
@@ -269,17 +276,27 @@ const onFilter = () => {
                                                 <!--end::Table head-->
                                                 <!--begin::Table body-->
                                                 <tbody>
-                                                    <template v-for="cc in data">
-                                                        <template v-for="subfamily in cc.subfamilies">
-                                                            <tr v-for="product in subfamily.products">
-                                                                <td>{{cc.name}}</td>
-                                                                <td>{{subfamily.name}}</td>
-                                                                <td>{{product.name}}</td>
-                                                                <td>{{product.totalQuantity}}</td>
-                                                                <td>{{product.unit}}</td>
-                                                                <td>{{product.totalAmount}}</td>
-                                                                <td v-for="value in product.months">{{value}}</td>
+                                                    <template v-for="(cc, index) in data">
+                                                        <template v-for="(subfamily, index2) in cc.subfamilies">
+                                                            <tr>
+                                                                <td v-if="index2 == 0" :rowspan="cc.total">{{cc.name}}</td>
+                                                                <td  style="padding-left: 0px;" :rowspan="subfamily.products.length">{{subfamily.name}}</td>
+                                                                <td style="padding-left: 0px;">{{subfamily.products[0].name}}</td>
+                                                                <td>{{subfamily.products[0].totalQuantity}}</td>
+                                                                <td>{{subfamily.products[0].unit}}</td>
+                                                                <td>{{subfamily.products[0].totalAmount}}</td>
+                                                                <td class="bg-opacity-5 bg-primary" v-for="value in subfamily.products[0].months">{{value}}</td>
                                                             </tr>
+
+                                                            <template v-for="(product, index3) in subfamily.products">
+                                                                <tr v-if="index3 > 0">
+                                                                    <td>{{product.name}}</td>
+                                                                    <td>{{product.totalQuantity}}</td>
+                                                                    <td>{{product.unit}}</td>
+                                                                    <td>{{product.totalAmount}}</td>
+                                                                    <td class="bg-opacity-5 bg-primary" v-for="value in product.months">{{value}}</td>
+                                                                </tr>
+                                                            </template>
                                                         </template>
                                                     </template>
                                                 </tbody>

@@ -16,13 +16,17 @@ use Inertia\Inertia;
 
 class FertilizersController extends Controller
 {
+    public $month_id = '';
+
     public function __invoke()
     {
         $user = Auth::user();
 
         $budget_id = session('budget_id');
 
-        $budget = Budget::select('name')->where('id', $budget_id)->first();
+        $budget = Budget::select('name', 'month_id')->where('id', $budget_id)->first();
+
+        $this->month_id = $budget['month_id'];
 
         $subfamilies = Subfamily::where('id_form', 2)->get()->transform(function($subfamily){
             return [
@@ -38,7 +42,7 @@ class FertilizersController extends Controller
             ];
         });
 
-        $months = Month::get()->transform(function($month){
+        $months = Month::where('id', '>=', $budget->month_id)->get()->transform(function($month){
             return [
                 'label' => $month->name,
                 'value' => $month->id
@@ -88,7 +92,8 @@ class FertilizersController extends Controller
             return [
                 'id' => $value->cost_center_id,
                 'name' => $value->name,
-                'subfamilies' => $this->getSubfamilies($value->cost_center_id, $value->surface)
+                'subfamilies' => $this->getSubfamilies($value->cost_center_id, $value->surface),
+                'total' => $this->getTotal($value->cost_center_id)
             ];
         });
 
@@ -143,9 +148,20 @@ class FertilizersController extends Controller
         return $products;
     }
 
+    private function getTotal($costCenterId)
+    {   
+        $total = DB::table('fertilizer_items')
+        ->select('fertilizer_id')
+        ->where('cost_center_id', $costCenterId)
+        ->distinct('fertilizer_id')
+        ->count();
+
+        return $total;
+    }
+
     private function getMonths($fertilizerId, $quantity, $amount)
     {
-        $data = Month::get();
+        $data = Month::where('id', '>=', $this->month_id)->get();
 
         $months = [];
         $totalAmount = 0;
@@ -162,13 +178,13 @@ class FertilizersController extends Controller
             $quantityMonth = $count > 0 ? $quantity : 0;
             $totalAmount += $amountMonth;
             $totalQuantity += $quantityMonth;
-            array_push($months, $amountMonth);        
+            array_push($months, number_format($amountMonth, 0, '', '.'));        
         }
 
         return [
             'months' => $months,
-            'totalAmount' => round($totalAmount, 2),
-            'totalQuantity' => round($totalQuantity, 2)
+            'totalAmount' => number_format($totalAmount, 2, ',', '.'),
+            'totalQuantity' => number_format($totalQuantity, 2, ',', '.')
         ];
     }
 }
