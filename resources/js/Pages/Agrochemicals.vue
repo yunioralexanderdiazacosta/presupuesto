@@ -199,7 +199,7 @@ const onFilter = () => {
                                 <div class="tab-content pt-3">                            
                                     <!--begin::Tab pane-->
                                     <div class="tab-pane active show" id="kt_table_1" role="tabpanel">
-                                        <Table :id="'agrochemicals'" :total="agrochemicals.length" :links="agrochemicals.links">
+                                        <Table sticky-header :id="'agrochemicals'" :total="agrochemicals.length" :links="agrochemicals.links">
                                             <!--begin::Table head-->
                                             <template #header>
                                                 <!--begin::Table row-->
@@ -207,7 +207,7 @@ const onFilter = () => {
                                                 <th width="min-w-100px">SubFamilia</th>
                                                 <th width="min-w-100px">Unidad</th>
                                                 <th width="min-w-100px">Precio</th>
-                                                <th width="min-w-150px" class="text-end">Acciones</th>
+                                                <th width="min-w-150px" class="text-end text-center">Acciones</th>
                                                 <!--end::Table row-->
                                             </template>
                                             <!--end::Table head-->
@@ -224,7 +224,7 @@ const onFilter = () => {
                                                         <td>{{agrochemical.subfamily.name}}</td>
                                                         <td>{{agrochemical.unit.name}}</td>
                                                         <td>{{agrochemical.price}}</td>
-                                                        <td class="text-end">
+                                                        <td class="text-end text-center">
                                                             <!--begin::Update-->
                                                             <button type="button" @click="openEdit(agrochemical)" v-tooltip="'Editar'" class="btn btn-icon btn-active-light-primary w-30px h-30px me-3">
                                                                 

@@ -195,7 +195,7 @@ const onFilter = () => {
                                                 <th width="min-w-100px">SubFamilia</th>
                                                 <th width="min-w-100px">Unidad</th>
                                                 <th width="min-w-100px">Precio</th>
-                                                <th width="min-w-150px" class="text-end">Acciones</th>
+                                                <th width="min-w-150px" class="text-end text-center">Acciones</th>
                                                 <!--end::Table row-->
                                             </template>
                                             <!--end::Table head-->
@@ -212,7 +212,7 @@ const onFilter = () => {
                                                         <td>{{fertilizer.subfamily.name}}</td>
                                                         <td>{{fertilizer.unit.name}}</td>
                                                         <td>{{fertilizer.price}}</td>
-                                                        <td class="text-end">
+                                                        <td class="text-end text-center">
                                                             <!--begin::Update-->
                                                             <button type="button" @click="openEdit(fertilizer)" v-tooltip="'Editar'" class="btn btn-icon btn-active-light-primary w-30px h-30px me-3">
                                                                 

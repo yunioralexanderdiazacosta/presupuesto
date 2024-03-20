@@ -1,0 +1,17 @@
+
+ #kt_table_2 {
+
+height: 400px;
+overflow-y: auto;
+}
+
+ #kt_table_1 {
+
+height: 400px;
+overflow-y: auto;
+} 
+
+input{
+    text-transform: uppercase;
+}
+
