@@ -257,8 +257,8 @@ const onFilter = () => {
                                                         <th class="min-w-100px">Producto</th>
                                                         <th>Cantidad Total</th>
                                                         <th>Un</th>
-                                                        <th>Monto Total</th>
-                                                        <th v-for="month in $page.props.months">{{month.label}}</th> 
+                                                        <th class="text-dark">Monto Total</th>
+                                                        <th v-for="month in $page.props.months" class="text-primary">{{month.label}}</th> 
                                                     </tr>
                                                 </thead>
                                                 <!--end::Table head-->
@@ -267,8 +267,8 @@ const onFilter = () => {
                                                     <template v-for="cc in data">
                                                         <template v-for="(subfamily, index2) in cc.subfamilies">
                                                             <tr>
-                                                                <td v-if="index2 == 0" :rowspan="cc.total">{{cc.name}}</td>
-                                                                <td  style="padding-left: 0px;" :rowspan="subfamily.products.length">{{subfamily.name}}</td>
+                                                                <td v-if="index2 == 0" :rowspan="cc.total" style="vertical-align:top">{{cc.name}}</td>
+                                                                <td style="vertical-align:top;" :rowspan="subfamily.products.length">{{subfamily.name}}</td>
                                                                 <td style="padding-left: 0px;">{{subfamily.products[0].name}}</td>
                                                                 <td>{{subfamily.products[0].totalQuantity}}</td>
                                                                 <td>{{subfamily.products[0].unit}}</td>

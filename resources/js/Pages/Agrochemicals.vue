@@ -269,7 +269,7 @@ const onFilter = () => {
                                                         <th class="min-w-100px">Producto</th>
                                                         <th>Cantidad Total</th>
                                                         <th>Un</th>
-                                                        <th>Monto Total</th>
+                                                        <th class="text-dark">Monto Total</th>
                                                         <th v-for="month in $page.props.months" class="text-primary">{{month.label}}</th> 
                                                     </tr>
                                                 </thead>
@@ -284,7 +284,7 @@ const onFilter = () => {
                                                                 <td style="padding-left: 0px;">{{subfamily.products[0].name}}</td>
                                                                 <td>{{subfamily.products[0].totalQuantity}}</td>
                                                                 <td>{{subfamily.products[0].unit}}</td>
-                                                                <td>{{subfamily.products[0].totalAmount}}</td>
+                                                                <td class="text-dark">{{subfamily.products[0].totalAmount}}</td>
                                                                 <td class="bg-opacity-5 bg-primary" v-for="value in subfamily.products[0].months">{{value}}</td>
                                                             </tr>
 
@@ -293,7 +293,7 @@ const onFilter = () => {
                                                                     <td>{{product.name}}</td>
                                                                     <td>{{product.totalQuantity}}</td>
                                                                     <td>{{product.unit}}</td>
-                                                                    <td>{{product.totalAmount}}</td>
+                                                                    <td class="text-dark">{{product.totalAmount}}</td>
                                                                     <td class="bg-opacity-5 bg-primary" v-for="value in product.months">{{value}}</td>
                                                                 </tr>
                                                             </template>
