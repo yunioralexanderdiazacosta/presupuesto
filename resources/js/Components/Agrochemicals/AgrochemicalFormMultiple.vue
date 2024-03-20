@@ -64,7 +64,7 @@
     <template v-for="(product,index) in form.products">
         <hr>
         <div class="row">
-            <div class="col-lg-2">
+            <div class="col-lg-3">
                 <div class="fv-row mb-8">
                     <label class="required fs-6 fw-semibold mb-2">Nombre del producto</label>
                     <TextInput
@@ -77,6 +77,36 @@
                     <InputError class="mt-2" :message="form.errors.product_name" />
                 </div>
             </div>
+            
+
+            <div class="col-lg-2">
+                <div class="fv-row mb-8">
+                    <label class="required fs-6 fw-semibold mb-2">Tipo de dosis</label><br>
+                    <template v-for="value in $page.props.doseTypes">
+                        <div class="form-check form-check-solid form-check-inline mb-1 mt-1 mr-1">
+                            <input class="form-check-input" type="radio" v-model="product.dose_type_id" :id="'kt_unit_'+value.id" :value="value.value">
+                            <label class="form-check-label ps-1" :for="'kt_unit_'+value.id">{{value.label}}</label>
+                        </div>
+                    </template>
+                    <small class="text-danger mt-2" :v-if="form.errors['products.'+index+'.dose_type_id']"><br>{{form.errors['products.'+index+'.dose_type_id']}}</small>
+                </div>
+            </div>
+           
+            <div class="col-lg-2">
+                <div class="fv-row mb-8">
+                    <label class="required fs-6 fw-semibold mb-2">Dosis</label>
+                    <TextInput
+                        id="dose"
+                        v-model="product.dose"
+                        class="form-control form-control-solid"
+                        type="number"
+                        step="0.00"
+                        :class="{'is-invalid': form.errors['products.'+index+'.dose']}"
+                    />
+                    <InputError class="mt-2" :message="form.errors['products.'+index+'.dose']" />
+                </div>
+            </div>
+
             <div class="col-lg-2">
                 <div class="fv-row mb-8">
                     <label for="unit" class="form-label required fs-6 fw-bold mb-2">Unidad</label>
@@ -94,34 +124,7 @@
                 </div>
             </div>
 
-            <div class="col-lg-3">
-                <div class="fv-row mb-8">
-                    <label class="required fs-6 fw-semibold mb-2">Tipo de dosis</label><br>
-                    <template v-for="value in $page.props.doseTypes">
-                        <div style="margin-right: 0.5rem;" class="form-check form-check-solid form-check-inline mb-3 mt-3">
-                            <input class="form-check-input" type="radio" v-model="product.dose_type_id" :id="'kt_unit_'+value.id" :value="value.value">
-                            <label class="form-check-label ps-1" :for="'kt_unit_'+value.id">{{value.label}}</label>
-                        </div>
-                    </template>
-                    <small class="text-danger mt-2" :v-if="form.errors['products.'+index+'.dose_type_id']"><br>{{form.errors['products.'+index+'.dose_type_id']}}</small>
-                </div>
-            </div>
             <div class="col-lg-1">
-                <div class="fv-row mb-8">
-                    <label class="required fs-6 fw-semibold mb-2">Dosis</label>
-                    <TextInput
-                        id="dose"
-                        v-model="product.dose"
-                        class="form-control form-control-solid"
-                        type="number"
-                        step="0.00"
-                        :class="{'is-invalid': form.errors['products.'+index+'.dose']}"
-                    />
-                    <InputError class="mt-2" :message="form.errors['products.'+index+'.dose']" />
-                </div>
-            </div>
-
-            <div class="col-lg-2">
                 <div class="fv-row mb-8">
                     <label class="required fs-6 fw-semibold mb-2">Mojamiento</label>
                     <TextInput
