@@ -180,12 +180,12 @@
         </div>
 
         <div class="row">
-        <div class="col-lg-1 d-flex flex-column flex-lg-column-reverse">
+            <div class="col-lg-12 text-end">
+                <button type="button" @click="removeItem(index)" class="btn btn-sm btn-danger me-2" v-if="form.products.length > 1">
+                    <i class="fa fa-minus"></i>
+                </button>
                 <button type="button" @click="addItem()" v-if="form.products.length == (index + 1)" class="btn btn-sm btn-primary">
                     <i class="fa fa-plus"></i>
-                </button>
-                <button type="button" @click="removeItem(index)" class="btn btn-sm btn-danger mb-3" v-if="form.products.length > 1">
-                    <i class="fa fa-minus"></i>
                 </button>
             </div>
         </div>
