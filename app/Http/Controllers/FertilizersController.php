@@ -42,12 +42,18 @@ class FertilizersController extends Controller
             ];
         });
 
-        $months = Month::where('id', '>=', $budget->month_id)->get()->transform(function($month){
-            return [
-                'label' => $month->name,
-                'value' => $month->id
+        $months = array();
+        $currentMonth = $this->month_id;
+
+        for ($x = $currentMonth; $x < $currentMonth + 12; $x++) {
+            $id = date('n', mktime(0, 0, 0, $x, 1));
+            $object = [
+                'label' => $this->getMonthName($id),
+                'value' =>  $id
             ];
-        });
+            array_push($months, $object);
+        }
+
 
         $costCenters = CostCenter::select('id', 'name')->where('budget_id', $budget_id)->whereHas('budget.team', function($query) use ($user){
             $query->where('team_id', $user->team_id);
@@ -161,7 +167,13 @@ class FertilizersController extends Controller
 
     private function getMonths($fertilizerId, $quantity, $amount)
     {
-        $data = Month::where('id', '>=', $this->month_id)->get();
+        $data = array();
+        $currentMonth = $this->month_id;
+
+        for ($x = $currentMonth; $x < $currentMonth + 12; $x++) {
+            $id = date('n', mktime(0, 0, 0, $x, 1));
+            array_push($data, $id);
+        }
 
         $months = [];
         $totalAmount = 0;
@@ -171,7 +183,7 @@ class FertilizersController extends Controller
             $count = DB::table('fertilizer_items')
             ->select('fertilizer_id')
             ->where('fertilizer_id', $fertilizerId)
-            ->where('month_id', $month->id)
+            ->where('month_id', $month)
             ->count();
 
             $amountMonth = $count > 0 ? $amount : 0;
@@ -186,5 +198,25 @@ class FertilizersController extends Controller
             'totalAmount' => number_format($totalAmount, 0, ',', '.'),
             'totalQuantity' => number_format($totalQuantity, 2, ',', '.')
         ];
+    }
+
+    public function getMonthName($id)
+    {
+        $months = [
+            1 => 'Enero',
+            2 => 'Febrero',
+            3 => 'Marzo',
+            4 => 'Abril',
+            5 => 'Mayo',
+            6 => 'Junio',
+            7 => 'Julio',
+            8 => 'Agosto',
+            9 => 'Septiembre',
+            10 => 'Octubre',
+            11 => 'Noviembre',
+            12 => 'Diciembre'
+        ];
+
+        return $months[$id];
     }
 }
