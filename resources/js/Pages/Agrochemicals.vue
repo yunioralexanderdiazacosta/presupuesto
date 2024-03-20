@@ -158,7 +158,7 @@ const onFilter = () => {
                         <!--end::Page title-->
                         <!--begin::Actions-->
                         <div class="d-flex align-items-center gap-2 gap-lg-3">
-                            <button type="button" @click="openAdd()" class="btn btn-sm fw-bold btn-primary">Agregar agroquimico</button>
+                            <button type="button" @click="openAdd()" class="btn btn-sm fw-bold btn-primary">Agregar un agroquimico</button>
                         </div>
                         <!--end::Actions-->
                     </div>

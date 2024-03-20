@@ -27,8 +27,8 @@
 <script setup></script>
 <template>
     <div class="row">
-        <div class="col-lg-6">
-            <div class="fv-row mb-8">
+        <div class="col-md-6">
+            <div class="fv-row mb-2">
                 <label for="cc" class="form-label required fs-6 fw-bold mb-3">CC</label>
                 <Multiselect
                     mode="tags"
@@ -44,8 +44,8 @@
                 <InputError class="mt-2" :message="form.errors.cc" />
             </div>
         </div>
-        <div class="col-lg-6">
-            <div class="fv-row mb-8">
+        <div class="col-md-6">
+            <div class="fv-row mb-2">
                 <label for="families" class="form-label required fs-6 fw-bold mb-3">Familia</label>
                 <Multiselect
                     :placeholder="'Seleccione familia'"
@@ -64,7 +64,7 @@
     <template v-for="(product,index) in form.products">
         <hr>
         <div class="row">
-            <div class="col-lg-3">
+            <div class="col-md-4">
                 <div class="fv-row mb-8">
                     <label class="required fs-6 fw-semibold mb-2">Nombre del producto</label>
                     <TextInput
@@ -80,10 +80,10 @@
             
 
             <div class="col-lg-2">
-                <div class="fv-row mb-8">
-                    <label class="required fs-6 fw-semibold mb-2">Tipo de dosis</label><br>
+                <div class="fv-row mb-4">
+                    <label class="required fs-7 fw-semibold mb-2">Tipo de dosis</label><br>
                     <template v-for="value in $page.props.doseTypes">
-                        <div class="form-check form-check-solid form-check-inline mb-1 mt-1 mr-1">
+                        <div class="form-check form-check-solid form-check-inline mb-1 mt-1 mr-3">
                             <input class="form-check-input" type="radio" v-model="product.dose_type_id" :id="'kt_unit_'+value.id" :value="value.value">
                             <label class="form-check-label ps-1" :for="'kt_unit_'+value.id">{{value.label}}</label>
                         </div>
@@ -111,7 +111,7 @@
                 <div class="fv-row mb-8">
                     <label for="unit" class="form-label required fs-6 fw-bold mb-2">Unidad</label>
                      <Multiselect
-                        :placeholder="'Unidad'"
+                        :placeholder="''"
                         v-model="product.unit_id"
                         :close-on-select="true"
                         :options="$page.props.units"
@@ -124,7 +124,7 @@
                 </div>
             </div>
 
-            <div class="col-lg-1">
+            <div class="col-lg-2">
                 <div class="fv-row mb-8">
                     <label class="required fs-6 fw-semibold mb-2">Mojamiento</label>
                     <TextInput
@@ -137,6 +137,11 @@
                     <InputError class="mt-2" :message="form.errors['products.'+index+'.mojamiento']" />
                 </div>
             </div>
+            
+        </div>
+
+        <div class="row">
+
             <div class="col-lg-2">
                 <div class="fv-row mb-8">
                     <label class="required fs-6 fw-semibold mb-2">Precio</label>
@@ -150,9 +155,8 @@
                     <InputError class="mt-2" :message="form.errors['products.'+index+'.price']" />
                 </div>
             </div>
-        </div>
 
-        <div class="row">
+
             <div class="col-lg-7">
                 <div class="fv-row mb-3">
                     <label for="months" class="form-label required fs-6 fw-bold mb-3">Meses</label><br>
@@ -165,14 +169,18 @@
                     <small class="text-danger" v-if="form.errors['products.'+index+'.months']"><br>{{form.errors['products.'+index+'.months']}}</small> 
                 </div>
             </div>
-            <div class="col-lg-4">
+            <div class="col-lg-3">
                 <div class="fv-row mb-3">
                     <label for="observations" class="form-label fs-6 fw-bold mb-3">Observaciones</label>
                     <textarea v-model="product.observations" rows="3" class="form-control form-control-lg form-control-solid mb-3 mb-lg-0" :class="{'is-invalid': form.errors.observations }" ></textarea>
                     <InputError class="mt-2" :message="form.errors.observations" />
                 </div>
             </div>
-            <div class="col-lg-1 d-flex flex-column flex-lg-column-reverse">
+          
+        </div>
+
+        <div class="row">
+        <div class="col-lg-1 d-flex flex-column flex-lg-column-reverse">
                 <button type="button" @click="addItem()" v-if="form.products.length == (index + 1)" class="btn btn-sm btn-primary">
                     <i class="fa fa-plus"></i>
                 </button>
