@@ -827,3 +827,21 @@ sf-pres-video-pic .overlay-vid {
   }
 }
 */
+
+.table.table-row-full-dashed tr{
+  border-width:1px;
+  border-style:dashed;
+  border-color: #A1A5B7;
+}
+
+.table.table-row-full-dashed tbody tr:last-child, .table tfoot tr:last-child{
+  border-bottom: 1px dashed #A1A5B7!important;
+}
+
+.table.table-row-full-dashed.gs-0 td:first-child, .table.gs-0 th:first-child {
+  padding-left: 0.75rem;
+}
+
+.table.table-row-full-dashed td:first-child, .table th:first-child, .table tr:first-child{
+  padding-left: 0.75rem;
+}

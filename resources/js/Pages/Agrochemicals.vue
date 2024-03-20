@@ -260,7 +260,7 @@ const onFilter = () => {
                                     <div class="tab-pane" id="kt_table_2" role="tabpanel">
                                         <!--begin::Table-->
                                         <div class="table-responsive">
-                                            <table class="table table-row-dashed table-row-gray-300 align-middle gs-0 gy-4">
+                                            <table class="table table-row-full-dashed table-row-gray-300 align-middle gs-0 gy-4">
                                                 <!--begin::Table head-->
                                                 <thead>
                                                     <tr class="fw-bold text-muted">
@@ -281,7 +281,7 @@ const onFilter = () => {
                                                             <tr>
                                                                 <td v-if="index2 == 0" :rowspan="cc.total" style="vertical-align:top">{{cc.name}}</td>
                                                                 <td  style="vertical-align:top;" :rowspan="subfamily.products.length">{{subfamily.name}}</td>
-                                                                <td style="padding-left: 0px;">{{subfamily.products[0].name}}</td>
+                                                                <td>{{subfamily.products[0].name}}</td>
                                                                 <td>{{subfamily.products[0].totalQuantity}}</td>
                                                                 <td>{{subfamily.products[0].unit}}</td>
                                                                 <td class="text-dark">{{subfamily.products[0].totalAmount}}</td>

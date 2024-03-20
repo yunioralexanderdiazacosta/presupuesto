@@ -183,7 +183,7 @@ class FertilizersController extends Controller
 
         return [
             'months' => $months,
-            'totalAmount' => number_format($totalAmount, 2, ',', '.'),
+            'totalAmount' => number_format($totalAmount, 0, ',', '.'),
             'totalQuantity' => number_format($totalQuantity, 2, ',', '.')
         ];
     }
