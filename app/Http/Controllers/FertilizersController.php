@@ -103,7 +103,24 @@ class FertilizersController extends Controller
             ];
         });
 
-        return Inertia::render('Fertilizers', compact('units', 'subfamilies', 'months', 'costCenters', 'fertilizers', 'budget', 'data'));
+        $costCentersId = $costCenters->pluck('value');
+
+        $data2 = Fertilizer::from('fertilizers as f')
+        ->join('fertilizer_items as fi', 'f.id', 'fi.fertilizer_id')
+        ->join('subfamilies as s', 'f.subfamily_id', 's.id')
+        ->select('s.id', 's.name')
+        ->whereIn('fi.cost_center_id', $costCentersId)
+        ->groupBy('s.id', 's.name')
+        ->get()
+        ->transform(function($subfamily) use ($costCentersId){
+            return [
+                'id' => $subfamily->id,
+                'name' => $subfamily->name,
+                'products' => $this->getProducts2($subfamily->id, $costCentersId)
+            ];
+        });
+
+        return Inertia::render('Fertilizers', compact('units', 'subfamilies', 'months', 'costCenters', 'fertilizers', 'budget', 'data', 'data2'));
     }
 
     private function getSubfamilies($costCenterId, $surface)
@@ -219,4 +236,72 @@ class FertilizersController extends Controller
 
         return $months[$id];
     }
+
+     private function getProducts2($subfamilyId, $costCentersId)
+    {
+        $products = Fertilizer::from('fertilizers as f')
+        ->join('fertilizer_items as fi', 'f.id', 'fi.fertilizer_id')
+        ->join('units as u', 'f.unit_id', 'u.id')
+        ->select('f.id', 'f.product_name', 'f.price', 'f.dose', 'u.name')
+        ->whereIn('fi.cost_center_id', $costCentersId)
+        ->where('f.subfamily_id', $subfamilyId)
+        ->groupBy('f.id', 'f.product_name', 'f.price', 'f.dose',  'u.name')
+        ->get()
+        ->transform(function($value) use ($costCentersId){
+            $data = $this->getResult2($value, $costCentersId);
+            return [
+                'id'            => $value->id,
+                'name'          => $value->product_name,
+                'unit'          => $value->name,
+                'totalQuantity' => $data['totalQuantity'],
+                'totalAmount'   => $data['totalAmount'],
+            ];
+        });
+
+        return $products;
+    }
+
+    private function getResult2($value, $costCentersId)
+    {
+        $totalAmount = 0;
+        $totalQuantity = 0;
+        foreach($costCentersId as $costCenter){
+           $first = CostCenter::select('surface')->where('id', $costCenter)->first();
+           
+            $surface = $first->surface;
+            $quantityFirst = round($value->dose * $surface, 2);
+            $amountFirst = round($value->price * $quantityFirst, 2);
+
+            $data = array();
+            $currentMonth = $this->month_id;
+
+            for ($x = $currentMonth; $x < $currentMonth + 12; $x++) {
+                $id = date('n', mktime(0, 0, 0, $x, 1));
+                array_push($data, $id);
+            }
+
+            $totalAmountCostCenter = 0;
+            $totalQuantityCostCenter = 0;
+            foreach($data as $month)
+            {
+                $count = DB::table('fertilizer_items')
+                ->select('fertilizer_id')
+                ->where('fertilizer_id', $value->id)
+                ->where('month_id', $month)
+                ->count();
+
+                $amountMonth = $count > 0 ? $amountFirst : 0;
+                $quantityMonth = $count > 0 ? $quantityFirst : 0;
+                $totalAmountCostCenter += $amountMonth;
+                $totalQuantityCostCenter += $quantityMonth;
+            }
+            $totalAmount += $totalAmountCostCenter;
+            $totalQuantity += $totalQuantityCostCenter;
+        }
+
+        return [
+            'totalAmount' => number_format($totalAmount, 0, ',', '.'),
+            'totalQuantity' => number_format($totalQuantity, 2, ',', '.')
+        ]; 
+    } 
 }

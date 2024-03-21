@@ -12,7 +12,8 @@ import EditAgrochemicalModal from '@/Components/Agrochemicals/EditAgrochemicalMo
 
 const props = defineProps({
     agrochemicals: Object,
-    data: Array
+    data: Array,
+    data2: Array
 });
 
 var acum = ref(0);
@@ -190,6 +191,12 @@ const onFilter = () => {
                                             Detalle                 
                                         </a>
                                     </li>
+
+                                    <li class="nav-item" role="presentation">
+                                        <a class="nav-link" data-bs-toggle="tab" href="#kt_table_3" role="tab" aria-selected="false" tabindex="-1">
+                                            Detalle de compra                
+                                        </a>
+                                    </li>
                                 </ul>
                                 <!--end::Tabs-->
                             </div>
@@ -304,7 +311,50 @@ const onFilter = () => {
                                             </table>
                                         </div>
                                     </div>
-                                    <!--end::Tab pane-->                    
+                                    <!--end::Tab pane-->  
+
+                                     <!--begin::Tab pane-->
+                                    <div class="tab-pane" id="kt_table_3" role="tabpanel">
+                                        <!--begin::Table-->
+                                        <div class="table-responsive">
+                                            <table class="table table-row-full-dashed table-row-gray-300 align-middle gs-0 gy-4">
+                                                <!--begin::Table head-->
+                                                <thead>
+                                                    <tr class="fw-bold text-muted">
+                                                        <th>Subfamilia</th>
+                                                        <th class="min-w-100px">Producto</th>
+                                                        <th>Cantidad Total</th>
+                                                        <th>Un</th>
+                                                        <th class="text-dark">Monto Total</th>
+                                                    </tr>
+                                                </thead>
+                                                <!--end::Table head-->
+                                                <!--begin::Table body-->
+                                                <tbody>
+                                                    <template v-for="(subfamily, index2) in data2">
+                                                        <tr>
+                                                            <td  style="vertical-align:top;" :rowspan="subfamily.products.length">{{subfamily.name}}</td>
+                                                            <td>{{subfamily.products[0].name}}</td>
+                                                            <td>{{subfamily.products[0].totalQuantity}}</td>
+                                                            <td>{{subfamily.products[0].unit}}</td>
+                                                            <td class="text-dark">{{subfamily.products[0].totalAmount}}</td>
+                                                        </tr>
+
+                                                        <template v-for="(product, index3) in subfamily.products">
+                                                            <tr v-if="index3 > 0">
+                                                                <td>{{product.name}}</td>
+                                                                <td>{{product.totalQuantity}}</td>
+                                                                <td>{{product.unit}}</td>
+                                                                <td class="text-dark">{{product.totalAmount}}</td>
+                                                            </tr>
+                                                        </template>
+                                                    </template>
+                                                </tbody>
+                                                <!--end::Table body-->
+                                            </table>
+                                        </div>
+                                    </div>
+                                    <!--end::Tab pane-->                  
                                 </div>
                             </div>
                             <!--end::Body-->
