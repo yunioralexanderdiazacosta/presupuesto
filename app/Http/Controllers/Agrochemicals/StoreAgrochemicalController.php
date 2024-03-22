@@ -17,6 +17,7 @@ class StoreAgrochemicalController extends Controller
                 'product_name'  => $product['product_name'],
                 'dose'          => $product['dose'],
                 'price'         => $product['price'],
+                'unit_id_price' => $product['unit_id_price'],
                 'mojamiento'    => $product['mojamiento'],
                 'observations'  => $product['observations'],
                 'unit_id'       => $product['unit_id'],

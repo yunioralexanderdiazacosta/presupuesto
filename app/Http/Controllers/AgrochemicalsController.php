@@ -85,6 +85,7 @@ class AgrochemicalsController extends Controller
                 'mojamiento'    => $agrochemical->mojamiento,
                 'subfamily_id'  => $agrochemical->subfamily_id,
                 'unit_id'       => $agrochemical->unit_id,
+                'unit_id_price' => $agrochemical->unit_id_price,
                 'dose_type_id'  => $agrochemical->dose_type_id,
                 'observations'  => $agrochemical->observations,
                 'subfamily'     => $agrochemical->subfamily,
@@ -155,17 +156,20 @@ class AgrochemicalsController extends Controller
     {
         $products = Agrochemical::from('agrochemicals as a')
         ->join('agrochemical_items as ai', 'a.id', 'ai.agrochemical_id')
-        ->join('units as u', 'a.unit_id', 'u.id')
-        ->select('a.id', 'a.product_name', 'a.price', 'a.dose_type_id', 'a.dose', 'a.mojamiento', 'u.name')
+        ->leftJoin('units as u', 'a.unit_id_price', 'u.id')
+        ->select('a.id', 'a.product_name', 'a.price', 'a.dose_type_id', 'a.unit_id', 'a.unit_id_price', 'a.dose', 'a.mojamiento', 'u.name')
         ->where('ai.cost_center_id', $costCenterId)
         ->where('a.subfamily_id', $subfamilyId)
-        ->groupBy('a.id', 'a.product_name', 'a.price', 'a.dose_type_id', 'a.dose', 'a.mojamiento', 'u.name')
+        ->groupBy('a.id', 'a.product_name', 'a.price', 'a.dose_type_id', 'a.unit_id', 'a.unit_id_price', 'a.dose', 'a.mojamiento', 'u.name')
         ->get()
         ->transform(function($value) use ($surface){
+
+            $dose = (($value->unit_id == 4 && $value->unit_id_price == 3) || ($value->unit_id == 2 && $value->unit_id_price == 1)) ? ($value->dose / 1000) : $value->dose; 
+
             if($value->dose_type_id == 1){
-                $quantityFirst = round($value->dose * $surface, 2);
+                $quantityFirst = round($dose * $surface, 2);
             }elseif($value->dose_type_id == 2){
-                $quantityFirst = round((($value->mojamiento / 100) * $value->dose * $surface), 2);
+                $quantityFirst = round((($value->mojamiento / 100) * $dose * $surface), 2);
             }
             $amountFirst = round($value->price * $quantityFirst, 2);
             $data = $this->getMonths($value->id, $quantityFirst, $amountFirst); 
@@ -173,7 +177,7 @@ class AgrochemicalsController extends Controller
             return [
                 'id'            => $value->id,
                 'name'          => $value->product_name,
-                'unit'          => $value->name,
+                'unit'          => $value->name ?? '',
                 'totalQuantity' => $data['totalQuantity'],
                 'totalAmount'   => $data['totalAmount'],
                 'months'        => $data['months']
@@ -253,18 +257,18 @@ class AgrochemicalsController extends Controller
     {
         $products = Agrochemical::from('agrochemicals as a')
         ->join('agrochemical_items as ai', 'a.id', 'ai.agrochemical_id')
-        ->join('units as u', 'a.unit_id', 'u.id')
-        ->select('a.id', 'a.product_name', 'a.price', 'a.dose_type_id', 'a.dose', 'a.mojamiento', 'u.name')
+        ->leftJoin('units as u', 'a.unit_id_price', 'u.id')
+        ->select('a.id', 'a.product_name', 'a.price', 'a.dose_type_id', 'a.dose', 'a.unit_id', 'a.unit_id_price', 'a.mojamiento', 'u.name')
         ->whereIn('ai.cost_center_id', $costCentersId)
         ->where('a.subfamily_id', $subfamilyId)
-        ->groupBy('a.id', 'a.product_name', 'a.price', 'a.dose_type_id', 'a.dose', 'a.mojamiento', 'u.name')
+        ->groupBy('a.id', 'a.product_name', 'a.price', 'a.dose_type_id', 'a.dose', 'a.unit_id', 'a.unit_id_price', 'a.mojamiento', 'u.name')
         ->get()
         ->transform(function($value) use ($costCentersId){
             $data = $this->getResult2($value, $costCentersId);
             return [
                 'id'            => $value->id,
                 'name'          => $value->product_name,
-                'unit'          => $value->name,
+                'unit'          => $value->name ?? '',
                 'totalQuantity' => $data['totalQuantity'],
                 'totalAmount'   => $data['totalAmount'],
             ];
@@ -279,12 +283,14 @@ class AgrochemicalsController extends Controller
         $totalQuantity = 0;
         foreach($costCentersId as $costCenter){
            $first = CostCenter::select('surface')->where('id', $costCenter)->first();
+
+           $dose = (($value->unit_id == 4 && $value->unit_id_price == 3) || ($value->unit_id == 2 && $value->unit_id_price == 1)) ? ($value->dose / 1000) : $value->dose;
            
             $surface = $first->surface;
             if($value->dose_type_id == 1){
-                $quantityFirst = round($value->dose * $surface, 2);
+                $quantityFirst = round($dose * $surface, 2);
             }elseif($value->dose_type_id == 2){
-                $quantityFirst = round((($value->mojamiento / 100) * $value->dose * $surface), 2);
+                $quantityFirst = round((($value->mojamiento / 100) * $dose * $surface), 2);
             }
             $amountFirst = round($value->price * $quantityFirst, 2);
 

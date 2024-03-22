@@ -26,6 +26,7 @@ class StoreFertilizerRequest extends FormRequest
             'subfamily_id' => 'required',
             'products.*.product_name' => 'required',
             'products.*.unit_id' => 'required',
+            'products.*.unit_id_price' => 'required',
             'products.*.dose' => 'required',
             'products.*.price' => 'required'
         ];

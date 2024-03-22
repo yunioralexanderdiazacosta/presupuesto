@@ -9,7 +9,7 @@ class Fertilizer extends Model
 {
     use HasFactory;
 
-    protected $fillable = ['product_name', 'price', 'dose', 'unit_id', 'subfamily_id', 'observations'];
+    protected $fillable = ['product_name', 'price', 'dose', 'unit_id', 'unit_id_price', 'subfamily_id', 'observations'];
 
     public function items()
     {

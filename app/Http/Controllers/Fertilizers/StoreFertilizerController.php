@@ -20,6 +20,7 @@ class StoreFertilizerController extends Controller
                 'price'         => $product['price'],
                 'observations'  => $product['observations'],
                 'unit_id'       => $product['unit_id'],
+                'unit_id_price' => $product['unit_id_price'],
                 'subfamily_id'  => $request->subfamily_id,
             ]);
 

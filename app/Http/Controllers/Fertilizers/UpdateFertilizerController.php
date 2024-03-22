@@ -16,6 +16,7 @@ class UpdateFertilizerController extends Controller
         $fertilizer->observations = $request->observations;
         $fertilizer->subfamily_id = $request->subfamily_id;
         $fertilizer->unit_id      = $request->unit_id;
+        $fertilizer->unit_id_price= $request->unit_id_price;
         $fertilizer->save(); 
 
         $fertilizer->items()->detach();

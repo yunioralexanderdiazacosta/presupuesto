@@ -28,6 +28,7 @@ const formMultiple = useForm({
             price: '',
             mojamiento: '',
             unit_id: '',
+            unit_id_price: '',
             dose_type_id: '',
             observations: '',
             months: []
@@ -42,6 +43,7 @@ const form = useForm({
     mojamiento: '',
     subfamily_id: '',
     unit_id: '',
+    unit_id_price: '',
     dose_type_id: '',
     observations: '',
     cc: [],
@@ -66,6 +68,7 @@ const openEdit = (agrochemical) => {
     form.mojamiento = agrochemical.mojamiento;
     form.subfamily_id = agrochemical.subfamily_id;
     form.unit_id = agrochemical.unit_id;
+    form.unit_id_price = agrochemical.unit_id_price;
     form.dose_type_id = agrochemical.dose_type_id;
     form.observations = agrochemical.observations;
     form.cc = agrochemical.cc;

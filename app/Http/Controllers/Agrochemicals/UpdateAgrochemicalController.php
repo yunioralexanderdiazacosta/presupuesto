@@ -14,6 +14,7 @@ class UpdateAgrochemicalController extends Controller
         $agrochemical->product_name = $request->product_name;
         $agrochemical->dose         = $request->dose;
         $agrochemical->price        = $request->price;
+        $agrochemical->unit_id_price= $request->unit_id_price;
         $agrochemical->mojamiento   = $request->mojamiento;
         $agrochemical->observations = $request->observations;
         $agrochemical->subfamily_id = $request->subfamily_id;

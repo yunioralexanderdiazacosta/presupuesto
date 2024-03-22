@@ -27,6 +27,7 @@ class StoreAgrochemicalRequest extends FormRequest
             'products' => 'required|array',
             'products.*.product_name' => 'required',
             'products.*.unit_id' => 'required',
+            'products.*.unit_id_price' => 'required',
             'products.*.dose' => 'required',
             'products.*.mojamiento' => 'required',
             'products.*.price' => 'required',

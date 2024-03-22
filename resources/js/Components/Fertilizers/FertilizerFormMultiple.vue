@@ -13,6 +13,7 @@
             dose: '',
             price: '',
             unit_id: '',
+            unit_id_price: '',
             observations: '',
             months: []
         });
@@ -104,16 +105,36 @@
                 </div>
             </div>
             <div class="col-lg-3">
-                <div class="fv-row mb-8">
-                    <label class="required fs-6 fw-semibold mb-2">Precio</label>
-                    <TextInput
-                        id="price"
-                        v-model="product.price"
-                        class="form-control form-control-solid"
-                        type="number"
-                        :class="{'is-invalid': form.errors['products.'+index+'.price']}"
-                    />
-                    <InputError class="mt-2" :message="form.errors['products.'+index+'.price']" />
+                <div class="row">
+                    <div class="col-lg-6">
+                        <div class="fv-row mb-8">
+                            <label class="required fs-6 fw-semibold mb-2">Precio</label>
+                            <TextInput
+                                id="price"
+                                v-model="product.price"
+                                class="form-control form-control-solid"
+                                type="number"
+                                :class="{'is-invalid': form.errors['products.'+index+'.price']}"
+                            />
+                            <InputError class="mt-2" :message="form.errors['products.'+index+'.price']" />
+                        </div>
+                    </div>
+                    <div class="col-lg-6">
+                        <div class="fv-row mb-8">
+                            <label for="unit" class="form-label required fs-6 fw-bold mb-2">Unidad</label>
+                             <Multiselect
+                                :placeholder="''"
+                                v-model="product.unit_id_price"
+                                :close-on-select="true"
+                                :options="$page.props.units"
+                                class="multiselect-blue form-control"
+                                :class="{'is-invalid': form.errors['products.'+index+'.unit_id_price']}"
+                                :searchable="true"
+                                :hide-selected="false"
+                            />
+                            <InputError class="mt-2" :message="form.errors['products.'+index+'.unit_id_price']" />
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>

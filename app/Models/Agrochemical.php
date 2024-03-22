@@ -9,7 +9,7 @@ class Agrochemical extends Model
 {
     use HasFactory;
 
-    protected $fillable = ['product_name', 'price', 'dose', 'observations', 'mojamiento', 'unit_id', 'subfamily_id', 'dose_type_id'];
+    protected $fillable = ['product_name', 'price', 'dose', 'observations', 'mojamiento', 'unit_id', 'unit_id_price', 'subfamily_id', 'dose_type_id'];
 
     public function items()
     {
@@ -24,5 +24,10 @@ class Agrochemical extends Model
     public function unit()
     {
         return $this->belongsTo(Unit::class);
+    }
+
+    public function unit2()
+    {
+        return $this->belongsTo(Unit::class, 'unit_id_price');
     }
 }

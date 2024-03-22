@@ -26,7 +26,8 @@ class UpdateFertilizerRequest extends FormRequest
             'dose' => 'required',
             'price' => 'required',
             'subfamily_id' => 'required',
-            'unit_id' => 'required'
+            'unit_id' => 'required',
+            'unit_id_price' => 'required'
         ];
     }
 }

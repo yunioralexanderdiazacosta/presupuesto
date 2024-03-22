@@ -25,6 +25,7 @@ const formMultiple = useForm({
             dose: '',
             price: '',
             unit_id: '',
+            unit_id_price: '',
             observations: '',
             months: []
         }
@@ -37,6 +38,7 @@ const form = useForm({
     price: '',
     subfamily_id: '',
     unit_id: '',
+    unit_id_price: '',
     observations: '',
     cc: [],
     months: []
@@ -59,6 +61,7 @@ const openEdit = (fertilizer) => {
     form.price = fertilizer.price;
     form.subfamily_id = fertilizer.subfamily_id;
     form.unit_id = fertilizer.unit_id;
+    form.unit_id_price = fertilizer.unit_id_price;
     form.observations = fertilizer.observations;
     form.cc = fertilizer.cc;
     form.months = fertilizer.months; 
@@ -255,17 +258,17 @@ const onFilter = () => {
                                     <div class="tab-pane" id="kt_table_2" role="tabpanel">
                                         <!--begin::Table-->
                                         <div class="table-responsive">
-                                            <table class="table table-row-full-dashed table-row-gray-300 align-middle gs-0 gy-4">
+                                            <table id="table_2" class="table table-row-full-dashed table-row-gray-300 align-middle gs-0 gy-4">
                                                 <!--begin::Table head-->
                                                 <thead>
                                                     <tr class="fw-bold text-muted">
-                                                        <th class="min-w-150px">Centro de costo</th>
+                                                        <th class="yunior min-w-150px">Centro de costo</th>
                                                         <th>Subfamilia</th>
-                                                        <th class="min-w-100px">Producto</th>
+                                                        <th class="yunior hmin-w-100px">Producto</th>
                                                         <th>Cantidad Total</th>
                                                         <th>Un</th>
-                                                        <th class="text-dark">Monto Total</th>
-                                                        <th v-for="month in $page.props.months" class="text-primary">{{month.label}}</th> 
+                                                        <th class="yunior text-dark">Monto Total</th>
+                                                        <th v-for="month in $page.props.months" class="text-primary yunior">{{month.label}}</th> 
                                                     </tr>
                                                 </thead>
                                                 <!--end::Table head-->

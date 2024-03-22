@@ -77,6 +77,7 @@ class FertilizersController extends Controller
                 'price'         => $fertilizer->price,
                 'subfamily_id'  => $fertilizer->subfamily_id,
                 'unit_id'       => $fertilizer->unit_id,
+                'unit_id_price' => $fertilizer->unit_id_price,
                 'observations'  => $fertilizer->observations,
                 'subfamily'     => $fertilizer->subfamily,
                 'unit'          => $fertilizer->unit,
@@ -147,14 +148,15 @@ class FertilizersController extends Controller
     {
         $products = Fertilizer::from('fertilizers as f')
         ->join('fertilizer_items as fi', 'f.id', 'fi.fertilizer_id')
-        ->join('units as u', 'f.unit_id', 'u.id')
-        ->select('f.id', 'f.product_name', 'f.price', 'f.dose', 'u.name')
+        ->leftJoin('units as u', 'f.unit_id_price', 'u.id')
+        ->select('f.id', 'f.product_name', 'f.price', 'f.dose', 'f.unit_id', 'f.unit_id_price', 'u.name')
         ->where('fi.cost_center_id', $costCenterId)
         ->where('f.subfamily_id', $subfamilyId)
-        ->groupBy('f.id', 'f.product_name', 'f.price', 'f.dose', 'u.name')
+        ->groupBy('f.id', 'f.product_name', 'f.price', 'f.dose', 'f.unit_id', 'f.unit_id_price', 'u.name')
         ->get()
         ->transform(function($value) use ($surface){
-            $quantityFirst = round(($value->dose * $surface), 2);
+            $dose = (($value->unit_id == '4' && $value->unit_id_price == '3') ||($value->unit_id == '2' && $value->unit_id_price == '1')) ? ($value->dose / 1000) : $value->dose;
+            $quantityFirst = round(($dose * $surface), 2);
             $amountFirst = round(($value->price * $quantityFirst), 2);
             $data = $this->getMonths($value->id, $quantityFirst, $amountFirst); 
 
@@ -241,18 +243,18 @@ class FertilizersController extends Controller
     {
         $products = Fertilizer::from('fertilizers as f')
         ->join('fertilizer_items as fi', 'f.id', 'fi.fertilizer_id')
-        ->join('units as u', 'f.unit_id', 'u.id')
-        ->select('f.id', 'f.product_name', 'f.price', 'f.dose', 'u.name')
+        ->leftJoin('units as u', 'f.unit_id_price', 'u.id')
+        ->select('f.id', 'f.product_name', 'f.price', 'f.dose', 'f.unit_id', 'f.unit_id_price', 'u.name')
         ->whereIn('fi.cost_center_id', $costCentersId)
         ->where('f.subfamily_id', $subfamilyId)
-        ->groupBy('f.id', 'f.product_name', 'f.price', 'f.dose',  'u.name')
+        ->groupBy('f.id', 'f.product_name', 'f.price', 'f.dose', 'f.unit_id', 'f.unit_id_price', 'u.name')
         ->get()
         ->transform(function($value) use ($costCentersId){
             $data = $this->getResult2($value, $costCentersId);
             return [
                 'id'            => $value->id,
                 'name'          => $value->product_name,
-                'unit'          => $value->name,
+                'unit'          => $value->name ?? '',
                 'totalQuantity' => $data['totalQuantity'],
                 'totalAmount'   => $data['totalAmount'],
             ];
@@ -269,7 +271,8 @@ class FertilizersController extends Controller
            $first = CostCenter::select('surface')->where('id', $costCenter)->first();
            
             $surface = $first->surface;
-            $quantityFirst = round($value->dose * $surface, 2);
+            $dose = (($value->unit_id == '4' && $value->unit_id_price == '3') ||($value->unit_id == '2' && $value->unit_id_price == '1')) ? ($value->dose / 1000) : $value->dose;
+            $quantityFirst = round($dose * $surface, 2);
             $amountFirst = round($value->price * $quantityFirst, 2);
 
             $data = array();
