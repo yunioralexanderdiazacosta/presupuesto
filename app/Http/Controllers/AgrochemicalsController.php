@@ -281,6 +281,7 @@ class AgrochemicalsController extends Controller
     {
         $totalAmount = 0;
         $totalQuantity = 0;
+        $currentMonth = $this->month_id;
         foreach($costCentersId as $costCenter){
            $first = CostCenter::select('surface')->where('id', $costCenter)->first();
 
@@ -295,7 +296,6 @@ class AgrochemicalsController extends Controller
             $amountFirst = round($value->price * $quantityFirst, 2);
 
             $data = array();
-            $currentMonth = $this->month_id;
 
             for ($x = $currentMonth; $x < $currentMonth + 12; $x++) {
                 $id = date('n', mktime(0, 0, 0, $x, 1));
@@ -310,6 +310,7 @@ class AgrochemicalsController extends Controller
                 ->select('agrochemical_id')
                 ->where('agrochemical_id', $value->id)
                 ->where('month_id', $month)
+                ->where('cost_center_id', $costCenter)
                 ->count();
 
                 $amountMonth = $count > 0 ? $amountFirst : 0;
