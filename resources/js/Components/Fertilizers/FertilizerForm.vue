@@ -61,14 +61,18 @@
         </div>
         <div class="col-lg-6">
             <div class="fv-row mb-8">
-                <label for="familia" class="form-label required fs-6 fw-bold mb-3">Unidad</label><br>
-                <template v-for="value in $page.props.units">
-                    <div class="form-check form-check-solid form-check-inline mb-3 mt-3">
-                        <input class="form-check-input" type="radio" v-model="form.unit_id" :id="'kt_unit_'+value.id" :value="value.value">
-                        <label class="form-check-label ps-1" :for="'kt_unit_'+value.id">{{value.label}}</label>
-                    </div>
-                </template>
-                <small class="text-danger mt-2" :v-if="form.errors.unit_id">{{form.errors.unit_id}}</small>
+                <label for="unit" class="form-label required fs-6 fw-bold mb-2">Unidad</label>
+                 <Multiselect
+                    :placeholder="''"
+                    v-model="form.unit_id"
+                    :close-on-select="true"
+                    :options="$page.props.units"
+                    class="multiselect-blue form-control"
+                    :class="{'is-invalid': form.errors.unit_id}"
+                    :searchable="true"
+                    :hide-selected="false"
+                />
+                <InputError class="mt-2" :message="form.errors.unit_id" />
             </div>
         </div>
     </div>
