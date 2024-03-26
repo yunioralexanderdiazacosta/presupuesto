@@ -61,7 +61,7 @@
         </div>
         <div class="col-lg-4">
             <div class="fv-row mb-8">
-                <label class="required fs-6 fw-semibold mb-2">Jornadas</label>
+                <label class="required fs-6 fw-semibold mb-2">Jornadas/hectarea</label>
                 <TextInput
                     id="workday"
                     v-model="form.workday"

@@ -64,7 +64,7 @@
     <template v-for="(product,index) in form.products">
         <hr>
         <div class="row">
-            <div class="col-lg-3">
+            <div class="col-lg-4">
                 <div class="fv-row mb-8">
                     <label class="required fs-6 fw-semibold mb-2">Nombre del producto</label>
                     <TextInput
@@ -77,7 +77,7 @@
                     <InputError class="mt-2" :message="form.errors['products.'+index+'.product_name']" />
                 </div>
             </div>
-            <div class="col-lg-4">
+            <div class="col-lg-2">
                 <div class="fv-row mb-8">
                     <label for="unit" class="form-label required fs-6 fw-bold mb-2">Unidad</label>
                      <Multiselect
@@ -108,7 +108,7 @@
                     <InputError class="mt-2" :message="form.errors['products.'+index+'.dose']" />
                 </div>
             </div>
-            <div class="col-lg-3">
+            <div class="col-lg-4">
                 <div class="row">
                     <div class="col-lg-6">
                         <div class="fv-row mb-8">
@@ -142,9 +142,10 @@
                 </div>
             </div>
         </div>
+  
 
         <div class="row">
-            <div class="col-lg-7">
+            <div class="col-lg-8">
                 <div class="fv-row mb-3">
                     <label for="months" class="form-label required fs-6 fw-bold mb-3">Meses</label><br>
                     <template v-for="value in $page.props.months">
@@ -163,7 +164,12 @@
                     <InputError class="mt-2" :message="form.errors.observations" />
                 </div>
             </div>
-            <div class="col-lg-1 d-flex flex-column flex-lg-column-reverse">
+
+        </div>
+   
+
+        <div class="row">
+            <div class="col-lg-12 text-end">
                 <button type="button" v-if="form.products.length == (index + 1)" @click="addItem()" class="btn btn-sm btn-primary">
                     <i class="fas fa-plus"></i>
                 </button>

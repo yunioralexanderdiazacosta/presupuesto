@@ -95,7 +95,7 @@
            
             <div class="col-lg-2">
                 <div class="fv-row mb-8">
-                    <label class="required fs-6 fw-semibold mb-2">Dosis</label>
+                    <label class="required fs-6 fw-semibold mb-2">Dosis/Hectarea</label>
                     <TextInput
                         id="dose"
                         v-model="product.dose"

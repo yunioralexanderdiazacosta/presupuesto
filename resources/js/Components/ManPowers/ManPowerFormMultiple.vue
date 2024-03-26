@@ -76,7 +76,7 @@
 
             <div class="col-lg-4">
                 <div class="fv-row mb-8">
-                    <label class="required fs-6 fw-semibold mb-2">Jornadas</label>
+                    <label class="required fs-6 fw-semibold mb-2">Jornadas/hectarea</label>
                     <TextInput
                         id="workday"
                         v-model="product.workday"
@@ -105,7 +105,7 @@
         </div>
 
         <div class="row">
-            <div class="col-lg-6">
+            <div class="col-lg-7">
                 <div class="fv-row mb-3">
                     <label for="months" class="form-label required fs-6 fw-bold mb-3">Meses</label><br>
                     <template v-for="value in $page.props.months" :key="value.id">
@@ -117,7 +117,7 @@
                     <small class="text-danger" v-if="form.errors['products.'+index+'.months']"><br>{{form.errors['products.'+index+'.months']}}</small> 
                 </div>
             </div>
-            <div class="col-lg-6">
+            <div class="col-lg-5">
                 <div class="fv-row mb-3">
                     <label for="observations" class="form-label fs-6 fw-bold mb-3">Observaciones</label>
                     <textarea v-model="product.observations" rows="3" class="form-control form-control-lg form-control-solid mb-3 mb-lg-0" :class="{'is-invalid': form.errors.observations }" ></textarea>

@@ -80,7 +80,7 @@
     <div class="row">
         <div class="col-lg-6">
             <div class="fv-row mb-8">
-                <label class="required fs-6 fw-semibold mb-2">Dosis</label>
+                <label class="required fs-6 fw-semibold mb-2">Dosis/Hectarea</label>
                 <TextInput
                     id="dose"
                     v-model="form.dose"
