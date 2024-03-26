@@ -25,6 +25,10 @@ use App\Http\Controllers\Agrochemicals\DeleteAgrochemicalController;
 use App\Http\Controllers\Fertilizers\StoreFertilizerController;
 use App\Http\Controllers\Fertilizers\UpdateFertilizerController;
 use App\Http\Controllers\Fertilizers\DeleteFertilizerController;
+use App\Http\Controllers\ManPowers\StoreManPowerController;
+use App\Http\Controllers\ManPowers\UpdateManPowerController;
+use App\Http\Controllers\ManPowers\DeleteManPowerController;
+
 use App\Http\Controllers\ManPowersController;
 use Inertia\Inertia;
 
@@ -84,9 +88,13 @@ Route::middleware([
         Route::post('/agrochemicals/{agrochemical}/update', UpdateAgrochemicalController::class)->name('agrochemicals.update');
         Route::delete('/agrochemicals/{agrochemical}/delete', DeleteAgrochemicalController::class)->name('agrochemicals.delete');
 
-         Route::post('/fertilizers/store', StoreFertilizerController::class)->name('fertilizers.store');
+        Route::post('/fertilizers/store', StoreFertilizerController::class)->name('fertilizers.store');
         Route::post('/fertilizers/{fertilizer}/update', UpdateFertilizerController::class)->name('fertilizers.update');
         Route::delete('/fertilizers/{fertilizer}/delete', DeleteFertilizerController::class)->name('fertilizers.delete');
+
+        Route::post('/man-powers/store', StoreManPowerController::class)->name('man.powers.store');
+        Route::post('/man-powers/{manPower}/update', UpdateManPowerController::class)->name('man.powers.update');
+        Route::delete('/man-powers/{manPower}/delete', DeleteManPowerController::class)->name('man.powers.delete');
     });
     Route::get('/select-budge', SelectBudgetController::class)->name('select.budget');
     Route::post('/select-budget/save', SaveBudgetController::class)->name('select.budget.save');

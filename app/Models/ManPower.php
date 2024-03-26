@@ -10,4 +10,14 @@ class ManPower extends Model
     use HasFactory;
 
     protected $fillable = ['product_name', 'price', 'workday', 'observations', 'subfamily_id'];
+
+    public function items()
+    {
+        return $this->belongsToMany(CostCenter::class, 'manpower_items', 'man_power_id', 'cost_center_id')->withPivot('month_id');
+    }
+
+    public function subfamily()
+    {
+        return $this->belongsTo(Subfamily::class);
+    }
 }

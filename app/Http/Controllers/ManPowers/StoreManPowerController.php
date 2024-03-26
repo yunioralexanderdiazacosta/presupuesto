@@ -9,8 +9,6 @@ use Illuminate\Http\Request;
 
 class StoreManPowerController extends Controller
 {
-    //
-
     public function __invoke(StoreManPowerRequest $request)
     {
         $products = $request->get('products');
@@ -18,7 +16,7 @@ class StoreManPowerController extends Controller
         foreach($products as $product){
             $manpower = ManPower::create([
                 'product_name'  => $product['product_name'],
-                'workday'          => $product['workday'],
+                'workday'       => $product['workday'],
                 'price'         => $product['price'],
                 'observations'  => $product['observations'],
                 'subfamily_id'  => $request->subfamily_id,
