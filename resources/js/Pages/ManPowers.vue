@@ -260,6 +260,7 @@ const onFilter = () => {
                                                         <th>Subfamilia</th>
                                                         <th class="min-w-100px">Producto</th>
                                                         <th>Cantidad Total</th>
+                                                        <th>Un</th>
                                                         <th class="text-dark">Monto Total</th>
                                                         <th v-for="month in $page.props.months" :key="month.id" class="text-primary">{{month.label}}</th> 
                                                     </tr>
@@ -274,6 +275,7 @@ const onFilter = () => {
                                                                 <td  style="vertical-align:top;" :rowspan="subfamily.products.length">{{subfamily.name}}</td>
                                                                 <td>{{subfamily.products[0].name}}</td>
                                                                 <td>{{subfamily.products[0].totalQuantity}}</td>
+                                                                <td>{{subfamily.products[0].unit}}</td>
                                                                 <td class="text-dark">{{subfamily.products[0].totalAmount}}</td>
                                                                 <td class="bg-opacity-5 bg-primary" v-for="value in subfamily.products[0].months" :key="value">{{value}}</td>
                                                             </tr>
@@ -307,6 +309,7 @@ const onFilter = () => {
                                                         <th>Subfamilia</th>
                                                         <th class="min-w-100px">Producto</th>
                                                         <th>Cantidad Total</th>
+                                                        <th>Un</th>
                                                         <th class="text-dark">Monto Total</th>
                                                     </tr>
                                                 </thead>
@@ -318,6 +321,7 @@ const onFilter = () => {
                                                             <td  style="vertical-align:top;" :rowspan="subfamily.products.length">{{subfamily.name}}</td>
                                                             <td>{{subfamily.products[0].name}}</td>
                                                             <td>{{subfamily.products[0].totalQuantity}}</td>
+                                                            <td>{{subfamily.products[0].unit}}</td>
                                                             <td class="text-dark">{{subfamily.products[0].totalAmount}}</td>
                                                         </tr>
 
@@ -325,6 +329,7 @@ const onFilter = () => {
                                                             <tr v-if="index3 > 0">
                                                                 <td>{{product.name}}</td>
                                                                 <td>{{product.totalQuantity}}</td>
+                                                                <td>{{product.unit}}</td>
                                                                 <td class="text-dark">{{product.totalAmount}}</td>
                                                             </tr>
                                                         </template>

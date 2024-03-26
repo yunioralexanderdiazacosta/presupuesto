@@ -136,10 +136,11 @@ class ManPowersController extends Controller
     {
         $products = ManPower::from('man_powers as mp')
         ->join('manpower_items as mpi', 'mp.id', 'mpi.man_power_id')
-        ->select('mp.id', 'mp.product_name', 'mp.price', 'mp.workday')
+        ->leftJoin('units as u', 'mp.unit_id', 'u.id')
+        ->select('mp.id', 'mp.product_name', 'mp.price', 'mp.workday', 'u.name')
         ->where('mpi.cost_center_id', $costCenterId)
         ->where('mp.subfamily_id', $subfamilyId)
-        ->groupBy('mp.id', 'mp.product_name', 'mp.price', 'mp.workday')
+        ->groupBy('mp.id', 'mp.product_name', 'mp.price', 'mp.workday', 'u.name')
         ->get()
         ->transform(function($value) use ($surface){
             $quantityFirst = round(($value->workday * $surface), 2);
@@ -149,6 +150,7 @@ class ManPowersController extends Controller
             return [
                 'id'            => $value->id,
                 'name'          => $value->product_name,
+                'unit'          => $value->name ?? '',
                 'totalQuantity' => $data['totalQuantity'],
                 'totalAmount'   => $data['totalAmount'],
                 'months'        => $data['months']
@@ -228,16 +230,18 @@ class ManPowersController extends Controller
     {
         $products = ManPower::from('man_powers as mp')
         ->join('manpower_items as mpi', 'mp.id', 'mpi.man_power_id')
-        ->select('mp.id', 'mp.product_name', 'mp.price', 'mp.workday')
+        ->leftJoin('units as u', 'mp.unit_id', 'u.id')
+        ->select('mp.id', 'mp.product_name', 'mp.price', 'mp.workday', 'u.name')
         ->whereIn('mpi.cost_center_id', $costCentersId)
         ->where('mp.subfamily_id', $subfamilyId)
-        ->groupBy('mp.id', 'mp.product_name', 'mp.price', 'mp.workday')
+        ->groupBy('mp.id', 'mp.product_name', 'mp.price', 'mp.workday', 'u.name')
         ->get()
         ->transform(function($value) use ($costCentersId){
             $data = $this->getResult2($value, $costCentersId);
             return [
                 'id'            => $value->id,
                 'name'          => $value->product_name,
+                'unit'          => $value->name ?? '',
                 'totalQuantity' => $data['totalQuantity'],
                 'totalAmount'   => $data['totalAmount'],
             ];

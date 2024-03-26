@@ -5,6 +5,7 @@ namespace App\Http\Controllers\ManPowers;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\ManPowers\StoreManPowerRequest;
 use App\Models\ManPower;
+use App\Models\Unit;
 use Illuminate\Http\Request;
 
 class StoreManPowerController extends Controller
@@ -13,6 +14,8 @@ class StoreManPowerController extends Controller
     {
         $products = $request->get('products');
 
+        $unit = Unit::where('name', 'JH')->first();
+
         foreach($products as $product){
             $manpower = ManPower::create([
                 'product_name'  => $product['product_name'],
@@ -20,6 +23,7 @@ class StoreManPowerController extends Controller
                 'price'         => $product['price'],
                 'observations'  => $product['observations'],
                 'subfamily_id'  => $request->subfamily_id,
+                'unit_id'       => $unit->id
             ]);
 
             foreach($request->get('cc') as $cc){
