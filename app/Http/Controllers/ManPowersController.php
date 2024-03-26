@@ -26,7 +26,7 @@ class ManPowersController extends Controller
 
         $this->month_id = $budget['month_id'];
 
-        $subfamilies = Subfamily::where('id_form', 2)->get()->transform(function($subfamily){
+        $subfamilies = Subfamily::where('id_form', 3)->get()->transform(function($subfamily){
             return [
                 'label' => $subfamily->name,
                 'value' => $subfamily->id
