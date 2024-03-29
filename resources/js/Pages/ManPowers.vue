@@ -13,7 +13,10 @@ import EditManPowerModal from '@/Components/ManPowers/EditManPowerModal.vue';
 const props = defineProps({
     manPowers: Object,
     data: Array,
-    data2: Array
+    data2: Array,
+    totalData1: String,
+    totalData2: String,
+    percentage: String
 });
 
 const formMultiple = useForm({
@@ -250,6 +253,27 @@ const onFilter = () => {
                                     <!--end::Tab pane-->
                                     <!--begin::Tab pane-->
                                     <div class="tab-pane" id="kt_table_2" role="tabpanel">
+                                        <div class="row">
+                                            <!--begin::Col-->
+                                            <div class="col-lg-3">
+                                                <div class="card card-dashed border-primary flex-center min-w-175px mb-3 p-6">
+                                                    <span class="fs-4 fw-semibold text-primary pb-1 px-2">Monto total</span>
+                                                    <span class="fs-2 fw-bold d-flex justify-content-center">
+                                                    <span>{{totalData1}}</span></span>
+                                                </div>
+                                            </div>
+                                            <!--end::Col-->
+                                            <!--begin::Col-->
+                                            <div class="col-lg-3">
+                                                <div class="card card-dashed border-primary flex-center min-w-175px mb-3 p-6">
+                                                    <span class="fs-4 fw-semibold text-primary pb-1 px-2">Porc. Monto</span>
+                                                    <span class="fs-lg-2 fw-bold d-flex justify-content-center">
+                                                    <span class="counted">{{percentage}}%</span></span>
+                                                </div>
+                                            </div>
+                                            <!--end::Col-->
+                                        </div> 
+
                                         <!--begin::Table-->
                                         <div class="table-responsive">
                                             <table class="table table-row-full-dashed table-row-gray-300 align-middle gs-0 gy-4">
@@ -300,6 +324,27 @@ const onFilter = () => {
 
                                      <!--begin::Tab pane-->
                                     <div class="tab-pane" id="kt_table_3" role="tabpanel">
+                                        <div class="row">
+                                            <!--begin::Col-->
+                                            <div class="col-lg-3">
+                                                <div class="card card-dashed border-primary flex-center min-w-175px mb-3 p-6">
+                                                    <span class="fs-4 fw-semibold text-primary pb-1 px-2">Monto total</span>
+                                                    <span class="fs-2 fw-bold d-flex justify-content-center">
+                                                    <span>{{totalData2}}</span></span>
+                                                </div>
+                                            </div>
+                                            <!--end::Col-->
+                                            <!--begin::Col-->
+                                            <div class="col-lg-3">
+                                                <div class="card card-dashed border-primary flex-center min-w-175px mb-3 p-6">
+                                                    <span class="fs-4 fw-semibold text-primary pb-1 px-2">Porc. Monto</span>
+                                                    <span class="fs-lg-2 fw-bold d-flex justify-content-center">
+                                                    <span class="counted">{{percentage}}%</span></span>
+                                                </div>
+                                            </div>
+                                            <!--end::Col-->
+                                        </div>
+
                                         <!--begin::Table-->
                                         <div class="table-responsive">
                                             <table class="table table-row-full-dashed table-row-gray-300 align-middle gs-0 gy-4">
