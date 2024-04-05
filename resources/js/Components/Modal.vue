@@ -9,6 +9,10 @@ const props = defineProps({
         type: String,
         default: 'md',
     },
+    background: {
+        type: String,
+        default: ''
+    }
 })
 
 const maxWidthClass = computed(() => {
@@ -22,7 +26,7 @@ const maxWidthClass = computed(() => {
 });
 </script>
 <template>
-    <div class="modal fade" :id="id" tabindex="-1" aria-hidden="true">
+    <div class="modal fade" :class="background" :id="id" tabindex="-1" aria-hidden="true">
         <!--begin::Modal dialog-->
         <div class="modal-dialog modal-dialog-centered" :class="maxWidthClass">
             <!--begin::Modal content-->

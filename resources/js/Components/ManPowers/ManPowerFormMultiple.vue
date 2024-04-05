@@ -1,11 +1,22 @@
 <script setup>
+    import { ref } from 'vue';
+    import { useForm } from '@inertiajs/vue3';
     import Multiselect from '@vueform/multiselect';
 	import TextInput from '@/Components/TextInput.vue';
 	import InputError from '@/Components/InputError.vue';
+    import CalculateWorkDayModal from '@/Components/ManPowers/CalculateWorkDayModal.vue';
+
+    const valid = ref(false);
 
 	const props = defineProps({
 		form: Object
 	});
+
+    const formWorkDay = useForm({
+        performance: '',
+        floors: '',
+        index: ''
+    });
 
     const addItem = () => {
         props.form.products.push({
@@ -19,8 +30,34 @@
     const removeItem = (index) => {
         props.form.products.splice(index, 1);
     }
+
+    const storeWorkDay = () => {
+        onValidated();
+        if(valid.value == true){
+            props.form.products[formWorkDay.index].workday = (formWorkDay.floors / formWorkDay.performance).toFixed(2).replace(/\.00$/, '');
+            $('#calculateWorkDay').modal('hide');
+            formWorkDay.reset();
+        }
+    }
+
+    const onCalculated = (index) => {
+        formWorkDay.reset();
+        formWorkDay.index = index;
+        $('#calculateWorkDay').modal('show');
+    }
+
+    const onValidated = () => {
+        formWorkDay.errors = {};
+        valid.value = true;
+        if(formWorkDay.performance == ""){
+            formWorkDay.errors.performance = 'Este campo es obligatorio';
+            valid.value = false;
+        } if(formWorkDay.floors == ""){
+            formWorkDay.errors.floors = 'Este campo es obligatorio';
+            valid.value = false;
+        }
+    }
 </script>
-<script setup></script>
 <template>
     <div class="row">
         <div class="col-md-6">
@@ -77,14 +114,10 @@
             <div class="col-lg-4">
                 <div class="fv-row mb-8">
                     <label class="required fs-6 fw-semibold mb-2">Jornadas/hectarea</label>
-                    <TextInput
-                        id="workday"
-                        v-model="product.workday"
-                        class="form-control form-control-solid"
-                        type="number"
-                        step="0.00"
-                        :class="{'is-invalid': form.errors['products.'+index+'.workday']}"
-                    />
+                    <div class="input-group">
+                        <input type="number" id="workday" v-model="product.workday" class="form-control form-control-solid" aria-describedby="jornadas" step="0.00" :class="{'is-invalid': form.errors['products.'+index+'.workday']}">
+                        <button type="button" @click="onCalculated(index)" id="jornadas" class="btn btn-light text-primary"><i class="fas fa-question-circle" style="font-size: 20px"></i></button>
+                    </div>
                     <InputError class="mt-2" :message="form.errors['products.'+index+'.workday']" />
                 </div>
             </div>
@@ -136,6 +169,7 @@
                 </button>
             </div>
         </div>
+        <CalculateWorkDayModal @store="storeWorkDay" :form="formWorkDay" />
     </template>
 </template>
 <style src="@vueform/multiselect/themes/default.css"></style>
