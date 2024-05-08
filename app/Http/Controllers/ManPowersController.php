@@ -124,7 +124,7 @@ class ManPowersController extends Controller
 
         $totalAbsolute = $this->totalData2 + $this->totalAgrochemical + $this->totalFertilizer;
 
-        $percentage = round((($this->totalData2 / $totalAbsolute) * 100), 2);
+        $percentage = $totalAbsolute > 0 ? round((($this->totalData2 / $totalAbsolute) * 100), 2) : 0;
 
         $totalData1 = number_format($this->totalData1, 0, ',', '.');
         $totalData2 = number_format($this->totalData2, 0, ',', '.');

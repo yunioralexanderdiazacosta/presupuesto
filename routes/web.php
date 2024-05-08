@@ -2,6 +2,7 @@
 
 use Illuminate\Foundation\Application;
 use Illuminate\Support\Facades\Route;
+use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\AgrochemicalsController;
 use App\Http\Controllers\FertilizersController;
 use App\Http\Controllers\TeamsController;
@@ -71,9 +72,7 @@ Route::middleware([
     Route::delete('/budgets/{budget}/delete', DeleteBudgetController::class)->name('budgets.delete');
     
     Route::middleware(['check.selected.budget'])->group(function () {
-        Route::get('/dashboard', function () {
-            return Inertia::render('Dashboard');
-        })->name('dashboard');
+        Route::get('/dashboard', DashboardController::class)->name('dashboard');
 
         Route::get('/agrochemicals', AgrochemicalsController::class)->name('agrochemicals.index');
         Route::get('/fertilizers', FertilizersController::class)->name('fertilizers.index');
