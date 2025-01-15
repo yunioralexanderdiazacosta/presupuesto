@@ -65,11 +65,18 @@ const items = [
     },
     {
         title: 'Proveedores',
-        icon: `<i class="bi bi-people-fill"></i>`,
+        icon: `<i class="bi bi-card-checklist"></i>`,
         link: 'suppliers.index',
         subitems: [],
         role: 'Admin'
     },
+    {
+        title: 'Productos',
+        icon: `<i class="bi bi-card-checklist"></i>`,
+        link: 'products.index',
+        subitems: [],
+        role: 'Admin'
+    }
 ];
 </script>
 <template>

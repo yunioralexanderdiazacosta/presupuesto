@@ -10,6 +10,7 @@ use App\Http\Controllers\BudgetsController;
 use App\Http\Controllers\CostCentersController;
 use App\Http\Controllers\SelectBudgetController;
 use App\Http\Controllers\SuppliersController;
+use App\Http\Controllers\ProductsController;
 use App\Http\Controllers\Teams\StoreTeamController;
 use App\Http\Controllers\Teams\UpdateTeamController;
 use App\Http\Controllers\Teams\DeleteTeamController;
@@ -33,6 +34,12 @@ use App\Http\Controllers\ManPowers\DeleteManPowerController;
 use App\Http\Controllers\Suppliers\StoreSupplierController;
 use App\Http\Controllers\Suppliers\UpdateSupplierController;
 use App\Http\Controllers\Suppliers\DeleteSupplierController;
+use App\Http\Controllers\Products\StoreProductController;
+use App\Http\Controllers\Products\UpdateProductController;
+use App\Http\Controllers\Products\DeleteProductController;
+use App\Http\Controllers\Level2s\GetLevel2Controller;
+use App\Http\Controllers\Level3s\GetLevel3Controller;
+use App\Http\Controllers\Level4s\GetLevel4Controller;
 use App\Http\Controllers\ManPowersController;
 use Inertia\Inertia;
 
@@ -64,6 +71,8 @@ Route::middleware([
 
     Route::get('/teams', TeamsController::class)->name('teams.index');
     Route::get('/budgets', BudgetsController::class)->name('budgets.index');
+    Route::get('/suppliers', SuppliersController::class)->name('suppliers.index');
+    Route::get('/products', ProductsController::class)->name('products.index');
 
     Route::post('/teams/store', StoreTeamController::class)->name('teams.store');
     Route::post('teams/{user}/update', UpdateTeamController::class)->name('teams.update');
@@ -73,6 +82,21 @@ Route::middleware([
     Route::post('/budgets/store', StoreBudgetController::class)->name('budgets.store');
     Route::post('/budgets/{budget}/update', UpdateBudgetController::class)->name('budgets.update');
     Route::delete('/budgets/{budget}/delete', DeleteBudgetController::class)->name('budgets.delete');
+
+    Route::post('/suppliers/store', StoreSupplierController::class)->name('suppliers.store');
+    Route::post('/suppliers/{supplier}/update', UpdateSupplierController::class)->name('suppliers.update');
+    Route::delete('/suppliers/{supplier}/delete', DeleteSupplierController::class)->name('suppliers.delete');
+
+     Route::post('/products/store', StoreProductController::class)->name('products.store');
+    Route::post('/products/{product}/update', UpdateProductController::class)->name('products.update');
+    Route::delete('/products/{product}/delete', DeleteProductController::class)->name('products.delete');
+
+
+    Route::get('/levels2/{level1}/get', GetLevel2Controller::class)->name('levels2.get');
+    Route::get('/levels3/{level2}/get', GetLevel3Controller::class)->name('levels3.get');
+    Route::get('/levels4/{level3}/get', GetLevel4Controller::class)->name('levels4.get');
+
+
     
     Route::middleware(['check.selected.budget'])->group(function () {
         Route::get('/dashboard', DashboardController::class)->name('dashboard');
@@ -81,7 +105,6 @@ Route::middleware([
         Route::get('/fertilizers', FertilizersController::class)->name('fertilizers.index');
         Route::get('/cost-centers', CostCentersController::class)->name('cost.centers.index');
         Route::get('/manpowers', ManPowersController::class)->name('manpowers.index');
-        Route::get('/suppliers', SuppliersController::class)->name('suppliers.index');
 
         Route::post('/cost-centers/store', StoreCostCenterController::class)->name('cost.centers.store');
         Route::post('/cost-centers/{costCenter}/update', UpdateCostCenterController::class)->name('cost.centers.update');
@@ -99,9 +122,6 @@ Route::middleware([
         Route::post('/man-powers/{manPower}/update', UpdateManPowerController::class)->name('man.powers.update');
         Route::delete('/man-powers/{manPower}/delete', DeleteManPowerController::class)->name('man.powers.delete');
 
-        Route::post('/suppliers/store', StoreSupplierController::class)->name('suppliers.store');
-        Route::post('/suppliers/{supplier}/update', UpdateSupplierController::class)->name('suppliers.update');
-        Route::delete('/suppliers/{supplier}/delete', DeleteSupplierController::class)->name('suppliers.delete');
     });
     Route::get('/select-budge', SelectBudgetController::class)->name('select.budget');
     Route::post('/select-budget/save', SaveBudgetController::class)->name('select.budget.save');

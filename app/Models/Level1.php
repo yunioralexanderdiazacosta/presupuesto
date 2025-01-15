@@ -8,4 +8,11 @@ use Illuminate\Database\Eloquent\Model;
 class Level1 extends Model
 {
     use HasFactory;
+
+    protected $fillable = ['name'];
+
+    public function levels2()
+    {
+        return $this->hasMany(level2::class, 'level1_id');
+    }
 }

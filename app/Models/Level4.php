@@ -8,4 +8,6 @@ use Illuminate\Database\Eloquent\Model;
 class Level4 extends Model
 {
     use HasFactory;
+
+    protected $fillable = ['name', 'level3_id'];
 }

@@ -8,31 +8,36 @@
 	});
 </script>
 <template>
-    <div class="fv-row mb-8">
-        <label class="required fs-6 fw-semibold mb-2">Nombre</label>
-        <TextInput
-            id="name"
-            v-model="form.name"
-            class="form-control form-control-solid"
-            type="text"
-            :class="{'is-invalid': form.errors.name}"
-        />
-        <InputError class="mt-2" :message="form.errors.name" />
+    <div class="row">
+        <div class="col-lg-6">
+            <div class="fv-row mb-8">
+                <label class="required fs-6 fw-semibold mb-2">Nombre</label>
+                <TextInput
+                    id="name"
+                    v-model="form.name"
+                    class="form-control form-control-solid"
+                    type="text"
+                    :class="{'is-invalid': form.errors.name}"
+                />
+                <InputError class="mt-2" :message="form.errors.name" />
+            </div>
+        </div>
+        <div class="col-lg-6">
+            <div class="fv-row mb-8">
+                <label class="required fs-6 fw-semibold mb-2">Rut</label>
+                <TextInput
+                    id="rut"
+                    v-model="form.rut"
+                    class="form-control form-control-solid"
+                    type="text"
+                    :class="{'is-invalid': form.errors.rut}"
+                />
+                <InputError class="mt-2" :message="form.errors.rut" />
+            </div>
+        </div>
     </div>
 
-    <div class="fv-row mb-8">
-        <label class="required fs-6 fw-semibold mb-2">Rut</label>
-        <TextInput
-            id="rut"
-            v-model="form.rut"
-            class="form-control form-control-solid"
-            type="text"
-            :class="{'is-invalid': form.errors.rut}"
-        />
-        <InputError class="mt-2" :message="form.errors.rut" />
-    </div>
-
-     <div class="fv-row mb-8">
+      <div class="fv-row mb-8">
         <label class="required fs-6 fw-semibold mb-2">Contacto</label>
         <TextInput
             id="contact"
@@ -44,31 +49,36 @@
         <InputError class="mt-2" :message="form.errors.contact" />
     </div>
 
-     <div class="fv-row mb-8">
-        <label class="required fs-6 fw-semibold mb-2">Email</label>
-        <TextInput
-            id="email"
-            v-model="form.email"
-            class="form-control form-control-solid"
-            type="text"
-            :class="{'is-invalid': form.errors.email}"
-        />
-        <InputError class="mt-2" :message="form.errors.email" />
+
+    <div class="row">
+        <div class="col-lg-6">
+            <div class="fv-row mb-8">
+                <label class="required fs-6 fw-semibold mb-2">Email</label>
+                <TextInput
+                    id="email"
+                    v-model="form.email"
+                    class="form-control form-control-solid"
+                    type="text"
+                    :class="{'is-invalid': form.errors.email}"
+                />
+                <InputError class="mt-2" :message="form.errors.email" />
+            </div>
+        </div>
+        <div class="col-lg-6">
+            <div class="fv-row mb-8">
+                <label class="required fs-6 fw-semibold mb-2">Telefono</label>
+                <TextInput
+                    id="phone"
+                    v-model="form.phone"
+                    class="form-control form-control-solid"
+                    type="text"
+                    :class="{'is-invalid': form.errors.phone}"
+                />
+                <InputError class="mt-2" :message="form.errors.phone" />
+            </div>
+        </div>
     </div>
-
-    <div class="fv-row mb-8">
-        <label class="required fs-6 fw-semibold mb-2">Telefono</label>
-        <TextInput
-            id="phone"
-            v-model="form.phone"
-            class="form-control form-control-solid"
-            type="text"
-            :class="{'is-invalid': form.errors.phone}"
-        />
-        <InputError class="mt-2" :message="form.errors.phone" />
-    </div>
-
-
+   
     <!--
     <div class="fv-row mb-3">
         <label for="month" class="form-label required fs-6 fw-bold mb-3">Presupuesto</label>
