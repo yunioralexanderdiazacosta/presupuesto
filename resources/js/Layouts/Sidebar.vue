@@ -62,7 +62,14 @@ const items = [
         link: 'manpowers.index',
         subitems: [],
         role: 'Admin'
-    }
+    },
+    {
+        title: 'Proveedores',
+        icon: `<i class="bi bi-people-fill"></i>`,
+        link: 'suppliers.index',
+        subitems: [],
+        role: 'Admin'
+    },
 ];
 </script>
 <template>

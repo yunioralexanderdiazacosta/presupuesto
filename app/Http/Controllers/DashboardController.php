@@ -36,7 +36,7 @@ class DashboardController extends Controller
 
         $budget = Budget::select('name', 'month_id')->where('id', $budget_id)->first();
 
-        $this->month_id = $budget['month_id'];
+        $this->month_id = $budget ? $budget['month_id'] : 1;
 
         $months = array();
         $currentMonth = $this->month_id;

@@ -19,7 +19,7 @@ class checkSelectedBudget
         if(auth()->check() && auth()->user()->status == 1 && auth()->user()->hasRole('Admin')){
             $user = auth()->user();
 
-            if ($user && $request->session()->has('budget_id') == null) {
+            if ($user && $user->team && $user->team->budgets()->count() > 0 && $request->session()->has('budget_id') == null) {
                 return Redirect::route('select.budget');
             }
         }
