@@ -11,6 +11,8 @@ use App\Http\Controllers\CostCentersController;
 use App\Http\Controllers\SelectBudgetController;
 use App\Http\Controllers\SuppliersController;
 use App\Http\Controllers\ProductsController;
+use App\Http\Controllers\CompanyReasonsController;
+use App\Http\Controllers\InvoicesController;
 use App\Http\Controllers\Teams\StoreTeamController;
 use App\Http\Controllers\Teams\UpdateTeamController;
 use App\Http\Controllers\Teams\DeleteTeamController;
@@ -37,6 +39,10 @@ use App\Http\Controllers\Suppliers\DeleteSupplierController;
 use App\Http\Controllers\Products\StoreProductController;
 use App\Http\Controllers\Products\UpdateProductController;
 use App\Http\Controllers\Products\DeleteProductController;
+use App\Http\Controllers\CompanyReasons\StoreCompanyReasonController;
+use App\Http\Controllers\CompanyReasons\UpdateCompanyReasonController;
+use App\Http\Controllers\CompanyReasons\DeleteCompanyReasonController;
+use App\Http\Controllers\Invoices\CreateInvoiceController;
 use App\Http\Controllers\Level2s\GetLevel2Controller;
 use App\Http\Controllers\Level3s\GetLevel3Controller;
 use App\Http\Controllers\Level4s\GetLevel4Controller;
@@ -73,6 +79,7 @@ Route::middleware([
     Route::get('/budgets', BudgetsController::class)->name('budgets.index');
     Route::get('/suppliers', SuppliersController::class)->name('suppliers.index');
     Route::get('/products', ProductsController::class)->name('products.index');
+    Route::get('/company-reasons', CompanyReasonsController::class)->name('company.reasons.index');
 
     Route::post('/teams/store', StoreTeamController::class)->name('teams.store');
     Route::post('teams/{user}/update', UpdateTeamController::class)->name('teams.update');
@@ -91,13 +98,17 @@ Route::middleware([
     Route::post('/products/{product}/update', UpdateProductController::class)->name('products.update');
     Route::delete('/products/{product}/delete', DeleteProductController::class)->name('products.delete');
 
+    Route::post('/company-reasons/store', StoreCompanyReasonController::class)->name('company.reasons.store');
+    Route::post('/company-reasons/{companyReason}/update', UpdateCompanyReasonController::class)->name('company.reasons.update');
+    Route::delete('/company-reasons/{companyReason}/delete', DeleteCompanyReasonController::class)->name('company.reasons.delete');
+
+    Route::get('/invoices', InvoicesController::class)->name('invoices.index');
+    Route::get('/invoices/create', CreateInvoiceController::class)->name('invoices.create');
 
     Route::get('/levels2/{level1}/get', GetLevel2Controller::class)->name('levels2.get');
     Route::get('/levels3/{level2}/get', GetLevel3Controller::class)->name('levels3.get');
     Route::get('/levels4/{level3}/get', GetLevel4Controller::class)->name('levels4.get');
 
-
-    
     Route::middleware(['check.selected.budget'])->group(function () {
         Route::get('/dashboard', DashboardController::class)->name('dashboard');
 

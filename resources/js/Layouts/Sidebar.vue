@@ -16,66 +16,97 @@ const change = (position) => {
 
 const items = [
     {
+        title: 'Presupuestos',
+        icon: `<i class="bi bi-speedometer2"></i>`,
+        link: null,
+        role: 'Admin',
+        subitems: [
+            {
+                title: 'Tablero',
+                icon: `<i class="bi bi-speedometer2"></i>`,
+                link: 'dashboard'
+            },
+
+            {
+                title: 'Presupuestos',
+                icon: `<i class="bi bi-card-checklist"></i>`,
+                link: 'budgets.index'
+            },
+
+            {
+                title: 'Agroquimicos',
+                icon: `<i class="bi bi-card-checklist"></i>`,
+                link: 'agrochemicals.index'
+            },
+
+            {
+                title: 'Fertilizantes',
+                icon: `<i class="bi bi-card-checklist"></i>`,
+                link: 'fertilizers.index'
+            },
+
+            {
+                title: 'Mano de Obra',
+                icon: `<i class="bi bi-card-checklist"></i>`,
+                link: 'manpowers.index'
+            }
+        ]
+    },
+
+    {
+        title: 'Parametros',
+        icon: `<i class="bi bi-speedometer2"></i>`,
+        link: null,
+        role: 'Admin',
+        subitems: [
+            {
+                title: 'Centros de costos',
+                icon: `<i class="bi bi-card-checklist"></i>`,
+                link: 'cost.centers.index'
+            },
+
+            {
+                title: 'Razon Social',
+                icon: `<i class="bi bi-card-checklist"></i>`, 
+                link: 'company.reasons.index'
+            }
+        ]
+    },
+
+    {
+        title: 'Gestión',
+        icon: `<i class="bi bi-speedometer2"></i>`,
+        link: null,
+        role: 'Admin',
+        subitems: [
+            {
+                title: 'Proveedores',
+                icon: `<i class="bi bi-card-checklist"></i>`,
+                link: 'suppliers.index'
+            },
+
+            {
+                title: 'Productos',
+                icon: `<i class="bi bi-card-checklist"></i>`,
+                link: 'products.index'
+            }
+        ]
+    }, 
+
+    {
         title: 'Tablero',
         icon: `<i class="bi bi-speedometer2"></i>`,
         link: 'dashboard',
+        role: 'Super Admin', 
         subitems: []
     },
+   
     {
         title: 'Empresas',
         icon: `<i class="bi bi-building"></i>`,
         link: 'teams.index',
         subitems: [],
         role: 'Super Admin'
-    },
-    {
-        title: 'Presupuestos',
-        icon: `<i class="bi bi-card-checklist"></i>`,
-        link: 'budgets.index',
-        subitems: [],
-        role: 'Admin'
-    },
-    {
-        title: 'Centros de costo',
-        icon: `<i class="bi bi-card-checklist"></i>`,
-        link: 'cost.centers.index',
-        subitems: [],
-        role: 'Admin'
-    },
-    {
-        title: 'Agroquimicos',
-        icon: `<i class="bi bi-card-checklist"></i>`,
-        link: 'agrochemicals.index',
-        subitems: [],
-        role: 'Admin'
-    },
-    {
-        title: 'Fertilizantes',
-        icon: `<i class="bi bi-card-checklist"></i>`,
-        link: 'fertilizers.index',
-        subitems: [],
-        role: 'Admin'
-    },
-    {
-        title: 'Mano de Obra',
-        icon: `<i class="bi bi-card-checklist"></i>`,
-        link: 'manpowers.index',
-        subitems: [],
-        role: 'Admin'
-    },
-    {
-        title: 'Proveedores',
-        icon: `<i class="bi bi-card-checklist"></i>`,
-        link: 'suppliers.index',
-        subitems: [],
-        role: 'Admin'
-    },
-    {
-        title: 'Productos',
-        icon: `<i class="bi bi-card-checklist"></i>`,
-        link: 'products.index',
-        subitems: [],
-        role: 'Admin'
     }
 ];
 </script>
