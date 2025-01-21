@@ -1,36 +1,34 @@
 <script setup>
 import Swal from 'sweetalert2';
-import { Head, useForm, router } from '@inertiajs/vue3';
+import { Head, useForm } from '@inertiajs/vue3';
 import AppLayout from '@/Layouts/AppLayout.vue';
 import FormInvoice from '@/Components/Invoices/Form.vue';
 import Breadcrumb from '@/Components/Breadcrumb.vue';
 
-const title = 'Crear Factura';
+const title = 'Editar Factura';
 
 const links = [{ title: 'Tablero', link: 'dashboard' }, { title: 'Facturas', link: 'invoices.index' }, { title: title, active: true }];
 
+const props = defineProps({
+	invoice: Object,
+	invoiceProducts: Array
+})
+
 const form = useForm({
-	number: '333',
-	date: '',
-	due_date: '',
-	payment_term: '',
-	payment_type: '',
-	petty_cash: false,
-	supplier_id: '',
-	company_reason_id: '',
-	type_document_id: '',
-	products: [
-		{
-			product_id: '',
-			unit_price: 0.00,
-			amount: 1,
-			observations: ''
-		}
-	]
+	number: props.invoice.number,
+	date: props.invoice.date,
+	due_date: props.invoice.due_date,
+	payment_term: props.invoice.payment_term,
+	payment_type: props.invoice.payment_type,
+	petty_cash: props.invoice.petty_cash,
+	supplier_id: props.invoice.supplier_id,
+	company_reason_id: props.invoice.company_reason_id,
+	type_document_id: props.invoice.type_document_id,
+	products: props.invoiceProducts
 });
 
 const save = () => {
-	 form.post(route('invoices.store'), {
+	 form.post(route('invoices.update', props.invoice.id), {
         preserveScroll: true,
         onSuccess: () => {
             msgSuccess('Guardado correctamente');

@@ -89,6 +89,12 @@ const items = [
                 title: 'Productos',
                 icon: `<i class="bi bi-card-checklist"></i>`,
                 link: 'products.index'
+            },
+
+            {
+                title: 'Facturas',
+                icon: `<i class="bi bi-card-checklist"></i>`,
+                link: 'invoices.index'
             }
         ]
     }, 

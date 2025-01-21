@@ -1,11 +1,13 @@
 <script setup>
-
+	import Multiselect from '@vueform/multiselect';
+	import InputError from '@/Components/InputError.vue';
+	
 	const props = defineProps({
-		formProducts: Array
+		form: Object
 	})
 
 	const add = () => {
-	props.formProducts.push({
+	props.form.products.push({
 			product_id: '',
 			unit_price: 0.00,
 			amount: 1,
@@ -24,14 +26,14 @@
 	        confirmButtonText: 'Confirmar',
 	    }).then((result) => {
 	        if (result.isConfirmed) {
-	           props.formProducts.splice(index, 1);
+	           props.form.products.splice(index, 1);
 	        }
 	    });
 	}
 
 	const calculateTotal = () => {
 		var total = 0;
-		props.formProducts.filter(element => {
+		props.form.products.filter(element => {
 			total = total + (element.unit_price * element.amount)
 		});
 
@@ -57,16 +59,25 @@
 			<!--end::Table head-->
 			<!--begin::Table body-->
 			<tbody>
-				<tr class="border-bottom border-bottom-dashed" v-for="(product, index) in formProducts" data-kt-element="item">
+				<tr class="border-bottom border-bottom-dashed" v-for="(product, index) in form.products" data-kt-element="item">
 					<td class="pe-7">
-						<input type="text" class="form-control form-control-solid mb-2" v-model="product.product_id" placeholder="Item name" />
-						<input type="text" class="form-control form-control-solid" v-model="product.observations" placeholder="Observaciones..." />
+						<Multiselect
+		                    :placeholder="'Seleccione producto'"
+		                    v-model="product.product_id"
+		                    :close-on-select="false"
+		                    :options="$page.props.products"
+		                    class="multiselect-blue form-control"
+		                    :class="{'is-invalid': form.errors['products.'+index+'.product_id']}"
+		                    :searchable="true"
+		                    :hide-selected="false"
+		                />
+						<input type="text" class="form-control form-control-solid mt-3" v-model="product.observations" placeholder="Observaciones..." />
 					</td>
 					<td class="ps-0">
 						<input class="form-control form-control-solid" type="number" min="1" v-model="product.amount" value="1" data-kt-element="quantity" />
 					</td>
 					<td>
-						<input type="number" class="form-control form-control-solid text-end" v-model="product.unit_price" value="0.00" step="0.00" />
+						<input type="number" class="form-control form-control-solid text-end unit_price" v-model="product.unit_price" value="0.00" step="0.00" />
 					</td>
 					<td class="pt-8 text-end text-nowrap">$
 					<span data-kt-element="total">{{product.unit_price * product.amount}}</span></td>

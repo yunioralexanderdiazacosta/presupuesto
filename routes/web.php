@@ -43,6 +43,10 @@ use App\Http\Controllers\CompanyReasons\StoreCompanyReasonController;
 use App\Http\Controllers\CompanyReasons\UpdateCompanyReasonController;
 use App\Http\Controllers\CompanyReasons\DeleteCompanyReasonController;
 use App\Http\Controllers\Invoices\CreateInvoiceController;
+use App\Http\Controllers\Invoices\StoreInvoiceController;
+use App\Http\Controllers\Invoices\EditInvoiceController;
+use App\Http\Controllers\Invoices\UpdateInvoiceController;
+use App\Http\Controllers\Invoices\DeleteInvoiceController;
 use App\Http\Controllers\Level2s\GetLevel2Controller;
 use App\Http\Controllers\Level3s\GetLevel3Controller;
 use App\Http\Controllers\Level4s\GetLevel4Controller;
@@ -104,6 +108,10 @@ Route::middleware([
 
     Route::get('/invoices', InvoicesController::class)->name('invoices.index');
     Route::get('/invoices/create', CreateInvoiceController::class)->name('invoices.create');
+    Route::post('/invoices/store', StoreInvoiceController::class)->name('invoices.store');
+    Route::get('/invoices/{invoice}/edit', EditInvoiceController::class)->name('invoices.edit'); 
+    Route::post('/invoices/{invoice}/update', UpdateInvoiceController::class)->name('invoices.update'); 
+    Route::delete('/invoices/{invoice}/delete', DeleteInvoiceController::class)->name('invoices.delete');
 
     Route::get('/levels2/{level1}/get', GetLevel2Controller::class)->name('levels2.get');
     Route::get('/levels3/{level2}/get', GetLevel3Controller::class)->name('levels3.get');

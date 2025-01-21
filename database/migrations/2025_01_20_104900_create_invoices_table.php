@@ -16,7 +16,7 @@ return new class extends Migration
             $table->string('number');
             $table->integer('payment_term');
             $table->integer('payment_type')->comment('1:CREDITO|CONTADO');
-            $table->boolean('petty_cash')->nullable();
+            $table->boolean('petty_cash')->default(false);
             $table->foreignId('team_id')->constrained()->cascadeOnDelete();
             $table->foreignId('supplier_id')->constrained()->cascadeOnDelete();
             $table->foreignId('company_reason_id')->constrained()->cascadeOnDelete();
