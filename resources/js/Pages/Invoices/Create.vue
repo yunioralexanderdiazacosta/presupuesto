@@ -10,7 +10,7 @@ const title = 'Crear Factura';
 const links = [{ title: 'Tablero', link: 'dashboard' }, { title: 'Facturas', link: 'invoices.index' }, { title: title, active: true }];
 
 const form = useForm({
-	number: '333',
+	number: '',
 	date: '',
 	due_date: '',
 	payment_term: '',
@@ -49,9 +49,10 @@ const msgSuccess = (msg) => {
     });
 };
 </script>
- <Head :title="title" />
+ 
 <template>
 	<AppLayout>
+		<Head :title="title" />
 		<div class="app-main flex-column flex-row-fluid" id="kt_app_main">
 			<!--begin::Content wrapper-->
 			<div class="d-flex flex-column flex-column-fluid">

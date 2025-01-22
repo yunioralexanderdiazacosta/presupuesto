@@ -15,8 +15,6 @@ const title = 'Facturas';
 
 const links = [{ title: 'Tablero', link: 'dashboard' }, { title: title, active: true }];
 
-
-
 const msgSuccess = (msg) => {
     Swal.fire({
         position: 'top-end',
@@ -38,7 +36,7 @@ const onDeleted = (id) => {
         confirmButtonText: 'Confirmar',
     }).then((result) => {
         if (result.isConfirmed) {
-            router.delete(route('company.reasons.delete', id), {
+            router.delete(route('invoices.delete', id), {
                 preserveScroll: true,
                 onSuccess: () => {
                     msgSuccess('Registro eliminado correctamente');
@@ -108,8 +106,12 @@ const onDeleted = (id) => {
                                     <!--begin::Table head-->
                                     <template #header>
                                         <!--begin::Table row-->
-                                        <th width="min-w-150px">#</th>
+                                        <th width="min-w-150px">Proveedor</th>
+                                        <th width="min-w-150px">Número de Documento</th> 
+                                        <th width="min-w-150px">Razón Social</th>
                                         <th width="min-w-150px">Fecha</th>
+                                        <th width="min-w-150px">Fecha de Vencimiento</th> 
+                                        <th width="min-w-150px" class="text-end">Total</th>
                                         <th width="min-w-150px" class="text-end">Acciones</th>
                                         <!--end::Table row-->
                                     </template>
@@ -121,9 +123,20 @@ const onDeleted = (id) => {
                                         </template>
                                         <template v-else>
                                             <tr v-for="(invoice, index) in invoices.data" :key="index">
-                                                <td>{{invoice.number}}</td>
+                                                <td>{{invoice.supplier.name}}</td>
+                                                <td>{{invoice.number_document}}</td>
+                                                <td>{{invoice.companyReason.name}}</td>  
                                                 <td>{{invoice.date}}</td>
+                                                <td>{{invoice.due_date}}</td>
+                                                <td class="text-end">{{invoice.total}}</td>
                                                 <td class="text-end">
+                                                     <!--begin::View-->
+                                                    <Link :href="route('invoices.show', invoice.id)" v-tooltip="'Ver'" class="btn btn-icon btn-active-light-primary w-30px h-30px me-3">
+                                                        <span class="svg-icon svg-icon-3">
+                                                            <i class="fas fa-eye"></i>
+                                                        </span>
+                                                    </Link>
+                                                    <!--end::View-->
                                                     <!--begin::Update-->
                                                     <Link v-tooltip="'Editar'" class="btn btn-icon btn-active-light-primary w-30px h-30px me-3" :href="route('invoices.edit', invoice.id)">
                                                         <span class="svg-icon svg-icon-3">

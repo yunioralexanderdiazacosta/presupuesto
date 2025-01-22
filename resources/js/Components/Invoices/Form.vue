@@ -16,7 +16,7 @@
 	<!--begin::Input group-->
 	<div class="d-flex flex-center flex-equal fw-row text-nowrap order-1 order-xxl-2 me-4" data-bs-toggle="tooltip" data-bs-trigger="hover" title="Enter invoice number">
 		<span class="fs-2x fw-bold text-gray-800">Factura #</span>
-		<input type="text" v-model="form.number" class="form-control form-control-flush fw-bold text-muted fs-3 w-125px" readonly placehoder="..." />
+		<input type="text" v-model="form.number" class="form-control form-control-solid fw-bold fs-3 w-200px" placehoder="" />
 	</div>
 	<!--end::Input group-->
 </div>
@@ -97,19 +97,36 @@
 	<!--begin::Row-->
 	<div class="row gx-10 mb-5">
 		<div class="col-lg-6">
-			<div class="fv-row mb-8">
-                <label for="typeDocument" class="form-label required fs-6 fw-bold mb-3">Tipo de documento</label>
-                <Multiselect
-                    :placeholder="'Seleccione tipo de documento'"
-                    v-model="form.type_document_id"
-                    :close-on-select="false"
-                    :options="$page.props.typeDocuments"
-                    class="multiselect-blue form-control"
-                    :class="{'is-invalid': form.errors.type_document_id}"
-                    :searchable="true"
-                    :hide-selected="false"
-                />
-                <InputError class="mt-2" :message="form.errors.type_document_id" />
+            <div class="row">
+                <div class="col-lg-6">
+                    <div class="fv-row mb-8">
+                        <label for="typeDocument" class="form-label required fs-6 fw-bold mb-3">Tipo de documento</label>
+                        <Multiselect
+                            :placeholder="'Seleccione tipo de documento'"
+                            v-model="form.type_document_id"
+                            :close-on-select="false"
+                            :options="$page.props.typeDocuments"
+                            class="multiselect-blue form-control"
+                            :class="{'is-invalid': form.errors.type_document_id}"
+                            :searchable="true"
+                            :hide-selected="false"
+                        />
+                        <InputError class="mt-2" :message="form.errors.type_document_id" />
+                    </div>
+                </div>
+                <div class="col-lg-6">
+                    <div class="fv-row mb-8">
+                        <label class="required fs-6 fw-semibold mb-2">Número de documento</label>
+                        <TextInput
+                            id="number_document"
+                            v-model="form.number_document"
+                            class="form-control form-control-solid"
+                            type="text"
+                            :class="{'is-invalid': form.errors.number_document}"
+                        />
+                        <InputError class="mt-2" :message="form.errors.number_document" />
+                    </div>
+                </div>
             </div>
 		</div>
 		  <div class="col-lg-3">

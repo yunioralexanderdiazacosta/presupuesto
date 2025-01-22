@@ -22,6 +22,7 @@ class StoreInvoiceController extends Controller
             'supplier_id'       => $request->supplier_id,
             'company_reason_id' => $request->company_reason_id,
             'type_document_id'  => $request->type_document_id,
+            'number_document'   => $request->number_document,
             'date'              => $request->date,
             'due_date'          => $request->due_date,
         ]);

@@ -28,6 +28,7 @@ class FormInvoiceRequest extends FormRequest
             'supplier_id'       => 'required',
             'company_reason_id' => 'required',
             'type_document_id'  => 'required',
+            'number_document'   => 'required',
             'date'              => 'required',
             'due_date'          => 'required',
             'products'          => "required|array|min:1"  

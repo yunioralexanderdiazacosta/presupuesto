@@ -1,6 +1,6 @@
 <script setup>
 import Swal from 'sweetalert2';
-import { Head, useForm } from '@inertiajs/vue3';
+import { Head, useForm, router } from '@inertiajs/vue3';
 import AppLayout from '@/Layouts/AppLayout.vue';
 import FormInvoice from '@/Components/Invoices/Form.vue';
 import Breadcrumb from '@/Components/Breadcrumb.vue';
@@ -24,10 +24,11 @@ const form = useForm({
 	supplier_id: props.invoice.supplier_id,
 	company_reason_id: props.invoice.company_reason_id,
 	type_document_id: props.invoice.type_document_id,
+	number_document: props.invoice.number_document,
 	products: props.invoiceProducts
 });
 
-const save = () => {
+const update = () => {
 	 form.post(route('invoices.update', props.invoice.id), {
         preserveScroll: true,
         onSuccess: () => {
@@ -47,8 +48,8 @@ const msgSuccess = (msg) => {
     });
 };
 </script>
- <Head :title="title" />
 <template>
+	<Head :title="title" />
 	<AppLayout>
 		<div class="app-main flex-column flex-row-fluid" id="kt_app_main">
 			<!--begin::Content wrapper-->
@@ -83,7 +84,7 @@ const msgSuccess = (msg) => {
 									<!--begin::Card body-->
 									<div class="card-body p-12">
 										<!--begin::Form-->
-										<form id="kt_invoice_form" @submit.prevent="save()">
+										<form id="kt_invoice_form" @submit.prevent="update()">
 											<!--begin::Form-->
 											<FormInvoice :form="form" />
 											<!--end::Form-->

@@ -11,7 +11,7 @@ const viewDropdown = () => {
 }
 </script>
 <template>
-	<div id="kt_app_header" class="app-header">
+	<div id="kt_app_header" class="app-header d-print-none">
         <!--begin::Header container-->
         <div class="app-container container-fluid d-flex align-items-stretch justify-content-between" id="kt_app_header_container">
             <!--begin::sidebar mobile toggle-->

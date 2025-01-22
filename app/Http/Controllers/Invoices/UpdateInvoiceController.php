@@ -3,7 +3,8 @@
 namespace App\Http\Controllers\Invoices;
 
 use App\Http\Controllers\Controller;
-use Illuminate\Http\Request;
+use App\Http\Requests\FormInvoiceRequest;
+use App\Models\Invoice;
 
 class UpdateInvoiceController extends Controller
 {
@@ -16,6 +17,7 @@ class UpdateInvoiceController extends Controller
         $invoice->supplier_id       = $request->supplier_id;
         $invoice->company_reason_id = $request->company_reason_id;
         $invoice->type_document_id  = $request->type_document_id;
+        $invoice->number_document   = $request->number_document;
         $invoice->date              = $request->date;
         $invoice->due_date          = $request->due_date;
         $invoice->save();

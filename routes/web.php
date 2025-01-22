@@ -44,6 +44,7 @@ use App\Http\Controllers\CompanyReasons\UpdateCompanyReasonController;
 use App\Http\Controllers\CompanyReasons\DeleteCompanyReasonController;
 use App\Http\Controllers\Invoices\CreateInvoiceController;
 use App\Http\Controllers\Invoices\StoreInvoiceController;
+use App\Http\Controllers\Invoices\ShowInvoiceController;
 use App\Http\Controllers\Invoices\EditInvoiceController;
 use App\Http\Controllers\Invoices\UpdateInvoiceController;
 use App\Http\Controllers\Invoices\DeleteInvoiceController;
@@ -107,6 +108,7 @@ Route::middleware([
     Route::delete('/company-reasons/{companyReason}/delete', DeleteCompanyReasonController::class)->name('company.reasons.delete');
 
     Route::get('/invoices', InvoicesController::class)->name('invoices.index');
+    Route::get('/invoices/{invoice}/show', ShowInvoiceController::class)->name('invoices.show');
     Route::get('/invoices/create', CreateInvoiceController::class)->name('invoices.create');
     Route::post('/invoices/store', StoreInvoiceController::class)->name('invoices.store');
     Route::get('/invoices/{invoice}/edit', EditInvoiceController::class)->name('invoices.edit'); 

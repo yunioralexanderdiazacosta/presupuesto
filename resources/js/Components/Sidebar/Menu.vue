@@ -29,7 +29,7 @@ const change = (position) => {
         <!--end:Menu link-->
     </div>
 
-    <div class="menu-item here menu-accordion" v-else @click="change(index)" :class="{'hover show': active == index}" v-role:any="item.role">
+    <div class="menu-item menu-accordion" v-else @click="change(index)" :class="{'hover show': active == index}" v-role:any="item.role">
         <!--begin:Menu link-->
         <span class="menu-link">
             <span class="menu-icon">

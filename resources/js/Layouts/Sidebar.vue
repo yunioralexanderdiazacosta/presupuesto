@@ -4,16 +4,6 @@ import { Link } from '@inertiajs/vue3';
 import AplicationLogo from '@/Components/ApplicationLogo.vue';
 import Menu from '@/Components/Sidebar/Menu.vue';
 
-var active = ref(0);
-
-const change = (position) => {
-    if(active.value == position){
-        active.value = 0;
-    }else{
-        active.value = position;
-    }
-}
-
 const items = [
     {
         title: 'Presupuestos',
