@@ -13,6 +13,8 @@ use App\Http\Controllers\SuppliersController;
 use App\Http\Controllers\ProductsController;
 use App\Http\Controllers\CompanyReasonsController;
 use App\Http\Controllers\InvoicesController;
+use App\Http\Controllers\LevelsController;
+use App\Http\Controllers\ManPowersController;
 use App\Http\Controllers\Teams\StoreTeamController;
 use App\Http\Controllers\Teams\UpdateTeamController;
 use App\Http\Controllers\Teams\DeleteTeamController;
@@ -51,7 +53,22 @@ use App\Http\Controllers\Invoices\DeleteInvoiceController;
 use App\Http\Controllers\Level2s\GetLevel2Controller;
 use App\Http\Controllers\Level3s\GetLevel3Controller;
 use App\Http\Controllers\Level4s\GetLevel4Controller;
-use App\Http\Controllers\ManPowersController;
+use App\Http\Controllers\Levels\StoreLevelController;
+use App\Http\Controllers\Levels\UpdateLevelController; 
+use App\Http\Controllers\Levels\DeleteLevelController;
+use App\Http\Controllers\Levels\Level2Controller;
+use App\Http\Controllers\Levels\Level3Controller; 
+use App\Http\Controllers\Levels\Level4Controller;
+use App\Http\Controllers\Level2s\StoreLevel2Controller;
+use App\Http\Controllers\Level2s\UpdateLevel2Controller; 
+use App\Http\Controllers\Level2s\DeleteLevel2Controller;
+use App\Http\Controllers\Level3s\StoreLevel3Controller;
+use App\Http\Controllers\Level3s\UpdateLevel3Controller; 
+use App\Http\Controllers\Level3s\DeleteLevel3Controller;
+use App\Http\Controllers\Level4s\StoreLevel4Controller;
+use App\Http\Controllers\Level4s\UpdateLevel4Controller; 
+use App\Http\Controllers\Level4s\DeleteLevel4Controller;
+
 use Inertia\Inertia;
 
 /*
@@ -118,6 +135,26 @@ Route::middleware([
     Route::get('/levels2/{level1}/get', GetLevel2Controller::class)->name('levels2.get');
     Route::get('/levels3/{level2}/get', GetLevel3Controller::class)->name('levels3.get');
     Route::get('/levels4/{level3}/get', GetLevel4Controller::class)->name('levels4.get');
+
+    Route::get('/levels', LevelsController::class)->name('levels.index');
+    Route::post('/levels/store', StoreLevelController::class)->name('levels.store');
+    Route::post('/levels/{level}/update', UpdateLevelController::class)->name('levels.update'); 
+    Route::delete('/levels/{level}/delete', DeleteLevelController::class)->name('levels.delete');
+
+    Route::get('/level2/{level1}/index', Level2Controller::class)->name('level2.index');
+    Route::post('/level2/store', StoreLevel2Controller::class)->name('level2.store');
+    Route::post('/level2/{level2}/update', UpdateLevel2Controller::class)->name('level2.update'); 
+    Route::delete('/level2/{level2}/delete', DeleteLevel2Controller::class)->name('level2.delete');
+
+    Route::get('/level3/{level2}/index', Level3Controller::class)->name('level3.index');
+    Route::post('/level3/store', StoreLevel3Controller::class)->name('level3.store');
+    Route::post('/level3/{level3}/update', UpdateLevel3Controller::class)->name('level3.update'); 
+    Route::delete('/level3/{level3}/delete', DeleteLevel3Controller::class)->name('level3.delete');
+
+    Route::get('/level4/{level3}/index', Level4Controller::class)->name('level4.index');
+    Route::post('/level4/store', StoreLevel4Controller::class)->name('level4.store');
+    Route::post('/level4/{level4}/update', UpdateLevel4Controller::class)->name('level4.update'); 
+    Route::delete('/level4/{level4}/delete', DeleteLevel4Controller::class)->name('level4.delete');
 
     Route::middleware(['check.selected.budget'])->group(function () {
         Route::get('/dashboard', DashboardController::class)->name('dashboard');

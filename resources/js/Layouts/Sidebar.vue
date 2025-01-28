@@ -56,6 +56,12 @@ const items = [
             },
 
             {
+                title: 'Niveles',
+                icon: `<i class="bi bi-card-checklist"></i>`,
+                link: 'levels.index'
+            },
+
+            {
                 title: 'Razon Social',
                 icon: `<i class="bi bi-card-checklist"></i>`, 
                 link: 'company.reasons.index'
