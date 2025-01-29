@@ -12,7 +12,7 @@ class Level4Controller extends Controller
 {
     public function __invoke(Level3 $level3)
     {
-        $levels = Level4::where('level3_id', $level3->id)->paginate(10);
+        $levels = Level4::with('level3', 'level3.level2', 'level3.level2.level1')->where('level3_id', $level3->id)->paginate(10);
 
         return Inertia::render('Levels/Level4', compact('level3', 'levels'));
     }

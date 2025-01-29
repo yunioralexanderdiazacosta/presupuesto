@@ -154,6 +154,7 @@ const onDeleted = (id) => {
                                     <template #header>
                                         <!--begin::Table row-->
                                         <th width="min-w-150px">Nombre</th>
+                                        <th>Nivel 1</th>
                                         <th width="min-w-150px" class="text-end">Acciones</th>
                                         <!--end::Table row-->
                                     </template>
@@ -166,6 +167,7 @@ const onDeleted = (id) => {
                                         <template v-else>
                                             <tr v-for="(level, index) in levels.data" :key="index">
                                                 <td>{{level.name}}</td>
+                                                <td>{{level.level1.name}}</td> 
                                                 <td class="text-end">
                                                     <!--begin::SubLevel-->
                                                     <Link class="btn btn-icon btn-active-light-primary w-30px h-30px me-3" :href="route('level3.index', level.id)" v-tooltip="'Level 3'">

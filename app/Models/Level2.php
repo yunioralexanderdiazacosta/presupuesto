@@ -15,4 +15,9 @@ class Level2 extends Model
     {
         return $this->hasMany(Level3::class, 'level2_id');
     }
+
+    public function level1()
+    {
+        return $this->belongsTo(Level1::class);
+    }
 }
