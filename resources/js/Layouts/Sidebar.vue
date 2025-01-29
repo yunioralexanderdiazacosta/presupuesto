@@ -111,6 +111,16 @@ const items = [
         role: 'Super Admin'
     }
 ];
+
+var active = ref(0);
+
+const change = (position) => {
+    if(active.value == position){
+        active.value = 0;
+    }else{
+        active.value = position;
+    }
+}
 </script>
 <template>
     <div id="kt_app_sidebar" class="app-sidebar flex-column" data-kt-drawer="true" data-kt-drawer-name="app-sidebar" data-kt-drawer-activate="{default: true, lg: false}" data-kt-drawer-overlay="true" data-kt-drawer-width="225px" data-kt-drawer-direction="start" data-kt-drawer-toggle="#kt_app_sidebar_mobile_toggle">
@@ -142,7 +152,48 @@ const items = [
                 <!--begin::Menu-->
                 <div class="menu menu-column menu-rounded menu-sub-indention px-3" id="#kt_app_sidebar_menu" data-kt-menu="true" data-kt-menu-expand="false">
                     <template class="menu-item" v-for="(item, index) in items" :key="index">
-                        <Menu :item="item" :index="index" />
+
+
+
+                          <div class="menu-item" v-if="item.subitems.length == 0" v-role:any="item.role">
+        <!--begin:Menu link-->
+        <Link class="menu-link" :href="route(item.link)">
+            <span class="menu-icon">
+                <span class="svg-icon svg-icon-2" v-html="item.icon"></span>
+            </span>
+            <span class="menu-title">{{item.title}}</span>
+        </Link>
+        <!--end:Menu link-->
+    </div>
+
+    <div class="menu-item menu-accordion" v-else @click="change(index)" :class="{'hover show': active == index}" v-role:any="item.role">
+        <!--begin:Menu link-->
+        <span class="menu-link">
+            <span class="menu-icon">
+                 <span class="svg-icon svg-icon-2" v-html="item.icon"></span>
+            </span>
+            <span class="menu-title">{{item.title}}</span>
+            <span class="menu-arrow"></span>
+        </span>
+        <!--end:Menu link-->
+        <!--begin:Menu sub-->
+        <div class="menu-sub menu-sub-accordion" v-for="(subitem, i) in item.subitems" :key="i">
+            <!--begin:Menu item-->
+            <div class="menu-item">
+                <!--begin:Menu link-->
+                <Link class="menu-link" :href="route(subitem.link, subitem.params)">
+                    <span class="menu-bullet">
+                        <span class="bullet bullet-dot"></span>
+                    </span>
+                    <span class="menu-title">{{subitem.title}}</span>
+                </Link>
+                <!--end:Menu link-->
+            </div>
+            <!--end:Menu item-->
+        </div>
+    </div>
+
+                        
                     </template>
                 </div>
                 <!--end::Menu-->
