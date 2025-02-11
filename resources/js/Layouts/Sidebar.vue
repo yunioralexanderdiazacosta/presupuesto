@@ -65,6 +65,18 @@ const items = [
                 title: 'Razon Social',
                 icon: `<i class="bi bi-card-checklist"></i>`, 
                 link: 'company.reasons.index'
+            },
+
+            {
+                title: 'Frutal',
+                icon: `<i class="bi bi-card-checklist"></i>`, 
+                link: 'fruits.index'
+            },
+
+            {
+                title: 'Variedades',
+                icon: `<i class="bi bi-card-checklist"></i>`, 
+                link: 'varieties.index'
             }
         ]
     },

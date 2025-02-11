@@ -14,6 +14,8 @@ use App\Http\Controllers\ProductsController;
 use App\Http\Controllers\CompanyReasonsController;
 use App\Http\Controllers\InvoicesController;
 use App\Http\Controllers\LevelsController;
+use App\Http\Controllers\VarietiesController;
+use App\Http\Controllers\FruitsController;
 use App\Http\Controllers\ManPowersController;
 use App\Http\Controllers\Teams\StoreTeamController;
 use App\Http\Controllers\Teams\UpdateTeamController;
@@ -68,7 +70,12 @@ use App\Http\Controllers\Level3s\DeleteLevel3Controller;
 use App\Http\Controllers\Level4s\StoreLevel4Controller;
 use App\Http\Controllers\Level4s\UpdateLevel4Controller; 
 use App\Http\Controllers\Level4s\DeleteLevel4Controller;
-
+use App\Http\Controllers\Fruits\StoreFruitController;
+use App\Http\Controllers\Fruits\UpdateFruitController;
+use App\Http\Controllers\Fruits\DeleteFruitController;
+use App\Http\Controllers\Varieties\StoreVarietyController;
+use App\Http\Controllers\Varieties\UpdateVarietyController;
+use App\Http\Controllers\Varieties\DeleteVarietyController;
 use Inertia\Inertia;
 
 /*
@@ -155,6 +162,16 @@ Route::middleware([
     Route::post('/level4/store', StoreLevel4Controller::class)->name('level4.store');
     Route::post('/level4/{level4}/update', UpdateLevel4Controller::class)->name('level4.update'); 
     Route::delete('/level4/{level4}/delete', DeleteLevel4Controller::class)->name('level4.delete');
+
+    Route::get('/fruits', FruitsController::class)->name('fruits.index');
+    Route::post('/fruits/store', StoreFruitController::class)->name('fruits.store');
+    Route::post('/fruits/{fruit}/update', UpdateFruitController::class)->name('fruits.update');
+    Route::delete('/fruits/{fruit}/delete', DeleteFruitController::class)->name('fruits.delete');
+
+    Route::get('/varieties', VarietiesController::class)->name('varieties.index');
+    Route::post('/varieties/store', StoreVarietyController::class)->name('varieties.store');
+    Route::post('/varieties/{variety}/update', UpdateVarietyController::class)->name('varieties.update');
+     Route::post('/varieties/{variety}/delete', DeleteVarietyController::class)->name('varieties.delete');
 
     Route::middleware(['check.selected.budget'])->group(function () {
         Route::get('/dashboard', DashboardController::class)->name('dashboard');
