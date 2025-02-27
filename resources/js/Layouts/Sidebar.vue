@@ -77,7 +77,13 @@ const items = [
                 title: 'Variedades',
                 icon: `<i class="bi bi-card-checklist"></i>`, 
                 link: 'varieties.index'
+            },
+            {
+                title: 'Parcelas',
+                icon: `<i class="bi bi-card-checklist"></i>`, 
+                link: 'parcels.index'
             }
+
         ]
     },
 

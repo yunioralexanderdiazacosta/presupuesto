@@ -17,6 +17,7 @@ use App\Http\Controllers\LevelsController;
 use App\Http\Controllers\VarietiesController;
 use App\Http\Controllers\FruitsController;
 use App\Http\Controllers\ManPowersController;
+use App\Http\Controllers\ParcelsController;
 use App\Http\Controllers\Teams\StoreTeamController;
 use App\Http\Controllers\Teams\UpdateTeamController;
 use App\Http\Controllers\Teams\DeleteTeamController;
@@ -76,6 +77,10 @@ use App\Http\Controllers\Fruits\DeleteFruitController;
 use App\Http\Controllers\Varieties\StoreVarietyController;
 use App\Http\Controllers\Varieties\UpdateVarietyController;
 use App\Http\Controllers\Varieties\DeleteVarietyController;
+use App\Http\Controllers\Parcels\StoreParcelController;
+use App\Http\Controllers\Parcels\UpdateParcelController;
+use App\Http\Controllers\Parcels\DeleteParcelController;
+
 use Inertia\Inertia;
 
 /*
@@ -171,7 +176,13 @@ Route::middleware([
     Route::get('/varieties', VarietiesController::class)->name('varieties.index');
     Route::post('/varieties/store', StoreVarietyController::class)->name('varieties.store');
     Route::post('/varieties/{variety}/update', UpdateVarietyController::class)->name('varieties.update');
-     Route::post('/varieties/{variety}/delete', DeleteVarietyController::class)->name('varieties.delete');
+     Route::delete('/varieties/{variety}/delete', DeleteVarietyController::class)->name('varieties.delete');
+
+
+    Route::get('/parcels', ParcelsController::class)->name('parcels.index');
+    Route::post('/parcels/store', StoreParcelController::class)->name('parcels.store');
+    Route::post('/parcels/{parcel}/update', UpdateParcelController::class)->name('parcels.update');
+     Route::delete('/parcels/{parcel}/delete', DeleteParcelController::class)->name('parcels.delete');
 
     Route::middleware(['check.selected.budget'])->group(function () {
         Route::get('/dashboard', DashboardController::class)->name('dashboard');
