@@ -23,7 +23,12 @@ class FormCostCenterRequest extends FormRequest
     {
         return [
             'name' => 'required',
-            'surface' => 'required'
+            'surface' => 'required',
+            'fruit_id' => 'required',
+            'variety_id' => 'required',
+            'parcel_id' => 'required',
+            'development_state_id' => 'required',
+            'year_plantation' => 'required'
         ];
     }
 }

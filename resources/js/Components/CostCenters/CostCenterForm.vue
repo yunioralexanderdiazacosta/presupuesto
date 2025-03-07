@@ -2,10 +2,21 @@
     import Multiselect from '@vueform/multiselect';
 	import TextInput from '@/Components/TextInput.vue';
 	import InputError from '@/Components/InputError.vue';
+    import Checkbox from '@/Components/Checkbox.vue';
 
-	defineProps({
+	const props = defineProps({
 		form: Object
 	});
+
+     const getVarieties = (event) => {
+        if(event && event != ""){
+            axios.get(route('varieties.get', event))
+            .then(response => {
+                props.form.varieties = response.data;
+                props.form.variety_id = '';
+            }).catch(error => console.log(error));
+        }
+    }
 </script>
 <template>
     <div class="fv-row mb-8">
@@ -38,20 +49,95 @@
         <textarea v-model="form.observations" rows="3" class="form-control form-control-lg form-control-solid mb-3 mb-lg-0" :class="{'is-invalid': form.errors.observations }"></textarea>
         <InputError class="mt-2" :message="form.errors.observations" />
     </div>
-    <!--
-    <div class="fv-row mb-3">
-        <label for="month" class="form-label required fs-6 fw-bold mb-3">Presupuesto</label>
-        <Multiselect
-            :placeholder="'Seleccione el presupuesto'"
-            v-model="form.budget_id"
-            :close-on-select="false"
-            :options="$page.props.budgets"
-            class="multiselect-blue form-control"
-            :class="{'is-invalid': form.errors.budget_id}"
-            :searchable="true"
-        />
-        <InputError class="mt-2" :message="form.errors.budget_id" />
-    </div>-->
+
+    <div class="row">
+        <div class="col-lg-6">
+            <div class="fv-row mb-8">
+                <label for="fruit" class="form-label required fs-6 fw-bold mb-3">Frutal</label>
+                <Multiselect
+                    :placeholder="'Seleccione el frutal'"
+                    v-model="form.fruit_id"
+                    :close-on-select="false"
+                    :options="$page.props.fruits"
+                    class="multiselect-blue form-control"
+                    :class="{'is-invalid': form.errors.fruit_id}"
+                    :searchable="true"
+                    @select="getVarieties($event)"
+                />
+                <InputError class="mt-2" :message="form.errors.fruit_id" />
+            </div>
+        </div>
+        <div class="col-lg-6">
+            <div class="fv-row mb-8">
+                <label for="variety" class="form-label required fs-6 fw-bold mb-3">Variedad</label>
+                <Multiselect
+                    :placeholder="'Seleccione variedad'"
+                    v-model="form.variety_id"
+                    :close-on-select="false"
+                    :options="form.varieties"
+                    class="multiselect-blue form-control"
+                    :class="{'is-invalid': form.errors.variety_id}"
+                    :searchable="true"
+                />
+                <InputError class="mt-2" :message="form.errors.variety_id" />
+            </div>
+        </div>
+    </div>
+    
+    <div class="row">
+        <div class="col-lg-4">
+            <div class="fv-row mb-8">
+                <label for="fruit" class="form-label required fs-6 fw-bold mb-3">Parcela</label>
+                <Multiselect
+                    :placeholder="'Seleccione la parcela'"
+                    v-model="form.parcel_id"
+                    :close-on-select="false"
+                    :options="$page.props.parcels"
+                    class="multiselect-blue form-control"
+                    :class="{'is-invalid': form.errors.parcel_id}"
+                    :searchable="true"
+                />
+                <InputError class="mt-2" :message="form.errors.parcel_id" />
+            </div>
+        </div>
+         <div class="col-lg-4">
+            <div class="fv-row mb-8">
+               <label for="fruit" class="form-label required fs-6 fw-bold mb-3">Estado de desarrollo</label>
+                <Multiselect
+                    :placeholder="'Seleccione el estado de desarrollo'"
+                    v-model="form.development_state_id"
+                    :close-on-select="false"
+                    :options="$page.props.developmentStates"
+                    class="multiselect-blue form-control"
+                    :class="{'is-invalid': form.errors.development_state_id}"
+                    :searchable="true"
+                />
+                <InputError class="mt-2" :message="form.errors.development_state_id" />
+            </div>
+        </div>
+        <div class="col-lg-4">
+            <div class="fv-row mb-8">
+                <label class="required fs-6 fw-semibold mb-3">Año plantación</label>
+                <TextInput
+                    id="ano_plantacion"
+                    v-model="form.year_plantation"
+                    class="form-control form-control-solid"
+                    type="number"
+                    min="1900" max="3000" step="1"
+                    :class="{'is-invalid': form.errors.year_plantation}"
+                />
+                <InputError class="mt-2" :message="form.errors.year_plantation" />
+            </div>
+        </div>
+    </div>
+
+
+    <div class="fv-row mb-8 mt-8">
+        <label class="form-check form-check-inline">
+            <Checkbox class="form-check-input" v-model:checked="form.status" name="status" />
+            <span class="form-check-label fw-semibold text-gray-700 fs-base ms-1">Activo</span>
+        </label>
+    </div>
 </template>
 <style src="@vueform/multiselect/themes/default.css"></style>
 <style>

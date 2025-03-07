@@ -74,6 +74,7 @@ use App\Http\Controllers\Level4s\DeleteLevel4Controller;
 use App\Http\Controllers\Fruits\StoreFruitController;
 use App\Http\Controllers\Fruits\UpdateFruitController;
 use App\Http\Controllers\Fruits\DeleteFruitController;
+use App\Http\Controllers\Varieties\GetVarietyController;
 use App\Http\Controllers\Varieties\StoreVarietyController;
 use App\Http\Controllers\Varieties\UpdateVarietyController;
 use App\Http\Controllers\Varieties\DeleteVarietyController;
@@ -174,6 +175,7 @@ Route::middleware([
     Route::delete('/fruits/{fruit}/delete', DeleteFruitController::class)->name('fruits.delete');
 
     Route::get('/varieties', VarietiesController::class)->name('varieties.index');
+    Route::get('/varieties/{fruit}/get', GetVarietyController::class)->name('varieties.get');
     Route::post('/varieties/store', StoreVarietyController::class)->name('varieties.store');
     Route::post('/varieties/{variety}/update', UpdateVarietyController::class)->name('varieties.update');
      Route::delete('/varieties/{variety}/delete', DeleteVarietyController::class)->name('varieties.delete');

@@ -9,7 +9,9 @@ class CostCenter extends Model
 {
     use HasFactory;
 
-    protected $fillable = ['name', 'surface', 'budget_id', 'observations'];
+    protected $fillable = ['name', 'surface', 'budget_id', 'observations', 'fruit_id', 'variety_id', 'parcel_id', 'year_plantation', 'development_state_id', 'status'];
+
+    protected $casts = [ 'status' => 'boolean'];
 
     public function budget()
     {

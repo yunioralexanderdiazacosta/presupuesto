@@ -10,4 +10,9 @@ class Fruit extends Model
     use HasFactory;
 
     protected $fillable = ['name', 'team_id'];
+
+    public function varieties()
+    {
+        return $this->hasMany(Variety::class);
+    }
 }

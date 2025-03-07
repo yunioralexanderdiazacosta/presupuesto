@@ -9,7 +9,7 @@ const props = defineProps({
 defineEmits(['store']);
 </script>
 <template>
-    <Modal :maxWidth="'lg'" :id="'createCostCenterModal'">
+    <Modal :maxWidth="'xl'" :id="'createCostCenterModal'">
         <template #header>
             <h1 class="mb-3">Agregar centro de costo</h1>
         </template>

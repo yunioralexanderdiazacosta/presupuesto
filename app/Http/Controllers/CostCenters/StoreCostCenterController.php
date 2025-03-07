@@ -16,7 +16,13 @@ class StoreCostCenterController extends Controller
             'name' => $request->name,
             'surface' => $request->surface,
             'observations' => $request->observations,
-            'budget_id' => $budget_id
+            'budget_id' => $budget_id,
+            'fruit_id' => $request->fruit_id,
+            'variety_id' => $request->variety_id,
+            'parcel_id' => $request->parcel_id,
+            'development_state_id' => $request->development_state_id,
+            'year_plantation' => $request->year_plantation,
+            'status' => $request->status ?? false
         ]);
     }
 }

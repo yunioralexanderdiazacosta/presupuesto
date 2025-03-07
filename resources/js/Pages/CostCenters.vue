@@ -21,7 +21,13 @@ const form = useForm({
     name: '',
     observations: '',
     surface: null,
-    //budget_id: ''    
+    fruit_id: '',
+    variety_id: '',
+    parcel_id: '',
+    varieties: [],
+    status: true,
+    year_plantation: '',
+    development_state_id: ''   
 });
 
 const path = computed(() =>usePage().props.public_path);
@@ -41,7 +47,12 @@ const openEdit = (costCenter) => {
     form.name = costCenter.name;
     form.surface = costCenter.surface; 
     form.observations = costCenter.observations; 
-    //form.budget_id = costCenter.budget_id; 
+    form.fruit_id = costCenter.fruit_id;
+    getVarieties(form.fruit_id);
+    form.variety_id = costCenter.variety_id;
+    form.parcel_id = costCenter.parcel_id;
+    form.development_state_id = costCenter.development_state_id;
+    form.year_plantation = costCenter.year_plantation;
     $('#editCostCenterModal').modal('show');
 }
 
@@ -55,6 +66,15 @@ const storeCostCenter = () => {
         }
     });
 }
+
+ const getVarieties = (frutal_id) => {
+        if(frutal_id && frutal_id != ""){
+            axios.get(route('varieties.get', frutal_id))
+            .then(response => {
+                form.varieties = response.data;
+            }).catch(error => console.log(error));
+        }
+    }
 
 const updateCostCenter = () => {
    form.post(route('cost.centers.update', form.id), {
