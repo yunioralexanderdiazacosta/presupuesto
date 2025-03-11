@@ -18,10 +18,16 @@ use App\Http\Controllers\VarietiesController;
 use App\Http\Controllers\FruitsController;
 use App\Http\Controllers\ManPowersController;
 use App\Http\Controllers\ParcelsController;
+use App\Http\Controllers\SeasonsController;
+use App\Http\Controllers\UsersController;
 use App\Http\Controllers\Teams\StoreTeamController;
 use App\Http\Controllers\Teams\UpdateTeamController;
 use App\Http\Controllers\Teams\DeleteTeamController;
 use App\Http\Controllers\Teams\ActivateInactivateTeamController;
+use App\Http\Controllers\Users\StoreUserController;
+use App\Http\Controllers\Users\UpdateUserController;
+use App\Http\Controllers\Users\DeleteUserController;
+use App\Http\Controllers\Users\ActiveInactiveUserController;
 use App\Http\Controllers\Budgets\StoreBudgetController;
 use App\Http\Controllers\Budgets\UpdateBudgetController;
 use App\Http\Controllers\Budgets\DeleteBudgetController;
@@ -81,6 +87,9 @@ use App\Http\Controllers\Varieties\DeleteVarietyController;
 use App\Http\Controllers\Parcels\StoreParcelController;
 use App\Http\Controllers\Parcels\UpdateParcelController;
 use App\Http\Controllers\Parcels\DeleteParcelController;
+use App\Http\Controllers\Seasons\StoreSeasonController;
+use App\Http\Controllers\Seasons\UpdateSeasonController;
+use App\Http\Controllers\Seasons\DeleteSeasonController;
 
 use Inertia\Inertia;
 
@@ -115,11 +124,18 @@ Route::middleware([
     Route::get('/suppliers', SuppliersController::class)->name('suppliers.index');
     Route::get('/products', ProductsController::class)->name('products.index');
     Route::get('/company-reasons', CompanyReasonsController::class)->name('company.reasons.index');
+    Route::get('/seasons', SeasonsController::class)->name('seasons.index');
+    Route::get('/users', UsersController::class)->name('users.index');
 
     Route::post('/teams/store', StoreTeamController::class)->name('teams.store');
     Route::post('teams/{user}/update', UpdateTeamController::class)->name('teams.update');
     Route::delete('/teams/{user}/delete', DeleteTeamController::class)->name('teams.delete');
-    Route::post('/teams/{user}//activate/inactivate', ActivateInactivateTeamController::class)->name('teams.activate.inactivate');
+    Route::post('/teams/{user}/activate/inactivate', ActivateInactivateTeamController::class)->name('teams.activate.inactivate');
+
+    Route::post('/users/store', StoreUserController::class)->name('users.store');
+    Route::post('users/{user}/update', UpdateUserController::class)->name('users.update');
+    Route::delete('/users/{user}/delete', DeleteUserController::class)->name('users.delete');
+    Route::post('/users/{user}/activate/inactivate', ActiveInactiveUserController::class)->name('users.activate.inactivate');
 
     Route::post('/budgets/store', StoreBudgetController::class)->name('budgets.store');
     Route::post('/budgets/{budget}/update', UpdateBudgetController::class)->name('budgets.update');
@@ -185,6 +201,10 @@ Route::middleware([
     Route::post('/parcels/store', StoreParcelController::class)->name('parcels.store');
     Route::post('/parcels/{parcel}/update', UpdateParcelController::class)->name('parcels.update');
      Route::delete('/parcels/{parcel}/delete', DeleteParcelController::class)->name('parcels.delete');
+
+    Route::post('/seasons/store', StoreSeasonController::class)->name('seasons.store');
+    Route::post('/seasons/{season}/update', UpdateSeasonController::class)->name('seasons.update');
+    Route::delete('/seasons/{season}/delete', DeleteSeasonController::class)->name('seasons.delete');
 
     Route::middleware(['check.selected.budget'])->group(function () {
         Route::get('/dashboard', DashboardController::class)->name('dashboard');

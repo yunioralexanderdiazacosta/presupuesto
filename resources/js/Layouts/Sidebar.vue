@@ -62,6 +62,12 @@ const items = [
             },
 
             {
+                title: 'Usuarios',
+                icon: `<i class="bi bi-card-checklist"></i>`,
+                link: 'users.index'
+            },
+
+            {
                 title: 'Razon Social',
                 icon: `<i class="bi bi-card-checklist"></i>`, 
                 link: 'company.reasons.index'
@@ -82,6 +88,11 @@ const items = [
                 title: 'Parcelas',
                 icon: `<i class="bi bi-card-checklist"></i>`, 
                 link: 'parcels.index'
+            },
+            {
+                title: 'Temporadas',
+                icon: `<i class="bi bi-card-checklist"></i>`, 
+                link: 'seasons.index'
             }
 
         ]

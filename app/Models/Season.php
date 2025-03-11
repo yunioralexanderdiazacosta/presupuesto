@@ -9,5 +9,10 @@ class Season extends Model
 {
     use HasFactory;
 
-    protected $fillable = ['name', 'month_id', 'observations'];
+    protected $fillable = ['name', 'team_id', 'month_id', 'observations'];
+
+    public function month()
+    {
+        return $this->belongsTo(Month::class);
+    }
 }
