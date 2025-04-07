@@ -1,8 +1,25 @@
 <script setup>
-import { ref } from 'vue';
+import { ref, computed } from 'vue';
 import { Link } from '@inertiajs/vue3';
 import AplicationLogo from '@/Components/ApplicationLogo.vue';
 import Menu from '@/Components/Sidebar/Menu.vue';
+import { usePage } from '@inertiajs/vue3';
+
+
+const presupuestos = ['/dashboard', '/budgets', '/agrochemicals', '/fertilizers', '/manpowers'];
+
+const parametros = ['/cost-centers', '/levels', '/users', '/company-reasons', '/fruits', '/varieties', '/parcels', '/seasons'];
+
+const gestion = ['/suppliers', '/products', '/invoices', '/machineries', '/type-machineries'];
+
+var active = ref(0);
+if(presupuestos.includes(window.location.pathname)){
+    active.value = 0;
+} else if(parametros.includes(window.location.pathname)){
+    active.value = 1;
+} else if(gestion.includes(window.location.pathname)){
+    active.value = 2;
+}
 
 const items = [
     {
@@ -93,13 +110,7 @@ const items = [
                 title: 'Temporadas',
                 icon: `<i class="bi bi-card-checklist"></i>`, 
                 link: 'seasons.index'
-            },
-            {
-                title: 'Maquinarias',
-                icon: `<i class="bi bi-card-checklist"></i>`, 
-                link: 'machineries.index'
             }
-
         ]
     },
 
@@ -157,8 +168,6 @@ const items = [
         role: 'Super Admin'
     }
 ];
-
-var active = ref(0);
 
 const change = (position) => {
     if(active.value == position){

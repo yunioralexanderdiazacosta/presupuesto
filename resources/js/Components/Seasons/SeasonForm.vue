@@ -32,7 +32,7 @@
         <Multiselect
             :placeholder="'Seleccione mes de inicio'"
             v-model="form.month_id"
-            :close-on-select="false"
+            :close-on-select="true"
             :options="$page.props.months"
             class="multiselect-blue form-control"
             :class="{'is-invalid': form.errors.month_id}"

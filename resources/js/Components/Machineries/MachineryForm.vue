@@ -13,7 +13,7 @@
         <Multiselect
             :placeholder="'Seleccione tipo de maquinaria'"
             v-model="form.type_machinery_id"
-            :close-on-select="false"
+            :close-on-select="true"
             :options="$page.props.typeMachineries"
             class="multiselect-blue form-control"
             :class="{'is-invalid': form.errors.type_machinery_id}"
@@ -40,7 +40,7 @@
         <Multiselect
             :placeholder="'Seleccione razón social'"
             v-model="form.company_reason_id"
-            :close-on-select="false"
+            :close-on-select="true"
             :options="$page.props.companyReasons"
             class="multiselect-blue form-control"
             :class="{'is-invalid': form.errors.company_reason_id}"
