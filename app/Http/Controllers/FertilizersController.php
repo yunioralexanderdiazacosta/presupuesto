@@ -5,7 +5,7 @@ namespace App\Http\Controllers;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
-use App\Models\Budget;
+use App\Models\Season;
 use App\Models\Subfamily;
 use App\Models\CostCenter;
 use App\Models\Unit;
@@ -32,11 +32,11 @@ class FertilizersController extends Controller
     {
         $user = Auth::user();
 
-        $budget_id = session('budget_id');
+        $season_id = session('season_id');
 
-        $budget = Budget::select('name', 'month_id')->where('id', $budget_id)->first();
+        $season = Season::select('name', 'month_id')->where('id', $season_id)->first();
 
-        $this->month_id = $budget['month_id'];
+        $this->month_id = $season['month_id'];
 
         $subfamilies = Subfamily::where('id_form', 2)->get()->transform(function($subfamily){
             return [
@@ -65,7 +65,7 @@ class FertilizersController extends Controller
         }
 
 
-        $costCenters = CostCenter::select('id', 'name')->where('budget_id', $budget_id)->whereHas('budget.team', function($query) use ($user){
+        $costCenters = CostCenter::select('id', 'name')->where('season_id', $season_id)->whereHas('season.team', function($query) use ($user){
             $query->where('team_id', $user->team_id);
         })->get()->transform(function($costCenter){
             return [
@@ -141,7 +141,7 @@ class FertilizersController extends Controller
         $totalData1 = number_format($this->totalData1, 0, ',', '.');
         $totalData2 = number_format($this->totalData2, 0, ',', '.');
 
-        return Inertia::render('Fertilizers', compact('units', 'subfamilies', 'months', 'costCenters', 'fertilizers', 'budget', 'data', 'data2', 'totalData1', 'totalData2', 'percentage'));
+        return Inertia::render('Fertilizers', compact('units', 'subfamilies', 'months', 'costCenters', 'fertilizers', 'season', 'data', 'data2', 'totalData1', 'totalData2', 'percentage'));
     }
 
     private function getSubfamilies($costCenterId, $surface)

@@ -12,6 +12,8 @@ class SeasonsController extends Controller
     {
         $user = Auth::user();
 
+        $season_id = session('season_id');
+
         $seasons = Season::with('month')->where('team_id', $user->team_id)->paginate(10);
 
         $months = Month::get()->transform(function($month){
@@ -21,6 +23,6 @@ class SeasonsController extends Controller
             ];
         });
 
-        return Inertia::render('Seasons', compact('seasons', 'months'));
+        return Inertia::render('Seasons', compact('seasons', 'months', 'season_id'));
     }
 }

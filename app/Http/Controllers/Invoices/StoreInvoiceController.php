@@ -13,6 +13,8 @@ class StoreInvoiceController extends Controller
     {
         $user = Auth::user();
 
+        $season_id = session('season_id');
+
         $invoice = Invoice::create([
             'number'            => $request->number,
             'payment_term'      => $request->payment_term,
@@ -25,6 +27,7 @@ class StoreInvoiceController extends Controller
             'number_document'   => $request->number_document,
             'date'              => $request->date,
             'due_date'          => $request->due_date,
+            'season_id'         => $season_id
         ]);
 
         $invoice->products()->sync($this->products($request->products));

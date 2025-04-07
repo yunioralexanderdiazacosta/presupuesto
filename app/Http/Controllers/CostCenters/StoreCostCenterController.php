@@ -10,13 +10,13 @@ class StoreCostCenterController extends Controller
 {
     public function __invoke(FormCostCenterRequest $request)
     {
-        $budget_id = session('budget_id');
+        $season_id = session('season_id');
 
         CostCenter::create([
             'name' => $request->name,
             'surface' => $request->surface,
             'observations' => $request->observations,
-            'budget_id' => $budget_id,
+            'season_id' => $season_id,
             'fruit_id' => $request->fruit_id,
             'variety_id' => $request->variety_id,
             'parcel_id' => $request->parcel_id,

@@ -13,7 +13,7 @@ import EditCostCenterModal from '@/Components/CostCenters/EditCostCenterModal.vu
 
 const props = defineProps({
     costCenters: Object,
-    budget: Object
+    season: Object
 });
 
 const form = useForm({

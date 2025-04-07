@@ -13,9 +13,12 @@ class StoreLevelController extends Controller
     {
         $user = Auth::user();
 
+        $season_id = session('season_id');
+
         Level1::create([
             'name' => $request->name,
-            'team_id' => $user->team_id
+            'team_id' => $user->team_id,
+            'season_id' => $season_id
         ]);
     }
 }

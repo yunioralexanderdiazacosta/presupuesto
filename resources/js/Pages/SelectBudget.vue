@@ -5,7 +5,7 @@ import { Head, useForm, router } from '@inertiajs/vue3';
 import Modal from '@/Components/Modal.vue';
 
 const form = useForm({
-    budget_id: ''
+    season_id: ''
 });
 
 onMounted(() => {
@@ -16,7 +16,7 @@ onMounted(() => {
 });
 
 const onSubmit = () => {
-    form.post(route('select.budget.save'), {
+    form.post(route('select.seasons.save'), {
         preserveScroll: true,
         onSuccess: () => {
             form.reset();
@@ -43,19 +43,19 @@ const onSubmit = () => {
                     <!--begin:Form-->
                         <!--begin::Heading-->
                         <div class="mb-13 text-center">
-                            <h1 class="mb-3">Seleccionar presupuesto</h1>
+                            <h1 class="mb-3">Seleccionar temporada</h1>
                         </div>
                         <!--end::Heading-->
                         <!--begin::Body-->
                         <div class="fv-row mb-3">
-                            <label for="budget_id" class="form-label required fs-6 fw-bold mb-3">Presupuesto</label>
+                            <label for="budget_id" class="form-label required fs-6 fw-bold mb-3">Temporada</label>
                             <Multiselect
-                                placeholder="Seleccione presupuesto"
-                                v-model="form.budget_id"
+                                placeholder="Seleccione temporada"
+                                v-model="form.season_id"
                                 :close-on-select="false"
-                                :options="$page.props.budgets"
+                                :options="$page.props.seasons"
                                 class="multiselect-blue form-control"
-                                :class="{'is-invalid': form.errors.budget_id}"
+                                :class="{'is-invalid': form.errors.season_id}"
                                 :searchable="true"
                             />
                         </div>

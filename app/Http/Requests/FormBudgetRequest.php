@@ -22,9 +22,7 @@ class FormBudgetRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'name' => 'required',
-            'season' => 'required',
-            'month_id' => 'required'
+            'name' => 'required'
         ];
     }
 }

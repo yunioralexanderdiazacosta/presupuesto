@@ -13,11 +13,12 @@ class StoreBudgetController extends Controller
     {
         $user = Auth::user();
 
+        $season_id = session('season_id');
+
         Budget::Create([
             'name' => $request->name,
             'observations' => $request->observations,
-            'season' => $request->season,
-            'month_id' => $request->month_id,
+            'season_id' => $season_id,
             'team_id' => $user->team_id
         ]);
     }

@@ -93,6 +93,11 @@ const items = [
                 title: 'Temporadas',
                 icon: `<i class="bi bi-card-checklist"></i>`, 
                 link: 'seasons.index'
+            },
+            {
+                title: 'Maquinarias',
+                icon: `<i class="bi bi-card-checklist"></i>`, 
+                link: 'machineries.index'
             }
 
         ]
@@ -120,6 +125,18 @@ const items = [
                 title: 'Facturas',
                 icon: `<i class="bi bi-card-checklist"></i>`,
                 link: 'invoices.index'
+            },
+
+            {
+                title: 'Maquinarias',
+                icon: `<i class="bi bi-card-checklist"></i>`,
+                link: 'machineries.index'
+            },
+
+            {
+                title: 'Tipo de Maquinarias',
+                icon: `<i class="bi bi-card-checklist"></i>`,
+                link: 'type.machineries.index'
             }
         ]
     }, 

@@ -8,6 +8,7 @@ use Inertia\Inertia;
 use App\Models\Month;
 use App\Models\Budget;
 use App\Models\User;
+use App\Models\Season;
 
 class BudgetsController extends Controller
 {
@@ -15,17 +16,11 @@ class BudgetsController extends Controller
     {
         $user = Auth::user();
 
-        $months = Month::get()->transform(function($month){
-            return [
-                'label' => $month->name,
-                'value' => $month->id
-            ];
-        });
 
-        $budget_id = session('budget_id');
+        $season_id = session('season_id');
 
-        $budgets = Budget::with('month')->where('team_id', $user->team_id)->paginate(10);
+        $budgets = Budget::with('season')->where('team_id', $user->team_id)->where('season_id', $season_id)->paginate(10);
 
-        return Inertia::render('Budgets', compact('months', 'budgets', 'budget_id'));
+        return Inertia::render('Budgets', compact('budgets'));
     }
 }

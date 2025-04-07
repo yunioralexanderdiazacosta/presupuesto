@@ -1,19 +1,19 @@
 <?php
 
-namespace App\Http\Controllers\Budgets;
+namespace App\Http\Controllers\Seasons;
 
 use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Redirect;
 
-class SaveBudgetController extends Controller
+class SaveSeasonController extends Controller
 {
     public function __invoke(Request $request)
     {
         $request->validate([
-            'budget_id' => 'required'
+            'season_id' => 'required'
         ]);
 
-        session(['budget_id' => $request->budget_id]);
+        session(['season_id' => $request->season_id]);
     }
 }

@@ -9,11 +9,11 @@ class Budget extends Model
 {
     use HasFactory;
 
-    protected $fillable = ['name', 'observations', 'season', 'month_id', 'team_id'];
+    protected $fillable = ['name', 'observations', 'season_id', 'team_id'];
 
-    public function month()
+    public function season()
     {
-        return $this->belongsTo(Month::class);
+        return $this->belongsTo(Season::class);
     }
 
     public function team()

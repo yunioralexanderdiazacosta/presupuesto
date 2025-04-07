@@ -11,6 +11,7 @@ import EditSeasonModal from '@/Components/Seasons/EditSeasonModal.vue';
 
 const props = defineProps({
     seasons: Object,
+    season_id: String
 });
 
 const form = useForm({
@@ -18,6 +19,10 @@ const form = useForm({
     name: '',
     month_id: '',
     observations: ''
+});
+
+const formSeason = useForm({
+    season_id: ''
 });
 
 const title = 'Temporadas';
@@ -92,13 +97,16 @@ const onDeleted = (id) => {
 }
 
 
-
-
-/*
-const onFilter = () => {
-  router.get(route('manage.providers', {term: term.value, plan: plan.value, membership: membership.value}), { preserveState: true});  
+const openSeason = (id) => {
+    formSeason.season_id = id;
+     formSeason.post(route('select.seasons.save'), {
+        preserveScroll: true,
+        onSuccess: () => {
+            formSeason.reset();
+            router.get('dashboard');
+        }
+    });
 }
-*/
 </script>
 <template>
     <Head :title="title" />
@@ -176,6 +184,13 @@ const onFilter = () => {
                                                 <td>{{season.name}}</td>
                                                 <td>{{season.month.name}}</td>
                                                 <td class="text-end">
+                                                    <!--begin::View-->
+                                                    <button type="button" :class="{'btn-primary disabled': season.id == season_id}" v-tooltip="season.id == season_id ? 'Seleccionado actualmente' : 'Ver'" class="btn btn-icon btn-active-light-primary w-30px h-30px me-3" @click="openSeason(season.id)">
+                                                        <span class="svg-icon svg-icon-3">
+                                                            <i class="fas fa-eye"></i>
+                                                        </span>
+                                                    </button>
+                                                    <!--end::View-->
                                                     <!--begin::Update-->
                                                     <button type="button" v-tooltip="'Editar'" class="btn btn-icon btn-active-light-primary w-30px h-30px me-3" @click="openEdit(season)">
                                                         <span class="svg-icon svg-icon-3">

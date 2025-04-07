@@ -6,6 +6,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use App\Models\Budget;
+use App\Models\Season;
 use App\Models\CostCenter;
 use App\Models\Agrochemical;
 use App\Models\Fertilizer;
@@ -32,11 +33,11 @@ class DashboardController extends Controller
     {
         $user = Auth::user();
 
-        $budget_id = session('budget_id');
+        $season_id = session('season_id');
 
-        $budget = Budget::select('name', 'month_id')->where('id', $budget_id)->first();
+        $season = Season::select('name', 'month_id')->where('id', $season_id)->first();
 
-        $this->month_id = $budget ? $budget['month_id'] : 1;
+        $this->month_id = $season ? $season['month_id'] : 1;
 
         $months = array();
         $currentMonth = $this->month_id;
@@ -50,7 +51,7 @@ class DashboardController extends Controller
             array_push($months, $object);
         }
 
-        $costCenters = CostCenter::select('id', 'name')->where('budget_id', $budget_id)->whereHas('budget.team', function($query) use ($user){
+        $costCenters = CostCenter::select('id', 'name')->where('season_id', $season_id)->whereHas('season.team', function($query) use ($user){
             $query->where('team_id', $user->team_id);
         })->get()->transform(function($costCenter){
             return [
@@ -76,7 +77,7 @@ class DashboardController extends Controller
             ]
         ];
 
-        $totalBudget = number_format(($this->totalAgrochemical + $this->totalFertilizer + $this->totalManPower), 0, ',', '.');
+        $totalSeason = number_format(($this->totalAgrochemical + $this->totalFertilizer + $this->totalManPower), 0, ',', '.');
 
         $totalAgrochemical = number_format($this->totalAgrochemical, 0, ',', '.');
         $totalFertilizer = number_format($this->totalFertilizer, 0, ',', '.');
@@ -95,7 +96,7 @@ class DashboardController extends Controller
             $monthsManPower[$key] = number_format($value, 0, ',','.');
         }
         
-        return Inertia::render('Dashboard', compact('totalBudget', 'pieLabels', 'pieDatasets', 'monthsAgrochemical', 'totalAgrochemical', 'monthsFertilizer', 'totalFertilizer', 'monthsManPower', 'totalManPower', 'months'));
+        return Inertia::render('Dashboard', compact('totalSeason', 'pieLabels', 'pieDatasets', 'monthsAgrochemical', 'totalAgrochemical', 'monthsFertilizer', 'totalFertilizer', 'monthsManPower', 'totalManPower', 'months'));
     }
 
     private function getAgrochemicalProducts($costCentersId)

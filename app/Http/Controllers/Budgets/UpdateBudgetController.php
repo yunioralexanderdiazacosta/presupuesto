@@ -12,8 +12,6 @@ class UpdateBudgetController extends Controller
     {
         $budget->name = $request->name;
         $budget->observations = $request->observations;
-        $budget->season = $request->season;
-        $budget->month_id = $request->month_id;
         $budget->save();
     }
 }

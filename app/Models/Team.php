@@ -16,8 +16,8 @@ class Team extends Model
         return $this->hasMany(User::class);
     }
 
-    public function budgets()
+    public function seasons()
     {
-        return $this->hasMany(budget::class);
+        return $this->hasMany(Season::class);
     }
 }

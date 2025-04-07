@@ -4,7 +4,7 @@ namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
-use App\Models\Budget;
+use App\Models\Season;
 use App\Models\CostCenter;
 use App\Models\Fruit;
 use App\Models\Parcel;
@@ -17,11 +17,9 @@ class CostCentersController extends Controller
     {
         $user = Auth::user();
 
-        $budget_id = session('budget_id');
+        $season_id = session('season_id');
 
-        $budgets = [];
-
-        $budget = Budget::select('name')->where('id', $budget_id)->first();
+        $season = Season::select('name')->where('id', $season_id)->first();
 
         $fruits = Fruit::where('team_id', $user->team_id)->get()->transform(function($fruit){
             return [
@@ -37,7 +35,7 @@ class CostCentersController extends Controller
             ];
         });
 
-        $costCenters = CostCenter::where('budget_id', $budget_id)->whereHas('budget.team', function($query) use ($user){
+        $costCenters = CostCenter::where('season_id', $season_id)->whereHas('season.team', function($query) use ($user){
             $query->where('team_id', $user->team_id);
         })->paginate(10);
 
@@ -48,6 +46,6 @@ class CostCentersController extends Controller
             ];
         });
 
-        return Inertia::render('CostCenters', compact('costCenters', 'budget', 'budgets', 'fruits', 'parcels', 'developmentStates'));
+        return Inertia::render('CostCenters', compact('costCenters', 'season', 'fruits', 'parcels', 'developmentStates'));
     }   
 }

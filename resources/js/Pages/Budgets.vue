@@ -11,20 +11,13 @@ import CreateBudgetModal from '@/Components/Budgets/CreateBudgetModal.vue';
 import EditBudgetModal from '@/Components/Budgets/EditBudgetModal.vue';
 
 const props = defineProps({
-    budgets: Object,
-    budget_id: String
+    budgets: Object
 });
 
 const form = useForm({
     id: null,
     name: '',
-    season: '',
-    month_id: '',
     observations: ''    
-});
-
-const formBudget = useForm({
-    budget_id: ''
 });
 
 const title = 'Presupuestos';
@@ -38,10 +31,8 @@ const openAdd = () => {
 
 const openEdit = (budget) => {
     form.reset();
-    form.id = budget.id; 
+    form.id = budget.id;
     form.name = budget.name;
-    form.season = budget.season;
-    form.month_id = budget.month_id;
     form.observations = budget.observations;   
     $('#editBudgetModal').modal('show');
 }
@@ -75,17 +66,6 @@ const msgSuccess = (msg) => {
         title: msg,
         showConfirmButton: false,
         timer: 1000
-    });
-}
-
-const openBudget = (id) => {
-    formBudget.budget_id = id;
-     formBudget.post(route('select.budget.save'), {
-        preserveScroll: true,
-        onSuccess: () => {
-            formBudget.reset();
-            router.get('dashboard');
-        }
     });
 }
 
@@ -177,8 +157,6 @@ const onFilter = () => {
                                     <template #header>
                                         <!--begin::Table row-->
                                         <th width="min-w-150px">Nombre</th>
-                                        <th width="min-w-150px">Temporada</th>
-                                        <th width="min-w-150px">Mes de inicio</th>
                                         <th width="min-w-150px" class="text-end">Acciones</th>
                                         <!--end::Table row-->
                                     </template>
@@ -191,16 +169,8 @@ const onFilter = () => {
                                         <template v-else>
                                             <tr v-for="(budget, index) in budgets.data" :key="index">
                                                 <td><span class="fw-bold mb-1" :class="{'text-primary': budget.id == budget_id, 'text-dark': budget.id != budget_id }">{{budget.name}}</span></td>
-                                                <td>{{budget.season}}</td>
-                                                <td>{{budget.month.name}}</td>
                                                 <td class="text-end">
-                                                     <!--begin::View-->
-                                                    <button type="button" :class="{'btn-primary disabled': budget.id == budget_id}" v-tooltip="budget.id == budget_id ? 'Seleccionado actualmente' : 'Ver'" class="btn btn-icon btn-active-light-primary w-30px h-30px me-3" @click="openBudget(budget.id)">
-                                                        <span class="svg-icon svg-icon-3">
-                                                            <i class="fas fa-eye"></i>
-                                                        </span>
-                                                    </button>
-                                                    <!--end::View-->
+                                                     
                                                     <!--begin::Update-->
                                                     <button type="button" v-tooltip="'Editar'" class="btn btn-icon btn-active-light-primary w-30px h-30px me-3" @click="openEdit(budget)">
                                                         <span class="svg-icon svg-icon-3">

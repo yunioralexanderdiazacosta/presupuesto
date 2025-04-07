@@ -20,6 +20,8 @@ use App\Http\Controllers\ManPowersController;
 use App\Http\Controllers\ParcelsController;
 use App\Http\Controllers\SeasonsController;
 use App\Http\Controllers\UsersController;
+use App\Http\Controllers\MachineriesController;
+use App\Http\Controllers\TypeMachineriesController;
 use App\Http\Controllers\Teams\StoreTeamController;
 use App\Http\Controllers\Teams\UpdateTeamController;
 use App\Http\Controllers\Teams\DeleteTeamController;
@@ -31,7 +33,7 @@ use App\Http\Controllers\Users\ActiveInactiveUserController;
 use App\Http\Controllers\Budgets\StoreBudgetController;
 use App\Http\Controllers\Budgets\UpdateBudgetController;
 use App\Http\Controllers\Budgets\DeleteBudgetController;
-use App\Http\Controllers\Budgets\SaveBudgetController;
+use App\Http\Controllers\Seasons\SaveSeasonController;
 use App\Http\Controllers\CostCenters\StoreCostCenterController;
 use App\Http\Controllers\CostCenters\UpdateCostCenterController;
 use App\Http\Controllers\CostCenters\DeleteCostCenterController;
@@ -90,7 +92,12 @@ use App\Http\Controllers\Parcels\DeleteParcelController;
 use App\Http\Controllers\Seasons\StoreSeasonController;
 use App\Http\Controllers\Seasons\UpdateSeasonController;
 use App\Http\Controllers\Seasons\DeleteSeasonController;
-
+use App\Http\Controllers\Machineries\StoreMachineryController;
+use App\Http\Controllers\Machineries\UpdateMachineryController;
+use App\Http\Controllers\Machineries\DeleteMachineryController;
+use App\Http\Controllers\TypeMachineries\StoreTypeMachineryController;
+use App\Http\Controllers\TypeMachineries\UpdateTypeMachineryController;
+use App\Http\Controllers\TypeMachineries\DeleteTypeMachineryController;
 use Inertia\Inertia;
 
 /*
@@ -126,6 +133,8 @@ Route::middleware([
     Route::get('/company-reasons', CompanyReasonsController::class)->name('company.reasons.index');
     Route::get('/seasons', SeasonsController::class)->name('seasons.index');
     Route::get('/users', UsersController::class)->name('users.index');
+    Route::get('/machineries', MachineriesController::class)->name('machineries.index');
+    Route::get('/type-machineries', TypeMachineriesController::class)->name('type.machineries.index');
 
     Route::post('/teams/store', StoreTeamController::class)->name('teams.store');
     Route::post('teams/{user}/update', UpdateTeamController::class)->name('teams.update');
@@ -230,7 +239,16 @@ Route::middleware([
         Route::post('/man-powers/{manPower}/update', UpdateManPowerController::class)->name('man.powers.update');
         Route::delete('/man-powers/{manPower}/delete', DeleteManPowerController::class)->name('man.powers.delete');
 
+        Route::post('/machineries/store', StoreMachineryController::class)->name('machineries.store');
+        Route::post('/machineries/{machinery}/update', UpdateMachineryController::class)->name('machineries.update');
+        Route::delete('/machineries/{machinery}/delete', DeleteMachineryController::class)->name('machineries.delete');
+
+        Route::post('/type-machineries/store', StoreTypeMachineryController::class)->name('type.machineries.store');
+        Route::post('/type-machineries/{typeMachinery}/update', UpdateTypeMachineryController::class)->name('type.machineries.update');
+        Route::delete('/type-machineries/{typeMachinery}/delete', DeleteTypeMachineryController::class)->name('type.machineries.delete');
+
+
     });
     Route::get('/select-budge', SelectBudgetController::class)->name('select.budget');
-    Route::post('/select-budget/save', SaveBudgetController::class)->name('select.budget.save');
+    Route::post('/select-season/save', SaveSeasonController::class)->name('select.seasons.save');
 });

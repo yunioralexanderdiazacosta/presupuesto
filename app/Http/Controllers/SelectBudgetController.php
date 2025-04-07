@@ -4,7 +4,7 @@ namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
-use App\Models\Budget;
+use App\Models\Season;
 use Inertia\Inertia;
 
 class SelectBudgetController extends Controller
@@ -13,13 +13,13 @@ class SelectBudgetController extends Controller
     {
         $user = Auth::user();
 
-        $budgets = Budget::select('id', 'name')->where('team_id', $user->team_id)->get()->transform(function($budget){
+        $seasons = Season::select('id', 'name')->where('team_id', $user->team_id)->get()->transform(function($season){
             return [
-                'label' => $budget->name,
-                'value' => $budget->id
+                'label' => $season->name,
+                'value' => $season->id
             ];
         });
 
-        return Inertia::render('SelectBudget', compact('budgets'));
+        return Inertia::render('SelectBudget', compact('seasons'));
     }
 }

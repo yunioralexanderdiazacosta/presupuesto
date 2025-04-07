@@ -13,7 +13,9 @@ class InvoicesController extends Controller
     {
         $user = Auth::user();
 
-        $invoices = Invoice::with('supplier', 'companyReason')->where('team_id', $user->team_id)->paginate(10)->through(function($invoice){
+        $season_id = session('season_id');
+
+        $invoices = Invoice::with('supplier', 'companyReason')->where('team_id', $user->team_id)->where('season_id', $season_id)->paginate(10)->through(function($invoice){
             return [
                 'id'                => $invoice->id,
                 'date'              => $invoice->date,

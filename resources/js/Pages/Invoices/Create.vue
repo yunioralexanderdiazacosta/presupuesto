@@ -19,6 +19,7 @@ const form = useForm({
 	supplier_id: '',
 	company_reason_id: '',
 	type_document_id: '',
+	number_document: '',
 	products: [
 		{
 			product_id: '',

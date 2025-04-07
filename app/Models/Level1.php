@@ -9,7 +9,7 @@ class Level1 extends Model
 {
     use HasFactory;
 
-    protected $fillable = ['name', 'team_id'];
+    protected $fillable = ['name', 'team_id', 'season_id'];
 
     public function levels2()
     {

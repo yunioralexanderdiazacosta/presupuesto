@@ -8,7 +8,7 @@ const links = [{ title: 'Tablero', link: 'dashboard', active: true }];
 
 
 const props = defineProps({
-    totalBudget: String,
+    totalSeason: String,
     pieLabels: Array,
     pieDatasets: Array,
     months: Array,
@@ -61,8 +61,8 @@ const props = defineProps({
                                             </svg>
                                         </span>
                                         <!--end::Svg Icon-->
-                                        <div class="text-white fw-bold fs-1 mb-2 mt-5">{{totalBudget}}</div>
-                                        <div class="fw-semibold text-white fs-3">Total presupuesto</div>
+                                        <div class="text-white fw-bold fs-1 mb-2 mt-5">{{totalSeason}}</div>
+                                        <div class="fw-semibold text-white fs-3">Total presupuestos</div>
                                     </div>
                                     <!--end::Body-->
                                 </a>

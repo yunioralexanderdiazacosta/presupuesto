@@ -7,7 +7,7 @@
             <!--begin::Card Title-->
             <div class="card-title m-0 p-3">
                 <!--begin::Name-->
-                <div class="fs-3 fw-bold text-dark ">{{$page.props.budget.name}}</div>
+                <div class="fs-3 fw-bold text-dark ">{{$page.props.season.name}}</div>
                 <!--end::Name-->
             </div>
             <!--end::Card Title-->

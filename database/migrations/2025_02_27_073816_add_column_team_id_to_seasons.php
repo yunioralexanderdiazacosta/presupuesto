@@ -12,7 +12,7 @@ return new class extends Migration
     public function up(): void
     {
         Schema::table('seasons', function (Blueprint $table) {
-              $table->foreignId('team_id')->nullable()->constrained('teams')->cascadeOnDelete();
+            $table->foreignId('team_id')->nullable()->constrained('teams')->cascadeOnDelete();
         });
     }
 

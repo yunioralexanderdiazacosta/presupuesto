@@ -13,7 +13,9 @@ class LevelsController extends Controller
     {
         $user = Auth::user();
 
-        $levels = Level1::where('team_id', $user->team_id)->paginate(10);
+        $season_id = session('season_id');
+
+        $levels = Level1::where('team_id', $user->team_id)->where('season_id', $season_id)->paginate(10);
 
         return Inertia::render('Levels', compact('levels'));
     }
