@@ -6,7 +6,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use App\Models\Season;
-use App\Models\Subfamily;
+use App\Models\Level3;
 use App\Models\CostCenter;
 use App\Models\Unit;
 use App\Models\Month;
@@ -39,12 +39,33 @@ class AgrochemicalsController extends Controller
 
         $this->month_id = $season['month_id'];
 
-        $subfamilies = Subfamily::where('id_form', 1)->get()->transform(function($subfamily){
+
+        $subfamilies = Level3::from('level3s as l3')
+        ->join('level2s as l2', 'l2.id', 'l3.level2_id')
+        ->join('level1s as l1', 'l1.id', 'l2.level1_id')
+        ->select('l3.id', 'l3.name')
+        ->where('l1.team_id', $user->team_id)
+        ->where('l2.name', 'agroquimicos')
+        ->where('season_id', $season_id)
+        ->get()->transform(function($subfamily){
             return [
-                'label' => $subfamily->name,
+                'label' => $subfamily->name, 
                 'value' => $subfamily->id
             ];
         });
+
+        /*
+        $subfamilies = Level3::whereHas('level2.level1', function($query) use ($user){
+            $query->where('team_id', $user->team_id);
+        })->whereHas('level2', function($query){
+            $query->where('name', 'agroquimicos');
+        })->get()->transform(function($subfamily){
+            return [
+                'label' => $subfamily->name, 
+                'value' => $subfamily->id
+            ];
+        });
+        */
 
         $units = Unit::get()->transform(function($unit){
             return [

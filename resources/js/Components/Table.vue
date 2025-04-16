@@ -14,10 +14,10 @@ defineProps({
 <template>
     <div class="table-responsive">
         <!--begin::Table-->
-        <table class="table table-row-dashed table-row-gray-300 align-middle gs-0 gy-4">
+        <table class="table table-row-bordered table-row-gray-300 align-middle gs-0 gy-4">
             <!--begin::Table head-->
             <thead>
-                <tr class="fw-bold text-muted">
+                <tr class="fw-bold fs-6">
                     <slot name="header"></slot>
                 </tr>
             </thead>

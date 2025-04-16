@@ -26,8 +26,7 @@ class FormProductRequest extends FormRequest
             'unit_id'   => 'required',
             'level1_id' => 'required',
             'level2_id' => 'required',
-            'level3_id' => 'required',
-            'level4_id' => 'required'
+            'level3_id' => 'required'
         ];
     }
 }
