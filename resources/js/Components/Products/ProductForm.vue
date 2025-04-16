@@ -65,7 +65,7 @@
                 <Multiselect
                     :placeholder="'Seleccione la unidad'"
                     v-model="form.unit_id"
-                    :close-on-select="false"
+                    :close-on-select="true"
                     :options="$page.props.units"
                     class="multiselect-blue form-control"
                     :class="{'is-invalid': form.errors.unit_id}"
@@ -82,7 +82,7 @@
                 <Multiselect
                     :placeholder="'Seleccione nivel 1'"
                     v-model="form.level1_id"
-                    :close-on-select="false"
+                    :close-on-select="true"
                     :options="$page.props.level1s"
                     class="multiselect-blue form-control"
                     :class="{'is-invalid': form.errors.unit_id}"
@@ -98,7 +98,7 @@
                 <Multiselect
                     :placeholder="'Seleccione nivel 2'"
                     v-model="form.level2_id"
-                    :close-on-select="false"
+                    :close-on-select="true"
                     :options="form.level2s"
                     class="multiselect-blue form-control"
                     :class="{'is-invalid': form.errors.unit_id}"
@@ -116,7 +116,7 @@
                 <Multiselect
                     :placeholder="'Seleccione nivel 3'"
                     v-model="form.level3_id"
-                    :close-on-select="false"
+                    :close-on-select="true"
                     :options="form.level3s"
                     class="multiselect-blue form-control"
                     :class="{'is-invalid': form.errors.level3_id}"
@@ -132,7 +132,7 @@
                 <Multiselect
                     :placeholder="'Seleccione nivel 4'"
                     v-model="form.level4_id"
-                    :close-on-select="false"
+                    :close-on-select="true"
                     :options="form.level4s"
                     class="multiselect-blue form-control"
                     :class="{'is-invalid': form.errors.level4_id}"
