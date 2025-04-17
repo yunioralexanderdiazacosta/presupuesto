@@ -15,7 +15,6 @@ const props = defineProps({
 })
 
 const form = useForm({
-	number: props.invoice.number,
 	date: props.invoice.date,
 	due_date: props.invoice.due_date,
 	payment_term: props.invoice.payment_term,

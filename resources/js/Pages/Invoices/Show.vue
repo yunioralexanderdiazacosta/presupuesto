@@ -88,7 +88,7 @@ const links = [{ title: 'Tablero', link: 'dashboard' }, { title: 'Facturas', lin
 										<div class="d-flex flex-column flex-sm-row gap-7 gap-md-10 fw-bold">
 											<div class="flex-root d-flex flex-column">
 												<span class="text-muted">Factura #</span>
-												<span class="fs-5">{{invoice.number}}</span>
+												<span class="fs-5">{{invoice.id}}</span>
 											</div>
 											<div class="flex-root d-flex flex-column">
 												<span class="text-muted">Fecha de Emisión</span>

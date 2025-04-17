@@ -22,7 +22,6 @@ class FormInvoiceRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'number'            => 'required',
             'payment_term'      => 'required',
             'payment_type'      => 'required',
             'supplier_id'       => 'required',

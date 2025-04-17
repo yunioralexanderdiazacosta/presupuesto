@@ -125,7 +125,7 @@ class FertilizersController extends Controller
 
         $data2 = Fertilizer::from('fertilizers as f')
         ->join('fertilizer_items as fi', 'f.id', 'fi.fertilizer_id')
-        ->join('subfamilies as s', 'f.subfamily_id', 's.id')
+        ->join('level3s as s', 'f.subfamily_id', 's.id')
         ->select('s.id', 's.name')
         ->whereIn('fi.cost_center_id', $costCentersId)
         ->groupBy('s.id', 's.name')
@@ -155,7 +155,7 @@ class FertilizersController extends Controller
     {
         $subfamilies = Fertilizer::from('fertilizers as f')
         ->join('fertilizer_items as fi', 'f.id', 'fi.fertilizer_id')
-        ->join('subfamilies as s', 'f.subfamily_id', 's.id')
+        ->join('level3s as s', 'f.subfamily_id', 's.id')
         ->select('s.id', 's.name')
         ->where('fi.cost_center_id', $costCenterId)
         ->groupBy('s.id', 's.name')

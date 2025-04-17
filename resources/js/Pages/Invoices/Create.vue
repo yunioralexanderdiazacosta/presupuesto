@@ -10,7 +10,6 @@ const title = 'Crear Factura';
 const links = [{ title: 'Tablero', link: 'dashboard' }, { title: 'Facturas', link: 'invoices.index' }, { title: title, active: true }];
 
 const form = useForm({
-	number: '',
 	date: '',
 	due_date: '',
 	payment_term: '',

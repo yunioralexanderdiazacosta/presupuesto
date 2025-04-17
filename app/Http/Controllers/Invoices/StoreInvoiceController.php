@@ -16,7 +16,6 @@ class StoreInvoiceController extends Controller
         $season_id = session('season_id');
 
         $invoice = Invoice::create([
-            'number'            => $request->number,
             'payment_term'      => $request->payment_term,
             'payment_type'      => $request->payment_type,
             'petty_cash'        => $request->petty_cash,

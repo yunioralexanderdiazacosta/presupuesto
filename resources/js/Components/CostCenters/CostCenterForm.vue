@@ -57,7 +57,7 @@
                 <Multiselect
                     :placeholder="'Seleccione el frutal'"
                     v-model="form.fruit_id"
-                    :close-on-select="false"
+                    :close-on-select="true"
                     :options="$page.props.fruits"
                     class="multiselect-blue form-control"
                     :class="{'is-invalid': form.errors.fruit_id}"
@@ -73,7 +73,7 @@
                 <Multiselect
                     :placeholder="'Seleccione variedad'"
                     v-model="form.variety_id"
-                    :close-on-select="false"
+                    :close-on-select="true"
                     :options="form.varieties"
                     class="multiselect-blue form-control"
                     :class="{'is-invalid': form.errors.variety_id}"
@@ -91,7 +91,7 @@
                 <Multiselect
                     :placeholder="'Seleccione la parcela'"
                     v-model="form.parcel_id"
-                    :close-on-select="false"
+                    :close-on-select="true"
                     :options="$page.props.parcels"
                     class="multiselect-blue form-control"
                     :class="{'is-invalid': form.errors.parcel_id}"
@@ -106,7 +106,7 @@
                 <Multiselect
                     :placeholder="'Seleccione el estado de desarrollo'"
                     v-model="form.development_state_id"
-                    :close-on-select="false"
+                    :close-on-select="true"
                     :options="$page.props.developmentStates"
                     class="multiselect-blue form-control"
                     :class="{'is-invalid': form.errors.development_state_id}"

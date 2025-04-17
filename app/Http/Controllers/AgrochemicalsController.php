@@ -147,7 +147,7 @@ class AgrochemicalsController extends Controller
 
         $data2 = Agrochemical::from('agrochemicals as a')
         ->join('agrochemical_items as ai', 'a.id', 'ai.agrochemical_id')
-        ->join('subfamilies as s', 'a.subfamily_id', 's.id')
+        ->join('level3s as s', 'a.subfamily_id', 's.id')
         ->select('s.id', 's.name')
         ->whereIn('ai.cost_center_id', $costCentersId)
         ->groupBy('s.id', 's.name')
@@ -177,7 +177,7 @@ class AgrochemicalsController extends Controller
     {
         $subfamilies = Agrochemical::from('agrochemicals as a')
         ->join('agrochemical_items as ai', 'a.id', 'ai.agrochemical_id')
-        ->join('subfamilies as s', 'a.subfamily_id', 's.id')
+        ->join('level3s as s', 'a.subfamily_id', 's.id')
         ->select('s.id', 's.name')
         ->where('ai.cost_center_id', $costCenterId)
         ->groupBy('s.id', 's.name')

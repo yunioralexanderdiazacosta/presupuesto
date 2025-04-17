@@ -18,7 +18,7 @@ class Agrochemical extends Model
 
     public function subfamily()
     {
-        return $this->belongsTo(Subfamily::class);
+        return $this->belongsTo(Level3::class, 'subfamily_id');
     }
 
     public function unit()

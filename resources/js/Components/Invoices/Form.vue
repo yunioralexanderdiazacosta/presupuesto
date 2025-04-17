@@ -11,15 +11,13 @@
 </script>
 <template>
 	
-<!--begin::Wrapper-->
+<!--begin::Wrapper
 <div class="d-flex flex-column align-items-start flex-xxl-row">
-	<!--begin::Input group-->
 	<div class="d-flex flex-center flex-equal fw-row text-nowrap order-1 order-xxl-2 me-4" data-bs-toggle="tooltip" data-bs-trigger="hover" title="Enter invoice number">
 		<span class="fs-2x fw-bold text-gray-800">Factura #</span>
 		<input type="text" v-model="form.number" class="form-control form-control-solid fw-bold fs-3 w-200px" placehoder="" />
 	</div>
-	<!--end::Input group-->
-</div>
+</div>-->
 <!--end::Top-->
 <!--begin::Separator-->
 <div class="separator separator-dashed my-10"></div>

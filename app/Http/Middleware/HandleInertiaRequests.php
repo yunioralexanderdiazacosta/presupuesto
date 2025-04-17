@@ -5,6 +5,7 @@ namespace App\Http\Middleware;
 use Illuminate\Http\Request;
 use Inertia\Middleware;
 use Illuminate\Support\Facades\Auth;
+use App\Models\Season;
 
 class HandleInertiaRequests extends Middleware
 {
@@ -39,6 +40,7 @@ class HandleInertiaRequests extends Middleware
     {
         return array_merge(parent::share($request), [
             'public_path' => env('APP_URL'),
+            'temporada' => session('season_id') ? strtoupper(Season::select('name')->where('id', session('season_id'))->first()->name) : '',
             'gates' => function() {
                 $user = Auth::user();
                     return $user ? [

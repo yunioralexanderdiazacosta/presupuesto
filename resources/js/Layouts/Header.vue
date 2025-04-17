@@ -50,6 +50,22 @@ const viewDropdown = () => {
                 <!--end::Menu wrapper-->
                 <!--begin::Navbar-->
                 <div class="app-navbar flex-shrink-0">
+                    
+
+                     <div class="menu menu-rounded menu-column menu-lg-row my-5 my-lg-0 align-items-stretch fw-semibold px-2 px-lg-0" id="kt_app_header_menu" data-kt-menu="true">
+                        <!--begin:Menu item-->
+                        <div data-kt-menu-trigger="{default: 'click', lg: 'hover'}" data-kt-menu-placement="bottom-start" class="menu-item here menu-lg-down-accordion menu-here-bg me-0 me-lg-2">
+                            <!--begin:Menu link-->
+                            <span class="menu-link">
+                                <span class="menu-title fw-bold fs-5">{{$page.props.temporada ?? ''}}</span>
+                                <span class="menu-arrow d-lg-none"></span>
+                            </span>
+                            <!--end:Menu link-->
+                           
+                        </div>
+                        <!--end:Menu item-->
+                    </div>
+
                     <!--begin::Account menu-->
                     <MenuDropdown />
                     <!--end::Account menu-->
