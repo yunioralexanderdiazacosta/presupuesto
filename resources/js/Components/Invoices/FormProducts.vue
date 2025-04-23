@@ -64,7 +64,7 @@
 						<Multiselect
 		                    :placeholder="'Seleccione producto'"
 		                    v-model="product.product_id"
-		                    :close-on-select="false"
+		                    :close-on-select="true"
 		                    :options="$page.props.products"
 		                    class="multiselect-blue form-control"
 		                    :class="{'is-invalid': form.errors['products.'+index+'.product_id']}"

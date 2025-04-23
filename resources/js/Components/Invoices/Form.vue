@@ -61,7 +61,7 @@
                 <Multiselect
                     :placeholder="'Seleccione proveedor'"
                     v-model="form.supplier_id"
-                    :close-on-select="false"
+                    :close-on-select="true"
                     :options="$page.props.suppliers"
                     class="multiselect-blue form-control"
                     :class="{'is-invalid': form.errors.supplier_id}"
@@ -79,7 +79,7 @@
                 <Multiselect
                     :placeholder="'Seleccione razón social'"
                     v-model="form.company_reason_id"
-                    :close-on-select="false"
+                    :close-on-select="true"
                     :options="$page.props.companyReasons"
                     class="multiselect-blue form-control"
                     :class="{'is-invalid': form.errors.company_reason_id}"
@@ -102,7 +102,7 @@
                         <Multiselect
                             :placeholder="'Seleccione tipo de documento'"
                             v-model="form.type_document_id"
-                            :close-on-select="false"
+                            :close-on-select="true"
                             :options="$page.props.typeDocuments"
                             class="multiselect-blue form-control"
                             :class="{'is-invalid': form.errors.type_document_id}"
@@ -132,7 +132,7 @@
                 <Multiselect
                     :placeholder="'Seleccione plazo de pago'"
                     v-model="form.payment_term"
-                    :close-on-select="false"
+                    :close-on-select="true"
                     :options="[0, 30, 60, 90, 120]"
                     class="multiselect-blue form-control"
                     :class="{'is-invalid': form.errors.payment_term}"
