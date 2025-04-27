@@ -275,7 +275,7 @@ const onFilter = () => {
                                         <div class="row">
                                             <!--begin::Col-->
                                             <div class="col-lg-3">
-                                                <div class="card card-dashed border-primary flex-center min-w-175px mb-3 p-6">
+                                                <div class="card card-bordered border-primary flex-center min-w-175px mb-3 p-6">
                                                     <span class="fs-4 fw-semibold text-primary pb-1 px-2">Monto total</span>
                                                     <span class="fs-2 fw-bold d-flex justify-content-center">
                                                     <span>{{totalData1}}</span></span>
@@ -284,7 +284,7 @@ const onFilter = () => {
                                             <!--end::Col-->
                                             <!--begin::Col-->
                                             <div class="col-lg-3">
-                                                <div class="card card-dashed border-primary flex-center min-w-175px mb-3 p-6">
+                                                <div class="card card-bordered border-primary flex-center min-w-175px mb-3 p-6">
                                                     <span class="fs-4 fw-semibold text-primary pb-1 px-2">Porc. Monto</span>
                                                     <span class="fs-lg-2 fw-bold d-flex justify-content-center">
                                                     <span class="counted">{{percentage}}%</span></span>
@@ -295,7 +295,7 @@ const onFilter = () => {
 
                                         <!--begin::Table-->
                                         <div class="table-responsive">
-                                            <table class="table table-row-full-dashed table-row-gray-300 align-middle gs-0 gy-4">
+                                            <table class="table table-row-full-dashed table-row-gray-400 align-middle gs-0 gy-2">
                                                 <!--begin::Table head-->
                                                 <thead>
                                                     <tr class="fw-bold text-muted">
@@ -367,7 +367,7 @@ const onFilter = () => {
 
                                         <!--begin::Table-->
                                         <div class="table-responsive">
-                                            <table class="table table-row-full-dashed table-row-gray-300 align-middle gs-0 gy-4">
+                                            <table class="table table-row-full-dashed table-row-gray-300 align-middle gs-0 gy-2">
                                                 <!--begin::Table head-->
                                                 <thead>
                                                     <tr class="fw-bold text-muted">
