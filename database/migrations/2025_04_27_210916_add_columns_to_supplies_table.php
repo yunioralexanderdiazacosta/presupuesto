@@ -11,8 +11,8 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::create('supplies', function (Blueprint $table) {
-            $table->id();
+        Schema::table('supplies', function (Blueprint $table) {
+            //
             $table->string('product_name');
             $table->decimal('quantity');
             $table->integer('price');
@@ -20,7 +20,7 @@ return new class extends Migration
             $table->foreignId('subfamily_id')->constrained()->cascadeOnDelete();
             $table->foreignId('unit_id')->constrained()->cascadeOnDelete();
             $table->foreignId('unit_id_price')->constrained()->cascadeOnDelete();
-            $table->timestamps();
+
         });
     }
 
@@ -29,6 +29,15 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::dropIfExists('supplies');
+        Schema::table('supplies', function (Blueprint $table) {
+            //
+            $table->dropColumn('product_name');
+            $table->dropColumn('quantity');
+            $table->dropColumn	('price');
+            $table->dropColumn('observations')->nullable();
+            $table->dropForeign('subfamily_id')->constrained()->cascadeOnDelete();
+            $table->dropForeign('unit_id')->constrained()->cascadeOnDelete();
+            $table->dropForeign('unit_id_price')->constrained()->cascadeOnDelete();
+        });
     }
 };
