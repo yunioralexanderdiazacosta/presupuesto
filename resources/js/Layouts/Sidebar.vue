@@ -6,7 +6,7 @@ import Menu from '@/Components/Sidebar/Menu.vue';
 import { usePage } from '@inertiajs/vue3';
 
 
-const presupuestos = ['/dashboard', '/budgets', '/agrochemicals', '/fertilizers', '/manpowers'];
+const presupuestos = ['/dashboard', '/budgets', '/agrochemicals', '/fertilizers', '/manpowers', '/supplies'];
 
 const parametros = ['/cost-centers', '/levels', '/users', '/company-reasons', '/fruits', '/varieties', '/parcels', '/seasons'];
 
@@ -56,6 +56,11 @@ const items = [
                 title: 'Mano de Obra',
                 icon: `<i class="bi bi-card-checklist"></i>`,
                 link: 'manpowers.index'
+            },
+            {
+                title: 'Insumos',
+                icon: `<i class="bi bi-card-checklist"></i>`,
+                link: 'supplies.index'
             }
         ]
     },
