@@ -9,18 +9,31 @@ use Inertia\Inertia;
 
 class InvoicesController extends Controller
 {
-    public function __invoke()
+    public function __invoke(Request $request)
     {
         $user = Auth::user();
 
         $season_id = session('season_id');
 
-        $invoices = Invoice::with('supplier', 'companyReason')->where('team_id', $user->team_id)->where('season_id', $season_id)->paginate(10)->through(function($invoice){
+        $term = $request->term ?? '';
+
+        $invoices = Invoice::with('supplier', 'companyReason')->when($request->term, function ($query, $search) {
+            $query->where('number_document', 'like', '%'.$search.'%');
+        })
+        ->OrWhereHas('supplier', function($query) use ($term){
+            $query->where('name', 'like', '%'.$term.'%');
+        })
+        ->OrWhereHas('companyReason', function($query) use ($term){
+            $query->where('name', 'like', '%'.$term.'%');
+        })
+        ->where('team_id', $user->team_id)->where('season_id', $season_id)
+        ->paginate(10)
+        ->withQueryString()
+        ->through(function($invoice){
             return [
                 'id'                => $invoice->id,
                 'date'              => $invoice->date,
                 'due_date'          => $invoice->due_date,
-                'number'            => $invoice->number,
                 'supplier'          => $invoice->supplier,
                 'companyReason'     => $invoice->companyReason,
                 'number_document'   => $invoice->number_document,
@@ -28,7 +41,7 @@ class InvoicesController extends Controller
             ];
         }); 
 
-        return Inertia::render('Invoices', compact('invoices'));
+        return Inertia::render('Invoices', compact('invoices', 'term'));
     }
 
     private function get_total($invoice)

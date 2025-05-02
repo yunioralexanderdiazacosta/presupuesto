@@ -11,9 +11,11 @@ use Inertia\Inertia;
 
 class ParcelsController extends Controller
 {
-    public function __invoke()
+    public function __invoke(Request $request)
     {   
         $user = Auth::user();
+
+        $term = $request->term ?? ''; 
 
         $companyReasons = CompanyReason::where('team_id', $user->team_id)->get()->transform(function($company){
             return [
@@ -29,8 +31,10 @@ class ParcelsController extends Controller
             ];
         });
 
-        $parcels = Parcel::with(['companyReason:id,name', 'season:id,name'])->where('team_id', $user->team_id)->paginate(10);
+        $parcels = Parcel::with(['companyReason:id,name', 'season:id,name'])->when($request->term, function ($query, $search) {
+            $query->where('name', 'like', '%'.$search.'%');
+        })->where('team_id', $user->team_id)->paginate(10)->withQueryString();
 
-        return Inertia::render('Parcels', compact('companyReasons', 'seasons', 'parcels'));
+        return Inertia::render('Parcels', compact('companyReasons', 'seasons', 'parcels', 'term'));
     }
 }

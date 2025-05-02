@@ -2,17 +2,25 @@
 
 namespace App\Http\Controllers;
 
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use App\Models\User;
 use Inertia\Inertia;
 
 class UsersController extends Controller
 {
-    public function __invoke()
+    public function __invoke(Request $request)
     {
         $user = Auth::user();
 
-        $users = User::where('team_id', $user->team_id)->whereNot('id', $user->id)->paginate(10)->through(function($value){
+        $term = $request->term ?? ''; 
+
+        $users = User::where('team_id', $user->team_id)->when($request->term, function ($query, $search) {
+            $query->where('name', 'like', '%'.$search.'%')->orWhere('email', 'like', '%'.$search.'%');
+        })->whereNot('id', $user->id)
+        ->paginate(10)
+        ->withQueryString()
+        ->through(function($value){
             return [
                 'id' => $value->id,
                 'name' => $value->name,
@@ -23,6 +31,6 @@ class UsersController extends Controller
             ];
         });
 
-        return Inertia::render('Users', compact('users'));
+        return Inertia::render('Users', compact('users', 'term'));
     }
 }

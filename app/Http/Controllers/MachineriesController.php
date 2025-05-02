@@ -10,9 +10,11 @@ use Inertia\Inertia;
 
 class MachineriesController extends Controller
 {
-    public function __invoke()
+    public function __invoke(Request $request)
     {
         $user = Auth::user();
+
+        $term = $request->term ?? '';
 
         $companyReasons = CompanyReason::where('team_id', $user->team_id)->get()->transform(function($companyReason){
             return [
@@ -28,8 +30,10 @@ class MachineriesController extends Controller
             ];
         });
 
-        $machineries = Machinery::with('typeMachinery')->where('team_id', $user->team_id)->paginate(10);
+        $machineries = Machinery::when($request->term, function ($query, $search) {
+            $query->where('cod_machinery', 'like', '%'.$search.'%');
+        })->with('typeMachinery')->where('team_id', $user->team_id)->paginate(10)->withQueryString();
 
-        return Inertia::render('Machineries', compact('machineries', 'companyReasons', 'typeMachineries'));
+        return Inertia::render('Machineries', compact('machineries', 'companyReasons', 'typeMachineries', 'term'));
     }
 }

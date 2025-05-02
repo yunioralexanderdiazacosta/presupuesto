@@ -102,6 +102,40 @@ use App\Http\Controllers\TypeMachineries\DeleteTypeMachineryController;
 use App\Http\Controllers\Supplies\StoreSupplyController;
 use App\Http\Controllers\Supplies\UpdateSupplyController;
 use App\Http\Controllers\Supplies\DeleteSupplyController;
+use App\Http\Controllers\Pdfs\BudgetsPdfController;
+use App\Http\Controllers\Pdfs\CostCentersPdfController;
+use App\Http\Controllers\Pdfs\LevelsPdfController;
+use App\Http\Controllers\Pdfs\Levels2PdfController;
+use App\Http\Controllers\Pdfs\Levels3PdfController;
+use App\Http\Controllers\Pdfs\Levels4PdfController;
+use App\Http\Controllers\Pdfs\UsersPdfController;
+use App\Http\Controllers\Pdfs\CompanyReasonsPdfController;
+use App\Http\Controllers\Pdfs\FruitsPdfController;
+use App\Http\Controllers\Pdfs\ParcelsPdfController;
+use App\Http\Controllers\Pdfs\VarietiesPdfController;
+use App\Http\Controllers\Pdfs\SeasonsPdfController;
+use App\Http\Controllers\Pdfs\SuppliersPdfController;
+use App\Http\Controllers\Pdfs\ProductsPdfController;
+use App\Http\Controllers\Pdfs\invoicesPdfController;
+use App\Http\Controllers\Pdfs\MachineriesPdfController;
+use App\Http\Controllers\Pdfs\TypeMachineriesPdfController;
+use App\Http\Controllers\Excels\BudgetsExcelController;
+use App\Http\Controllers\Excels\CostCentersExcelController;
+use App\Http\Controllers\Excels\LevelsExcelController;
+use App\Http\Controllers\Excels\Levels2ExcelController;
+use App\Http\Controllers\Excels\Levels3ExcelController;
+use App\Http\Controllers\Excels\Levels4ExcelController;
+use App\Http\Controllers\Excels\UsersExcelController;
+use App\Http\Controllers\Excels\CompanyReasonsExcelController;
+use App\Http\Controllers\Excels\FruitsExcelController;
+use App\Http\Controllers\Excels\ParcelsExcelController;
+use App\Http\Controllers\Excels\VarietiesExcelController;
+use App\Http\Controllers\Excels\SeasonsExcelController;
+use App\Http\Controllers\Excels\SuppliersExcelController;
+use App\Http\Controllers\Excels\ProductsExcelController;
+use App\Http\Controllers\Excels\invoicesExcelController;
+use App\Http\Controllers\Excels\MachineriesExcelController;
+use App\Http\Controllers\Excels\TypeMachineriesExcelController;
 use Inertia\Inertia;
 
 /*
@@ -145,27 +179,39 @@ Route::middleware([
     Route::delete('/teams/{user}/delete', DeleteTeamController::class)->name('teams.delete');
     Route::post('/teams/{user}/activate/inactivate', ActivateInactivateTeamController::class)->name('teams.activate.inactivate');
 
+    Route::get('/users/pdf', UsersPdfController::class)->name('users.pdf');
+    Route::get('/users/excel', UsersExcelController::class)->name('users.excel');
     Route::post('/users/store', StoreUserController::class)->name('users.store');
     Route::post('users/{user}/update', UpdateUserController::class)->name('users.update');
     Route::delete('/users/{user}/delete', DeleteUserController::class)->name('users.delete');
     Route::post('/users/{user}/activate/inactivate', ActiveInactiveUserController::class)->name('users.activate.inactivate');
 
+    Route::get('/budgets/pdf', BudgetsPdfController::class)->name('budgets.pdf');
+    Route::get('/budgets/excel', BudgetsExcelController::class)->name('budgets.excel');
     Route::post('/budgets/store', StoreBudgetController::class)->name('budgets.store');
     Route::post('/budgets/{budget}/update', UpdateBudgetController::class)->name('budgets.update');
     Route::delete('/budgets/{budget}/delete', DeleteBudgetController::class)->name('budgets.delete');
 
+    Route::get('/suppliers/pdf', SuppliersPdfController::class)->name('suppliers.pdf');
+    Route::get('/suppliers/excel', SuppliersExcelController::class)->name('suppliers.excel');
     Route::post('/suppliers/store', StoreSupplierController::class)->name('suppliers.store');
     Route::post('/suppliers/{supplier}/update', UpdateSupplierController::class)->name('suppliers.update');
     Route::delete('/suppliers/{supplier}/delete', DeleteSupplierController::class)->name('suppliers.delete');
 
-     Route::post('/products/store', StoreProductController::class)->name('products.store');
+    Route::get('/products/pdf', ProductsPdfController::class)->name('products.pdf');
+    Route::get('/products/excel', ProductsExcelController::class)->name('products.excel');
+    Route::post('/products/store', StoreProductController::class)->name('products.store');
     Route::post('/products/{product}/update', UpdateProductController::class)->name('products.update');
     Route::delete('/products/{product}/delete', DeleteProductController::class)->name('products.delete');
 
+    Route::get('/company-reasons/pdf', CompanyReasonsPdfController::class)->name('company.reasons.pdf');
+    Route::get('/company-reasons/excel', CompanyReasonsExcelController::class)->name('company.reasons.excel');
     Route::post('/company-reasons/store', StoreCompanyReasonController::class)->name('company.reasons.store');
     Route::post('/company-reasons/{companyReason}/update', UpdateCompanyReasonController::class)->name('company.reasons.update');
     Route::delete('/company-reasons/{companyReason}/delete', DeleteCompanyReasonController::class)->name('company.reasons.delete');
 
+    Route::get('/invoices/pdf', InvoicesPdfController::class)->name('invoices.pdf');
+    Route::get('/invoices/excel', InvoicesExcelController::class)->name('invoices.excel');
     Route::get('/invoices', InvoicesController::class)->name('invoices.index');
     Route::get('/invoices/{invoice}/show', ShowInvoiceController::class)->name('invoices.show');
     Route::get('/invoices/create', CreateInvoiceController::class)->name('invoices.create');
@@ -179,42 +225,57 @@ Route::middleware([
     Route::get('/levels4/{level3}/get', GetLevel4Controller::class)->name('levels4.get');
 
     Route::get('/levels', LevelsController::class)->name('levels.index');
+    Route::get('/levels/pdf', LevelsPdfController::class)->name('levels.pdf');
+    Route::get('/levels/excel', LevelsExcelController::class)->name('levels.excel');
     Route::post('/levels/store', StoreLevelController::class)->name('levels.store');
     Route::post('/levels/{level}/update', UpdateLevelController::class)->name('levels.update'); 
     Route::delete('/levels/{level}/delete', DeleteLevelController::class)->name('levels.delete');
 
     Route::get('/level2/{level1}/index', Level2Controller::class)->name('level2.index');
+    Route::get('/level2/{level1}/pdf', Levels2PdfController::class)->name('levels2.pdf');
+    Route::get('/level2/{level1}/excel', Levels2ExcelController::class)->name('levels2.excel');
     Route::post('/level2/store', StoreLevel2Controller::class)->name('level2.store');
     Route::post('/level2/{level2}/update', UpdateLevel2Controller::class)->name('level2.update'); 
     Route::delete('/level2/{level2}/delete', DeleteLevel2Controller::class)->name('level2.delete');
 
     Route::get('/level3/{level2}/index', Level3Controller::class)->name('level3.index');
+    Route::get('/level3/{level2}/pdf', Levels3PdfController::class)->name('levels3.pdf');
+    Route::get('/level3/{level2}/excel', Levels3ExcelController::class)->name('levels3.excel');
     Route::post('/level3/store', StoreLevel3Controller::class)->name('level3.store');
     Route::post('/level3/{level3}/update', UpdateLevel3Controller::class)->name('level3.update'); 
     Route::delete('/level3/{level3}/delete', DeleteLevel3Controller::class)->name('level3.delete');
 
     Route::get('/level4/{level3}/index', Level4Controller::class)->name('level4.index');
+    Route::get('/level4/{level3}/pdf', Levels4PdfController::class)->name('levels4.pdf');
+    Route::get('/level4/{level3}/excel', Levels4ExcelController::class)->name('levels4.excel');
     Route::post('/level4/store', StoreLevel4Controller::class)->name('level4.store');
     Route::post('/level4/{level4}/update', UpdateLevel4Controller::class)->name('level4.update'); 
     Route::delete('/level4/{level4}/delete', DeleteLevel4Controller::class)->name('level4.delete');
 
+    Route::get('/fruits/pdf', FruitsPdfController::class)->name('fruits.pdf');
+    Route::get('/fruits/excel', FruitsExcelController::class)->name('fruits.excel');
     Route::get('/fruits', FruitsController::class)->name('fruits.index');
     Route::post('/fruits/store', StoreFruitController::class)->name('fruits.store');
     Route::post('/fruits/{fruit}/update', UpdateFruitController::class)->name('fruits.update');
     Route::delete('/fruits/{fruit}/delete', DeleteFruitController::class)->name('fruits.delete');
 
+    Route::get('/varieties/pdf', VarietiesPdfController::class)->name('varieties.pdf');
+    Route::get('/varieties/excel', VarietiesExcelController::class)->name('varieties.excel');
     Route::get('/varieties', VarietiesController::class)->name('varieties.index');
     Route::get('/varieties/{fruit}/get', GetVarietyController::class)->name('varieties.get');
     Route::post('/varieties/store', StoreVarietyController::class)->name('varieties.store');
     Route::post('/varieties/{variety}/update', UpdateVarietyController::class)->name('varieties.update');
-     Route::delete('/varieties/{variety}/delete', DeleteVarietyController::class)->name('varieties.delete');
+    Route::delete('/varieties/{variety}/delete', DeleteVarietyController::class)->name('varieties.delete');
 
-
+    Route::get('/parcels/pdf', ParcelsPdfController::class)->name('parcels.pdf');
+    Route::get('/parcels/excel', ParcelsExcelController::class)->name('parcels.excel'); 
     Route::get('/parcels', ParcelsController::class)->name('parcels.index');
     Route::post('/parcels/store', StoreParcelController::class)->name('parcels.store');
     Route::post('/parcels/{parcel}/update', UpdateParcelController::class)->name('parcels.update');
-     Route::delete('/parcels/{parcel}/delete', DeleteParcelController::class)->name('parcels.delete');
+    Route::delete('/parcels/{parcel}/delete', DeleteParcelController::class)->name('parcels.delete');
 
+    Route::get('/seasons/pdf', SeasonsPdfController::class)->name('seasons.pdf');
+    Route::get('/seasons/excel', SeasonsExcelController::class)->name('seasons.excel');  
     Route::post('/seasons/store', StoreSeasonController::class)->name('seasons.store');
     Route::post('/seasons/{season}/update', UpdateSeasonController::class)->name('seasons.update');
     Route::delete('/seasons/{season}/delete', DeleteSeasonController::class)->name('seasons.delete');
@@ -229,6 +290,8 @@ Route::middleware([
         Route::get('/supplies', SuppliesController::class)->name('supplies.index');
 
 
+        Route::get('/cost-centers/pdf', CostCentersPdfController::class)->name('cost.centers.pdf');
+        Route::get('/cost-centers/excel', CostCentersExcelController::class)->name('cost.centers.excel');
         Route::post('/cost-centers/store', StoreCostCenterController::class)->name('cost.centers.store');
         Route::post('/cost-centers/{costCenter}/update', UpdateCostCenterController::class)->name('cost.centers.update');
         Route::delete('/cost-centers/{costCenter}/delete', DeleteCostCenterController::class)->name('cost.centers.delete');
@@ -245,10 +308,14 @@ Route::middleware([
         Route::post('/man-powers/{manPower}/update', UpdateManPowerController::class)->name('man.powers.update');
         Route::delete('/man-powers/{manPower}/delete', DeleteManPowerController::class)->name('man.powers.delete');
 
+        Route::get('/machineries/pdf', MachineriesPdfController::class)->name('machineries.pdf');
+        Route::get('/machineries/excel', MachineriesExcelController::class)->name('machineries.excel');
         Route::post('/machineries/store', StoreMachineryController::class)->name('machineries.store');
         Route::post('/machineries/{machinery}/update', UpdateMachineryController::class)->name('machineries.update');
         Route::delete('/machineries/{machinery}/delete', DeleteMachineryController::class)->name('machineries.delete');
 
+        Route::get('/type-machineries/pdf', TypeMachineriesPdfController::class)->name('type.machineries.pdf');
+        Route::get('/type-machineries/excel', TypeMachineriesExcelController::class)->name('type.machineries.excel');
         Route::post('/type-machineries/store', StoreTypeMachineryController::class)->name('type.machineries.store');
         Route::post('/type-machineries/{typeMachinery}/update', UpdateTypeMachineryController::class)->name('type.machineries.update');
         Route::delete('/type-machineries/{typeMachinery}/delete', DeleteTypeMachineryController::class)->name('type.machineries.delete');

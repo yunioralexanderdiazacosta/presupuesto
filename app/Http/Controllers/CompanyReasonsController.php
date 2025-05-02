@@ -9,12 +9,16 @@ use Inertia\Inertia;
 
 class CompanyReasonsController extends Controller
 {
-    public function __invoke()
+    public function __invoke(Request $request)
     {
         $user = Auth::user();
 
-        $companyReasons = CompanyReason::where('team_id', $user->team_id)->paginate(10);
+        $term = $request->term ?? ''; 
 
-        return Inertia::render('CompanyReasons', compact('companyReasons'));
+        $companyReasons = CompanyReason::when($request->term, function ($query, $search) {
+            $query->where('name', 'like', '%'.$search.'%')->orWhere('rut', 'like', '%'.$search.'%');
+        })->where('team_id', $user->team_id)->paginate(10)->withQueryString();
+
+        return Inertia::render('CompanyReasons', compact('companyReasons', 'term'));
     }
 }

@@ -13,9 +13,11 @@ use Inertia\Inertia;
 
 class CostCentersController extends Controller
 {
-    public function __invoke()
+    public function __invoke(Request $request)
     {
         $user = Auth::user();
+
+        $term = $request->term ?? ''; 
 
         $season_id = session('season_id');
 
@@ -35,9 +37,11 @@ class CostCentersController extends Controller
             ];
         });
 
-        $costCenters = CostCenter::where('season_id', $season_id)->whereHas('season.team', function($query) use ($user){
+        $costCenters = CostCenter::where('season_id', $season_id)->when($request->term, function ($query, $search) {
+            $query->where('name', 'like', '%'.$search.'%');
+        })->whereHas('season.team', function($query) use ($user){
             $query->where('team_id', $user->team_id);
-        })->paginate(10);
+        })->paginate(10)->withQueryString();
 
         $developmentStates = DevelopmentState::get()->transform(function($company){
             return [
@@ -46,6 +50,6 @@ class CostCentersController extends Controller
             ];
         });
 
-        return Inertia::render('CostCenters', compact('costCenters', 'season', 'fruits', 'parcels', 'developmentStates'));
+        return Inertia::render('CostCenters', compact('costCenters', 'season', 'fruits', 'parcels', 'developmentStates', 'term'));
     }   
 }

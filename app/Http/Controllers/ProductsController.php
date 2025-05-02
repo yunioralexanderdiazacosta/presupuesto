@@ -1,17 +1,17 @@
 <?php
 
 namespace App\Http\Controllers;
+
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use App\Models\Unit;
 use App\Models\Level1;
 use App\Models\Product;
 use Inertia\Inertia;
 
-use Illuminate\Http\Request;
-
 class ProductsController extends Controller
 {
-    public function __invoke()
+    public function __invoke(Request $request)
     {
         $user = Auth::user();
 
@@ -31,8 +31,12 @@ class ProductsController extends Controller
             ];
         });
 
-        $products = Product::with('unit')->where('team_id', $user->team_id)->paginate(10);
+        $term = $request->term ?? '';
 
-        return Inertia::render('Products', compact('units', 'level1s', 'products'));
+        $products = Product::when($request->term, function ($query, $search) {
+            $query->where('name', 'like', '%'.$search.'%');
+        })->with('unit')->where('team_id', $user->team_id)->paginate(10)->withQueryString();
+
+        return Inertia::render('Products', compact('units', 'level1s', 'products', 'term'));
     }
 }
