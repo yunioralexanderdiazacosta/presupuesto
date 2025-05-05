@@ -23,7 +23,7 @@ class ProductsExport implements FromView, ShouldAutoSize
 
         $products = Product::when($this->term, function ($query, $search) {
             $query->where('name', 'like', '%'.$search.'%');
-        })->with('unit')->where('team_id', $user->team_id)->get();
+        })->with('unit','level2','level3')->where('team_id', $user->team_id)->get();
 
         return view('excels.products', [
             'products' => $products
