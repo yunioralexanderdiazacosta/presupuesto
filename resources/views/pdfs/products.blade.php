@@ -14,11 +14,15 @@
             <tr align="left">
                 <th>Nombre</th>
                 <th>Unidad</th>
+                <th>Nivel 2</th>
+                <th>Nivel 3</th>
             </tr>
             @foreach($products as $product)
             <tr class="items">
                 <td>{{ $product['name'] }}</td>
                 <td>{{ $product['unit']['name'] }}</td>
+                <td>{{ $product['level2']['name'] }}</td>
+                <td>{{ $product['level3']['name'] }}</td>
             </tr>
             @endforeach
         </table>

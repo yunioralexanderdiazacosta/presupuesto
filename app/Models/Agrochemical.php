@@ -30,4 +30,10 @@ class Agrochemical extends Model
     {
         return $this->belongsTo(Unit::class, 'unit_id_price');
     }
+
+
+    public function doseType()
+    {
+        return $this->belongsTo(DoseType::class);
+    }
 }

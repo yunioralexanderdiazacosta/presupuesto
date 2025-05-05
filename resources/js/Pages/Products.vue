@@ -235,6 +235,8 @@ const onFilter = () => {
                                         <!--begin::Table row-->
                                         <th width="min-w-150px">Nombre</th>
                                         <th width="min-w-150px">Unidad</th>
+                                        <th width="min-w-150px">nivel 2</th>
+                                        <th width="min-w-150px">nivel 3</th>
                                         <th width="min-w-150px" class="text-end">Acciones</th>
                                         <!--end::Table row-->
                                     </template>
@@ -242,12 +244,15 @@ const onFilter = () => {
                                     <!--begin::Table body-->
                                     <template #body>
                                         <template v-if="products.total == 0">
-                                            <Empty colspan="3" />
+                                            <Empty colspan="5" />
                                         </template>
                                         <template v-else>
                                             <tr v-for="(product, index) in products.data" :key="index">
                                                 <td>{{product.name}}</td>
                                                 <td>{{product.unit.name}}</td>
+                                                <td>{{product.level2.name}}</td>
+                                                <td>{{product.level3.name}}</td>
+
                                                 <td class="text-end">
                                                     <!--begin::Update-->
                                                     <button type="button" v-tooltip="'Editar'" class="btn btn-icon btn-active-light-primary w-30px h-30px me-3" @click="openEdit(product)">

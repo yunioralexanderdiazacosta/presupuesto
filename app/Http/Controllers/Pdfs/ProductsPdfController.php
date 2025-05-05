@@ -16,7 +16,7 @@ class ProductsPdfController extends Controller
 
         $products = Product::when($request->term, function ($query, $search) {
             $query->where('name', 'like', '%'.$search.'%');
-        })->with('unit')->where('team_id', $user->team_id)->get();
+        })->with('unit','level2','level3')->where('team_id', $user->team_id)->get();
 
         $pdf = Pdf::loadView('pdfs.products', ['products' => $products]);
 

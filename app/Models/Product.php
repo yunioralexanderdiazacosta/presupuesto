@@ -20,4 +20,15 @@ class Product extends Model
     {
         return $this->belongsToMany(Invoice::class);
     }
+
+
+    public function level2()
+    {
+        return $this->belongsTo(Level2::class);
+
+    } 
+    public function level3()
+    {
+        return $this->belongsTo(Level3::class);
+    }
 }
