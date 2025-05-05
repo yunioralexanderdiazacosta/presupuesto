@@ -170,7 +170,7 @@ const onFilter = () => {
                                         <!--end::Export-->
 
                                        <!--begin::Export-->
-                                        <a href="#" target="_blank" class="btn btn-light-primary me-3">
+                                        <a :href="route('budgets.excel', {term: term})" target="_blank" class="btn btn-light-primary me-3">
                                         <!--begin::Svg Icon | path: icons/duotune/arrows/arr078.svg-->
                                         <span class="svg-icon svg-icon-2">
                                             <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
