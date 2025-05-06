@@ -206,8 +206,10 @@ const onFilter = () => {
                                                 <!--begin::Table row-->
                                                 <th width="min-w-100px">Nombre</th>
                                                 <th width="min-w-100px">SubFamilia</th>
-                                                <th width="min-w-100px">Unidad</th>
+                                                <th width="min-w-100px">Dosis</th>
+                                                <th width="min-w-100px">Unidad dosis</th>
                                                 <th width="min-w-100px">Precio</th>
+                                                <th width="min-w-100px">Unidad de $</th>
                                                 <th width="min-w-150px" class="text-end text-center">Acciones</th>
                                                 <!--end::Table row-->
                                             </template>
@@ -223,8 +225,10 @@ const onFilter = () => {
                                                             <span class="text-dark  fw-bold mb-1">{{fertilizer.product_name}}</span>
                                                         </td>
                                                         <td>{{fertilizer.subfamily.name}}</td>
+                                                        <td>{{fertilizer.dose}}</td>
                                                         <td>{{fertilizer.unit.name}}</td>
                                                         <td>{{fertilizer.price}}</td>
+                                                        <td>{{fertilizer.unit2.name}}</td>
                                                         <td class="text-end text-center">
                                                             <!--begin::Update-->
                                                             <button type="button" @click="openEdit(fertilizer)" v-tooltip="'Editar'" class="btn btn-icon btn-active-light-primary w-30px h-30px me-3">

@@ -59,6 +59,8 @@ class FertilizersController extends Controller
             ];
         });
 
+     
+
         $months = array();
         $currentMonth = $this->month_id;
 
@@ -81,7 +83,7 @@ class FertilizersController extends Controller
             ];
         });
 
-        $fertilizers = Fertilizer::with('subfamily:id,name', 'unit:id,name', 'items:id')->whereHas('items', function($query) use ($costCenters){
+        $fertilizers = Fertilizer::with('subfamily:id,name', 'unit:id,name', 'items:id', 'unit2:id,name')->whereHas('items', function($query) use ($costCenters){
             $query->whereIn('cost_center_id', $costCenters->pluck('value'));
         })->paginate(10)->through(function($fertilizer){
             $items = $fertilizer->items->pluck('pivot');
@@ -98,7 +100,7 @@ class FertilizersController extends Controller
                 'observations'  => $fertilizer->observations,
                 'subfamily'     => $fertilizer->subfamily,
                 'unit'          => $fertilizer->unit,
-                'price'         => $fertilizer->price,
+                'unit2'     => $fertilizer->unit2,
                 'months'        => array_unique($months),
                 'cc'            => array_values(array_unique($cc))
             ];

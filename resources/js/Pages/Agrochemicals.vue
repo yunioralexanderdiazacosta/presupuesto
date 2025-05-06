@@ -218,7 +218,9 @@ const onFilter = () => {
                                                 <!--begin::Table row-->
                                                 <th width="min-w-100px">Nombre</th>
                                                 <th width="min-w-100px">SubFamilia</th>
+                                                <th width="min-w-100px">Dosis</th>
                                                 <th width="min-w-100px">Unidad</th>
+                                                <th width="min-w-100px">Tipo Dosis</th>
                                                 <th width="min-w-100px">Mojamiento</th>
                                                 <th width="min-w-100px">Precio</th>
                                                 <th width="min-w-150px" class="text-end text-center">Acciones</th>
@@ -228,7 +230,7 @@ const onFilter = () => {
                                             <!--begin::Table body-->
                                             <template #body>
                                                 <template v-if="agrochemicals.total == 0">
-                                                    <Empty colspan="6" />
+                                                    <Empty colspan="7" />
                                                 </template>
                                                 <template v-else>
                                                     <tr v-for="(agrochemical, index) in agrochemicals.data" :key="index">
@@ -236,8 +238,10 @@ const onFilter = () => {
                                                             <span class="text-dark  fw-bold mb-1">{{agrochemical.product_name}}</span>
                                                         </td>
                                                         <td>{{agrochemical.subfamily.name}}</td>
+                                                        <td>{{agrochemical.dose}}</td>
                                                         <td>{{agrochemical.unit.name}}</td>
-                                                        <td>{{agrochemical.mojamiento.name}}</td>
+                                                        <td>{{agrochemical.dosetype.name}}</td>
+                                                        <td>{{agrochemical.mojamiento}}</td>
                                                         <td>{{agrochemical.price}}</td>
                                                         <td class="text-end text-center">
                                                             <!--begin::Update-->

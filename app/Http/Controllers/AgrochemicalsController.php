@@ -102,7 +102,7 @@ class AgrochemicalsController extends Controller
             ];
         });
 
-        $agrochemicals = Agrochemical::with('subfamily:id,name', 'unit:id,name', 'items:id')->whereHas('items', function($query) use ($costCenters){
+        $agrochemicals = Agrochemical::with('subfamily:id,name', 'unit:id,name', 'items:id', 'dosetype:id,name')->whereHas('items', function($query) use ($costCenters){
             $query->whereIn('cost_center_id', $costCenters->pluck('value'));
         })->paginate(10)->through(function($agrochemical){
             $items = $agrochemical->items->pluck('pivot');
@@ -122,6 +122,7 @@ class AgrochemicalsController extends Controller
                 'subfamily'     => $agrochemical->subfamily,
                 'unit'          => $agrochemical->unit,
                 'price'         => $agrochemical->price,
+                'dosetype'      => $agrochemical->dosetype,
                 'months'        => array_unique($months),
                 'cc'            => array_values(array_unique($cc))
             ];

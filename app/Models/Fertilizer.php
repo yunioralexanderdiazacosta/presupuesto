@@ -25,4 +25,9 @@ class Fertilizer extends Model
     {
         return $this->belongsTo(Unit::class);
     }
+
+    public function unit2()
+    {
+        return $this->belongsTo(Unit::class, 'unit_id_price');
+    }
 }

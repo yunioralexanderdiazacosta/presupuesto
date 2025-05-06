@@ -32,8 +32,8 @@ class Agrochemical extends Model
     }
 
 
-    public function doseType()
+    public function dosetype()
     {
-        return $this->belongsTo(DoseType::class);
+        return $this->belongsTo(DoseType::class, 'dose_type_id');
     }
 }

@@ -24,8 +24,7 @@ class ProductsController extends Controller
             ];
         });
 
-
-       
+      
 
         $level2s = Level2::get()->transform(function($level2){
             return [
