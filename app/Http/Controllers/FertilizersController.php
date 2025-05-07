@@ -13,6 +13,7 @@ use App\Models\Month;
 use App\Models\Fertilizer;
 use App\Models\Agrochemical;
 use App\Models\ManPower;
+use App\Models\Supply;
 use Inertia\Inertia;
 
 
@@ -27,6 +28,8 @@ class FertilizersController extends Controller
     public $totalAgrochemical = 0;
 
     public $totalManPower = 0;
+
+    public $totalSupplies = 0;
 
     public function __invoke()
     {
@@ -158,10 +161,11 @@ class FertilizersController extends Controller
 
         $this->getAgrochemicalProducts($costCentersId);
         $this->getManPowerProducts($costCentersId);
+        $this->getSuppliesProducts($costCentersId);
 
-        $totalAbsolute = $this->totalData2 + $this->totalAgrochemical + $this->totalManPower;
+        $totalAbsolute = round($this->totalData2) + round($this->totalAgrochemical) + round($this->totalManPower) + round($this->totalSupplies);
 
-        $percentage = $totalAbsolute > 0 ? round((($this->totalData2 / $totalAbsolute) * 100), 2) : 0;
+        $percentage = $totalAbsolute > 0 ? round(((round($this->totalData2) / $totalAbsolute) * 100), 2) : 0;
 
         $totalData1 = number_format($this->totalData1, 0, ',', '.');
         $totalData2 = number_format($this->totalData2, 0, ',', '.');
@@ -203,7 +207,7 @@ class FertilizersController extends Controller
             $dose = (($value->unit_id == '4' && $value->unit_id_price == '3') ||($value->unit_id == '2' && $value->unit_id_price == '1')) ? ($value->dose / 1000) : $value->dose;
             $quantityFirst = $bills == true ? round($dose, 2) : round(($dose * $surface), 2);
             $amountFirst = round(($value->price * $quantityFirst), 2);
-            $data = $this->getMonths($value->id, $quantityFirst, $amountFirst); 
+            $data = $this->getMonths($value->id, $quantityFirst, $amountFirst, $bills); 
 
             return [
                 'id'            => $value->id,
@@ -229,7 +233,7 @@ class FertilizersController extends Controller
         return $total;
     }
 
-    private function getMonths($fertilizerId, $quantity, $amount)
+    private function getMonths($fertilizerId, $quantity, $amount, $bills)
     {
         $data = array();
         $currentMonth = $this->month_id;
@@ -257,7 +261,9 @@ class FertilizersController extends Controller
             array_push($months, number_format($amountMonth, 0, '', '.'));        
         }
 
-        $this->totalData1 += $totalAmount;
+        if($bills == false){
+            $this->totalData1 += $totalAmount;
+        }
 
         return [
             'months' => $months,
@@ -474,5 +480,68 @@ class FertilizersController extends Controller
         }
 
         $this->totalManPower += $totalAmount;
+    }
+
+     private function getSuppliesProducts($costCentersId)
+    {
+        $products = Supply::from('supplies as s')
+        ->join('supply_items as si', 's.id', 'si.supply_id')
+        ->leftJoin('units as u', 's.unit_id_price', 'u.id')
+        ->select('s.id', 's.product_name', 's.price', 's.quantity', 's.unit_id', 's.unit_id_price',  'u.name')
+        ->whereIn('si.cost_center_id', $costCentersId)
+        ->groupBy('s.id', 's.product_name', 's.price', 's.quantity', 's.unit_id', 's.unit_id_price', 'u.name')
+        ->get()
+        ->transform(function($value) use($costCentersId){
+            $data = $this->getSuppliesResult($value, $costCentersId);
+            return [
+                'id'            => $value->id
+            ];
+        });
+
+        return $products;
+    }
+
+    private function getSuppliesResult($value, $costCentersId)
+    {
+        $totalAmount = 0;
+        $totalQuantity = 0;
+        $currentMonth = $this->month_id;
+        foreach($costCentersId as $costCenter){
+           $first = CostCenter::select('surface')->where('id', $costCenter)->first();
+
+           $quantity = (($value->unit_id == 4 && $value->unit_id_price == 3) || ($value->unit_id == 2 && $value->unit_id_price == 1)) ? ($value->quantity / 1000) : $value->quantity;
+           
+            $surface = $first->surface;
+            $quantityFirst = round($quantity * $surface, 2);
+            $amountFirst = round($value->price * $quantityFirst, 2);
+
+            $data = array();
+
+            for ($x = $currentMonth; $x < $currentMonth + 12; $x++) {
+                $id = date('n', mktime(0, 0, 0, $x, 1));
+                array_push($data, $id);
+            }
+
+            $totalAmountCostCenter = 0;
+            $totalQuantityCostCenter = 0;
+            foreach($data as $month)
+            {
+                $count = DB::table('supply_items')
+                ->select('supply_id')
+                ->where('supply_id', $value->id)
+                ->where('month_id', $month)
+                ->where('cost_center_id', $costCenter)
+                ->count();
+
+                $amountMonth = $count > 0 ? $amountFirst : 0;
+                $quantityMonth = $count > 0 ? $quantityFirst : 0;
+                $totalAmountCostCenter += $amountMonth;
+                $totalQuantityCostCenter += $quantityMonth;
+            }
+            $totalAmount += $totalAmountCostCenter;
+            $totalQuantity += $totalQuantityCostCenter;
+        }
+
+        $this->totalSupplies += $totalAmount; 
     }
 }

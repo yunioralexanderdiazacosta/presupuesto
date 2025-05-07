@@ -75,7 +75,20 @@
    
 
     <div class="row">
-        
+        <div class="col-lg-6">
+            <div class="fv-row mb-8">
+                <label class="required fs-6 fw-semibold mb-2">Cantidad</label>
+                <TextInput
+                    id="quantity"
+                    v-model="form.quantity"
+                    class="form-control form-control-solid"
+                    type="number"
+                    step="0.00"
+                    :class="{'is-invalid': form.errors.quantity}"
+                />
+                <InputError class="mt-2" :message="form.errors.quantity" />
+            </div>
+        </div>
         <div class="col-lg-6">
             <div class="row">
                 <div class="col-lg-6">

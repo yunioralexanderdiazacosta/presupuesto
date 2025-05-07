@@ -13,6 +13,7 @@ use App\Models\Month;
 use App\Models\Supply;
 use App\Models\Fertilizer;
 use App\Models\ManPower;
+use App\Models\Agrochemical;
 use App\Models\DoseType;
 use Inertia\Inertia;
 
@@ -26,6 +27,8 @@ class SuppliesController extends Controller
     public $totalData2 = 0;
 
     public $totalFertilizer = 0;
+
+    public $totalAgrochemical = 0;
 
     public $totalManPower = 0;
 
@@ -45,7 +48,7 @@ class SuppliesController extends Controller
         ->join('level1s as l1', 'l1.id', 'l2.level1_id')
         ->select('l3.id', 'l3.name')
         ->where('l1.team_id', $user->team_id)
-        ->where('l2.name', 'agroquimicos')
+        ->where('l2.name', 'insumos')
         ->where('season_id', $season_id)
         ->get()->transform(function($subfamily){
             return [
@@ -53,19 +56,6 @@ class SuppliesController extends Controller
                 'value' => $subfamily->id
             ];
         });
-
-        /*
-        $subfamilies = Level3::whereHas('level2.level1', function($query) use ($user){
-            $query->where('team_id', $user->team_id);
-        })->whereHas('level2', function($query){
-            $query->where('name', 'agroquimicos');
-        })->get()->transform(function($subfamily){
-            return [
-                'label' => $subfamily->name, 
-                'value' => $subfamily->id
-            ];
-        });
-        */
 
         $units = Unit::get()->transform(function($unit){
             return [
@@ -86,13 +76,6 @@ class SuppliesController extends Controller
             array_push($months, $object);
         }
 
-        $doseTypes = DoseType::get()->transform(function($doseType){
-            return [
-                'label' => $doseType->name,
-                'value' => $doseType->id
-            ];
-        });
-
         $costCenters = CostCenter::select('id', 'name')->where('season_id', $season_id)->whereHas('season.team', function($query) use ($user){
             $query->where('team_id', $user->team_id);
         })->get()->transform(function($costCenter){
@@ -102,37 +85,36 @@ class SuppliesController extends Controller
             ];
         });
 
-        $supplies = Supply::with('subfamily:id,name', 'unit:id,name', 'items:id')->whereHas('items', function($query) use ($costCenters){
+        $supplies = Supply::with('subfamily:id,name', 'unit:id,name', 'unit2:id,name', 'items:id')->whereHas('items', function($query) use ($costCenters){
             $query->whereIn('cost_center_id', $costCenters->pluck('value'));
-        })->paginate(10)->through(function($agrochemical){
-            $items = $agrochemical->items->pluck('pivot');
+        })->paginate(10)->through(function($supply){
+            $items = $supply->items->pluck('pivot');
             $months = array_column($items->toArray(), 'month_id');
             $cc = array_column($items->toArray(), 'cost_center_id');
             return [
-                'id'            => $agrochemical->id,
-                'product_name'  => $agrochemical->product_name,
-                'dose'          => $agrochemical->dose,
-                'price'         => $agrochemical->price,
-                'mojamiento'    => $agrochemical->mojamiento,
-                'subfamily_id'  => $agrochemical->subfamily_id,
-                'unit_id'       => $agrochemical->unit_id,
-                'unit_id_price' => $agrochemical->unit_id_price,
-                'dose_type_id'  => $agrochemical->dose_type_id,
-                'observations'  => $agrochemical->observations,
-                'subfamily'     => $agrochemical->subfamily,
-                'unit'          => $agrochemical->unit,
-                'price'         => $agrochemical->price,
+                'id'            => $supply->id,
+                'product_name'  => $supply->product_name,
+                'quantity'      => $supply->quantity,
+                'subfamily_id'  => $supply->subfamily_id,
+                'unit_id'       => $supply->unit_id,
+                'unit_id_price' => $supply->unit_id_price,
+                'observations'  => $supply->observations,
+                'subfamily'     => $supply->subfamily,
+                'unit'          => $supply->unit,
+                'unit2'         => $supply->unit2,
+                'price'         => $supply->price,
                 'months'        => array_unique($months),
                 'cc'            => array_values(array_unique($cc))
             ];
         });
 
-        $data = Supply::from('agrochemicals as a')
-        ->join('agrochemical_items as ai', 'a.id', 'ai.agrochemical_id')
-        ->join('cost_centers as cc', 'ai.cost_center_id', 'cc.id')
-        ->select('ai.cost_center_id', 'cc.name', 'cc.surface')
-        ->whereIn('ai.cost_center_id', $costCenters->pluck('value'))
-        ->groupBy('ai.cost_center_id', 'cc.name', 'cc.surface')
+    
+        $data = Supply::from('supplies as s')
+        ->join('supply_items as si', 's.id', 'si.supply_id')
+        ->join('cost_centers as cc', 'si.cost_center_id', 'cc.id')
+        ->select('si.cost_center_id', 'cc.name', 'cc.surface')
+        ->whereIn('si.cost_center_id', $costCenters->pluck('value'))
+        ->groupBy('si.cost_center_id', 'cc.name', 'cc.surface')
         ->get()
         ->transform(function($value) use ($costCenters){
             return [
@@ -143,14 +125,32 @@ class SuppliesController extends Controller
             ];
         });
 
+        $data3 = Supply::from('supplies as s')
+        ->join('supply_items as si', 's.id', 'si.supply_id')
+        ->join('cost_centers as cc', 'si.cost_center_id', 'cc.id')
+        ->select('si.cost_center_id', 'cc.name', 'cc.surface')
+        ->whereIn('si.cost_center_id', $costCenters->pluck('value'))
+        ->groupBy('si.cost_center_id', 'cc.name', 'cc.surface')
+        ->get()
+        ->transform(function($value) use ($costCenters){
+            return [
+                'id' => $value->cost_center_id,
+                'name' => $value->name,
+                'subfamilies' => $this->getSubfamilies($value->cost_center_id, null, true),
+                'total' => $this->getTotal($value->cost_center_id)
+            ];
+        });
+
         $costCentersId = $costCenters->pluck('value');
 
-        $data2 = Supply::from('agrochemicals as a')
-        ->join('agrochemical_items as ai', 'a.id', 'ai.agrochemical_id')
-        ->join('level3s as s', 'a.subfamily_id', 's.id')
-        ->select('s.id', 's.name')
-        ->whereIn('ai.cost_center_id', $costCentersId)
-        ->groupBy('s.id', 's.name')
+        $data2 = Supply::from('supplies as s')
+        ->join('supply_items as si', 's.id', 'si.supply_id')
+        ->join('level3s as l3', 's.subfamily_id', 'l3.id')
+        ->join('level2s as l2', 'l3.level2_id', 'l2.id')
+        ->where('l2.name', 'insumos')
+        ->select('l3.id', 'l3.name')
+        ->whereIn('si.cost_center_id', $costCentersId)
+        ->groupBy('l3.id', 'l3.name')
         ->get()
         ->transform(function($subfamily) use ($costCentersId){
             return [
@@ -160,60 +160,59 @@ class SuppliesController extends Controller
             ];
         });
 
+        $this->getAgrochemicalProducts($costCentersId);
         $this->getFertilizerProducts($costCentersId);
         $this->getManPowerProducts($costCentersId);
 
-        $totalAbsolute = $this->totalData2 + $this->totalFertilizer + $this->totalManPower;
+        $totalAbsolute = round($this->totalData2) + round($this->totalFertilizer) + round($this->totalManPower) + round($this->totalAgrochemical);
 
-        $percentage = $totalAbsolute > 0 ? round((($this->totalData2 / $totalAbsolute) * 100), 2) : 0;
+        $percentage = $totalAbsolute > 0 ? round(((round($this->totalData2) / $totalAbsolute) * 100), 2) : 0;
 
         $totalData1 = number_format($this->totalData1, 0, ',', '.');
         $totalData2 = number_format($this->totalData2, 0, ',', '.');
 
-        return Inertia::render('Supplies', compact('units', 'subfamilies', 'months', 'costCenters', 'supplies', 'data', 'data2', 'doseTypes', 'season', 'totalData1', 'totalData2', 'percentage'));
+        return Inertia::render('Supplies', compact('units', 'subfamilies', 'months', 'costCenters', 'supplies', 'data', 'data2', 'data3', 'season', 'totalData1', 'totalData2', 'percentage'));
     }
 
-    private function getSubfamilies($costCenterId, $surface)
+    private function getSubfamilies($costCenterId, $surface = null, $bills = false)
     {
-        $subfamilies = Supply::from('agrochemicals as a')
-        ->join('agrochemical_items as ai', 'a.id', 'ai.agrochemical_id')
-        ->join('level3s as s', 'a.subfamily_id', 's.id')
-        ->select('s.id', 's.name')
-        ->where('ai.cost_center_id', $costCenterId)
-        ->groupBy('s.id', 's.name')
+        $subfamilies = Supply::from('supplies as s')
+        ->join('supply_items as si', 's.id', 'si.supply_id')
+        ->join('level3s as l3', 's.subfamily_id', 'l3.id')
+        ->join('level2s as l2', 'l3.level2_id', 'l2.id')
+        ->where('l2.name', 'insumos')
+        ->select('l3.id', 'l3.name')
+        ->where('si.cost_center_id', $costCenterId)
+        ->groupBy('l3.id', 'l3.name')
         ->get()
-        ->transform(function($subfamily) use ($costCenterId, $surface){
+        ->transform(function($subfamily) use ($costCenterId, $surface, $bills){
             return [
                 'id' => $subfamily->id,
                 'name' => $subfamily->name,
-                'products' => $this->getProducts($subfamily->id, $costCenterId, $surface)
+                'products' => $this->getProducts($subfamily->id, $costCenterId, $surface, $bills)
             ];
         });
 
         return $subfamilies;
     }
 
-    private function getProducts($subfamilyId, $costCenterId, $surface)
+    private function getProducts($subfamilyId, $costCenterId, $surface, $bills)
     {
-        $products = Supply::from('agrochemicals as a')
-        ->join('agrochemical_items as ai', 'a.id', 'ai.agrochemical_id')
-        ->leftJoin('units as u', 'a.unit_id_price', 'u.id')
-        ->select('a.id', 'a.product_name', 'a.price', 'a.dose_type_id', 'a.unit_id', 'a.unit_id_price', 'a.dose', 'a.mojamiento', 'u.name')
-        ->where('ai.cost_center_id', $costCenterId)
-        ->where('a.subfamily_id', $subfamilyId)
-        ->groupBy('a.id', 'a.product_name', 'a.price', 'a.dose_type_id', 'a.unit_id', 'a.unit_id_price', 'a.dose', 'a.mojamiento', 'u.name')
+        $products = Supply::from('supplies as s')
+        ->join('supply_items as si', 's.id', 'si.supply_id')
+        ->leftJoin('units as u', 's.unit_id_price', 'u.id')
+        ->select('s.id', 's.product_name', 's.price', 's.quantity', 's.unit_id', 's.unit_id_price',  'u.name')
+        ->where('si.cost_center_id', $costCenterId)
+        ->where('s.subfamily_id', $subfamilyId)
+        ->groupBy('s.id', 's.product_name', 's.price', 's.quantity', 's.unit_id', 's.unit_id_price', 'u.name')
         ->get()
-        ->transform(function($value) use ($surface){
+        ->transform(function($value) use ($surface, $bills){
 
-            $dose = (($value->unit_id == 4 && $value->unit_id_price == 3) || ($value->unit_id == 2 && $value->unit_id_price == 1)) ? ($value->dose / 1000) : $value->dose; 
+            $quantity = (($value->unit_id == 4 && $value->unit_id_price == 3) || ($value->unit_id == 2 && $value->unit_id_price == 1)) ? ($value->quantity / 1000) : $value->quantity; 
 
-            if($value->dose_type_id == 1){
-                $quantityFirst = round($dose * $surface, 2);
-            }elseif($value->dose_type_id == 2){
-                $quantityFirst = round((($value->mojamiento / 100) * $dose * $surface), 2);
-            }
+            $quantityFirst = $bills == true ? round($quantity, 2) : round($quantity * $surface, 2);
             $amountFirst = round($value->price * $quantityFirst, 2);
-            $data = $this->getMonths($value->id, $quantityFirst, $amountFirst); 
+            $data = $this->getMonths($value->id, $quantityFirst, $amountFirst, $bills); 
 
             return [
                 'id'            => $value->id,
@@ -230,16 +229,16 @@ class SuppliesController extends Controller
 
     private function getTotal($costCenterId)
     {   
-        $total = DB::table('agrochemical_items')
-        ->select('agrochemical_id')
+        $total = DB::table('supply_items')
+        ->select('supply_id')
         ->where('cost_center_id', $costCenterId)
-        ->distinct('agrochemical_id')
+        ->distinct('supply_id')
         ->count();
 
         return $total;
     }
 
-    private function getMonths($agrochemicalId, $quantity, $amount)
+    private function getMonths($supplyId, $quantity, $amount, $bills)
     {
         $data = array();
         $currentMonth = $this->month_id;
@@ -254,9 +253,9 @@ class SuppliesController extends Controller
         $totalQuantity = 0;
         foreach($data as $month)
         {
-            $count = DB::table('agrochemical_items')
-            ->select('agrochemical_id')
-            ->where('agrochemical_id', $agrochemicalId)
+            $count = DB::table('supply_items')
+            ->select('supply_id')
+            ->where('supply_id', $supplyId)
             ->where('month_id', $month)
             ->count();
 
@@ -267,7 +266,9 @@ class SuppliesController extends Controller
             array_push($months, number_format($amountMonth, 0, '', '.'));        
         }
 
-        $this->totalData1 += $totalAmount;
+        if($bills == false){
+            $this->totalData1 += $totalAmount;
+        }
 
         return [
             'months' => $months,
@@ -298,13 +299,13 @@ class SuppliesController extends Controller
 
     private function getProducts2($subfamilyId, $costCentersId)
     {
-        $products = Supply::from('agrochemicals as a')
-        ->join('agrochemical_items as ai', 'a.id', 'ai.agrochemical_id')
-        ->leftJoin('units as u', 'a.unit_id_price', 'u.id')
-        ->select('a.id', 'a.product_name', 'a.price', 'a.dose_type_id', 'a.dose', 'a.unit_id', 'a.unit_id_price', 'a.mojamiento', 'u.name')
-        ->whereIn('ai.cost_center_id', $costCentersId)
-        ->where('a.subfamily_id', $subfamilyId)
-        ->groupBy('a.id', 'a.product_name', 'a.price', 'a.dose_type_id', 'a.dose', 'a.unit_id', 'a.unit_id_price', 'a.mojamiento', 'u.name')
+        $products = Supply::from('supplies as s')
+        ->join('supply_items as si', 's.id', 'si.supply_id')
+        ->leftJoin('units as u', 's.unit_id_price', 'u.id')
+        ->select('s.id', 's.product_name', 's.price', 's.quantity', 's.unit_id', 's.unit_id_price', 'u.name')
+        ->whereIn('si.cost_center_id', $costCentersId)
+        ->where('s.subfamily_id', $subfamilyId)
+        ->groupBy('s.id', 's.product_name', 's.price', 's.quantity', 's.unit_id', 's.unit_id_price', 'u.name')
         ->get()
         ->transform(function($value) use ($costCentersId){
             $data = $this->getResult2($value, $costCentersId);
@@ -328,14 +329,10 @@ class SuppliesController extends Controller
         foreach($costCentersId as $costCenter){
            $first = CostCenter::select('surface')->where('id', $costCenter)->first();
 
-           $dose = (($value->unit_id == 4 && $value->unit_id_price == 3) || ($value->unit_id == 2 && $value->unit_id_price == 1)) ? ($value->dose / 1000) : $value->dose;
+           $quantity = (($value->unit_id == 4 && $value->unit_id_price == 3) || ($value->unit_id == 2 && $value->unit_id_price == 1)) ? ($value->quantity / 1000) : $value->quantity;
            
             $surface = $first->surface;
-            if($value->dose_type_id == 1){
-                $quantityFirst = round($dose * $surface, 2);
-            }elseif($value->dose_type_id == 2){
-                $quantityFirst = round((($value->mojamiento / 100) * $dose * $surface), 2);
-            }
+            $quantityFirst = round($quantity * $surface, 2);
             $amountFirst = round($value->price * $quantityFirst, 2);
 
             $data = array();
@@ -349,9 +346,9 @@ class SuppliesController extends Controller
             $totalQuantityCostCenter = 0;
             foreach($data as $month)
             {
-                $count = DB::table('agrochemical_items')
-                ->select('agrochemical_id')
-                ->where('agrochemical_id', $value->id)
+                $count = DB::table('supply_items')
+                ->select('supply_id')
+                ->where('supply_id', $value->id)
                 ->where('month_id', $month)
                 ->where('cost_center_id', $costCenter)
                 ->count();
@@ -371,6 +368,68 @@ class SuppliesController extends Controller
             'totalAmount' => number_format($totalAmount, 0, ',', '.'),
             'totalQuantity' => number_format($totalQuantity, 2, ',', '.')
         ]; 
+    }
+
+    private function getAgrochemicalProducts($costCentersId)
+    {
+        $products = Agrochemical::from('agrochemicals as a')
+        ->join('agrochemical_items as ai', 'a.id', 'ai.agrochemical_id')
+        ->leftJoin('units as u', 'a.unit_id_price', 'u.id')
+        ->select('a.id', 'a.price', 'a.dose_type_id', 'a.dose', 'a.unit_id', 'a.unit_id_price', 'a.mojamiento')
+        ->whereIn('ai.cost_center_id', $costCentersId)
+        ->groupBy('a.id', 'a.price', 'a.dose_type_id', 'a.dose', 'a.unit_id', 'a.unit_id_price', 'a.mojamiento')
+        ->get()
+        ->transform(function($value) use ($costCentersId){
+            $data = $this->getAgrochemicalResult($value, $costCentersId);
+            return [
+                'id'            => $value->id
+            ];
+        });
+
+        return $products;
+    } 
+
+    private function getAgrochemicalResult($value, $costCentersId)
+    {
+        $totalAmount = 0;
+        $currentMonth = $this->month_id;
+        foreach($costCentersId as $costCenter){
+           $first = CostCenter::select('surface')->where('id', $costCenter)->first();
+
+           $dose = (($value->unit_id == 4 && $value->unit_id_price == 3) || ($value->unit_id == 2 && $value->unit_id_price == 1)) ? ($value->dose / 1000) : $value->dose;
+           
+            $surface = $first->surface;
+            if($value->dose_type_id == 1){
+                $quantityFirst = round($dose * $surface, 2);
+            }elseif($value->dose_type_id == 2){
+                $quantityFirst = round((($value->mojamiento / 100) * $dose * $surface), 2);
+            }
+            $amountFirst = round($value->price * $quantityFirst, 2);
+
+            $data = array();
+
+            for ($x = $currentMonth; $x < $currentMonth + 12; $x++) {
+                $id = date('n', mktime(0, 0, 0, $x, 1));
+                array_push($data, $id);
+            }
+
+            $totalAmountCostCenter = 0;
+            foreach($data as $month)
+            {
+                $count = DB::table('agrochemical_items')
+                ->select('agrochemical_id')
+                ->where('agrochemical_id', $value->id)
+                ->where('month_id', $month)
+                ->where('cost_center_id', $costCenter)
+                ->count();
+
+                $amountMonth = $count > 0 ? $amountFirst : 0;
+                $totalAmountCostCenter += $amountMonth;
+            }
+            $totalAmount += $totalAmountCostCenter;
+        }
+
+        $this->totalAgrochemical += $totalAmount; 
     }
 
     private function getFertilizerProducts($costCentersId)

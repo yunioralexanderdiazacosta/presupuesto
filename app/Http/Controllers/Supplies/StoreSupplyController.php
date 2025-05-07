@@ -16,7 +16,7 @@ class StoreSupplyController extends Controller
             $supply = Supply::create([
                 'product_name'  => $product['product_name'],
                 'price'         => $product['price'],
-                'quantity'         => $product['quantity'],
+                'quantity'      => $product['quantity'],
                 'unit_id_price' => $product['unit_id_price'],
                 'observations'  => $product['observations'],
                 'unit_id'       => $product['unit_id'],
