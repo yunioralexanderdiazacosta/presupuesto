@@ -26,5 +26,21 @@ class CostCenter extends Model
     public function fertilizers()
     {
          return $this->belongsToMany(Fertilizer::class, 'fertilizer_items', 'cost_center_id', 'fertilizer_id');
-    }    
+    }   
+    
+    public function fruit()
+    {
+        return $this->belongsTo(fruit::class);
+    }
+
+    public function variety()
+    {
+        return $this->belongsTo(Variety::class);
+    }
+
+    public function developmentState()
+    {
+        return $this->belongsTo(DevelopmentState::class);
+    }
+
 }
