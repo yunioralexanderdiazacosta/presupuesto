@@ -123,6 +123,22 @@ class FertilizersController extends Controller
             ];
         });
 
+        $data3 = Fertilizer::from('fertilizers as f')
+        ->join('fertilizer_items as fi', 'f.id', 'fi.fertilizer_id')
+        ->join('cost_centers as cc', 'fi.cost_center_id', 'cc.id')
+        ->select('fi.cost_center_id', 'cc.name', 'cc.surface')
+        ->whereIn('fi.cost_center_id', $costCenters->pluck('value'))
+        ->groupBy('fi.cost_center_id', 'cc.name', 'cc.surface')
+        ->get()
+        ->transform(function($value) use ($costCenters){
+            return [
+                'id' => $value->cost_center_id,
+                'name' => $value->name,
+                'subfamilies' => $this->getSubfamilies($value->cost_center_id, null, true),
+                'total' => $this->getTotal($value->cost_center_id)
+            ];
+        });
+
         $costCentersId = $costCenters->pluck('value');
 
         $data2 = Fertilizer::from('fertilizers as f')
@@ -150,10 +166,10 @@ class FertilizersController extends Controller
         $totalData1 = number_format($this->totalData1, 0, ',', '.');
         $totalData2 = number_format($this->totalData2, 0, ',', '.');
 
-        return Inertia::render('Fertilizers', compact('units', 'subfamilies', 'months', 'costCenters', 'fertilizers', 'season', 'data', 'data2', 'totalData1', 'totalData2', 'percentage'));
+        return Inertia::render('Fertilizers', compact('units', 'subfamilies', 'months', 'costCenters', 'fertilizers', 'season', 'data', 'data2', 'data3', 'totalData1', 'totalData2', 'percentage'));
     }
 
-    private function getSubfamilies($costCenterId, $surface)
+    private function getSubfamilies($costCenterId, $surface = null, $bills = false)
     {
         $subfamilies = Fertilizer::from('fertilizers as f')
         ->join('fertilizer_items as fi', 'f.id', 'fi.fertilizer_id')
@@ -162,18 +178,18 @@ class FertilizersController extends Controller
         ->where('fi.cost_center_id', $costCenterId)
         ->groupBy('s.id', 's.name')
         ->get()
-        ->transform(function($subfamily) use ($costCenterId, $surface){
+        ->transform(function($subfamily) use ($costCenterId, $surface, $bills){
             return [
                 'id' => $subfamily->id,
                 'name' => $subfamily->name,
-                'products' => $this->getProducts($subfamily->id, $costCenterId, $surface)
+                'products' => $this->getProducts($subfamily->id, $costCenterId, $surface, $bills)
             ];
         });
 
         return $subfamilies;
     }
 
-    private function getProducts($subfamilyId, $costCenterId, $surface)
+    private function getProducts($subfamilyId, $costCenterId, $surface, $bills)
     {
         $products = Fertilizer::from('fertilizers as f')
         ->join('fertilizer_items as fi', 'f.id', 'fi.fertilizer_id')
@@ -183,9 +199,9 @@ class FertilizersController extends Controller
         ->where('f.subfamily_id', $subfamilyId)
         ->groupBy('f.id', 'f.product_name', 'f.price', 'f.dose', 'f.unit_id', 'f.unit_id_price', 'u.name')
         ->get()
-        ->transform(function($value) use ($surface){
+        ->transform(function($value) use ($surface, $bills){
             $dose = (($value->unit_id == '4' && $value->unit_id_price == '3') ||($value->unit_id == '2' && $value->unit_id_price == '1')) ? ($value->dose / 1000) : $value->dose;
-            $quantityFirst = round(($dose * $surface), 2);
+            $quantityFirst = $bills == true ? round($dose, 2) : round(($dose * $surface), 2);
             $amountFirst = round(($value->price * $quantityFirst), 2);
             $data = $this->getMonths($value->id, $quantityFirst, $amountFirst); 
 

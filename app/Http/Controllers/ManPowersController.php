@@ -102,6 +102,24 @@ class ManPowersController extends Controller
             ];
         });
 
+        $data3 = ManPower::from('man_powers as mp')
+        ->join('manpower_items as mpi', 'mp.id', 'mpi.man_power_id')
+        ->join('cost_centers as cc', 'mpi.cost_center_id', 'cc.id')
+        ->select('mpi.cost_center_id', 'cc.name', 'cc.surface')
+        ->whereIn('mpi.cost_center_id', $costCenters->pluck('value'))
+        ->groupBy('mpi.cost_center_id', 'cc.name', 'cc.surface')
+        ->get()
+        ->transform(function($value) use ($costCenters){
+            return [
+                'id' => $value->cost_center_id,
+                'name' => $value->name,
+                'subfamilies' => $this->getSubfamilies($value->cost_center_id, null, true),
+                'total' => $this->getTotal($value->cost_center_id)
+            ];
+        });
+
+
+
         $costCentersId = $costCenters->pluck('value');
 
         $data2 = ManPower::from('man_powers as mp')
@@ -129,10 +147,10 @@ class ManPowersController extends Controller
         $totalData1 = number_format($this->totalData1, 0, ',', '.');
         $totalData2 = number_format($this->totalData2, 0, ',', '.');
 
-        return Inertia::render('ManPowers', compact('subfamilies', 'months', 'costCenters', 'manPowers', 'season', 'data', 'data2', 'totalData1', 'totalData2', 'percentage'));
+        return Inertia::render('ManPowers', compact('subfamilies', 'months', 'costCenters', 'manPowers', 'season', 'data', 'data2', 'data3', 'totalData1', 'totalData2', 'percentage'));
     }
 
-    private function getSubfamilies($costCenterId, $surface)
+    private function getSubfamilies($costCenterId, $surface = null, $bills = false)
     {
         $subfamilies = ManPower::from('man_powers as mp')
         ->join('manpower_items as mpi', 'mp.id', 'mpi.man_power_id')
@@ -141,18 +159,18 @@ class ManPowersController extends Controller
         ->where('mpi.cost_center_id', $costCenterId)
         ->groupBy('s.id', 's.name')
         ->get()
-        ->transform(function($subfamily) use ($costCenterId, $surface){
+        ->transform(function($subfamily) use ($costCenterId, $surface, $bills){
             return [
                 'id' => $subfamily->id,
                 'name' => $subfamily->name,
-                'products' => $this->getProducts($subfamily->id, $costCenterId, $surface)
+                'products' => $this->getProducts($subfamily->id, $costCenterId, $surface, $bills)
             ];
         });
 
         return $subfamilies;
     }
 
-    private function getProducts($subfamilyId, $costCenterId, $surface)
+    private function getProducts($subfamilyId, $costCenterId, $surface, $bills)
     {
         $products = ManPower::from('man_powers as mp')
         ->join('manpower_items as mpi', 'mp.id', 'mpi.man_power_id')
@@ -162,8 +180,8 @@ class ManPowersController extends Controller
         ->where('mp.subfamily_id', $subfamilyId)
         ->groupBy('mp.id', 'mp.product_name', 'mp.price', 'mp.workday', 'u.name')
         ->get()
-        ->transform(function($value) use ($surface){
-            $quantityFirst = round(($value->workday * $surface), 2);
+        ->transform(function($value) use ($surface, $bills){
+            $quantityFirst = $bills == true ? round($value->workday, 2) : round(($value->workday * $surface), 2);
             $amountFirst = round(($value->price * $quantityFirst), 2);
             $data = $this->getMonths($value->id, $quantityFirst, $amountFirst);
 

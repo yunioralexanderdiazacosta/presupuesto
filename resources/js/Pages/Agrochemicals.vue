@@ -14,6 +14,7 @@ const props = defineProps({
     agrochemicals: Object,
     data: Array,
     data2: Array,
+    data3: Array,
     totalData1: String,
     totalData2: String,
     percentage: String
@@ -199,6 +200,12 @@ const onFilter = () => {
                                     </li>
 
                                     <li class="nav-item" role="presentation">
+                                        <a class="nav-link" data-bs-toggle="tab" href="#kt_table_4" role="tab" aria-selected="false" tabindex="-1">
+                                           Gastos por Hectarea                 
+                                        </a>
+                                    </li>
+
+                                    <li class="nav-item" role="presentation">
                                         <a class="nav-link" data-bs-toggle="tab" href="#kt_table_3" role="tab" aria-selected="false" tabindex="-1">
                                             Detalle de compra                
                                         </a>
@@ -345,7 +352,81 @@ const onFilter = () => {
                                             </table>
                                         </div>
                                     </div>
-                                    <!--end::Tab pane-->  
+                                    <!--end::Tab pane-->
+
+                                    <!--begin::Tab pane-->
+                                    <div class="tab-pane" id="kt_table_4" role="tabpanel">
+
+                                        <div class="row">
+                                            <!--begin::Col-->
+                                            <div class="col-lg-3">
+                                                <div class="card card-bordered border-primary flex-center min-w-175px mb-3 p-6">
+                                                    <span class="fs-4 fw-semibold text-primary pb-1 px-2">Monto total</span>
+                                                    <span class="fs-2 fw-bold d-flex justify-content-center">
+                                                    <span>{{totalData1}}</span></span>
+                                                </div>
+                                            </div>
+                                            <!--end::Col-->
+                                            <!--begin::Col-->
+                                            <div class="col-lg-3">
+                                                <div class="card card-bordered border-primary flex-center min-w-175px mb-3 p-6">
+                                                    <span class="fs-4 fw-semibold text-primary pb-1 px-2">Porc. Monto</span>
+                                                    <span class="fs-lg-2 fw-bold d-flex justify-content-center">
+                                                    <span class="counted">{{percentage}}%</span></span>
+                                                </div>
+                                            </div>
+                                            <!--end::Col-->
+                                        </div>
+
+                                        <!--begin::Table-->
+                                        <div class="table-responsive">
+                                            <table class="table table-row-full-dashed table-row-gray-400 align-middle gs-0 gy-2">
+                                                <!--begin::Table head-->
+                                                <thead>
+                                                    <tr class="fw-bold text-muted">
+                                                        <th class="min-w-150px">CC</th>
+                                                        <th>Subfamilia</th>
+                                                        <th class="min-w-100px">Producto</th>
+                                                        <th>Cantidad Total</th>
+                                                        <th>Un</th>
+                                                        <th class="text-dark">Monto Total</th>
+                                                        <th v-for="month in $page.props.months" class="text-primary">{{month.label}}</th> 
+                                                    </tr>
+                                                </thead>
+                                                <!--end::Table head-->
+                                                <!--begin::Table body-->
+                                                <tbody>
+                                                    <template v-for="(cc, index) in data3">
+                                                        <template v-for="(subfamily, index2) in cc.subfamilies">
+                                                            <tr>
+                                                                <td v-if="index2 == 0" :rowspan="cc.total" style="vertical-align:top">{{cc.name}}</td>
+                                                                <td  style="vertical-align:top;" :rowspan="subfamily.products.length">{{subfamily.name}}</td>
+                                                                <td>{{subfamily.products[0].name}}</td>
+                                                                <td>{{subfamily.products[0].totalQuantity}}</td>
+                                                                <td>{{subfamily.products[0].unit}}</td>
+                                                                <td class="text-dark">{{subfamily.products[0].totalAmount}}</td>
+                                                                <td class="bg-opacity-5 bg-primary" v-for="value in subfamily.products[0].months">{{value}}</td>
+                                                            </tr>
+
+                                                            <template v-for="(product, index3) in subfamily.products">
+                                                                <tr v-if="index3 > 0">
+                                                                    <td>{{product.name}}</td>
+                                                                    <td>{{product.totalQuantity}}</td>
+                                                                    <td>{{product.unit}}</td>
+                                                                    <td class="text-dark">{{product.totalAmount}}</td>
+                                                                    <td class="bg-opacity-5 bg-primary" v-for="value in product.months">{{value}}</td>
+                                                                </tr>
+                                                            </template>
+                                                        </template>
+                                                    </template>
+                                                </tbody>
+                                                <!--end::Table body-->
+                                            </table>
+                                        </div>
+                                    </div>
+                                    <!--end::Tab pane--> 
+
+
 
                                      <!--begin::Tab pane-->
                                     <div class="tab-pane" id="kt_table_3" role="tabpanel">

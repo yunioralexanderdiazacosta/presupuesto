@@ -144,6 +144,22 @@ class AgrochemicalsController extends Controller
             ];
         });
 
+        $data3 = Agrochemical::from('agrochemicals as a')
+        ->join('agrochemical_items as ai', 'a.id', 'ai.agrochemical_id')
+        ->join('cost_centers as cc', 'ai.cost_center_id', 'cc.id')
+        ->select('ai.cost_center_id', 'cc.name', 'cc.surface')
+        ->whereIn('ai.cost_center_id', $costCenters->pluck('value'))
+        ->groupBy('ai.cost_center_id', 'cc.name', 'cc.surface')
+        ->get()
+        ->transform(function($value) use ($costCenters){
+            return [
+                'id' => $value->cost_center_id,
+                'name' => $value->name,
+                'subfamilies' => $this->getSubfamilies($value->cost_center_id, null, true),
+                'total' => $this->getTotal($value->cost_center_id)
+            ];
+        }); 
+
         $costCentersId = $costCenters->pluck('value');
 
         $data2 = Agrochemical::from('agrochemicals as a')
@@ -171,10 +187,10 @@ class AgrochemicalsController extends Controller
         $totalData1 = number_format($this->totalData1, 0, ',', '.');
         $totalData2 = number_format($this->totalData2, 0, ',', '.');
 
-        return Inertia::render('Agrochemicals', compact('units', 'subfamilies', 'months', 'costCenters', 'agrochemicals', 'data', 'data2', 'doseTypes', 'season', 'totalData1', 'totalData2', 'percentage'));
+        return Inertia::render('Agrochemicals', compact('units', 'subfamilies', 'months', 'costCenters', 'agrochemicals', 'data', 'data2', 'data3', 'doseTypes', 'season', 'totalData1', 'totalData2', 'percentage'));
     }
 
-    private function getSubfamilies($costCenterId, $surface)
+    private function getSubfamilies($costCenterId, $surface = null, $bills = false)
     {
         $subfamilies = Agrochemical::from('agrochemicals as a')
         ->join('agrochemical_items as ai', 'a.id', 'ai.agrochemical_id')
@@ -183,18 +199,18 @@ class AgrochemicalsController extends Controller
         ->where('ai.cost_center_id', $costCenterId)
         ->groupBy('s.id', 's.name')
         ->get()
-        ->transform(function($subfamily) use ($costCenterId, $surface){
+        ->transform(function($subfamily) use ($costCenterId, $surface, $bills){
             return [
                 'id' => $subfamily->id,
                 'name' => $subfamily->name,
-                'products' => $this->getProducts($subfamily->id, $costCenterId, $surface)
+                'products' => $this->getProducts($subfamily->id, $costCenterId, $surface, $bills)
             ];
         });
 
         return $subfamilies;
     }
 
-    private function getProducts($subfamilyId, $costCenterId, $surface)
+    private function getProducts($subfamilyId, $costCenterId, $surface, $bills)
     {
         $products = Agrochemical::from('agrochemicals as a')
         ->join('agrochemical_items as ai', 'a.id', 'ai.agrochemical_id')
@@ -204,14 +220,14 @@ class AgrochemicalsController extends Controller
         ->where('a.subfamily_id', $subfamilyId)
         ->groupBy('a.id', 'a.product_name', 'a.price', 'a.dose_type_id', 'a.unit_id', 'a.unit_id_price', 'a.dose', 'a.mojamiento', 'u.name')
         ->get()
-        ->transform(function($value) use ($surface){
+        ->transform(function($value) use ($surface, $bills){
 
             $dose = (($value->unit_id == 4 && $value->unit_id_price == 3) || ($value->unit_id == 2 && $value->unit_id_price == 1)) ? ($value->dose / 1000) : $value->dose; 
 
             if($value->dose_type_id == 1){
-                $quantityFirst = round($dose * $surface, 2);
+                $quantityFirst = $bills == true ? round($dose, 2) : round($dose * $surface, 2);
             }elseif($value->dose_type_id == 2){
-                $quantityFirst = round((($value->mojamiento / 100) * $dose * $surface), 2);
+                $quantityFirst = $bills == true ? round((($value->mojamiento / 100) * $dose), 2) : round((($value->mojamiento / 100) * $dose * $surface), 2);
             }
             $amountFirst = round($value->price * $quantityFirst, 2);
             $data = $this->getMonths($value->id, $quantityFirst, $amountFirst); 
