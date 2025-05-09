@@ -50,7 +50,7 @@ const form = useForm({
     months: []
 });
 
-const title = 'Insumos';
+const title = 'Servicios';
 
 const links = [{ title: 'Tablero', link: 'dashboard' }, { title: title, active: true }];
 
@@ -160,7 +160,7 @@ const onFilter = () => {
                         <!--end::Page title-->
                         <!--begin::Actions-->
                         <div class="d-flex align-items-center gap-2 gap-lg-3">
-                            <button type="button" @click="openAdd()" class="btn btn-sm fw-bold btn-primary">Agregar un insumo</button>
+                            <button type="button" @click="openAdd()" class="btn btn-sm fw-bold btn-primary">Agregar un servicio</button>
                         </div>
                         <!--end::Actions-->
                     </div>

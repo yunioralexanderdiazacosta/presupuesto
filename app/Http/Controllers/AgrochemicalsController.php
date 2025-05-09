@@ -14,6 +14,7 @@ use App\Models\Agrochemical;
 use App\Models\Fertilizer;
 use App\Models\ManPower;
 use App\Models\Supply;
+use App\Models\Service;
 use App\Models\DoseType;
 use Inertia\Inertia;
 
@@ -31,6 +32,8 @@ class AgrochemicalsController extends Controller
     public $totalManPower = 0;
 
     public $totalSupplies = 0;
+
+    public $totalServices = 0;
 
     public function __invoke()
     {
@@ -185,8 +188,9 @@ class AgrochemicalsController extends Controller
         $this->getFertilizerProducts($costCentersId);
         $this->getManPowerProducts($costCentersId);
         $this->getSuppliesProducts($costCentersId);
+        $this->getServicesProducts($costCentersId);
 
-        $totalAbsolute = round($this->totalData2) + round($this->totalFertilizer) + round($this->totalManPower) + round($this->totalSupplies);
+        $totalAbsolute = round($this->totalData2) + round($this->totalFertilizer) + round($this->totalManPower) + round($this->totalSupplies) + round($this->totalServices);
 
          $percentage = $totalAbsolute > 0 ? round(((round($this->totalData2) / $totalAbsolute) * 100), 2) : 0;
 
@@ -575,5 +579,68 @@ class AgrochemicalsController extends Controller
         }
 
         $this->totalSupplies += $totalAmount; 
+    }
+
+    private function getServicesProducts($costCentersId)
+    {
+        $products = Service::from('services as s')
+        ->join('service_items as si', 's.id', 'si.service_id')
+        ->leftJoin('units as u', 's.unit_id_price', 'u.id')
+        ->select('s.id', 's.product_name', 's.price', 's.quantity', 's.unit_id', 's.unit_id_price',  'u.name')
+        ->whereIn('si.cost_center_id', $costCentersId)
+        ->groupBy('s.id', 's.product_name', 's.price', 's.quantity', 's.unit_id', 's.unit_id_price', 'u.name')
+        ->get()
+        ->transform(function($value) use($costCentersId){
+            $data = $this->getServicesResult($value, $costCentersId);
+            return [
+                'id'            => $value->id
+            ];
+        });
+
+        return $products;
+    }
+
+    private function getServicesResult($value, $costCentersId)
+    {
+        $totalAmount = 0;
+        $totalQuantity = 0;
+        $currentMonth = $this->month_id;
+        foreach($costCentersId as $costCenter){
+           $first = CostCenter::select('surface')->where('id', $costCenter)->first();
+
+           $quantity = (($value->unit_id == 4 && $value->unit_id_price == 3) || ($value->unit_id == 2 && $value->unit_id_price == 1)) ? ($value->quantity / 1000) : $value->quantity;
+           
+            $surface = $first->surface;
+            $quantityFirst = round($quantity * $surface, 2);
+            $amountFirst = round($value->price * $quantityFirst, 2);
+
+            $data = array();
+
+            for ($x = $currentMonth; $x < $currentMonth + 12; $x++) {
+                $id = date('n', mktime(0, 0, 0, $x, 1));
+                array_push($data, $id);
+            }
+
+            $totalAmountCostCenter = 0;
+            $totalQuantityCostCenter = 0;
+            foreach($data as $month)
+            {
+                $count = DB::table('service_items')
+                ->select('service_id')
+                ->where('service_id', $value->id)
+                ->where('month_id', $month)
+                ->where('cost_center_id', $costCenter)
+                ->count();
+
+                $amountMonth = $count > 0 ? $amountFirst : 0;
+                $quantityMonth = $count > 0 ? $quantityFirst : 0;
+                $totalAmountCostCenter += $amountMonth;
+                $totalQuantityCostCenter += $quantityMonth;
+            }
+            $totalAmount += $totalAmountCostCenter;
+            $totalQuantity += $totalQuantityCostCenter;
+        }
+
+        $this->totalServices += $totalAmount; 
     }
 }
