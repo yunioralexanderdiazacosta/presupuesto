@@ -23,6 +23,7 @@ use App\Http\Controllers\UsersController;
 use App\Http\Controllers\MachineriesController;
 use App\Http\Controllers\TypeMachineriesController;
 use App\Http\Controllers\SuppliesController;
+use App\Http\Controllers\ServicesController;
 use App\Http\Controllers\Teams\StoreTeamController;
 use App\Http\Controllers\Teams\UpdateTeamController;
 use App\Http\Controllers\Teams\DeleteTeamController;
@@ -102,6 +103,9 @@ use App\Http\Controllers\TypeMachineries\DeleteTypeMachineryController;
 use App\Http\Controllers\Supplies\StoreSupplyController;
 use App\Http\Controllers\Supplies\UpdateSupplyController;
 use App\Http\Controllers\Supplies\DeleteSupplyController;
+use App\Http\Controllers\Services\StoreServiceController;
+use App\Http\Controllers\Services\DeleteServiceController;
+use App\Http\Controllers\Services\UpdateServiceController;
 use App\Http\Controllers\Pdfs\BudgetsPdfController;
 use App\Http\Controllers\Pdfs\CostCentersPdfController;
 use App\Http\Controllers\Pdfs\LevelsPdfController;
@@ -288,6 +292,7 @@ Route::middleware([
         Route::get('/cost-centers', CostCentersController::class)->name('cost.centers.index');
         Route::get('/manpowers', ManPowersController::class)->name('manpowers.index');
         Route::get('/supplies', SuppliesController::class)->name('supplies.index');
+        Route::get('/services', ServicesController::class)->name('services.index');
 
 
         Route::get('/cost-centers/pdf', CostCentersPdfController::class)->name('cost.centers.pdf');
@@ -323,6 +328,11 @@ Route::middleware([
         Route::post('/supplies/store', StoreSupplyController::class)->name('supplies.store');
         Route::post('/supplies/{supply}/update', UpdateSupplyController::class)->name('supplies.update');
         Route::delete('/supplies/{supply}/delete', DeleteSupplyController::class)->name('supplies.delete');
+
+        Route::post('/services/store', StoreServiceController::class)->name('services.store');
+        Route::post('/services/{service}/update', UpdateServiceController::class)->name('services.update');
+        Route::delete('/services/{service}/delete', DeleteServiceController::class)->name('services.delete');
+
 
     });
     Route::get('/select-budge', SelectBudgetController::class)->name('select.budget');
