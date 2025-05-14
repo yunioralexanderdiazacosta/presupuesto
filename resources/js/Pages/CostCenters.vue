@@ -28,7 +28,8 @@ const form = useForm({
     varieties: [],
     status: true,
     year_plantation: '',
-    development_state_id: ''   
+    development_state_id: '',
+    company_reason_id: ''   
 });
 
 const path = computed(() =>usePage().props.public_path);
@@ -56,6 +57,7 @@ const openEdit = (costCenter) => {
     form.parcel_id = costCenter.parcel_id;
     form.development_state_id = costCenter.development_state_id;
     form.year_plantation = costCenter.year_plantation;
+     form.company_reason_id = costCenter.company_reason_id;
     $('#editCostCenterModal').modal('show');
 }
 
@@ -231,6 +233,7 @@ const onFilter = () => {
                                         <th width="min-w-150px">Superficie</th>
                                         <th width="min-w-150px">Año plantacion</th>
                                         <th width="min-w-150px">Estado productivo</th>
+                                        <th width="min-w-150px">Razon social</th>
                                         <th width="min-w-150px">Observaciones</th>
                                         <th width="min-w-150px" class="text-end">Acciones</th>
                                         <!--end::Table row-->
@@ -239,7 +242,7 @@ const onFilter = () => {
                                     <!--begin::Table body-->
                                     <template #body>
                                         <template v-if="costCenters.total == 0">
-                                            <Empty colspan="7" />
+                                            <Empty colspan="8" />
                                         </template>
                                         <template v-else>
                                             <tr v-for="(costCenter, index) in costCenters.data" :key="index">
@@ -249,6 +252,7 @@ const onFilter = () => {
                                                 <td>{{costCenter.surface}}</td>
                                                 <td>{{costCenter.year_plantation}}</td>
                                                 <td>{{costCenter.development_state.name}}</td>
+                                                 <td>{{costCenter.company_reason.name}}</td>
                                                 <td>{{costCenter.observations}}</td>
                                                 <td class="text-end">
                                                     <!--begin::Update-->

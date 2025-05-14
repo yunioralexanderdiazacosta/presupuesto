@@ -131,6 +131,22 @@
         </div>
     </div>
 
+    <div class="col-lg-4">
+            <div class="fv-row mb-8">
+                <label for="companyreason" class="form-label required fs-6 fw-bold mb-3">Razon social</label>
+                <Multiselect
+                    :placeholder="'Seleccione la razon social'"
+                    v-model="form.company_reason_id"
+                    :close-on-select="true"
+                    :options="$page.props.companyReasons"
+                    class="multiselect-blue form-control"
+                    :class="{'is-invalid': form.errors.company_reason_id}"
+                    :searchable="true"
+                />
+                <InputError class="mt-2" :message="form.errors.company_reason_id" />
+            </div>
+        </div>
+
 
     <div class="fv-row mb-8 mt-8">
         <label class="form-check form-check-inline">

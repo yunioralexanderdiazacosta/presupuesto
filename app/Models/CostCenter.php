@@ -9,7 +9,7 @@ class CostCenter extends Model
 {
     use HasFactory;
 
-    protected $fillable = ['name', 'surface', 'season_id', 'observations', 'fruit_id', 'variety_id', 'parcel_id', 'year_plantation', 'development_state_id', 'status'];
+    protected $fillable = ['name', 'surface', 'season_id', 'observations', 'fruit_id', 'variety_id', 'parcel_id', 'year_plantation', 'development_state_id','company_reason_id', 'status'];
 
     protected $casts = [ 'status' => 'boolean'];
 
@@ -42,5 +42,11 @@ class CostCenter extends Model
     {
         return $this->belongsTo(DevelopmentState::class);
     }
+
+ public function companyReason()
+    {
+        return $this->belongsTo(CompanyReason::class);
+    }
+
 
 }
