@@ -9,13 +9,13 @@ class Parcel extends Model
 {
     use HasFactory;
 
-    protected $fillable = ['name', 'observations', 'company_reason_id', 'season_id', 'team_id'];
+    protected $fillable = ['name', 'observations',  'season_id', 'team_id'];
 
-    public function companyReason()
+    /*public function companyReason()
     {
         return $this->belongsTo(CompanyReason::class);
     }
-
+*/
     public function season()
     {
         return $this->belongsTo(Season::class);

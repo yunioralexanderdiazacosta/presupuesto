@@ -18,7 +18,7 @@ const form = useForm({
     id: '',
     name: '',
     observations: '',
-    company_reason_id: '',
+    //company_reason_id: '',
     season_id: ''
 });
 
@@ -38,7 +38,7 @@ const openEdit = (parcel) => {
     form.id = parcel.id;
     form.name = parcel.name;
     form.observations = parcel.observations;
-    form.company_reason_id = parcel.company_reason_id;
+    //form.company_reason_id = parcel.company_reason_id;
     form.season_id = parcel.season_id; 
     $('#editParcelModal').modal('show');
 }
@@ -67,7 +67,7 @@ const updateParcel = () => {
 
 const msgSuccess = (msg) => {
     Swal.fire({
-        position: 'top-end',
+        position: 'center',
         icon: 'success',
         title: msg,
         showConfirmButton: false,
@@ -196,7 +196,7 @@ const onFilter = () => {
                                     <template #header>
                                         <!--begin::Table row-->
                                         <th width="min-w-150px">Nombre</th>
-                                        <th width="min-w-150px">Razon Social</th>
+                                        <!-- <th width="min-w-150px">Razon Social</th> -->
                                         <th width="min-w-150px">Temporada</th>
                                         <th width="min-w-150px" class="text-end">Acciones</th>
                                         <!--end::Table row-->
@@ -205,12 +205,12 @@ const onFilter = () => {
                                     <!--begin::Table body-->
                                     <template #body>
                                         <template v-if="parcels.total == 0">
-                                            <Empty colspan="4" />
+                                            <Empty colspan="3" />
                                         </template>
                                         <template v-else>
                                             <tr v-for="(parcel, index) in parcels.data" :key="index">
                                                 <td>{{parcel.name}}</td>
-                                                <td>{{parcel.company_reason.name}}</td>
+                                                <!-- <td>{{parcel.company_reason.name}}</td> -->
                                                 <td>{{parcel.season.name}}</td>
                                                 <td class="text-end">
                                                     <!--begin::Update-->

@@ -16,7 +16,7 @@ class StoreParcelController extends Controller
         Parcel::create([
             'name'              => $request->name,
             'observations'      => $request->observations,
-            'company_reason_id' => $request->company_reason_id,
+           // 'company_reason_id' => $request->company_reason_id,
             'season_id'         => $request->season_id,
             'team_id'           => $user->team_id
         ]);   

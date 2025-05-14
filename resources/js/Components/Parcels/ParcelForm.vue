@@ -20,7 +20,7 @@
         <InputError class="mt-2" :message="form.errors.name" />
     </div>
 
-    <div class="fv-row mb-8">
+    <!-- <div class="fv-row mb-8">
         <label for="companyReason" class="form-label required fs-6 fw-bold mb-3">Razon Social</label>
         <Multiselect
             :placeholder="'Seleccione razon social'"
@@ -33,7 +33,8 @@
             :hide-selected="false"
         />
         <InputError class="mt-2" :message="form.errors.company_reason_id" />
-    </div>
+    </div> -->
+
 
     <div class="fv-row mb-8">
         <label for="season" class="form-label required fs-6 fw-bold mb-3">Temporada</label>

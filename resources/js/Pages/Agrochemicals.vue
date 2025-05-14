@@ -104,7 +104,7 @@ const updateAgrochemical = () => {
 
 const msgSuccess = (msg) => {
     Swal.fire({
-        position: 'top-end',
+        position: 'center',
         icon: 'success',
         title: msg,
         showConfirmButton: false,

@@ -12,7 +12,7 @@ class UpdateParcelController extends Controller
     {
         $parcel->name = $request->name;
         $parcel->observations =$request->observations;
-        $parcel->company_reason_id = $request->company_reason_id;
+        //$parcel->company_reason_id = $request->company_reason_id;
         $parcel->season_id = $request->season_id;
         $parcel->save();
     }
