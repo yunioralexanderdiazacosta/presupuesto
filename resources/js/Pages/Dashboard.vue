@@ -15,9 +15,13 @@ const props = defineProps({
     monthsAgrochemical: Object,
     monthsFertilizer: Object,
     monthsManPower: Object,
+    monthsServices: Object,
+    monthsSupplies: Object,
     totalAgrochemical: Number,
     totalFertilizer: Number,
-    totalManPower: Number
+    totalManPower: Number,
+    totalSupplies: Number,
+    totalServices: Number
 })
 </script>
 
@@ -105,6 +109,18 @@ const props = defineProps({
                                             <td>Mano de obra</td>
                                             <td>{{totalManPower}}</td>
                                             <td class="bg-opacity-5 bg-primary" v-for="value in months">{{monthsManPower[value.value]}}</td>
+                                        </tr>
+
+                                        <tr>
+                                            <td>Insumos</td>
+                                            <td>{{totalSupplies}}</td>
+                                            <td class="bg-opacity-5 bg-primary" v-for="value in months">{{monthsSupplies[value.value]}}</td>
+                                        </tr>
+
+                                          <tr>
+                                            <td>Servicios</td>
+                                            <td>{{totalServices}}</td>
+                                            <td class="bg-opacity-5 bg-primary" v-for="value in months">{{monthsServices[value.value]}}</td>
                                         </tr>
                                     </tbody>
                                     <!--end::Table body-->

@@ -49,8 +49,8 @@
     </script>
     <script>var hostUrl = "assets/";</script>
     <!--end::Global Javascript Bundle-->
-    <script src="{{ asset('assets/plugins/global/plugins.bundle.js') }}"></script>
-    <script src="{{ asset('assets/js/scripts.bundle.js') }}"></script>
+    <script defer src="{{ asset('assets/plugins/global/plugins.bundle.js') }}"></script>
+    <script defer src="{{ asset('assets/js/scripts.bundle.js') }}"></script>
     <!--begin::Vendors Javascript(used by this page)-->
     <script src="{{ asset('assets/plugins/custom/datatables/datatables.bundle.js') }}"></script>
     <!--end::Vendors Javascript-->

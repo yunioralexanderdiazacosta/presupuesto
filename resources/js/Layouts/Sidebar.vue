@@ -1,5 +1,5 @@
 <script setup>
-import { ref, computed } from 'vue';
+import { ref, computed, onMounted, nextTick } from 'vue';
 import { Link } from '@inertiajs/vue3';
 import AplicationLogo from '@/Components/ApplicationLogo.vue';
 import Menu from '@/Components/Sidebar/Menu.vue';
@@ -13,6 +13,7 @@ const parametros = ['/cost-centers', '/levels', '/users', '/company-reasons', '/
 const gestion = ['/suppliers', '/products', '/invoices', '/machineries', '/type-machineries'];
 
 var active = ref(0);
+var active2 = ref('');
 if(presupuestos.includes(window.location.pathname)){
     active.value = 0;
 } else if(parametros.includes(window.location.pathname)){
@@ -31,42 +32,73 @@ const items = [
             {
                 title: 'Tablero',
                 icon: `<i class="bi bi-speedometer2"></i>`,
-                link: 'dashboard'
+                link: 'dashboard',
+                subitems: []
             },
 
             {
-                title: 'Presupuestos',
+                title: 'Presupuesto por CC',
                 icon: `<i class="bi bi-card-checklist"></i>`,
-                link: 'budgets.index'
+                link: null,
+                subitems: [
+                    {
+                        title: 'Agroquimicos',
+                        icon: `<i class="bi bi-card-checklist"></i>`,
+                        link: 'agrochemicals.index'
+                    },
+
+                    {
+                        title: 'Fertilizantes',
+                        icon: `<i class="bi bi-card-checklist"></i>`,
+                        link: 'fertilizers.index'
+                    },
+
+                    {
+                        title: 'Mano de Obra',
+                        icon: `<i class="bi bi-card-checklist"></i>`,
+                        link: 'manpowers.index'
+                    },
+
+                    {
+                        title: 'Insumos',
+                        icon: `<i class="bi bi-card-checklist"></i>`,
+                        link: 'supplies.index'
+                    },
+
+                    {
+                        title: 'Servicios',
+                        icon: `<i class="bi bi-card-checklist"></i>`,
+                        link: 'services.index'
+                    }
+                ]
             },
 
             {
-                title: 'Agroquimicos',
+                title: 'Presupuesto por GG Campo',
                 icon: `<i class="bi bi-card-checklist"></i>`,
-                link: 'agrochemicals.index'
+                link: null,
+                subitems: [
+                    {
+                        title: 'Gnral Campo',
+                        icon: `<i class="bi bi-card-checklist"></i>`,
+                        link: 'dashboard'
+                    }
+                ]
             },
 
             {
-                title: 'Fertilizantes',
+                title: 'Presupuesto Administración',
                 icon: `<i class="bi bi-card-checklist"></i>`,
-                link: 'fertilizers.index'
-            },
-
-            {
-                title: 'Mano de Obra',
-                icon: `<i class="bi bi-card-checklist"></i>`,
-                link: 'manpowers.index'
-            },
-            {
-                title: 'Insumos',
-                icon: `<i class="bi bi-card-checklist"></i>`,
-                link: 'supplies.index'
-            },
-            {
-                title: 'Servicios',
-                icon: `<i class="bi bi-card-checklist"></i>`,
-                link: 'services.index'
+                link: null,
+                subitems: [
+                    {
+                        title: 'Gnral Administración',
+                        icon: `<i class="bi bi-card-checklist"></i>`,
+                        link: 'budgets.index'
+                    }
+                ]
             }
+
         ]
     },
 
@@ -79,47 +111,55 @@ const items = [
             {
                 title: 'Centros de costos',
                 icon: `<i class="bi bi-card-checklist"></i>`,
-                link: 'cost.centers.index'
+                link: 'cost.centers.index',
+                subitems: []
             },
 
             {
                 title: 'Niveles',
                 icon: `<i class="bi bi-card-checklist"></i>`,
-                link: 'levels.index'
+                link: 'levels.index',
+                subitems: []
             },
 
             {
                 title: 'Usuarios',
                 icon: `<i class="bi bi-card-checklist"></i>`,
-                link: 'users.index'
+                link: 'users.index',
+                subitems: []
             },
 
             {
                 title: 'Razon Social',
                 icon: `<i class="bi bi-card-checklist"></i>`, 
-                link: 'company.reasons.index'
+                link: 'company.reasons.index',
+                subitems: []
             },
 
             {
                 title: 'Frutal',
                 icon: `<i class="bi bi-card-checklist"></i>`, 
-                link: 'fruits.index'
+                link: 'fruits.index',
+                subitems: []
             },
 
             {
                 title: 'Variedades',
                 icon: `<i class="bi bi-card-checklist"></i>`, 
-                link: 'varieties.index'
+                link: 'varieties.index',
+                subitems: []
             },
             {
                 title: 'Parcelas',
                 icon: `<i class="bi bi-card-checklist"></i>`, 
-                link: 'parcels.index'
+                link: 'parcels.index',
+                subitems: []
             },
             {
                 title: 'Temporadas',
                 icon: `<i class="bi bi-card-checklist"></i>`, 
-                link: 'seasons.index'
+                link: 'seasons.index',
+                subitems: []
             }
         ]
     },
@@ -133,31 +173,36 @@ const items = [
             {
                 title: 'Proveedores',
                 icon: `<i class="bi bi-card-checklist"></i>`,
-                link: 'suppliers.index'
+                link: 'suppliers.index',
+                subitems: []
             },
 
             {
                 title: 'Productos',
                 icon: `<i class="bi bi-card-checklist"></i>`,
-                link: 'products.index'
+                link: 'products.index',
+                subitems: []
             },
 
             {
                 title: 'Facturas',
                 icon: `<i class="bi bi-card-checklist"></i>`,
-                link: 'invoices.index'
+                link: 'invoices.index',
+                subitems: []
             },
 
             {
                 title: 'Maquinarias',
                 icon: `<i class="bi bi-card-checklist"></i>`,
-                link: 'machineries.index'
+                link: 'machineries.index',
+                subitems: []
             },
 
             {
                 title: 'Tipo de Maquinarias',
                 icon: `<i class="bi bi-card-checklist"></i>`,
-                link: 'type.machineries.index'
+                link: 'type.machineries.index',
+                subitems: []
             }
         ]
     }, 
@@ -179,11 +224,17 @@ const items = [
     }
 ];
 
-const change = (position) => {
+const change = (position, position2 = '') => {
     if(active.value == position){
         active.value = 0;
     }else{
         active.value = position;
+    }
+
+    if(active2.value == position2){
+        active2.value = 0;
+    }else{
+        active2.value = position2;
     }
 }
 </script>
@@ -218,47 +269,74 @@ const change = (position) => {
                 <div class="menu menu-column menu-rounded menu-sub-indention px-3" id="#kt_app_sidebar_menu" data-kt-menu="true" data-kt-menu-expand="false">
                     <template class="menu-item" v-for="(item, index) in items" :key="index">
 
+                        <div class="menu-item" v-if="item.subitems.length == 0" v-role:any="item.role">
+                            <!--begin:Menu link-->
+                            <Link class="menu-link" :href="route(item.link)">
+                                <span class="menu-icon">
+                                    <span class="svg-icon svg-icon-2" v-html="item.icon"></span>
+                                </span>
+                                <span class="menu-title">{{item.title}}</span>
+                            </Link>
+                            <!--end:Menu link-->
+                        </div>
 
+                        <div data-kt-menu-trigger="click" class="menu-item menu-accordion"  @click="change(index)" v-else :class="{'hover show': active == index}" v-role:any="item.role">
+                            <!--begin:Menu link-->
+                            <span class="menu-link">
+                                <span class="menu-icon">
+                                     <span class="svg-icon svg-icon-2" v-html="item.icon"></span>
+                                </span>
+                                <span class="menu-title">{{item.title}}</span>
+                                <span class="menu-arrow"></span>
+                            </span>
+                            <!--end:Menu link-->
+                            <!--begin:Menu sub-->
+                            <div class="menu-sub menu-sub-accordion" v-for="(subitem, i) in item.subitems" :key="i">
+                                <!--begin:Menu item-->
+                                <div class="menu-item" v-if="subitem.subitems.length == 0">
+                                    <!--begin:Menu link-->
+                                    <Link class="menu-link" :href="route(subitem.link)">
+                                        <span class="menu-bullet">
+                                            <span class="bullet bullet-dot"></span>
+                                        </span>
+                                        <span class="menu-title">{{subitem.title}}</span>
+                                    </Link>
+                                    <!--end:Menu link-->
+                                </div>
+                                <!--end:Menu item-->
 
-                          <div class="menu-item" v-if="item.subitems.length == 0" v-role:any="item.role">
-        <!--begin:Menu link-->
-        <Link class="menu-link" :href="route(item.link)">
-            <span class="menu-icon">
-                <span class="svg-icon svg-icon-2" v-html="item.icon"></span>
-            </span>
-            <span class="menu-title">{{item.title}}</span>
-        </Link>
-        <!--end:Menu link-->
-    </div>
-
-    <div class="menu-item menu-accordion" data-kt-menu-trigger="click" v-else @click="change(index)" :class="{'hover show': active == index}" v-role:any="item.role">
-        <!--begin:Menu link-->
-        <span class="menu-link">
-            <span class="menu-icon">
-                 <span class="svg-icon svg-icon-2" v-html="item.icon"></span>
-            </span>
-            <span class="menu-title">{{item.title}}</span>
-            <span class="menu-arrow"></span>
-        </span>
-        <!--end:Menu link-->
-        <!--begin:Menu sub-->
-        <div class="menu-sub menu-sub-accordion" v-for="(subitem, i) in item.subitems" :key="i">
-            <!--begin:Menu item-->
-            <div class="menu-item">
-                <!--begin:Menu link-->
-                <Link class="menu-link" :href="route(subitem.link, subitem.params)">
-                    <span class="menu-bullet">
-                        <span class="bullet bullet-dot"></span>
-                    </span>
-                    <span class="menu-title">{{subitem.title}}</span>
-                </Link>
-                <!--end:Menu link-->
-            </div>
-            <!--end:Menu item-->
-        </div>
-    </div>
-
-                        
+                                <!--begin:Menu item-->
+                                <div data-kt-menu-trigger="click" class="menu-item menu-accordion" v-else @click="change(index)" :class="{'hover show': active == index}">
+                                    <!--begin:Menu link-->
+                                    <span class="menu-link">
+                                        <span class="menu-bullet">
+                                            <span class="bullet bullet-dot"></span>
+                                        </span>
+                                        <span class="menu-title">{{subitem.title}}</span>
+                                        <span class="menu-arrow"></span>
+                                    </span>
+                                    <!--end:Menu link-->
+                                    <!--begin:Menu sub-->
+                                    <div class="menu-sub menu-sub-accordion menu-active-bg" v-for="(subitemj, j) in subitem.subitems" :key="j">
+                                        <!--begin:Menu item-->
+                                        <div class="menu-item">
+                                            <!--begin:Menu link-->
+                                            <Link class="menu-link" :href="route(subitemj.link)">
+                                                <span class="menu-bullet">
+                                                    <span class="bullet bullet-dot"></span>
+                                                </span>
+                                                <span class="menu-title">{{subitemj.title}}</span>
+                                            </Link>
+                                            <!--end:Menu link-->
+                                        </div>
+                                        <!--end:Menu item-->
+                                    </div>
+                                    <!--end:Menu sub-->
+                                </div>
+                                <!--end:Menu item-->
+                                <!--end:Menu sub-->
+                            </div>
+                        </div>
                     </template>
                 </div>
                 <!--end::Menu-->

@@ -11,7 +11,7 @@ use App\Models\Agrochemical;
 use App\Models\Fertilizer;
 use App\Models\Supply;
 use App\Models\Service;
-use App\Models\Subfamily;
+use App\Models\Level3;
 use App\Models\CostCenter;
 use App\Models\Month;
 use Inertia\Inertia;
@@ -40,11 +40,18 @@ class ManPowersController extends Controller
 
         $season = Season::select('name', 'month_id')->where('id', $season_id)->first();
 
-        $this->month_id = $season['month_id'];
+        $this->month_id = $season['month_id']; 
 
-        $subfamilies = Subfamily::where('id_form', 3)->get()->transform(function($subfamily){
+        $subfamilies = Level3::from('level3s as l3')
+        ->join('level2s as l2', 'l2.id', 'l3.level2_id')
+        ->join('level1s as l1', 'l1.id', 'l2.level1_id')
+        ->select('l3.id', 'l3.name')
+        ->where('l1.team_id', $user->team_id)
+        ->where('l2.name', 'mano de obra')
+        ->where('season_id', $season_id)
+        ->get()->transform(function($subfamily){
             return [
-                'label' => $subfamily->name,
+                'label' => $subfamily->name, 
                 'value' => $subfamily->id
             ];
         });
@@ -130,7 +137,9 @@ class ManPowersController extends Controller
 
         $data2 = ManPower::from('man_powers as mp')
         ->join('manpower_items as mpi', 'mp.id', 'mpi.man_power_id')
-        ->join('subfamilies as s', 'mp.subfamily_id', 's.id')
+        ->join('level3s as s', 'mp.subfamily_id', 's.id')
+        ->join('level2s as l2', 's.level2_id', 'l2.id')
+        ->where('l2.name', 'mano de obra')
         ->select('s.id', 's.name')
         ->whereIn('mpi.cost_center_id', $costCentersId)
         ->groupBy('s.id', 's.name')
@@ -163,7 +172,9 @@ class ManPowersController extends Controller
     {
         $subfamilies = ManPower::from('man_powers as mp')
         ->join('manpower_items as mpi', 'mp.id', 'mpi.man_power_id')
-        ->join('subfamilies as s', 'mp.subfamily_id', 's.id')
+        ->join('level3s as s', 'mp.subfamily_id', 's.id')
+        ->join('level2s as l2', 's.level2_id', 'l2.id')
+        ->where('l2.name', 'mano de obra')
         ->select('s.id', 's.name')
         ->where('mpi.cost_center_id', $costCenterId)
         ->groupBy('s.id', 's.name')
