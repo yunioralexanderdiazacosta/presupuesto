@@ -100,7 +100,11 @@ const onFilter = () => {
 <template>
     <Head :title="title" />
     <AppLayout>
-        <div class="card mb-3">
+        <!--begin::Breadcrumb-->
+        <Breadcrumb :links="links" />
+        <!--end::Breadcrumb-->
+
+        <div class="card my-3">
             <div class="card-header">
                 <div class="row flex-between-end">
                     <div class="col-auto align-self-center">
@@ -203,6 +207,7 @@ const onFilter = () => {
                 </Table>
             </div>
         </div>
+
         <CreateSubLevelModal @store="storeLevel" :form="form" :level="'Nivel 4'" />
         <EditSubLevelModal @update="updateLevel" :form="form" :level="'Nivel 4'" />
     </AppLayout>
