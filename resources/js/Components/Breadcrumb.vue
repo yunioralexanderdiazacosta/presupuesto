@@ -5,17 +5,16 @@ defineProps({
 })
 </script>
 <template>
- <ul class="breadcrumb breadcrumb-separatorless fw-semibold fs-7 my-0 pt-1">
-    <template v-for="(value, index) in links" :key="index">
-        <!--begin::Item-->
-        <li class="breadcrumb-item" v-if="index > 0">
-            <span class="bullet bg-gray-400 w-5px h-2px"></span>
-        </li>
-        <li class="breadcrumb-item text-muted">
-            <span v-if="value.active">{{value.title}}</span>
-            <Link v-else :href="route(value.link, value.params)" class="text-muted text-hover-primary">{{value.title}}</Link>
-        </li>
-        <!--end::Item-->
-    </template>
-</ul>
+    <nav aria-label="breadcrumb">
+        <ol class="breadcrumb">
+            <template v-for="(value, index) in links" :key="index">
+                <!--begin::Item-->
+                <li class="breadcrumb-item" :class="{'active': value.active}">
+                    <span v-if="value.active">{{value.title}}</span>
+                    <Link v-else :href="route(value.link, value.params)">{{value.title}}</Link>
+                </li>
+                <!--end::Item-->
+            </template>
+        </ol>
+    </nav>
 </template>

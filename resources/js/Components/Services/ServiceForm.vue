@@ -11,48 +11,44 @@
 <template>
     <div class="row">
         <div class="col-lg-6">
-            <div class="fv-row mb-8">
-                <label for="cc" class="form-label required fs-6 fw-bold mb-3">CC</label>
-                <Multiselect
-                    mode="tags"
-                    :placeholder="'Seleccione CC'"
-                    v-model="form.cc"
-                    :close-on-select="false"
-                    :options="$page.props.costCenters"
-                    class="multiselect-blue form-control"
-                    :class="{'is-invalid': form.errors.cc}"
-                    :searchable="true"
-                    :hide-selected="false"
-                />
-                <InputError class="mt-2" :message="form.errors.cc" />
-            </div>
+            <label for="cc" class="col-form-label">CC</label>
+            <Multiselect
+                mode="tags"
+                :placeholder="'Seleccione CC'"
+                v-model="form.cc"
+                :close-on-select="false"
+                :options="$page.props.costCenters"
+                class="multiselect-blue form-control"
+                :class="{'is-invalid': form.errors.cc}"
+                :searchable="true"
+                :hide-selected="false"
+            />
+            <InputError class="mt-2" :message="form.errors.cc" />
         </div>
         <div class="col-lg-6">
-            <div class="fv-row mb-8">
-                <label for="families" class="form-label required fs-6 fw-bold mb-3">Familia</label>
-                <Multiselect
-                    :placeholder="'Seleccione familia'"
-                    v-model="form.subfamily_id"
-                    :close-on-select="true"
-                    :options="$page.props.subfamilies"
-                    class="multiselect-blue form-control"
-                    :class="{'is-invalid': form.errors.subfamily_id}"
-                    :searchable="true"
-                    :hide-selected="false"
-                />
-                <InputError class="mt-2" :message="form.errors.subfamily_id" />
-            </div>
+            <label for="families" class="col-form-label">Familia</label>
+            <Multiselect
+                :placeholder="'Seleccione familia'"
+                v-model="form.subfamily_id"
+                :close-on-select="true"
+                :options="$page.props.subfamilies"
+                class="multiselect-blue form-control"
+                :class="{'is-invalid': form.errors.subfamily_id}"
+                :searchable="true"
+                :hide-selected="false"
+            />
+            <InputError class="mt-2" :message="form.errors.subfamily_id" />
         </div>
     </div>
 
     <div class="row">
         <div class="col-lg-6">
             <div class="fv-row mb-8">
-                <label class="required fs-6 fw-semibold mb-2">Nombre del Producto</label>
+                <label class="col-form-label">Nombre del Producto</label>
                 <TextInput
                     id="product_name"
                     v-model="form.product_name"
-                    class="form-control form-control-solid"
+                    class="form-control"
                     type="text"
                 />
                 <InputError class="mt-2" :message="form.errors.product_name" />
@@ -77,11 +73,11 @@
     <div class="row">
         <div class="col-lg-6">
             <div class="fv-row mb-8">
-                <label class="required fs-6 fw-semibold mb-2">Cantidad</label>
+                <label class="col-form-label">Cantidad</label>
                 <TextInput
                     id="quantity"
                     v-model="form.quantity"
-                    class="form-control form-control-solid"
+                    class="form-control"
                     type="number"
                     step="0.00"
                     :class="{'is-invalid': form.errors.quantity}"
@@ -93,11 +89,11 @@
             <div class="row">
                 <div class="col-lg-6">
                     <div class="fv-row mb-8">
-                        <label class="required fs-6 fw-semibold mb-2">Precio</label>
+                        <label class="col-form-label">Precio</label>
                         <TextInput
                             id="price"
                             v-model="form.price"
-                            class="form-control form-control-solid"
+                            class="form-control"
                             type="number"
                             :class="{'is-invalid': form.errors.price}"
                         />
@@ -107,7 +103,7 @@
 
                 <div class="col-lg-6">
                     <div class="fv-row mb-8">
-                        <label for="unit" class="form-label required fs-6 fw-bold mb-2">Unidad</label>
+                        <label for="unit" class="col-form-label">Unidad</label>
                          <Multiselect
                             :placeholder="''"
                             v-model="form.unit_id_price"
@@ -126,7 +122,7 @@
     </div>
 
     <div class="fv-row mb-3">
-        <label for="months" class="form-label required fs-6 fw-bold mb-3">Meses</label><br>
+        <label for="months" class="col-form-label">Meses</label><br>
         <template v-for="value in $page.props.months">
             <div class="form-check form-check-solid form-check-inline mb-3">
                 <input class="form-check-input" type="checkbox" v-model="form.months" :id="'kt_month_'+value.id" :value="value.value">
@@ -137,8 +133,8 @@
     </div>
 
     <div class="fv-row mb-3">
-        <label for="observations" class="form-label fs-6 fw-bold mb-3">Observaciones</label>
-        <textarea v-model="form.observations" rows="3" class="form-control form-control-lg form-control-solid mb-3 mb-lg-0" :class="{'is-invalid': form.errors.observations }" ></textarea>
+        <label for="observations" class="col-form-label">Observaciones</label>
+        <textarea v-model="form.observations" rows="3" class="form-control form-control-lg mb-3 mb-lg-0" :class="{'is-invalid': form.errors.observations }" ></textarea>
         <InputError class="mt-2" :message="form.errors.observations" />
     </div>
 </template>

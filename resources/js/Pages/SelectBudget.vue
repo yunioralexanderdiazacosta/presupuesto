@@ -29,26 +29,19 @@ const onSubmit = () => {
 
 <template>
     <Head title="Seleccionar presupuesto" />
-    <div class="modal fade" id="selectBudgetModal" data-bs-backdrop="static" data-bs-keyboard="false" tabindex="-1" aria-hidden="true">
-        <!--begin::Modal dialog-->
-        <div class="modal-dialog modal-dialog-centered mw650px">
-            <!--begin::Modal content-->
-            <div class="modal-content rounded">
-                <!--begin::Modal header-->
-                <div class="modal-header pb-0 border-0 justify-content-end">
+
+    <div class="modal fade" id="selectBudgetModal" tabindex="-1" role="dialog" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered" role="document" style="max-width: 500px">
+            <div class="modal-content position-relative">
+                <div class="position-absolute top-0 end-0 mt-2 me-2 z-1">
                 </div>
-                <!--begin::Modal header-->
-                <!--begin::Modal body-->
-                <div class="modal-body scroll-y px-10 px-lg-15 pt-0 pb-15">
-                    <!--begin:Form-->
-                        <!--begin::Heading-->
-                        <div class="mb-13 text-center">
-                            <h1 class="mb-3">Seleccionar temporada</h1>
-                        </div>
-                        <!--end::Heading-->
-                        <!--begin::Body-->
-                        <div class="fv-row mb-3">
-                            <label for="budget_id" class="form-label required fs-6 fw-bold mb-3">Temporada</label>
+                <div class="modal-body p-0">
+                    <div class="rounded-top-3 py-3 ps-4 pe-6 bg-body-tertiary">
+                        <h4 class="mb-1" id="seasonId">Seleccionar temporada</h4>
+                    </div>
+                    <div class="p-4 pb-0">
+                        <div class="mb-3">
+                            <label class="col-form-label" for="season">Temporada</label>
                             <Multiselect
                                 placeholder="Seleccione temporada"
                                 v-model="form.season_id"
@@ -57,24 +50,15 @@ const onSubmit = () => {
                                 class="multiselect-blue form-control"
                                 :class="{'is-invalid': form.errors.season_id}"
                                 :searchable="true"
-                            />
+                                />
                         </div>
-                        <!--end::Body-->
-                        <div class="separator separator-dashed my-6"></div>
-                        <!--begin::Actions-->
-                        <div class="text-center">
-                            <button type="button" @click="onSubmit()" :disabled="form.processing" id="kt_modal_select_budget_submit" class="btn btn-primary">
-                                <span class="indicator-label">Guardar</span>
-                            </button>
-                        </div>
-                        <!--end::Actions-->
-                    <!--end:Form-->
+                    </div>
                 </div>
-                <!--end::Modal body-->
+                <div class="modal-footer">
+                    <button type="button" @click="onSubmit()" :disabled="form.processing" class="btn btn-primary">Guardar</button>
+                </div>
             </div>
-            <!--end::Modal content-->
         </div>
-        <!--end::Modal dialog-->
     </div>
 </template>
 <style src="@vueform/multiselect/themes/default.css"></style>

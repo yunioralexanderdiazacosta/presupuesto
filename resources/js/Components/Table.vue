@@ -12,12 +12,12 @@ defineProps({
 })
 </script>
 <template>
-    <div class="table-responsive">
+    <div class="table-responsive scrollbar">
         <!--begin::Table-->
-        <table class="table table-row-bordered table-row-gray-300 align-middle gs-0 gy-2">
+        <table class="table">
             <!--begin::Table head-->
             <thead>
-                <tr class="fw-bold fs-6">
+                <tr>
                     <slot name="header"></slot>
                 </tr>
             </thead>
