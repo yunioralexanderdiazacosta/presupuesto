@@ -19,15 +19,12 @@
 	</div>
 </div>-->
 <!--end::Top-->
-<!--begin::Separator-->
-<div class="separator separator-dashed my-10"></div>
-<!--end::Separator-->
 <!--begin::Wrapper-->
 <div class="mb-0">
-	<div class="row gx-10 mb-5">
+	<div class="row">
 		<div class="col-lg-6">
-			<div class="fv-row mb-8">
-                <label class="required fs-6 fw-semibold mb-2">Fecha</label>
+			<div class="fv-row">
+                <label class="col-form-label">Fecha</label>
                 <TextInput
                     id="date"
                     v-model="form.date"
@@ -39,8 +36,8 @@
             </div>
 		</div>
 		<div class="col-lg-6">
-			<div class="fv-row mb-8">
-                <label class="required fs-6 fw-semibold mb-2">Fecha de vencimiento</label>
+			<div class="fv-row">
+                <label class="col-form-label">Fecha de vencimiento</label>
                 <TextInput
                     id="due_date"
                     v-model="form.due_date"
@@ -53,11 +50,11 @@
 		</div>
 	</div>
 	<!--begin::Row-->
-	<div class="row gx-10 mb-5">
+	<div class="row">
 		<!--begin::Col-->
 		<div class="col-lg-6">
-			<div class="fv-row mb-8">
-                <label for="" class="form-label required fs-6 fw-bold mb-3">Proveedor</label>
+			<div class="fv-row">
+                <label for="" class="col-form-label">Proveedor</label>
                 <Multiselect
                     :placeholder="'Seleccione proveedor'"
                     v-model="form.supplier_id"
@@ -74,8 +71,8 @@
 		<!--end::Col-->
 		<!--begin::Col-->
 		<div class="col-lg-6">
-			<div class="fv-row mb-8">
-                <label for="" class="form-label required fs-6 fw-bold mb-3">Razón social</label>
+			<div class="fv-row">
+                <label for="" class="col-form-label">Razón social</label>
                 <Multiselect
                     :placeholder="'Seleccione razón social'"
                     v-model="form.company_reason_id"
@@ -93,14 +90,14 @@
 	</div>
 	<!--end::Row-->
 	<!--begin::Row-->
-	<div class="row gx-10 mb-5">
+	<div class="row">
 		<div class="col-lg-6">
             <div class="row">
                 <div class="col-lg-6">
-                    <div class="fv-row mb-8">
-                        <label for="typeDocument" class="form-label required fs-6 fw-bold mb-3">Tipo de documento</label>
+                    <div class="fv-row">
+                        <label for="typeDocument" class="col-form-label">Tipo de documento</label>
                         <Multiselect
-                            :placeholder="'Seleccione tipo de documento'"
+                            :placeholder="'Tipo de documento'"
                             v-model="form.type_document_id"
                             :close-on-select="true"
                             :options="$page.props.typeDocuments"
@@ -113,8 +110,8 @@
                     </div>
                 </div>
                 <div class="col-lg-6">
-                    <div class="fv-row mb-8">
-                        <label class="required fs-6 fw-semibold mb-2">Número de documento</label>
+                    <div class="fv-row">
+                        <label class="col-form-label">Número de documento</label>
                         <TextInput
                             id="number_document"
                             v-model="form.number_document"
@@ -128,9 +125,9 @@
             </div>
 		</div>
 		  <div class="col-lg-3">
-            	<label for="paymentTerm" class="form-label required fs-6 fw-bold mb-3">Plazo de pago</label>
+            	<label for="paymentTerm" class="col-form-label">Plazo de pago</label>
                 <Multiselect
-                    :placeholder="'Seleccione plazo de pago'"
+                    :placeholder="'Plazo de pago'"
                     v-model="form.payment_term"
                     :close-on-select="true"
                     :options="[0, 30, 60, 90, 120]"
@@ -142,8 +139,8 @@
                 <InputError class="mt-2" :message="form.errors.payment_term" />
             </div>
             <div class="col-lg-3">
-            	 <div class="fv-row mb-8">
-	                <label for="unit" class="form-label required fs-6 fw-bold mb-3">Tipo de pago</label><br>
+            	 <div class="fv-row">
+	                <label for="unit" class="col-form-label">Tipo de pago</label><br>
 	                <template v-for="value in paymentTypes">
 	                    <div class="form-check form-check-solid form-check-inline mb-3 mt-3">
 	                        <input class="form-check-input" type="radio" v-model="form.payment_type" :id="'payment_type_'+value.id" :value="value.id">
@@ -156,7 +153,7 @@
 	</div>
 	<!--end::Row-->
 
-	<div class="row gx-10 mb-5">
+	<div class="row">
 		<div class="col-lg-12">
             <div class="form-check form-check-solid form-check-inline mb-3">
                 <input class="form-check-input" type="checkbox" v-model="form.petty_cash" id="petty" value=true>

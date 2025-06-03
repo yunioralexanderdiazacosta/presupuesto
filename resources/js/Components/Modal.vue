@@ -48,7 +48,7 @@ const maxWidthClass = computed(() => {
                 </div>
                 <!--begin::Modal header-->
                 <!--begin::Modal body-->
-                <div class="modal-body scroll-y px-10 px-lg-15 pt-0 pb-15">
+                <div class="modal-body scroll-y px-5 px-lg-5 pt-0 pb-15">
                     <!--begin:Form-->
                         <!--begin::Heading-->
                         <div class="mb-13 text-center">

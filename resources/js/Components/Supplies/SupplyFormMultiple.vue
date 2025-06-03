@@ -27,8 +27,8 @@
 <template>
     <div class="row">
         <div class="col-lg-6">
-            <div class="fv-row mb-8">
-                <label for="cc" class="form-label required fs-6 fw-bold mb-3">CC</label>
+            <div class="fv-row">
+                <label for="cc" class="col-form-label">CC</label>
                 <Multiselect
                     mode="tags"
                     :placeholder="'Seleccione CC'"
@@ -44,8 +44,8 @@
             </div>
         </div>
         <div class="col-lg-6">
-            <div class="fv-row mb-8">
-                <label for="families" class="form-label required fs-6 fw-bold mb-3">Familia</label>
+            <div class="fv-row">
+                <label for="families" class="col-form-label">Familia</label>
                 <Multiselect
                     :placeholder="'Seleccione familia'"
                     v-model="form.subfamily_id"
@@ -65,8 +65,8 @@
         <hr>
         <div class="row">
             <div class="col-lg-4">
-                <div class="fv-row mb-8">
-                    <label class="required fs-6 fw-semibold mb-2">Nombre del producto</label>
+                <div class="fv-row">
+                    <label class="col-form-label">Nombre del producto</label>
                     <TextInput
                         id="product_name"
                         v-model="product.product_name"
@@ -78,8 +78,8 @@
                 </div>
             </div>
             <div class="col-lg-2">
-                <div class="fv-row mb-8">
-                    <label for="unit" class="form-label required fs-6 fw-bold mb-2">Unidad</label>
+                <div class="fv-row">
+                    <label for="unit" class="col-form-label">Unidad</label>
                      <Multiselect
                         :placeholder="''"
                         v-model="product.unit_id"
@@ -95,8 +95,8 @@
             </div>
 
             <div class="col-lg-2">
-                <div class="fv-row mb-8">
-                    <label class="required fs-6 fw-semibold mb-2">Cantidad</label>
+                <div class="fv-row">
+                    <label class="col-form-label">Cantidad</label>
                     <TextInput
                         id="quantity"
                         v-model="product.quantity"
@@ -111,8 +111,8 @@
             <div class="col-lg-4">
                 <div class="row">
                     <div class="col-lg-6">
-                        <div class="fv-row mb-8">
-                            <label class="required fs-6 fw-semibold mb-2">Precio</label>
+                        <div class="fv-row">
+                            <label class="col-form-label">Precio</label>
                             <TextInput
                                 id="price"
                                 v-model="product.price"
@@ -124,8 +124,8 @@
                         </div>
                     </div>
                     <div class="col-lg-6">
-                        <div class="fv-row mb-8">
-                            <label for="unit" class="form-label required fs-6 fw-bold mb-2">Unidad</label>
+                        <div class="fv-row">
+                            <label for="unit" class="col-form-label">Unidad</label>
                              <Multiselect
                                 :placeholder="''"
                                 v-model="product.unit_id_price"
@@ -146,10 +146,10 @@
 
         <div class="row">
             <div class="col-lg-8">
-                <div class="fv-row mb-3">
-                    <label for="months" class="form-label required fs-6 fw-bold mb-3">Meses</label><br>
+                <div class="fv-row">
+                    <label for="months" class="col-form-label">Meses</label><br>
                     <template v-for="value in $page.props.months">
-                        <div style="margin-right: 0.5rem;" class="form-check form-check-solid form-check-inline mb-3">
+                        <div style="margin-right: 0.5rem;" class="form-check form-check-solid form-check-inline mb-1">
                             <input class="form-check-input" type="checkbox" v-model="product.months" :id="'kt_month_'+value.id" :value="value.value">
                             <label class="form-check-label ps-2" :for="'kt_month_'+value.id">{{value.label}}</label>
                         </div>
@@ -158,8 +158,8 @@
                 </div>
             </div>
             <div class="col-lg-4">
-                <div class="fv-row mb-3">
-                    <label for="observations" class="form-label fs-6 fw-bold mb-3">Observaciones</label>
+                <div class="fv-row">
+                    <label for="observations" class="col-form-label">Observaciones</label>
                     <textarea v-model="product.observations" rows="3" class="form-control form-control-lg form-control-solid mb-3 mb-lg-0" :class="{'is-invalid': form.errors.observations }" ></textarea>
                     <InputError class="mt-2" :message="form.errors.observations" />
                 </div>
@@ -170,10 +170,10 @@
 
         <div class="row">
             <div class="col-lg-12 text-end">
-                <button type="button" v-if="form.products.length == (index + 1)" @click="addItem()" class="btn btn-sm btn-primary">
+                <button type="button" v-if="form.products.length == (index + 1)" @click="addItem()" class="btn btn-sm btn-primary me-2">
                     <i class="fas fa-plus"></i>
                 </button>
-                <button type="button" @click="removeItem(index)" class="btn btn-sm btn-danger mb-3" v-if="form.products.length > 1">
+                <button type="button" @click="removeItem(index)" class="btn btn-sm btn-danger" v-if="form.products.length > 1">
                     <i class="fas fa-minus"></i>
                 </button>
             </div>
@@ -186,7 +186,7 @@
     --ms-bg: var(--kt-input-solid-bg) !important;
     --ms-border-color: var(--kt-input-solid-bg);
     --ms-py: 3px !important;
-    --ms-tag-bg: #eee;
+    --ms-tag-bg: #2c7be5;
     --ms-tag-color: var(--kt-primary);
     --ms-option-bg-selected: var(--kt-primary);
     --ms-option-bg-selected-pointed: var(--kt-primary);

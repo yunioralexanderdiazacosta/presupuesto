@@ -99,7 +99,7 @@
             </div>
 
             <div class="col-lg-6">
-                <div class="fv-row mb-8">
+                <div class="fv-row">
                     <label for="unit" class="col-form-label">Unidad</label>
                      <Multiselect
                         :placeholder="''"
@@ -116,7 +116,7 @@
             </div>
 
             <div class="col-lg-6">
-                <div class="fv-row mb-8">
+                <div class="fv-row">
                     <label class="col-form-label">Mojamiento</label>
                     <TextInput
                         id="product_name"
@@ -136,7 +136,7 @@
             <div class="col-lg-5">
                 <div class="row">
                     <div class="col-lg-6">
-                        <div class="fv-row mb-8">
+                        <div class="fv-row">
                             <label for="price" class="col-form-label">Precio</label>
                             <TextInput
                                 id="price"
@@ -149,7 +149,7 @@
                         </div>
                     </div>
                     <div class="col-lg-6">
-                        <div class="fv-row mb-8">
+                        <div class="fv-row">
                             <label for="unit" class="col-form-label">Unidad</label>
                              <Multiselect
                                 :placeholder="''"
@@ -168,16 +168,10 @@
             </div>
 
             <div class="col-lg-7">
-
-                <div class="form-check form-check-inline">
-                    <input class="form-check-input" id="inlineCheckbox1" type="checkbox" value="option1">
-                    <label class="form-check-label" for="inlineCheckbox1">Item 1</label>
-                </div>
-
-                <div class="fv-row mb-3">
+                <div class="fv-row">
                     <label for="months" class="col-form-label">Meses</label><br>
                     <template v-for="value in $page.props.months">
-                        <div style="margin-right: 0.5rem;" class="form-check form-check-solid form-check-inline mb-3">
+                        <div style="margin-right: 0.5rem;" class="form-check form-check-solid form-check-inline mb-1">
                             <input class="form-check-input" type="checkbox" v-model="product.months" :id="'kt_month_'+value.id" :value="value.value">
                             <label class="form-check-label ps-2" :for="'kt_month_'+value.id">{{value.label}}</label>
                         </div>
@@ -211,7 +205,7 @@
     --ms-bg: var(--kt-input-solid-bg) !important;
     --ms-border-color: var(--kt-input-solid-bg);
     --ms-py: 2px !important;
-    --ms-tag-bg: #eee;
+    --ms-tag-bg: #2c7be5;
     --ms-tag-color: var(--kt-primary);
     --ms-option-bg-selected: var(--kt-primary);
     --ms-option-bg-selected-pointed: var(--kt-primary);

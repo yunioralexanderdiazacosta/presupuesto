@@ -61,8 +61,8 @@
 <template>
     <div class="row">
         <div class="col-md-6">
-            <div class="fv-row mb-2">
-                <label for="cc" class="form-label required fs-6 fw-bold mb-3">CC</label>
+            <div class="fv-row">
+                <label for="cc" class="col-form-label">CC</label>
                 <Multiselect
                     mode="tags"
                     :placeholder="'Seleccione CC'"
@@ -79,7 +79,7 @@
         </div>
         <div class="col-md-6">
             <div class="fv-row mb-2">
-                <label for="families" class="form-label required fs-6 fw-bold mb-3">Familia</label>
+                <label for="families" class="col-form-label">Familia</label>
                 <Multiselect
                     :placeholder="'Seleccione familia'"
                     v-model="form.subfamily_id"
@@ -98,7 +98,7 @@
         <hr>
         <div class="row">
             <div class="col-md-4">
-                <div class="fv-row mb-8">
+                <div class="fv-row">
                     <label class="required fs-6 fw-semibold mb-2">Nombre del producto</label>
                     <TextInput
                         id="product_name"
@@ -112,7 +112,7 @@
             </div>
 
             <div class="col-lg-4">
-                <div class="fv-row mb-8">
+                <div class="fv-row">
                     <label class="required fs-6 fw-semibold mb-2">Jornadas/hectarea</label>
                     <div class="input-group">
                         <input type="number" id="workday" v-model="product.workday" class="form-control form-control-solid" aria-describedby="jornadas" step="0.00" :class="{'is-invalid': form.errors['products.'+index+'.workday']}">
@@ -123,7 +123,7 @@
             </div>
 
             <div class="col-lg-4">
-                <div class="fv-row mb-8">
+                <div class="fv-row">
                     <label class="required fs-6 fw-semibold mb-2">Precio</label>
                     <TextInput
                         id="price"
@@ -139,10 +139,10 @@
 
         <div class="row">
             <div class="col-lg-7">
-                <div class="fv-row mb-3">
-                    <label for="months" class="form-label required fs-6 fw-bold mb-3">Meses</label><br>
+                <div class="fv-row">
+                    <label for="months" class="col-form-label">Meses</label><br>
                     <template v-for="value in $page.props.months" :key="value.id">
-                        <div style="margin-right: 0.5rem;" class="form-check form-check-solid form-check-inline mb-3">
+                        <div style="margin-right: 0.5rem;" class="form-check form-check-solid form-check-inline mb-1">
                             <input class="form-check-input" type="checkbox" v-model="product.months" :id="'kt_month_'+value.id" :value="value.value">
                             <label class="form-check-label ps-2" :for="'kt_month_'+value.id">{{value.label}}</label>
                         </div>
@@ -151,7 +151,7 @@
                 </div>
             </div>
             <div class="col-lg-5">
-                <div class="fv-row mb-3">
+                <div class="fv-row">
                     <label for="observations" class="form-label fs-6 fw-bold mb-3">Observaciones</label>
                     <textarea v-model="product.observations" rows="3" class="form-control form-control-lg form-control-solid mb-3 mb-lg-0" :class="{'is-invalid': form.errors.observations }" ></textarea>
                     <InputError class="mt-2" :message="form.errors.observations" />
@@ -178,7 +178,7 @@
     --ms-bg: var(--kt-input-solid-bg) !important;
     --ms-border-color: var(--kt-input-solid-bg);
     --ms-py: 3px !important;
-    --ms-tag-bg: #eee;
+    --ms-tag-bg: #2c7be5;
     --ms-tag-color: var(--kt-primary);
     --ms-option-bg-selected: var(--kt-primary);
     --ms-option-bg-selected-pointed: var(--kt-primary);

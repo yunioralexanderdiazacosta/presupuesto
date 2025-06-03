@@ -47,8 +47,8 @@
 <template>
     <div class="row">
         <div class="col-lg-6">
-            <div class="fv-row mb-8">
-                <label class="required fs-6 fw-semibold mb-2">Nombre</label>
+            <div class="fv-row">
+                <label class="col-form-label">Nombre</label>
                 <TextInput
                     id="name"
                     v-model="form.name"
@@ -60,8 +60,8 @@
             </div>
         </div>
         <div class="col-lg-6">
-            <div class="fv-row mb-3">
-                <label for="unit" class="form-label required fs-6 fw-bold mb-3">Unidad</label>
+            <div class="fv-row">
+                <label for="unit" class="col-form-label">Unidad</label>
                 <Multiselect
                     :placeholder="'Seleccione la unidad'"
                     v-model="form.unit_id"
@@ -77,8 +77,8 @@
     </div>
     <div class="row mb-3">
         <div class="col-lg-6">
-            <div class="fv-row mb-3">
-                <label for="level1" class="form-label required fs-6 fw-bold mb-3">Nivel 1</label>
+            <div class="fv-row">
+                <label for="level1" class="col-form-label">Nivel 1</label>
                 <Multiselect
                     :placeholder="'Seleccione nivel 1'"
                     v-model="form.level1_id"
@@ -93,8 +93,8 @@
             </div>
         </div>
         <div class="col-lg-6">
-            <div class="fv-row mb-3">
-                <label for="level2" class="form-label required fs-6 fw-bold mb-3">Nivel 2</label>
+            <div class="fv-row">
+                <label for="level2" class="col-form-label">Nivel 2</label>
                 <Multiselect
                     :placeholder="'Seleccione nivel 2'"
                     v-model="form.level2_id"
@@ -111,8 +111,8 @@
     </div>
     <div class="row">
         <div class="col-lg-6">
-            <div class="fv-row mb-3">
-                <label for="level3" class="form-label required fs-6 fw-bold mb-3">Nivel 3</label>
+            <div class="fv-row">
+                <label for="level3" class="col-form-label">Nivel 3</label>
                 <Multiselect
                     :placeholder="'Seleccione nivel 3'"
                     v-model="form.level3_id"
@@ -127,8 +127,8 @@
             </div>
         </div>
         <div class="col-lg-6">
-            <div class="fv-row mb-3">
-                <label for="level4" class="form-label required fs-6 fw-bold mb-3">Level 4</label>
+            <div class="fv-row">
+                <label for="level4" class="col-form-label">Level 4</label>
                 <Multiselect
                     :placeholder="'Seleccione nivel 4'"
                     v-model="form.level4_id"

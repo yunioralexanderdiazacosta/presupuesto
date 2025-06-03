@@ -135,6 +135,7 @@ const onFilter = () => {
                                 <td>{{invoice.due_date}}</td>
                                 <td class="text-end">{{invoice.total}}</td>
                                 <td class="text-end">
+                                    <div class="btn-group">
                                      <!--begin::View-->
                                     <Link :href="route('invoices.show', invoice.id)" v-tooltip="'Ver'" class="btn btn-icon btn-active-light-primary w-30px h-30px me-3">
                                         <span class="svg-icon svg-icon-3">
@@ -163,6 +164,7 @@ const onFilter = () => {
                                         </span>
                                     </button>
                                     <!--end::Delete-->
+                                </div>
                                 </td>
                             </tr>
                         </template>

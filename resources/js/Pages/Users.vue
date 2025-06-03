@@ -199,12 +199,12 @@ const onFilter = () => {
                                 <td>{{user.name}}</td>
                                 <td>{{user.email}}</td>
                                 <td>
-                                    <span class="badge" :class="{'badge-light-info': user.role == 'Digitador', 'badge-light-warning':  user.role == 'Administrador'}">{{user.role}}</span>
+                                    <span class="badge" :class="{' rounded-pill badge-subtle-info': user.role == 'Digitador', 'rounded-pill badge-subtle-warning':  user.role == 'Administrador'}">{{user.role}}</span>
                                 </td>
                                 <td>{{moment(user.created_at).format('DD-MM-YYYY hh:mm A')}}</td>
                                 <td>
-                                    <span class="badge badge-light-success" v-if="user.status == 1">Activo</span>
-                                    <span class="badge badge-light-danger" v-else>Suspendido</span>
+                                    <span class="badge badge-subtle-success" v-if="user.status == 1">Activo</span>
+                                    <span class="badge badge-subtle-danger" v-else>Suspendido</span>
                                 </td>
                                 <td class="text-end">
                                     <!--begin::Update-->

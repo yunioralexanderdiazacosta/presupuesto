@@ -76,7 +76,7 @@
             <small class="text-danger mt-2" :v-if="form.errors.dose_type_id">{{form.errors.dose_type_id}}</small>
         </div>
         <div class="col-lg-6">
-            <div class="fv-row mb-8">
+            <div class="fv-row">
                 <label class="col-form-label">Dosis/Hectarea</label>
                 <TextInput
                     id="dose"
@@ -93,7 +93,7 @@
 
     <div class="row">
         <div class="col-lg-6">
-            <div class="fv-row mb-8">
+            <div class="fv-row">
                 <label class="col-form-label">Mojamiento</label>
                 <TextInput
                     id="product_name"
@@ -108,7 +108,7 @@
         <div class="col-lg-6">
             <div class="row">
                 <div class="col-lg-6">
-                    <div class="fv-row mb-8">
+                    <div class="fv-row">
                         <label class="col-form-label">Precio</label>
                         <TextInput
                             id="price"
@@ -122,7 +122,7 @@
                 </div>
 
                 <div class="col-lg-6">
-                    <div class="fv-row mb-8">
+                    <div class="fv-row">
                         <label for="unit" class="col-form-label">Unidad</label>
                          <Multiselect
                             :placeholder="''"
@@ -152,7 +152,7 @@
         <small class="text-danger">{{form.errors.months}}</small> 
     </div>
 
-    <div class="fv-row mb-3">
+    <div class="fv-row">
         <label for="observations" class="col-form-label">Observaciones</label>
         <textarea v-model="form.observations" rows="3" class="form-control form-control-lg form-control-solid mb-3 mb-lg-0" :class="{'is-invalid': form.errors.observations }" ></textarea>
         <InputError class="mt-2" :message="form.errors.observations" />
@@ -164,7 +164,7 @@
     --ms-bg: var(--kt-input-solid-bg) !important;
     --ms-border-color: var(--kt-input-solid-bg);
     --ms-py: 3px !important;
-    --ms-tag-bg: #eee;
+    --ms-tag-bg: #2c7be5;
     --ms-tag-color: var(--kt-primary);
     --ms-option-bg-selected: var(--kt-primary);
     --ms-option-bg-selected-pointed: var(--kt-primary);

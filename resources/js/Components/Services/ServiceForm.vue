@@ -43,7 +43,7 @@
 
     <div class="row">
         <div class="col-lg-6">
-            <div class="fv-row mb-8">
+            <div class="fv-row">
                 <label class="col-form-label">Nombre del Producto</label>
                 <TextInput
                     id="product_name"
@@ -55,8 +55,8 @@
             </div>
         </div>
         <div class="col-lg-6">
-            <div class="fv-row mb-8">
-                <label for="unit" class="form-label required fs-6 fw-bold mb-3">Unidad</label><br>
+            <div class="fv-row">
+                <label for="unit" class="col-form-label">Unidad</label><br>
                 <template v-for="value in $page.props.units">
                     <div class="form-check form-check-solid form-check-inline mb-3 mt-3">
                         <input class="form-check-input" type="radio" v-model="form.unit_id" :id="'kt_unit_'+value.id" :value="value.value">
@@ -68,11 +68,9 @@
         </div>
     </div>
 
-   
-
     <div class="row">
         <div class="col-lg-6">
-            <div class="fv-row mb-8">
+            <div class="fv-row">
                 <label class="col-form-label">Cantidad</label>
                 <TextInput
                     id="quantity"
@@ -88,7 +86,7 @@
         <div class="col-lg-6">
             <div class="row">
                 <div class="col-lg-6">
-                    <div class="fv-row mb-8">
+                    <div class="fv-row">
                         <label class="col-form-label">Precio</label>
                         <TextInput
                             id="price"
@@ -102,7 +100,7 @@
                 </div>
 
                 <div class="col-lg-6">
-                    <div class="fv-row mb-8">
+                    <div class="fv-row">
                         <label for="unit" class="col-form-label">Unidad</label>
                          <Multiselect
                             :placeholder="''"
@@ -121,10 +119,10 @@
         </div>
     </div>
 
-    <div class="fv-row mb-3">
+    <div class="fv-row">
         <label for="months" class="col-form-label">Meses</label><br>
         <template v-for="value in $page.props.months">
-            <div class="form-check form-check-solid form-check-inline mb-3">
+            <div class="form-check form-check-solid form-check-inline mb-1">
                 <input class="form-check-input" type="checkbox" v-model="form.months" :id="'kt_month_'+value.id" :value="value.value">
                 <label class="form-check-label ps-2" :for="'kt_month_'+value.id">{{value.label}}</label>
             </div>
@@ -132,7 +130,7 @@
         <small class="text-danger">{{form.errors.months}}</small> 
     </div>
 
-    <div class="fv-row mb-3">
+    <div class="fv-row">
         <label for="observations" class="col-form-label">Observaciones</label>
         <textarea v-model="form.observations" rows="3" class="form-control form-control-lg mb-3 mb-lg-0" :class="{'is-invalid': form.errors.observations }" ></textarea>
         <InputError class="mt-2" :message="form.errors.observations" />
@@ -144,7 +142,7 @@
     --ms-bg: var(--kt-input-solid-bg) !important;
     --ms-border-color: var(--kt-input-solid-bg);
     --ms-py: 3px !important;
-    --ms-tag-bg: #eee;
+    --ms-tag-bg: #2c7be5;
     --ms-tag-color: var(--kt-primary);
     --ms-option-bg-selected: var(--kt-primary);
     --ms-option-bg-selected-pointed: var(--kt-primary);

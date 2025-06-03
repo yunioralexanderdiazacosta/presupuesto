@@ -9,7 +9,7 @@ const props = defineProps({
 defineEmits(['update']);
 </script>
 <template>
-    <Modal :id="'editSupplierModal'">
+    <Modal :maxWidth="'lg'" :id="'editSupplierModal'">
         <template #header>
             <h1 class="mb-3">Editar proveedor</h1>
         </template>

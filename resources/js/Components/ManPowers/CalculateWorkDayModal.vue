@@ -40,8 +40,8 @@ defineEmits(['store']);
         <template #body>
             <div class="row">
                 <div class="col-lg-6">
-                    <div class="fv-row mb-8">
-                        <label class="required fs-6 fw-semibold mb-2">Rendimiento de 1 persona</label>
+                    <div class="fv-row">
+                        <label class="col-form-label">Rendimiento de 1 persona</label>
                         <TextInput
                             id="performance"
                             v-model="form.performance"
@@ -53,8 +53,8 @@ defineEmits(['store']);
                     </div>
                 </div>
                 <div class="col-lg-6">
-                    <div class="fv-row mb-8">
-                        <label class="required fs-6 fw-semibold mb-2">Plantas por hectarea</label>
+                    <div class="fv-row">
+                        <label class="col-form-label">Plantas por hectarea</label>
                         <TextInput
                             id="floors"
                             v-model="form.floors"

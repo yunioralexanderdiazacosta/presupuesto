@@ -187,8 +187,9 @@ const onFilter = () => {
                                 <td>{{machinery.type_machinery.name}}</td>
                                 <td>{{machinery.brand}}</td>
                                 <td>
-                                    <span class="badge badge-light-success" v-if="machinery.is_active == true">Activo</span>
-                                    <span class="badge badge-light-danger" v-else>Inactivo</span>
+                                    <span class="badge badge-subtle-success" v-if="machinery.is_active == true">Activo</span>
+                                    <span class="badge badge-subtle-danger" v-else>Inactivo</span>
+
                                 </td>
                                 <td class="text-end">
                                     <!--begin::Update-->

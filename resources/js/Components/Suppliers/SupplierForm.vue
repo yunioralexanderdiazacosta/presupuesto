@@ -10,35 +10,31 @@
 <template>
     <div class="row">
         <div class="col-lg-6">
-            <div class="fv-row mb-8">
-                <label class="required fs-6 fw-semibold mb-2">Nombre</label>
-                <TextInput
-                    id="name"
-                    v-model="form.name"
-                    class="form-control form-control-solid"
-                    type="text"
-                    :class="{'is-invalid': form.errors.name}"
-                />
-                <InputError class="mt-2" :message="form.errors.name" />
-            </div>
+            <label class="col-form-label">Nombre</label>
+            <TextInput
+                id="name"
+                v-model="form.name"
+                class="form-control form-control-solid"
+                type="text"
+                :class="{'is-invalid': form.errors.name}"
+            />
+            <InputError class="mt-2" :message="form.errors.name" />
         </div>
         <div class="col-lg-6">
-            <div class="fv-row mb-8">
-                <label class="required fs-6 fw-semibold mb-2">Rut</label>
-                <TextInput
-                    id="rut"
-                    v-model="form.rut"
-                    class="form-control form-control-solid"
-                    type="text"
-                    :class="{'is-invalid': form.errors.rut}"
-                />
-                <InputError class="mt-2" :message="form.errors.rut" />
-            </div>
+            <label class="col-form-label">Rut</label>
+            <TextInput
+                id="rut"
+                v-model="form.rut"
+                class="form-control form-control-solid"
+                type="text"
+                :class="{'is-invalid': form.errors.rut}"
+            />
+            <InputError class="mt-2" :message="form.errors.rut" />
         </div>
     </div>
 
-      <div class="fv-row mb-8">
-        <label class="required fs-6 fw-semibold mb-2">Contacto</label>
+    <div class="fv-row">
+        <label class="col-form-label">Contacto</label>
         <TextInput
             id="contact"
             v-model="form.contact"
@@ -52,8 +48,8 @@
 
     <div class="row">
         <div class="col-lg-6">
-            <div class="fv-row mb-8">
-                <label class="required fs-6 fw-semibold mb-2">Email</label>
+            <div class="fv-row">
+                <label class="col-form-label">Email</label>
                 <TextInput
                     id="email"
                     v-model="form.email"
@@ -65,8 +61,8 @@
             </div>
         </div>
         <div class="col-lg-6">
-            <div class="fv-row mb-8">
-                <label class="required fs-6 fw-semibold mb-2">Telefono</label>
+            <div class="fv-row">
+                <label class="col-form-label">Telefono</label>
                 <TextInput
                     id="phone"
                     v-model="form.phone"
@@ -94,19 +90,3 @@
         <InputError class="mt-2" :message="form.errors.budget_id" />
     </div>-->
 </template>
-<style src="@vueform/multiselect/themes/default.css"></style>
-<style>
-.multiselect-blue {
-    --ms-bg: var(--kt-input-solid-bg) !important;
-    --ms-border-color: var(--kt-input-solid-bg);
-    --ms-py: 3px !important;
-    --ms-tag-bg: #eee;
-    --ms-tag-color: var(--kt-primary);
-    --ms-option-bg-selected: var(--kt-primary);
-    --ms-option-bg-selected-pointed: var(--kt-primary);
-}
-
-.multiselect-tags-search, .multiselect-search{
-    background: var(--kt-input-solid-bg) !important;
-}
-</style>

@@ -9,8 +9,8 @@
 <template>
     <div class="row">
         <div class="col-lg-6">
-            <div class="fv-row mb-8">
-                <label class="required fs-6 fw-semibold mb-2">Rut</label>
+            <div class="fv-row">
+                <label class="col-form-label">Rut</label>
                 <TextInput
                     id="rut"
                     v-model="form.rut"
@@ -22,8 +22,8 @@
             </div>
         </div>
         <div class="col-lg-6">
-            <div class="fv-row mb-8">
-                <label class="required fs-6 fw-semibold mb-2">Nombre</label>
+            <div class="fv-row">
+                <label class="col-form-label">Nombre</label>
                 <TextInput
                     id="name"
                     v-model="form.name"
@@ -37,8 +37,8 @@
     </div>
     <div class="row">
         <div class="col-lg-6">
-            <div class="fv-row mb-8">
-                <label class="required fs-6 fw-semibold mb-2">Representante legal</label>
+            <div class="fv-row">
+                <label class="col-form-label">Representante legal</label>
                 <TextInput
                     id="rut"
                     v-model="form.legal_representative"
@@ -50,8 +50,8 @@
             </div>
         </div>
         <div class="col-lg-6">
-            <div class="fv-row mb-8">
-                <label class="required fs-6 fw-semibold mb-2">Rut Representante legal</label>
+            <div class="fv-row">
+                <label class="col-form-label">Rut Representante legal</label>
                 <TextInput
                     id="rut"
                     v-model="form.rut_representative"
@@ -64,8 +64,8 @@
         </div>
     </div>
     
-    <div class="fv-row mb-8">
-        <label for="address" class="required form-label fs-6 fw-bold mb-3">Dirección</label>
+    <div class="fv-row">
+        <label for="address" class="col-form-label">Dirección</label>
         <textarea v-model="form.address" rows="3" class="form-control form-control-lg form-control-solid mb-3 mb-lg-0" :class="{'is-invalid': form.errors.address }"></textarea>
         <InputError class="mt-2" :message="form.errors.address" />
     </div>

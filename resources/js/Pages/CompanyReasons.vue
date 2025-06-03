@@ -109,7 +109,7 @@ const onFilter = () => {
             <div class="card-header">
                 <div class="row flex-between-end">
                     <div class="col-auto align-self-center">
-                        <h5 class="mb-0" data-anchor="data-anchor">Centros de costos</h5>
+                        <h5 class="mb-0" data-anchor="data-anchor">{{title}}</h5>
                     </div>
                     <div class="col-auto ms-auto">
                         <div class="d-flex justify-content-end" data-kt-customer-table-toolbar="base">

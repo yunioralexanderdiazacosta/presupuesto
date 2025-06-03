@@ -23,14 +23,14 @@ const logout = () => {
         <div class="navbar-vertical-content scrollbar">
           <ul class="navbar-nav flex-column mb-3" id="navbarVerticalNav">
             <li class="nav-item">
-              <!-- parent pages--><a class="nav-link" href="pages/starter.html" role="button">
+              <!--<a class="nav-link" href="pages/starter.html" role="button">
                 <div class="d-flex align-items-center"><span class="nav-link-icon"><span class="fas fa-flag"></span></span><span class="nav-link-text ps-1">Starter</span>
                 </div>
               </a>
-              <!-- parent pages--><a class="nav-link" href="pages/landing.html" role="button">
+              <a class="nav-link" href="pages/landing.html" role="button">
                 <div class="d-flex align-items-center"><span class="nav-link-icon"><span class="fas fa-globe"></span></span><span class="nav-link-text ps-1">Landing</span>
                 </div>
-              </a>
+              </a>-->
               <!-- parent pages--><a class="nav-link dropdown-indicator" href="#authentication" role="button" data-bs-toggle="collapse" aria-expanded="false" aria-controls="authentication">
                 <div class="d-flex align-items-center"><span class="nav-link-icon"><span class="fas fa-lock"></span></span><span class="nav-link-text ps-1">Presupuestos</span>
                 </div>
