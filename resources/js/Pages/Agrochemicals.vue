@@ -151,7 +151,7 @@ const onFilter = () => {
         <Breadcrumb :links="links" />
         <!--end::Breadcrumb-->
                         
-        <div class="card my-3">
+        <div class="card my-3" style="max-width:98vw; width:100%;">
             <div class="card-header">
                 <div class="row flex-between-center">
                     <div class="col-6 col-sm-auto d-flex align-items-center pe-0">
@@ -223,8 +223,8 @@ const onFilter = () => {
                         </Table>
                     </div>
                     <div class="tab-pane fade" id="pill-tab-detalles" role="tabpanel" aria-labelledby="detalles-tab">
-                        <div class="row">
-                            <div class="col-md-6 col-lg-3 col-xl-6 col-xxl-4">
+                        <div class="row mb-3">
+                            <div class="col-md-6 col-lg-3 col-xl-6 col-xxl-3">
                               <div class="card h-md-100 ecommerce-card-min-width">
                                 <div class="card-header pb-0">
                                   <h6 class="mb-0 mt-2 d-flex align-items-center">Monto Total</h6>
@@ -232,22 +232,22 @@ const onFilter = () => {
                                 <div class="card-body d-flex flex-column justify-content-end">
                                   <div class="row">
                                     <div class="col">
-                                      <p class="font-sans-serif lh-1 mb-1 fs-5">{{totalData1}}</p>
+                                      <p class="font-sans-serif lh-1 mb-1 fs-6">{{totalData1}}</p>
                                     </div>
                                   </div>
                                 </div>
                               </div>
                             </div>
 
-                            <div class="col-md-6 col-lg-3 col-xl-6 col-xxl-4">
+                            <div class="col-md-6 col-lg-3 col-xl-6 col-xxl-3">
                               <div class="card h-md-100 ecommerce-card-min-width">
                                 <div class="card-header pb-0">
-                                  <h6 class="mb-0 mt-2 d-flex align-items-center">Porc. Monto</h6>
+                                  <h5 class="mb-0 mt-2 d-flex align-items-center">Porc. Monto</h5>
                                 </div>
                                 <div class="card-body d-flex flex-column justify-content-end">
                                   <div class="row">
                                     <div class="col">
-                                      <p class="font-sans-serif lh-1 mb-1 fs-5">{{percentage}}%</p>
+                                      <p class="font-sans-serif lh-1 mb-1 fs-6">{{percentage}}%</p>
                                     </div>
                                   </div>
                                 </div>
@@ -256,8 +256,8 @@ const onFilter = () => {
                         </div>
 
                         <!--begin::Table-->
-                        <div class="table-responsive">
-                            <table class="table">
+                        <div class="table-responsive mt-1">
+                            <table class="table table-bordered table-hover table-sm custom-striped fs-10 mb-0 agrochem-details">
                                 <!--begin::Table head-->
                                 <thead>
                                     <tr>
@@ -302,8 +302,8 @@ const onFilter = () => {
                         </div>
                     </div>
                     <div class="tab-pane fade" id="pill-tab-gastos" role="tabpanel" aria-labelledby="gastos-tab">
-                        <div class="row">
-                            <div class="col-md-6 col-lg-3 col-xl-6 col-xxl-4">
+                        <div class="row mb-3">
+                            <div class="col-md-6 col-lg-3 col-xl-6 col-xxl-3">
                               <div class="card h-md-100 ecommerce-card-min-width">
                                 <div class="card-header pb-0">
                                   <h6 class="mb-0 mt-2 d-flex align-items-center">Monto Total</h6>
@@ -311,14 +311,14 @@ const onFilter = () => {
                                 <div class="card-body d-flex flex-column justify-content-end">
                                   <div class="row">
                                     <div class="col">
-                                      <p class="font-sans-serif lh-1 mb-1 fs-5">{{totalData1}}</p>
+                                      <p class="font-sans-serif lh-1 mb-1 fs-6">{{totalData1}}</p>
                                     </div>
                                   </div>
                                 </div>
                               </div>
                             </div>
 
-                            <div class="col-md-6 col-lg-3 col-xl-6 col-xxl-4">
+                            <div class="col-md-6 col-lg-3 col-xl-6 col-xxl-3">
                               <div class="card h-md-100 ecommerce-card-min-width">
                                 <div class="card-header pb-0">
                                   <h6 class="mb-0 mt-2 d-flex align-items-center">Porc. Monto</h6>
@@ -326,7 +326,7 @@ const onFilter = () => {
                                 <div class="card-body d-flex flex-column justify-content-end">
                                   <div class="row">
                                     <div class="col">
-                                      <p class="font-sans-serif lh-1 mb-1 fs-5">{{percentage}}%</p>
+                                      <p class="font-sans-serif lh-1 mb-1 fs-6">{{percentage}}%</p>
                                     </div>
                                   </div>
                                 </div>
@@ -335,8 +335,8 @@ const onFilter = () => {
                         </div>
 
                         <!--begin::Table-->
-                        <div class="table-responsive">
-                            <table class="table">
+                        <div class="table-responsive mt-1">
+                            <table class="table table-bordered table-hover table-sm custom-striped fs-10 mb-0 agrochem-details">
                                 <!--begin::Table head-->
                                 <thead>
                                     <tr>
@@ -381,8 +381,8 @@ const onFilter = () => {
                         </div>
                     </div>
                     <div class="tab-pane fade" id="pill-tab-detalles-compra" role="tabpanel" aria-labelledby="detalles-compra-tab">
-                        <div class="row">
-                            <div class="col-md-6 col-lg-3 col-xl-6 col-xxl-4">
+                        <div class="row mb-3">
+                            <div class="col-md-6 col-lg-3 col-xl-6 col-xxl-3">
                               <div class="card h-md-100 ecommerce-card-min-width">
                                 <div class="card-header pb-0">
                                   <h6 class="mb-0 mt-2 d-flex align-items-center">Monto Total</h6>
@@ -390,14 +390,14 @@ const onFilter = () => {
                                 <div class="card-body d-flex flex-column justify-content-end">
                                   <div class="row">
                                     <div class="col">
-                                      <p class="font-sans-serif lh-1 mb-1 fs-5">{{totalData2}}</p>
+                                      <p class="font-sans-serif lh-1 mb-1 fs-6">{{totalData2}}</p>
                                     </div>
                                   </div>
                                 </div>
                               </div>
                             </div>
 
-                            <div class="col-md-6 col-lg-3 col-xl-6 col-xxl-4">
+                            <div class="col-md-6 col-lg-3 col-xl-6 col-xxl-3">
                               <div class="card h-md-100 ecommerce-card-min-width">
                                 <div class="card-header pb-0">
                                   <h6 class="mb-0 mt-2 d-flex align-items-center">Porc. Monto</h6>
@@ -405,7 +405,7 @@ const onFilter = () => {
                                 <div class="card-body d-flex flex-column justify-content-end">
                                   <div class="row">
                                     <div class="col">
-                                      <p class="font-sans-serif lh-1 mb-1 fs-5">{{percentage}}%</p>
+                                      <p class="font-sans-serif lh-1 mb-1 fs-6">{{percentage}}%</p>
                                     </div>
                                   </div>
                                 </div>
@@ -414,8 +414,8 @@ const onFilter = () => {
                         </div>   
 
                         <!--begin::Table-->
-                        <div class="table-responsive">
-                            <table class="table">
+                        <div class="table-responsive mt-1">
+                            <table class="table table-bordered table-hover table-sm custom-striped fs-10 mb-0 agrochem-details">
                                 <!--begin::Table head-->
                                 <thead>
                                     <tr>
@@ -460,3 +460,14 @@ const onFilter = () => {
         <EditAgrochemicalModal @update="updateAgrochemical" :form="form" />
     </AppLayout>
 </template>
+
+<style>
+.table.agrochem-details > thead > tr {
+  background-color: #e7ebee !important; /* azul claro, puedes ajustar el color */
+}
+
+.table.agrochem-details > :not(caption) > * > * {
+  border-width: 1px !important;
+  border-color: #cdcdd3 !important;
+}
+</style>

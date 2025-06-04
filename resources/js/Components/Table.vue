@@ -14,7 +14,7 @@ defineProps({
 <template>
     <div class="table-responsive scrollbar">
         <!--begin::Table-->
-        <table class="table">
+        <table class="table table-bordered table-striped table-hover table-sm custom-striped fs-10 mb-0">
             <!--begin::Table head-->
             <thead>
                 <tr>
@@ -24,7 +24,9 @@ defineProps({
             <!--end::Table head-->
             <!--begin::Table body-->
             <tbody>
+                 
                 <slot name="body"></slot>
+                
             </tbody>
             <!--end::Table body-->
         </table>
@@ -32,3 +34,13 @@ defineProps({
     </div>
     <paginate v-if="total > 0" :links="links"></paginate>
 </template>
+
+<style>
+.table-striped > tbody > tr:nth-of-type(odd) {
+  background-color: #ffffff !important;
+}
+.table th, .table td {
+  vertical-align: middle;
+}
+
+</style>
