@@ -79,7 +79,7 @@ const items = [
                 link: null,
                 subitems: [
                     {
-                        title: 'Gnral Campo',
+                        title: 'Gral Campo',
                         icon: `<i class="bi bi-card-checklist"></i>`,
                         link: 'dashboard'
                     }

@@ -45,7 +45,7 @@ const onSubmit = () => {
                             <Multiselect
                                 placeholder="Seleccione temporada"
                                 v-model="form.season_id"
-                                :close-on-select="false"
+                                :close-on-select="true"
                                 :options="$page.props.seasons"
                                 class="multiselect-blue form-control"
                                 :class="{'is-invalid': form.errors.season_id}"

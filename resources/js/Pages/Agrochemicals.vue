@@ -151,7 +151,7 @@ const onFilter = () => {
         <Breadcrumb :links="links" />
         <!--end::Breadcrumb-->
                         
-        <div class="card my-3" style="max-width:98vw; width:100%;">
+        <div class="card my-3">
             <div class="card-header">
                 <div class="row flex-between-center">
                     <div class="col-6 col-sm-auto d-flex align-items-center pe-0">

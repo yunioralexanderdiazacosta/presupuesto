@@ -30,7 +30,7 @@ const maxWidthClass = computed(() => {
         <!--begin::Modal dialog-->
         <div class="modal-dialog modal-dialog-centered" :class="maxWidthClass">
             <!--begin::Modal content-->
-            <div class="modal-content rounded">
+            <div class="modal-content rounded bg-modal-custom">
                 <!--begin::Modal header-->
                 <div class="modal-header pb-0 border-0 justify-content-end">
                     <!--begin::Close-->
@@ -48,7 +48,7 @@ const maxWidthClass = computed(() => {
                 </div>
                 <!--begin::Modal header-->
                 <!--begin::Modal body-->
-                <div class="modal-body scroll-y px-10 px-lg-15 pt-0 pb-15">
+                <div class="modal-body scroll-y px-3 px-lg-5 pt-0 pb-15">
                     <!--begin:Form-->
                         <!--begin::Heading-->
                         <div class="mb-13 text-center">
@@ -73,3 +73,9 @@ const maxWidthClass = computed(() => {
         <!--end::Modal dialog-->
     </div>
 </template>
+
+<style>
+.bg-modal-custom {
+    background-color: #f4f8fb !important; /* Color suave, diferente al fondo de los inputs */
+}
+</style>

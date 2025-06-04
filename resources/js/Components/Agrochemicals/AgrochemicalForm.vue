@@ -12,31 +12,37 @@
     <div class="row">
         <div class="col-lg-6">
             <label for="cc" class="col-form-label">CC</label>
-            <Multiselect
-                mode="tags"
-                :placeholder="'Seleccione CC'"
-                v-model="form.cc"
-                :close-on-select="false"
-                :options="$page.props.costCenters"
-                class="form-control"
-                :class="{'is-invalid': form.errors.cc}"
-                :searchable="true"
-                :hide-selected="false"
-            />
+            <div class="input-group mb-2">
+                <span class="input-group-text"><i class="fas fa-sitemap"></i></span>
+                <Multiselect
+                    mode="tags"
+                    :placeholder="'Seleccione CC'"
+                    v-model="form.cc"
+                    :close-on-select="false"
+                    :options="$page.props.costCenters"
+                    class="form-control"
+                    :class="{'is-invalid': form.errors.cc}"
+                    :searchable="true"
+                    :hide-selected="false"
+                />
+            </div>
             <InputError class="mt-2" :message="form.errors.cc" />
         </div>
         <div class="col-lg-6">
             <label for="families" class="col-form-label">Familia</label>
-            <Multiselect
-                :placeholder="'Seleccione familia'"
-                v-model="form.subfamily_id"
-                :close-on-select="true"
-                :options="$page.props.subfamilies"
-                class="form-control"
-                :class="{'is-invalid': form.errors.subfamily_id}"
-                :searchable="true"
-                :hide-selected="false"
-            />
+            <div class="input-group mb-2">
+                <span class="input-group-text"><i class="fas fa-layer-group"></i></span>
+                <Multiselect
+                    :placeholder="'Seleccione familia'"
+                    v-model="form.subfamily_id"
+                    :close-on-select="true"
+                    :options="$page.props.subfamilies"
+                    class="form-control"
+                    :class="{'is-invalid': form.errors.subfamily_id}"
+                    :searchable="true"
+                    :hide-selected="false"
+                />
+            </div>
             <InputError class="mt-2" :message="form.errors.subfamily_id" />
         </div>
     </div>
@@ -44,16 +50,19 @@
     <div class="row">
         <div class="col-lg-6">
             <label class="col-form-label">Nombre del producto</label>
-            <TextInput
-                id="product_name"
-                v-model="form.product_name"
-                class="form-control"
-                type="text"
-            />
+            <div class="input-group mb-2">
+                <span class="input-group-text"><i class="fas fa-flask"></i></span>
+                <TextInput
+                    id="product_name"
+                    v-model="form.product_name"
+                    class="form-control"
+                    type="text"
+                />
+            </div>
             <InputError class="mt-2" :message="form.errors.product_name" />
         </div>
         <div class="col-lg-6">
-            <label for="unit" class="col-form-label">Unidad</label><br>
+            <label for="unit" class="col-form-label">Unidad de la dosis</label><br>
             <template v-for="value in $page.props.units">
                 <div class="form-check form-check-solid form-check-inline mb-3 mt-3">
                     <input class="form-check-input" type="radio" v-model="form.unit_id" :id="'kt_unit_'+value.id" :value="value.value">
@@ -78,83 +87,95 @@
         <div class="col-lg-6">
             <div class="fv-row">
                 <label class="col-form-label">Dosis/Hectarea</label>
-                <TextInput
-                    id="dose"
-                    v-model="form.dose"
-                    class="form-control"
-                    type="number"
-                    step="0.00"
-                    :class="{'is-invalid': form.errors.dose}"
-                />
+                <div class="input-group mb-2">
+                    <span class="input-group-text"><i class="fas fa-vial"></i></span>
+                    <TextInput
+                        id="dose"
+                        v-model="form.dose"
+                        class="form-control"
+                        type="number"
+                        step="0.00"
+                        :class="{'is-invalid': form.errors.dose}"
+                    />
+                </div>
                 <InputError class="mt-2" :message="form.errors.dose" />
             </div>
         </div>
     </div>
 
     <div class="row">
-        <div class="col-lg-6">
+        <div class="col-lg-3">
             <div class="fv-row">
                 <label class="col-form-label">Mojamiento</label>
-                <TextInput
-                    id="product_name"
-                    v-model="form.mojamiento"
-                    class="form-control"
-                    type="number"
-                    :class="{'is-invalid': form.errors.mojamiento}"
-                />
+                <div class="input-group mb-2">
+                    <span class="input-group-text"><i class="fas fa-tint"></i></span>
+                    <TextInput
+                        id="product_name"
+                        v-model="form.mojamiento"
+                        class="form-control"
+                        type="number"
+                        :class="{'is-invalid': form.errors.mojamiento}"
+                    />
+                </div>
                 <InputError class="mt-2" :message="form.errors.mojamiento" />
             </div>
         </div>
-        <div class="col-lg-6">
-            <div class="row">
-                <div class="col-lg-6">
-                    <div class="fv-row">
-                        <label class="col-form-label">Precio</label>
-                        <TextInput
-                            id="price"
-                            v-model="form.price"
-                            class="form-control"
-                            type="number"
-                            :class="{'is-invalid': form.errors.price}"
-                        />
-                        <InputError class="mt-2" :message="form.errors.price" />
-                    </div>
+        <div class="col-lg-5">
+            <div class="fv-row">
+                <label class="col-form-label">Precio</label>
+                <div class="input-group mb-2">
+                    <span class="input-group-text"><i class="fas fa-dollar-sign"></i></span>
+                    <TextInput
+                        id="price"
+                        v-model="form.price"
+                        class="form-control"
+                        type="number"
+                        :class="{'is-invalid': form.errors.price}"
+                    />
                 </div>
-
-                <div class="col-lg-6">
-                    <div class="fv-row">
-                        <label for="unit" class="col-form-label">Unidad</label>
-                         <Multiselect
-                            :placeholder="''"
-                            v-model="form.unit_id_price"
-                            :close-on-select="true"
-                            :options="$page.props.units"
-                            class="multiselect-blue form-control"
-                            :class="{'is-invalid': form.errors.unit_id_price}"
-                            :searchable="true"
-                            :hide-selected="false"
-                        />
-                        <InputError class="mt-2" :message="form.errors.unit_id_price" />
-                    </div>
+                <InputError class="mt-2" :message="form.errors.price" />
+            </div>
+        </div>
+        <div class="col-lg-4">
+            <div class="fv-row">
+                <label for="unit" class="col-form-label">Unidad del precio</label>
+                <div class="input-group mb-2">
+                    <span class="input-group-text"><i class="fas fa-balance-scale"></i></span>
+                    <Multiselect
+                        :placeholder="''"
+                        v-model="form.unit_id_price"
+                        :close-on-select="true"
+                        :options="$page.props.units"
+                        class="multiselect-blue form-control"
+                        :class="{'is-invalid': form.errors.unit_id_price}"
+                        :searchable="true"
+                        :hide-selected="false"
+                    />
                 </div>
+                <InputError class="mt-2" :message="form.errors.unit_id_price" />
             </div>
         </div>
     </div>
 
-    <div class="fv-row mb-3">
+    <div class="mb-3">
         <label for="months" class="col-form-label">Meses</label><br>
-        <template v-for="value in $page.props.months">
-            <div class="form-check form-check-solid form-check-inline mb-3">
-                <input class="form-check-input" type="checkbox" v-model="form.months" :id="'kt_month_'+value.id" :value="value.value">
-                <label class="form-check-label ps-2" :for="'kt_month_'+value.id">{{value.label}}</label>
-            </div>
-        </template>
+        <div class="d-flex flex-wrap gap-2">
+            <template v-for="value in $page.props.months">
+                <div class="form-check form-check-solid form-check-inline">
+                    <input class="form-check-input" type="checkbox" v-model="form.months" :id="'kt_month_'+value.id" :value="value.value">
+                    <label class="form-check-label ps-2" :for="'kt_month_'+value.id">{{value.label}}</label>
+                </div>
+            </template>
+        </div>
         <small class="text-danger">{{form.errors.months}}</small> 
     </div>
 
     <div class="fv-row">
         <label for="observations" class="col-form-label">Observaciones</label>
-        <textarea v-model="form.observations" rows="3" class="form-control form-control-lg form-control-solid mb-3 mb-lg-0" :class="{'is-invalid': form.errors.observations }" ></textarea>
+        <div class="input-group mb-2">
+            <span class="input-group-text"><i class="fas fa-comment-dots"></i></span>
+            <textarea v-model="form.observations" rows="2" class="form-control form-control-lg form-control-solid mb-3 mb-lg-0" :class="{'is-invalid': form.errors.observations }" ></textarea>
+        </div>
         <InputError class="mt-2" :message="form.errors.observations" />
     </div>
 </template>

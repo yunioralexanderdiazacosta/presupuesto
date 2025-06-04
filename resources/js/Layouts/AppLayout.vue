@@ -8,7 +8,8 @@ const logout = () => {
 </script>
 
 <template>
-    <nav class="navbar navbar-light navbar-vertical navbar-expand-xl">
+  <div class="d-flex">
+    <nav class="navbar navbar-light navbar-vertical navbar-expand-xl position-fixed start-0 top-0 vh-100 ms-4">
         <div class="d-flex align-items-center">
             <div class="toggle-icon-wrapper">
               <button class="btn navbar-toggler-humburger-icon navbar-vertical-toggle" data-bs-toggle="tooltip" data-bs-placement="left" title="Toggle Navigation"><span class="navbar-toggle-icon"><span class="toggle-line"></span></span></button>
@@ -49,31 +50,31 @@ const logout = () => {
                   <!-- more inner pages-->
                   <ul class="nav collapse" id="simple">
                     <li class="nav-item"><Link class="nav-link" :href="route('agrochemicals.index')">
-                        <div class="d-flex align-items-center"><span class="nav-link-text ps-1">Agroquimicos</span>
+                        <div class="d-flex align-items-center"><span class="nav-link-text ps-1">- Agroquimicos</span>
                         </div>
                       </Link>
                       <!-- more inner pages-->
                     </li>
                     <li class="nav-item"><Link class="nav-link" :href="route('fertilizers.index')">
-                        <div class="d-flex align-items-center"><span class="nav-link-text ps-1">Fertilizantes</span>
+                        <div class="d-flex align-items-center"><span class="nav-link-text ps-1">- Fertilizantes</span>
                         </div>
                       </Link>
                       <!-- more inner pages-->
                     </li>
                     <li class="nav-item"><Link class="nav-link" :href="route('manpowers.index')">
-                        <div class="d-flex align-items-center"><span class="nav-link-text ps-1">Mano de Obra</span>
+                        <div class="d-flex align-items-center"><span class="nav-link-text ps-1">- Mano de Obra</span>
                         </div>
                       </Link>
                       <!-- more inner pages-->
                     </li>
                     <li class="nav-item"><Link class="nav-link" :href="route('supplies.index')">
-                        <div class="d-flex align-items-center"><span class="nav-link-text ps-1">Insumos</span>
+                        <div class="d-flex align-items-center"><span class="nav-link-text ps-1">- Insumos</span>
                         </div>
                       </Link>
                       <!-- more inner pages-->
                     </li>
                     <li class="nav-item"><Link class="nav-link" :href="route('services.index')">
-                        <div class="d-flex align-items-center"><span class="nav-link-text ps-1">Servicios</span>
+                        <div class="d-flex align-items-center"><span class="nav-link-text ps-1">- Servicios</span>
                         </div>
                       </Link>
                       <!-- more inner pages-->
@@ -87,7 +88,7 @@ const logout = () => {
                   <!-- more inner pages-->
                   <ul class="nav collapse" id="card">
                     <li class="nav-item"><a class="nav-link" href="#">
-                        <div class="d-flex align-items-center"><span class="nav-link-text ps-1">Gnral Campo</span>
+                        <div class="d-flex align-items-center"><span class="nav-link-text ps-1">Gral Campo</span>
                         </div>
                       </a>
                       <!-- more inner pages-->
@@ -115,49 +116,49 @@ const logout = () => {
               </a>
               <ul class="nav collapse" id="user">
                 <li class="nav-item"><Link class="nav-link" :href="route('cost.centers.index')">
-                    <div class="d-flex align-items-center"><span class="nav-link-text ps-1">Centros de costos</span>
+                    <div class="d-flex align-items-center"><span class="nav-link-text ps-1">- Centros de costos</span>
                     </div>
                   </Link>
                   <!-- more inner pages-->
                 </li>
                 <li class="nav-item"><Link class="nav-link" :href="route('levels.index')">
-                    <div class="d-flex align-items-center"><span class="nav-link-text ps-1">Niveles</span>
+                    <div class="d-flex align-items-center"><span class="nav-link-text ps-1">- Niveles</span>
                     </div>
                   </Link>
                   <!-- more inner pages-->
                 </li>
                 <li class="nav-item"><Link class="nav-link" :href="route('users.index')">
-                    <div class="d-flex align-items-center"><span class="nav-link-text ps-1">Usuarios</span>
+                    <div class="d-flex align-items-center"><span class="nav-link-text ps-1">- Usuarios</span>
                     </div>
                   </Link>
                   <!-- more inner pages-->
                 </li>
                 <li class="nav-item"><Link class="nav-link" :href="route('company.reasons.index')">
-                    <div class="d-flex align-items-center"><span class="nav-link-text ps-1">Razón Social</span>
+                    <div class="d-flex align-items-center"><span class="nav-link-text ps-1">- Razón Social</span>
                     </div>
                   </Link>
                   <!-- more inner pages-->
                 </li>
                 <li class="nav-item"><Link class="nav-link" :href="route('fruits.index')">
-                    <div class="d-flex align-items-center"><span class="nav-link-text ps-1">Frutal</span>
+                    <div class="d-flex align-items-center"><span class="nav-link-text ps-1">- Frutal</span>
                     </div>
                   </Link>
                   <!-- more inner pages-->
                 </li>
                 <li class="nav-item"><Link class="nav-link" :href="route('varieties.index')">
-                    <div class="d-flex align-items-center"><span class="nav-link-text ps-1">Variedades</span>
+                    <div class="d-flex align-items-center"><span class="nav-link-text ps-1">- Variedades</span>
                     </div>
                   </Link>
                   <!-- more inner pages-->
                 </li>
                 <li class="nav-item"><Link class="nav-link" :href="route('parcels.index')">
-                    <div class="d-flex align-items-center"><span class="nav-link-text ps-1">Parcelas</span>
+                    <div class="d-flex align-items-center"><span class="nav-link-text ps-1">- Parcelas</span>
                     </div>
                   </Link>
                   <!-- more inner pages-->
                 </li>
                 <li class="nav-item"><Link class="nav-link" :href="route('seasons.index')">
-                    <div class="d-flex align-items-center"><span class="nav-link-text ps-1">Temporadas</span>
+                    <div class="d-flex align-items-center"><span class="nav-link-text ps-1">- Temporadas</span>
                     </div>
                   </Link>
                   <!-- more inner pages-->
@@ -169,31 +170,31 @@ const logout = () => {
               </a>
               <ul class="nav collapse" id="pricing">
                 <li class="nav-item"><Link class="nav-link" :href="route('suppliers.index')">
-                    <div class="d-flex align-items-center"><span class="nav-link-text ps-1">Proveedores</span>
+                    <div class="d-flex align-items-center"><span class="nav-link-text ps-1">- Proveedores</span>
                     </div>
                   </Link>
                   <!-- more inner pages-->
                 </li>
                 <li class="nav-item"><Link class="nav-link" :href="route('products.index')">
-                    <div class="d-flex align-items-center"><span class="nav-link-text ps-1">Productos</span>
+                    <div class="d-flex align-items-center"><span class="nav-link-text ps-1">- Productos</span>
                     </div>
                   </Link>
                   <!-- more inner pages-->
                 </li>
                 <li class="nav-item"><Link class="nav-link" :href="route('invoices.index')">
-                    <div class="d-flex align-items-center"><span class="nav-link-text ps-1">Facturas</span>
+                    <div class="d-flex align-items-center"><span class="nav-link-text ps-1">- Facturas</span>
                     </div>
                   </Link>
                   <!-- more inner pages-->
                 </li>
                 <li class="nav-item"><Link class="nav-link" :href="route('machineries.index')">
-                    <div class="d-flex align-items-center"><span class="nav-link-text ps-1">Maquinarias</span>
+                    <div class="d-flex align-items-center"><span class="nav-link-text ps-1">- Maquinarias</span>
                     </div>
                   </Link>
                   <!-- more inner pages-->
                 </li>
                 <li class="nav-item"><Link class="nav-link" :href="route('type.machineries.index')">
-                    <div class="d-flex align-items-center"><span class="nav-link-text ps-1">Tipo de Maquinarias</span>
+                    <div class="d-flex align-items-center"><span class="nav-link-text ps-1">- Tipo de Maquinarias</span>
                     </div>
                   </Link>
                   <!-- more inner pages-->
@@ -205,8 +206,8 @@ const logout = () => {
         </div>
         </div>
     </nav>
-    <div class="content">
-        <nav class="navbar navbar-light navbar-glass navbar-top navbar-expand">
+    <div class="content flex-grow-1">
+      <nav class="navbar navbar-light navbar-glass navbar-top navbar-expand">
 
         <button class="btn navbar-toggler-humburger-icon navbar-toggler me-1 me-sm-3" type="button" data-bs-toggle="collapse" data-bs-target="#navbarVerticalCollapse" aria-controls="navbarVerticalCollapse" aria-expanded="false" aria-label="Toggle Navigation"><span class="navbar-toggle-icon"><span class="toggle-line"></span></span></button>
         <a class="navbar-brand me-1 me-sm-3" href="../../index.html">
@@ -344,4 +345,5 @@ const logout = () => {
 
        <slot></slot>
     </div>
+  </div>
 </template>
