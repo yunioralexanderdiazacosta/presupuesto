@@ -50,31 +50,31 @@ const logout = () => {
                   <!-- more inner pages-->
                   <ul class="nav collapse" id="simple">
                     <li class="nav-item"><Link class="nav-link" :href="route('agrochemicals.index')">
-                        <div class="d-flex align-items-center"><span class="nav-link-text ps-1">- Agroquimicos</span>
+                        <div class="d-flex align-items-center"><span class="nav-link-text ps-4">Agroquimicos</span>
                         </div>
                       </Link>
                       <!-- more inner pages-->
                     </li>
                     <li class="nav-item"><Link class="nav-link" :href="route('fertilizers.index')">
-                        <div class="d-flex align-items-center"><span class="nav-link-text ps-1">- Fertilizantes</span>
+                        <div class="d-flex align-items-center"><span class="nav-link-text ps-4">Fertilizantes</span>
                         </div>
                       </Link>
                       <!-- more inner pages-->
                     </li>
                     <li class="nav-item"><Link class="nav-link" :href="route('manpowers.index')">
-                        <div class="d-flex align-items-center"><span class="nav-link-text ps-1">- Mano de Obra</span>
+                        <div class="d-flex align-items-center"><span class="nav-link-text ps-4">Mano de Obra</span>
                         </div>
                       </Link>
                       <!-- more inner pages-->
                     </li>
                     <li class="nav-item"><Link class="nav-link" :href="route('supplies.index')">
-                        <div class="d-flex align-items-center"><span class="nav-link-text ps-1">- Insumos</span>
+                        <div class="d-flex align-items-center"><span class="nav-link-text ps-4">Insumos</span>
                         </div>
                       </Link>
                       <!-- more inner pages-->
                     </li>
                     <li class="nav-item"><Link class="nav-link" :href="route('services.index')">
-                        <div class="d-flex align-items-center"><span class="nav-link-text ps-1">- Servicios</span>
+                        <div class="d-flex align-items-center"><span class="nav-link-text ps-4">Servicios</span>
                         </div>
                       </Link>
                       <!-- more inner pages-->

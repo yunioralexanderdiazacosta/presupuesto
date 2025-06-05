@@ -14,6 +14,7 @@ use App\Models\ManPower;
 use App\Models\Supply;
 use App\Models\Service;
 use Inertia\Inertia;
+use App\Services\WeatherService;
 
 class DashboardController extends Controller
 {
@@ -39,19 +40,14 @@ class DashboardController extends Controller
 
     public $monthsServices = [];
 
-    public function __invoke()
+    public function __invoke(Request $request, WeatherService $weatherService)
     {
         $user = Auth::user();
-
         $season_id = session('season_id');
-
         $season = Season::select('name', 'month_id')->where('id', $season_id)->first();
-
         $this->month_id = $season ? $season['month_id'] : 1;
-
         $months = array();
         $currentMonth = $this->month_id;
-
         for ($x = $currentMonth; $x < $currentMonth + 12; $x++) {
             $id = date('n', mktime(0, 0, 0, $x, 1));
             $object = [
@@ -60,7 +56,6 @@ class DashboardController extends Controller
             ];
             array_push($months, $object);
         }
-
         $costCenters = CostCenter::select('id', 'name')->where('season_id', $season_id)->whereHas('season.team', function($query) use ($user){
             $query->where('team_id', $user->team_id);
         })->get()->transform(function($costCenter){
@@ -69,17 +64,13 @@ class DashboardController extends Controller
                 'value' => $costCenter->id
             ];
         });
-
         $costCentersId = $costCenters->pluck('value');
-
         $this->getAgrochemicalProducts($costCentersId);
         $this->getFertilizerProducts($costCentersId);
         $this->getManPowerProducts($costCentersId);
         $this->getServicesProducts($costCentersId);
         $this->getSuppliesProducts($costCentersId);
-
         $pieLabels = ['Agroquimicos', 'Fertilizantes', 'Mano de obra', 'Servicios', 'Insumos'];
-
         $pieDatasets = [
             [
                 "data" => [round($this->totalAgrochemical), round($this->totalFertilizer), round($this->totalManPower), round($this->totalServices), round($this->totalSupplies)],
@@ -88,15 +79,12 @@ class DashboardController extends Controller
                 "cutout" => 0
             ]
         ];
-
         $totalSeason = number_format(($this->totalAgrochemical + $this->totalFertilizer + $this->totalManPower + $this->totalServices + $this->totalSupplies), 0, ',', '.');
-
         $totalAgrochemical = number_format($this->totalAgrochemical, 0, ',', '.');
         $totalFertilizer = number_format($this->totalFertilizer, 0, ',', '.');
         $totalManPower = number_format($this->totalManPower, 0, ',', '.');
         $totalServices = number_format($this->totalServices, 0, ',', '.');
         $totalSupplies = number_format($this->totalSupplies, 0, ',', '.');
-
         $monthsAgrochemical = [];
         foreach($this->monthsAgrochemical as $key => $value){
             $monthsAgrochemical[$key] = number_format($value, 0, ',','.');
@@ -109,18 +97,26 @@ class DashboardController extends Controller
         foreach($this->monthsManPower as $key => $value){
             $monthsManPower[$key] = number_format($value, 0, ',','.');
         }
-
         $monthsServices = [];
         foreach($this->monthsServices as $key => $value){
             $monthsServices[$key] = number_format($value, 0, ',','.');
         }
-
         $monthsSupplies = [];
         foreach($this->monthsSupplies as $key => $value){
             $monthsSupplies[$key] = number_format($value, 0, ',','.');
         }
-        
-        return Inertia::render('Dashboard', compact('totalSeason', 'pieLabels', 'pieDatasets', 'monthsAgrochemical', 'totalAgrochemical', 'monthsFertilizer', 'totalFertilizer', 'monthsManPower', 'totalManPower', 'totalServices', 'monthsServices', 'totalSupplies', 'monthsSupplies', 'months'));
+        // Weather integration
+        $city = $request->input('city') ?? $request->input('weatherCity') ?? 'Curico, Chile'; // Usa la ciudad enviada por el frontend o la default
+        $weather = $weatherService->getCurrentWeather($city);
+        return Inertia::render('Dashboard', compact(
+            'totalSeason', 'pieLabels', 'pieDatasets',
+            'monthsAgrochemical', 'totalAgrochemical',
+            'monthsFertilizer', 'totalFertilizer',
+            'monthsManPower', 'totalManPower',
+            'totalServices', 'monthsServices',
+            'totalSupplies', 'monthsSupplies',
+            'months', 'weather', 'city'
+        ));
     }
 
     private function getAgrochemicalProducts($costCentersId)
@@ -458,5 +454,9 @@ class DashboardController extends Controller
         ];
 
         return $months[$id];
-    }    
+    }
 }
+
+
+
+

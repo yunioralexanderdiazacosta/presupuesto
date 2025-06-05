@@ -28,7 +28,7 @@ const maxWidthClass = computed(() => {
 <template>
     <div class="modal fade" :class="background" :id="id" tabindex="-1" aria-hidden="true">
         <!--begin::Modal dialog-->
-        <div class="modal-dialog modal-dialog-centered" :class="maxWidthClass">
+        <div class="modal-dialog modal-dialog-centered modal-xl">
             <!--begin::Modal content-->
             <div class="modal-content rounded bg-modal-custom">
                 <!--begin::Modal header-->

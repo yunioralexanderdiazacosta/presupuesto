@@ -2,9 +2,29 @@
 import { Head } from '@inertiajs/vue3';
 import AppLayout from '@/Layouts/AppLayout.vue';
 import Pie from '@/Components/Pie.vue';
+import { onMounted, ref } from 'vue'
+import { router } from '@inertiajs/vue3'
 const title = 'Tablero';
 
 const links = [{ title: 'Tablero', link: 'dashboard', active: true }];
+
+const userCity = ref(null)
+
+onMounted(async () => {
+  if (!props.weather) { // Solo si no hay clima cargado
+    try {
+      const res = await fetch('https://ipapi.co/json/');
+      const data = await res.json();
+      if (data && data.city) {
+        userCity.value = data.city + (data.country_name ? ', ' + data.country_name : '');
+        // Redirige al dashboard con la ciudad detectada
+        router.get('/dashboard', { city: userCity.value }, { preserveState: true, replace: true });
+      }
+    } catch (e) {
+      // Si falla, puedes dejar la ciudad por defecto
+    }
+  }
+});
 
 
 const props = defineProps({
@@ -21,7 +41,9 @@ const props = defineProps({
     totalFertilizer: Number,
     totalManPower: Number,
     totalSupplies: Number,
-    totalServices: Number
+    totalServices: Number,
+    weather: Object,
+  weatherCity: String
 })
 </script>
 
@@ -31,6 +53,17 @@ const props = defineProps({
       <div class="container-fluid px-2 px-md-4 py-2">
         <div class="row g-3 g-xl-4">
           <div class="col-xl-5">
+            <!-- Weather card arriba de Total Presupuestos, mismo ancho -->
+            <div class="card mb-3" v-if="weather">
+              <div class="card-body py-2 d-flex align-items-center">
+                <img :src="weather.current.condition.icon" alt="icon" style="width:32px;height:32px;" class="me-2" />
+                <div>
+                  <div class="fw-bold">Clima en {{ weatherCity || city || weather.location.name }}</div>
+                  <div class="">{{ weather.current.temp_c }} °C, {{ weather.current.condition.text }}</div>
+                </div>
+              </div>
+            </div>
+            <!-- fin weather card -->
             <div class="card ecommerce-card-min-width">
               <div class="card-header pb-1">
                 <h4 class="mb-0 mt-1 d-flex align-items-center fs-6">Total Presupuestos
@@ -47,6 +80,7 @@ const props = defineProps({
                 </div>
               </div>
             </div>
+           
           </div>
           <div class="col-xl-7">
             <div class="card">
@@ -56,6 +90,7 @@ const props = defineProps({
             </div>
           </div>
         </div>
+
 
         <div class="row mt-4">
           <div class="col-xl-12">
@@ -104,5 +139,12 @@ const props = defineProps({
           </div>
         </div>
       </div>
+
+
+
+
+
+
+
     </AppLayout>
 </template>

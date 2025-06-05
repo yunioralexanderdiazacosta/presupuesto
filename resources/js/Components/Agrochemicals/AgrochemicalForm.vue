@@ -11,7 +11,7 @@
 <template>
     <div class="row">
         <div class="col-lg-6">
-            <label for="cc" class="col-form-label">CC</label>
+            <label for="cc" class="col-form-label-sm">CC</label>
             <div class="input-group mb-2">
                 <span class="input-group-text"><i class="fas fa-sitemap"></i></span>
                 <Multiselect
@@ -194,4 +194,6 @@
 .multiselect-tags-search, .multiselect-search{
     background: var(--kt-input-solid-bg) !important;
 }
+
+ 
 </style>

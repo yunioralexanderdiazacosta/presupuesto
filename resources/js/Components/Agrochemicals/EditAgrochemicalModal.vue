@@ -11,7 +11,7 @@ defineEmits(['update']);
 <template>
     <Modal :maxWidth="'xl'" :id="'editAgrochemicalModal'">
         <template #header>
-            <h1 class="mb-3">Editar agroquimico</h1>
+            <h3 class="mb-3">Editar agroquimico</h3>
         </template>
         <template #body>
             <AgrochemicalForm :form="form" />

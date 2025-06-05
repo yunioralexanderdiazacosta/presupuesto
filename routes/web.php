@@ -140,6 +140,8 @@ use App\Http\Controllers\Excels\ProductsExcelController;
 use App\Http\Controllers\Excels\invoicesExcelController;
 use App\Http\Controllers\Excels\MachineriesExcelController;
 use App\Http\Controllers\Excels\TypeMachineriesExcelController;
+use App\Http\Controllers\WeatherController;
+
 use Inertia\Inertia;
 
 /*
@@ -337,4 +339,9 @@ Route::middleware([
     });
     Route::get('/select-budge', SelectBudgetController::class)->name('select.budget');
     Route::post('/select-season/save', SaveSeasonController::class)->name('select.seasons.save');
+
+Route::get('/weather', [WeatherController::class, 'show'])->name('weather');
+
+
+
 });
