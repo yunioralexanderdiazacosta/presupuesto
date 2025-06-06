@@ -236,11 +236,11 @@ const onFilter = () => {
                             </div>  
                         </div>
 
-                        <div class="table-responsive">
-                            <table class="table">
+                        <div class="table-responsive mt-1">
+                            <table class="table table-bordered table-hover table-sm custom-striped fs-10 mb-0 agrochem-details">
                                 <!--begin::Table head-->
                                 <thead>
-                                    <tr class="fw-bold text-muted">
+                                    <tr>
                                         <th class="min-w-150px">CC</th>
                                         <th>Subfamilia</th>
                                         <th class="min-w-100px">Producto</th>
@@ -257,14 +257,13 @@ const onFilter = () => {
                                         <template v-for="(subfamily, index2) in cc.subfamilies" :key="index2">
                                             <tr>
                                                 <td v-if="index2 == 0" :rowspan="cc.total" style="vertical-align:top">{{cc.name}}</td>
-                                                <td  style="vertical-align:top;" :rowspan="subfamily.products.length">{{subfamily.name}}</td>
+                                                <td style="vertical-align:top;" :rowspan="subfamily.products.length">{{subfamily.name}}</td>
                                                 <td>{{subfamily.products[0].name}}</td>
                                                 <td>{{subfamily.products[0].totalQuantity}}</td>
                                                 <td>{{subfamily.products[0].unit}}</td>
                                                 <td class="text-dark">{{subfamily.products[0].totalAmount}}</td>
                                                 <td class="bg-opacity-5 table-primary" v-for="value in subfamily.products[0].months" :key="value">{{value}}</td>
                                             </tr>
-
                                             <template v-for="(product, index3) in subfamily.products" :key="index3">
                                                 <tr v-if="index3 > 0">
                                                     <td>{{product.name}}</td>
@@ -314,8 +313,8 @@ const onFilter = () => {
                             </div>  
                         </div>
 
-                        <div class="table-responsive">
-                            <table class="table">
+                        <div class="table-responsive mt-1">
+                            <table class="table table-bordered table-hover table-sm custom-striped fs-10 mb-0 agrochem-details">
                                 <!--begin::Table head-->
                                 <thead>
                                     <tr class="fw-bold text-muted">
@@ -393,8 +392,8 @@ const onFilter = () => {
                             </div>  
                         </div> 
 
-                        <div class="table-responsive">
-                            <table class="table">
+                        <div class="table-responsive mt-1">
+                            <table class="table table-bordered table-hover table-sm custom-striped fs-10 mb-0 agrochem-details">
                                 <!--begin::Table head-->
                                 <thead>
                                     <tr class="fw-bold text-muted">
@@ -446,3 +445,14 @@ const onFilter = () => {
         <EditManPowerModal @update="updateManPower" :form="form" />
     </AppLayout>
 </template>
+
+<style>
+.table.agrochem-details > thead > tr {
+  background-color: #e7ebee !important;
+}
+
+.table.agrochem-details > :not(caption) > * > * {
+  border-width: 1px !important;
+  border-color: #cdcdd3 !important;
+}
+</style>

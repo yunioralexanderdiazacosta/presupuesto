@@ -246,7 +246,7 @@ const change = (position, position2 = '') => {
             </div>
 
             <a class="navbar-brand" href="index.html">
-              <div class="d-flex align-items-center py-3"><img class="me-2" src="#" alt="" width="40" /><span class="font-sans-serif text-primary">falcon</span>
+              <div class="d-flex align-items-center py-3"><img class="me-2" src="#" alt="" width="40" /><span class="font-sans-serif text-primary">ALISOFT</span>
               </div>
             </a>
         </div>

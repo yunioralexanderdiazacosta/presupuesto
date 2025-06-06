@@ -191,7 +191,7 @@
                         <template v-for="value in $page.props.months">
                             <div style="margin-right: 0.5rem;" class="form-check form-check-solid form-check-inline mb-1">
                                 <input class="form-check-input" type="checkbox" v-model="product.months" :id="'kt_month_'+value.id" :value="value.value">
-                                <label class="form-check-label ps-2" :for="'kt_month_'+value.id">{{value.label}}</label>
+                                <label class="form-check-label ps-1" :for="'kt_month_'+value.id">{{value.label}}</label>
                             </div>
                         </template>
                     </div>
@@ -224,11 +224,17 @@
 .multiselect,
 .multiselect__input,
 .multiselect__single {
-  min-height: 38px !important;
-  height: 38px !important;
+  min-height: 32px !important;
+  height: 32px !important;
   padding-top: 0.375rem !important;
   padding-bottom: 0.375rem !important;
   font-size: 1rem;
+}
+
+/* Agrandar la casilla de verificación (checkbox) */
+.form-check-input[type="checkbox"] {
+  width: 1.1em;
+  height: 1.1em;
 }
 
 .multiselect-blue {
@@ -244,4 +250,5 @@
 .multiselect-tags-search, .multiselect-search{
     background: var(--kt-input-solid-bg) !important;
 }
+
 </style>

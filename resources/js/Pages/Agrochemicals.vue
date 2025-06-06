@@ -470,4 +470,12 @@ const onFilter = () => {
   border-width: 1px !important;
   border-color: #cdcdd3 !important;
 }
+
+.table.agrochem-details th.min-w-150px,
+.table.agrochem-details td.min-w-150px {
+  min-width: 150px;
+  width: 150px;
+  max-width: 200px;
+  word-break: break-word;
+}
 </style>

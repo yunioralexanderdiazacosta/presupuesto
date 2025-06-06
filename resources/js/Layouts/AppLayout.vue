@@ -16,7 +16,7 @@ const logout = () => {
             </div>
 
             <a class="navbar-brand" href="index.html">
-              <div class="d-flex align-items-center py-3"><img class="me-2" src="#" alt="" width="40" /><span class="font-sans-serif text-primary">falcon</span>
+              <div class="d-flex align-items-center py-3"><img class="me-2" src="#" alt="" width="40" /><span class="font-sans-serif text-primary">Alisoft</span>
               </div>
             </a>
         </div>
@@ -44,37 +44,37 @@ const logout = () => {
                   <!-- more inner pages-->
                 </li>
                 <li class="nav-item"><a class="nav-link dropdown-indicator" href="#simple" data-bs-toggle="collapse" aria-expanded="false" aria-controls="authentication">
-                    <div class="d-flex align-items-center"><span class="nav-link-text ps-1">Presupuesto por CC</span>
+                    <div class="d-flex align-items-center"><span class="nav-link-text ps-1 mb-1">Presupuesto por CC</span>
                     </div>
                   </a>
                   <!-- more inner pages-->
                   <ul class="nav collapse" id="simple">
                     <li class="nav-item"><Link class="nav-link" :href="route('agrochemicals.index')">
-                        <div class="d-flex align-items-center"><span class="nav-link-text ps-4">Agroquimicos</span>
+                        <div class="d-flex align-items-center"><span class="nav-link-text ps-4 mt-1 mb-1">Agroquimicos</span>
                         </div>
                       </Link>
                       <!-- more inner pages-->
                     </li>
                     <li class="nav-item"><Link class="nav-link" :href="route('fertilizers.index')">
-                        <div class="d-flex align-items-center"><span class="nav-link-text ps-4">Fertilizantes</span>
+                        <div class="d-flex align-items-center"><span class="nav-link-text ps-4 mb-1">Fertilizantes</span>
                         </div>
                       </Link>
                       <!-- more inner pages-->
                     </li>
                     <li class="nav-item"><Link class="nav-link" :href="route('manpowers.index')">
-                        <div class="d-flex align-items-center"><span class="nav-link-text ps-4">Mano de Obra</span>
+                        <div class="d-flex align-items-center"><span class="nav-link-text ps-4 mb-1">Mano de Obra</span>
                         </div>
                       </Link>
                       <!-- more inner pages-->
                     </li>
                     <li class="nav-item"><Link class="nav-link" :href="route('supplies.index')">
-                        <div class="d-flex align-items-center"><span class="nav-link-text ps-4">Insumos</span>
+                        <div class="d-flex align-items-center"><span class="nav-link-text ps-4  mb-1">Insumos</span>
                         </div>
                       </Link>
                       <!-- more inner pages-->
                     </li>
                     <li class="nav-item"><Link class="nav-link" :href="route('services.index')">
-                        <div class="d-flex align-items-center"><span class="nav-link-text ps-4">Servicios</span>
+                        <div class="d-flex align-items-center"><span class="nav-link-text ps-4  mb-1">Servicios</span>
                         </div>
                       </Link>
                       <!-- more inner pages-->
@@ -82,13 +82,13 @@ const logout = () => {
                   </ul>
                 </li>
                 <li class="nav-item"><a class="nav-link dropdown-indicator" href="#card" data-bs-toggle="collapse" aria-expanded="false" aria-controls="authentication">
-                    <div class="d-flex align-items-center"><span class="nav-link-text ps-1">Presupuesto por GG Campo</span>
+                    <div class="d-flex align-items-center"><span class="nav-link-text ps-1 mb-1">Presupuesto por GG Campo</span>
                     </div>
                   </a>
                   <!-- more inner pages-->
                   <ul class="nav collapse" id="card">
                     <li class="nav-item"><a class="nav-link" href="#">
-                        <div class="d-flex align-items-center"><span class="nav-link-text ps-1">Gral Campo</span>
+                        <div class="d-flex align-items-center"><span class="nav-link-text ps-1 mb-1">Gral Campo</span>
                         </div>
                       </a>
                       <!-- more inner pages-->
@@ -96,13 +96,13 @@ const logout = () => {
                   </ul>
                 </li>
                 <li class="nav-item"><a class="nav-link dropdown-indicator" href="#split" data-bs-toggle="collapse" aria-expanded="false" aria-controls="authentication">
-                    <div class="d-flex align-items-center"><span class="nav-link-text ps-1">Presupuesto Administración</span>
+                    <div class="d-flex align-items-center"><span class="nav-link-text ps-1 mb-1">Presupuesto Administración</span>
                     </div>
                   </a>
                   <!-- more inner pages-->
                   <ul class="nav collapse" id="split">
                     <li class="nav-item"><Link class="nav-link" :href="route('budgets.index')">
-                        <div class="d-flex align-items-center"><span class="nav-link-text ps-1">Gnral Administración</span>
+                        <div class="d-flex align-items-center"><span class="nav-link-text ps-1 mb-1">Gnral Administración</span>
                         </div>
                       </Link>
                       <!-- more inner pages-->
@@ -211,7 +211,7 @@ const logout = () => {
 
         <button class="btn navbar-toggler-humburger-icon navbar-toggler me-1 me-sm-3" type="button" data-bs-toggle="collapse" data-bs-target="#navbarVerticalCollapse" aria-controls="navbarVerticalCollapse" aria-expanded="false" aria-label="Toggle Navigation"><span class="navbar-toggle-icon"><span class="toggle-line"></span></span></button>
         <a class="navbar-brand me-1 me-sm-3" href="../../index.html">
-          <div class="d-flex align-items-center"><img class="me-2" src="#" alt="" width="40" /><span class="font-sans-serif text-primary">falcon</span>
+          <div class="d-flex align-items-center"><img class="me-2" src="#" alt="" width="40" /><span class="font-sans-serif text-primary">ALISOFT</span>
           </div>
         </a>
         <ul class="navbar-nav align-items-center d-none d-lg-block">

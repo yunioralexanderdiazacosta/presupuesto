@@ -10,8 +10,8 @@
 <script setup></script>
 <template>
     <div class="row">
-        <div class="col-lg-6">
-            <label for="cc" class="col-form-label-sm">CC</label>
+        <div class="col-md-6">
+            <label for="cc" class="col-form-label">CC</label>
             <div class="input-group mb-2">
                 <span class="input-group-text"><i class="fas fa-sitemap"></i></span>
                 <Multiselect
@@ -28,7 +28,7 @@
             </div>
             <InputError class="mt-2" :message="form.errors.cc" />
         </div>
-        <div class="col-lg-6">
+        <div class="col-md-6">
             <label for="families" class="col-form-label">Familia</label>
             <div class="input-group mb-2">
                 <span class="input-group-text"><i class="fas fa-layer-group"></i></span>
@@ -46,9 +46,9 @@
             <InputError class="mt-2" :message="form.errors.subfamily_id" />
         </div>
     </div>
-
+<hr>
     <div class="row">
-        <div class="col-lg-6">
+        <div class="col-md-6">
             <label class="col-form-label">Nombre del producto</label>
             <div class="input-group mb-2">
                 <span class="input-group-text"><i class="fas fa-flask"></i></span>
@@ -61,7 +61,7 @@
             </div>
             <InputError class="mt-2" :message="form.errors.product_name" />
         </div>
-        <div class="col-lg-6">
+        <div class="col-md-6">
             <label for="unit" class="col-form-label">Unidad de la dosis</label><br>
             <template v-for="value in $page.props.units">
                 <div class="form-check form-check-solid form-check-inline mb-3 mt-3">
@@ -181,6 +181,22 @@
 </template>
 <style src="@vueform/multiselect/themes/default.css"></style>
 <style>
+.multiselect,
+.multiselect__input,
+.multiselect__single {
+  min-height: 32px !important;
+  height: 32px !important;
+  padding-top: 0.375rem !important;
+  padding-bottom: 0.375rem !important;
+  font-size: 1rem;
+}
+
+/* Agrandar la casilla de verificación (checkbox) */
+.form-check-input[type="checkbox"] {
+  width: 1.1em;
+  height: 1.1em;
+}
+
 .multiselect-blue {
     --ms-bg: var(--kt-input-solid-bg) !important;
     --ms-border-color: var(--kt-input-solid-bg);

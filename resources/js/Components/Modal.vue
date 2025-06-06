@@ -78,4 +78,25 @@ const maxWidthClass = computed(() => {
 .bg-modal-custom {
     background-color: #f4f8fb !important; /* Color suave, diferente al fondo de los inputs */
 }
+
+/* Reducir tamaño de selects, inputs y labels dentro del modal */
+.modal-content.bg-modal-custom input.form-control,
+.modal-content.bg-modal-custom select.form-select,
+.modal-content.bg-modal-custom textarea.form-control {
+  font-size: 0.85rem;
+  padding: 0.15rem 0.4rem;
+  height:34px;
+}
+.modal-content.bg-modal-custom label {
+  font-size: 0.85rem;
+  margin-bottom: 0.05rem;
+}
+
+/* Reducir tamaño del placeholder en selects e inputs dentro del modal */
+.modal-content.bg-modal-custom input.form-control::placeholder,
+.modal-content.bg-modal-custom textarea.form-control::placeholder {
+  font-size: 0.85rem;
+}
+
+
 </style>
