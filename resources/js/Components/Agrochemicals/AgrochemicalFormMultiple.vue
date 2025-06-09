@@ -94,7 +94,7 @@
                 <small class="text-danger mt-2" :v-if="form.errors['products.'+index+'.dose_type_id']"><br>{{form.errors['products.'+index+'.dose_type_id']}}</small>
             </div>
             <div class="col-lg-4">
-                <label class="col-form-label">Dosis/Hectarea</label>
+                <label class="col-form-label">Dosis</label>
                 <div class="input-group mb-2">
                     <span class="input-group-text"><i class="fas fa-vial"></i></span>
                     <TextInput

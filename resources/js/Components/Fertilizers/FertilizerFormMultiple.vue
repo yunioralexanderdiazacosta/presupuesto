@@ -79,7 +79,7 @@
             </div>
             <div class="col-lg-2">
                 <div class="fv-row">
-                    <label for="unit" class="col-form-label">Unidad</label>
+                    <label for="unit" class="col-form-label">Unidad de dosis</label>
                      <Multiselect
                         :placeholder="''"
                         v-model="product.unit_id"
@@ -125,7 +125,7 @@
                     </div>
                     <div class="col-lg-6">
                         <div class="fv-row">
-                            <label for="unit" class="col-form-label">Unidad</label>
+                            <label for="unit" class="col-form-label">Unidad de precio</label>
                              <Multiselect
                                 :placeholder="''"
                                 v-model="product.unit_id_price"

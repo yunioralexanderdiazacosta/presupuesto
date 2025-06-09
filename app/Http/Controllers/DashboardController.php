@@ -108,6 +108,28 @@ class DashboardController extends Controller
         // Weather integration
         $city = $request->input('city') ?? $request->input('weatherCity') ?? 'Curico, Chile'; // Usa la ciudad enviada por el frontend o la default
         $weather = $weatherService->getCurrentWeather($city);
+        
+        // Calcular totales de agroquímicos por estado de desarrollo
+        $agrochemicalByDevState = [];
+        $agrochemicals = Agrochemical::from('agrochemicals as a')
+            ->join('agrochemical_items as ai', 'a.id', 'ai.agrochemical_id')
+            ->leftJoin('units as u', 'a.unit_id_price', 'u.id')
+            ->select('a.id', 'a.price', 'a.dose_type_id', 'a.dose', 'a.unit_id', 'a.unit_id_price', 'a.mojamiento')
+            ->whereIn('ai.cost_center_id', $costCentersId)
+            ->groupBy('a.id', 'a.price', 'a.dose_type_id', 'a.dose', 'a.unit_id', 'a.unit_id_price', 'a.mojamiento')
+            ->get();
+        foreach ($agrochemicals as $agrochemical) {
+            $byDev = $this->getAgrochemicalResultByDevelopmentState($agrochemical, $costCentersId);
+            foreach ($byDev as $devStateId => $amount) {
+                if (!isset($agrochemicalByDevState[$devStateId])) {
+                    $agrochemicalByDevState[$devStateId] = 0;
+                }
+                $agrochemicalByDevState[$devStateId] += $amount;
+            }
+        }
+        // Obtener nombres de estados de desarrollo
+        $devStates = \App\Models\DevelopmentState::all(['id', 'name'])->keyBy('id')->toArray();
+        // Pasar ambos al frontend
         return Inertia::render('Dashboard', compact(
             'totalSeason', 'pieLabels', 'pieDatasets',
             'monthsAgrochemical', 'totalAgrochemical',
@@ -115,7 +137,9 @@ class DashboardController extends Controller
             'monthsManPower', 'totalManPower',
             'totalServices', 'monthsServices',
             'totalSupplies', 'monthsSupplies',
-            'months', 'weather', 'city'
+            'months', 'weather', 'city',
+            'agrochemicalByDevState',
+            'devStates' // <-- nombres de estados de desarrollo
         ));
     }
 
@@ -434,6 +458,52 @@ class DashboardController extends Controller
         }
 
         $this->totalSupplies += $totalAmount; 
+    }
+
+    /**
+     * Obtiene el totalAmount de agroquímicos separado por development_state
+     * Devuelve un array: [development_state_id => totalAmount]
+     */
+    private function getAgrochemicalResultByDevelopmentState($value, $costCentersId)
+    {
+        $result = [];
+        $currentMonth = $this->month_id;
+        // Obtener todos los cost centers con su development_state_id
+        $costCenters = \App\Models\CostCenter::whereIn('id', $costCentersId)
+            ->select('id', 'development_state_id', 'surface')
+            ->get();
+        foreach ($costCenters->groupBy('development_state_id') as $devStateId => $centers) {
+            $totalAmountDev = 0;
+            foreach ($centers as $center) {
+                $dose = (($value->unit_id == 4 && $value->unit_id_price == 3) || ($value->unit_id == 2 && $value->unit_id_price == 1)) ? ($value->dose / 1000) : $value->dose;
+                $surface = $center->surface;
+                if ($value->dose_type_id == 1) {
+                    $quantityFirst = round($dose * $surface, 2);
+                } elseif ($value->dose_type_id == 2) {
+                    $quantityFirst = round((($value->mojamiento / 100) * $dose * $surface), 2);
+                } else {
+                    $quantityFirst = 0;
+                }
+                $amountFirst = round($value->price * $quantityFirst, 2);
+                $data = [];
+                for ($x = $currentMonth; $x < $currentMonth + 12; $x++) {
+                    $id = date('n', mktime(0, 0, 0, $x, 1));
+                    array_push($data, $id);
+                }
+                foreach ($data as $month) {
+                    $count = \DB::table('agrochemical_items')
+                        ->select('agrochemical_id')
+                        ->where('agrochemical_id', $value->id)
+                        ->where('month_id', $month)
+                        ->where('cost_center_id', $center->id)
+                        ->count();
+                    $amountMonth = $count > 0 ? $amountFirst : 0;
+                    $totalAmountDev += $amountMonth;
+                }
+            }
+            $result[$devStateId] = $totalAmountDev;
+        }
+        return $result;
     }
 
     public function getMonthName($id)

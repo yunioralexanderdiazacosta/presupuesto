@@ -144,6 +144,22 @@
 </template>
 <style src="@vueform/multiselect/themes/default.css"></style>
 <style>
+.multiselect,
+.multiselect__input,
+.multiselect__single {
+  min-height: 32px !important;
+  height: 32px !important;
+  padding-top: 0.375rem !important;
+  padding-bottom: 0.375rem !important;
+  font-size: 1rem;
+}
+
+/* Agrandar la casilla de verificación (checkbox) */
+.form-check-input[type="checkbox"] {
+  width: 1.1em;
+  height: 1.1em;
+}
+
 .multiselect-blue {
     --ms-bg: var(--kt-input-solid-bg) !important;
     --ms-border-color: var(--kt-input-solid-bg);
@@ -157,4 +173,5 @@
 .multiselect-tags-search, .multiselect-search{
     background: var(--kt-input-solid-bg) !important;
 }
+
 </style>

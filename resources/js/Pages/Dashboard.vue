@@ -43,7 +43,9 @@ const props = defineProps({
     totalSupplies: Number,
     totalServices: Number,
     weather: Object,
-  weatherCity: String
+  weatherCity: String,
+  agrochemicalByDevState: Object,
+  devStates: Object // <-- nuevo: nombres de estados de desarrollo
 })
 </script>
 
@@ -97,39 +99,70 @@ const props = defineProps({
             <div class="card">
               <div class="card-body pt-0 pb-2">
                 <div class="table-responsive scrollbar">
-                  <table class="table table-sm fs-10">
-                    <thead>
+                  <table class="table table-sm table-hover align-middle border rounded shadow-sm bg-white">
+                    <thead class="table-light border-bottom">
                       <tr>
-                        <th scope="col"></th>
-                        <th scope="col">TOTAL</th>
-                        <th scope="col" v-for="month in $page.props.months" class="text-primary">{{month.label}}</th>
+                        <th class="text-uppercase text-secondary small fw-bold"></th>
+                        <th class="text-uppercase text-secondary small fw-bold">TOTAL</th>
+                        <th class="text-uppercase text-primary small fw-bold" v-for="month in $page.props.months">{{month.label}}</th>
                       </tr>
                     </thead>
                     <tbody>
                       <tr>
-                        <td>Agroquimicos</td>
-                        <td>{{totalAgrochemical}}</td>
-                        <td class="bg-opacity-5 table-primary" v-for="value in months">{{monthsAgrochemical[value.value]}}</td>
+                        <td class="fw-semibold small">Agroquimicos</td>
+                        <td class="text-end text-primary fw-bold small">{{totalAgrochemical}}</td>
+                        <td class="bg-opacity-5 table-primary text-end small" v-for="value in months">{{monthsAgrochemical[value.value]}}</td>
                       </tr>
                       <tr>
-                        <td>Fertilizantes</td>
-                        <td>{{totalFertilizer}}</td>
-                        <td class="bg-opacity-5 table-primary" v-for="value in months">{{monthsFertilizer[value.value]}}</td>
+                        <td class="fw-semibold small">Fertilizantes</td>
+                        <td class="text-end text-primary fw-bold small">{{totalFertilizer}}</td>
+                        <td class="bg-opacity-5 table-primary text-end small" v-for="value in months">{{monthsFertilizer[value.value]}}</td>
                       </tr>
                       <tr>
-                        <td>Mano de obra</td>
-                        <td>{{totalManPower}}</td>
-                        <td class="bg-opacity-5 table-primary" v-for="value in months">{{monthsManPower[value.value]}}</td>
+                        <td class="fw-semibold small">Mano de obra</td>
+                        <td class="text-end text-primary fw-bold small">{{totalManPower}}</td>
+                        <td class="bg-opacity-5 table-primary text-end small" v-for="value in months">{{monthsManPower[value.value]}}</td>
                       </tr>
                       <tr>
-                        <td>Insumos</td>
-                        <td>{{totalSupplies}}</td>
-                        <td class="bg-opacity-5 table-primary" v-for="value in months">{{monthsSupplies[value.value]}}</td>
+                        <td class="fw-semibold small">Insumos</td>
+                        <td class="text-end text-primary fw-bold small">{{totalSupplies}}</td>
+                        <td class="bg-opacity-5 table-primary text-end small" v-for="value in months">{{monthsSupplies[value.value]}}</td>
                       </tr>
                       <tr>
-                        <td>Servicios</td>
-                        <td>{{totalServices}}</td>
-                        <td class="bg-opacity-5 table-primary" v-for="value in months">{{monthsServices[value.value]}}</td>
+                        <td class="fw-semibold small">Servicios</td>
+                        <td class="text-end text-primary fw-bold small">{{totalServices}}</td>
+                        <td class="bg-opacity-5 table-primary text-end small" v-for="value in months">{{monthsServices[value.value]}}</td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+
+
+
+
+        
+        <div class="row mt-4">
+          <div class="col-xl-12">
+            <div class="card">
+              <div class="card-body pt-0 pb-2">
+                <h6 class="mb-2">Agroquímicos por Estado de Desarrollo</h6>
+                <div class="table-responsive scrollbar">
+                  <table class="table table-sm table-hover align-middle border rounded shadow-sm bg-white">
+                    <thead class="table-light border-bottom">
+                      <tr>
+                        <th class="text-uppercase text-secondary small fw-bold small">Estado de desarrollo</th>
+                        <th class="text-uppercase text-secondary small fw-bold small">Total Agroquímicos</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      <tr v-for="(total, devStateId) in agrochemicalByDevState" :key="devStateId" class="border-bottom">
+                        <td class="fw-semibold">{{ devStates[devStateId]?.name || 'Sin estado' }}</td>
+                        <td class="text-end text-primary fw-bold">{{ Number(total).toLocaleString('es-CL', { maximumFractionDigits: 0 }) }}</td>
                       </tr>
                     </tbody>
                   </table>

@@ -99,7 +99,7 @@
         <div class="row">
             <div class="col-md-4">
                 <div class="fv-row">
-                    <label class="required fs-6 fw-semibold mb-2">Nombre del producto</label>
+                    <label class="col-form-label">Nombre del producto</label>
                     <TextInput
                         id="product_name"
                         v-model="product.product_name"
@@ -113,7 +113,7 @@
 
             <div class="col-lg-4">
                 <div class="fv-row">
-                    <label class="required fs-6 fw-semibold mb-2">Jornadas/hectarea</label>
+                    <label class="col-form-label">Jornadas/hectarea</label>
                     <div class="input-group">
                         <input type="number" id="workday" v-model="product.workday" class="form-control form-control-solid" aria-describedby="jornadas" step="0.00" :class="{'is-invalid': form.errors['products.'+index+'.workday']}">
                         <button type="button" @click="onCalculated(index)" id="jornadas" class="btn btn-light text-primary"><i class="fas fa-question-circle" style="font-size: 20px"></i></button>
@@ -124,7 +124,7 @@
 
             <div class="col-lg-4">
                 <div class="fv-row">
-                    <label class="required fs-6 fw-semibold mb-2">Precio</label>
+                    <label class="col-form-label">Precio</label>
                     <TextInput
                         id="price"
                         v-model="product.price"
@@ -152,7 +152,7 @@
             </div>
             <div class="col-lg-5">
                 <div class="fv-row">
-                    <label for="observations" class="form-label fs-6 fw-bold mb-3">Observaciones</label>
+                    <label for="observations" class="col-form-label">Observaciones</label>
                     <textarea v-model="product.observations" rows="3" class="form-control form-control-lg form-control-solid mb-3 mb-lg-0" :class="{'is-invalid': form.errors.observations }" ></textarea>
                     <InputError class="mt-2" :message="form.errors.observations" />
                 </div>
@@ -174,6 +174,22 @@
 </template>
 <style src="@vueform/multiselect/themes/default.css"></style>
 <style>
+.multiselect,
+.multiselect__input,
+.multiselect__single {
+  min-height: 32px !important;
+  height: 32px !important;
+  padding-top: 0.375rem !important;
+  padding-bottom: 0.375rem !important;
+  font-size: 1rem;
+}
+
+/* Agrandar la casilla de verificación (checkbox) */
+.form-check-input[type="checkbox"] {
+  width: 1.1em;
+  height: 1.1em;
+}
+
 .multiselect-blue {
     --ms-bg: var(--kt-input-solid-bg) !important;
     --ms-border-color: var(--kt-input-solid-bg);

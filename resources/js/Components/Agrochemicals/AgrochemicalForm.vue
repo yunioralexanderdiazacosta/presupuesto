@@ -62,14 +62,21 @@
             <InputError class="mt-2" :message="form.errors.product_name" />
         </div>
         <div class="col-md-6">
-            <label for="unit" class="col-form-label">Unidad de la dosis</label><br>
-            <template v-for="value in $page.props.units">
-                <div class="form-check form-check-solid form-check-inline mb-3 mt-3">
-                    <input class="form-check-input" type="radio" v-model="form.unit_id" :id="'kt_unit_'+value.id" :value="value.value">
-                    <label class="form-check-label ps-1" :for="'kt_unit_'+value.id">{{value.label}}</label>
-                </div>
-            </template>
-            <small class="text-danger mt-2" :v-if="form.errors.unit_id">{{form.errors.unit_id}}</small>
+            <label for="unit" class="col-form-label">Unidad de la dosis</label>
+            <div class="input-group mb-2">
+                <span class="input-group-text"><i class="fas fa-balance-scale"></i></span>
+                <Multiselect
+                    :placeholder="''"
+                    v-model="form.unit_id"
+                    :close-on-select="true"
+                    :options="$page.props.units"
+                    class="multiselect-blue form-control"
+                    :class="{'is-invalid': form.errors.unit_id}"
+                    :searchable="true"
+                    :hide-selected="false"
+                />
+            </div>
+            <InputError class="mt-2" :message="form.errors.unit_id" />
         </div>
     </div>
 
@@ -86,7 +93,7 @@
         </div>
         <div class="col-lg-6">
             <div class="fv-row">
-                <label class="col-form-label">Dosis/Hectarea</label>
+                <label class="col-form-label">Dosis</label>
                 <div class="input-group mb-2">
                     <span class="input-group-text"><i class="fas fa-vial"></i></span>
                     <TextInput

@@ -136,12 +136,31 @@
 
     <div class="fv-row">
         <label for="observations" class="col-form-label">Observaciones</label>
-        <textarea v-model="form.observations" rows="3" class="form-control form-control-lg form-control-solid mb-3 mb-lg-0" :class="{'is-invalid': form.errors.observations }" ></textarea>
+          <div class="input-group mb-2">
+        <span class="input-group-text"><i class="fas fa-comment-dots"></i></span>
+        <textarea v-model="form.observations" rows="2" class="form-control form-control-lg form-control-solid mb-3 mb-lg-0" :class="{'is-invalid': form.errors.observations }" ></textarea>
+         </div>
         <InputError class="mt-2" :message="form.errors.observations" />
     </div>
 </template>
 <style src="@vueform/multiselect/themes/default.css"></style>
 <style>
+.multiselect,
+.multiselect__input,
+.multiselect__single {
+  min-height: 32px !important;
+  height: 32px !important;
+  padding-top: 0.375rem !important;
+  padding-bottom: 0.375rem !important;
+  font-size: 1rem;
+}
+
+/* Agrandar la casilla de verificación (checkbox) */
+.form-check-input[type="checkbox"] {
+  width: 1.1em;
+  height: 1.1em;
+}
+
 .multiselect-blue {
     --ms-bg: var(--kt-input-solid-bg) !important;
     --ms-border-color: var(--kt-input-solid-bg);
