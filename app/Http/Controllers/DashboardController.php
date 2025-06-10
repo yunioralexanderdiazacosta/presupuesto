@@ -127,6 +127,130 @@ class DashboardController extends Controller
                 $agrochemicalByDevState[$devStateId] += $amount;
             }
         }
+        // Calcular gasto por hectárea de agroquímicos por estado de desarrollo
+        $agrochemicalExpensePerHectare = [];
+        foreach ($agrochemicals as $agrochemical) {
+            $byDev = $this->getAgrochemicalExpensePerHectareByDevelopmentState($agrochemical, $costCentersId);
+            foreach ($byDev as $devStateId => $amount) {
+                if (!isset($agrochemicalExpensePerHectare[$devStateId])) {
+                    $agrochemicalExpensePerHectare[$devStateId] = 0;
+                }
+                $agrochemicalExpensePerHectare[$devStateId] += $amount;
+            }
+        }
+        // Calcular totales de fertilizantes por estado de desarrollo
+        $fertilizerByDevState = [];
+        $fertilizers = Fertilizer::from('fertilizers as f')
+            ->join('fertilizer_items as fi', 'f.id', 'fi.fertilizer_id')
+            ->leftJoin('units as u', 'f.unit_id_price', 'u.id')
+            ->select('f.id', 'f.price', 'f.dose', 'f.unit_id', 'f.unit_id_price')
+            ->whereIn('fi.cost_center_id', $costCentersId)
+            ->groupBy('f.id', 'f.price', 'f.dose', 'f.unit_id', 'f.unit_id_price')
+            ->get();
+        foreach ($fertilizers as $fertilizer) {
+            $byDev = $this->getFertilizerResultByDevelopmentState($fertilizer, $costCentersId);
+            foreach ($byDev as $devStateId => $amount) {
+                if (!isset($fertilizerByDevState[$devStateId])) {
+                    $fertilizerByDevState[$devStateId] = 0;
+                }
+                $fertilizerByDevState[$devStateId] += $amount;
+            }
+        }
+        // Calcular gasto por hectárea de fertilizantes por estado de desarrollo
+        $fertilizerExpensePerHectare = [];
+        foreach ($fertilizers as $fertilizer) {
+            $byDev = $this->getFertilizerExpensePerHectareByDevelopmentState($fertilizer, $costCentersId);
+            foreach ($byDev as $devStateId => $amount) {
+                if (!isset($fertilizerExpensePerHectare[$devStateId])) {
+                    $fertilizerExpensePerHectare[$devStateId] = 0;
+                }
+                $fertilizerExpensePerHectare[$devStateId] += $amount;
+            }
+        }
+        // Calcular totales de mano de obra por estado de desarrollo
+        $manPowerByDevState = [];
+        $manPowers = ManPower::from('man_powers as mp')
+            ->join('manpower_items as mpi', 'mp.id', 'mpi.man_power_id')
+            ->select('mp.id', 'mp.price', 'mp.workday')
+            ->whereIn('mpi.cost_center_id', $costCentersId)
+            ->groupBy('mp.id', 'mp.price', 'mp.workday')
+            ->get();
+        foreach ($manPowers as $manPower) {
+            $byDev = $this->getManPowerResultByDevelopmentState($manPower, $costCentersId);
+            foreach ($byDev as $devStateId => $amount) {
+                if (!isset($manPowerByDevState[$devStateId])) {
+                    $manPowerByDevState[$devStateId] = 0;
+                }
+                $manPowerByDevState[$devStateId] += $amount;
+            }
+        }
+        // Calcular gasto por hectárea de mano de obra por estado de desarrollo
+        $manPowerExpensePerHectare = [];
+        foreach ($manPowers as $manPower) {
+            $byDev = $this->getManPowerExpensePerHectareByDevelopmentState($manPower, $costCentersId);
+            foreach ($byDev as $devStateId => $amount) {
+                if (!isset($manPowerExpensePerHectare[$devStateId])) {
+                    $manPowerExpensePerHectare[$devStateId] = 0;
+                }
+                $manPowerExpensePerHectare[$devStateId] += $amount;
+            }
+        }
+        // Calcular totales de servicios por estado de desarrollo
+        $servicesByDevState = [];
+        $services = Service::from('services as s')
+            ->join('service_items as si', 's.id', 'si.service_id')
+            ->select('s.id', 's.price', 's.quantity', 's.unit_id', 's.unit_id_price')
+            ->whereIn('si.cost_center_id', $costCentersId)
+            ->groupBy('s.id', 's.price', 's.quantity', 's.unit_id', 's.unit_id_price')
+            ->get();
+        foreach ($services as $service) {
+            $byDev = $this->getServiceResultByDevelopmentState($service, $costCentersId);
+            foreach ($byDev as $devStateId => $amount) {
+                if (!isset($servicesByDevState[$devStateId])) {
+                    $servicesByDevState[$devStateId] = 0;
+                }
+                $servicesByDevState[$devStateId] += $amount;
+            }
+        }
+        // Calcular gasto por hectárea de servicios por estado de desarrollo
+        $servicesExpensePerHectare = [];
+        foreach ($services as $service) {
+            $byDev = $this->getServiceExpensePerHectareByDevelopmentState($service, $costCentersId);
+            foreach ($byDev as $devStateId => $amount) {
+                if (!isset($servicesExpensePerHectare[$devStateId])) {
+                    $servicesExpensePerHectare[$devStateId] = 0;
+                }
+                $servicesExpensePerHectare[$devStateId] += $amount;
+            }
+        }
+        // Calcular totales de insumos por estado de desarrollo
+        $suppliesByDevState = [];
+        $supplies = Supply::from('supplies as s')
+            ->join('supply_items as si', 's.id', 'si.supply_id')
+            ->select('s.id', 's.price', 's.quantity', 's.unit_id', 's.unit_id_price')
+            ->whereIn('si.cost_center_id', $costCentersId)
+            ->groupBy('s.id', 's.price', 's.quantity', 's.unit_id', 's.unit_id_price')
+            ->get();
+        foreach ($supplies as $supply) {
+            $byDev = $this->getSupplyResultByDevelopmentState($supply, $costCentersId);
+            foreach ($byDev as $devStateId => $amount) {
+                if (!isset($suppliesByDevState[$devStateId])) {
+                    $suppliesByDevState[$devStateId] = 0;
+                }
+                $suppliesByDevState[$devStateId] += $amount;
+            }
+        }
+        // Calcular gasto por hectárea de insumos por estado de desarrollo
+        $suppliesExpensePerHectare = [];
+        foreach ($supplies as $supply) {
+            $byDev = $this->getSupplyExpensePerHectareByDevelopmentState($supply, $costCentersId);
+            foreach ($byDev as $devStateId => $amount) {
+                if (!isset($suppliesExpensePerHectare[$devStateId])) {
+                    $suppliesExpensePerHectare[$devStateId] = 0;
+                }
+                $suppliesExpensePerHectare[$devStateId] += $amount;
+            }
+        }
         // Obtener nombres de estados de desarrollo
         $devStates = \App\Models\DevelopmentState::all(['id', 'name'])->keyBy('id')->toArray();
         // Pasar ambos al frontend
@@ -139,6 +263,15 @@ class DashboardController extends Controller
             'totalSupplies', 'monthsSupplies',
             'months', 'weather', 'city',
             'agrochemicalByDevState',
+            'fertilizerByDevState',
+            'manPowerByDevState',
+            'servicesByDevState',
+            'suppliesByDevState',
+            'agrochemicalExpensePerHectare',
+            'fertilizerExpensePerHectare',
+            'manPowerExpensePerHectare',
+            'servicesExpensePerHectare',
+            'suppliesExpensePerHectare',
             'devStates' // <-- nombres de estados de desarrollo
         ));
     }
@@ -502,6 +635,374 @@ class DashboardController extends Controller
                 }
             }
             $result[$devStateId] = $totalAmountDev;
+        }
+        return $result;
+    }
+
+    /**
+     * Obtiene el gasto promedio de agroquímicos por hectárea separado por development_state
+     * Devuelve un array: [development_state_id => gastoPorHectarea]
+     */
+    private function getAgrochemicalExpensePerHectareByDevelopmentState($value, $costCentersId)
+    {
+        $result = [];
+        $currentMonth = $this->month_id;
+        // Obtener todos los cost centers con su development_state_id
+        $costCenters = \App\Models\CostCenter::whereIn('id', $costCentersId)
+            ->select('id', 'development_state_id', 'surface')
+            ->get();
+        foreach ($costCenters->groupBy('development_state_id') as $devStateId => $centers) {
+            $totalAmountDev = 0;
+            $totalSurface = 0;
+            foreach ($centers as $center) {
+                $dose = (($value->unit_id == 4 && $value->unit_id_price == 3) || ($value->unit_id == 2 && $value->unit_id_price == 1)) ? ($value->dose / 1000) : $value->dose;
+                $surface = $center->surface;
+                if ($value->dose_type_id == 1) {
+                    $quantityFirst = round($dose * $surface, 2);
+                } elseif ($value->dose_type_id == 2) {
+                    $quantityFirst = round((($value->mojamiento / 100) * $dose * $surface), 2);
+                } else {
+                    $quantityFirst = 0;
+                }
+                $amountFirst = round($value->price * $quantityFirst, 2);
+                $data = [];
+                for ($x = $currentMonth; $x < $currentMonth + 12; $x++) {
+                    $id = date('n', mktime(0, 0, 0, $x, 1));
+                    array_push($data, $id);
+                }
+                foreach ($data as $month) {
+                    $count = \DB::table('agrochemical_items')
+                        ->select('agrochemical_id')
+                        ->where('agrochemical_id', $value->id)
+                        ->where('month_id', $month)
+                        ->where('cost_center_id', $center->id)
+                        ->count();
+                    $amountMonth = $count > 0 ? $amountFirst : 0;
+                    $totalAmountDev += $amountMonth;
+                }
+                $totalSurface += $surface;
+            }
+            // Evitar división por cero
+            $result[$devStateId] = $totalSurface > 0 ? $totalAmountDev / $totalSurface : 0;
+        }
+        return $result;
+    }
+
+    /**
+     * Obtiene el totalAmount de fertilizantes separado por development_state
+     * Devuelve un array: [development_state_id => totalAmount]
+     */
+    private function getFertilizerResultByDevelopmentState($value, $costCentersId)
+    {
+        $result = [];
+        $currentMonth = $this->month_id;
+        // Obtener todos los cost centers con su development_state_id
+        $costCenters = \App\Models\CostCenter::whereIn('id', $costCentersId)
+            ->select('id', 'development_state_id', 'surface')
+            ->get();
+        foreach ($costCenters->groupBy('development_state_id') as $devStateId => $centers) {
+            $totalAmountDev = 0;
+            foreach ($centers as $center) {
+                $surface = $center->surface;
+                $dose = (($value->unit_id == 4 && $value->unit_id_price == 3) || ($value->unit_id == 2 && $value->unit_id_price == 1)) ? ($value->dose / 1000) : $value->dose;
+                $quantityFirst = round($dose * $surface, 2);
+                $amountFirst = round($value->price * $quantityFirst, 2);
+                $data = [];
+                for ($x = $currentMonth; $x < $currentMonth + 12; $x++) {
+                    $id = date('n', mktime(0, 0, 0, $x, 1));
+                    array_push($data, $id);
+                }
+                foreach ($data as $month) {
+                    $count = \DB::table('fertilizer_items')
+                        ->select('fertilizer_id')
+                        ->where('fertilizer_id', $value->id)
+                        ->where('month_id', $month)
+                        ->where('cost_center_id', $center->id)
+                        ->count();
+                    $amountMonth = $count > 0 ? $amountFirst : 0;
+                    $totalAmountDev += $amountMonth;
+                }
+            }
+            $result[$devStateId] = $totalAmountDev;
+        }
+        return $result;
+    }
+
+    /**
+     * Obtiene el gasto promedio de fertilizantes por hectárea separado por development_state
+     * Devuelve un array: [development_state_id => gastoPorHectarea]
+     */
+    private function getFertilizerExpensePerHectareByDevelopmentState($value, $costCentersId)
+    {
+        $result = [];
+        $currentMonth = $this->month_id;
+        $costCenters = \App\Models\CostCenter::whereIn('id', $costCentersId)
+            ->select('id', 'development_state_id', 'surface')
+            ->get();
+        foreach ($costCenters->groupBy('development_state_id') as $devStateId => $centers) {
+            $totalAmountDev = 0;
+            $totalSurface = 0;
+            foreach ($centers as $center) {
+                $surface = $center->surface;
+                $dose = (($value->unit_id == 4 && $value->unit_id_price == 3) || ($value->unit_id == 2 && $value->unit_id_price == 1)) ? ($value->dose / 1000) : $value->dose;
+                $quantityFirst = round($dose * $surface, 2);
+                $amountFirst = round($value->price * $quantityFirst, 2);
+                $data = [];
+                for ($x = $currentMonth; $x < $currentMonth + 12; $x++) {
+                    $id = date('n', mktime(0, 0, 0, $x, 1));
+                    array_push($data, $id);
+                }
+                foreach ($data as $month) {
+                    $count = \DB::table('fertilizer_items')
+                        ->select('fertilizer_id')
+                        ->where('fertilizer_id', $value->id)
+                        ->where('month_id', $month)
+                        ->where('cost_center_id', $center->id)
+                        ->count();
+                    $amountMonth = $count > 0 ? $amountFirst : 0;
+                    $totalAmountDev += $amountMonth;
+                }
+                $totalSurface += $surface;
+            }
+            $result[$devStateId] = $totalSurface > 0 ? $totalAmountDev / $totalSurface : 0;
+        }
+        return $result;
+    }
+
+    /**
+     * Obtiene el totalAmount de mano de obra separado por development_state
+     * Devuelve un array: [development_state_id => totalAmount]
+     */
+    private function getManPowerResultByDevelopmentState($value, $costCentersId)
+    {
+        $result = [];
+        $currentMonth = $this->month_id;
+        $costCenters = \App\Models\CostCenter::whereIn('id', $costCentersId)
+            ->select('id', 'development_state_id', 'surface')
+            ->get();
+        foreach ($costCenters->groupBy('development_state_id') as $devStateId => $centers) {
+            $totalAmountDev = 0;
+            foreach ($centers as $center) {
+                $surface = $center->surface;
+                $quantityFirst = round($value->workday * $surface, 2);
+                $amountFirst = round($value->price * $quantityFirst, 2);
+                $data = [];
+                for ($x = $currentMonth; $x < $currentMonth + 12; $x++) {
+                    $id = date('n', mktime(0, 0, 0, $x, 1));
+                    array_push($data, $id);
+                }
+                foreach ($data as $month) {
+                    $count = \DB::table('manpower_items')
+                        ->select('man_power_id')
+                        ->where('man_power_id', $value->id)
+                        ->where('month_id', $month)
+                        ->where('cost_center_id', $center->id)
+                        ->count();
+                    $amountMonth = $count > 0 ? $amountFirst : 0;
+                    $totalAmountDev += $amountMonth;
+                }
+            }
+            $result[$devStateId] = $totalAmountDev;
+        }
+        return $result;
+    }
+
+    /**
+     * Obtiene el gasto promedio de mano de obra por hectárea separado por development_state
+     * Devuelve un array: [development_state_id => gastoPorHectarea]
+     */
+    private function getManPowerExpensePerHectareByDevelopmentState($value, $costCentersId)
+    {
+        $result = [];
+        $currentMonth = $this->month_id;
+        $costCenters = \App\Models\CostCenter::whereIn('id', $costCentersId)
+            ->select('id', 'development_state_id', 'surface')
+            ->get();
+        foreach ($costCenters->groupBy('development_state_id') as $devStateId => $centers) {
+            $totalAmountDev = 0;
+            $totalSurface = 0;
+            foreach ($centers as $center) {
+                $surface = $center->surface;
+                $quantityFirst = round($value->workday * $surface, 2);
+                $amountFirst = round($value->price * $quantityFirst, 2);
+                $data = [];
+                for ($x = $currentMonth; $x < $currentMonth + 12; $x++) {
+                    $id = date('n', mktime(0, 0, 0, $x, 1));
+                    array_push($data, $id);
+                }
+                foreach ($data as $month) {
+                    $count = \DB::table('manpower_items')
+                        ->select('man_power_id')
+                        ->where('man_power_id', $value->id)
+                        ->where('month_id', $month)
+                        ->where('cost_center_id', $center->id)
+                        ->count();
+                    $amountMonth = $count > 0 ? $amountFirst : 0;
+                    $totalAmountDev += $amountMonth;
+                }
+                $totalSurface += $surface;
+            }
+            $result[$devStateId] = $totalSurface > 0 ? $totalAmountDev / $totalSurface : 0;
+        }
+        return $result;
+    }
+
+    /**
+     * Obtiene el totalAmount de servicios separado por development_state
+     * Devuelve un array: [development_state_id => totalAmount]
+     */
+    private function getServiceResultByDevelopmentState($value, $costCentersId)
+    {
+        $result = [];
+        $currentMonth = $this->month_id;
+        $costCenters = \App\Models\CostCenter::whereIn('id', $costCentersId)
+            ->select('id', 'development_state_id', 'surface')
+            ->get();
+        foreach ($costCenters->groupBy('development_state_id') as $devStateId => $centers) {
+            $totalAmountDev = 0;
+            foreach ($centers as $center) {
+                $surface = $center->surface;
+                $quantity = (($value->unit_id == 4 && $value->unit_id_price == 3) || ($value->unit_id == 2 && $value->unit_id_price == 1)) ? ($value->quantity / 1000) : $value->quantity;
+                $quantityFirst = round($quantity * $surface, 2);
+                $amountFirst = round($value->price * $quantityFirst, 2);
+                $data = [];
+                for ($x = $currentMonth; $x < $currentMonth + 12; $x++) {
+                    $id = date('n', mktime(0, 0, 0, $x, 1));
+                    array_push($data, $id);
+                }
+                foreach ($data as $month) {
+                    $count = \DB::table('service_items')
+                        ->select('service_id')
+                        ->where('service_id', $value->id)
+                        ->where('month_id', $month)
+                        ->where('cost_center_id', $center->id)
+                        ->count();
+                    $amountMonth = $count > 0 ? $amountFirst : 0;
+                    $totalAmountDev += $amountMonth;
+                }
+            }
+            $result[$devStateId] = $totalAmountDev;
+        }
+        return $result;
+    }
+
+    /**
+     * Obtiene el gasto promedio de servicios por hectárea separado por development_state
+     * Devuelve un array: [development_state_id => gastoPorHectarea]
+     */
+    private function getServiceExpensePerHectareByDevelopmentState($value, $costCentersId)
+    {
+        $result = [];
+        $currentMonth = $this->month_id;
+        $costCenters = \App\Models\CostCenter::whereIn('id', $costCentersId)
+            ->select('id', 'development_state_id', 'surface')
+            ->get();
+        foreach ($costCenters->groupBy('development_state_id') as $devStateId => $centers) {
+            $totalAmountDev = 0;
+            $totalSurface = 0;
+            foreach ($centers as $center) {
+                $surface = $center->surface;
+                $quantity = (($value->unit_id == 4 && $value->unit_id_price == 3) || ($value->unit_id == 2 && $value->unit_id_price == 1)) ? ($value->quantity / 1000) : $value->quantity;
+                $quantityFirst = round($quantity * $surface, 2);
+                $amountFirst = round($value->price * $quantityFirst, 2);
+                $data = [];
+                for ($x = $currentMonth; $x < $currentMonth + 12; $x++) {
+                    $id = date('n', mktime(0, 0, 0, $x, 1));
+                    array_push($data, $id);
+                }
+                foreach ($data as $month) {
+                    $count = \DB::table('service_items')
+                        ->select('service_id')
+                        ->where('service_id', $value->id)
+                        ->where('month_id', $month)
+                        ->where('cost_center_id', $center->id)
+                        ->count();
+                    $amountMonth = $count > 0 ? $amountFirst : 0;
+                    $totalAmountDev += $amountMonth;
+                }
+                $totalSurface += $surface;
+            }
+            $result[$devStateId] = $totalSurface > 0 ? $totalAmountDev / $totalSurface : 0;
+        }
+        return $result;
+    }
+
+    /**
+     * Obtiene el totalAmount de insumos separado por development_state
+     * Devuelve un array: [development_state_id => totalAmount]
+     */
+    private function getSupplyResultByDevelopmentState($value, $costCentersId)
+    {
+        $result = [];
+        $currentMonth = $this->month_id;
+        $costCenters = \App\Models\CostCenter::whereIn('id', $costCentersId)
+            ->select('id', 'development_state_id', 'surface')
+            ->get();
+        foreach ($costCenters->groupBy('development_state_id') as $devStateId => $centers) {
+            $totalAmountDev = 0;
+            foreach ($centers as $center) {
+                $surface = $center->surface;
+                $quantity = (($value->unit_id == 4 && $value->unit_id_price == 3) || ($value->unit_id == 2 && $value->unit_id_price == 1)) ? ($value->quantity / 1000) : $value->quantity;
+                $quantityFirst = round($quantity * $surface, 2);
+                $amountFirst = round($value->price * $quantityFirst, 2);
+                $data = [];
+                for ($x = $currentMonth; $x < $currentMonth + 12; $x++) {
+                    $id = date('n', mktime(0, 0, 0, $x, 1));
+                    array_push($data, $id);
+                }
+                foreach ($data as $month) {
+                    $count = \DB::table('supply_items')
+                        ->select('supply_id')
+                        ->where('supply_id', $value->id)
+                        ->where('month_id', $month)
+                        ->where('cost_center_id', $center->id)
+                        ->count();
+                    $amountMonth = $count > 0 ? $amountFirst : 0;
+                    $totalAmountDev += $amountMonth;
+                }
+            }
+            $result[$devStateId] = $totalAmountDev;
+        }
+        return $result;
+    }
+
+    /**
+     * Obtiene el gasto promedio de insumos por hectárea separado por development_state
+     * Devuelve un array: [development_state_id => gastoPorHectarea]
+     */
+    private function getSupplyExpensePerHectareByDevelopmentState($value, $costCentersId)
+    {
+        $result = [];
+        $currentMonth = $this->month_id;
+        $costCenters = \App\Models\CostCenter::whereIn('id', $costCentersId)
+            ->select('id', 'development_state_id', 'surface')
+            ->get();
+        foreach ($costCenters->groupBy('development_state_id') as $devStateId => $centers) {
+            $totalAmountDev = 0;
+            $totalSurface = 0;
+            foreach ($centers as $center) {
+                $surface = $center->surface;
+                $quantity = (($value->unit_id == 4 && $value->unit_id_price == 3) || ($value->unit_id == 2 && $value->unit_id_price == 1)) ? ($value->quantity / 1000) : $value->quantity;
+                $quantityFirst = round($quantity * $surface, 2);
+                $amountFirst = round($value->price * $quantityFirst, 2);
+                $data = [];
+                for ($x = $currentMonth; $x < $currentMonth + 12; $x++) {
+                    $id = date('n', mktime(0, 0, 0, $x, 1));
+                    array_push($data, $id);
+                }
+                foreach ($data as $month) {
+                    $count = \DB::table('supply_items')
+                        ->select('supply_id')
+                        ->where('supply_id', $value->id)
+                        ->where('month_id', $month)
+                        ->where('cost_center_id', $center->id)
+                        ->count();
+                    $amountMonth = $count > 0 ? $amountFirst : 0;
+                    $totalAmountDev += $amountMonth;
+                }
+                $totalSurface += $surface;
+            }
+            $result[$devStateId] = $totalSurface > 0 ? $totalAmountDev / $totalSurface : 0;
         }
         return $result;
     }

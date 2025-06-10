@@ -45,8 +45,21 @@ const props = defineProps({
     weather: Object,
   weatherCity: String,
   agrochemicalByDevState: Object,
-  devStates: Object // <-- nuevo: nombres de estados de desarrollo
+  fertilizerByDevState: Object,
+  manPowerByDevState: Object,
+  servicesByDevState: Object, // <-- agregar
+  suppliesByDevState: Object, // <-- agregar
+  agrochemicalExpensePerHectare: Object,
+  fertilizerExpensePerHectare: Object,
+  manPowerExpensePerHectare: Object, // <-- agregar
+  servicesExpensePerHectare: Object, // <-- agregar
+  suppliesExpensePerHectare: Object, // <-- agregar
+  devStates: Object // <-- nombres de estados de desarrollo
 })
+
+// Estados para mostrar/ocultar tablas
+const showDevStateTable = ref(false)
+const showExpensePerHectareTable = ref(false)
 </script>
 
 <template>
@@ -97,7 +110,7 @@ const props = defineProps({
         <div class="row mt-4">
           <div class="col-xl-12">
             <div class="card">
-              <div class="card-body pt-0 pb-2">
+              <div class="card-body pt-2 pb-2">
                 <div class="table-responsive scrollbar">
                   <table class="table table-sm table-hover align-middle border rounded shadow-sm bg-white">
                     <thead class="table-light border-bottom">
@@ -149,20 +162,74 @@ const props = defineProps({
         <div class="row mt-4">
           <div class="col-xl-12">
             <div class="card">
-              <div class="card-body pt-0 pb-2">
-                <h6 class="mb-2">Agroquímicos por Estado de Desarrollo</h6>
-                <div class="table-responsive scrollbar">
+              <div class="card-body pt-1 pb-2">
+                <div class="d-flex justify-content-between align-items-center mb-1">
+                  <h6 class="mb-0">Estado de Desarrollo</h6>
+                  <button class="btn btn-sm btn-outline-primary" @click="showDevStateTable = !showDevStateTable">
+                    <span v-if="showDevStateTable">Ocultar</span>
+                    <span v-else>Mostrar</span>
+                  </button>
+                </div>
+                <div class="table-responsive scrollbar" v-if="showDevStateTable">
                   <table class="table table-sm table-hover align-middle border rounded shadow-sm bg-white">
                     <thead class="table-light border-bottom">
                       <tr>
-                        <th class="text-uppercase text-secondary small fw-bold small">Estado de desarrollo</th>
-                        <th class="text-uppercase text-secondary small fw-bold small">Total Agroquímicos</th>
+                        <th class="text-start text-uppercase text-secondary small fw-bold small">Estado de desarrollo</th>
+                        <th class="text-center text-uppercase text-secondary small fw-bold small">Total Agroquímicos</th>
+                        <th class="text-center text-uppercase text-secondary small fw-bold small">Total Fertilizantes</th>
+                        <th class="text-center text-uppercase text-secondary small fw-bold small">Total Mano de Obra</th>
+                        <th class="text-center text-uppercase text-secondary small fw-bold small">Total Servicios</th>
+                        <th class="text-center text-uppercase text-secondary small fw-bold small">Total Insumos</th>
                       </tr>
                     </thead>
                     <tbody>
-                      <tr v-for="(total, devStateId) in agrochemicalByDevState" :key="devStateId" class="border-bottom">
+                      <tr v-for="devStateId in Object.keys(devStates)" :key="devStateId" class="border-bottom">
                         <td class="fw-semibold">{{ devStates[devStateId]?.name || 'Sin estado' }}</td>
-                        <td class="text-end text-primary fw-bold">{{ Number(total).toLocaleString('es-CL', { maximumFractionDigits: 0 }) }}</td>
+                        <td class="text-center text-end text-success fw-bold small">{{ Number(agrochemicalByDevState[devStateId] || 0).toLocaleString('es-CL', { maximumFractionDigits: 0 }) }}</td>
+                        <td class="text-center text-end text-success fw-bold small">{{ Number(fertilizerByDevState[devStateId] || 0).toLocaleString('es-CL', { maximumFractionDigits: 0 }) }}</td>
+                        <td class="text-center text-end text-success fw-bold small">{{ Number(manPowerByDevState[devStateId] || 0).toLocaleString('es-CL', { maximumFractionDigits: 0 }) }}</td>
+                        <td class="text-center text-end text-success fw-bold small">{{ Number(servicesByDevState[devStateId] || 0).toLocaleString('es-CL', { maximumFractionDigits: 0 }) }}</td>
+                        <td class="text-center text-end text-success fw-bold small">{{ Number(suppliesByDevState[devStateId] || 0).toLocaleString('es-CL', { maximumFractionDigits: 0 }) }}</td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="row mt-4">
+          <div class="col-xl-12">
+            <div class="card">
+              <div class="card-body pt-1 pb-2">
+                <div class="d-flex justify-content-between align-items-center mb-1">
+                  <h6 class="mb-0">Gastos por Hectáreas</h6>
+                  <button class="btn btn-sm btn-outline-primary" @click="showExpensePerHectareTable = !showExpensePerHectareTable">
+                    <span v-if="showExpensePerHectareTable">Ocultar</span>
+                    <span v-else>Mostrar</span>
+                  </button>
+                </div>
+                <div class="table-responsive scrollbar" v-if="showExpensePerHectareTable">
+                  <table class="table table-sm table-hover align-middle border rounded shadow-sm bg-white">
+                    <thead class="table-light border-bottom">
+                      <tr>
+                        <th class="text-start text-uppercase text-secondary small fw-bold">Estado de desarrollo</th>
+                        <th class="text-center text-uppercase text-secondary small fw-bold">Agroquímicos</th>
+                        <th class="text-center text-uppercase text-secondary small fw-bold">Fertilizantes</th>
+                        <th class="text-center text-uppercase text-secondary small fw-bold">Mano de Obra</th>
+                        <th class="text-center text-uppercase text-secondary small fw-bold">Servicios</th>
+                        <th class="text-center text-uppercase text-secondary small fw-bold">Insumos</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      <tr v-for="devStateId in Object.keys(devStates)" :key="devStateId" class="border-bottom">
+                        <td class="text-start fw-semibold">{{ devStates[devStateId]?.name || 'Sin estado' }}</td>
+                        <td class="text-center text-warning fw-bold small">{{ Number(agrochemicalExpensePerHectare[devStateId] || 0).toLocaleString('es-CL', { maximumFractionDigits: 0 }) }}</td>
+                        <td class="text-center text-warning fw-bold small">{{ Number(fertilizerExpensePerHectare[devStateId] || 0).toLocaleString('es-CL', { maximumFractionDigits: 0 }) }}</td>
+                        <td class="text-center text-warning fw-bold small">{{ Number(manPowerExpensePerHectare[devStateId] || 0).toLocaleString('es-CL', { maximumFractionDigits: 0 }) }}</td>
+                        <td class="text-center text-warning fw-bold small">{{ Number(servicesExpensePerHectare[devStateId] || 0).toLocaleString('es-CL', { maximumFractionDigits: 0 }) }}</td>
+                        <td class="text-center text-warning fw-bold small">{{ Number(suppliesExpensePerHectare[devStateId] || 0).toLocaleString('es-CL', { maximumFractionDigits: 0 }) }}</td>
                       </tr>
                     </tbody>
                   </table>
