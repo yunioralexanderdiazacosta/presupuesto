@@ -101,8 +101,8 @@ const logout = () => {
                   </a>
                   <!-- more inner pages-->
                   <ul class="nav collapse" id="split">
-                    <li class="nav-item"><Link class="nav-link" :href="route('budgets.index')">
-                        <div class="d-flex align-items-center"><span class="nav-link-text ps-1 mb-1">Gnral Administración</span>
+                    <li class="nav-item"><Link class="nav-link" :href="route('administrations.index')">
+                        <div class="d-flex align-items-center"><span class="nav-link-text ps-1 mb-1">Administración</span>
                         </div>
                       </Link>
                       <!-- more inner pages-->

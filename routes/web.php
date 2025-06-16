@@ -24,6 +24,7 @@ use App\Http\Controllers\MachineriesController;
 use App\Http\Controllers\TypeMachineriesController;
 use App\Http\Controllers\SuppliesController;
 use App\Http\Controllers\ServicesController;
+use App\Http\Controllers\AdministrationsController;
 use App\Http\Controllers\Teams\StoreTeamController;
 use App\Http\Controllers\Teams\UpdateTeamController;
 use App\Http\Controllers\Teams\DeleteTeamController;
@@ -141,6 +142,9 @@ use App\Http\Controllers\Excels\invoicesExcelController;
 use App\Http\Controllers\Excels\MachineriesExcelController;
 use App\Http\Controllers\Excels\TypeMachineriesExcelController;
 use App\Http\Controllers\WeatherController;
+use App\Http\Controllers\Administrations\StoreAdministrationController;
+use App\Http\Controllers\Administrations\DeleteAdministrationController;
+use App\Http\Controllers\Administrations\UpdateAdministrationController;
 
 use Inertia\Inertia;
 
@@ -295,6 +299,7 @@ Route::middleware([
         Route::get('/manpowers', ManPowersController::class)->name('manpowers.index');
         Route::get('/supplies', SuppliesController::class)->name('supplies.index');
         Route::get('/services', ServicesController::class)->name('services.index');
+        Route::get('/administrations', AdministrationsController::class)->name('administrations.index');
 
 
         Route::get('/cost-centers/pdf', CostCentersPdfController::class)->name('cost.centers.pdf');
@@ -334,6 +339,11 @@ Route::middleware([
         Route::post('/services/store', StoreServiceController::class)->name('services.store');
         Route::post('/services/{service}/update', UpdateServiceController::class)->name('services.update');
         Route::delete('/services/{service}/delete', DeleteServiceController::class)->name('services.delete');
+
+        Route::post('/administrations/store', StoreAdministrationController::class)->name('administrations.store');
+        Route::post('/administrations/{administration}/update', UpdateAdministrationController::class)->name('administrations.update');
+        Route::delete('/administrations/{administration}/delete', DeleteAdministrationController::class)->name('administrations.delete');
+
 
 
     });
