@@ -2,10 +2,24 @@
     import Multiselect from '@vueform/multiselect';
     import TextInput from '@/Components/TextInput.vue';
     import InputError from '@/Components/InputError.vue';
+    import { usePage } from '@inertiajs/vue3';
 
-    defineProps({
+    const page = usePage();
+
+    const props = defineProps({
         form: Object
     });
+
+    const selectAllMonths = () => {
+        console.log('toggle');
+      const allMonths = page.props.months.map(m => String(m.value));
+      const current = props.form.months || [];
+      if (current.length === allMonths.length && allMonths.every(m => current.includes(m))) {
+        props.form.months = [];
+      } else {
+        props.form.months = allMonths;
+      }
+    };
 </script>
 <script setup>
 
@@ -92,15 +106,23 @@
     </div>
 
     <div class="fv-row">
-        <label for="months" class="col-form-label">Meses</label><br>
-        <template v-for="value in $page.props.months">
-            <div class="form-check form-check-solid form-check-inline mb-1">
-                <input class="form-check-input" type="checkbox" v-model="form.months" :id="'kt_month_'+value.id" :value="value.value">
-                <label class="form-check-label ps-2" :for="'kt_month_'+value.id">{{value.label}}</label>
-            </div>
+        <label for="months" class="col-form-label">Meses</label>
+        <button
+          type="button"
+          class="btn btn-sm btn-secondary mb-2 ms-2"
+          :class="{'btn-success': props.form.months && props.form.months.length === page.props.months.length}"
+          @click="selectAllMonths"
+        >
+          {{ (props.form.months && props.form.months.length === page.props.months.length) ? 'Deseleccionar todos' : 'Seleccionar todos' }}
+        </button>
+        <br>
+        <template v-for="value in page.props.months">
+          <div class="form-check form-check-solid form-check-inline mb-1">
+            <input class="form-check-input" type="checkbox" v-model="props.form.months" :id="'kt_month_'+value.id" :value="String(value.value)">
+            <label class="form-check-label ps-2" :for="'kt_month_'+value.id">{{value.label}}</label>
+          </div>
         </template>
-        <small class="text-danger">{{form.errors.months}}</small> 
-       
+        <small class="text-danger">{{props.form.errors.months}}</small>
     </div>
 
     <div class="fv-row">

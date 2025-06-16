@@ -2,6 +2,8 @@
     import Multiselect from '@vueform/multiselect';
 	import TextInput from '@/Components/TextInput.vue';
 	import InputError from '@/Components/InputError.vue';
+	import { usePage } from '@inertiajs/vue3';
+	const page = usePage();
 
 
 
@@ -24,6 +26,17 @@
     const removeItem = (index) => {
         props.form.products.splice(index, 1);
     }
+
+    //seleccionar todos los meses
+    const selectAllMonths = (index) => {
+      const allMonths = page.props.months.map(m => String(m.value));
+      const current = props.form.products[index].months || [];
+      if (current.length === allMonths.length && allMonths.every(m => current.includes(m))) {
+        props.form.products[index].months = [];
+      } else {
+        props.form.products[index].months = allMonths;
+      }
+    };
 </script>
 <script setup></script>
 <template>
@@ -106,11 +119,15 @@
         <div class="row">
             <div class="col-lg-8">
                 <div class="fv-row">
-                    <label for="months" class="col-form-label">Meses</label><br>
-                    <template v-for="value in $page.props.months">
+                    <label for="months" class="col-form-label">Meses</label>
+                    <button type="button" class="btn btn-sm btn-secondary mb-1 ms-1" :class="{'btn-success': product.months && product.months.length === page.props.months.length}" @click="selectAllMonths(index)">
+                      {{ (product.months && product.months.length === page.props.months.length) ? 'Deseleccionar todos' : 'Seleccionar todos' }}
+                    </button>
+                    <br>
+                    <template v-for="value in page.props.months">
                         <div style="margin-right: 0.5rem;" class="form-check form-check-solid form-check-inline mb-1">
                             <input class="form-check-input" type="checkbox" v-model="product.months" :id="'kt_month_'+value.id+'_'+index" :value="String(value.value)">
-                            <label class="form-check-label ps-2" :for="'kt_month_'+value.id">{{value.label}}</label>
+                            <label class="form-check-label ps-2" :for="'kt_month_'+value.id+'_'+index">{{value.label}}</label>
                         </div>
                     </template>
                     <small class="text-danger" v-if="form.errors['products.'+index+'.months']"><br>{{form.errors['products.'+index+'.months']}}</small> 
