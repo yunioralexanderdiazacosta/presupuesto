@@ -81,7 +81,7 @@ const items = [
                     {
                         title: 'Gral Campo',
                         icon: `<i class="bi bi-card-checklist"></i>`,
-                        link: 'dashboard'
+                        link: 'fields.index'
                     }
                 ]
             },

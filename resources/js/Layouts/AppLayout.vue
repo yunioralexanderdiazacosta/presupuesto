@@ -87,10 +87,10 @@ const logout = () => {
                   </a>
                   <!-- more inner pages-->
                   <ul class="nav collapse" id="card">
-                    <li class="nav-item"><a class="nav-link" href="#">
+                    <li class="nav-item"><Link class="nav-link" :href="route('fields.index')">
                         <div class="d-flex align-items-center"><span class="nav-link-text ps-1 mb-1">Gral Campo</span>
                         </div>
-                      </a>
+                      </Link>
                       <!-- more inner pages-->
                     </li>
                   </ul>

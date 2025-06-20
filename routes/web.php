@@ -25,6 +25,7 @@ use App\Http\Controllers\TypeMachineriesController;
 use App\Http\Controllers\SuppliesController;
 use App\Http\Controllers\ServicesController;
 use App\Http\Controllers\AdministrationsController;
+use App\Http\Controllers\FieldsController;
 use App\Http\Controllers\Teams\StoreTeamController;
 use App\Http\Controllers\Teams\UpdateTeamController;
 use App\Http\Controllers\Teams\DeleteTeamController;
@@ -145,6 +146,9 @@ use App\Http\Controllers\WeatherController;
 use App\Http\Controllers\Administrations\StoreAdministrationController;
 use App\Http\Controllers\Administrations\DeleteAdministrationController;
 use App\Http\Controllers\Administrations\UpdateAdministrationController;
+use App\Http\Controllers\Fields\StoreFieldController;
+use App\Http\Controllers\Fields\UpdateFieldController;
+use App\Http\Controllers\Fields\DeleteFieldController;
 
 use Inertia\Inertia;
 
@@ -300,6 +304,7 @@ Route::middleware([
         Route::get('/supplies', SuppliesController::class)->name('supplies.index');
         Route::get('/services', ServicesController::class)->name('services.index');
         Route::get('/administrations', AdministrationsController::class)->name('administrations.index');
+        Route::get('/fields', FieldsController::class)->name('fields.index');
 
 
         Route::get('/cost-centers/pdf', CostCentersPdfController::class)->name('cost.centers.pdf');
@@ -344,8 +349,9 @@ Route::middleware([
         Route::post('/administrations/{administration}/update', UpdateAdministrationController::class)->name('administrations.update');
         Route::delete('/administrations/{administration}/delete', DeleteAdministrationController::class)->name('administrations.delete');
 
-
-
+        Route::post('/fields/store', StoreFieldController::class)->name('fields.store');
+        Route::post('/fields/{field}/update', UpdateFieldController::class)->name('fields.update');
+        Route::delete('/fields/{field}/delete', DeleteFieldController::class)->name('fields.delete');
     });
     Route::get('/select-budge', SelectBudgetController::class)->name('select.budget');
     Route::post('/select-season/save', SaveSeasonController::class)->name('select.seasons.save');
