@@ -35,6 +35,7 @@ class FieldsController extends Controller
         ->select('l2.id', 'l2.name')
         ->where('l1.team_id', $team_id)
         ->where('season_id', $season_id)
+        ->where('l1.name', 'generales campo')
         ->get()->transform(function($subfamily){
             return [
                 'label' => $subfamily->name, 

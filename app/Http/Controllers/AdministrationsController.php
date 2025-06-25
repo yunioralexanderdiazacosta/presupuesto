@@ -10,6 +10,7 @@ use Inertia\Inertia;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use App\Models\Season;
+use App\Models\Level2;
 use App\Models\Level3;
 use App\Models\Unit;
 use App\Models\Month;
@@ -28,6 +29,8 @@ class AdministrationsController extends Controller
 
         $season_id = session('season_id');
 
+           $team_id = $user->team_id;
+
         $season = Season::select('name', 'month_id')->where('id', $season_id)->first();
 
         $this->month_id = $season['month_id'];
@@ -37,6 +40,22 @@ class AdministrationsController extends Controller
         $level1 = Level1::where('name', 'Administracion')
             ->where('team_id', $user->team_id)
             ->first();
+
+ $level2s =  Level2::from('level2s as l2')
+        ->join('level1s as l1', 'l1.id', 'l2.level1_id')
+        ->select('l2.id', 'l2.name')
+        ->where('l1.team_id', $team_id)
+        ->where('season_id', $season_id)
+        ->where('l1.name', 'administracion')
+        ->get()->transform(function($subfamily){
+            return [
+                'label' => $subfamily->name, 
+                'value' => $subfamily->id
+            ];
+        });
+
+
+
 
         $subfamilies = collect();
         if ($level1) {
@@ -102,7 +121,7 @@ class AdministrationsController extends Controller
 
       
 
-        return Inertia::render('Administrations', compact('units', 'subfamilies', 'months', 'administrations', 'data', 'season'));
+        return Inertia::render('Administrations', compact('units', 'subfamilies', 'months', 'administrations', 'data', 'season', 'level2s'));
     }
 
     private function getMonthName($id)
