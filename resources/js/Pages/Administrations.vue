@@ -13,9 +13,8 @@ import EditAdministrationModal from '@/Components/Administrations/EditAdministra
 const props = defineProps({
     administrations: Object,
     data: Array,
-    data1: Array // <-- Asegura que data1 esté definido como prop
-    // data2: Array,
-    // data3: Array,
+    data1: Array, // <-- Asegura que data1 esté definido como prop
+    data2: Array, // <-- Asegura que data2 esté definido como prop
     // totalData1: String,
     // totalData2: String,
     // percentage: String
@@ -30,7 +29,7 @@ const formMultiple = useForm({
             product_name: '',
             quantity: '',
             price: '',
-            unit_id: '',
+            unit_id: 5,
             observations: '',
             months: []
         }
@@ -42,7 +41,7 @@ const form = useForm({
     quantity: '',
     price: '',
     subfamily_id: '',
-    unit_id: '',
+    unit_id: 5,
     observations: '',
     months: []
 });
@@ -53,6 +52,7 @@ const links = [{ title: 'Tablero', link: 'dashboard' }, { title: title, active: 
 
 const openAdd = () => {
     form.reset();
+     form.unit_id = 5;
     $('#createAdministrationModal').modal('show');
 }
 
@@ -220,7 +220,7 @@ const onFilter = () => {
                         <!--end::Table body-->
                     </Table>
                 </div>
-              <div class="tab-pane fade" id="pill-tab-detalles" role="tabpanel" aria-labelledby="detalles-tab">
+              <div class="tab-pane fade" id="pill-tab-detalles-compra" role="tabpanel" aria-labelledby="detalles-compra-tab">
                         <!--
                         <div class="row mb-3">
                             <div class="col-md-6 col-lg-3 col-xl-6 col-xxl-3">
@@ -254,43 +254,37 @@ const onFilter = () => {
                             </div>  
                         </div>-->
 
-                        <div class="table-responsive mt-1">agrochem-details
-                            <table class="table table-bordered table-hover table-sm custom-striped fs-10 mb-0 ">
+                        <div class="table-responsive mt-1">
+                            <table class="table table-bordered table-hover table-sm custom-striped fs-10 mb-0 agrochem-details">
                                 <thead>
                                     <tr>
-                                        <th class="min-w-150px">Level 2</th>
                                         <th>Subfamilia</th>
                                         <th class="min-w-100px">Producto</th>
                                         <th>Cantidad Total</th>
                                         <th>Un</th>
                                         <th class="text-dark">Monto Total</th>
-                                        <th v-for="month in $page.props.months" class="text-primary">{{month.label}}</th> 
                                     </tr>
                                 </thead>
                                 <tbody>
-                                    <template v-for="(level, index) in data1">
-
-                                        <template v-for="(subfamily, index2) in level.subfamilies">
+                                    <template v-for="(subfamily, index2) in data2">
+                                        <template v-for="(product, index3) in subfamily.products">
                                             <tr>
-                                                <td v-if="index2 == 0" :rowspan="level.total" style="vertical-align:top">{{level.name}}</td>
-                                                <td  style="vertical-align:top;" :rowspan="subfamily.products.length">{{subfamily.name}}</td>
-                                                <td>{{subfamily.products[0].name}}</td>
-                                                <td>{{subfamily.products[0].totalQuantity}}</td>
-                                                <td>{{subfamily.products[0].unit}}</td>
-                                                <td class="text-dark">{{subfamily.products[0].totalAmount}}</td>
-                                                <td class="bg-opacity-5 table-primary" v-for="value in subfamily.products[0].months">{{value}}</td>
+                                                <td v-if="index3 === 0" :rowspan="subfamily.products.length">{{subfamily.name}}</td>
+                                                <td>{{product.name}}</td>
+                                                <td>{{product.totalQuantity}}</td>
+                                                <td>{{product.unit}}</td>
+                                                <td class="text-dark">{{product.totalAmount}}</td>
                                             </tr>
-
-                                            <template v-for="(product, index3) in subfamily.products">
-                                                <tr v-if="index3 > 0">
-                                                    <td>{{product.name}}</td>
-                                                    <td>{{product.totalQuantity}}</td>
-                                                    <td>{{product.unit}}</td>
-                                                    <td class="text-dark">{{product.totalAmount}}</td>
-                                                    <td class="bg-opacity-5 table-primary" v-for="value in product.months">{{value}}</td>
-                                                </tr>
-                                            </template>
                                         </template>
+                                        <!-- Fila de subtotal solo monto total -->
+                                        <tr class="table-secondary fw-bold">
+                                            <td colspan="4" class="text-end">Subtotal {{subfamily.name}}</td>
+                                            <td class="text-dark">
+                                                {{
+                                                  subfamily.products.reduce((sum, p) => sum + parseFloat((p.totalAmount+'').replace(/\./g,'').replace(',','.')), 0).toLocaleString('es-ES')
+                                                }}
+                                            </td>
+                                        </tr>
                                     </template>
                                 </tbody>
                             </table>

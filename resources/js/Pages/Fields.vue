@@ -14,6 +14,7 @@ const props = defineProps({
     fields: Object,
     data: Array,
     data1: Array,
+    data2: Array,
 });
 
 var acum = ref(0);
@@ -25,7 +26,7 @@ const formMultiple = useForm({
             product_name: '',
             price: '',
             quantity: '',
-            unit_id: '',
+            unit_id: 5,
             observations: '',
             months: []
         }
@@ -37,7 +38,7 @@ const form = useForm({
     subfamily_id: '',
     price: '',
     quantity: '',
-    unit_id: '',
+    unit_id: 5,
     observations: '',
     months: []
 });
@@ -401,26 +402,24 @@ const acum_products = (quantity) => {
                                
                                 <tbody>
                                     <template v-for="(subfamily, index2) in data2">
-                                        <tr>
-                                            <td style="vertical-align:top;" :rowspan="subfamily.products.length > 0 ? subfamily.products.length : 1">{{subfamily.name}}</td>
-                                            <td v-if="subfamily.products.length > 0">{{subfamily.products[0].name}}</td>
-                                            <td v-else>-</td>
-                                            <td v-if="subfamily.products.length > 0">{{subfamily.products[0].totalQuantity}}</td>
-                                            <td v-else>-</td>
-                                            <td v-if="subfamily.products.length > 0">{{subfamily.products[0].unit}}</td>
-                                            <td v-else>-</td>
-                                            <td v-if="subfamily.products.length > 0" class="text-dark">{{subfamily.products[0].totalAmount}}</td>
-                                            <td v-else>-</td>
-                                        </tr>
-
                                         <template v-for="(product, index3) in subfamily.products">
-                                            <tr v-if="index3 > 0">
-                                                <td>{{product.name}}</td>
-                                                <td>{{product.totalQuantity}}</td>
-                                                <td>{{product.unit}}</td>
-                                                <td class="text-dark">{{product.totalAmount}}</td>
-                                            </tr>
+                                          <tr>
+                                            <td v-if="index3 === 0" :rowspan="subfamily.products.length">{{subfamily.name}}</td>
+                                            <td>{{product.name}}</td>
+                                            <td>{{product.totalQuantity}}</td>
+                                            <td>{{product.unit}}</td>
+                                            <td class="text-dark">{{product.totalAmount}}</td>
+                                          </tr>
                                         </template>
+                                        <!-- Fila de subtotal solo monto total -->
+                                        <tr class="table-secondary fw-bold">
+                                          <td colspan="4" class="text-end">Subtotal {{subfamily.name}}</td>
+                                          <td class="text-dark">
+                                            {{
+                                              subfamily.products.reduce((sum, p) => sum + parseFloat((p.totalAmount+'').replace(/\./g,'').replace(',','.')), 0).toLocaleString('es-ES')
+                                            }}
+                                          </td>
+                                        </tr>
                                     </template>
                                 </tbody>
                             </table>

@@ -18,7 +18,7 @@ class FieldsController extends Controller
 {
     public $month_id = '';
 
-    //public $totalData2 = 0;
+    public $totalData2 = 0;
 
     public function __invoke()
     {
@@ -142,7 +142,19 @@ class FieldsController extends Controller
             ];
         });
 
-        return Inertia::render('Fields', compact('units', 'subfamilies', 'months', 'fields', 'data1', 'season', 'level2s'));
+        // Construcción de data2: solo subfamilias con productos con información
+        $data2 = Level3::get()->map(function($subfamily) {
+            $products = $this->getProducts2($subfamily->id);
+            if ($products->count() > 0) {
+                return [
+                    'name' => $subfamily->name,
+                    'products' => $products
+                ];
+            }
+            return null;
+        })->filter()->values();
+
+        return Inertia::render('Fields', compact('units', 'subfamilies', 'months', 'fields', 'data1', 'data2', 'season', 'level2s'));
     }
 
 
@@ -253,77 +265,77 @@ class FieldsController extends Controller
         ];
     }
 
-    // private function getProducts2($subfamilyId)
-    // {
-    //     $products = Field::from('fields as f')
-    //     ->join('field_items as fi', 'f.id', 'fi.field_id')
-    //     ->join('units as u', 'f.unit_id', 'u.id')
-    //     ->select('f.id', 'f.product_name', 'f.price', 'f.quantity', 'u.name')
-    //     ->where('f.subfamily_id', $subfamilyId)
-    //     ->groupBy('f.id', 'f.product_name', 'f.price', 'f.quantity', 'u.name')
-    //     ->get()
-    //     ->transform(function($value){
-    //         $data = $this->getResult2($value);
-    //         return [
-    //             'id'            => $value->id,
-    //             'name'          => $value->product_name,
-    //             'unit'          => $value->name ?? '',
-    //             'totalQuantity' => $data['totalQuantity'],
-    //             'totalAmount'   => $data['totalAmount'],
-    //         ];
-    //     });
+    private function getProducts2($subfamilyId)
+    {
+        $products = Field::from('fields as f')
+        ->join('field_items as fi', 'f.id', 'fi.field_id')
+        ->join('units as u', 'f.unit_id', 'u.id')
+        ->select('f.id', 'f.product_name', 'f.price', 'f.quantity', 'u.name')
+        ->where('f.subfamily_id', $subfamilyId)
+        ->groupBy('f.id', 'f.product_name', 'f.price', 'f.quantity', 'u.name')
+        ->get()
+        ->transform(function($value){
+            $data = $this->getResult2($value);
+            return [
+                'id'            => $value->id,
+                'name'          => $value->product_name,
+                'unit'          => $value->name ?? '',
+                'totalQuantity' => $data['totalQuantity'],
+                'totalAmount'   => $data['totalAmount'],
+            ];
+        });
 
-    //     return $products;
-    // }
+        return $products;
+    }
 
-    // private function getResult2($value)
-    // {
-    //     $totalAmount = 0;
-    //     $totalQuantity = 0;
-    //     $currentMonth = $this->month_id;
-    //     $amountFirst = round($value->price * $value->quantity, 2);
+    private function getResult2($value)
+    {
+        $totalAmount = 0;
+        $totalQuantity = 0;
+        $currentMonth = $this->month_id;
+        $amountFirst = round($value->price * $value->quantity, 2);
 
-    //     $data = array();
+        $data = array();
 
-    //     for ($x = $currentMonth; $x < $currentMonth + 12; $x++) {
-    //         $id = date('n', mktime(0, 0, 0, $x, 1));
-    //         array_push($data, $id);
-    //     }
+        for ($x = $currentMonth; $x < $currentMonth + 12; $x++) {
+            $id = date('n', mktime(0, 0, 0, $x, 1));
+            array_push($data, $id);
+        }
 
-    //     foreach($data as $month)
-    //     {
-    //         $count = DB::table('field_items')
-    //         ->select('field_id')
-    //         ->where('field_id', $value->id)
-    //         ->where('month_id', $month)
-    //         ->count();
+        foreach($data as $month)
+        {
+            $count = DB::table('field_items')
+            ->select('field_id')
+            ->where('field_id', $value->id)
+            ->where('month_id', $month)
+            ->count();
 
-    //         $amountMonth = $count > 0 ? $amountFirst : 0;
-    //         $quantityMonth = $count > 0 ? $value->quantity : 0;
-    //         $totalAmount += $amountMonth;
-    //         $totalQuantity += $quantityMonth;
-    //     }
+            $amountMonth = $count > 0 ? $amountFirst : 0;
+            $quantityMonth = $count > 0 ? $value->quantity : 0;
+            $totalAmount += $amountMonth;
+            $totalQuantity += $quantityMonth;
+        }
 
-    //     $this->totalData2 += $totalAmount;
+        $this->totalData2 += $totalAmount;
 
-    //     return [
-    //         'totalAmount' => number_format($totalAmount, 0, ',', '.'),
-    //         'totalQuantity' => number_format($totalQuantity, 2, ',', '.')
-    //     ]; 
-    // }
+        return [
+            'totalAmount' => number_format($totalAmount, 0, ',', '.'),
+            'totalQuantity' => number_format($totalQuantity, 2, ',', '.')
+        ]; 
+    }
 
-    // private function getTotal($id, $team_id)
-    // {   
-    //     $total =Field::from('fields as f')
-    //     ->join('field_items as fi', 'fi.field_id', 'f.id')
-    //     ->join('level3s as s', 'f.subfamily_id', 's.id')
-    //     ->join('level2s as l2', 's.level2_id', 'l2.id')
-    //     ->where('f.team_id', $team_id)
-    //     ->where('l2.id', $id)
-    //     ->select('fi.field_id')
-    //     ->distinct('fi.field_id')
-    //     ->count();
+    private function getTotal($id, $team_id)
+    {   
+        $total =Field::from('fields as f')
+        ->join('field_items as fi', 'fi.field_id', 'f.id')
+        ->join('level3s as s', 'f.subfamily_id', 's.id')
+        ->join('level2s as l2', 's.level2_id', 'l2.id')
+        ->where('f.team_id', $team_id)
+        ->where('l2.id', $id)
+        ->select('fi.field_id')
+        ->distinct('fi.field_id')
+        ->count();
 
-    //     return $total;
+        return $total;
 }
-
+}
