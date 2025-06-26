@@ -12,7 +12,8 @@ import EditAdministrationModal from '@/Components/Administrations/EditAdministra
 
 const props = defineProps({
     administrations: Object,
-    data: Array
+    data: Array,
+    data1: Array // <-- Asegura que data1 esté definido como prop
     // data2: Array,
     // data3: Array,
     // totalData1: String,
@@ -154,12 +155,12 @@ const onFilter = () => {
         </div>
 
         <div class="card-body bg-body-tertiary">
-            <!-- <ul class="nav nav-pills" id="pill-myTab" role="tablist">
+            < <ul class="nav nav-pills" id="pill-myTab" role="tablist">
                 <li class="nav-item"><a class="nav-link active" id="pill-edicion" data-bs-toggle="tab" href="#pill-tab-edicion" role="tab" aria-controls="pill-tab-edicion" aria-selected="true">Edición</a></li>
                 <li class="nav-item"><a class="nav-link" id="pill-detalles" data-bs-toggle="tab" href="#pill-tab-detalles" role="tab" aria-controls="pill-tab-detalles" aria-selected="false">Detalles</a></li>
                 <li class="nav-item"><a class="nav-link" id="pill-gastos" data-bs-toggle="tab" href="#pill-tab-gastos" role="tab" aria-controls="pill-tab-gastos" aria-selected="false">Gastos por Hectarea</a></li>
                  <li class="nav-item"><a class="nav-link" id="pill-detalles-compra" data-bs-toggle="tab" href="#pill-tab-detalles-compra" role="tab" aria-controls="pill-tab-detalles-compra" aria-selected="false">Detalle de compra</a></li>
-            </ul> -->
+            </ul>
             <div class="tab-content border p-3 mt-3" id="pill-myTabContent">
                 <div class="tab-pane fade show active" id="pill-tab-edicion" role="tabpanel" aria-labelledby="edicion-tab">
                     <Table sticky-header :id="'administrations'" :total="administrations.length" :links="administrations.links">
@@ -219,7 +220,83 @@ const onFilter = () => {
                         <!--end::Table body-->
                     </Table>
                 </div>
-              
+              <div class="tab-pane fade" id="pill-tab-detalles" role="tabpanel" aria-labelledby="detalles-tab">
+                        <!--
+                        <div class="row mb-3">
+                            <div class="col-md-6 col-lg-3 col-xl-6 col-xxl-3">
+                              <div class="card h-md-100 ecommerce-card-min-width">
+                                <div class="card-header pb-0">
+                                  <h6 class="mb-0 mt-2 d-flex align-items-center">Monto Total</h6>
+                                </div>
+                                <div class="card-body d-flex flex-column justify-content-end">
+                                  <div class="row">
+                                    <div class="col">
+                                      <p class="font-sans-serif lh-1 mb-1 fs-6">{{totalData1}}</p>
+                                    </div>
+                                  </div>
+                                </div>
+                              </div>
+                            </div>
+
+                            <div class="col-md-6 col-lg-3 col-xl-6 col-xxl-3">
+                              <div class="card h-md-100 ecommerce-card-min-width">
+                                <div class="card-header pb-0">
+                                  <h5 class="mb-0 mt-2 d-flex align-items-center">Porc. Monto</h5>
+                                </div>
+                                <div class="card-body d-flex flex-column justify-content-end">
+                                  <div class="row">
+                                    <div class="col">
+                                      <p class="font-sans-serif lh-1 mb-1 fs-6">{{percentage}}%</p>
+                                    </div>
+                                  </div>
+                                </div>
+                              </div>
+                            </div>  
+                        </div>-->
+
+                        <div class="table-responsive mt-1">agrochem-details
+                            <table class="table table-bordered table-hover table-sm custom-striped fs-10 mb-0 ">
+                                <thead>
+                                    <tr>
+                                        <th class="min-w-150px">Level 2</th>
+                                        <th>Subfamilia</th>
+                                        <th class="min-w-100px">Producto</th>
+                                        <th>Cantidad Total</th>
+                                        <th>Un</th>
+                                        <th class="text-dark">Monto Total</th>
+                                        <th v-for="month in $page.props.months" class="text-primary">{{month.label}}</th> 
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <template v-for="(level, index) in data1">
+
+                                        <template v-for="(subfamily, index2) in level.subfamilies">
+                                            <tr>
+                                                <td v-if="index2 == 0" :rowspan="level.total" style="vertical-align:top">{{level.name}}</td>
+                                                <td  style="vertical-align:top;" :rowspan="subfamily.products.length">{{subfamily.name}}</td>
+                                                <td>{{subfamily.products[0].name}}</td>
+                                                <td>{{subfamily.products[0].totalQuantity}}</td>
+                                                <td>{{subfamily.products[0].unit}}</td>
+                                                <td class="text-dark">{{subfamily.products[0].totalAmount}}</td>
+                                                <td class="bg-opacity-5 table-primary" v-for="value in subfamily.products[0].months">{{value}}</td>
+                                            </tr>
+
+                                            <template v-for="(product, index3) in subfamily.products">
+                                                <tr v-if="index3 > 0">
+                                                    <td>{{product.name}}</td>
+                                                    <td>{{product.totalQuantity}}</td>
+                                                    <td>{{product.unit}}</td>
+                                                    <td class="text-dark">{{product.totalAmount}}</td>
+                                                    <td class="bg-opacity-5 table-primary" v-for="value in product.months">{{value}}</td>
+                                                </tr>
+                                            </template>
+                                        </template>
+                                    </template>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                    <div class="tab-pane fade" id="pill-tab-gastos" role="tabpanel" aria-labelledby="gastos-tab"></div>
                 
                 </div>
 

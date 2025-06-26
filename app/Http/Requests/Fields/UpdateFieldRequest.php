@@ -25,7 +25,6 @@ class UpdateFieldRequest extends FormRequest
             'product_name' => 'required',
             'price' => 'required',
             'subfamily_id' => 'required',
-            'level2_id' => 'required',
             'unit_id' => 'required'
         ];
     }

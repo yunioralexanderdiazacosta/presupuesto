@@ -2,41 +2,21 @@
     import Multiselect from '@vueform/multiselect';
 	import TextInput from '@/Components/TextInput.vue';
 	import InputError from '@/Components/InputError.vue';
+     import { usePage } from '@inertiajs/vue3';
+
+    const page = usePage();
+
 
 	defineProps({
 		form: Object
 	});
 
-    const getLevel3s = (event) => {
-        if(event && event != ""){
-            axios.get(route('levels3.get', event))
-            .then(response => {
-                props.form.level3s = response.data;
-                props.form.subfamily_id = '';
-            }).catch(error => console.log(error));
-        }
-    }
+   
 </script>
 <script setup></script>
 <template>
     <div class="row">
-        <div class="col-lg-6">
-            <div class="fv-row">
-                <label for="level2_id" class="col-form-label">Level 2</label>
-                <Multiselect
-                    :placeholder="'Seleccione Level 2'"
-                    v-model="form.level2_id"
-                    :close-on-select="true"
-                    :options="$page.props.level2s"
-                    class="multiselect-blue form-control"
-                    :class="{'is-invalid': form.errors.level2_id}"
-                    :searchable="true"
-                    :hide-selected="false"
-                    @select="getLevel3s($event)"
-                />
-                <InputError class="mt-2" :message="form.errors.level2_id" />
-            </div>
-        </div>
+       
         <div class="col-lg-6">
             <div class="fv-row">
                 <label for="families" class="col-form-label">Familia</label>
@@ -44,7 +24,7 @@
                     :placeholder="'Seleccione familia'"
                     v-model="form.subfamily_id"
                     :close-on-select="true"
-                    :options="form.level3s"
+                    :options="$page.props.subfamilies"
                     class="multiselect-blue form-control"
                     :class="{'is-invalid': form.errors.subfamily_id}"
                     :searchable="true"

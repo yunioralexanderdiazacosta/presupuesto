@@ -13,15 +13,13 @@ import EditFieldModal from '@/Components/Fields/EditFieldModal.vue';
 const props = defineProps({
     fields: Object,
     data: Array,
-    data2: Array,
+    data1: Array,
 });
 
 var acum = ref(0);
 
 const formMultiple = useForm({
-    level2_id: '',
     subfamily_id: '',
-    cc: [],
     products: [
         {
             product_name: '',
@@ -36,7 +34,6 @@ const formMultiple = useForm({
 
 const form = useForm({
     product_name: '',
-    level2_id: '',
     subfamily_id: '',
     price: '',
     quantity: '',
@@ -45,7 +42,7 @@ const form = useForm({
     months: []
 });
 
-const title = 'Gnral. Campo';
+const title = 'Generales Campo';
 
 const links = [{ title: 'Tablero', link: 'dashboard' }, { title: title, active: true }];
 
@@ -56,11 +53,10 @@ const openAdd = () => {
 
 const openEdit = (field) => {
     form.reset();
-    form.id = fiel.id;
+    form.id = field.id;
     form.product_name = field.product_name;
     form.price = field.price;
     form.quantity = field.quantity;
-    form_level2_id = field.level2_id;
     form.subfamily_id = field.subfamily_id;
     form.unit_id = field.unit_id;
     form.observations = field.observations;
@@ -138,7 +134,7 @@ const acum_products = (quantity) => {
             <div class="card-header">
                 <div class="row flex-between-center">
                     <div class="col-6 col-sm-auto d-flex align-items-center pe-0">
-                      <h5 class="fs-9 mb-0 text-nowrap py-2 py-xl-0">Gral. Campo</h5>
+                      <h5 class="fs-9 mb-0 text-nowrap py-2 py-xl-0">General Campo</h5>
                     </div>
                     <div class="col-6 col-sm-auto ms-auto text-end ps-0">
                       <div id="table-purchases-replace-element">
@@ -161,7 +157,6 @@ const acum_products = (quantity) => {
                             <template #header>
                                 <!--begin::Table row-->
                                 <th scope="col" width="min-w-100px">Nombre</th>
-                                <th scope="col" width="min-w-100px">Level 2 </th>
                                 <th scope="col" width="min-w-100px">SubFamilia</th>
                                 <th scope="col" width="min-w-100px">Cantidad</th>
                                 <th scope="col" width="min-w-100px">Unidad</th>
@@ -173,14 +168,14 @@ const acum_products = (quantity) => {
                             <!--begin::Table body-->
                             <template #body>
                                 <template v-if="fields.total == 0">
-                                    <Empty colspan="7" />
+                                    <Empty colspan="6" />
                                 </template>
                                 <template v-else>
                                     <tr v-for="(field, index) in fields.data" :key="index">
                                         <td>
                                             <span class="text-dark  fw-bold mb-1">{{field.product_name}}</span>
                                         </td>
-                                        <td>{{field.level2.name}}</td>
+                                       
                                         <td>{{field.subfamily.name}}</td>
                                         <td>{{field.quantity}}</td>
                                         <td>{{field.unit.name}}</td>
@@ -251,31 +246,27 @@ const acum_products = (quantity) => {
                                     </tr>
                                 </thead>
                                 <tbody>
-                                    <template v-for="(level, index) in data">
-
-                                        <template v-for="(subfamily, index2) in level.subfamilies">
-                                            <tr>
-                                                <td v-if="index2 == 0" :rowspan="level.total" style="vertical-align:top">{{level.name}}</td>
-                                                <td  style="vertical-align:top;" :rowspan="subfamily.products.length">{{subfamily.name}}</td>
-                                                <td>{{subfamily.products[0].name}}</td>
-                                                <td>{{subfamily.products[0].totalQuantity}}</td>
-                                                <td>{{subfamily.products[0].unit}}</td>
-                                                <td class="text-dark">{{subfamily.products[0].totalAmount}}</td>
-                                                <td class="bg-opacity-5 table-primary" v-for="value in subfamily.products[0].months">{{value}}</td>
-                                            </tr>
-
-                                            <template v-for="(product, index3) in subfamily.products">
-                                                <tr v-if="index3 > 0">
-                                                    <td>{{product.name}}</td>
-                                                    <td>{{product.totalQuantity}}</td>
-                                                    <td>{{product.unit}}</td>
-                                                    <td class="text-dark">{{product.totalAmount}}</td>
-                                                    <td class="bg-opacity-5 table-primary" v-for="value in product.months">{{value}}</td>
-                                                </tr>
-                                            </template>
-                                        </template>
-                                    </template>
-                                </tbody>
+  <template v-for="(level, lidx) in data1">
+    <template v-for="(subfamily, sfidx) in level.subfamilies">
+      <template v-for="(product, pidx) in subfamily.products">
+        <tr>
+          <td v-if="sfidx === 0 && pidx === 0" :rowspan="level.subfamilies.reduce((acc, sf) => acc + (sf.products?.length || 1), 0)" style="vertical-align:top">{{ level.name }}</td>
+          <td v-if="pidx === 0" :rowspan="subfamily.products.length > 0 ? subfamily.products.length : 1" style="vertical-align:top">{{ subfamily.name }}</td>
+          <td>{{ product.name }}</td>
+          <td>{{ product.totalQuantity }}</td>
+          <td>{{ product.unit }}</td>
+          <td class="text-dark">{{ product.totalAmount }}</td>
+          <td class="bg-opacity-5 table-primary" v-for="value in product.months">{{ value }}</td>
+        </tr>
+      </template>
+      <tr v-if="!subfamily.products || subfamily.products.length === 0">
+        <td v-if="sfidx === 0" :rowspan="level.subfamilies.length" style="vertical-align:top">{{ level.name }}</td>
+        <td style="vertical-align:top">{{ subfamily.name }}</td>
+        <td colspan="5 + $page.props.months.length">Sin productos</td>
+      </tr>
+    </template>
+  </template>
+</tbody>
                             </table>
                         </div>
                     </div>
@@ -332,12 +323,17 @@ const acum_products = (quantity) => {
                                         <template v-for="(subfamily, index2) in cc.subfamilies">
                                             <tr>
                                                 <td v-if="index2 == 0" :rowspan="cc.total" style="vertical-align:top">{{cc.name}}</td>
-                                                <td  style="vertical-align:top;" :rowspan="subfamily.products.length">{{subfamily.name}}</td>
-                                                <td>{{subfamily.products[0].name}}</td>
-                                                <td>{{subfamily.products[0].totalQuantity}}</td>
-                                                <td>{{subfamily.products[0].unit}}</td>
-                                                <td class="text-dark">{{subfamily.products[0].totalAmount}}</td>
-                                                <td class="bg-opacity-5 table-primary" v-for="value in subfamily.products[0].months">{{value}}</td>
+                                                <td  style="vertical-align:top;" :rowspan="subfamily.products.length > 0 ? subfamily.products.length : 1">{{subfamily.name}}</td>
+                                                <td v-if="subfamily.products.length > 0">{{subfamily.products[0].name}}</td>
+                                                <td v-else>-</td>
+                                                <td v-if="subfamily.products.length > 0">{{subfamily.products[0].totalQuantity}}</td>
+                                                <td v-else>-</td>
+                                                <td v-if="subfamily.products.length > 0">{{subfamily.products[0].unit}}</td>
+                                                <td v-else>-</td>
+                                                <td v-if="subfamily.products.length > 0" class="text-dark">{{subfamily.products[0].totalAmount}}</td>
+                                                <td v-else>-</td>
+                                                <td v-if="subfamily.products.length > 0" class="bg-opacity-5 table-primary" v-for="value in subfamily.products[0].months">{{value}}</td>
+                                                <td v-else v-for="month in $page.props.months">-</td>
                                             </tr>
 
                                             <template v-for="(product, index3) in subfamily.products">
@@ -406,11 +402,15 @@ const acum_products = (quantity) => {
                                 <tbody>
                                     <template v-for="(subfamily, index2) in data2">
                                         <tr>
-                                            <td  style="vertical-align:top;" :rowspan="subfamily.products.length">{{subfamily.name}}</td>
-                                            <td>{{subfamily.products[0].name}}</td>
-                                            <td>{{subfamily.products[0].totalQuantity}}</td>
-                                            <td>{{subfamily.products[0].unit}}</td>
-                                            <td class="text-dark">{{subfamily.products[0].totalAmount}}</td>
+                                            <td style="vertical-align:top;" :rowspan="subfamily.products.length > 0 ? subfamily.products.length : 1">{{subfamily.name}}</td>
+                                            <td v-if="subfamily.products.length > 0">{{subfamily.products[0].name}}</td>
+                                            <td v-else>-</td>
+                                            <td v-if="subfamily.products.length > 0">{{subfamily.products[0].totalQuantity}}</td>
+                                            <td v-else>-</td>
+                                            <td v-if="subfamily.products.length > 0">{{subfamily.products[0].unit}}</td>
+                                            <td v-else>-</td>
+                                            <td v-if="subfamily.products.length > 0" class="text-dark">{{subfamily.products[0].totalAmount}}</td>
+                                            <td v-else>-</td>
                                         </tr>
 
                                         <template v-for="(product, index3) in subfamily.products">

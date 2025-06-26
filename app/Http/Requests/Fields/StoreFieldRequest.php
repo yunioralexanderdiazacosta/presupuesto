@@ -22,7 +22,7 @@ class StoreFieldRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'level2_id' => 'required',
+           
             'subfamily_id' => 'required',
             'products' => 'required|array',
             'products.*.product_name' => 'required',

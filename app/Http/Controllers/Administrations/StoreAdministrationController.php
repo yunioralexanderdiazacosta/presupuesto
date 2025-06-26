@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Administrations;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Administrations\StoreAdministrationRequest;
 use App\Models\Administration;
+use Illuminate\Support\Facades\Auth;
 
 class StoreAdministrationController extends Controller
 {
@@ -12,13 +13,16 @@ class StoreAdministrationController extends Controller
     {
         $products = $request->get('products');
 
+          $user = Auth::user();
+
         foreach($products as $product){
             $administration = Administration::create([
                 'product_name'  => $product['product_name'],
                 'price'         => $product['price'],
-                'quantity'     => $product['quantity'],
+                'quantity'      => $product['quantity'],
                 'observations'  => $product['observations'],
                 'unit_id'       => $product['unit_id'],
+                'team_id'       => $user->team_id,
                 'subfamily_id'  => $request->subfamily_id, 
             ]);
 

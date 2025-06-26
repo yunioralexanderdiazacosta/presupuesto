@@ -24,7 +24,6 @@ class StoreFieldController extends Controller
                 'observations'  => $product['observations'],
                 'unit_id'       => $product['unit_id'],
                 'subfamily_id'  => $request->subfamily_id,
-                'level2_id'     => $request->level2_id,
                 'team_id'       => $user->team_id
             ]);
 

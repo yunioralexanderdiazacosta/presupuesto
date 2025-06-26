@@ -11,7 +11,7 @@ defineEmits(['update']);
 <template>
     <Modal :maxWidth="'xl'" :id="'editFieldModal'">
         <template #header>
-            <h1 class="mb-3">Editar Gnral. Campo</h1>
+            <h1 class="mb-3">Editar Generales Campo</h1>
         </template>
         <template #body>
             <FieldForm :form="form" />

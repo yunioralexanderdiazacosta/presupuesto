@@ -110,6 +110,9 @@ class AdministrationsController extends Controller
         ];
     });
     
+
+
+    
         // Nueva consulta para data, sin relación a cost centers
         $data = Administration::select('id', 'product_name', 'quantity', 'subfamily_id', 'unit_id', 'price', 'observations')
             ->with(['subfamily:id,name', 'unit:id,name', 'items'])
@@ -119,10 +122,115 @@ class AdministrationsController extends Controller
                 return $admin;
             });
 
-      
+     
+   $data1 = Administration::from('administrations as f')
+        ->join('level3s as s', 'f.subfamily_id', 's.id')
+        ->join('level2s as l2', 's.level2_id', 'l2.id')
+        ->join('level1s as l1', 'l2.level1_id', 'l1.id')
+        ->select('l2.id', 'l2.name')
+        ->where('f.team_id', $team_id)
+        ->groupBy('l2.id', 'l2.name')
+        ->get()
+        ->transform(function($value) use ($team_id){
+            return [
+                'id'           => $value->id,
+                'name'         => $value->name,
+                'subfamilies'  => $this->getSubfamilies($value->id)
+            ];
+        });
 
-        return Inertia::render('Administrations', compact('units', 'subfamilies', 'months', 'administrations', 'data', 'season', 'level2s'));
+        return Inertia::render('Administrations', compact('units', 'subfamilies', 'months', 'administrations', 'data1', 'season', 'level2s'));
     }
+
+
+
+
+     public function getSubfamilies($id)
+    {
+        $subfamilies = Administration::from('administrations as f')
+        ->join('level3s as s', 'f.subfamily_id', 's.id')
+        ->join('level2s as l2', 's.level2_id', 'l2.id')
+        ->where('l2.id', $id)
+        ->select('s.id', 's.name')
+        ->groupBy('s.id', 's.name')
+        ->get()
+        ->transform(function($subfamily){
+            return [
+                'id' => $subfamily->id,
+                'name' => $subfamily->name,
+                'products' => $this->getProducts($subfamily->id)
+            ];
+        });
+
+        return $subfamilies;
+    }
+
+
+    public function getProducts($id)
+    {
+        $products = Administration::from('administrations as f')
+        ->join('units as u', 'f.unit_id', 'u.id')
+        ->select('f.id', 'f.product_name', 'f.quantity', 'f.price', 'f.unit_id', 'u.name')
+        ->where('f.subfamily_id', $id)
+        ->groupBy('f.id', 'f.product_name', 'f.quantity', 'f.price', 'f.unit_id', 'u.name')
+        ->get()
+        ->transform(function($value){
+
+            $quantity = (($value->unit_id == 4) || ($value->unit_id == 2)) ? ($value->quantity / 1000) : $value->quantity; 
+            $amountFirst = round($value->price * $quantity, 2);
+            $data = $this->getMonths($value->id, $quantity, $amountFirst); 
+
+            return [
+                'id'            => $value->id,
+                'name'          => $value->product_name,
+                'unit'          => $value->name ?? '',
+                'totalQuantity' => $data['totalQuantity'],
+                'totalAmount'   => $data['totalAmount'],
+                'months'        => $data['months']
+            ];
+        });
+
+        return $products;
+    }
+
+
+  private function getMonths($administrationId, $quantity, $amount)
+    {
+        $data = array();
+        $currentMonth = $this->month_id;
+
+        for ($x = $currentMonth; $x < $currentMonth + 12; $x++) {
+            $id = date('n', mktime(0, 0, 0, $x, 1));
+            array_push($data, $id);
+        }
+
+        $months = [];
+        $totalAmount = 0;
+        $totalQuantity = 0;
+        foreach($data as $month)
+        {
+            $count = DB::table('administration_items')
+            ->select('administration_id')
+            ->where('administration_id', $administrationId)
+            ->where('month_id', $month)
+            ->count();
+
+            $amountMonth = $count > 0 ? $amount : 0;
+            $quantityMonth = $count > 0 ? $quantity : 0;
+            $totalAmount += $amountMonth;
+            $totalQuantity += $quantityMonth;
+            array_push($months, number_format($amountMonth, 0, '', '.'));        
+        }
+
+
+        return [
+            'months' => $months,
+            'totalAmount' => number_format($totalAmount, 0, ',', '.'),
+            'totalQuantity' => number_format($totalQuantity, 2, ',', '.')
+        ];
+    }
+
+
 
     private function getMonthName($id)
     {
