@@ -56,7 +56,8 @@ const props = defineProps({
   suppliesExpensePerHectare: Object, // <-- agregar
   devStates: Object, // <-- nombres de estados de desarrollo
   administrationTotalsByLevel12: Array, // <-- agregar prop para la tabla de administración
-  fieldTotalsByLevel12: Array // <-- agregar prop para la tabla de fields
+  fieldTotalsByLevel12: Array, // <-- agregar prop para la tabla de fields
+  totalsByLevel12: Array // <-- nuevo prop para la tabla de totales generales
 })
 
 // Estados para mostrar/ocultar tablas
@@ -83,6 +84,44 @@ function groupByLevel1() {
     groups[row.level1_id].rows.push(row);
   });
   // Devuelve como array
+  return Object.values(groups);
+}
+
+// Nueva función para agrupar por Level1 y Level2 los totales generales
+function groupTotalsByLevel1() {
+  const allRows = props.totalsByLevel12?.map(r => ({...r, key: 'total-' + r.level1_id + '-' + r.level2_id})) || [];
+  const groups = {};
+  allRows.forEach(row => {
+    if (!groups[row.level1_id]) {
+      groups[row.level1_id] = {
+        level1_id: row.level1_id,
+        level1_name: row.level1_name,
+        rows: []
+      };
+    }
+    groups[row.level1_id].rows.push(row);
+  });
+  return Object.values(groups);
+}
+
+// Unir y agrupar ambas tablas por Level1 y Level2
+function groupAllTotalsByLevel1() {
+  const allRows = [
+    ...(props.administrationTotalsByLevel12?.map(r => ({...r, key: 'adm-' + r.level1_id + '-' + r.level2_id, source: 'Administración'})) || []),
+    ...(props.fieldTotalsByLevel12?.map(r => ({...r, key: 'field-' + r.level1_id + '-' + r.level2_id, source: 'Campo'})) || []),
+    ...(props.totalsByLevel12?.map(r => ({...r, key: 'total-' + r.level1_id + '-' + r.level2_id, source: 'General'})) || [])
+  ];
+  const groups = {};
+  allRows.forEach(row => {
+    if (!groups[row.level1_id]) {
+      groups[row.level1_id] = {
+        level1_id: row.level1_id,
+        level1_name: row.level1_name,
+        rows: []
+      };
+    }
+    groups[row.level1_id].rows.push(row);
+  });
   return Object.values(groups);
 }
 </script>
@@ -264,38 +303,48 @@ function groupByLevel1() {
           </div>
         </div>
 
-        <!-- Tabla de Administración y Fields por Level1 y Level2 -->
+     
+
+        <!-- Tabla unificada de totales por Level 1 y Level 2 -->
         <div class="row mt-4">
           <div class="col-xl-12">
             <div class="card">
               <div class="card-body pt-2 pb-2">
-                <h6 class="mb-3">Totales por nivel 1 y nivel 2</h6>
+                <h6 class="mb-3">Totales unificados por nivel 1 y nivel 2</h6>
                 <div class="table-responsive scrollbar">
                   <table class="table table-sm table-hover align-middle border rounded shadow-sm bg-white">
                     <thead class="table-light border-bottom">
                       <tr>
-                        <th class="text-uppercase text-secondary small fw-bold">Level 1</th>
-                        <th class="text-uppercase text-secondary small fw-bold">Level 2</th>
-                        <th class="text-uppercase text-secondary small fw-bold">Monto Total</th>
+                        <th class="text-uppercase text-secondary small fw-bold small">Level 1</th>
+                        <th class="text-uppercase text-secondary small fw-bold small">Level 2</th>
+                        <th class="text-uppercase text-secondary small fw-bold small">Monto Total</th>
                       </tr>
                     </thead>
                     <tbody>
-                      <template v-for="(group, l1idx) in groupByLevel1()" :key="'l1-' + group.level1_id">
+                      <template v-for="(group, l1idx) in groupAllTotalsByLevel1()" :key="'all-l1-' + group.level1_id">
                         <template v-for="(row, idx) in group.rows" :key="row.key">
                           <tr>
-                            <td v-if="idx === 0" :rowspan="group.rows.length + 1" style="vertical-align:top">{{ group.level1_name }}</td>
-                            <td>{{ row.level2_name }}</td>
-                            <td class="text-end ">{{ Number(row.total_amount).toLocaleString('es-CL', { maximumFractionDigits: 0 }) }}</td>
+                            <td v-if="idx === 0" :rowspan="group.rows.length + 1" style="vertical-align:top" class="small">{{ group.level1_name }}</td>
+                            <td class="small">{{ row.level2_name }}</td>
+                            <td class="text-end small">{{ Number(row.total_amount).toLocaleString('es-CL', { maximumFractionDigits: 0 }) }}</td>
                           </tr>
                         </template>
                         <tr class="table-secondary">
-                          <td>Subtotal {{ group.level1_name }}</td>
-                          <td class="text-end">
+                          <td class="small">Subtotal {{ group.level1_name }}</td>
+                          <td class="text-end small" colspan="2">
                             {{ group.rows.reduce((sum, r) => sum + Number(r.total_amount), 0).toLocaleString('es-CL', { maximumFractionDigits: 0 }) }}
                           </td>
                         </tr>
                       </template>
                     </tbody>
+                    <tfoot>
+                      <tr class="table-dark">
+                        <td colspan="2" class="fw-bold text-end small">Total General</td>
+                        <td class="fw-bold text-end small">
+                          {{ groupAllTotalsByLevel1().reduce((grand, group) => grand + group.rows.reduce((sum, r) => sum + Number(r.total_amount), 0), 0).toLocaleString('es-CL', { maximumFractionDigits: 0 }) }}
+                        </td>
+                      </tr>
+                    </tfoot>
                   </table>
                 </div>
               </div>

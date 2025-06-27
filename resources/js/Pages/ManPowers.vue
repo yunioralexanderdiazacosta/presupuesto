@@ -182,7 +182,7 @@ const onFilter = () => {
                                         <td>
                                             <span class="text-dark  fw-bold mb-1">{{manPower.product_name}}</span>
                                         </td>
-                                        <td>{{manPower.subfamily.name}}</td>
+                                        <td>{{ manPower.subfamily?.name || '' }}</td>
                                         <td>{{manPower.workday}}</td>
                                         <td>{{manPower.price}}</td>
                                         <td class="text-end text-center">

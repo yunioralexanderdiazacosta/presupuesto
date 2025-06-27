@@ -80,7 +80,10 @@ class DashboardController extends Controller
                 "cutout" => 0
             ]
         ];
-        $totalSeason = number_format(($this->totalAgrochemical + $this->totalFertilizer + $this->totalManPower + $this->totalServices + $this->totalSupplies), 0, ',', '.');
+        // Calcular totales de administración y fields
+        $totalAdministration = $this->getAdministrationTotalsByLevel12($user->team_id)->sum('total_amount');
+        $totalFields = $this->getFieldTotalsByLevel12($user->team_id)->sum('total_amount');
+        $totalSeason = number_format(($this->totalAgrochemical + $this->totalFertilizer + $this->totalManPower + $this->totalServices + $this->totalSupplies + $totalAdministration + $totalFields), 0, ',', '.');
         $totalAgrochemical = number_format($this->totalAgrochemical, 0, ',', '.');
         $totalFertilizer = number_format($this->totalFertilizer, 0, ',', '.');
         $totalManPower = number_format($this->totalManPower, 0, ',', '.');
@@ -258,6 +261,7 @@ class DashboardController extends Controller
         // Obtener totales de administración por Level1 y Level2 (sin season_id)
         $administrationTotalsByLevel12 = $this->getAdministrationTotalsByLevel12($user->team_id);
         $fieldTotalsByLevel12 = $this->getFieldTotalsByLevel12($user->team_id);
+        $totalsByLevel12 = $this->getTotalsByLevel12($user->team_id);
 
         // Pasar ambos al frontend
         return Inertia::render('Dashboard', compact(
@@ -279,8 +283,9 @@ class DashboardController extends Controller
             'servicesExpensePerHectare',
             'suppliesExpensePerHectare',
             'devStates', // <-- nombres de estados de desarrollo
-            'administrationTotalsByLevel12', // <-- nuevo prop para Dashboard.vue
-            'fieldTotalsByLevel12' // <-- nuevo prop para Dashboard.vue
+            'administrationTotalsByLevel12', // <-- ya estaba
+            'fieldTotalsByLevel12', // <-- ya estaba
+            'totalsByLevel12' // <-- nuevo prop para Dashboard.vue
         ));
     }
 
@@ -1139,6 +1144,184 @@ class DashboardController extends Controller
                 $amount = round($adm->price * $quantity * $countMonths, 2);
                 $totals[$key]['total_amount'] += $amount;
             }
+        }
+        return collect(array_values($totals));
+    }
+
+    /**
+     * Obtiene el monto total de Agroquímicos, Fertilizantes, Mano de Obra, Servicios e Insumos agrupado por Level 1 y Level 2
+     * Devuelve un array: [level1_id, level1_name, level2_id, level2_name, total_amount]
+     */
+    private function getTotalsByLevel12($team_id = null)
+    {
+        $season_id = session('season_id');
+        $season = \App\Models\Season::select('month_id')->where('id', $season_id)->first();
+        $currentMonth = $season ? $season->month_id : 1;
+        $months = [];
+        for ($x = $currentMonth; $x < $currentMonth + 12; $x++) {
+            $id = date('n', mktime(0, 0, 0, $x, 1));
+            $months[] = $id;
+        }
+        $costCenters = \App\Models\CostCenter::where('season_id', $season_id);
+        if ($team_id) {
+            $costCenters->whereHas('season.team', function($query) use ($team_id){
+                $query->where('team_id', $team_id);
+            });
+        }
+        $costCenters = $costCenters->pluck('id');
+        $totals = [];
+        $addTotal = function($level1_id, $level1_name, $level2_id, $level2_name, $amount) use (&$totals) {
+            $key = $level1_id.'-'.$level2_id;
+            if (!isset($totals[$key])) {
+                $totals[$key] = [
+                    'level1_id' => $level1_id,
+                    'level1_name' => $level1_name,
+                    'level2_id' => $level2_id,
+                    'level2_name' => $level2_name,
+                    'total_amount' => 0
+                ];
+            }
+            $totals[$key]['total_amount'] += $amount;
+        };
+        // AGROCHEMICALS
+        $agrochemicals = \App\Models\Agrochemical::from('agrochemicals as a')
+            ->join('agrochemical_items as ai', 'a.id', 'ai.agrochemical_id')
+            ->join('level3s as l3', 'a.subfamily_id', 'l3.id')
+            ->join('level2s as l2', 'l3.level2_id', 'l2.id')
+            ->join('level1s as l1', 'l2.level1_id', 'l1.id')
+            ->select('a.*', 'l1.id as level1_id', 'l1.name as level1_name', 'l2.id as level2_id', 'l2.name as level2_name', 'ai.cost_center_id')
+            ->whereIn('ai.cost_center_id', $costCenters)
+            ->groupBy('a.id', 'l1.id', 'l1.name', 'l2.id', 'l2.name', 'ai.cost_center_id')
+            ->get();
+        foreach ($agrochemicals as $a) {
+            $amount = 0;
+            $first = \App\Models\CostCenter::select('surface')->where('id', $a->cost_center_id)->first();
+            $dose = (($a->unit_id == 4 && $a->unit_id_price == 3) || ($a->unit_id == 2 && $a->unit_id_price == 1)) ? ($a->dose / 1000) : $a->dose;
+            $surface = $first ? $first->surface : 0;
+            if ($a->dose_type_id == 1) {
+                $quantityFirst = round($dose * $surface, 2);
+            } elseif ($a->dose_type_id == 2) {
+                $quantityFirst = round((($a->mojamiento / 100) * $dose * $surface), 2);
+            } else {
+                $quantityFirst = 0;
+            }
+            $amountFirst = round($a->price * $quantityFirst, 2);
+            foreach ($months as $month) {
+                $count = \DB::table('agrochemical_items')
+                    ->where('agrochemical_id', $a->id)
+                    ->where('month_id', $month)
+                    ->where('cost_center_id', $a->cost_center_id)
+                    ->count();
+                $amount += ($count > 0 ? $amountFirst : 0);
+            }
+            $addTotal($a->level1_id, $a->level1_name, $a->level2_id, $a->level2_name, $amount);
+        }
+        // FERTILIZERS
+        $fertilizers = \App\Models\Fertilizer::from('fertilizers as f')
+            ->join('fertilizer_items as fi', 'f.id', 'fi.fertilizer_id')
+            ->join('level3s as l3', 'f.subfamily_id', 'l3.id')
+            ->join('level2s as l2', 'l3.level2_id', 'l2.id')
+            ->join('level1s as l1', 'l2.level1_id', 'l1.id')
+            ->select('f.*', 'l1.id as level1_id', 'l1.name as level1_name', 'l2.id as level2_id', 'l2.name as level2_name', 'fi.cost_center_id')
+            ->whereIn('fi.cost_center_id', $costCenters)
+            ->groupBy('f.id', 'l1.id', 'l1.name', 'l2.id', 'l2.name', 'fi.cost_center_id')
+            ->get();
+        foreach ($fertilizers as $f) {
+            $amount = 0;
+            $first = \App\Models\CostCenter::select('surface')->where('id', $f->cost_center_id)->first();
+            $surface = $first ? $first->surface : 0;
+            $dose = (($f->unit_id == 4 && $f->unit_id_price == 3) || ($f->unit_id == 2 && $f->unit_id_price == 1)) ? ($f->dose / 1000) : $f->dose;
+            $quantityFirst = round($dose * $surface, 2);
+            $amountFirst = round($f->price * $quantityFirst, 2);
+            foreach ($months as $month) {
+                $count = \DB::table('fertilizer_items')
+                    ->where('fertilizer_id', $f->id)
+                    ->where('month_id', $month)
+                    ->where('cost_center_id', $f->cost_center_id)
+                    ->count();
+                $amount += ($count > 0 ? $amountFirst : 0);
+            }
+            $addTotal($f->level1_id, $f->level1_name, $f->level2_id, $f->level2_name, $amount);
+        }
+        // MANPOWER
+        $manpowers = \App\Models\ManPower::from('man_powers as mp')
+            ->join('manpower_items as mpi', 'mp.id', 'mpi.man_power_id')
+            ->join('level3s as l3', 'mp.subfamily_id', 'l3.id')
+            ->join('level2s as l2', 'l3.level2_id', 'l2.id')
+            ->join('level1s as l1', 'l2.level1_id', 'l1.id')
+            ->select('mp.*', 'l1.id as level1_id', 'l1.name as level1_name', 'l2.id as level2_id', 'l2.name as level2_name', 'mpi.cost_center_id')
+            ->whereIn('mpi.cost_center_id', $costCenters)
+            ->groupBy('mp.id', 'l1.id', 'l1.name', 'l2.id', 'l2.name', 'mpi.cost_center_id')
+            ->get();
+        foreach ($manpowers as $mp) {
+            $amount = 0;
+            $first = \App\Models\CostCenter::select('surface')->where('id', $mp->cost_center_id)->first();
+            $surface = $first ? $first->surface : 0;
+            $quantityFirst = round($mp->workday * $surface, 2);
+            $amountFirst = round($mp->price * $quantityFirst, 2);
+            foreach ($months as $month) {
+                $count = \DB::table('manpower_items')
+                    ->where('man_power_id', $mp->id)
+                    ->where('month_id', $month)
+                    ->where('cost_center_id', $mp->cost_center_id)
+                    ->count();
+                $amount += ($count > 0 ? $amountFirst : 0);
+            }
+            $addTotal($mp->level1_id, $mp->level1_name, $mp->level2_id, $mp->level2_name, $amount);
+        }
+        // SERVICES
+        $services = \App\Models\Service::from('services as s')
+            ->join('service_items as si', 's.id', 'si.service_id')
+            ->join('level3s as l3', 's.subfamily_id', 'l3.id')
+            ->join('level2s as l2', 'l3.level2_id', 'l2.id')
+            ->join('level1s as l1', 'l2.level1_id', 'l1.id')
+            ->select('s.*', 'l1.id as level1_id', 'l1.name as level1_name', 'l2.id as level2_id', 'l2.name as level2_name', 'si.cost_center_id')
+            ->whereIn('si.cost_center_id', $costCenters)
+            ->groupBy('s.id', 'l1.id', 'l1.name', 'l2.id', 'l2.name', 'si.cost_center_id')
+            ->get();
+        foreach ($services as $s) {
+            $amount = 0;
+            $first = \App\Models\CostCenter::select('surface')->where('id', $s->cost_center_id)->first();
+            $surface = $first ? $first->surface : 0;
+            $quantity = (($s->unit_id == 4 && $s->unit_id_price == 3) || ($s->unit_id == 2 && $s->unit_id_price == 1)) ? ($s->quantity / 1000) : $s->quantity;
+            $quantityFirst = round($quantity * $surface, 2);
+            $amountFirst = round($s->price * $quantityFirst, 2);
+            foreach ($months as $month) {
+                $count = \DB::table('service_items')
+                    ->where('service_id', $s->id)
+                    ->where('month_id', $month)
+                    ->where('cost_center_id', $s->cost_center_id)
+                    ->count();
+                $amount += ($count > 0 ? $amountFirst : 0);
+            }
+            $addTotal($s->level1_id, $s->level1_name, $s->level2_id, $s->level2_name, $amount);
+        }
+        // SUPPLIES
+        $supplies = \App\Models\Supply::from('supplies as s')
+            ->join('supply_items as si', 's.id', 'si.supply_id')
+            ->join('level3s as l3', 's.subfamily_id', 'l3.id')
+            ->join('level2s as l2', 'l3.level2_id', 'l2.id')
+            ->join('level1s as l1', 'l2.level1_id', 'l1.id')
+            ->select('s.*', 'l1.id as level1_id', 'l1.name as level1_name', 'l2.id as level2_id', 'l2.name as level2_name', 'si.cost_center_id')
+            ->whereIn('si.cost_center_id', $costCenters)
+            ->groupBy('s.id', 'l1.id', 'l1.name', 'l2.id', 'l2.name', 'si.cost_center_id')
+            ->get();
+        foreach ($supplies as $s) {
+            $amount = 0;
+            $first = \App\Models\CostCenter::select('surface')->where('id', $s->cost_center_id)->first();
+            $surface = $first ? $first->surface : 0;
+            $quantity = (($s->unit_id == 4 && $s->unit_id_price == 3) || ($s->unit_id == 2 && $s->unit_id_price == 1)) ? ($s->quantity / 1000) : $s->quantity;
+            $quantityFirst = round($quantity * $surface, 2);
+            $amountFirst = round($s->price * $quantityFirst, 2);
+            foreach ($months as $month) {
+                $count = \DB::table('supply_items')
+                    ->where('supply_id', $s->id)
+                    ->where('month_id', $month)
+                    ->where('cost_center_id', $s->cost_center_id)
+                    ->count();
+                $amount += ($count > 0 ? $amountFirst : 0);
+            }
+            $addTotal($s->level1_id, $s->level1_name, $s->level2_id, $s->level2_name, $amount);
         }
         return collect(array_values($totals));
     }
