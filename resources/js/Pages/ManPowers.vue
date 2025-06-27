@@ -204,114 +204,116 @@ const onFilter = () => {
                         </Table>
                     </div>
                     <div class="tab-pane fade" id="pill-tab-detalles" role="tabpanel" aria-labelledby="detalles-tab">
-                        <div class="row">
-                            <div class="col-md-6 col-lg-3 col-xl-6 col-xxl-4">
-                              <div class="card h-md-100 ecommerce-card-min-width">
-                                <div class="card-header pb-0">
-                                  <h6 class="mb-0 mt-2 d-flex align-items-center">Monto Total</h6>
-                                </div>
-                                <div class="card-body d-flex flex-column justify-content-end">
-                                  <div class="row">
-                                    <div class="col">
-                                      <p class="font-sans-serif lh-1 mb-1 fs-5">{{totalData1}}</p>
-                                    </div>
-                                  </div>
+                       
+                       <div class="row  mb-3">
+                        <div class="col-md-6 col-lg-3 col-xl-6 col-xxl-3">
+                          <div class="card h-md-100 ecommerce-card-min-width">
+                            <div class="card-header pb-0">
+                              <h6 class="mb-0 mt-2 d-flex align-items-center">Monto Total</h6>
+                            </div>
+                            <div class="card-body d-flex flex-column justify-content-end">
+                              <div class="row">
+                                <div class="col">
+                                  <p class="font-sans-serif lh-1 mb-1 fs-6">{{totalData1}}</p>
                                 </div>
                               </div>
                             </div>
-
-                            <div class="col-md-6 col-lg-3 col-xl-6 col-xxl-4">
-                              <div class="card h-md-100 ecommerce-card-min-width">
-                                <div class="card-header pb-0">
-                                  <h6 class="mb-0 mt-2 d-flex align-items-center">Porc. Monto</h6>
-                                </div>
-                                <div class="card-body d-flex flex-column justify-content-end">
-                                  <div class="row">
-                                    <div class="col">
-                                      <p class="font-sans-serif lh-1 mb-1 fs-5">{{percentage}}%</p>
-                                    </div>
-                                  </div>
-                                </div>
-                              </div>
-                            </div>  
+                          </div>
                         </div>
 
+                        <div class="col-md-6 col-lg-3 col-xl-6 col-xxl-3">
+                          <div class="card h-md-100 ecommerce-card-min-width">
+                            <div class="card-header pb-0">
+                              <h6 class="mb-0 mt-2 d-flex align-items-center">Porc. Monto</h6>
+                            </div>
+                            <div class="card-body d-flex flex-column justify-content-end">
+                              <div class="row">
+                                <div class="col">
+                                  <p class="font-sans-serif lh-1 mb-1 fs-6">{{percentage}}%</p>
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+                        </div>  
+                    </div>
+
                         <div class="table-responsive mt-1">
-                            <table class="table table-bordered table-hover table-sm custom-striped fs-10 mb-0 agrochem-details">
-                                <!--begin::Table head-->
-                                <thead>
-                                    <tr>
-                                        <th class="min-w-150px">CC</th>
-                                        <th>Subfamilia</th>
-                                        <th class="min-w-100px">Producto</th>
-                                        <th>Cantidad Total</th>
-                                        <th>Un</th>
-                                        <th class="text-dark">Monto Total</th>
-                                        <th v-for="month in $page.props.months" :key="month.id" class="text-primary">{{month.label}}</th> 
-                                    </tr>
-                                </thead>
-                                <!--end::Table head-->
-                                <!--begin::Table body-->
-                                <tbody>
-                                    <template v-for="(cc, index) in data" :key="index">
-                                        <template v-for="(subfamily, index2) in cc.subfamilies" :key="index2">
-                                            <tr>
-                                                <td v-if="index2 == 0" :rowspan="cc.total" style="vertical-align:top">{{cc.name}}</td>
-                                                <td style="vertical-align:top;" :rowspan="subfamily.products.length">{{subfamily.name}}</td>
-                                                <td>{{subfamily.products[0].name}}</td>
-                                                <td>{{subfamily.products[0].totalQuantity}}</td>
-                                                <td>{{subfamily.products[0].unit}}</td>
-                                                <td class="text-dark">{{subfamily.products[0].totalAmount}}</td>
-                                                <td class="bg-opacity-5 table-primary" v-for="value in subfamily.products[0].months" :key="value">{{value}}</td>
+                           <table class="table table-bordered table-hover table-sm custom-striped fs-10 mb-0 agrochem-details">
+                            <!--begin::Table head-->
+                            <thead>
+                                <tr class="fw-bold text-muted">
+                                    <th class="min-w-150px">Centro de costo</th>
+                                    <th>Subfamilia</th>
+                                    <th class="min-w-100px">Producto</th>
+                                    <th>Cantidad Total</th>
+                                    <th>Un</th>
+                                    <th class="text-dark">Monto Total</th>
+                                    <th v-for="month in $page.props.months" class="text-primary">{{month.label}}</th> 
+                                </tr>
+                            </thead>
+                            <!--end::Table head-->
+                            <!--begin::Table body-->
+                            <tbody>
+                                <template v-for="cc in data">
+                                    <template v-for="(subfamily, index2) in cc.subfamilies">
+                                        <tr>
+                                            <td v-if="index2 == 0" :rowspan="cc.total" style="vertical-align:top">{{cc.name}}</td>
+                                            <td style="vertical-align:top;" :rowspan="subfamily.products.length">{{subfamily.name}}</td>
+                                            <td>{{subfamily.products[0].name}}</td>
+                                            <td>{{subfamily.products[0].totalQuantity}}</td>
+                                            <td>{{subfamily.products[0].unit}}</td>
+                                            <td>{{subfamily.products[0].totalAmount}}</td>
+                                            <td class="bg-opacity-5 table-primary" v-for="value in subfamily.products[0].months">{{value}}</td>
+                                        </tr>
+                                        <template v-for="(product, index3) in subfamily.products">
+                                            <tr v-if="index3 > 0">
+                                              
+                                                <td>{{product.name}}</td>
+                                                <td>{{product.totalQuantity}}</td>
+                                                <td>{{product.unit}}</td>
+                                                <td>{{product.totalAmount}}</td>
+                                                <td class="bg-opacity-5 table-primary" v-for="value in product.months">{{value}}</td>
                                             </tr>
-                                            <template v-for="(product, index3) in subfamily.products" :key="index3">
-                                                <tr v-if="index3 > 0">
-                                                    <td>{{product.name}}</td>
-                                                    <td>{{product.totalQuantity}}</td>
-                                                    <td>{{product.unit}}</td>
-                                                    <td class="text-dark">{{product.totalAmount}}</td>
-                                                    <td class="bg-opacity-5 table-primary" v-for="value in product.months" :key="value">{{value}}</td>
-                                                </tr>
-                                            </template>
                                         </template>
                                     </template>
-                                </tbody>
-                                <!--end::Table body-->
-                            </table>
+                                </template>
+                            </tbody>
+                            <!--end::Table body-->
+                        </table>
                         </div>
                     </div>
                     <div class="tab-pane fade" id="pill-tab-gastos" role="tabpanel" aria-labelledby="gastos-tab">
-                        <div class="row">
-                            <div class="col-md-6 col-lg-3 col-xl-6 col-xxl-4">
-                              <div class="card h-md-100 ecommerce-card-min-width">
-                                <div class="card-header pb-0">
-                                  <h6 class="mb-0 mt-2 d-flex align-items-center">Monto Total</h6>
-                                </div>
-                                <div class="card-body d-flex flex-column justify-content-end">
-                                  <div class="row">
-                                    <div class="col">
-                                      <p class="font-sans-serif lh-1 mb-1 fs-5">{{totalData1}}</p>
-                                    </div>
-                                  </div>
+                         <div class="row  mb-3">
+                        <div class="col-md-6 col-lg-3 col-xl-6 col-xxl-3">
+                          <div class="card h-md-100 ecommerce-card-min-width">
+                            <div class="card-header pb-0">
+                              <h6 class="mb-0 mt-2 d-flex align-items-center">Monto Total</h6>
+                            </div>
+                            <div class="card-body d-flex flex-column justify-content-end">
+                              <div class="row">
+                                <div class="col">
+                                  <p class="font-sans-serif lh-1 mb-1 fs-6">{{totalData1}}</p>
                                 </div>
                               </div>
                             </div>
+                          </div>
+                        </div>
 
-                            <div class="col-md-6 col-lg-3 col-xl-6 col-xxl-4">
-                              <div class="card h-md-100 ecommerce-card-min-width">
-                                <div class="card-header pb-0">
-                                  <h6 class="mb-0 mt-2 d-flex align-items-center">Porc. Monto</h6>
-                                </div>
-                                <div class="card-body d-flex flex-column justify-content-end">
-                                  <div class="row">
-                                    <div class="col">
-                                      <p class="font-sans-serif lh-1 mb-1 fs-5">{{percentage}}%</p>
-                                    </div>
-                                  </div>
+                        <div class="col-md-6 col-lg-3 col-xl-6 col-xxl-3">
+                          <div class="card h-md-100 ecommerce-card-min-width">
+                            <div class="card-header pb-0">
+                              <h6 class="mb-0 mt-2 d-flex align-items-center">Porc. Monto</h6>
+                            </div>
+                            <div class="card-body d-flex flex-column justify-content-end">
+                              <div class="row">
+                                <div class="col">
+                                  <p class="font-sans-serif lh-1 mb-1 fs-6">{{percentage}}%</p>
                                 </div>
                               </div>
-                            </div>  
-                        </div>
+                            </div>
+                          </div>
+                        </div>  
+                    </div>
 
                         <div class="table-responsive mt-1">
                             <table class="table table-bordered table-hover table-sm custom-striped fs-10 mb-0 agrochem-details">
@@ -360,81 +362,74 @@ const onFilter = () => {
                     </div>
 
                     <div class="tab-pane fade" id="pill-tab-detalles-compra" role="tabpanel" aria-labelledby="detalles-compra-tab">
-                        <div class="row">
-                            <div class="col-md-6 col-lg-3 col-xl-6 col-xxl-4">
-                              <div class="card h-md-100 ecommerce-card-min-width">
-                                <div class="card-header pb-0">
-                                  <h6 class="mb-0 mt-2 d-flex align-items-center">Monto Total</h6>
-                                </div>
-                                <div class="card-body d-flex flex-column justify-content-end">
-                                  <div class="row">
-                                    <div class="col">
-                                      <p class="font-sans-serif lh-1 mb-1 fs-5">{{totalData2}}</p>
-                                    </div>
-                                  </div>
+                        <div class="row  mb-3">
+                        <div class="col-md-6 col-lg-3 col-xl-6 col-xxl-3">
+                          <div class="card h-md-100 ecommerce-card-min-width">
+                            <div class="card-header pb-0">
+                              <h6 class="mb-0 mt-2 d-flex align-items-center">Monto Total</h6>
+                            </div>
+                            <div class="card-body d-flex flex-column justify-content-end">
+                              <div class="row">
+                                <div class="col">
+                                  <p class="font-sans-serif lh-1 mb-1 fs-6">{{totalData1}}</p>
                                 </div>
                               </div>
                             </div>
+                          </div>
+                        </div>
 
-                            <div class="col-md-6 col-lg-3 col-xl-6 col-xxl-4">
-                              <div class="card h-md-100 ecommerce-card-min-width">
-                                <div class="card-header pb-0">
-                                  <h6 class="mb-0 mt-2 d-flex align-items-center">Porc. Monto</h6>
-                                </div>
-                                <div class="card-body d-flex flex-column justify-content-end">
-                                  <div class="row">
-                                    <div class="col">
-                                      <p class="font-sans-serif lh-1 mb-1 fs-5">{{percentage}}%</p>
-                                    </div>
-                                  </div>
+                        <div class="col-md-6 col-lg-3 col-xl-6 col-xxl-3">
+                          <div class="card h-md-100 ecommerce-card-min-width">
+                            <div class="card-header pb-0">
+                              <h6 class="mb-0 mt-2 d-flex align-items-center">Porc. Monto</h6>
+                            </div>
+                            <div class="card-body d-flex flex-column justify-content-end">
+                              <div class="row">
+                                <div class="col">
+                                  <p class="font-sans-serif lh-1 mb-1 fs-6">{{percentage}}%</p>
                                 </div>
                               </div>
-                            </div>  
-                        </div> 
+                            </div>
+                          </div>
+                        </div>  
+                    </div>
 
                         <div class="table-responsive mt-1">
                             <table class="table table-bordered table-hover table-sm custom-striped fs-10 mb-0 agrochem-details">
-                                <!--begin::Table head-->
-                                <thead>
-                                    <tr class="fw-bold text-muted">
-                                        <th class="min-w-150px">CC</th>
-                                        <th>Subfamilia</th>
-                                        <th class="min-w-100px">Producto</th>
-                                        <th>Cantidad Total</th>
-                                        <th>Un</th>
-                                        <th class="text-dark">Monto Total</th>
-                                        <th v-for="month in $page.props.months" :key="month.id" class="text-primary">{{month.label}}</th> 
+                            <!--begin::Table head-->
+                            <thead>
+                                <tr class="fw-bold text-muted">
+                                    <th>Subfamilia</th>
+                                    <th class="min-w-100px">Producto</th>
+                                    <th>Cantidad Total</th>
+                                    <th>Un</th>
+                                    <th class="text-dark">Monto Total</th>
+                                </tr>
+                            </thead>
+                            <!--end::Table head-->
+                            <!--begin::Table body-->
+                            <tbody>
+                                <template v-for="(subfamily, index2) in data2">
+                                    <tr>
+                                        <td  style="vertical-align:top;" :rowspan="subfamily.products.length">{{subfamily.name}}</td>
+                                        <td>{{subfamily.products[0].name}}</td>
+                                        <td>{{subfamily.products[0].totalQuantity}}</td>
+                                        <td>{{subfamily.products[0].unit}}</td>
+                                        <td class="text-dark">{{subfamily.products[0].totalAmount}}</td>
                                     </tr>
-                                </thead>
-                                <!--end::Table head-->
-                                <!--begin::Table body-->
-                                <tbody>
-                                    <template v-for="(cc, index) in data3" :key="index">
-                                        <template v-for="(subfamily, index2) in cc.subfamilies" :key="index2">
-                                            <tr>
-                                                <td v-if="index2 == 0" :rowspan="cc.total" style="vertical-align:top">{{cc.name}}</td>
-                                                <td  style="vertical-align:top;" :rowspan="subfamily.products.length">{{subfamily.name}}</td>
-                                                <td>{{subfamily.products[0].name}}</td>
-                                                <td>{{subfamily.products[0].totalQuantity}}</td>
-                                                <td>{{subfamily.products[0].unit}}</td>
-                                                <td class="text-dark">{{subfamily.products[0].totalAmount}}</td>
-                                                <td class="bg-opacity-5 table-primary" v-for="value in subfamily.products[0].months" :key="value">{{value}}</td>
-                                            </tr>
 
-                                            <template v-for="(product, index3) in subfamily.products" :key="index3">
-                                                <tr v-if="index3 > 0">
-                                                    <td>{{product.name}}</td>
-                                                    <td>{{product.totalQuantity}}</td>
-                                                    <td>{{product.unit}}</td>
-                                                    <td class="text-dark">{{product.totalAmount}}</td>
-                                                    <td class="bg-opacity-5 table-primary" v-for="value in product.months" :key="value">{{value}}</td>
-                                                </tr>
-                                            </template>
-                                        </template>
+                                    <template v-for="(product, index3) in subfamily.products">
+                                        <tr v-if="index3 > 0">
+                                            <td>{{product.name}}</td>
+                                            <td>{{product.totalQuantity}}</td>
+                                            <td>{{product.unit}}</td>
+                                            <td class="text-dark">{{product.totalAmount}}</td>
+                                        </tr>
                                     </template>
-                                </tbody>
-                                <!--end::Table body-->
-                            </table>
+                                </template>
+                            </tbody>
+                            <!--end::Table body-->
+                        </table>
                         </div>
                     </div>
 
