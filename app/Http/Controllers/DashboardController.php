@@ -254,6 +254,11 @@ class DashboardController extends Controller
         }
         // Obtener nombres de estados de desarrollo
         $devStates = \App\Models\DevelopmentState::all(['id', 'name'])->keyBy('id')->toArray();
+
+        // Obtener totales de administración por Level1 y Level2 (sin season_id)
+        $administrationTotalsByLevel12 = $this->getAdministrationTotalsByLevel12($user->team_id);
+        $fieldTotalsByLevel12 = $this->getFieldTotalsByLevel12($user->team_id);
+
         // Pasar ambos al frontend
         return Inertia::render('Dashboard', compact(
             'totalSeason', 'pieLabels', 'pieDatasets',
@@ -273,7 +278,9 @@ class DashboardController extends Controller
             'manPowerExpensePerHectare',
             'servicesExpensePerHectare',
             'suppliesExpensePerHectare',
-            'devStates' // <-- nombres de estados de desarrollo
+            'devStates', // <-- nombres de estados de desarrollo
+            'administrationTotalsByLevel12', // <-- nuevo prop para Dashboard.vue
+            'fieldTotalsByLevel12' // <-- nuevo prop para Dashboard.vue
         ));
     }
 
@@ -625,7 +632,7 @@ class DashboardController extends Controller
                     array_push($data, $id);
                 }
                 foreach ($data as $month) {
-                    $count = \DB::table('agrochemical_items')
+                    $count = DB::table('agrochemical_items')
                         ->select('agrochemical_id')
                         ->where('agrochemical_id', $value->id)
                         ->where('month_id', $month)
@@ -672,7 +679,7 @@ class DashboardController extends Controller
                     array_push($data, $id);
                 }
                 foreach ($data as $month) {
-                    $count = \DB::table('agrochemical_items')
+                    $count = DB::table('agrochemical_items')
                         ->select('agrochemical_id')
                         ->where('agrochemical_id', $value->id)
                         ->where('month_id', $month)
@@ -714,7 +721,7 @@ class DashboardController extends Controller
                     array_push($data, $id);
                 }
                 foreach ($data as $month) {
-                    $count = \DB::table('fertilizer_items')
+                    $count = DB::table('fertilizer_items')
                         ->select('fertilizer_id')
                         ->where('fertilizer_id', $value->id)
                         ->where('month_id', $month)
@@ -754,7 +761,7 @@ class DashboardController extends Controller
                     array_push($data, $id);
                 }
                 foreach ($data as $month) {
-                    $count = \DB::table('fertilizer_items')
+                    $count = DB::table('fertilizer_items')
                         ->select('fertilizer_id')
                         ->where('fertilizer_id', $value->id)
                         ->where('month_id', $month)
@@ -793,7 +800,7 @@ class DashboardController extends Controller
                     array_push($data, $id);
                 }
                 foreach ($data as $month) {
-                    $count = \DB::table('manpower_items')
+                    $count = DB::table('manpower_items')
                         ->select('man_power_id')
                         ->where('man_power_id', $value->id)
                         ->where('month_id', $month)
@@ -832,7 +839,7 @@ class DashboardController extends Controller
                     array_push($data, $id);
                 }
                 foreach ($data as $month) {
-                    $count = \DB::table('manpower_items')
+                    $count = DB::table('manpower_items')
                         ->select('man_power_id')
                         ->where('man_power_id', $value->id)
                         ->where('month_id', $month)
@@ -872,7 +879,7 @@ class DashboardController extends Controller
                     array_push($data, $id);
                 }
                 foreach ($data as $month) {
-                    $count = \DB::table('service_items')
+                    $count = DB::table('service_items')
                         ->select('service_id')
                         ->where('service_id', $value->id)
                         ->where('month_id', $month)
@@ -912,7 +919,7 @@ class DashboardController extends Controller
                     array_push($data, $id);
                 }
                 foreach ($data as $month) {
-                    $count = \DB::table('service_items')
+                    $count = DB::table('service_items')
                         ->select('service_id')
                         ->where('service_id', $value->id)
                         ->where('month_id', $month)
@@ -952,7 +959,7 @@ class DashboardController extends Controller
                     array_push($data, $id);
                 }
                 foreach ($data as $month) {
-                    $count = \DB::table('supply_items')
+                    $count = DB::table('supply_items')
                         ->select('supply_id')
                         ->where('supply_id', $value->id)
                         ->where('month_id', $month)
@@ -992,7 +999,7 @@ class DashboardController extends Controller
                     array_push($data, $id);
                 }
                 foreach ($data as $month) {
-                    $count = \DB::table('supply_items')
+                    $count = DB::table('supply_items')
                         ->select('supply_id')
                         ->where('supply_id', $value->id)
                         ->where('month_id', $month)
@@ -1027,6 +1034,115 @@ class DashboardController extends Controller
 
         return $months[$id];
     }
+
+    private function getAdministrationTotalsByLevel12($team_id = null)
+    {
+        $season_id = session('season_id');
+        $season = \App\Models\Season::select('month_id')->where('id', $season_id)->first();
+        $currentMonth = $season ? $season->month_id : 1;
+        $months = [];
+        for ($x = $currentMonth; $x < $currentMonth + 12; $x++) {
+            $id = date('n', mktime(0, 0, 0, $x, 1));
+            $months[] = $id;
+        }
+
+        $administrations = DB::table('administrations as a')
+            ->join('level3s as l3', 'a.subfamily_id', '=', 'l3.id')
+            ->join('level2s as l2', 'l3.level2_id', '=', 'l2.id')
+            ->join('level1s as l1', 'l2.level1_id', '=', 'l1.id')
+            ->select(
+                'l1.id as level1_id', 'l1.name as level1_name',
+                'l2.id as level2_id', 'l2.name as level2_name',
+                'a.id as administration_id', 'a.price', 'a.quantity', 'a.unit_id'
+            );
+        if ($team_id) {
+            $administrations->where('a.team_id', $team_id);
+        }
+        $administrations = $administrations->get();
+
+        $totals = [];
+        foreach ($administrations as $adm) {
+            // Buscar los meses activos en los que aparece este administration_id
+            $activeMonths = DB::table('administration_items')
+                ->where('administration_id', $adm->administration_id)
+                ->whereIn('month_id', $months)
+                ->distinct('month_id')
+                ->pluck('month_id');
+            $countMonths = $activeMonths->count();
+            if ($countMonths > 0) {
+                $key = $adm->level1_id . '-' . $adm->level2_id;
+                if (!isset($totals[$key])) {
+                    $totals[$key] = [
+                        'level1_id' => $adm->level1_id,
+                        'level1_name' => $adm->level1_name,
+                        'level2_id' => $adm->level2_id,
+                        'level2_name' => $adm->level2_name,
+                        'total_amount' => 0
+                    ];
+                }
+                $quantity = ($adm->quantity !== null && ($adm->quantity > 0)) ? ((in_array($adm->unit_id ?? null, [2,4])) ? ($adm->quantity / 1000) : $adm->quantity) : 0;
+                $amount = round($adm->price * $quantity * $countMonths, 2);
+                $totals[$key]['total_amount'] += $amount;
+            }
+        }
+        return collect(array_values($totals));
+    }
+
+
+
+ private function getFieldTotalsByLevel12($team_id = null)
+    {
+        $season_id = session('season_id');
+        $season = \App\Models\Season::select('month_id')->where('id', $season_id)->first();
+        $currentMonth = $season ? $season->month_id : 1;
+        $months = [];
+        for ($x = $currentMonth; $x < $currentMonth + 12; $x++) {
+            $id = date('n', mktime(0, 0, 0, $x, 1));
+            $months[] = $id;
+        }
+
+        $fields = DB::table('fields as a')
+            ->join('level3s as l3', 'a.subfamily_id', '=', 'l3.id')
+            ->join('level2s as l2', 'l3.level2_id', '=', 'l2.id')
+            ->join('level1s as l1', 'l2.level1_id', '=', 'l1.id')
+            ->select(
+                'l1.id as level1_id', 'l1.name as level1_name',
+                'l2.id as level2_id', 'l2.name as level2_name',
+                'a.id as field_id', 'a.price', 'a.quantity', 'a.unit_id'
+            );
+        if ($team_id) {
+            $fields->where('a.team_id', $team_id);
+        }
+        $fields = $fields->get();
+
+        $totals = [];
+        foreach ($fields as $adm) {
+            // Buscar los meses activos en los que aparece este field_id
+            $activeMonths = DB::table('field_items')
+                ->where('field_id', $adm->field_id)
+                ->whereIn('month_id', $months)
+                ->distinct('month_id')
+                ->pluck('month_id');
+            $countMonths = $activeMonths->count();
+            if ($countMonths > 0) {
+                $key = $adm->level1_id . '-' . $adm->level2_id;
+                if (!isset($totals[$key])) {
+                    $totals[$key] = [
+                        'level1_id' => $adm->level1_id,
+                        'level1_name' => $adm->level1_name,
+                        'level2_id' => $adm->level2_id,
+                        'level2_name' => $adm->level2_name,
+                        'total_amount' => 0
+                    ];
+                }
+                $quantity = ($adm->quantity !== null && ($adm->quantity > 0)) ? ((in_array($adm->unit_id ?? null, [2,4])) ? ($adm->quantity / 1000) : $adm->quantity) : 0;
+                $amount = round($adm->price * $quantity * $countMonths, 2);
+                $totals[$key]['total_amount'] += $amount;
+            }
+        }
+        return collect(array_values($totals));
+    }
+
 
 
 }

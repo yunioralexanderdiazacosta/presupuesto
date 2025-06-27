@@ -55,11 +55,36 @@ const props = defineProps({
   servicesExpensePerHectare: Object, // <-- agregar
   suppliesExpensePerHectare: Object, // <-- agregar
   devStates: Object, // <-- nombres de estados de desarrollo
+  administrationTotalsByLevel12: Array, // <-- agregar prop para la tabla de administración
+  fieldTotalsByLevel12: Array // <-- agregar prop para la tabla de fields
 })
 
 // Estados para mostrar/ocultar tablas
 const showDevStateTable = ref(false)
 const showExpensePerHectareTable = ref(false)
+
+// Agrupación por Level1 para la tabla de administración y fields
+function groupByLevel1() {
+  // Junta administración y fields en un solo array, pero mantiene el orden original
+  const allRows = [
+    ...(props.administrationTotalsByLevel12?.map(r => ({...r, key: 'adm-' + r.level1_id + '-' + r.level2_id})) || []),
+    ...(props.fieldTotalsByLevel12?.map(r => ({...r, key: 'field-' + r.level1_id + '-' + r.level2_id})) || [])
+  ];
+  // Agrupa por level1_id
+  const groups = {};
+  allRows.forEach(row => {
+    if (!groups[row.level1_id]) {
+      groups[row.level1_id] = {
+        level1_id: row.level1_id,
+        level1_name: row.level1_name,
+        rows: []
+      };
+    }
+    groups[row.level1_id].rows.push(row);
+  });
+  // Devuelve como array
+  return Object.values(groups);
+}
 </script>
 
 <template>
@@ -231,6 +256,45 @@ const showExpensePerHectareTable = ref(false)
                         <td class="text-center text-warning fw-bold small">{{ Number(servicesExpensePerHectare[devStateId] || 0).toLocaleString('es-CL', { maximumFractionDigits: 0 }) }}</td>
                         <td class="text-center text-warning fw-bold small">{{ Number(suppliesExpensePerHectare[devStateId] || 0).toLocaleString('es-CL', { maximumFractionDigits: 0 }) }}</td>
                       </tr>
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Tabla de Administración y Fields por Level1 y Level2 -->
+        <div class="row mt-4">
+          <div class="col-xl-12">
+            <div class="card">
+              <div class="card-body pt-2 pb-2">
+                <h6 class="mb-3">Totales por nivel 1 y nivel 2</h6>
+                <div class="table-responsive scrollbar">
+                  <table class="table table-sm table-hover align-middle border rounded shadow-sm bg-white">
+                    <thead class="table-light border-bottom">
+                      <tr>
+                        <th class="text-uppercase text-secondary small fw-bold">Level 1</th>
+                        <th class="text-uppercase text-secondary small fw-bold">Level 2</th>
+                        <th class="text-uppercase text-secondary small fw-bold">Monto Total</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      <template v-for="(group, l1idx) in groupByLevel1()" :key="'l1-' + group.level1_id">
+                        <template v-for="(row, idx) in group.rows" :key="row.key">
+                          <tr>
+                            <td v-if="idx === 0" :rowspan="group.rows.length + 1" style="vertical-align:top">{{ group.level1_name }}</td>
+                            <td>{{ row.level2_name }}</td>
+                            <td class="text-end ">{{ Number(row.total_amount).toLocaleString('es-CL', { maximumFractionDigits: 0 }) }}</td>
+                          </tr>
+                        </template>
+                        <tr class="table-secondary">
+                          <td>Subtotal {{ group.level1_name }}</td>
+                          <td class="text-end">
+                            {{ group.rows.reduce((sum, r) => sum + Number(r.total_amount), 0).toLocaleString('es-CL', { maximumFractionDigits: 0 }) }}
+                          </td>
+                        </tr>
+                      </template>
                     </tbody>
                   </table>
                 </div>
