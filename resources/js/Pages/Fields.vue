@@ -200,7 +200,7 @@ const acum_products = (quantity) => {
                         </Table>
                     </div>
                     <div class="tab-pane fade" id="pill-tab-detalles" role="tabpanel" aria-labelledby="detalles-tab">
-                        <!--
+                        
                         <div class="row mb-3">
                             <div class="col-md-6 col-lg-3 col-xl-6 col-xxl-3">
                               <div class="card h-md-100 ecommerce-card-min-width">
@@ -210,7 +210,20 @@ const acum_products = (quantity) => {
                                 <div class="card-body d-flex flex-column justify-content-end">
                                   <div class="row">
                                     <div class="col">
-                                      <p class="font-sans-serif lh-1 mb-1 fs-6">{{totalData1}}</p>
+                                      <p class="font-sans-serif lh-1 mb-1 fs-6">
+                                        
+                                         {{
+                                          data1.reduce((sum, level) =>
+                                            sum + level.subfamilies.reduce((sfSum, subfamily) =>
+                                              sfSum + subfamily.products.reduce((pSum, product) => {
+                                                const val = product.totalAmount ? parseFloat((product.totalAmount+'').replace(/\./g,'').replace(',','.')) : 0;
+                                                return pSum + val;
+                                              }, 0)
+                                          , 0)
+                                        , 0).toLocaleString('es-ES')
+                                      }}
+                                        
+                                      </p>
                                     </div>
                                   </div>
                                 </div>
@@ -231,7 +244,7 @@ const acum_products = (quantity) => {
                                 </div>
                               </div>
                             </div>  
-                        </div>-->
+                        </div>
 
                         <div class="table-responsive mt-1">
                             <table class="table table-bordered table-hover table-sm custom-striped fs-10 mb-0 agrochem-details">
@@ -268,11 +281,27 @@ const acum_products = (quantity) => {
     </template>
   </template>
 </tbody>
+ <!-- Fila de totales por mes -->
+  <tr class="table-dark fw-bold">
+    <td colspan="6" class="text-end text-dark">Total por mes</td>
+    <td v-for="(month, mIdx) in $page.props.months" class="bg-opacity-5 table-primary">
+      {{
+        data1.reduce((sum, level) =>
+          sum + level.subfamilies.reduce((sfSum, subfamily) =>
+            sfSum + subfamily.products.reduce((pSum, product) => {
+              const val = product.months && product.months[mIdx] ? parseFloat((product.months[mIdx]+'').replace(/\./g,'').replace(',','.')) : 0;
+              return pSum + val;
+            }, 0)
+          , 0)
+        , 0).toLocaleString('es-ES')
+      }}
+    </td>
+  </tr>
                             </table>
                         </div>
                     </div>
                     <div class="tab-pane fade" id="pill-tab-gastos" role="tabpanel" aria-labelledby="gastos-tab">
-                        <!--
+                        
                         <div class="row mb-3">
                             <div class="col-md-6 col-lg-3 col-xl-6 col-xxl-3">
                               <div class="card h-md-100 ecommerce-card-min-width">
@@ -282,7 +311,18 @@ const acum_products = (quantity) => {
                                 <div class="card-body d-flex flex-column justify-content-end">
                                   <div class="row">
                                     <div class="col">
-                                      <p class="font-sans-serif lh-1 mb-1 fs-6">{{totalData1}}</p>
+                                      <p class="font-sans-serif lh-1 mb-1 fs-6">
+                                         {{
+                                          data1.reduce((sum, level) =>
+                                            sum + level.subfamilies.reduce((sfSum, subfamily) =>
+                                              sfSum + subfamily.products.reduce((pSum, product) => {
+                                                const val = product.totalAmount ? parseFloat((product.totalAmount+'').replace(/\./g,'').replace(',','.')) : 0;
+                                                return pSum + val;
+                                              }, 0)
+                                          , 0)
+                                        , 0).toLocaleString('es-ES')
+                                      }}
+                                      </p>
                                     </div>
                                   </div>
                                 </div>
@@ -303,7 +343,7 @@ const acum_products = (quantity) => {
                                 </div>
                               </div>
                             </div>  
-                        </div>-->
+                        </div>
 
                         <!--
                         <div class="table-responsive mt-1">
@@ -354,7 +394,7 @@ const acum_products = (quantity) => {
 
                     </div>
                     <div class="tab-pane fade" id="pill-tab-detalles-compra" role="tabpanel" aria-labelledby="detalles-compra-tab">
-                        <!--
+                        
                         <div class="row mb-3">
                             <div class="col-md-6 col-lg-3 col-xl-6 col-xxl-3">
                               <div class="card h-md-100 ecommerce-card-min-width">
@@ -364,7 +404,18 @@ const acum_products = (quantity) => {
                                 <div class="card-body d-flex flex-column justify-content-end">
                                   <div class="row">
                                     <div class="col">
-                                      <p class="font-sans-serif lh-1 mb-1 fs-6">{{totalData2}}</p>
+                                      <p class="font-sans-serif lh-1 mb-1 fs-6">
+                                           {{
+                                          data1.reduce((sum, level) =>
+                                            sum + level.subfamilies.reduce((sfSum, subfamily) =>
+                                              sfSum + subfamily.products.reduce((pSum, product) => {
+                                                const val = product.totalAmount ? parseFloat((product.totalAmount+'').replace(/\./g,'').replace(',','.')) : 0;
+                                                return pSum + val;
+                                              }, 0)
+                                          , 0)
+                                        , 0).toLocaleString('es-ES')
+                                      }}
+                                      </p>
                                     </div>
                                   </div>
                                 </div>
@@ -385,7 +436,7 @@ const acum_products = (quantity) => {
                                 </div>
                               </div>
                             </div>  
-                        </div>-->   
+                        </div>
 
                         <!--begin::Table-->
                         <div class="table-responsive mt-1">

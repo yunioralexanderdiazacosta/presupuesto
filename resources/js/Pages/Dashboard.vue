@@ -54,7 +54,7 @@ const props = defineProps({
   manPowerExpensePerHectare: Object, // <-- agregar
   servicesExpensePerHectare: Object, // <-- agregar
   suppliesExpensePerHectare: Object, // <-- agregar
-  devStates: Object // <-- nombres de estados de desarrollo
+  devStates: Object, // <-- nombres de estados de desarrollo
 })
 
 // Estados para mostrar/ocultar tablas
@@ -73,7 +73,7 @@ const showExpensePerHectareTable = ref(false)
               <div class="card-body py-2 d-flex align-items-center">
                 <img :src="weather.current.condition.icon" alt="icon" style="width:32px;height:32px;" class="me-2" />
                 <div>
-                  <div class="fw-bold">Clima en {{ weatherCity || city || weather.location.name }}</div>
+                  <div class="fw-bold">Clima en {{ weatherCity || userCity || weather.location.name }}</div>
                   <div class="">{{ weather.current.temp_c }} °C, {{ weather.current.condition.text }}</div>
                 </div>
               </div>

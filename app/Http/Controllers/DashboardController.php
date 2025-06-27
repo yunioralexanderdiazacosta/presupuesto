@@ -45,6 +45,7 @@ class DashboardController extends Controller
         $user = Auth::user();
         $season_id = session('season_id');
         $season = Season::select('name', 'month_id')->where('id', $season_id)->first();
+
         $this->month_id = $season ? $season['month_id'] : 1;
         $months = array();
         $currentMonth = $this->month_id;
@@ -1026,6 +1027,8 @@ class DashboardController extends Controller
 
         return $months[$id];
     }
+
+
 }
 
 

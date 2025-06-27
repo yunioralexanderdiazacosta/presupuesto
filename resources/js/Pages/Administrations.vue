@@ -155,7 +155,7 @@ const onFilter = () => {
         </div>
 
         <div class="card-body bg-body-tertiary">
-            < <ul class="nav nav-pills" id="pill-myTab" role="tablist">
+            <ul class="nav nav-pills" id="pill-myTab" role="tablist">
                 <li class="nav-item"><a class="nav-link active" id="pill-edicion" data-bs-toggle="tab" href="#pill-tab-edicion" role="tab" aria-controls="pill-tab-edicion" aria-selected="true">Edición</a></li>
                 <li class="nav-item"><a class="nav-link" id="pill-detalles" data-bs-toggle="tab" href="#pill-tab-detalles" role="tab" aria-controls="pill-tab-detalles" aria-selected="false">Detalles</a></li>
                 <li class="nav-item"><a class="nav-link" id="pill-gastos" data-bs-toggle="tab" href="#pill-tab-gastos" role="tab" aria-controls="pill-tab-gastos" aria-selected="false">Gastos por Hectarea</a></li>
@@ -220,8 +220,9 @@ const onFilter = () => {
                         <!--end::Table body-->
                     </Table>
                 </div>
-              <div class="tab-pane fade" id="pill-tab-detalles-compra" role="tabpanel" aria-labelledby="detalles-compra-tab">
-                        <!--
+
+ <div class="tab-pane fade" id="pill-tab-detalles" role="tabpanel" aria-labelledby="detalles-tab">
+                        
                         <div class="row mb-3">
                             <div class="col-md-6 col-lg-3 col-xl-6 col-xxl-3">
                               <div class="card h-md-100 ecommerce-card-min-width">
@@ -231,7 +232,18 @@ const onFilter = () => {
                                 <div class="card-body d-flex flex-column justify-content-end">
                                   <div class="row">
                                     <div class="col">
-                                      <p class="font-sans-serif lh-1 mb-1 fs-6">{{totalData1}}</p>
+                                      <p class="font-sans-serif lh-1 mb-1 fs-6">
+                                        {{
+                                          data1.reduce((sum, level) =>
+                                            sum + level.subfamilies.reduce((sfSum, subfamily) =>
+                                              sfSum + subfamily.products.reduce((pSum, product) => {
+                                                const val = product.totalAmount ? parseFloat((product.totalAmount+'').replace(/\./g,'').replace(',','.')) : 0;
+                                                return pSum + val;
+                                              }, 0)
+                                          , 0)
+                                        , 0).toLocaleString('es-ES')
+                                      }}
+                                    </p>
                                     </div>
                                   </div>
                                 </div>
@@ -252,7 +264,188 @@ const onFilter = () => {
                                 </div>
                               </div>
                             </div>  
+                        </div>
+
+                        <div class="table-responsive mt-1">
+                            <table class="table table-bordered table-hover table-sm custom-striped fs-10 mb-0 agrochem-details">
+                                <thead>
+                                    <tr>
+                                        <th class="min-w-150px">Level 2</th>
+                                        <th>Subfamilia</th>
+                                        <th class="min-w-100px">Producto</th>
+                                        <th>Cantidad Total</th>
+                                        <th>Un</th>
+                                        <th class="text-dark">Monto Total</th>
+                                        <th v-for="month in $page.props.months" class="text-primary">{{month.label}}</th> 
+                                    </tr>
+                                </thead>
+                                <tbody>
+  <template v-for="(level, lidx) in data1">
+    <template v-for="(subfamily, sfidx) in level.subfamilies">
+      <template v-for="(product, pidx) in subfamily.products">
+        <tr>
+          <td v-if="sfidx === 0 && pidx === 0" :rowspan="level.subfamilies.reduce((acc, sf) => acc + (sf.products?.length || 1), 0)" style="vertical-align:top">{{ level.name }}</td>
+          <td v-if="pidx === 0" :rowspan="subfamily.products.length > 0 ? subfamily.products.length : 1" style="vertical-align:top">{{ subfamily.name }}</td>
+          <td>{{ product.name }}</td>
+          <td>{{ product.totalQuantity }}</td>
+          <td>{{ product.unit }}</td>
+          <td class="text-dark">{{ product.totalAmount }}</td>
+          <td class="bg-opacity-5 table-primary" v-for="value in product.months">{{ value }}</td>
+        </tr>
+      </template>
+      <tr v-if="!subfamily.products || subfamily.products.length === 0">
+        <td v-if="sfidx === 0" :rowspan="level.subfamilies.length" style="vertical-align:top">{{ level.name }}</td>
+        <td style="vertical-align:top">{{ subfamily.name }}</td>
+        <td colspan="5 + $page.props.months.length">Sin productos</td>
+      </tr>
+    </template>
+  </template>
+</tbody>
+  <!-- Fila de totales por mes -->
+  <tr class="table-dark fw-bold">
+    <td colspan="6" class="text-end text-dark">Total por mes</td>
+    <td v-for="(month, mIdx) in $page.props.months" class="bg-opacity-5 table-primary">
+      {{
+        data1.reduce((sum, level) =>
+          sum + level.subfamilies.reduce((sfSum, subfamily) =>
+            sfSum + subfamily.products.reduce((pSum, product) => {
+              const val = product.months && product.months[mIdx] ? parseFloat((product.months[mIdx]+'').replace(/\./g,'').replace(',','.')) : 0;
+              return pSum + val;
+            }, 0)
+          , 0)
+        , 0).toLocaleString('es-ES')
+      }}
+    </td>
+  </tr>
+ </table>
+                        </div>
+                    </div>
+                    <div class="tab-pane fade" id="pill-tab-gastos" role="tabpanel" aria-labelledby="gastos-tab">
+                        
+                        <div class="row mb-3">
+                            <div class="col-md-6 col-lg-3 col-xl-6 col-xxl-3">
+                              <div class="card h-md-100 ecommerce-card-min-width">
+                                <div class="card-header pb-0">
+                                  <h6 class="mb-0 mt-2 d-flex align-items-center">Monto Total</h6>
+                                </div>
+                                <div class="card-body d-flex flex-column justify-content-end">
+                                  <div class="row">
+                                    <div class="col">
+                                      <p class="font-sans-serif lh-1 mb-1 fs-6">{{totalData1}}</p>
+                                    </div>
+                                  </div>
+                                </div>
+                              </div>
+                            </div>
+
+                            <div class="col-md-6 col-lg-3 col-xl-6 col-xxl-3">
+                              <div class="card h-md-100 ecommerce-card-min-width">
+                                <div class="card-header pb-0">
+                                  <h6 class="mb-0 mt-2 d-flex align-items-center">Porc. Monto</h6>
+                                </div>
+                                <div class="card-body d-flex flex-column justify-content-end">
+                                  <div class="row">
+                                    <div class="col">
+                                      <p class="font-sans-serif lh-1 mb-1 fs-6">{{percentage}}%</p>
+                                    </div>
+                                  </div>
+                                </div>
+                              </div>
+                            </div>  
+                        </div>
+
+                        <!--
+                        <div class="table-responsive mt-1">
+                            <table class="table table-bordered table-hover table-sm custom-striped fs-10 mb-0 agrochem-details">
+                                <thead>
+                                    <tr>
+                                        <th class="min-w-150px">CC</th>
+                                        <th>Subfamilia</th>
+                                        <th class="min-w-100px">Producto</th>
+                                        <th>Cantidad Total</th>
+                                        <th>Un</th>
+                                        <th class="text-dark">Monto Total</th>
+                                        <th v-for="month in $page.props.months" class="text-primary">{{month.label}}</th> 
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <template v-for="(cc, index) in data3">
+                                        <template v-for="(subfamily, index2) in cc.subfamilies">
+                                            <tr>
+                                                <td v-if="index2 == 0" :rowspan="cc.total" style="vertical-align:top">{{cc.name}}</td>
+                                                <td  style="vertical-align:top;" :rowspan="subfamily.products.length > 0 ? subfamily.products.length : 1">{{subfamily.name}}</td>
+                                                <td v-if="subfamily.products.length > 0">{{subfamily.products[0].name}}</td>
+                                                <td v-else>-</td>
+                                                <td v-if="subfamily.products.length > 0">{{subfamily.products[0].totalQuantity}}</td>
+                                                <td v-else>-</td>
+                                                <td v-if="subfamily.products.length > 0">{{subfamily.products[0].unit}}</td>
+                                                <td v-else>-</td>
+                                                <td v-if="subfamily.products.length > 0" class="text-dark">{{subfamily.products[0].totalAmount}}</td>
+                                                <td v-else>-</td>
+                                                <td v-if="subfamily.products.length > 0" class="bg-opacity-5 table-primary" v-for="value in subfamily.products[0].months">{{value}}</td>
+                                                <td v-else v-for="month in $page.props.months">-</td>
+                                            </tr>
+
+                                            <template v-for="(product, index3) in subfamily.products">
+                                                <tr v-if="index3 > 0">
+                                                    <td>{{product.name}}</td>
+                                                    <td>{{product.totalQuantity}}</td>
+                                                    <td>{{product.unit}}</td>
+                                                    <td class="text-dark">{{product.totalAmount}}</td>
+                                                    <td class="bg-opacity-5 table-primary" v-for="value in product.months">{{value}}</td>
+                                                </tr>
+                                            </template>
+                                        </template>
+                                    </template>
+                                </tbody>
+                            </table>
                         </div>-->
+
+                    </div>
+
+
+              <div class="tab-pane fade" id="pill-tab-detalles-compra" role="tabpanel" aria-labelledby="detalles-compra-tab">
+                        
+                        <div class="row mb-3">
+                            <div class="col-md-6 col-lg-3 col-xl-6 col-xxl-3">
+                              <div class="card h-md-100 ecommerce-card-min-width">
+                                <div class="card-header pb-0">
+                                  <h6 class="mb-0 mt-2 d-flex align-items-center">Monto Total</h6>
+                                </div>
+                                <div class="card-body d-flex flex-column justify-content-end">
+                                  <div class="row">
+                                    <div class="col">
+                                      <p class="font-sans-serif lh-1 mb-1 fs-6">
+                                        {{
+                                          data2.reduce((sum, subfamily) =>
+                                            sum + subfamily.products.reduce((pSum, product) => {
+                                              const val = product.totalAmount ? parseFloat((product.totalAmount+'').replace(/\./g,'').replace(',','.')) : 0;
+                                              return pSum + val;
+                                            }, 0)
+                                        , 0).toLocaleString('es-ES')
+                                      }}
+                                    </p>
+                                    </div>
+                                  </div>
+                                </div>
+                              </div>
+                            </div>
+
+                            <div class="col-md-6 col-lg-3 col-xl-6 col-xxl-3">
+                              <div class="card h-md-100 ecommerce-card-min-width">
+                                <div class="card-header pb-0">
+                                  <h5 class="mb-0 mt-2 d-flex align-items-center">Porc. Monto</h5>
+                                </div>
+                                <div class="card-body d-flex flex-column justify-content-end">
+                                  <div class="row">
+                                    <div class="col">
+                                      <p class="font-sans-serif lh-1 mb-1 fs-6">{{percentage}}%</p>
+                                    </div>
+                                  </div>
+                                </div>
+                              </div>
+                            </div>  
+                        </div>
 
                         <div class="table-responsive mt-1">
                             <table class="table table-bordered table-hover table-sm custom-striped fs-10 mb-0 agrochem-details">
