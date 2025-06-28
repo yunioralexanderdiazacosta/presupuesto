@@ -2,7 +2,7 @@
 import { Head } from '@inertiajs/vue3';
 import AppLayout from '@/Layouts/AppLayout.vue';
 import Pie from '@/Components/Pie.vue';
-import { onMounted, ref } from 'vue'
+import { onMounted, ref, computed } from 'vue'
 import { router } from '@inertiajs/vue3'
 const title = 'Tablero';
 
@@ -57,7 +57,19 @@ const props = defineProps({
   devStates: Object, // <-- nombres de estados de desarrollo
   administrationTotalsByLevel12: Array, // <-- agregar prop para la tabla de administración
   fieldTotalsByLevel12: Array, // <-- agregar prop para la tabla de fields
-  totalsByLevel12: Array // <-- nuevo prop para la tabla de totales generales
+  totalsByLevel12: Array, // <-- nuevo prop para la tabla de totales generales
+  totalSurface: Number, // <-- AGREGADO para mostrar superficie total
+  totalAdministration: Number // <-- AGREGADO para mostrar administración total
+})
+
+// Calcular el total de administración sumando los montos de administrationTotalsByLevel12
+const totalAdministrationCalc = computed(() => {
+  return (props.administrationTotalsByLevel12 || []).reduce((sum, r) => sum + Number(r.total_amount || 0), 0)
+})
+
+// Calcular el total de campo sumando los montos de fieldTotalsByLevel12
+const totalFieldsCalc = computed(() => {
+  return (props.fieldTotalsByLevel12 || []).reduce((sum, r) => sum + Number(r.total_amount || 0), 0)
 })
 
 // Estados para mostrar/ocultar tablas
@@ -159,7 +171,12 @@ function groupAllTotalsByLevel1() {
                 </div>
               </div>
             </div>
-           
+
+            <!-- Espaciado extra entre Total Presupuestos y Total superficie -->
+            <div class="mt-3"></div>
+            <div class="alert alert-info mb-3">
+              <strong>Total superficie:</strong> {{ totalSurface }}
+            </div>
           </div>
           <div class="col-xl-7">
             <div class="card">
@@ -171,58 +188,7 @@ function groupAllTotalsByLevel1() {
         </div>
 
 
-        <div class="row mt-4">
-          <div class="col-xl-12">
-            <div class="card">
-              <div class="card-body pt-2 pb-2">
-                <div class="table-responsive scrollbar">
-                  <table class="table table-sm table-hover align-middle border rounded shadow-sm bg-white">
-                    <thead class="table-light border-bottom">
-                      <tr>
-                        <th class="text-uppercase text-secondary small fw-bold"></th>
-                        <th class="text-uppercase text-secondary small fw-bold">TOTAL</th>
-                        <th class="text-uppercase text-primary small fw-bold" v-for="month in $page.props.months">{{month.label}}</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      <tr>
-                        <td class="fw-semibold small">Agroquimicos</td>
-                        <td class="text-end text-primary fw-bold small">{{totalAgrochemical}}</td>
-                        <td class="bg-opacity-5 table-primary text-end small" v-for="value in months">{{monthsAgrochemical[value.value]}}</td>
-                      </tr>
-                      <tr>
-                        <td class="fw-semibold small">Fertilizantes</td>
-                        <td class="text-end text-primary fw-bold small">{{totalFertilizer}}</td>
-                        <td class="bg-opacity-5 table-primary text-end small" v-for="value in months">{{monthsFertilizer[value.value]}}</td>
-                      </tr>
-                      <tr>
-                        <td class="fw-semibold small">Mano de obra</td>
-                        <td class="text-end text-primary fw-bold small">{{totalManPower}}</td>
-                        <td class="bg-opacity-5 table-primary text-end small" v-for="value in months">{{monthsManPower[value.value]}}</td>
-                      </tr>
-                      <tr>
-                        <td class="fw-semibold small">Insumos</td>
-                        <td class="text-end text-primary fw-bold small">{{totalSupplies}}</td>
-                        <td class="bg-opacity-5 table-primary text-end small" v-for="value in months">{{monthsSupplies[value.value]}}</td>
-                      </tr>
-                      <tr>
-                        <td class="fw-semibold small">Servicios</td>
-                        <td class="text-end text-primary fw-bold small">{{totalServices}}</td>
-                        <td class="bg-opacity-5 table-primary text-end small" v-for="value in months">{{monthsServices[value.value]}}</td>
-                      </tr>
-                    </tbody>
-                  </table>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
 
-
-
-
-
-        
         <div class="row mt-4">
           <div class="col-xl-12">
             <div class="card">
@@ -239,11 +205,11 @@ function groupAllTotalsByLevel1() {
                     <thead class="table-light border-bottom">
                       <tr>
                         <th class="text-start text-uppercase text-secondary small fw-bold small">Estado de desarrollo</th>
-                        <th class="text-center text-uppercase text-secondary small fw-bold small">Total Agroquímicos</th>
-                        <th class="text-center text-uppercase text-secondary small fw-bold small">Total Fertilizantes</th>
-                        <th class="text-center text-uppercase text-secondary small fw-bold small">Total Mano de Obra</th>
-                        <th class="text-center text-uppercase text-secondary small fw-bold small">Total Servicios</th>
-                        <th class="text-center text-uppercase text-secondary small fw-bold small">Total Insumos</th>
+                        <th class="text-center text-uppercase text-secondary small fw-bold small">Agroquímicos</th>
+                        <th class="text-center text-uppercase text-secondary small fw-bold small">Fertilizantes</th>
+                        <th class="text-center text-uppercase text-secondary small fw-bold small">Mano de Obra</th>
+                        <th class="text-center text-uppercase text-secondary small fw-bold small">Servicios</th>
+                        <th class="text-center text-uppercase text-secondary small fw-bold small">Insumos</th>
                       </tr>
                     </thead>
                     <tbody>
@@ -284,6 +250,9 @@ function groupAllTotalsByLevel1() {
                         <th class="text-center text-uppercase text-secondary small fw-bold">Mano de Obra</th>
                         <th class="text-center text-uppercase text-secondary small fw-bold">Servicios</th>
                         <th class="text-center text-uppercase text-secondary small fw-bold">Insumos</th>
+                        <th class="text-center text-uppercase text-secondary small fw-bold">Gral campo</th>
+                        <th class="text-center text-uppercase text-secondary small fw-bold">Administración</th>
+                        <th class="text-center text-uppercase text-secondary small fw-bold">Total</th>
                       </tr>
                     </thead>
                     <tbody>
@@ -294,6 +263,29 @@ function groupAllTotalsByLevel1() {
                         <td class="text-center text-warning fw-bold small">{{ Number(manPowerExpensePerHectare[devStateId] || 0).toLocaleString('es-CL', { maximumFractionDigits: 0 }) }}</td>
                         <td class="text-center text-warning fw-bold small">{{ Number(servicesExpensePerHectare[devStateId] || 0).toLocaleString('es-CL', { maximumFractionDigits: 0 }) }}</td>
                         <td class="text-center text-warning fw-bold small">{{ Number(suppliesExpensePerHectare[devStateId] || 0).toLocaleString('es-CL', { maximumFractionDigits: 0 }) }}</td>
+                        <td class="text-center text-warning fw-bold small">
+                          {{
+                            (totalFieldsCalc / (totalSurface || 1)).toLocaleString('es-CL', { maximumFractionDigits: 0 })
+                          }}
+                        </td>
+                        <td class="text-center text-warning fw-bold small">
+                          {{
+                            (totalAdministrationCalc / (totalSurface || 1)).toLocaleString('es-CL', { maximumFractionDigits: 0 })
+                          }}
+                        </td>
+                        <td class="text-center text-warning fw-bold small">
+                          {{
+                            (
+                              Number(agrochemicalExpensePerHectare[devStateId] || 0) +
+                              Number(fertilizerExpensePerHectare[devStateId] || 0) +
+                              Number(manPowerExpensePerHectare[devStateId] || 0) +
+                              Number(servicesExpensePerHectare[devStateId] || 0) +
+                              Number(suppliesExpensePerHectare[devStateId] || 0) +
+                              (totalFieldsCalc / (totalSurface || 1)) +
+                              (totalAdministrationCalc / (totalSurface || 1))
+                            ).toLocaleString('es-CL', { maximumFractionDigits: 0 })
+                          }}
+                        </td>
                       </tr>
                     </tbody>
                   </table>
@@ -352,7 +344,53 @@ function groupAllTotalsByLevel1() {
           </div>
         </div>
       </div>
-
+      
+       <div class="row mt-4">
+          <div class="col-xl-12">
+            <div class="card">
+              <div class="card-body pt-2 pb-2">
+                <div class="table-responsive scrollbar">
+                  <table class="table table-sm table-hover align-middle border rounded shadow-sm bg-white">
+                    <thead class="table-light border-bottom">
+                      <tr>
+                        <th class="text-uppercase text-secondary small fw-bold"></th>
+                        <th class="text-uppercase text-secondary small fw-bold">TOTAL</th>
+                        <th class="text-uppercase text-primary small fw-bold" v-for="month in $page.props.months">{{month.label}}</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      <tr>
+                        <td class="fw-semibold small">Agroquimicos</td>
+                        <td class="text-end text-primary fw-bold small">{{totalAgrochemical}}</td>
+                        <td class="bg-opacity-5 table-primary text-end small" v-for="value in months">{{monthsAgrochemical[value.value]}}</td>
+                      </tr>
+                      <tr>
+                        <td class="fw-semibold small">Fertilizantes</td>
+                        <td class="text-end text-primary fw-bold small">{{totalFertilizer}}</td>
+                        <td class="bg-opacity-5 table-primary text-end small" v-for="value in months">{{monthsFertilizer[value.value]}}</td>
+                      </tr>
+                      <tr>
+                        <td class="fw-semibold small">Mano de obra</td>
+                        <td class="text-end text-primary fw-bold small">{{totalManPower}}</td>
+                        <td class="bg-opacity-5 table-primary text-end small" v-for="value in months">{{monthsManPower[value.value]}}</td>
+                      </tr>
+                      <tr>
+                        <td class="fw-semibold small">Insumos</td>
+                        <td class="text-end text-primary fw-bold small">{{totalSupplies}}</td>
+                        <td class="bg-opacity-5 table-primary text-end small" v-for="value in months">{{monthsSupplies[value.value]}}</td>
+                      </tr>
+                      <tr>
+                        <td class="fw-semibold small">Servicios</td>
+                        <td class="text-end text-primary fw-bold small">{{totalServices}}</td>
+                        <td class="bg-opacity-5 table-primary text-end small" v-for="value in months">{{monthsServices[value.value]}}</td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
 
 
 

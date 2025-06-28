@@ -263,6 +263,9 @@ class DashboardController extends Controller
         $fieldTotalsByLevel12 = $this->getFieldTotalsByLevel12($user->team_id);
         $totalsByLevel12 = $this->getTotalsByLevel12($user->team_id);
 
+        // Calcular el total de superficie de todos los cost centers de la temporada
+        $totalSurface = \App\Models\CostCenter::where('season_id', $season_id)->sum('surface');
+
         // Pasar ambos al frontend
         return Inertia::render('Dashboard', compact(
             'totalSeason', 'pieLabels', 'pieDatasets',
@@ -282,10 +285,11 @@ class DashboardController extends Controller
             'manPowerExpensePerHectare',
             'servicesExpensePerHectare',
             'suppliesExpensePerHectare',
-            'devStates', // <-- nombres de estados de desarrollo
-            'administrationTotalsByLevel12', // <-- ya estaba
-            'fieldTotalsByLevel12', // <-- ya estaba
-            'totalsByLevel12' // <-- nuevo prop para Dashboard.vue
+            'devStates',
+            'administrationTotalsByLevel12',
+            'fieldTotalsByLevel12',
+            'totalsByLevel12',
+            'totalSurface' // <-- aseguro que se envía
         ));
     }
 
@@ -1207,7 +1211,7 @@ class DashboardController extends Controller
             }
             $amountFirst = round($a->price * $quantityFirst, 2);
             foreach ($months as $month) {
-                $count = \DB::table('agrochemical_items')
+                $count = DB::table('agrochemical_items')
                     ->where('agrochemical_id', $a->id)
                     ->where('month_id', $month)
                     ->where('cost_center_id', $a->cost_center_id)
@@ -1234,7 +1238,7 @@ class DashboardController extends Controller
             $quantityFirst = round($dose * $surface, 2);
             $amountFirst = round($f->price * $quantityFirst, 2);
             foreach ($months as $month) {
-                $count = \DB::table('fertilizer_items')
+                $count = DB::table('fertilizer_items')
                     ->where('fertilizer_id', $f->id)
                     ->where('month_id', $month)
                     ->where('cost_center_id', $f->cost_center_id)
@@ -1260,7 +1264,7 @@ class DashboardController extends Controller
             $quantityFirst = round($mp->workday * $surface, 2);
             $amountFirst = round($mp->price * $quantityFirst, 2);
             foreach ($months as $month) {
-                $count = \DB::table('manpower_items')
+                $count = DB::table('manpower_items')
                     ->where('man_power_id', $mp->id)
                     ->where('month_id', $month)
                     ->where('cost_center_id', $mp->cost_center_id)
@@ -1287,7 +1291,7 @@ class DashboardController extends Controller
             $quantityFirst = round($quantity * $surface, 2);
             $amountFirst = round($s->price * $quantityFirst, 2);
             foreach ($months as $month) {
-                $count = \DB::table('service_items')
+                $count = DB::table('service_items')
                     ->where('service_id', $s->id)
                     ->where('month_id', $month)
                     ->where('cost_center_id', $s->cost_center_id)
@@ -1314,7 +1318,7 @@ class DashboardController extends Controller
             $quantityFirst = round($quantity * $surface, 2);
             $amountFirst = round($s->price * $quantityFirst, 2);
             foreach ($months as $month) {
-                $count = \DB::table('supply_items')
+                $count = DB::table('supply_items')
                     ->where('supply_id', $s->id)
                     ->where('month_id', $month)
                     ->where('cost_center_id', $s->cost_center_id)
