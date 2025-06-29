@@ -13,12 +13,15 @@ import EditAdministrationModal from '@/Components/Administrations/EditAdministra
 const props = defineProps({
     administrations: Object,
     data: Array,
-    data1: Array, // <-- Asegura que data1 esté definido como prop
-    data2: Array, // <-- Asegura que data2 esté definido como prop
-    // totalData1: String,
-    // totalData2: String,
-    // percentage: String
+    data1: Array,
+    data2: Array,
+    team_id: [Number, String], // <-- Añadido
+    season_id: [Number, String] // <-- Añadido
 });
+
+// Definir los filtros reactivos para equipo y temporada
+const selectedTeamId = ref(props.team_id || null);
+const selectedSeasonId = ref(props.season_id || null);
 
 var acum = ref(0);
 
@@ -69,35 +72,46 @@ const openEdit = (administration) => {
     $('#editAdministrationModal').modal('show');
 }
 
+const fetchAdministrations = () => {
+    router.get(route('administrations.index'), {
+        team_id: selectedTeamId.value,
+        season_id: selectedSeasonId.value
+    }, {
+        preserveState: true
+    });
+};
+
+// Si tienes selects para cambiar equipo/temporada, llama a fetchAdministrations al cambiar
+// Ejemplo:
+// <select v-model="selectedTeamId" @change="fetchAdministrations">
+// <select v-model="selectedSeasonId" @change="fetchAdministrations">
+
+// Modificar store, update y delete para enviar ambos filtros
 const storeAdministration = () => {
+    formMultiple.team_id = selectedTeamId.value;
+    formMultiple.season_id = selectedSeasonId.value;
     formMultiple.post(route('administrations.store'), {
         preserveScroll: true,
         onSuccess: () => {
             formMultiple.reset();
             $('#createAdministrationModal').modal('hide');
             msgSuccess('Guardado correctamente');
+            fetchAdministrations(); // recarga datos filtrados
         }
     });
-}
+};
 
 const updateAdministration = () => {
+    form.team_id = selectedTeamId.value;
+    form.season_id = selectedSeasonId.value;
     form.post(route('administrations.update', form.id), {
         preserveScroll: true,
         onSuccess: () => {
             form.reset();
             $('#editAdministrationModal').modal('hide');
             msgSuccess('Guardado correctamente');
+            fetchAdministrations();
         }
-    });
-}
-
-const msgSuccess = (msg) => {
-    Swal.fire({
-        position: 'center',
-        icon: 'success',
-        title: msg,
-        showConfirmButton: false,
-        timer: 1000
     });
 };
 
@@ -113,14 +127,29 @@ const onDeleted = (id) => {
     }).then((result) => {
         if (result.isConfirmed) {
             router.delete(route('administrations.delete', id), {
+                data: {
+                    team_id: selectedTeamId.value,
+                    season_id: selectedSeasonId.value
+                },
                 preserveScroll: true,
                 onSuccess: () => {
                     msgSuccess('Registro eliminado correctamente');
+                    fetchAdministrations();
                 }
             });
         }
     });
 }
+
+const msgSuccess = (msg) => {
+    Swal.fire({
+        position: 'center',
+        icon: 'success',
+        title: msg,
+        showConfirmButton: false,
+        timer: 1000
+    });
+};
 
 const acum_products = (quantity) => {
     acum.value = acum.value + quantity;

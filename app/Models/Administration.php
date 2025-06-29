@@ -9,7 +9,7 @@ class Administration extends Model
 {
     use HasFactory;
 
-protected $fillable = ['product_name', 'price', 'observations', 'quantity', 'unit_id','subfamily_id', 'team_id'];
+protected $fillable = ['product_name', 'price', 'observations', 'quantity', 'unit_id','subfamily_id', 'team_id', 'season_id'];
 
     public function items()
     {
@@ -26,6 +26,14 @@ protected $fillable = ['product_name', 'price', 'observations', 'quantity', 'uni
         return $this->belongsTo(Unit::class);
     }
 
+       public function season()
+{
+    return $this->belongsTo(Season::class);
+}
 
+  public function team()
+    {
+        return $this->belongsTo(Team::class);
+    }    
 
 }

@@ -27,14 +27,10 @@ class AdministrationsController extends Controller
 
      public function __invoke()
     {
-          $user = Auth::user();
-
+        $user = Auth::user();
         $season_id = session('season_id');
-
-           $team_id = $user->team_id;
-
+        $team_id = $user->team_id;
         $season = Season::select('name', 'month_id')->where('id', $season_id)->first();
-
         $this->month_id = $season['month_id'];
 
 
@@ -42,19 +38,18 @@ class AdministrationsController extends Controller
         $level1 = Level1::where('name', 'Administracion')
             ->where('team_id', $user->team_id)
             ->first();
-
- $level2s =  Level2::from('level2s as l2')
-        ->join('level1s as l1', 'l1.id', 'l2.level1_id')
-        ->select('l2.id', 'l2.name')
-        ->where('l1.team_id', $team_id)
-        ->where('season_id', $season_id)
-        ->where('l1.name', 'administracion')
-        ->get()->transform(function($subfamily){
-            return [
-                'label' => $subfamily->name, 
-                'value' => $subfamily->id
-            ];
-        });
+        $level2s =  Level2::from('level2s as l2')
+            ->join('level1s as l1', 'l1.id', 'l2.level1_id')
+            ->select('l2.id', 'l2.name')
+            ->where('l1.team_id', $team_id)
+            ->where('season_id', $season_id)
+            ->where('l1.name', 'administracion')
+            ->get()->transform(function($subfamily){
+                return [
+                    'label' => $subfamily->name, 
+                    'value' => $subfamily->id
+                ];
+            });
 
 
 
@@ -96,21 +91,23 @@ class AdministrationsController extends Controller
 
         // Nueva consulta para administrations, sin relación a cost centers
         $administrations = Administration::with(['subfamily:id,name', 'unit:id,name', 'items'])
-    ->paginate(10)
-    ->through(function($admin) {
-        return [
-            'id'            => $admin->id,
-            'product_name'  => $admin->product_name,
-            'quantity'      => $admin->quantity,
-            'subfamily_id'  => $admin->subfamily_id,
-            'unit_id'       => $admin->unit_id,
-            'price'         => $admin->price,
-            'observations'  => $admin->observations,
-            'subfamily'     => $admin->subfamily,
-            'unit'          => $admin->unit,
-            'months'        => $admin->items->pluck('month_id')->map(fn($m) => (string)$m)->unique()->values()->toArray(),
-        ];
-    });
+            ->where('team_id', $team_id)
+            ->where('season_id', $season_id)
+            ->paginate(10)
+            ->through(function($admin) {
+                return [
+                    'id'            => $admin->id,
+                    'product_name'  => $admin->product_name,
+                    'quantity'      => $admin->quantity,
+                    'subfamily_id'  => $admin->subfamily_id,
+                    'unit_id'       => $admin->unit_id,
+                    'price'         => $admin->price,
+                    'observations'  => $admin->observations,
+                    'subfamily'     => $admin->subfamily,
+                    'unit'          => $admin->unit,
+                    'months'        => $admin->items->pluck('month_id')->map(fn($m) => (string)$m)->unique()->values()->toArray(),
+                ];
+            });
     
 
 
@@ -118,6 +115,8 @@ class AdministrationsController extends Controller
         // Nueva consulta para data, sin relación a cost centers
         $data = Administration::select('id', 'product_name', 'quantity', 'subfamily_id', 'unit_id', 'price', 'observations')
             ->with(['subfamily:id,name', 'unit:id,name', 'items'])
+            ->where('team_id', $team_id)
+            ->where('season_id', $season_id)
             ->get()
             ->map(function($admin) {
                 $admin->months = $admin->items->pluck('month_id')->toArray();
@@ -131,19 +130,20 @@ class AdministrationsController extends Controller
         ->join('level1s as l1', 'l2.level1_id', 'l1.id')
         ->select('l2.id', 'l2.name')
         ->where('f.team_id', $team_id)
+        ->where('f.season_id', $season_id)
         ->groupBy('l2.id', 'l2.name')
         ->get()
-        ->transform(function($value) use ($team_id){
+        ->transform(function($value) use ($team_id, $season_id){
             return [
                 'id'           => $value->id,
                 'name'         => $value->name,
-                'subfamilies'  => $this->getSubfamilies($value->id)
+                'subfamilies'  => $this->getSubfamilies($value->id, $team_id, $season_id)
             ];
         });
 
         // Construcción de data2: solo subfamilias con productos con información
-        $data2 = Level3::get()->map(function($subfamily) {
-            $products = $this->getProducts2($subfamily->id);
+        $data2 = Level3::get()->map(function($subfamily) use ($team_id, $season_id) {
+            $products = $this->getProducts2($subfamily->id, $team_id, $season_id);
             if ($products->count() > 0) {
                 return [
                     'name' => $subfamily->name,
@@ -153,57 +153,58 @@ class AdministrationsController extends Controller
             return null;
         })->filter()->values();
 
-        return Inertia::render('Administrations', compact('units', 'subfamilies', 'months', 'administrations', 'data1', 'data2', 'season', 'level2s'));
+        return Inertia::render('Administrations', compact('units', 'subfamilies', 'months', 'administrations', 'data1', 'data2', 'season', 'level2s', 'team_id', 'season_id'));
     }
 
 
 
 
-     public function getSubfamilies($id)
+     public function getSubfamilies($id, $team_id, $season_id)
     {
         $subfamilies = Administration::from('administrations as f')
-        ->join('level3s as s', 'f.subfamily_id', 's.id')
-        ->join('level2s as l2', 's.level2_id', 'l2.id')
-        ->where('l2.id', $id)
-        ->select('s.id', 's.name')
-        ->groupBy('s.id', 's.name')
-        ->get()
-        ->transform(function($subfamily){
-            return [
-                'id' => $subfamily->id,
-                'name' => $subfamily->name,
-                'products' => $this->getProducts($subfamily->id)
-            ];
-        });
+            ->join('level3s as s', 'f.subfamily_id', 's.id')
+            ->join('level2s as l2', 's.level2_id', 'l2.id')
+            ->where('l2.id', $id)
+            ->where('f.team_id', $team_id)
+            ->where('f.season_id', $season_id)
+            ->select('s.id', 's.name')
+            ->groupBy('s.id', 's.name')
+            ->get()
+            ->transform(function($subfamily) use ($team_id, $season_id){
+                return [
+                    'id' => $subfamily->id,
+                    'name' => $subfamily->name,
+                    'products' => $this->getProducts($subfamily->id, $team_id, $season_id)
+                ];
+            });
 
         return $subfamilies;
     }
 
 
-    public function getProducts($id)
+    public function getProducts($id, $team_id, $season_id)
     {
         $products = Administration::from('administrations as f')
-        ->join('units as u', 'f.unit_id', 'u.id')
-        ->select('f.id', 'f.product_name', 'f.quantity', 'f.price', 'f.unit_id', 'u.name')
-        ->where('f.subfamily_id', $id)
-        ->groupBy('f.id', 'f.product_name', 'f.quantity', 'f.price', 'f.unit_id', 'u.name')
-        ->get()
-        ->transform(function($value){
-
-            $quantity = (($value->unit_id == 4) || ($value->unit_id == 2)) ? ($value->quantity / 1000) : $value->quantity; 
-            $amountFirst = round($value->price * $quantity, 2);
-            $data = $this->getMonths($value->id, $quantity, $amountFirst); 
-
-            return [
-                'id'            => $value->id,
-                'name'          => $value->product_name,
-                'unit'          => $value->name ?? '',
-                'totalQuantity' => $data['totalQuantity'],
-                'totalAmount'   => $data['totalAmount'],
-                'months'        => $data['months']
-            ];
-        });
-
+            ->join('units as u', 'f.unit_id', 'u.id')
+            ->select('f.id', 'f.product_name', 'f.quantity', 'f.price', 'f.unit_id', 'u.name')
+            ->where('f.subfamily_id', $id)
+            ->where('f.team_id', $team_id)
+            ->where('f.season_id', $season_id)
+            ->groupBy('f.id', 'f.product_name', 'f.quantity', 'f.price', 'f.unit_id', 'u.name')
+            ->get()
+            ->transform(function($value) use ($team_id, $season_id){
+                $quantity = (($value->unit_id == 4) || ($value->unit_id == 2)) ? ($value->quantity / 1000) : $value->quantity; 
+                $amountFirst = round($value->price * $quantity, 2);
+                $data = $this->getMonths($value->id, $quantity, $amountFirst); 
+                return [
+                    'id'            => $value->id,
+                    'name'          => $value->product_name,
+                    'unit'          => $value->name ?? '',
+                    'totalQuantity' => $data['totalQuantity'],
+                    'totalAmount'   => $data['totalAmount'],
+                    'months'        => $data['months']
+                ];
+            });
         return $products;
     }
 
@@ -267,26 +268,27 @@ class AdministrationsController extends Controller
 
    
 
- private function getProducts2($subfamilyId)
+ private function getProducts2($subfamilyId, $team_id, $season_id)
     {
         $products = Administration::from('administrations as f')
-        ->join('administration_items as fi', 'f.id', 'fi.administration_id')
-        ->join('units as u', 'f.unit_id', 'u.id')
-        ->select('f.id', 'f.product_name', 'f.price', 'f.quantity', 'u.name')
-        ->where('f.subfamily_id', $subfamilyId)
-        ->groupBy('f.id', 'f.product_name', 'f.price', 'f.quantity', 'u.name')
-        ->get()
-        ->transform(function($value){
-            $data = $this->getResult2($value);
-            return [
-                'id'            => $value->id,
-                'name'          => $value->product_name,
-                'unit'          => $value->name ?? '',
-                'totalQuantity' => $data['totalQuantity'],
-                'totalAmount'   => $data['totalAmount'],
-            ];
-        });
-
+            ->join('administration_items as fi', 'f.id', 'fi.administration_id')
+            ->join('units as u', 'f.unit_id', 'u.id')
+            ->select('f.id', 'f.product_name', 'f.price', 'f.quantity', 'u.name')
+            ->where('f.subfamily_id', $subfamilyId)
+            ->where('f.team_id', $team_id)
+            ->where('f.season_id', $season_id)
+            ->groupBy('f.id', 'f.product_name', 'f.price', 'f.quantity', 'u.name')
+            ->get()
+            ->transform(function($value) use ($team_id, $season_id){
+                $data = $this->getResult2($value);
+                return [
+                    'id'            => $value->id,
+                    'name'          => $value->product_name,
+                    'unit'          => $value->name ?? '',
+                    'totalQuantity' => $data['totalQuantity'],
+                    'totalAmount'   => $data['totalAmount'],
+                ];
+            });
         return $products;
     }
 

@@ -1063,7 +1063,8 @@ class DashboardController extends Controller
                 'l1.id as level1_id', 'l1.name as level1_name',
                 'l2.id as level2_id', 'l2.name as level2_name',
                 'a.id as administration_id', 'a.price', 'a.quantity', 'a.unit_id'
-            );
+            )
+            ->where('a.season_id', $season_id);
         if ($team_id) {
             $administrations->where('a.team_id', $team_id);
         }
@@ -1118,7 +1119,8 @@ class DashboardController extends Controller
                 'l1.id as level1_id', 'l1.name as level1_name',
                 'l2.id as level2_id', 'l2.name as level2_name',
                 'a.id as field_id', 'a.price', 'a.quantity', 'a.unit_id'
-            );
+            )
+            ->where('a.season_id', $season_id);
         if ($team_id) {
             $fields->where('a.team_id', $team_id);
         }

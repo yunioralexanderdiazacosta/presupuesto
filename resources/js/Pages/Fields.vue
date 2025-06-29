@@ -15,7 +15,12 @@ const props = defineProps({
     data: Array,
     data1: Array,
     data2: Array,
+    team_id: [Number, String],
+    season_id: [Number, String]
 });
+
+const selectedTeamId = ref(props.team_id || null);
+const selectedSeasonId = ref(props.season_id || null);
 
 var acum = ref(0);
 
@@ -65,24 +70,39 @@ const openEdit = (field) => {
     $('#editFieldModal').modal('show');
 }
 
+const fetchFields = () => {
+    router.get(route('fields.index'), {
+        team_id: selectedTeamId.value,
+        season_id: selectedSeasonId.value
+    }, {
+        preserveState: true
+    });
+};
+
 const storeField = () => {
+    formMultiple.team_id = selectedTeamId.value;
+    formMultiple.season_id = selectedSeasonId.value;
     formMultiple.post(route('fields.store'), {
         preserveScroll: true,
         onSuccess: () => {
             formMultiple.reset();
             $('#createFieldModal').modal('hide');
             msgSuccess('Guardado correctamente');
+            fetchFields();
         }
     });
-}
+};
 
 const updateField = () => {
+    form.team_id = selectedTeamId.value;
+    form.season_id = selectedSeasonId.value;
     form.post(route('fields.update', form.id), {
         preserveScroll: true,
         onSuccess: () => {
             form.reset();
             $('#editFieldModal').modal('hide');
             msgSuccess('Guardado correctamente');
+            fetchFields();
         }
     });
 }
@@ -109,9 +129,14 @@ const onDeleted = (id) => {
     }).then((result) => {
         if (result.isConfirmed) {
             router.delete(route('fields.delete', id), {
+                data: {
+                    team_id: selectedTeamId.value,
+                    season_id: selectedSeasonId.value
+                },
                 preserveScroll: true,
                 onSuccess: () => {
                     msgSuccess('Registro eliminado correctamente');
+                    fetchFields();
                 }
             });
         }

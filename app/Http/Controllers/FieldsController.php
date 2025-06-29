@@ -98,53 +98,53 @@ class FieldsController extends Controller
 
 
         $fields = Field::with(['subfamily:id,name', 'unit:id,name', 'items'])
-        ->paginate(10)
-        ->through(function($field) {
-        return [
-                'id'            => $field->id,
-                'product_name'  => $field->product_name,
-                'quantity'      => $field->quantity,
-                'subfamily_id'  => $field->subfamily_id,
-                'unit_id'       => $field->unit_id,
-                'price'         => $field->price,
-                'observations'  => $field->observations,
-                'subfamily'     => $field->subfamily,
-                'unit'          => $field->unit,
-                'months'        => $field->items->pluck('month_id')->map(fn($m) => (string)$m)->unique()->values()->toArray(),
-            ];
-        });
+            ->where('team_id', $team_id)
+            ->where('season_id', $season_id)
+            ->paginate(10)
+            ->through(function($field) {
+                return [
+                    'id'            => $field->id,
+                    'product_name'  => $field->product_name,
+                    'quantity'      => $field->quantity,
+                    'subfamily_id'  => $field->subfamily_id,
+                    'unit_id'       => $field->unit_id,
+                    'price'         => $field->price,
+                    'observations'  => $field->observations,
+                    'subfamily'     => $field->subfamily,
+                    'unit'          => $field->unit,
+                    'months'        => $field->items->pluck('month_id')->map(fn($m) => (string)$m)->unique()->values()->toArray(),
+                ];
+            });
 
 
         // Nueva consulta para data, sin relación a cost centers
         $data = Field::select('id', 'product_name', 'quantity', 'subfamily_id', 'unit_id', 'price', 'observations')
             ->with(['subfamily:id,name', 'unit:id,name', 'items'])
+            ->where('team_id', $team_id)
+            ->where('season_id', $season_id)
             ->get()
             ->map(function($field) {
                 $field->months = $field->items->pluck('month_id')->toArray();
                 return $field;
             });
-
-
-
-    $data1 = Field::from('fields as f')
-        ->join('level3s as s', 'f.subfamily_id', 's.id')
-        ->join('level2s as l2', 's.level2_id', 'l2.id')
-        ->join('level1s as l1', 'l2.level1_id', 'l1.id')
-        ->select('l2.id', 'l2.name')
-        ->where('f.team_id', $team_id)
-        ->groupBy('l2.id', 'l2.name')
-        ->get()
-        ->transform(function($value) use ($team_id){
-            return [
-                'id'           => $value->id,
-                'name'         => $value->name,
-                'subfamilies'  => $this->getSubfamilies($value->id)
-            ];
-        });
-
-        // Construcción de data2: solo subfamilias con productos con información
-        $data2 = Level3::get()->map(function($subfamily) {
-            $products = $this->getProducts2($subfamily->id);
+        $data1 = Field::from('fields as f')
+            ->join('level3s as s', 'f.subfamily_id', 's.id')
+            ->join('level2s as l2', 's.level2_id', 'l2.id')
+            ->join('level1s as l1', 'l2.level1_id', 'l1.id')
+            ->select('l2.id', 'l2.name')
+            ->where('f.team_id', $team_id)
+            ->where('f.season_id', $season_id)
+            ->groupBy('l2.id', 'l2.name')
+            ->get()
+            ->transform(function($value) use ($team_id, $season_id){
+                return [
+                    'id'           => $value->id,
+                    'name'         => $value->name,
+                    'subfamilies'  => $this->getSubfamilies($value->id, $team_id, $season_id)
+                ];
+            });
+        $data2 = Level3::get()->map(function($subfamily) use ($team_id, $season_id) {
+            $products = $this->getProducts2($subfamily->id, $team_id, $season_id);
             if ($products->count() > 0) {
                 return [
                     'name' => $subfamily->name,
@@ -153,8 +153,7 @@ class FieldsController extends Controller
             }
             return null;
         })->filter()->values();
-
-        return Inertia::render('Fields', compact('units', 'subfamilies', 'months', 'fields', 'data1', 'data2', 'season', 'level2s'));
+        return Inertia::render('Fields', compact('units', 'subfamilies', 'months', 'fields', 'data1', 'data2', 'season', 'level2s', 'team_id', 'season_id'));
     }
 
 
@@ -182,50 +181,50 @@ class FieldsController extends Controller
         return $months[$id];
     }
 
-    public function getSubfamilies($id)
+    public function getSubfamilies($id, $team_id, $season_id)
     {
         $subfamilies = Field::from('fields as f')
-        ->join('level3s as s', 'f.subfamily_id', 's.id')
-        ->join('level2s as l2', 's.level2_id', 'l2.id')
-        ->where('l2.id', $id)
-        ->select('s.id', 's.name')
-        ->groupBy('s.id', 's.name')
-        ->get()
-        ->transform(function($subfamily){
-            return [
-                'id' => $subfamily->id,
-                'name' => $subfamily->name,
-                'products' => $this->getProducts($subfamily->id)
-            ];
-        });
-
+            ->join('level3s as s', 'f.subfamily_id', 's.id')
+            ->join('level2s as l2', 's.level2_id', 'l2.id')
+            ->where('l2.id', $id)
+            ->where('f.team_id', $team_id)
+            ->where('f.season_id', $season_id)
+            ->select('s.id', 's.name')
+            ->groupBy('s.id', 's.name')
+            ->get()
+            ->transform(function($subfamily) use ($team_id, $season_id){
+                return [
+                    'id' => $subfamily->id,
+                    'name' => $subfamily->name,
+                    'products' => $this->getProducts($subfamily->id, $team_id, $season_id)
+                ];
+            });
         return $subfamilies;
     }
 
-    public function getProducts($id)
+    public function getProducts($id, $team_id, $season_id)
     {
         $products = Field::from('fields as f')
-        ->join('units as u', 'f.unit_id', 'u.id')
-        ->select('f.id', 'f.product_name', 'f.quantity', 'f.price', 'f.unit_id', 'u.name')
-        ->where('f.subfamily_id', $id)
-        ->groupBy('f.id', 'f.product_name', 'f.quantity', 'f.price', 'f.unit_id', 'u.name')
-        ->get()
-        ->transform(function($value){
-
-            $quantity = (($value->unit_id == 4) || ($value->unit_id == 2)) ? ($value->quantity / 1000) : $value->quantity; 
-            $amountFirst = round($value->price * $quantity, 2);
-            $data = $this->getMonths($value->id, $quantity, $amountFirst); 
-
-            return [
-                'id'            => $value->id,
-                'name'          => $value->product_name,
-                'unit'          => $value->name ?? '',
-                'totalQuantity' => $data['totalQuantity'],
-                'totalAmount'   => $data['totalAmount'],
-                'months'        => $data['months']
-            ];
-        });
-
+            ->join('units as u', 'f.unit_id', 'u.id')
+            ->select('f.id', 'f.product_name', 'f.quantity', 'f.price', 'f.unit_id', 'u.name')
+            ->where('f.subfamily_id', $id)
+            ->where('f.team_id', $team_id)
+            ->where('f.season_id', $season_id)
+            ->groupBy('f.id', 'f.product_name', 'f.quantity', 'f.price', 'f.unit_id', 'u.name')
+            ->get()
+            ->transform(function($value) use ($team_id, $season_id){
+                $quantity = (($value->unit_id == 4) || ($value->unit_id == 2)) ? ($value->quantity / 1000) : $value->quantity; 
+                $amountFirst = round($value->price * $quantity, 2);
+                $data = $this->getMonths($value->id, $quantity, $amountFirst); 
+                return [
+                    'id'            => $value->id,
+                    'name'          => $value->product_name,
+                    'unit'          => $value->name ?? '',
+                    'totalQuantity' => $data['totalQuantity'],
+                    'totalAmount'   => $data['totalAmount'],
+                    'months'        => $data['months']
+                ];
+            });
         return $products;
     }
 
@@ -265,26 +264,27 @@ class FieldsController extends Controller
         ];
     }
 
-    private function getProducts2($subfamilyId)
+    private function getProducts2($subfamilyId, $team_id, $season_id)
     {
         $products = Field::from('fields as f')
-        ->join('field_items as fi', 'f.id', 'fi.field_id')
-        ->join('units as u', 'f.unit_id', 'u.id')
-        ->select('f.id', 'f.product_name', 'f.price', 'f.quantity', 'u.name')
-        ->where('f.subfamily_id', $subfamilyId)
-        ->groupBy('f.id', 'f.product_name', 'f.price', 'f.quantity', 'u.name')
-        ->get()
-        ->transform(function($value){
-            $data = $this->getResult2($value);
-            return [
-                'id'            => $value->id,
-                'name'          => $value->product_name,
-                'unit'          => $value->name ?? '',
-                'totalQuantity' => $data['totalQuantity'],
-                'totalAmount'   => $data['totalAmount'],
-            ];
-        });
-
+            ->join('field_items as fi', 'f.id', 'fi.field_id')
+            ->join('units as u', 'f.unit_id', 'u.id')
+            ->select('f.id', 'f.product_name', 'f.price', 'f.quantity', 'u.name')
+            ->where('f.subfamily_id', $subfamilyId)
+            ->where('f.team_id', $team_id)
+            ->where('f.season_id', $season_id)
+            ->groupBy('f.id', 'f.product_name', 'f.price', 'f.quantity', 'u.name')
+            ->get()
+            ->transform(function($value) use ($team_id, $season_id){
+                $data = $this->getResult2($value);
+                return [
+                    'id'            => $value->id,
+                    'name'          => $value->product_name,
+                    'unit'          => $value->name ?? '',
+                    'totalQuantity' => $data['totalQuantity'],
+                    'totalAmount'   => $data['totalAmount'],
+                ];
+            });
         return $products;
     }
 
