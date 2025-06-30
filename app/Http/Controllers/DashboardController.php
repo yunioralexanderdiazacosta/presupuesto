@@ -16,6 +16,11 @@ use App\Models\Service;
 use Inertia\Inertia;
 use App\Services\WeatherService;
 
+/**
+ * Controlador principal del Dashboard.
+ * Calcula y agrupa los datos necesarios para mostrar los gráficos y tablas del dashboard.
+ * Incluye funciones auxiliares para obtener totales, agrupaciones y métricas por estado de desarrollo y por hectárea.
+ */
 class DashboardController extends Controller
 {
     public $month_id = '';
@@ -40,6 +45,13 @@ class DashboardController extends Controller
 
     public $monthsServices = [];
 
+    /**
+     * Acción principal: Renderiza el dashboard con todos los datos agregados y procesados.
+     * - Calcula totales por rubro y por mes.
+     * - Obtiene datos para gráficos de torta y barras.
+     * - Calcula métricas por estado de desarrollo y por hectárea.
+     * - Integra datos de clima.
+     */
     public function __invoke(Request $request, WeatherService $weatherService)
     {
         $user = Auth::user();
@@ -293,6 +305,11 @@ class DashboardController extends Controller
         ));
     }
 
+    /**
+     * Obtiene y acumula los totales de agroquímicos por cost center y por mes.
+     * Actualiza las propiedades $this->totalAgrochemical y $this->monthsAgrochemical.
+     * No retorna datos útiles, solo realiza side-effects.
+     */
     private function getAgrochemicalProducts($costCentersId)
     {
         $products = Agrochemical::from('agrochemicals as a')
@@ -312,6 +329,10 @@ class DashboardController extends Controller
         return $products;
     } 
 
+    /**
+     * Calcula el monto total de un producto agroquímico en todos los cost centers y meses.
+     * Actualiza los acumuladores globales.
+     */
     private function getAgrochemicalResult($value, $costCentersId)
     {
         $totalAmount = 0;
@@ -360,7 +381,11 @@ class DashboardController extends Controller
         $this->totalAgrochemical += $totalAmount; 
     }
 
-     private function getFertilizerProducts($costCentersId)
+    /**
+     * Obtiene y acumula los totales de fertilizantes por cost center y por mes.
+     * Actualiza las propiedades $this->totalFertilizer y $this->monthsFertilizer.
+     */
+    private function getFertilizerProducts($costCentersId)
     {
         $products = Fertilizer::from('fertilizers as f')
         ->join('fertilizer_items as fi', 'f.id', 'fi.fertilizer_id')
@@ -379,6 +404,10 @@ class DashboardController extends Controller
         return $products;
     }
 
+    /**
+     * Calcula el monto total de un fertilizante en todos los cost centers y meses.
+     * Actualiza los acumuladores globales.
+     */
     private function getFertilizerResult($value, $costCentersId)
     {
         $totalAmount = 0;
@@ -421,7 +450,11 @@ class DashboardController extends Controller
         $this->totalFertilizer += $totalAmount;
     }
 
-     private function getManPowerProducts($costCentersId)
+    /**
+     * Obtiene y acumula los totales de mano de obra por cost center y por mes.
+     * Actualiza las propiedades $this->totalManPower y $this->monthsManPower.
+     */
+    private function getManPowerProducts($costCentersId)
     {
         $products = ManPower::from('man_powers as mp')
         ->join('manpower_items as mpi', 'mp.id', 'mpi.man_power_id')
@@ -440,6 +473,10 @@ class DashboardController extends Controller
         return $products;
     }
 
+    /**
+     * Calcula el monto total de mano de obra en todos los cost centers y meses.
+     * Actualiza los acumuladores globales.
+     */
     private function getManPowerResult($value, $costCentersId)
     {
         $totalAmount = 0;
@@ -482,6 +519,10 @@ class DashboardController extends Controller
     }
 
 
+    /**
+     * Obtiene y acumula los totales de servicios por cost center y por mes.
+     * Actualiza las propiedades $this->totalServices y $this->monthsServices.
+     */
     private function getServicesProducts($costCentersId)
     {
         $products = Service::from('services as s')
@@ -501,6 +542,10 @@ class DashboardController extends Controller
         return $products;
     }
 
+    /**
+     * Calcula el monto total de un servicio en todos los cost centers y meses.
+     * Actualiza los acumuladores globales.
+     */
     private function getServicesResult($value, $costCentersId)
     {
         $totalAmount = 0;
@@ -546,6 +591,10 @@ class DashboardController extends Controller
         $this->totalServices += $totalAmount; 
     }
 
+    /**
+     * Obtiene y acumula los totales de insumos por cost center y por mes.
+     * Actualiza las propiedades $this->totalSupplies y $this->monthsSupplies.
+     */
     private function getSuppliesProducts($costCentersId)
     {
         $products = Supply::from('supplies as s')
@@ -565,6 +614,10 @@ class DashboardController extends Controller
         return $products;
     }
 
+    /**
+     * Calcula el monto total de un insumo en todos los cost centers y meses.
+     * Actualiza los acumuladores globales.
+     */
     private function getSuppliesResult($value, $costCentersId)
     {
         $totalAmount = 0;
@@ -611,7 +664,7 @@ class DashboardController extends Controller
     }
 
     /**
-     * Obtiene el totalAmount de agroquímicos separado por development_state
+     * Calcula el total de agroquímicos por estado de desarrollo.
      * Devuelve un array: [development_state_id => totalAmount]
      */
     private function getAgrochemicalResultByDevelopmentState($value, $costCentersId)
@@ -657,7 +710,7 @@ class DashboardController extends Controller
     }
 
     /**
-     * Obtiene el gasto promedio de agroquímicos por hectárea separado por development_state
+     * Calcula el gasto promedio de agroquímicos por hectárea y estado de desarrollo.
      * Devuelve un array: [development_state_id => gastoPorHectarea]
      */
     private function getAgrochemicalExpensePerHectareByDevelopmentState($value, $costCentersId)
@@ -706,7 +759,7 @@ class DashboardController extends Controller
     }
 
     /**
-     * Obtiene el totalAmount de fertilizantes separado por development_state
+     * Calcula el total de fertilizantes por estado de desarrollo.
      * Devuelve un array: [development_state_id => totalAmount]
      */
     private function getFertilizerResultByDevelopmentState($value, $costCentersId)
@@ -746,7 +799,7 @@ class DashboardController extends Controller
     }
 
     /**
-     * Obtiene el gasto promedio de fertilizantes por hectárea separado por development_state
+     * Calcula el gasto promedio de fertilizantes por hectárea y estado de desarrollo.
      * Devuelve un array: [development_state_id => gastoPorHectarea]
      */
     private function getFertilizerExpensePerHectareByDevelopmentState($value, $costCentersId)
@@ -787,7 +840,7 @@ class DashboardController extends Controller
     }
 
     /**
-     * Obtiene el totalAmount de mano de obra separado por development_state
+     * Calcula el total de mano de obra separado por development_state
      * Devuelve un array: [development_state_id => totalAmount]
      */
     private function getManPowerResultByDevelopmentState($value, $costCentersId)
@@ -1044,6 +1097,10 @@ class DashboardController extends Controller
         return $months[$id];
     }
 
+    /**
+     * Obtiene los totales de administración agrupados por Level 1 y Level 2.
+     * Devuelve una colección con: [level1_id, level1_name, level2_id, level2_name, total_amount]
+     */
     private function getAdministrationTotalsByLevel12($team_id = null)
     {
         $season_id = session('season_id');
@@ -1155,8 +1212,8 @@ class DashboardController extends Controller
     }
 
     /**
-     * Obtiene el monto total de Agroquímicos, Fertilizantes, Mano de Obra, Servicios e Insumos agrupado por Level 1 y Level 2
-     * Devuelve un array: [level1_id, level1_name, level2_id, level2_name, total_amount]
+     * Obtiene los totales generales (agroquímicos, fertilizantes, mano de obra, servicios, insumos) agrupados por Level 1 y Level 2.
+     * Devuelve una colección con: [level1_id, level1_name, level2_id, level2_name, total_amount]
      */
     private function getTotalsByLevel12($team_id = null)
     {

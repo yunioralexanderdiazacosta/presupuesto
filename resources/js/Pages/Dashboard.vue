@@ -2,6 +2,7 @@
 import { Head } from '@inertiajs/vue3';
 import AppLayout from '@/Layouts/AppLayout.vue';
 import Pie from '@/Components/Pie.vue';
+import BarChart from '@/Components/BarChart.vue'; // Importar el nuevo componente de gráfico de barras
 import { onMounted, ref, computed } from 'vue'
 import { router } from '@inertiajs/vue3'
 const title = 'Tablero';
@@ -136,266 +137,312 @@ function groupAllTotalsByLevel1() {
   });
   return Object.values(groups);
 }
+
+// Unir y agrupar administración, fields y totales generales por Level 1 para el gráfico
+const barChartFromTable = computed(() => {
+  // Unificar todos los level1_id posibles de los tres arrays
+  const allRows = [
+    ...(props.administrationTotalsByLevel12 || []),
+    ...(props.fieldTotalsByLevel12 || []),
+    ...(props.totalsByLevel12 || [])
+  ];
+  // Crear un set de todos los level1_id únicos
+  const level1Ids = new Set(allRows.map(row => row.level1_id));
+  const groups = {};
+  // Inicializar todos los level1_id con total 0 y nombre
+  level1Ids.forEach(id => {
+    // Buscar el primer nombre disponible para ese id
+    const found = allRows.find(r => r.level1_id === id);
+    groups[id] = {
+      level1_id: id,
+      level1_name: found ? found.level1_name : '',
+      total_amount: 0
+    };
+  });
+  // Sumar los montos de todos los arrays para cada level1_id
+  allRows.forEach(row => {
+    if (groups[row.level1_id]) {
+      groups[row.level1_id].total_amount += Number(row.total_amount || 0);
+    }
+  });
+  return Object.values(groups);
+});
 </script>
 
 <template>
-    <Head :title="title" />
-    <AppLayout>
-      <div class="container-fluid px-2 px-md-4 py-2">
-        <div class="row g-3 g-xl-4">
-          <div class="col-xl-5">
-            <!-- Weather card arriba de Total Presupuestos, mismo ancho -->
-            <div class="card mb-3" v-if="weather">
-              <div class="card-body py-2 d-flex align-items-center">
-                <img :src="weather.current.condition.icon" alt="icon" style="width:32px;height:32px;" class="me-2" />
-                <div>
-                  <div class="fw-bold">Clima en {{ weatherCity || userCity || weather.location.name }}</div>
-                  <div class="">{{ weather.current.temp_c }} °C, {{ weather.current.condition.text }}</div>
+  <Head :title="title" />
+  <AppLayout>
+    <div class="container-fluid px-2 px-md-4 py-2">
+      <div class="row g-3 g-xl-4">
+        <div class="col-xl-5">
+          <!-- Weather card arriba de Total Presupuestos, mismo ancho -->
+          <div class="card mb-3" v-if="weather">
+            <div class="card-body py-2 d-flex align-items-center">
+              <img :src="weather.current.condition.icon" alt="icon" style="width:32px;height:32px;" class="me-2" />
+              <div>
+                <div class="fw-bold">Clima en {{ weatherCity || userCity || weather.location.name }}</div>
+                <div class="">{{ weather.current.temp_c }} °C, {{ weather.current.condition.text }}</div>
+              </div>
+            </div>
+          </div>
+          <!-- fin weather card -->
+          <div class="card ecommerce-card-min-width">
+            <div class="card-header pb-1">
+              <h4 class="mb-0 mt-1 d-flex align-items-center fs-6">Total Presupuestos
+                <span class="ms-1 text-400" data-bs-toggle="tooltip" data-bs-placement="top" title="Calculated according to last week's sales">
+                  <span class="far fa-question-circle" data-fa-transform="shrink-1"></span>
+                </span>
+              </h4>
+            </div>
+            <div class="card-body d-flex flex-column justify-content-end py-2">
+              <div class="row">
+                <div class="col">
+                  <p class="font-sans-serif lh-1 mb-1 fs-6">{{totalSeason}}</p>
                 </div>
               </div>
             </div>
-            <!-- fin weather card -->
-            <div class="card ecommerce-card-min-width">
-              <div class="card-header pb-1">
-                <h4 class="mb-0 mt-1 d-flex align-items-center fs-6">Total Presupuestos
-                  <span class="ms-1 text-400" data-bs-toggle="tooltip" data-bs-placement="top" title="Calculated according to last week's sales">
-                    <span class="far fa-question-circle" data-fa-transform="shrink-1"></span>
-                  </span>
-                </h4>
-              </div>
-              <div class="card-body d-flex flex-column justify-content-end py-2">
-                <div class="row">
-                  <div class="col">
-                    <p class="font-sans-serif lh-1 mb-1 fs-6">{{totalSeason}}</p>
-                  </div>
-                </div>
-              </div>
-            </div>
+          </div>
 
-            <!-- Espaciado extra entre Total Presupuestos y Total superficie -->
-            <div class="mt-3"></div>
-            <div class="alert alert-info mb-3">
-              <strong>Total superficie:</strong> {{ totalSurface }}
+          <!-- Espaciado extra entre Total Presupuestos y Total superficie -->
+          <div class="mt-3"></div>
+          <div class="alert alert-info mb-3">
+            <strong>Total superficie:</strong> {{ totalSurface }}
+          </div>
+
+  <!-- Gráfico de barras de totales por Level 1 -->
+      <div class="row mt-2">
+        <div class="col-xl-12">
+          <div class="card">
+            <div class="card-body pt-2 pb-2">
+              <h6 class="mb-3">Gráfico de barras: Totales por Nivel 1</h6>
+              <BarChart :chartData="barChartFromTable" />
             </div>
           </div>
-          <div class="col-xl-7">
-            <div class="card">
-              <div class="card-body bg-body-tertiary py-2">
-                <Pie :pieLabels="pieLabels" :pieDatasets="pieDatasets"></Pie>
-              </div>
-            </div>
-          </div>
+        </div>
+      </div>
+
+
+
         </div>
 
 
 
-        <div class="row mt-4">
-          <div class="col-xl-12">
-            <div class="card">
-              <div class="card-body pt-1 pb-2">
-                <div class="d-flex justify-content-between align-items-center mb-1">
-                  <h6 class="mb-0">Estado de Desarrollo</h6>
-                  <button class="btn btn-sm btn-outline-primary" @click="showDevStateTable = !showDevStateTable">
-                    <span v-if="showDevStateTable">Ocultar</span>
-                    <span v-else>Mostrar</span>
-                  </button>
-                </div>
-                <div class="table-responsive scrollbar" v-if="showDevStateTable">
-                  <table class="table table-sm table-hover align-middle border rounded shadow-sm bg-white">
-                    <thead class="table-light border-bottom">
-                      <tr>
-                        <th class="text-start text-uppercase text-secondary small fw-bold small">Estado de desarrollo</th>
-                        <th class="text-center text-uppercase text-secondary small fw-bold small">Agroquímicos</th>
-                        <th class="text-center text-uppercase text-secondary small fw-bold small">Fertilizantes</th>
-                        <th class="text-center text-uppercase text-secondary small fw-bold small">Mano de Obra</th>
-                        <th class="text-center text-uppercase text-secondary small fw-bold small">Servicios</th>
-                        <th class="text-center text-uppercase text-secondary small fw-bold small">Insumos</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      <tr v-for="devStateId in Object.keys(devStates)" :key="devStateId" class="border-bottom">
-                        <td class="fw-semibold">{{ devStates[devStateId]?.name || 'Sin estado' }}</td>
-                        <td class="text-center text-end text-success fw-bold small">{{ Number(agrochemicalByDevState[devStateId] || 0).toLocaleString('es-CL', { maximumFractionDigits: 0 }) }}</td>
-                        <td class="text-center text-end text-success fw-bold small">{{ Number(fertilizerByDevState[devStateId] || 0).toLocaleString('es-CL', { maximumFractionDigits: 0 }) }}</td>
-                        <td class="text-center text-end text-success fw-bold small">{{ Number(manPowerByDevState[devStateId] || 0).toLocaleString('es-CL', { maximumFractionDigits: 0 }) }}</td>
-                        <td class="text-center text-end text-success fw-bold small">{{ Number(servicesByDevState[devStateId] || 0).toLocaleString('es-CL', { maximumFractionDigits: 0 }) }}</td>
-                        <td class="text-center text-end text-success fw-bold small">{{ Number(suppliesByDevState[devStateId] || 0).toLocaleString('es-CL', { maximumFractionDigits: 0 }) }}</td>
-                      </tr>
-                    </tbody>
-                  </table>
-                </div>
-              </div>
+        <div class="col-xl-7">
+          <div class="card">
+            <div class="card-body bg-body-tertiary py-2">
+              <Pie :pieLabels="pieLabels" :pieDatasets="pieDatasets"></Pie>
             </div>
           </div>
         </div>
-
-        <div class="row mt-4">
-          <div class="col-xl-12">
-            <div class="card">
-              <div class="card-body pt-1 pb-2">
-                <div class="d-flex justify-content-between align-items-center mb-1">
-                  <h6 class="mb-0">Gastos por Hectáreas</h6>
-                  <button class="btn btn-sm btn-outline-primary" @click="showExpensePerHectareTable = !showExpensePerHectareTable">
-                    <span v-if="showExpensePerHectareTable">Ocultar</span>
-                    <span v-else>Mostrar</span>
-                  </button>
-                </div>
-                <div class="table-responsive scrollbar" v-if="showExpensePerHectareTable">
-                  <table class="table table-sm table-hover align-middle border rounded shadow-sm bg-white">
-                    <thead class="table-light border-bottom">
-                      <tr>
-                        <th class="text-start text-uppercase text-secondary small fw-bold">Estado de desarrollo</th>
-                        <th class="text-center text-uppercase text-secondary small fw-bold">Agroquímicos</th>
-                        <th class="text-center text-uppercase text-secondary small fw-bold">Fertilizantes</th>
-                        <th class="text-center text-uppercase text-secondary small fw-bold">Mano de Obra</th>
-                        <th class="text-center text-uppercase text-secondary small fw-bold">Servicios</th>
-                        <th class="text-center text-uppercase text-secondary small fw-bold">Insumos</th>
-                        <th class="text-center text-uppercase text-secondary small fw-bold">Gral campo</th>
-                        <th class="text-center text-uppercase text-secondary small fw-bold">Administración</th>
-                        <th class="text-center text-uppercase text-secondary small fw-bold">Total</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      <tr v-for="devStateId in Object.keys(devStates)" :key="devStateId" class="border-bottom">
-                        <td class="text-start fw-semibold">{{ devStates[devStateId]?.name || 'Sin estado' }}</td>
-                        <td class="text-center text-warning fw-bold small">{{ Number(agrochemicalExpensePerHectare[devStateId] || 0).toLocaleString('es-CL', { maximumFractionDigits: 0 }) }}</td>
-                        <td class="text-center text-warning fw-bold small">{{ Number(fertilizerExpensePerHectare[devStateId] || 0).toLocaleString('es-CL', { maximumFractionDigits: 0 }) }}</td>
-                        <td class="text-center text-warning fw-bold small">{{ Number(manPowerExpensePerHectare[devStateId] || 0).toLocaleString('es-CL', { maximumFractionDigits: 0 }) }}</td>
-                        <td class="text-center text-warning fw-bold small">{{ Number(servicesExpensePerHectare[devStateId] || 0).toLocaleString('es-CL', { maximumFractionDigits: 0 }) }}</td>
-                        <td class="text-center text-warning fw-bold small">{{ Number(suppliesExpensePerHectare[devStateId] || 0).toLocaleString('es-CL', { maximumFractionDigits: 0 }) }}</td>
-                        <td class="text-center text-warning fw-bold small">
-                          {{
-                            (totalFieldsCalc / (totalSurface || 1)).toLocaleString('es-CL', { maximumFractionDigits: 0 })
-                          }}
-                        </td>
-                        <td class="text-center text-warning fw-bold small">
-                          {{
-                            (totalAdministrationCalc / (totalSurface || 1)).toLocaleString('es-CL', { maximumFractionDigits: 0 })
-                          }}
-                        </td>
-                        <td class="text-center text-warning fw-bold small">
-                          {{
-                            (
-                              Number(agrochemicalExpensePerHectare[devStateId] || 0) +
-                              Number(fertilizerExpensePerHectare[devStateId] || 0) +
-                              Number(manPowerExpensePerHectare[devStateId] || 0) +
-                              Number(servicesExpensePerHectare[devStateId] || 0) +
-                              Number(suppliesExpensePerHectare[devStateId] || 0) +
-                              (totalFieldsCalc / (totalSurface || 1)) +
-                              (totalAdministrationCalc / (totalSurface || 1))
-                            ).toLocaleString('es-CL', { maximumFractionDigits: 0 })
-                          }}
-                        </td>
-                      </tr>
-                    </tbody>
-                  </table>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
+      </div>
 
      
 
-        <!-- Tabla unificada de totales por Level 1 y Level 2 -->
-        <div class="row mt-4">
-          <div class="col-xl-12">
-            <div class="card">
-              <div class="card-body pt-2 pb-2">
-                <h6 class="mb-3">Totales unificados por nivel 1 y nivel 2</h6>
-                <div class="table-responsive scrollbar">
-                  <table class="table table-sm table-hover align-middle border rounded shadow-sm bg-white">
-                    <thead class="table-light border-bottom">
-                      <tr>
-                        <th class="text-uppercase text-secondary small fw-bold small">Level 1</th>
-                        <th class="text-uppercase text-secondary small fw-bold small">Level 2</th>
-                        <th class="text-uppercase text-secondary small fw-bold small">Monto Total</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      <template v-for="(group, l1idx) in groupAllTotalsByLevel1()" :key="'all-l1-' + group.level1_id">
-                        <template v-for="(row, idx) in group.rows" :key="row.key">
-                          <tr>
-                            <td v-if="idx === 0" :rowspan="group.rows.length + 1" style="vertical-align:top" class="small">{{ group.level1_name }}</td>
-                            <td class="small">{{ row.level2_name }}</td>
-                            <td class="text-end small">{{ Number(row.total_amount).toLocaleString('es-CL', { maximumFractionDigits: 0 }) }}</td>
-                          </tr>
-                        </template>
-                        <tr class="table-secondary">
-                          <td class="small">Subtotal {{ group.level1_name }}</td>
-                          <td class="text-end small" colspan="2">
-                            {{ group.rows.reduce((sum, r) => sum + Number(r.total_amount), 0).toLocaleString('es-CL', { maximumFractionDigits: 0 }) }}
-                          </td>
-                        </tr>
-                      </template>
-                    </tbody>
-                    <tfoot>
-                      <tr class="table-dark">
-                        <td colspan="2" class="fw-bold text-end small">Total General</td>
-                        <td class="fw-bold text-end small">
-                          {{ groupAllTotalsByLevel1().reduce((grand, group) => grand + group.rows.reduce((sum, r) => sum + Number(r.total_amount), 0), 0).toLocaleString('es-CL', { maximumFractionDigits: 0 }) }}
-                        </td>
-                      </tr>
-                    </tfoot>
-                  </table>
-                </div>
+
+
+      <div class="row mt-4">
+        <div class="col-xl-12">
+          <div class="card">
+            <div class="card-body pt-1 pb-2">
+              <div class="d-flex justify-content-between align-items-center mb-1">
+                <h6 class="mb-0">Estado de Desarrollo</h6>
+                <button class="btn btn-sm btn-outline-primary" @click="showDevStateTable = !showDevStateTable">
+                  <span v-if="showDevStateTable">Ocultar</span>
+                  <span v-else>Mostrar</span>
+                </button>
+              </div>
+              <div class="table-responsive scrollbar" v-if="showDevStateTable">
+                <table class="table table-sm table-hover align-middle border rounded shadow-sm bg-white">
+                  <thead class="table-light border-bottom">
+                    <tr>
+                      <th class="text-start text-uppercase text-secondary small fw-bold small">Estado de desarrollo</th>
+                      <th class="text-center text-uppercase text-secondary small fw-bold small">Agroquímicos</th>
+                      <th class="text-center text-uppercase text-secondary small fw-bold small">Fertilizantes</th>
+                      <th class="text-center text-uppercase text-secondary small fw-bold small">Mano de Obra</th>
+                      <th class="text-center text-uppercase text-secondary small fw-bold small">Servicios</th>
+                      <th class="text-center text-uppercase text-secondary small fw-bold small">Insumos</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr v-for="devStateId in Object.keys(devStates)" :key="devStateId" class="border-bottom">
+                      <td class="fw-semibold">{{ devStates[devStateId]?.name || 'Sin estado' }}</td>
+                      <td class="text-center text-end text-success fw-bold small">{{ Number(agrochemicalByDevState[devStateId] || 0).toLocaleString('es-CL', { maximumFractionDigits: 0 }) }}</td>
+                      <td class="text-center text-end text-success fw-bold small">{{ Number(fertilizerByDevState[devStateId] || 0).toLocaleString('es-CL', { maximumFractionDigits: 0 }) }}</td>
+                      <td class="text-center text-end text-success fw-bold small">{{ Number(manPowerByDevState[devStateId] || 0).toLocaleString('es-CL', { maximumFractionDigits: 0 }) }}</td>
+                      <td class="text-center text-end text-success fw-bold small">{{ Number(servicesByDevState[devStateId] || 0).toLocaleString('es-CL', { maximumFractionDigits: 0 }) }}</td>
+                      <td class="text-center text-end text-success fw-bold small">{{ Number(suppliesByDevState[devStateId] || 0).toLocaleString('es-CL', { maximumFractionDigits: 0 }) }}</td>
+                    </tr>
+                  </tbody>
+                </table>
               </div>
             </div>
           </div>
         </div>
       </div>
-      
-       <div class="row mt-4">
-          <div class="col-xl-12">
-            <div class="card">
-              <div class="card-body pt-2 pb-2">
-                <div class="table-responsive scrollbar">
-                  <table class="table table-sm table-hover align-middle border rounded shadow-sm bg-white">
-                    <thead class="table-light border-bottom">
-                      <tr>
-                        <th class="text-uppercase text-secondary small fw-bold"></th>
-                        <th class="text-uppercase text-secondary small fw-bold">TOTAL</th>
-                        <th class="text-uppercase text-primary small fw-bold" v-for="month in $page.props.months">{{month.label}}</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      <tr>
-                        <td class="fw-semibold small">Agroquimicos</td>
-                        <td class="text-end text-primary fw-bold small">{{totalAgrochemical}}</td>
-                        <td class="bg-opacity-5 table-primary text-end small" v-for="value in months">{{monthsAgrochemical[value.value]}}</td>
-                      </tr>
-                      <tr>
-                        <td class="fw-semibold small">Fertilizantes</td>
-                        <td class="text-end text-primary fw-bold small">{{totalFertilizer}}</td>
-                        <td class="bg-opacity-5 table-primary text-end small" v-for="value in months">{{monthsFertilizer[value.value]}}</td>
-                      </tr>
-                      <tr>
-                        <td class="fw-semibold small">Mano de obra</td>
-                        <td class="text-end text-primary fw-bold small">{{totalManPower}}</td>
-                        <td class="bg-opacity-5 table-primary text-end small" v-for="value in months">{{monthsManPower[value.value]}}</td>
-                      </tr>
-                      <tr>
-                        <td class="fw-semibold small">Insumos</td>
-                        <td class="text-end text-primary fw-bold small">{{totalSupplies}}</td>
-                        <td class="bg-opacity-5 table-primary text-end small" v-for="value in months">{{monthsSupplies[value.value]}}</td>
-                      </tr>
-                      <tr>
-                        <td class="fw-semibold small">Servicios</td>
-                        <td class="text-end text-primary fw-bold small">{{totalServices}}</td>
-                        <td class="bg-opacity-5 table-primary text-end small" v-for="value in months">{{monthsServices[value.value]}}</td>
-                      </tr>
-                    </tbody>
-                  </table>
-                </div>
+
+      <div class="row mt-4">
+        <div class="col-xl-12">
+          <div class="card">
+            <div class="card-body pt-1 pb-2">
+              <div class="d-flex justify-content-between align-items-center mb-1">
+                <h6 class="mb-0">Gastos por Hectáreas</h6>
+                <button class="btn btn-sm btn-outline-primary" @click="showExpensePerHectareTable = !showExpensePerHectareTable">
+                  <span v-if="showExpensePerHectareTable">Ocultar</span>
+                  <span v-else>Mostrar</span>
+                </button>
+              </div>
+              <div class="table-responsive scrollbar" v-if="showExpensePerHectareTable">
+                <table class="table table-sm table-hover align-middle border rounded shadow-sm bg-white">
+                  <thead class="table-light border-bottom">
+                    <tr>
+                      <th class="text-start text-uppercase text-secondary small fw-bold">Estado de desarrollo</th>
+                      <th class="text-center text-uppercase text-secondary small fw-bold">Agroquímicos</th>
+                      <th class="text-center text-uppercase text-secondary small fw-bold">Fertilizantes</th>
+                      <th class="text-center text-uppercase text-secondary small fw-bold">Mano de Obra</th>
+                      <th class="text-center text-uppercase text-secondary small fw-bold">Servicios</th>
+                      <th class="text-center text-uppercase text-secondary small fw-bold">Insumos</th>
+                      <th class="text-center text-uppercase text-secondary small fw-bold">Gral campo</th>
+                      <th class="text-center text-uppercase text-secondary small fw-bold">Administración</th>
+                      <th class="text-center text-uppercase text-secondary small fw-bold">Total</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr v-for="devStateId in Object.keys(devStates)" :key="devStateId" class="border-bottom">
+                      <td class="text-start fw-semibold">{{ devStates[devStateId]?.name || 'Sin estado' }}</td>
+                      <td class="text-center text-warning fw-bold small">{{ Number(agrochemicalExpensePerHectare[devStateId] || 0).toLocaleString('es-CL', { maximumFractionDigits: 0 }) }}</td>
+                      <td class="text-center text-warning fw-bold small">{{ Number(fertilizerExpensePerHectare[devStateId] || 0).toLocaleString('es-CL', { maximumFractionDigits: 0 }) }}</td>
+                      <td class="text-center text-warning fw-bold small">{{ Number(manPowerExpensePerHectare[devStateId] || 0).toLocaleString('es-CL', { maximumFractionDigits: 0 }) }}</td>
+                      <td class="text-center text-warning fw-bold small">{{ Number(servicesExpensePerHectare[devStateId] || 0).toLocaleString('es-CL', { maximumFractionDigits: 0 }) }}</td>
+                      <td class="text-center text-warning fw-bold small">{{ Number(suppliesExpensePerHectare[devStateId] || 0).toLocaleString('es-CL', { maximumFractionDigits: 0 }) }}</td>
+                      <td class="text-center text-warning fw-bold small">
+                        {{
+                          (totalFieldsCalc / (totalSurface || 1)).toLocaleString('es-CL', { maximumFractionDigits: 0 })
+                        }}
+                      </td>
+                      <td class="text-center text-warning fw-bold small">
+                        {{
+                          (totalAdministrationCalc / (totalSurface || 1)).toLocaleString('es-CL', { maximumFractionDigits: 0 })
+                        }}
+                      </td>
+                      <td class="text-center text-warning fw-bold small">
+                        {{
+                          (
+                            Number(agrochemicalExpensePerHectare[devStateId] || 0) +
+                            Number(fertilizerExpensePerHectare[devStateId] || 0) +
+                            Number(manPowerExpensePerHectare[devStateId] || 0) +
+                            Number(servicesExpensePerHectare[devStateId] || 0) +
+                            Number(suppliesExpensePerHectare[devStateId] || 0) +
+                            (totalFieldsCalc / (totalSurface || 1)) +
+                            (totalAdministrationCalc / (totalSurface || 1))
+                          ).toLocaleString('es-CL', { maximumFractionDigits: 0 })
+                        }}</td>
+                    </tr>
+                  </tbody>
+                </table>
               </div>
             </div>
           </div>
         </div>
+      </div>
 
+     
 
+      <!-- Tabla unificada de totales por Level 1 y Level 2 -->
+      <div class="row mt-4">
+        <div class="col-xl-12">
+          <div class="card">
+            <div class="card-body pt-2 pb-2">
+              <h6 class="mb-3">Totales unificados por nivel 1 y nivel 2</h6>
+              <div class="table-responsive scrollbar">
+                <table class="table table-sm table-hover align-middle border rounded shadow-sm bg-white">
+                  <thead class="table-light border-bottom">
+                    <tr>
+                      <th class="text-uppercase text-secondary small fw-bold small">Level 1</th>
+                      <th class="text-uppercase text-secondary small fw-bold small">Level 2</th>
+                      <th class="text-uppercase text-secondary small fw-bold small">Monto Total</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <template v-for="(group, l1idx) in groupAllTotalsByLevel1()" :key="'all-l1-' + group.level1_id">
+                      <template v-for="(row, idx) in group.rows" :key="row.key">
+                        <tr>
+                          <td v-if="idx === 0" :rowspan="group.rows.length + 1" style="vertical-align:top" class="small">{{ group.level1_name }}</td>
+                          <td class="small">{{ row.level2_name }}</td>
+                          <td class="text-end small">{{ Number(row.total_amount).toLocaleString('es-CL', { maximumFractionDigits: 0 }) }}</td>
+                        </tr>
+                      </template>
+                      <tr class="table-secondary">
+                        <td class="small">Subtotal {{ group.level1_name }}</td>
+                        <td class="text-end small" colspan="2">
+                          {{ group.rows.reduce((sum, r) => sum + Number(r.total_amount), 0).toLocaleString('es-CL', { maximumFractionDigits: 0 }) }}
+                        </td>
+                      </tr>
+                    </template>
+                  </tbody>
+                  <tfoot>
+                    <tr class="table-dark">
+                      <td colspan="2" class="fw-bold text-end small">Total General</td>
+                      <td class="fw-bold text-end small">
+                        {{ groupAllTotalsByLevel1().reduce((grand, group) => grand + group.rows.reduce((sum, r) => sum + Number(r.total_amount), 0), 0).toLocaleString('es-CL', { maximumFractionDigits: 0 }) }}
+                      </td>
+                    </tr>
+                  </tfoot>
+                </table>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
 
+     
 
+     <div class="row mt-4">
+        <div class="col-xl-12">
+          <div class="card">
+            <div class="card-body pt-2 pb-2">
+              <div class="table-responsive scrollbar">
+                <table class="table table-sm table-hover align-middle border rounded shadow-sm bg-white">
+                  <thead class="table-light border-bottom">
+                    <tr>
+                      <th class="text-uppercase text-secondary small fw-bold"></th>
+                      <th class="text-uppercase text-secondary small fw-bold">TOTAL</th>
+                      <th class="text-uppercase text-primary small fw-bold" v-for="month in $page.props.months">{{month.label}}</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr>
+                      <td class="fw-semibold small">Agroquimicos</td>
+                      <td class="text-end text-primary fw-bold small">{{totalAgrochemical}}</td>
+                      <td class="bg-opacity-5 table-primary text-end small" v-for="value in months">{{monthsAgrochemical[value.value]}}</td>
+                    </tr>
+                    <tr>
+                      <td class="fw-semibold small">Fertilizantes</td>
+                      <td class="text-end text-primary fw-bold small">{{totalFertilizer}}</td>
+                      <td class="bg-opacity-5 table-primary text-end small" v-for="value in months">{{monthsFertilizer[value.value]}}</td>
+                    </tr>
+                    <tr>
+                      <td class="fw-semibold small">Mano de obra</td>
+                      <td class="text-end text-primary fw-bold small">{{totalManPower}}</td>
+                      <td class="bg-opacity-5 table-primary text-end small" v-for="value in months">{{monthsManPower[value.value]}}</td>
+                    </tr>
+                    <tr>
+                      <td class="fw-semibold small">Insumos</td>
+                      <td class="text-end text-primary fw-bold small">{{totalSupplies}}</td>
+                      <td class="bg-opacity-5 table-primary text-end small" v-for="value in months">{{monthsSupplies[value.value]}}</td>
+                    </tr>
+                    <tr>
+                      <td class="fw-semibold small">Servicios</td>
+                      <td class="text-end text-primary fw-bold small">{{totalServices}}</td>
+                      <td class="bg-opacity-5 table-primary text-end small" v-for="value in months">{{monthsServices[value.value]}}</td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
 
-
-    </AppLayout>
+    </div>
+  </AppLayout>
 </template>
