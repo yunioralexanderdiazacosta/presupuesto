@@ -137,14 +137,15 @@ class AgrochemicalsController extends Controller
         $data = Agrochemical::from('agrochemicals as a')
         ->join('agrochemical_items as ai', 'a.id', 'ai.agrochemical_id')
         ->join('cost_centers as cc', 'ai.cost_center_id', 'cc.id')
-        ->select('ai.cost_center_id', 'cc.name', 'cc.surface')
+        ->select('ai.cost_center_id', 'cc.name', 'cc.surface', 'cc.variety_id') // <-- Agregamos variety_id
         ->whereIn('ai.cost_center_id', $costCenters->pluck('value'))
-        ->groupBy('ai.cost_center_id', 'cc.name', 'cc.surface')
+        ->groupBy('ai.cost_center_id', 'cc.name', 'cc.surface', 'cc.variety_id') // <-- Agregamos variety_id
         ->get()
         ->transform(function($value) use ($costCenters){
             return [
                 'id' => $value->cost_center_id,
                 'name' => $value->name,
+                'variety_id' => $value->variety_id, // <-- Agregamos variety_id al array
                 'subfamilies' => $this->getSubfamilies($value->cost_center_id, $value->surface),
                 'total' => $this->getTotal($value->cost_center_id)
             ];
@@ -153,14 +154,15 @@ class AgrochemicalsController extends Controller
         $data3 = Agrochemical::from('agrochemicals as a')
         ->join('agrochemical_items as ai', 'a.id', 'ai.agrochemical_id')
         ->join('cost_centers as cc', 'ai.cost_center_id', 'cc.id')
-        ->select('ai.cost_center_id', 'cc.name', 'cc.surface')
+        ->select('ai.cost_center_id', 'cc.name', 'cc.surface', 'cc.variety_id') // <-- Agregamos variety_id
         ->whereIn('ai.cost_center_id', $costCenters->pluck('value'))
-        ->groupBy('ai.cost_center_id', 'cc.name', 'cc.surface')
+        ->groupBy('ai.cost_center_id', 'cc.name', 'cc.surface', 'cc.variety_id') // <-- Agregamos variety_id
         ->get()
         ->transform(function($value) use ($costCenters){
             return [
                 'id' => $value->cost_center_id,
                 'name' => $value->name,
+                'variety_id' => $value->variety_id, // <-- Agregamos variety_id al array
                 'subfamilies' => $this->getSubfamilies($value->cost_center_id, null, true),
                 'total' => $this->getTotal($value->cost_center_id)
             ];
@@ -197,7 +199,21 @@ class AgrochemicalsController extends Controller
         $totalData1 = number_format($this->totalData1, 0, ',', '.');
         $totalData2 = number_format($this->totalData2, 0, ',', '.');
 
-        return Inertia::render('Agrochemicals', compact('units', 'subfamilies', 'months', 'costCenters', 'agrochemicals', 'data', 'data2', 'data3', 'doseTypes', 'season', 'totalData1', 'totalData2', 'percentage'));
+        // Obtener variedades asociadas a los cost centers de este equipo y temporada
+        $varieties = \App\Models\Variety::whereIn('id',
+            CostCenter::where('season_id', $season_id)
+                ->whereHas('season.team', function($query) use ($user){
+                    $query->where('team_id', $user->team_id);
+                })
+                ->whereNotNull('variety_id')
+                ->pluck('variety_id')
+                ->unique()
+        )
+        ->select('id', 'name')
+        ->orderBy('name')
+        ->get();
+
+        return Inertia::render('Agrochemicals', compact('units', 'subfamilies', 'months', 'costCenters', 'agrochemicals', 'data', 'data2', 'data3', 'doseTypes', 'season', 'totalData1', 'totalData2', 'percentage', 'varieties'));
     }
 
     private function getSubfamilies($costCenterId, $surface = null, $bills = false)

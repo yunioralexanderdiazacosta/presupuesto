@@ -17,7 +17,11 @@ const props = defineProps({
     data3: Array,
     totalData1: String,
     totalData2: String,
-    percentage: String
+    percentage: String,
+    varieties: {
+      type: Array,
+      default: () => []
+    }
 });
 
 var acum = ref(0);
@@ -138,6 +142,22 @@ const acum_products = (quantity) => {
     return acum.value;
 }
 
+// Filtro por variedad
+const selectedVariety = ref('');
+
+// Filtra los cost centers por variety_id para la pestaña Detalles
+const filteredData = computed(() => {
+  if (!selectedVariety.value) return props.data;
+  return props.data.filter(cc => cc.variety_id == selectedVariety.value);
+});
+
+// Filtro por variedad para Gastos por Hectarea
+const selectedVarietyGastos = ref('');
+const filteredDataGastos = computed(() => {
+  if (!selectedVarietyGastos.value) return props.data3;
+  return props.data3.filter(cc => cc.variety_id == selectedVarietyGastos.value);
+});
+
 /*
 const onFilter = () => {
   router.get(route('manage.providers', {term: term.value, plan: plan.value, membership: membership.value}), { preserveState: true});  
@@ -221,6 +241,7 @@ const onFilter = () => {
                             </template>
                             <!--end::Table body-->
                         </Table>
+                        <Pagination :links="agrochemicals.links" class="mt-2" />
                     </div>
                     <div class="tab-pane fade" id="pill-tab-detalles" role="tabpanel" aria-labelledby="detalles-tab">
                         <div class="row mb-3">
@@ -254,7 +275,17 @@ const onFilter = () => {
                               </div>
                             </div>  
                         </div>
-
+                        <!-- Select de variedades SIEMPRE visible para debug -->
+                        <div class="mb-3">
+                         
+                          <label for="varietySelect" class="form-label">Filtrar por variedad:</label>
+                          <select id="varietySelect" v-model="selectedVariety" class="form-select form-select-sm" style="max-width: 300px;">
+                            <option value="">Todas</option>
+                            <option v-for="variety in props.varieties" :key="variety.id" :value="variety.id">
+                              {{ variety.name }}
+                            </option>
+                          </select>
+                        </div>
                         <!--begin::Table-->
                         <div class="table-responsive mt-1">
                             <table class="table table-bordered table-hover table-sm custom-striped fs-10 mb-0 agrochem-details">
@@ -273,7 +304,7 @@ const onFilter = () => {
                                 <!--end::Table head-->
                                 <!--begin::Table body-->
                                 <tbody>
-                                    <template v-for="(cc, index) in data">
+                                    <template v-for="(cc, index) in filteredData">
                                         <template v-for="(subfamily, index2) in cc.subfamilies">
                                             <tr>
                                                 <td v-if="index2 == 0" :rowspan="cc.total" style="vertical-align:top">{{cc.name}}</td>
@@ -334,6 +365,16 @@ const onFilter = () => {
                             </div>  
                         </div>
 
+                        <!-- Select de variedades para la tabla de Gastos por Hectarea (data3) -->
+                        <div class="mb-3">
+                          <label for="varietySelectGastos" class="form-label">Filtrar por variedad:</label>
+                          <select id="varietySelectGastos" v-model="selectedVarietyGastos" class="form-select form-select-sm" style="max-width: 300px;">
+                            <option value="">Todas</option>
+                            <option v-for="variety in props.varieties" :key="variety.id" :value="variety.id">
+                              {{ variety.name }}
+                            </option>
+                          </select>
+                        </div>
                         <!--begin::Table-->
                         <div class="table-responsive mt-1">
                             <table class="table table-bordered table-hover table-sm custom-striped fs-10 mb-0 agrochem-details">
@@ -352,7 +393,7 @@ const onFilter = () => {
                                 <!--end::Table head-->
                                 <!--begin::Table body-->
                                 <tbody>
-                                    <template v-for="(cc, index) in data3">
+                                    <template v-for="(cc, index) in filteredDataGastos">
                                         <template v-for="(subfamily, index2) in cc.subfamilies">
                                             <tr>
                                                 <td v-if="index2 == 0" :rowspan="cc.total" style="vertical-align:top">{{cc.name}}</td>

@@ -50,31 +50,31 @@ const logout = () => {
                   <!-- more inner pages-->
                   <ul class="nav collapse" id="simple">
                     <li class="nav-item"><Link class="nav-link" :href="route('agrochemicals.index')">
-                        <div class="d-flex align-items-center"><span class="nav-link-text ps-4 mt-1 mb-1">Agroquimicos</span>
+                        <div class="d-flex align-items-center"><span class="nav-link-text ps-4 mt-1 mb-1 text-primary">Agroquimicos</span>
                         </div>
                       </Link>
                       <!-- more inner pages-->
                     </li>
                     <li class="nav-item"><Link class="nav-link" :href="route('fertilizers.index')">
-                        <div class="d-flex align-items-center"><span class="nav-link-text ps-4 mb-1">Fertilizantes</span>
+                        <div class="d-flex align-items-center"><span class="nav-link-text ps-4 mb-1 text-primary">Fertilizantes</span>
                         </div>
                       </Link>
                       <!-- more inner pages-->
                     </li>
                     <li class="nav-item"><Link class="nav-link" :href="route('manpowers.index')">
-                        <div class="d-flex align-items-center"><span class="nav-link-text ps-4 mb-1">Mano de Obra</span>
+                        <div class="d-flex align-items-center"><span class="nav-link-text ps-4 mb-1 text-primary">Mano de Obra</span>
                         </div>
                       </Link>
                       <!-- more inner pages-->
                     </li>
                     <li class="nav-item"><Link class="nav-link" :href="route('supplies.index')">
-                        <div class="d-flex align-items-center"><span class="nav-link-text ps-4  mb-1">Insumos</span>
+                        <div class="d-flex align-items-center"><span class="nav-link-text ps-4  mb-1 text-primary">Insumos</span>
                         </div>
                       </Link>
                       <!-- more inner pages-->
                     </li>
                     <li class="nav-item"><Link class="nav-link" :href="route('services.index')">
-                        <div class="d-flex align-items-center"><span class="nav-link-text ps-4  mb-1">Servicios</span>
+                        <div class="d-flex align-items-center"><span class="nav-link-text ps-4  mb-1 text-primary">Servicios</span>
                         </div>
                       </Link>
                       <!-- more inner pages-->
@@ -88,7 +88,7 @@ const logout = () => {
                   <!-- more inner pages-->
                   <ul class="nav collapse" id="card">
                     <li class="nav-item"><Link class="nav-link" :href="route('fields.index')">
-                        <div class="d-flex align-items-center"><span class="nav-link-text ps-1 mb-1">Gral Campo</span>
+                        <div class="d-flex align-items-center"><span class="nav-link-text ps-4 mb-1 text-primary">Gral Campo</span>
                         </div>
                       </Link>
                       <!-- more inner pages-->
@@ -102,7 +102,7 @@ const logout = () => {
                   <!-- more inner pages-->
                   <ul class="nav collapse" id="split">
                     <li class="nav-item"><Link class="nav-link" :href="route('administrations.index')">
-                        <div class="d-flex align-items-center"><span class="nav-link-text ps-1 mb-1">Administración</span>
+                        <div class="d-flex align-items-center"><span class="nav-link-text ps-4 mb-1 text-primary">Administración</span>
                         </div>
                       </Link>
                       <!-- more inner pages-->

@@ -185,9 +185,17 @@ const barChartFromTable = computed(() => {
               </div>
             </div>
           </div>
+
+              <!-- Espaciado extra entre Total Presupuestos y Total superficie -->
+             <div class="mt-3"></div>
+             <div class="alert alert-info mb-3">
+              <strong>Total superficie:</strong> {{ totalSurface }} <strong> hectareas</strong>
+             </div>
+       
+
           <!-- fin weather card -->
           <div class="card ecommerce-card-min-width">
-            <div class="card-header pb-1">
+            <div class="card-header pb-3">
               <h4 class="mb-0 mt-1 d-flex align-items-center fs-6">Total Presupuestos
                 <span class="ms-1 text-400" data-bs-toggle="tooltip" data-bs-placement="top" title="Calculated according to last week's sales">
                   <span class="far fa-question-circle" data-fa-transform="shrink-1"></span>
@@ -203,11 +211,7 @@ const barChartFromTable = computed(() => {
             </div>
           </div>
 
-          <!-- Espaciado extra entre Total Presupuestos y Total superficie -->
-          <div class="mt-3"></div>
-          <div class="alert alert-info mb-3">
-            <strong>Total superficie:</strong> {{ totalSurface }}
-          </div>
+        
 
   <!-- Gráfico de barras de totales por Level 1 -->
       <div class="row mt-2">
@@ -223,7 +227,7 @@ const barChartFromTable = computed(() => {
 
 
 
-        </div>
+    </div>
 
 
 
