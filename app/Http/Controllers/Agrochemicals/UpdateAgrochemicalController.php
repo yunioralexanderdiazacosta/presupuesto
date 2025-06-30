@@ -20,7 +20,7 @@ class UpdateAgrochemicalController extends Controller
         $agrochemical->subfamily_id = $request->subfamily_id;
         $agrochemical->unit_id      = $request->unit_id;
         $agrochemical->dose_type_id = $request->dose_type_id;
-         $agrochemical->team_id      = $request->team_id;
+         $agrochemical->team_id = auth()->user()->team_id;
         $agrochemical->save(); 
 
         $agrochemical->items()->detach();

@@ -5,12 +5,14 @@ namespace App\Http\Controllers\Services;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Services\StoreServiceRequest;
 use App\Models\Service;
+use Illuminate\Support\Facades\Auth;
 
 class StoreServiceController extends Controller
 {
     public function __invoke(StoreServiceRequest $request)
     {
         $products = $request->get('products');
+   $user = Auth::user();
 
         foreach($products as $product){
             $service = Service::create([
@@ -21,6 +23,7 @@ class StoreServiceController extends Controller
                 'observations'  => $product['observations'],
                 'unit_id'       => $product['unit_id'],
                 'subfamily_id'  => $request->subfamily_id, 
+                'team_id'       => $user->team_id,
             ]);
 
             foreach($request->get('cc') as $cc){

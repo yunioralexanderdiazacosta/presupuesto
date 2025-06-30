@@ -5,12 +5,15 @@ namespace App\Http\Controllers\Supplies;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Supplies\StoreSupplyRequest;
 use App\Models\Supply;
+use Illuminate\Support\Facades\Auth;
 
 class StoreSupplyController extends Controller
 {
     public function __invoke(StoreSupplyRequest $request)
     {
         $products = $request->get('products');
+         $user = Auth::user();
+
 
         foreach($products as $product){
             $supply = Supply::create([
@@ -21,6 +24,7 @@ class StoreSupplyController extends Controller
                 'observations'  => $product['observations'],
                 'unit_id'       => $product['unit_id'],
                 'subfamily_id'  => $request->subfamily_id, 
+                'team_id'       => $user->team_id,
             ]);
 
             foreach($request->get('cc') as $cc){

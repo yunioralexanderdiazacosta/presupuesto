@@ -19,6 +19,7 @@ class UpdateServiceController extends Controller
         $service->subfamily_id = $request->subfamily_id;
         $service->unit_id      = $request->unit_id;
         $service->quantity     = $request->quantity;
+         $service->team_id = auth()->user()->team_id;
         $service->save(); 
 
         $service->items()->detach();
