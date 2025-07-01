@@ -17,7 +17,94 @@ const props = defineProps({
     data3: Array,
     totalData1: String,
     totalData2:String,
-    percentage: String
+    percentage: String,
+    varieties: {
+      type: Array,
+      default: () => []
+    },
+    fruits: {
+      type: Array,
+      default: () => []
+    }
+});
+
+// Filtro por especie (fruta) y variedad
+const selectedFruit = ref('');
+const selectedVariety = ref('');
+
+// Variedades filtradas por fruta
+const filteredVarieties = computed(() => {
+  if (!selectedFruit.value) {
+    if (selectedVariety.value) selectedVariety.value = '';
+    return props.varieties;
+  }
+  return props.varieties.filter(v => v.fruit_id == selectedFruit.value);
+});
+
+// Filtra los cost centers por fruit_id y variety_id para la pestaña Detalles
+const filteredData = computed(() => {
+  let data = props.data;
+  if (selectedFruit.value) {
+    data = data.filter(cc => {
+      const variety = props.varieties.find(v => v.id == cc.variety_id);
+      return variety && variety.fruit_id == selectedFruit.value;
+    });
+    if (selectedVariety.value) {
+      data = data.filter(cc => cc.variety_id == selectedVariety.value);
+    }
+  }
+  return data;
+});
+
+// Monto total dinámico para la pestaña Detalles (de filteredData)
+const totalFilteredData = computed(() => {
+  let total = 0;
+  filteredData.value.forEach(cc => {
+    cc.subfamilies.forEach(subfamily => {
+      subfamily.products.forEach(product => {
+        let amount = typeof product.totalAmount === 'string' ? Number(product.totalAmount.replace(/\./g, '').replace(/,/g, '.')) : Number(product.totalAmount);
+        if (!isNaN(amount)) total += amount;
+      });
+    });
+  });
+  return total.toLocaleString('es-ES', { maximumFractionDigits: 0 });
+});
+
+// Filtro por variedad para Gastos por Hectarea
+const selectedVarietyGastos = ref('');
+const filteredVarietiesGastos = computed(() => {
+  if (!selectedFruit.value) {
+    if (selectedVarietyGastos.value) selectedVarietyGastos.value = '';
+    return props.varieties;
+  }
+  return props.varieties.filter(v => v.fruit_id == selectedFruit.value);
+});
+const filteredDataGastos = computed(() => {
+  let data = props.data3;
+  if (selectedFruit.value) {
+    data = data.filter(cc => {
+      const variety = props.varieties.find(v => v.id == cc.variety_id);
+      return variety && variety.fruit_id == selectedFruit.value;
+    });
+    if (selectedVarietyGastos.value) {
+      data = data.filter(cc => cc.variety_id == selectedVarietyGastos.value);
+    }
+  }
+  return data;
+});
+
+// Monto total dinámico para la pestaña Gastos por Hectarea (de filteredDataGastos)
+const totalFilteredDataGastos = computed(() => {
+  let total = 0;
+  filteredDataGastos.value.forEach(cc => {
+    cc.subfamilies.forEach(subfamily => {
+      subfamily.products.forEach(product => {
+        let amount = typeof product.totalAmount === 'string' ? Number(product.totalAmount.replace(/\./g, '').replace(/,/g, '.')) : Number(product.totalAmount);
+        if (!isNaN(amount)) total += amount;
+      });
+    });
+  });
+  return total.toLocaleString('es-ES', { maximumFractionDigits: 0 });
 });
 
 const formMultiple = useForm({
@@ -133,7 +220,7 @@ const onFilter = () => {
 </script>
 <template>
     <Head :title="title" />
-	<AppLayout>
+  <AppLayout>
         <!--begin::Breadcrumb-->
         <Breadcrumb :links="links" />
         <!--end::Breadcrumb-->
@@ -241,6 +328,27 @@ const onFilter = () => {
                           </div>  
                         </div>
 
+                        <!-- Select de especie (fruta) y variedades, lado a lado -->
+                        <div class="mb-3 d-flex align-items-end gap-2 flex-wrap">
+                          <div>
+                            <label for="fruitSelect" class="form-label">Filtrar por especie:</label>
+                            <select id="fruitSelect" v-model="selectedFruit" class="form-select form-select-sm" style="min-width: 180px; max-width: 220px;">
+                              <option value="">Todas</option>
+                              <option v-for="fruit in props.fruits" :key="fruit.id" :value="fruit.id">
+                                {{ fruit.name }}
+                              </option>
+                            </select>
+                          </div>
+                          <div>
+                            <label for="varietySelect" class="form-label">Filtrar por variedad:</label>
+                            <select id="varietySelect" v-model="selectedVariety" class="form-select form-select-sm" style="min-width: 180px; max-width: 220px;">
+                              <option value="">Todas</option>
+                              <option v-for="variety in filteredVarieties" :key="variety.id" :value="variety.id">
+                                {{ variety.name }}
+                              </option>
+                            </select>
+                          </div>
+                        </div>
                         <div class="table-responsive mt-1">
                             <table class="table table-bordered table-hover table-sm custom-striped fs-10 mb-0 agrochem-details">
                                 <!--begin::Table head-->
@@ -258,7 +366,7 @@ const onFilter = () => {
                                 <!--end::Table head-->
                                 <!--begin::Table body-->
                                 <tbody>
-                                    <template v-for="cc in data">
+                                    <template v-for="cc in filteredData">
                                         <template v-for="(subfamily, index2) in cc.subfamilies">
                                             <tr>
                                                 <td v-if="index2 == 0" :rowspan="cc.total" style="vertical-align:top">{{cc.name}}</td>
@@ -319,6 +427,27 @@ const onFilter = () => {
                             </div>  
                         </div>
 
+                        <!-- Select de especie (fruta) y variedades para Gastos por Hectarea, lado a lado -->
+                        <div class="mb-3 d-flex align-items-end gap-2 flex-wrap">
+                          <div>
+                            <label for="fruitSelectGastos" class="form-label">Filtrar por especie:</label>
+                            <select id="fruitSelectGastos" v-model="selectedFruit" class="form-select form-select-sm" style="min-width: 180px; max-width: 220px;">
+                              <option value="">Todas</option>
+                              <option v-for="fruit in props.fruits" :key="fruit.id" :value="fruit.id">
+                                {{ fruit.name }}
+                              </option>
+                            </select>
+                          </div>
+                          <div>
+                            <label for="varietySelectGastos" class="form-label">Filtrar por variedad:</label>
+                            <select id="varietySelectGastos" v-model="selectedVarietyGastos" class="form-select form-select-sm" style="min-width: 180px; max-width: 220px;">
+                              <option value="">Todas</option>
+                              <option v-for="variety in filteredVarietiesGastos" :key="variety.id" :value="variety.id">
+                                {{ variety.name }}
+                              </option>
+                            </select>
+                          </div>
+                        </div>
                         <div class="table-responsive mt-1">
                             <table class="table table-bordered table-hover table-sm custom-striped fs-10 mb-0 agrochem-details">
                                 <!--begin::Table head-->
@@ -336,7 +465,7 @@ const onFilter = () => {
                                 <!--end::Table head-->
                                 <!--begin::Table body-->
                                 <tbody>
-                                    <template v-for="cc in data3">
+                                    <template v-for="cc in filteredDataGastos">
                                         <template v-for="(subfamily, index2) in cc.subfamilies">
                                             <tr>
                                                 <td v-if="index2 == 0" :rowspan="cc.total" style="vertical-align:top">{{cc.name}}</td>
@@ -414,7 +543,7 @@ const onFilter = () => {
                                 <tbody>
                                     <template v-for="(subfamily, index2) in data2">
                                         <tr>
-                                            <td  style="vertical-align:top;" :rowspan="subfamily.products.length">{{subfamily.name}}</td>
+                                            <td  style="vertical-align:top;" :rowspan="subfamily.products.length + 1">{{subfamily.name}}</td>
                                             <td>{{subfamily.products[0].name}}</td>
                                             <td>{{subfamily.products[0].totalQuantity}}</td>
                                             <td>{{subfamily.products[0].unit}}</td>
@@ -429,6 +558,16 @@ const onFilter = () => {
                                                 <td class="text-dark">{{product.totalAmount}}</td>
                                             </tr>
                                         </template>
+                                        <!-- Subtotal row -->
+                                        <tr class="table-secondary">
+                                            <td colspan="3" class="text-end fw-bold">Subtotal</td>
+                                            <td colspan="2" class="fw-bold text-dark">
+                                              {{ subfamily.products.reduce((acc, p) => {
+                                                let amount = typeof p.totalAmount === 'string' ? Number(p.totalAmount.replace(/\./g, '').replace(/,/g, '.')) : Number(p.totalAmount);
+                                                return !isNaN(amount) ? acc + amount : acc;
+                                              }, 0).toLocaleString('es-ES', { maximumFractionDigits: 0 }) }}
+                                            </td>
+                                        </tr>
                                     </template>
                                 </tbody>
                                 <!--end::Table body-->
