@@ -516,7 +516,14 @@ const onFilter = () => {
                             <div class="card-body d-flex flex-column justify-content-end">
                               <div class="row">
                                 <div class="col">
-                                  <p class="font-sans-serif lh-1 mb-1 fs-6">{{filteredTotalData2}}</p>
+                                  <p class="font-sans-serif lh-1 mb-1 fs-6">
+                                    {{ filteredData2.reduce((acc, subfamily) => {
+                                      return acc + subfamily.products.reduce((acc2, p) => {
+                                        let amount = typeof p.totalAmount === 'string' ? Number(p.totalAmount.replace(/\./g, '').replace(/,/g, '.')) : Number(p.totalAmount);
+                                        return !isNaN(amount) ? acc2 + amount : acc2;
+                                      }, 0);
+                                    }, 0).toLocaleString('es-CL', { style: 'currency', currency: 'CLP', maximumFractionDigits: 0 }) }}
+                                  </p>
                                 </div>
                               </div>
                             </div>
@@ -588,7 +595,10 @@ const onFilter = () => {
                                     <tr class="table-secondary fw-bold">
                                         <td colspan="3" class="text-end">Subtotal</td>
                                         <td colspan="2" class="text-dark">
-                                            {{ subfamily.products.reduce((sum, p) => sum + (Number(p.totalAmount) || 0), 0).toLocaleString('es-CL', { style: 'currency', currency: 'CLP', maximumFractionDigits: 0 }) }}
+                                            {{ subfamily.products.reduce((acc, p) => {
+                                                let amount = typeof p.totalAmount === 'string' ? Number(p.totalAmount.replace(/\./g, '').replace(/,/g, '.')) : Number(p.totalAmount);
+                                                return !isNaN(amount) ? acc + amount : acc;
+                                            }, 0).toLocaleString('es-CL', { style: 'currency', currency: 'CLP', maximumFractionDigits: 0 }) }}
                                         </td>
                                     </tr>
                                 </template>
