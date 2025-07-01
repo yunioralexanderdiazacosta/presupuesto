@@ -110,7 +110,7 @@ class AgrochemicalsController extends Controller
 
         $agrochemicals = Agrochemical::with('subfamily:id,name', 'unit:id,name', 'items:id', 'dosetype:id,name')->whereHas('items', function($query) use ($costCenters){
             $query->whereIn('cost_center_id', $costCenters->pluck('value'));
-        })->paginate(10)->through(function($agrochemical){
+        })->paginate(15)->through(function($agrochemical){
             $items = $agrochemical->items->pluck('pivot');
             $months = array_column($items->toArray(), 'month_id');
             $cc = array_column($items->toArray(), 'cost_center_id');
@@ -209,11 +209,14 @@ class AgrochemicalsController extends Controller
                 ->pluck('variety_id')
                 ->unique()
         )
-        ->select('id', 'name')
+        ->select('id', 'name', 'fruit_id')
         ->orderBy('name')
         ->get();
 
-        return Inertia::render('Agrochemicals', compact('units', 'subfamilies', 'months', 'costCenters', 'agrochemicals', 'data', 'data2', 'data3', 'doseTypes', 'season', 'totalData1', 'totalData2', 'percentage', 'varieties'));
+        // Obtener frutas asociadas a las variedades filtradas
+        $fruits = \App\Models\Fruit::whereIn('id', $varieties->pluck('fruit_id')->unique()->filter())->orderBy('name')->get(['id', 'name']);
+
+        return Inertia::render('Agrochemicals', compact('units', 'subfamilies', 'months', 'costCenters', 'agrochemicals', 'data', 'data2', 'data3', 'doseTypes', 'season', 'totalData1', 'totalData2', 'percentage', 'varieties', 'fruits'));
     }
 
     private function getSubfamilies($costCenterId, $surface = null, $bills = false)
