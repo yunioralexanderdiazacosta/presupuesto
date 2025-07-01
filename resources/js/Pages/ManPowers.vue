@@ -10,15 +10,31 @@ import TitleBudget from '@/Components/Budgets/TitleBudget.vue';
 import CreateManPowerModal from '@/Components/ManPowers/CreateManPowerModal.vue';
 import EditManPowerModal from '@/Components/ManPowers/EditManPowerModal.vue';
 
+
+
+
 const props = defineProps({
+
+  
     manPowers: Object,
     data: Array,
     data2: Array,
     data3: Array,
     totalData1: String,
     totalData2: String,
-    percentage: String
+    percentage: String,
+     varieties: {
+    type: Array,
+    default: () => []
+  },
+  fruits: {
+    type: Array,
+    default: () => []
+  },
 });
+
+const selectedFruit = ref('');
+const selectedVariety = ref('');
 
 const formMultiple = useForm({
     cc: [],
@@ -124,6 +140,106 @@ const acum_products = (quantity) => {
     return acum.value;
 }
 
+
+
+
+// Variedades filtradas por fruta
+const filteredVarieties = computed(() => {
+  if (!selectedFruit.value) {
+    if (selectedVariety.value) selectedVariety.value = '';
+    return props.varieties;
+  }
+  return props.varieties.filter(v => v.fruit_id == selectedFruit.value);
+});
+
+// Filtra los datos por fruit_id y variety_id
+const filteredData = computed(() => {
+  let data = props.data;
+  if (selectedFruit.value) {
+    data = data.filter(cc => {
+      const variety = props.varieties.find(v => v.id == cc.variety_id);
+      return variety && variety.fruit_id == selectedFruit.value;
+    });
+    if (selectedVariety.value) {
+      data = data.filter(cc => cc.variety_id == selectedVariety.value);
+    }
+  }
+  return data;
+});
+
+const filteredData3 = computed(() => {
+  let data = props.data3;
+  if (selectedFruit.value) {
+    data = data.filter(cc => {
+      const variety = props.varieties.find(v => v.id == cc.variety_id);
+      return variety && variety.fruit_id == selectedFruit.value;
+    });
+    if (selectedVariety.value) {
+      data = data.filter(cc => cc.variety_id == selectedVariety.value);
+    }
+  }
+  return data;
+});
+
+// Filtrado y subtotal para Detalle de compra
+const filteredData2 = computed(() => {
+  // data2 es un array de subfamilias, cada una con products
+  let subfamilies = props.data2;
+  if (selectedFruit.value || selectedVariety.value) {
+    // Filtrar los productos de cada subfamilia
+    subfamilies = subfamilies.map(subfamily => {
+      const filteredProducts = subfamily.products.filter(product => {
+        const variety = props.varieties.find(v => v.id == product.variety_id);
+        if (selectedFruit.value && (!variety || variety.fruit_id != selectedFruit.value)) return false;
+        if (selectedVariety.value && product.variety_id != selectedVariety.value) return false;
+        return true;
+      });
+      return { ...subfamily, products: filteredProducts };
+    }).filter(subfamily => subfamily.products.length > 0);
+  }
+  return subfamilies;
+});
+
+const filteredTotalData2 = computed(() => {
+  let total = 0;
+  filteredData2.value.forEach(subfamily => {
+    subfamily.products.forEach(product => {
+      total += Number(product.totalAmount) || 0;
+    });
+  });
+  return total.toLocaleString('es-CL', { style: 'currency', currency: 'CLP', maximumFractionDigits: 0 });
+});
+
+
+// Monto total dinámico para la pestaña Detalles (de filteredData)
+const filteredTotalData1 = computed(() => {
+  let total = 0;
+  filteredData.value.forEach(cc => {
+    cc.subfamilies.forEach(subfamily => {
+      subfamily.products.forEach(product => {
+        let amount = typeof product.totalAmount === 'string' ? Number(product.totalAmount.replace(/\./g, '').replace(/,/g, '.')) : Number(product.totalAmount);
+        if (!isNaN(amount)) total += amount;
+      });
+    });
+  });
+  return total.toLocaleString('es-CL', { style: 'currency', currency: 'CLP', maximumFractionDigits: 0 });
+});
+
+// Monto total dinámico para la pestaña Gastos por Hectarea (de filteredDataGastos)
+const filteredTotalData3 = computed(() => {
+  let total = 0;
+  filteredData3.value.forEach(cc => {
+    cc.subfamilies.forEach(subfamily => {
+      subfamily.products.forEach(product => {
+        let amount = typeof product.totalAmount === 'string' ? Number(product.totalAmount.replace(/\./g, '').replace(/,/g, '.')) : Number(product.totalAmount);
+        if (!isNaN(amount)) total += amount;
+      });
+    });
+  });
+  return total.toLocaleString('es-CL', { style: 'currency', currency: 'CLP', maximumFractionDigits: 0 });
+});
+
+
 /*
 const onFilter = () => {
   router.get(route('manage.providers', {term: term.value, plan: plan.value, membership: membership.value}), { preserveState: true});  
@@ -132,7 +248,7 @@ const onFilter = () => {
 </script>
 <template>
     <Head :title="title" />
-	<AppLayout>
+  <AppLayout>
         <!--begin::Breadcrumb-->
         <Breadcrumb :links="links" />
         <!--end::Breadcrumb-->
@@ -203,8 +319,10 @@ const onFilter = () => {
                             <!--end::Table body-->
                         </Table>
                     </div>
+
+
+                    <!-- Filtros ahora debajo de los cards en cada tab -->
                     <div class="tab-pane fade" id="pill-tab-detalles" role="tabpanel" aria-labelledby="detalles-tab">
-                       
                        <div class="row  mb-3">
                         <div class="col-md-6 col-lg-3 col-xl-6 col-xxl-3">
                           <div class="card h-md-100 ecommerce-card-min-width">
@@ -214,7 +332,7 @@ const onFilter = () => {
                             <div class="card-body d-flex flex-column justify-content-end">
                               <div class="row">
                                 <div class="col">
-                                  <p class="font-sans-serif lh-1 mb-1 fs-6">{{totalData1}}</p>
+                                  <p class="font-sans-serif lh-1 mb-1 fs-6">{{filteredTotalData1}}</p>
                                 </div>
                               </div>
                             </div>
@@ -236,10 +354,26 @@ const onFilter = () => {
                           </div>
                         </div>  
                     </div>
+                    <!-- Filtros debajo de los cards -->
+                    <div class="d-flex gap-2 mb-3">
+                      <div>
+                        <label class="form-label mb-1">Especie</label>
+                        <select v-model="selectedFruit" class="form-select form-select-sm">
+                          <option value="">Todas</option>
+                          <option v-for="fruit in props.fruits" :key="fruit.id" :value="fruit.id">{{ fruit.name }}</option>
+                        </select>
+                      </div>
+                      <div>
+                        <label class="form-label mb-1">Variedad</label>
+                        <select v-model="selectedVariety" class="form-select form-select-sm" :disabled="!selectedFruit">
+                          <option value="">Todas</option>
+                          <option v-for="variety in filteredVarieties" :key="variety.id" :value="variety.id">{{ variety.name }}</option>
+                        </select>
+                      </div>
+                    </div>
 
                         <div class="table-responsive mt-1">
                            <table class="table table-bordered table-hover table-sm custom-striped fs-10 mb-0 agrochem-details">
-                            <!--begin::Table head-->
                             <thead>
                                 <tr class="fw-bold text-muted">
                                     <th class="min-w-150px">Centro de costo</th>
@@ -251,10 +385,8 @@ const onFilter = () => {
                                     <th v-for="month in $page.props.months" class="text-primary">{{month.label}}</th> 
                                 </tr>
                             </thead>
-                            <!--end::Table head-->
-                            <!--begin::Table body-->
                             <tbody>
-                                <template v-for="cc in data">
+                                <template v-for="cc in filteredData">
                                     <template v-for="(subfamily, index2) in cc.subfamilies">
                                         <tr>
                                             <td v-if="index2 == 0" :rowspan="cc.total" style="vertical-align:top">{{cc.name}}</td>
@@ -267,7 +399,6 @@ const onFilter = () => {
                                         </tr>
                                         <template v-for="(product, index3) in subfamily.products">
                                             <tr v-if="index3 > 0">
-                                              
                                                 <td>{{product.name}}</td>
                                                 <td>{{product.totalQuantity}}</td>
                                                 <td>{{product.unit}}</td>
@@ -278,10 +409,11 @@ const onFilter = () => {
                                     </template>
                                 </template>
                             </tbody>
-                            <!--end::Table body-->
                         </table>
                         </div>
                     </div>
+
+
                     <div class="tab-pane fade" id="pill-tab-gastos" role="tabpanel" aria-labelledby="gastos-tab">
                          <div class="row  mb-3">
                         <div class="col-md-6 col-lg-3 col-xl-6 col-xxl-3">
@@ -292,7 +424,7 @@ const onFilter = () => {
                             <div class="card-body d-flex flex-column justify-content-end">
                               <div class="row">
                                 <div class="col">
-                                  <p class="font-sans-serif lh-1 mb-1 fs-6">{{totalData1}}</p>
+                                  <p class="font-sans-serif lh-1 mb-1 fs-6">{{filteredTotalData3}}</p>
                                 </div>
                               </div>
                             </div>
@@ -314,10 +446,26 @@ const onFilter = () => {
                           </div>
                         </div>  
                     </div>
+                    <!-- Filtros debajo de los cards -->
+                    <div class="d-flex gap-2 mb-3">
+                      <div>
+                        <label class="form-label mb-1">Especie</label>
+                        <select v-model="selectedFruit" class="form-select form-select-sm">
+                          <option value="">Todas</option>
+                          <option v-for="fruit in props.fruits" :key="fruit.id" :value="fruit.id">{{ fruit.name }}</option>
+                        </select>
+                      </div>
+                      <div>
+                        <label class="form-label mb-1">Variedad</label>
+                        <select v-model="selectedVariety" class="form-select form-select-sm" :disabled="!selectedFruit">
+                          <option value="">Todas</option>
+                          <option v-for="variety in filteredVarieties" :key="variety.id" :value="variety.id">{{ variety.name }}</option>
+                        </select>
+                      </div>
+                    </div>
 
                         <div class="table-responsive mt-1">
                             <table class="table table-bordered table-hover table-sm custom-striped fs-10 mb-0 agrochem-details">
-                                <!--begin::Table head-->
                                 <thead>
                                     <tr class="fw-bold text-muted">
                                         <th class="min-w-150px">CC</th>
@@ -329,10 +477,8 @@ const onFilter = () => {
                                         <th v-for="month in $page.props.months" :key="month.id" class="text-primary">{{month.label}}</th> 
                                     </tr>
                                 </thead>
-                                <!--end::Table head-->
-                                <!--begin::Table body-->
                                 <tbody>
-                                    <template v-for="(cc, index) in data" :key="index">
+                                    <template v-for="(cc, index) in filteredData3" :key="index">
                                         <template v-for="(subfamily, index2) in cc.subfamilies" :key="index2">
                                             <tr>
                                                 <td v-if="index2 == 0" :rowspan="cc.total" style="vertical-align:top">{{cc.name}}</td>
@@ -356,7 +502,6 @@ const onFilter = () => {
                                         </template>
                                     </template>
                                 </tbody>
-                                <!--end::Table body-->
                             </table>
                         </div>
                     </div>
@@ -371,7 +516,7 @@ const onFilter = () => {
                             <div class="card-body d-flex flex-column justify-content-end">
                               <div class="row">
                                 <div class="col">
-                                  <p class="font-sans-serif lh-1 mb-1 fs-6">{{totalData1}}</p>
+                                  <p class="font-sans-serif lh-1 mb-1 fs-6">{{filteredTotalData2}}</p>
                                 </div>
                               </div>
                             </div>
@@ -393,10 +538,26 @@ const onFilter = () => {
                           </div>
                         </div>  
                     </div>
+                    <!-- Filtros debajo de los cards -->
+                    <div class="d-flex gap-2 mb-3">
+                      <div>
+                        <label class="form-label mb-1">Especie</label>
+                        <select v-model="selectedFruit" class="form-select form-select-sm">
+                          <option value="">Todas</option>
+                          <option v-for="fruit in props.fruits" :key="fruit.id" :value="fruit.id">{{ fruit.name }}</option>
+                        </select>
+                      </div>
+                      <div>
+                        <label class="form-label mb-1">Variedad</label>
+                        <select v-model="selectedVariety" class="form-select form-select-sm" :disabled="!selectedFruit">
+                          <option value="">Todas</option>
+                          <option v-for="variety in filteredVarieties" :key="variety.id" :value="variety.id">{{ variety.name }}</option>
+                        </select>
+                      </div>
+                    </div>
 
                         <div class="table-responsive mt-1">
                             <table class="table table-bordered table-hover table-sm custom-striped fs-10 mb-0 agrochem-details">
-                            <!--begin::Table head-->
                             <thead>
                                 <tr class="fw-bold text-muted">
                                     <th>Subfamilia</th>
@@ -406,19 +567,16 @@ const onFilter = () => {
                                     <th class="text-dark">Monto Total</th>
                                 </tr>
                             </thead>
-                            <!--end::Table head-->
-                            <!--begin::Table body-->
                             <tbody>
-                                <template v-for="(subfamily, index2) in data2">
+                                <template v-for="(subfamily, index2) in filteredData2" :key="index2">
                                     <tr>
-                                        <td  style="vertical-align:top;" :rowspan="subfamily.products.length">{{subfamily.name}}</td>
+                                        <td style="vertical-align:top;" :rowspan="subfamily.products.length + 1">{{subfamily.name}}</td>
                                         <td>{{subfamily.products[0].name}}</td>
                                         <td>{{subfamily.products[0].totalQuantity}}</td>
                                         <td>{{subfamily.products[0].unit}}</td>
                                         <td class="text-dark">{{subfamily.products[0].totalAmount}}</td>
                                     </tr>
-
-                                    <template v-for="(product, index3) in subfamily.products">
+                                    <template v-for="(product, index3) in subfamily.products" :key="index3">
                                         <tr v-if="index3 > 0">
                                             <td>{{product.name}}</td>
                                             <td>{{product.totalQuantity}}</td>
@@ -426,9 +584,15 @@ const onFilter = () => {
                                             <td class="text-dark">{{product.totalAmount}}</td>
                                         </tr>
                                     </template>
+                                    <!-- Subtotal por subfamilia -->
+                                    <tr class="table-secondary fw-bold">
+                                        <td colspan="3" class="text-end">Subtotal</td>
+                                        <td colspan="2" class="text-dark">
+                                            {{ subfamily.products.reduce((sum, p) => sum + (Number(p.totalAmount) || 0), 0).toLocaleString('es-CL', { style: 'currency', currency: 'CLP', maximumFractionDigits: 0 }) }}
+                                        </td>
+                                    </tr>
                                 </template>
                             </tbody>
-                            <!--end::Table body-->
                         </table>
                         </div>
                     </div>

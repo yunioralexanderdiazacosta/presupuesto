@@ -35,11 +35,8 @@ class ManPowersController extends Controller
     public function __invoke()
     {
         $user = Auth::user();
-
         $season_id = session('season_id');
-
         $season = Season::select('name', 'month_id')->where('id', $season_id)->first();
-
         $this->month_id = $season['month_id']; 
 
         $subfamilies = Level3::from('level3s as l3')
@@ -58,7 +55,6 @@ class ManPowersController extends Controller
 
         $months = array();
         $currentMonth = $this->month_id;
-
         for ($x = $currentMonth; $x < $currentMonth + 12; $x++) {
             $id = date('n', mktime(0, 0, 0, $x, 1));
             $object = [
@@ -68,13 +64,13 @@ class ManPowersController extends Controller
             array_push($months, $object);
         }
 
-
-        $costCenters = CostCenter::select('id', 'name')->where('season_id', $season_id)->whereHas('season.team', function($query) use ($user){
+        $costCenters = CostCenter::select('id', 'name', 'variety_id')->where('season_id', $season_id)->whereHas('season.team', function($query) use ($user){
             $query->where('team_id', $user->team_id);
         })->get()->transform(function($costCenter){
             return [
                 'label' => $costCenter->name,
-                'value' => $costCenter->id
+                'value' => $costCenter->id,
+                'variety_id' => $costCenter->variety_id
             ];
         });
 
@@ -98,18 +94,19 @@ class ManPowersController extends Controller
             ];
         });
 
-
+        // --- AÑADIR variety_id a data y data3 para filtrado ---
         $data = ManPower::from('man_powers as mp')
         ->join('manpower_items as mpi', 'mp.id', 'mpi.man_power_id')
         ->join('cost_centers as cc', 'mpi.cost_center_id', 'cc.id')
-        ->select('mpi.cost_center_id', 'cc.name', 'cc.surface')
+        ->select('mpi.cost_center_id', 'cc.name', 'cc.surface', 'cc.variety_id')
         ->whereIn('mpi.cost_center_id', $costCenters->pluck('value'))
-        ->groupBy('mpi.cost_center_id', 'cc.name', 'cc.surface')
+        ->groupBy('mpi.cost_center_id', 'cc.name', 'cc.surface', 'cc.variety_id')
         ->get()
         ->transform(function($value) use ($costCenters){
             return [
                 'id' => $value->cost_center_id,
                 'name' => $value->name,
+                'variety_id' => $value->variety_id,
                 'subfamilies' => $this->getSubfamilies($value->cost_center_id, $value->surface),
                 'total' => $this->getTotal($value->cost_center_id)
             ];
@@ -118,20 +115,32 @@ class ManPowersController extends Controller
         $data3 = ManPower::from('man_powers as mp')
         ->join('manpower_items as mpi', 'mp.id', 'mpi.man_power_id')
         ->join('cost_centers as cc', 'mpi.cost_center_id', 'cc.id')
-        ->select('mpi.cost_center_id', 'cc.name', 'cc.surface')
+        ->select('mpi.cost_center_id', 'cc.name', 'cc.surface', 'cc.variety_id')
         ->whereIn('mpi.cost_center_id', $costCenters->pluck('value'))
-        ->groupBy('mpi.cost_center_id', 'cc.name', 'cc.surface')
+        ->groupBy('mpi.cost_center_id', 'cc.name', 'cc.surface', 'cc.variety_id')
         ->get()
         ->transform(function($value) use ($costCenters){
             return [
                 'id' => $value->cost_center_id,
                 'name' => $value->name,
+                'variety_id' => $value->variety_id,
                 'subfamilies' => $this->getSubfamilies($value->cost_center_id, null, true),
                 'total' => $this->getTotal($value->cost_center_id)
             ];
         });
 
+        // --- VARIEDADES Y FRUTAS ---
+        $varieties = \App\Models\Variety::whereIn('id',
+            \App\Models\CostCenter::where('season_id', $season_id)
+                ->whereNotNull('variety_id')
+                ->pluck('variety_id')
+                ->unique()
+        )
+        ->select('id', 'name', 'fruit_id')
+        ->orderBy('name')
+        ->get();
 
+        $fruits = \App\Models\Fruit::whereIn('id', $varieties->pluck('fruit_id')->unique()->filter())->orderBy('name')->get(['id', 'name']);
 
         $costCentersId = $costCenters->pluck('value');
 
@@ -158,14 +167,10 @@ class ManPowersController extends Controller
         $this->getServicesProducts($costCentersId);
 
         $totalAbsolute = round($this->totalData2) + round($this->totalAgrochemical) + round($this->totalFertilizer) + round($this->totalSupplies) + round($this->totalServices);
-
         $percentage = $totalAbsolute > 0 ? round(((round($this->totalData2) / $totalAbsolute) * 100), 2) : 0;
-
-
         $totalData1 = number_format($this->totalData1, 0, ',', '.');
         $totalData2 = number_format($this->totalData2, 0, ',', '.');
-
-        return Inertia::render('ManPowers', compact('subfamilies', 'months', 'costCenters', 'manPowers', 'season', 'data', 'data2', 'data3', 'totalData1', 'totalData2', 'percentage'));
+        return Inertia::render('ManPowers', compact('subfamilies', 'months', 'costCenters', 'manPowers', 'season', 'data', 'data2', 'data3', 'totalData1', 'totalData2', 'percentage', 'varieties', 'fruits'));
     }
 
     private function getSubfamilies($costCenterId, $surface = null, $bills = false)

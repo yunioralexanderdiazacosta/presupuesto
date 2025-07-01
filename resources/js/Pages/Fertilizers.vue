@@ -67,7 +67,7 @@ const totalFilteredData = computed(() => {
       });
     });
   });
-  return total.toLocaleString('es-ES', { maximumFractionDigits: 0 });
+  return total.toLocaleString('es-CL', { style: 'currency', currency: 'CLP', maximumFractionDigits: 0 });
 });
 
 // Filtro por variedad para Gastos por Hectarea
@@ -104,7 +104,7 @@ const totalFilteredDataGastos = computed(() => {
       });
     });
   });
-  return total.toLocaleString('es-ES', { maximumFractionDigits: 0 });
+  return total.toLocaleString('es-CL', { style: 'currency', currency: 'CLP', maximumFractionDigits: 0 });
 });
 
 const formMultiple = useForm({
@@ -248,6 +248,22 @@ const onFilter = () => {
                 </ul>
                 <div class="tab-content border p-3 mt-3" id="pill-myTabContent">
                     <div class="tab-pane fade show active" id="pill-tab-edicion" role="tabpanel" aria-labelledby="edicion-tab">        
+                        <div class="row mb-3 g-4">
+                          <div class="col-md-6 col-lg-3 col-xl-6 col-xxl-3">
+                            <div class="card h-md-100 ecommerce-card-min-width">
+                              <div class="card-header pb-0">
+                                <h6 class="mb-0 mt-2 d-flex align-items-center">Monto Total</h6>
+                              </div>
+                              <div class="card-body d-flex flex-column justify-content-end">
+                                <div class="row">
+                                  <div class="col">
+                                    <p class="font-sans-serif lh-1 mb-1 fs-6">{{ totalFilteredData }}</p>
+                                  </div>
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
                         <Table :id="'fertilizers'" :total="fertilizers.length" :links="fertilizers.links">
                             <!--begin::Table head-->
                             <template #header>
@@ -306,7 +322,7 @@ const onFilter = () => {
                               <div class="card-body d-flex flex-column justify-content-end">
                                 <div class="row">
                                   <div class="col">
-                                    <p class="font-sans-serif lh-1 mb-1 fs-6">{{totalData1}}</p>
+                                    <p class="font-sans-serif lh-1 mb-1 fs-6">{{ totalFilteredData }}</p>
                                   </div>
                                 </div>
                               </div>
@@ -404,7 +420,7 @@ const onFilter = () => {
                                 <div class="card-body d-flex flex-column justify-content-end">
                                   <div class="row">
                                     <div class="col">
-                                      <p class="font-sans-serif lh-1 mb-1 fs-6">{{totalData1}}</p>
+                                      <p class="font-sans-serif lh-1 mb-1 fs-6">{{totalFilteredDataGastos}}</p>
                                     </div>
                                   </div>
                                 </div>
@@ -503,7 +519,7 @@ const onFilter = () => {
                                 <div class="card-body d-flex flex-column justify-content-end">
                                   <div class="row">
                                     <div class="col">
-                                      <p class="font-sans-serif lh-1 mb-1 fs-6">{{totalData2}}</p>
+                                      <p class="font-sans-serif lh-1 mb-1 fs-6">{{ totalFilteredDataCompra }}</p>
                                     </div>
                                   </div>
                                 </div>
@@ -541,7 +557,7 @@ const onFilter = () => {
                                 <!--end::Table head-->
                                 <!--begin::Table body-->
                                 <tbody>
-                                    <template v-for="(subfamily, index2) in data2">
+                                    <template v-for="(subfamily, index2) in filteredDataCompra">
                                         <tr>
                                             <td  style="vertical-align:top;" :rowspan="subfamily.products.length + 1">{{subfamily.name}}</td>
                                             <td>{{subfamily.products[0].name}}</td>
@@ -565,7 +581,7 @@ const onFilter = () => {
                                               {{ subfamily.products.reduce((acc, p) => {
                                                 let amount = typeof p.totalAmount === 'string' ? Number(p.totalAmount.replace(/\./g, '').replace(/,/g, '.')) : Number(p.totalAmount);
                                                 return !isNaN(amount) ? acc + amount : acc;
-                                              }, 0).toLocaleString('es-ES', { maximumFractionDigits: 0 }) }}
+                                              }, 0).toLocaleString('es-CL', { style: 'currency', currency: 'CLP', maximumFractionDigits: 0 }) }}
                                             </td>
                                         </tr>
                                     </template>
