@@ -1,8 +1,7 @@
 <script setup>
 import { Head } from '@inertiajs/vue3';
 import AppLayout from '@/Layouts/AppLayout.vue';
-import Pie from '@/Components/Pie.vue';
-import BarChart from '@/Components/BarChart.vue'; // Importar el nuevo componente de gráfico de barras
+import FalconBarChart from '@/Components/FalconBarChart.vue';
 import { onMounted, ref, computed } from 'vue'
 import { router } from '@inertiajs/vue3'
 const title = 'Tablero';
@@ -84,6 +83,9 @@ const totalFieldsCalc = computed(() => {
 // Estados para mostrar/ocultar tablas
 const showDevStateTable = ref(false)
 const showExpensePerHectareTable = ref(false)
+
+// Inicializar el gráfico de pie Falcon ECharts al montar
+import FalconPieChart from '@/Components/FalconPieChart.vue';
 
 // Agrupación por Level1 para la tabla de administración y fields
 function groupByLevel1() {
@@ -193,10 +195,10 @@ const entityLabels = {
 <template>
   <Head :title="title" />
   <AppLayout>
-    <div class="container-fluid px-2 px-md-4 py-2">
-      <div class="row g-3 g-xl-4">
+    <div class="container-fluid px-0 py-2" style="max-width: 100vw;">
+      <div class="row g-2 g-xl-3">
         <!-- Columna izquierda: Weather, superficie, total presupuestos -->
-        <div class="col-xl-5 d-flex flex-column">
+        <div class="col-xl-5 col-lg-6 d-flex flex-column">
           <!-- Weather card -->
           <div class="card mb-3" v-if="weather">
             <div class="card-body py-2 d-flex align-items-center">
@@ -229,9 +231,12 @@ const entityLabels = {
             </div>
           </div>
           <!-- Tabla Falcon de conteos de entidades -->
-          <div class="card shadow-sm h-100">
+          <div class="card shadow-sm h-100 mb-3">
             <div class="card-header pb-2 pt-2">
-              <h6 class="mb-0">Registros por Formulario</h6>
+              <h6 class="mb-0">
+                <span class="me-1"><span class="fas fa-list-alt text-primary"></span></span>
+                Registros por Formulario
+              </h6>
             </div>
             <div class="card-body pt-2 pb-4">
               <div class="table-responsive mb-3">
@@ -265,28 +270,34 @@ const entityLabels = {
               </div>
             </div>
           </div>
+       
         </div>
-        <!-- Columna derecha: Pie chart -->
-        <div class="col-xl-7">
+        <!-- Columna derecha: Pie chart y gráfico de barras -->
+        <div class="col-xl-7 col-lg-6 d-flex flex-column">
+          <!-- Gráfico de barras Falcon modernizado -->
+          <div class="card shadow-sm mb-3 border-0 bg-white">
+            <div class="card-header bg-white border-0 pb-2 pt-3 d-flex align-items-center">
+              <span class="me-2"><span class="fas fa-chart-bar text-primary"></span></span>
+              <h6 class="mb-0">Gráfico de barras: Totales por Nivel 1</h6>
+            </div>
+            <div class="card-body pt-3 pb-3 px-4">
+              <div class="falcon-bar-chart-container" style="height:320px;">
+                <FalconBarChart
+                  :barLabels="barChartFromTable.map(item => item.level1_name)"
+                  :barData="barChartFromTable.map(item => item.total_amount)"
+                  :height="320"
+                />
+              </div>
+            </div>
+          </div>
           <div class="card h-100">
             <div class="card-body bg-body-tertiary py-2">
-              <Pie :pieLabels="pieLabels" :pieDatasets="pieDatasets"></Pie>
-      <!-- Fin de la sección principal de cards y gráficos -->
-      <!-- Gráfico de barras de totales por Level 1 -->
-      <div class="row mt-4">
-        <div class="col-xl-12">
-          <div class="card">
-            <div class="card-body pt-2 pb-2">
-              <h6 class="mb-3">Gráfico de barras: Totales por Nivel 1</h6>
-              <BarChart :chartData="barChartFromTable" />
+              <FalconPieChart :pieLabels="pieLabels" :pieDatasets="pieDatasets" />
             </div>
           </div>
         </div>
       </div>
-            </div>
-          </div>
-        </div>
-      </div>
+
 
      
 
