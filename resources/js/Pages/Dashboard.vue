@@ -59,9 +59,17 @@ const props = defineProps({
   administrationTotalsByLevel12: Array, // <-- agregar prop para la tabla de administración
   fieldTotalsByLevel12: Array, // <-- agregar prop para la tabla de fields
   totalsByLevel12: Array, // <-- nuevo prop para la tabla de totales generales
+
   totalSurface: Number, // <-- AGREGADO para mostrar superficie total
+  entityCounts: Object, // <-- para la tabla de conteos
   totalAdministration: Number // <-- AGREGADO para mostrar administración total
-})
+});
+
+// Calcular el máximo para la barra de progreso
+const maxCount = computed(() => {
+  if (!props.entityCounts) return 0;
+  return Math.max(...Object.values(props.entityCounts));
+});
 
 // Calcular el total de administración sumando los montos de administrationTotalsByLevel12
 const totalAdministrationCalc = computed(() => {
@@ -167,6 +175,19 @@ const barChartFromTable = computed(() => {
   });
   return Object.values(groups);
 });
+
+
+//(nombra los form en el grafico de barras)
+const entityLabels = {
+  agrochemicals: 'Agroquímicos',
+  fertilizers: 'Fertilizantes',
+  manpowers: 'Mano de Obra',
+  supplies: 'Insumos',
+  services: 'Servicios',
+  fields: 'Generales Campo',
+  administrations: 'Administración'
+};
+
 </script>
 
 <template>
@@ -174,8 +195,9 @@ const barChartFromTable = computed(() => {
   <AppLayout>
     <div class="container-fluid px-2 px-md-4 py-2">
       <div class="row g-3 g-xl-4">
-        <div class="col-xl-5">
-          <!-- Weather card arriba de Total Presupuestos, mismo ancho -->
+        <!-- Columna izquierda: Weather, superficie, total presupuestos -->
+        <div class="col-xl-5 d-flex flex-column">
+          <!-- Weather card -->
           <div class="card mb-3" v-if="weather">
             <div class="card-body py-2 d-flex align-items-center">
               <img :src="weather.current.condition.icon" alt="icon" style="width:32px;height:32px;" class="me-2" />
@@ -185,16 +207,12 @@ const barChartFromTable = computed(() => {
               </div>
             </div>
           </div>
-
-              <!-- Espaciado extra entre Total Presupuestos y Total superficie -->
-             <div class="mt-3"></div>
-             <div class="alert alert-info mb-3">
-              <strong>Total superficie:</strong> {{ totalSurface }} <strong> hectareas</strong>
-             </div>
-       
-
-          <!-- fin weather card -->
-          <div class="card ecommerce-card-min-width">
+          <!-- Superficie -->
+          <div class="alert alert-info mb-3">
+            <strong>Total superficie:</strong> {{ totalSurface }} <strong> hectareas</strong>
+          </div>
+          <!-- Total Presupuestos -->
+          <div class="card ecommerce-card-min-width mb-3">
             <div class="card-header pb-3">
               <h4 class="mb-0 mt-1 d-flex align-items-center fs-6">Total Presupuestos
                 <span class="ms-1 text-400" data-bs-toggle="tooltip" data-bs-placement="top" title="Calculated according to last week's sales">
@@ -210,11 +228,52 @@ const barChartFromTable = computed(() => {
               </div>
             </div>
           </div>
-
-        
-
-  <!-- Gráfico de barras de totales por Level 1 -->
-      <div class="row mt-2">
+          <!-- Tabla Falcon de conteos de entidades -->
+          <div class="card shadow-sm h-100">
+            <div class="card-header pb-2 pt-2">
+              <h6 class="mb-0">Registros por Formulario</h6>
+            </div>
+            <div class="card-body pt-2 pb-4">
+              <div class="table-responsive mb-3">
+                <table class="table table-sm align-middle">
+                  <thead>
+                    <tr>
+                      <th class="text-uppercase text-secondary small fw-bold">Formulario</th>
+                      <th class="text-uppercase text-secondary small fw-bold text-center">Cant. registros</th>
+                      <th class="text-uppercase text-secondary small fw-bold text-end">Progreso</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr v-for="(count, key) in entityCounts" :key="key">
+                      <td class="small text-capitalize">{{ entityLabels[key] || key }}</td>
+                      <td class="text-center fw-bold small">{{ count }}</td>
+                      <td class="text-end" style="min-width:120px;">
+                        <div class="progress" style="height: 12px;">
+                          <div
+                            class="progress-bar bg-primary"
+                            role="progressbar"
+                            :style="{ width: (maxCount > 0 ? (count / maxCount * 100) : 0) + '%' }"
+                            :aria-valuenow="count"
+                            aria-valuemin="0"
+                            :aria-valuemax="maxCount"
+                          ></div>
+                        </div>
+                      </td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        </div>
+        <!-- Columna derecha: Pie chart -->
+        <div class="col-xl-7">
+          <div class="card h-100">
+            <div class="card-body bg-body-tertiary py-2">
+              <Pie :pieLabels="pieLabels" :pieDatasets="pieDatasets"></Pie>
+      <!-- Fin de la sección principal de cards y gráficos -->
+      <!-- Gráfico de barras de totales por Level 1 -->
+      <div class="row mt-4">
         <div class="col-xl-12">
           <div class="card">
             <div class="card-body pt-2 pb-2">
@@ -224,17 +283,6 @@ const barChartFromTable = computed(() => {
           </div>
         </div>
       </div>
-
-
-
-    </div>
-
-
-
-        <div class="col-xl-7">
-          <div class="card">
-            <div class="card-body bg-body-tertiary py-2">
-              <Pie :pieLabels="pieLabels" :pieDatasets="pieDatasets"></Pie>
             </div>
           </div>
         </div>

@@ -20,6 +20,7 @@ class UpdateServiceController extends Controller
         $service->unit_id      = $request->unit_id;
         $service->quantity     = $request->quantity;
          $service->team_id = auth()->user()->team_id;
+          $service->season_id = session('season_id');
         $service->save(); 
 
         $service->items()->detach();

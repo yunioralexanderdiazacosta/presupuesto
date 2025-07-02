@@ -358,14 +358,14 @@ const onFilter = () => {
                     <div class="d-flex gap-2 mb-3">
                       <div>
                         <label class="form-label mb-1">Especie</label>
-                        <select v-model="selectedFruit" class="form-select form-select-sm">
+                        <select v-model="selectedFruit" class="form-select form-select-sm"style="min-width: 180px; max-width: 220px;">
                           <option value="">Todas</option>
                           <option v-for="fruit in props.fruits" :key="fruit.id" :value="fruit.id">{{ fruit.name }}</option>
                         </select>
                       </div>
                       <div>
                         <label class="form-label mb-1">Variedad</label>
-                        <select v-model="selectedVariety" class="form-select form-select-sm" :disabled="!selectedFruit">
+                        <select v-model="selectedVariety" class="form-select form-select-sm" style="min-width: 180px; max-width: 220px;":disabled="!selectedFruit">
                           <option value="">Todas</option>
                           <option v-for="variety in filteredVarieties" :key="variety.id" :value="variety.id">{{ variety.name }}</option>
                         </select>
@@ -450,14 +450,14 @@ const onFilter = () => {
                     <div class="d-flex gap-2 mb-3">
                       <div>
                         <label class="form-label mb-1">Especie</label>
-                        <select v-model="selectedFruit" class="form-select form-select-sm">
+                        <select v-model="selectedFruit" class="form-select form-select-sm"style="min-width: 180px; max-width: 220px;">
                           <option value="">Todas</option>
                           <option v-for="fruit in props.fruits" :key="fruit.id" :value="fruit.id">{{ fruit.name }}</option>
                         </select>
                       </div>
                       <div>
                         <label class="form-label mb-1">Variedad</label>
-                        <select v-model="selectedVariety" class="form-select form-select-sm" :disabled="!selectedFruit">
+                        <select v-model="selectedVariety" class="form-select form-select-sm" style="min-width: 180px; max-width: 220px;" :disabled="!selectedFruit">
                           <option value="">Todas</option>
                           <option v-for="variety in filteredVarieties" :key="variety.id" :value="variety.id">{{ variety.name }}</option>
                         </select>

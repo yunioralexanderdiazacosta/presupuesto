@@ -21,6 +21,7 @@ class UpdateAgrochemicalController extends Controller
         $agrochemical->unit_id      = $request->unit_id;
         $agrochemical->dose_type_id = $request->dose_type_id;
          $agrochemical->team_id = auth()->user()->team_id;
+          $agrochemical->season_id = session('season_id');
         $agrochemical->save(); 
 
         $agrochemical->items()->detach();

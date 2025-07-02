@@ -9,7 +9,7 @@ class Fertilizer extends Model
 {
     use HasFactory;
 
-    protected $fillable = ['product_name', 'price', 'dose', 'unit_id', 'unit_id_price', 'subfamily_id', 'observations','team_id'];
+    protected $fillable = ['product_name', 'price', 'dose', 'unit_id', 'unit_id_price', 'subfamily_id', 'observations','team_id', 'season_id'];
 
     public function items()
     {
@@ -35,5 +35,11 @@ public function team()
     {
         return $this->belongsTo(Team::class);
     }    
+
+public function season()
+    {
+        return $this->belongsTo(Season::class);
+    }    
+
 
 }

@@ -13,7 +13,7 @@ class StoreServiceController extends Controller
     {
         $products = $request->get('products');
    $user = Auth::user();
-
+ $season_id = session('season_id'); // la temporada activa o seleccionada
         foreach($products as $product){
             $service = Service::create([
                 'product_name'  => $product['product_name'],
@@ -24,6 +24,7 @@ class StoreServiceController extends Controller
                 'unit_id'       => $product['unit_id'],
                 'subfamily_id'  => $request->subfamily_id, 
                 'team_id'       => $user->team_id,
+                'season_id' => $season_id // la temporada activa o seleccionada
             ]);
 
             foreach($request->get('cc') as $cc){

@@ -18,7 +18,8 @@ class UpdateSupplyController extends Controller
         $supply->subfamily_id = $request->subfamily_id;
         $supply->unit_id      = $request->unit_id;
         $supply->quantity     = $request->quantity;
-         $supply->team_id = auth()->user()->team_id;
+        $supply->team_id = auth()->user()->team_id;
+        $supply->season_id = session('season_id'); // la temporada activa o seleccionada
 
         $supply->save(); 
 

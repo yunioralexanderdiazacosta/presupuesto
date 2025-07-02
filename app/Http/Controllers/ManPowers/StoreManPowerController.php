@@ -15,9 +15,10 @@ class StoreManPowerController extends Controller
     {
         $products = $request->get('products');
           $user = Auth::user();
-
+ $season_id = session('season_id'); // la temporada activa o seleccionada
 
         $unit = Unit::where('name', 'JH')->first();
+       
 
         foreach($products as $product){
             $manpower = ManPower::create([
@@ -27,6 +28,7 @@ class StoreManPowerController extends Controller
                 'observations'  => $product['observations'],
                 'subfamily_id'  => $request->subfamily_id,
                 'team_id'       => $user->team_id,
+                 'season_id' => $season_id, // la temporada activa o seleccionada
                 'unit_id'       => $unit->id
             ]);
 

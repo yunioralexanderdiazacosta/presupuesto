@@ -361,7 +361,7 @@ const onFilter = () => {
                           </div>
                           <div>
                             <label for="varietySelect" class="form-label">Filtrar por variedad:</label>
-                            <select id="varietySelect" v-model="selectedVariety" class="form-select form-select-sm" style="min-width: 180px; max-width: 220px;">
+                            <select id="varietySelect" v-model="selectedVariety" class="form-select form-select-sm" style="min-width: 180px; max-width: 220px;":disabled="!selectedFruit">
                               <option value="">Todas</option>
                               <option v-for="variety in filteredVarieties" :key="variety.id" :value="variety.id">
                                 {{ variety.name }}
@@ -461,7 +461,7 @@ const onFilter = () => {
                           </div>
                           <div>
                             <label for="varietySelectGastos" class="form-label">Filtrar por variedad:</label>
-                            <select id="varietySelectGastos" v-model="selectedVarietyGastos" class="form-select form-select-sm" style="min-width: 180px; max-width: 220px;">
+                            <select id="varietySelectGastos" v-model="selectedVarietyGastos" class="form-select form-select-sm" style="min-width: 180px; max-width: 220px;":disabled="!selectedFruit">
                               <option value="">Todas</option>
                               <option v-for="variety in filteredVarietiesGastos" :key="variety.id" :value="variety.id">
                                 {{ variety.name }}

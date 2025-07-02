@@ -27,6 +27,7 @@ class DashboardController extends Controller
 
     public $totalAgrochemical = 0;
 
+
     public $totalFertilizer = 0;
 
     public $totalManPower = 0;
@@ -52,6 +53,50 @@ class DashboardController extends Controller
      * - Calcula métricas por estado de desarrollo y por hectárea.
      * - Integra datos de clima.
      */
+
+ /**
+     * Devuelve la cantidad de registros de cada entidad principal, filtrados por season_id y team_id.
+     * @param int $season_id
+     * @param int $team_id
+     * @return array
+     */
+    public static function getEntityCounts($season_id, $team_id)
+    {
+        $agrochemicals = \App\Models\Agrochemical::where('season_id', $season_id)
+            ->where('team_id', $team_id)
+            ->count();
+        $fertilizers = \App\Models\Fertilizer::where('season_id', $season_id)
+            ->where('team_id', $team_id)
+            ->count();
+        $manpowers = \App\Models\ManPower::where('season_id', $season_id)
+            ->where('team_id', $team_id)
+            ->count();
+        $supplies = \App\Models\Supply::where('season_id', $season_id)
+            ->where('team_id', $team_id)
+            ->count();
+        $services = \App\Models\Service::where('season_id', $season_id)
+            ->where('team_id', $team_id)
+            ->count();
+        $fields = \App\Models\Field::where('season_id', $season_id)
+            ->where('team_id', $team_id)
+            ->count();
+        $administrations = \App\Models\Administration::where('season_id', $season_id)
+            ->where('team_id', $team_id)
+            ->count();
+        return [
+            'agrochemicals' => $agrochemicals,
+            'fertilizers' => $fertilizers,
+            'manpowers' => $manpowers,
+            'supplies' => $supplies,
+            'services' => $services,
+            'fields' => $fields,
+            'administrations' => $administrations,
+        ];
+    }
+
+
+
+
     public function __invoke(Request $request, WeatherService $weatherService)
     {
         $user = Auth::user();
@@ -277,7 +322,7 @@ class DashboardController extends Controller
 
         // Calcular el total de superficie de todos los cost centers de la temporada
         $totalSurface = \App\Models\CostCenter::where('season_id', $season_id)->sum('surface');
-
+        $entityCounts = self::getEntityCounts($season_id, $user->team_id);
         // Pasar ambos al frontend
         return Inertia::render('Dashboard', compact(
             'totalSeason', 'pieLabels', 'pieDatasets',
@@ -301,6 +346,7 @@ class DashboardController extends Controller
             'administrationTotalsByLevel12',
             'fieldTotalsByLevel12',
             'totalsByLevel12',
+             'entityCounts',
             'totalSurface' // <-- aseguro que se envía
         ));
     }

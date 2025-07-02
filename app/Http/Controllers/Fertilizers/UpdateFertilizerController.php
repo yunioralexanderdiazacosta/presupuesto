@@ -18,6 +18,7 @@ class UpdateFertilizerController extends Controller
         $fertilizer->unit_id      = $request->unit_id;
         $fertilizer->unit_id_price= $request->unit_id_price;
         $fertilizer->team_id = auth()->user()->team_id;
+         $fertilizer->season_id = session('season_id');
         $fertilizer->save(); 
 
         $fertilizer->items()->detach();

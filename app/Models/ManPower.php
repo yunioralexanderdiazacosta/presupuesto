@@ -9,7 +9,7 @@ class ManPower extends Model
 {
     use HasFactory;
 
-    protected $fillable = ['product_name', 'price', 'workday', 'observations', 'subfamily_id', 'unit_id', 'team_id'];
+    protected $fillable = ['product_name', 'price', 'workday', 'observations', 'subfamily_id', 'unit_id', 'team_id', 'season_id'];
 
     public function items()
     {
@@ -30,4 +30,10 @@ class ManPower extends Model
     {
         return $this->belongsTo(Team::class);
     } 
+
+    public function season()
+    {
+        return $this->belongsTo(Season::class);
+    }       
+    
 }

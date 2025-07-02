@@ -14,6 +14,7 @@ class StoreFertilizerController extends Controller
     {
         $products = $request->get('products');
          $user = Auth::user();
+            $season_id = session('season_id');
 
         foreach($products as $product){
             $fertilizer = Fertilizer::create([
@@ -24,7 +25,8 @@ class StoreFertilizerController extends Controller
                 'unit_id'       => $product['unit_id'],
                 'unit_id_price' => $product['unit_id_price'],
                 'subfamily_id'  => $request->subfamily_id,
-                'team_id'       => $user->team_id
+                'team_id'       => $user->team_id,
+                'season_id' => $season_id // la temporada activa o seleccionada
             ]);
 
             foreach($request->get('cc') as $cc){

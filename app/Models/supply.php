@@ -9,7 +9,7 @@ class Supply extends Model
 {
     use HasFactory;
 
-    protected $fillable = ['product_name', 'price', 'observations', 'quantity', 'unit_id', 'unit_id_price', 'subfamily_id', 'team_id'];
+    protected $fillable = ['product_name', 'price', 'observations', 'quantity', 'unit_id', 'unit_id_price', 'subfamily_id', 'team_id', 'season_id'];
 
     public function items()
     {
@@ -35,5 +35,11 @@ class Supply extends Model
     {
         return $this->belongsTo(Team::class);
     }
+
+    public function season()
+    {
+        return $this->belongsTo(Season::class);
+    }   
+    
      
 }
