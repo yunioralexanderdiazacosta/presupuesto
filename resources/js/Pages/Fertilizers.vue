@@ -107,6 +107,48 @@ const totalFilteredDataGastos = computed(() => {
   return total.toLocaleString('es-CL', { style: 'currency', currency: 'CLP', maximumFractionDigits: 0 });
 });
 
+
+// Filtro para Detalle de compra 
+const filteredDataCompra = computed(() => {
+  let data = props.data2;
+  if (selectedFruit.value) {
+    // Filtra por fruta
+    data = data.filter(subfamily => {
+      // Busca si algún producto de la subfamilia pertenece a la fruta seleccionada
+      return subfamily.products.some(product => {
+        const variety = props.varieties.find(v => v.id == product.variety_id);
+        return variety && variety.fruit_id == selectedFruit.value;
+      });
+    });
+    // Si hay variedad seleccionada, filtra por variedad
+    if (selectedVariety.value) {
+      data = data.map(subfamily => {
+        return {
+          ...subfamily,
+          products: subfamily.products.filter(product => product.variety_id == selectedVariety.value)
+        };
+      }).filter(subfamily => subfamily.products.length > 0);
+    }
+  }
+  return data;
+});
+
+// Monto total dinámico para Detalle de compra
+const totalFilteredDataCompra = computed(() => {
+  let total = 0;
+  filteredDataCompra.value.forEach(subfamily => {
+    subfamily.products.forEach(product => {
+      let amount = typeof product.totalAmount === 'string' ? Number(product.totalAmount.replace(/\./g, '').replace(/,/g, '.')) : Number(product.totalAmount);
+      if (!isNaN(amount)) total += amount;
+    });
+  });
+  return total.toLocaleString('es-CL', { style: 'currency', currency: 'CLP', maximumFractionDigits: 0 });
+});
+
+
+var acum = ref(0);
+
+
 const formMultiple = useForm({
     subfamily_id: '',
     cc: [],
@@ -210,6 +252,12 @@ const onDeleted = (id) => {
             });
         }
     });
+}
+
+
+const acum_products = (quantity) => {
+    acum.value = acum.value + quantity;
+    return acum.value;
 }
 
 /*

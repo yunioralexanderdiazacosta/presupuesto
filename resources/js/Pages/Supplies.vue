@@ -10,6 +10,7 @@ import TitleBudget from '@/Components/Budgets/TitleBudget.vue';
 import CreateSupplyModal from '@/Components/Supplies/CreateSupplyModal.vue';
 import EditSupplyModal from '@/Components/Supplies/EditSupplyModal.vue';
 
+
 const props = defineProps({
     supplies: Object,
     data: Array,
@@ -17,9 +18,138 @@ const props = defineProps({
     data3: Array,
     totalData1: String,
     totalData2: String,
-    percentage: String
+    percentage: String,
+    varieties: {
+      type: Array,
+      default: () => []
+    },
+    fruits: {
+      type: Array,
+      default: () => []
+    }
+});
+// Filtro por especie (fruta) y variedad
+const selectedFruit = ref('');
+const selectedVariety = ref('');
+
+// Variedades filtradas por fruta
+const filteredVarieties = computed(() => {
+  if (!selectedFruit.value) {
+    if (selectedVariety.value) selectedVariety.value = '';
+    return props.varieties;
+  }
+  return props.varieties.filter(v => v.fruit_id == selectedFruit.value);
 });
 
+// Filtra los cost centers por fruit_id y variety_id para la pestaña Detalles
+const filteredData = computed(() => {
+  let data = props.data;
+  if (selectedFruit.value) {
+    data = data.filter(cc => {
+      // Si no hay variety_id en el cost center, no lo mostramos
+      if (!cc.variety_id) return false;
+      // Si hay variedad seleccionada, filtramos por esa variedad
+      if (selectedVariety.value) {
+        return cc.variety_id == selectedVariety.value;
+      }
+      // Si no hay variedad seleccionada, mostramos todas las variedades de la fruta seleccionada
+      const variety = props.varieties.find(v => v.id == cc.variety_id);
+      return variety && variety.fruit_id == selectedFruit.value;
+    });
+  }
+  return data;
+});
+
+// Monto total dinámico para la pestaña Detalles (de filteredData)
+const totalFilteredData = computed(() => {
+  let total = 0;
+  filteredData.value.forEach(cc => {
+    cc.subfamilies.forEach(subfamily => {
+      subfamily.products.forEach(product => {
+        let amount = typeof product.totalAmount === 'string' ? Number(product.totalAmount.replace(/\./g, '').replace(/,/g, '.')) : Number(product.totalAmount);
+        if (!isNaN(amount)) total += amount;
+      });
+    });
+  });
+  return total.toLocaleString('es-CL', { style: 'currency', currency: 'CLP', maximumFractionDigits: 0 });
+});
+
+// Filtro por variedad para Gastos por Hectarea
+const selectedVarietyGastos = ref('');
+const filteredVarietiesGastos = computed(() => {
+  if (!selectedFruit.value) {
+    if (selectedVarietyGastos.value) selectedVarietyGastos.value = '';
+    return props.varieties;
+  }
+  return props.varieties.filter(v => v.fruit_id == selectedFruit.value);
+});
+const filteredDataGastos = computed(() => {
+  let data = props.data3;
+  if (selectedFruit.value) {
+    data = data.filter(cc => {
+      if (!cc.variety_id) return false;
+      if (selectedVarietyGastos.value) {
+        return cc.variety_id == selectedVarietyGastos.value;
+      }
+      const variety = props.varieties.find(v => v.id == cc.variety_id);
+      return variety && variety.fruit_id == selectedFruit.value;
+    });
+  }
+  return data;
+});
+
+// Monto total dinámico para la pestaña Gastos por Hectarea (de filteredDataGastos)
+const totalFilteredDataGastos = computed(() => {
+  let total = 0;
+  filteredDataGastos.value.forEach(cc => {
+    cc.subfamilies.forEach(subfamily => {
+      subfamily.products.forEach(product => {
+        let amount = typeof product.totalAmount === 'string' ? Number(product.totalAmount.replace(/\./g, '').replace(/,/g, '.')) : Number(product.totalAmount);
+        if (!isNaN(amount)) total += amount;
+      });
+    });
+  });
+  return total.toLocaleString('es-CL', { style: 'currency', currency: 'CLP', maximumFractionDigits: 0 });
+});
+
+
+
+// Filtro para Detalle de compra 
+const filteredDataCompra = computed(() => {
+  let data = props.data2;
+  if (selectedFruit.value) {
+    // Filtra por fruta
+    data = data.filter(subfamily => {
+      // Busca si algún producto de la subfamilia pertenece a la fruta seleccionada
+      return subfamily.products.some(product => {
+        const variety = props.varieties.find(v => v.id == product.variety_id);
+        return variety && variety.fruit_id == selectedFruit.value;
+      });
+    });
+    // Si hay variedad seleccionada, filtra por variedad
+    if (selectedVariety.value) {
+      data = data.map(subfamily => {
+        return {
+          ...subfamily,
+          products: subfamily.products.filter(product => product.variety_id == selectedVariety.value)
+        };
+      }).filter(subfamily => subfamily.products.length > 0);
+    }
+  }
+  return data;
+});
+
+// Monto total dinámico para Detalle de compra
+const totalFilteredDataCompra = computed(() => {
+  let total = 0;
+  filteredDataCompra.value.forEach(subfamily => {
+    subfamily.products.forEach(product => {
+      let amount = typeof product.totalAmount === 'string' ? Number(product.totalAmount.replace(/\./g, '').replace(/,/g, '.')) : Number(product.totalAmount);
+      if (!isNaN(amount)) total += amount;
+    });
+  });
+  return total.toLocaleString('es-CL', { style: 'currency', currency: 'CLP', maximumFractionDigits: 0 });
+});
 var acum = ref(0);
 
 const formMultiple = useForm({
@@ -140,7 +270,7 @@ const onFilter = () => {
 </script>
 <template>
     <Head :title="title" />
-	<AppLayout>
+  <AppLayout>
         <!--begin::Breadcrumb-->
         <Breadcrumb :links="links" />
         <!--end::Breadcrumb-->
@@ -216,6 +346,7 @@ const onFilter = () => {
                         </Table>
                     </div>
                     <div class="tab-pane fade" id="pill-tab-detalles" role="tabpanel" aria-labelledby="detalles-tab">
+
                         <div class="row mb-3">
                             <div class="col-md-6 col-lg-3 col-xl-6 col-xxl-3">
                               <div class="card h-md-100 ecommerce-card-min-width">
@@ -225,7 +356,7 @@ const onFilter = () => {
                                 <div class="card-body d-flex flex-column justify-content-end">
                                   <div class="row">
                                     <div class="col">
-                                      <p class="font-sans-serif lh-1 mb-1 fs-6">{{totalData1}}</p>
+                                      <p class="font-sans-serif lh-1 mb-1 fs-6">{{totalFilteredData}}</p>
                                     </div>
                                   </div>
                                 </div>
@@ -248,6 +379,28 @@ const onFilter = () => {
                             </div>  
                         </div>
 
+                        <!-- Select de especie (fruta) y variedades, lado a lado -->
+                        <div class="mb-3 d-flex align-items-end gap-2 flex-wrap">
+                          <div>
+                            <label for="fruitSelect" class="form-label">Filtrar por especie:</label>
+                            <select id="fruitSelect" v-model="selectedFruit" class="form-select form-select-sm" style="min-width: 180px; max-width: 220px;">
+                              <option value="">Todas</option>
+                              <option v-for="fruit in fruits" :key="fruit.id" :value="fruit.id">
+                                {{ fruit.name }}
+                              </option>
+                            </select>
+                          </div>
+                          <div>
+                            <label for="varietySelect" class="form-label">Filtrar por variedad:</label>
+                            <select id="varietySelect" v-model="selectedVariety" class="form-select form-select-sm" style="min-width: 180px; max-width: 220px;" :disabled="!selectedFruit">
+                              <option value="">Todas</option>
+                              <option v-for="variety in filteredVarieties" :key="variety.id" :value="variety.id">
+                                {{ variety.name }}
+                              </option>
+                            </select>
+                          </div>
+                        </div>
+
                         <div class="table-responsive">
                             <table id="table_4" class="table table-bordered table-hover table-sm custom-striped fs-10 mb-0 agrochem-details">
                                 <!--begin::Table head-->
@@ -265,7 +418,7 @@ const onFilter = () => {
                                 <!--end::Table head-->
                                 <!--begin::Table body-->
                                 <tbody>
-                                    <template v-for="cc in data">
+                                    <template v-for="cc in filteredData">
                                         <template v-for="(subfamily, index2) in cc.subfamilies">
                                             <tr>
                                                 <td v-if="index2 == 0" :rowspan="cc.total" style="vertical-align:top">{{cc.name}}</td>
@@ -294,6 +447,7 @@ const onFilter = () => {
                     </div>
 
                     <div class="tab-pane fade" id="pill-tab-gastos" role="tabpanel" aria-labelledby="gastos-tab">
+
                         <div class="row mb-3">
                             <div class="col-md-6 col-lg-3 col-xl-6 col-xxl-3">
                               <div class="card h-md-100 ecommerce-card-min-width">
@@ -303,7 +457,7 @@ const onFilter = () => {
                                 <div class="card-body d-flex flex-column justify-content-end">
                                   <div class="row">
                                     <div class="col">
-                                      <p class="font-sans-serif lh-1 mb-1 fs-6">{{totalData1}}</p>
+                                      <p class="font-sans-serif lh-1 mb-1 fs-6">{{totalFilteredDataGastos}}</p>
                                     </div>
                                   </div>
                                 </div>
@@ -326,6 +480,28 @@ const onFilter = () => {
                             </div>  
                         </div>
 
+                        <!-- Select de especie (fruta) y variedades para Gastos por Hectarea, lado a lado -->
+                        <div class="mb-3 d-flex align-items-end gap-2 flex-wrap">
+                          <div>
+                            <label for="fruitSelectGastos" class="form-label">Filtrar por especie:</label>
+                            <select id="fruitSelectGastos" v-model="selectedFruit" class="form-select form-select-sm" style="min-width: 180px; max-width: 220px;">
+                              <option value="">Todas</option>
+                              <option v-for="fruit in fruits" :key="fruit.id" :value="fruit.id">
+                                {{ fruit.name }}
+                              </option>
+                            </select>
+                          </div>
+                          <div>
+                            <label for="varietySelectGastos" class="form-label">Filtrar por variedad:</label>
+                            <select id="varietySelectGastos" v-model="selectedVarietyGastos" class="form-select form-select-sm" style="min-width: 180px; max-width: 220px;" :disabled="!selectedFruit">
+                              <option value="">Todas</option>
+                              <option v-for="variety in filteredVarietiesGastos" :key="variety.id" :value="variety.id">
+                                {{ variety.name }}
+                              </option>
+                            </select>
+                          </div>
+                        </div>
+
                         <div class="table-responsive">
                             <table id="table_4" class="table table-bordered table-hover table-sm custom-striped fs-10 mb-0 agrochem-details">
                                 <!--begin::Table head-->
@@ -343,7 +519,7 @@ const onFilter = () => {
                                 <!--end::Table head-->
                                 <!--begin::Table body-->
                                 <tbody>
-                                    <template v-for="cc in data3">
+                                    <template v-for="cc in filteredDataGastos">
                                         <template v-for="(subfamily, index2) in cc.subfamilies">
                                             <tr>
                                                 <td v-if="index2 == 0" :rowspan="cc.total" style="vertical-align:top">{{cc.name}}</td>
@@ -372,6 +548,7 @@ const onFilter = () => {
                     </div>
 
                     <div class="tab-pane fade" id="pill-tab-detalles-compra" role="tabpanel" aria-labelledby="detalles-compra-tab">
+
                         <div class="row mb-3">
                             <div class="col-md-6 col-lg-3 col-xl-6 col-xxl-3">
                               <div class="card h-md-100 ecommerce-card-min-width">
@@ -381,7 +558,7 @@ const onFilter = () => {
                                 <div class="card-body d-flex flex-column justify-content-end">
                                   <div class="row">
                                     <div class="col">
-                                      <p class="font-sans-serif lh-1 mb-1 fs-6">{{totalData2}}</p>
+                                      <p class="font-sans-serif lh-1 mb-1 fs-6">{{totalFilteredDataCompra}}</p>
                                     </div>
                                   </div>
                                 </div>
@@ -419,9 +596,9 @@ const onFilter = () => {
                                 <!--end::Table head-->
                                 <!--begin::Table body-->
                                 <tbody>
-                                    <template v-for="(subfamily, index2) in data2">
+                                    <template v-for="(subfamily, index2) in filteredDataCompra">
                                         <tr>
-                                            <td  style="vertical-align:top;" :rowspan="subfamily.products.length">{{subfamily.name}}</td>
+                                            <td  style="vertical-align:top;" :rowspan="subfamily.products.length + 1">{{subfamily.name}}</td>
                                             <td>{{subfamily.products[0].name}}</td>
                                             <td>{{subfamily.products[0].totalQuantity}}</td>
                                             <td>{{subfamily.products[0].unit}}</td>
@@ -436,6 +613,16 @@ const onFilter = () => {
                                                 <td class="text-dark">{{product.totalAmount}}</td>
                                             </tr>
                                         </template>
+                                        <!-- Subtotal row -->
+                                        <tr class="table-secondary">
+                                            <td colspan="3" class="text-end fw-bold">Subtotal</td>
+                                            <td colspan="2" class="fw-bold text-dark">
+                                              {{ subfamily.products.reduce((acc, p) => {
+                                                let amount = typeof p.totalAmount === 'string' ? Number(p.totalAmount.replace(/\./g, '').replace(/,/g, '.')) : Number(p.totalAmount);
+                                                return !isNaN(amount) ? acc + amount : acc;
+                                              }, 0).toLocaleString('es-CL', { style: 'currency', currency: 'CLP', maximumFractionDigits: 0 }) }}
+                                            </td>
+                                        </tr>
                                     </template>
                                 </tbody>
                                 <!--end::Table body-->
