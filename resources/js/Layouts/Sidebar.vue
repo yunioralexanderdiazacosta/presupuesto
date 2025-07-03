@@ -1836,10 +1836,11 @@ const change = (position, position2 = '') => {
                   <!-- more inner pages-->
                 </li>
               </ul>
-              <!-- parent pages--><a class="nav-link" href="documentation/faq.html" role="button">
-                <div class="d-flex align-items-center"><span class="nav-link-icon"><span class="fas fa-question-circle"></span></span><span class="nav-link-text ps-1">Faq</span>
+              <!-- parent pages-->
+              <Link class="nav-link" href="/faq">
+                <div class="d-flex align-items-center"><span class="nav-link-icon"><span class="fas fa-question-circle"></span></span><span class="nav-link-text ps-1">FAQ</span>
                 </div>
-              </a>
+              </Link>
               <!-- parent pages--><a class="nav-link" href="documentation/gulp.html" role="button">
                 <div class="d-flex align-items-center"><span class="nav-link-icon"><span class="fab fa-gulp"></span></span><span class="nav-link-text ps-1">Gulp</span>
                 </div>

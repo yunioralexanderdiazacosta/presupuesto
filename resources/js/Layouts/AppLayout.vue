@@ -1,6 +1,7 @@
 <script setup>
 import { router, Link } from '@inertiajs/vue3';
 import JetDropdownLink from '@/Components/DropdownLink.vue';
+import { onMounted } from 'vue';
 
 const logout = () => {
     router.post(route('logout'));
@@ -109,6 +110,12 @@ const logout = () => {
                     </li>
                   </ul>
                 </li>
+                <li class="nav-item"><Link class="nav-link" :href="route('faq')">
+                    <div class="d-flex align-items-center"><span class="nav-link-text ps-1 mb-1">FAQ</span>
+                    </div>
+                  </Link>
+                  <!-- more inner pages-->
+                </li>
               </ul>
               <!-- parent pages--><a class="nav-link dropdown-indicator" href="#user" role="button" data-bs-toggle="collapse" aria-expanded="false" aria-controls="user">
                 <div class="d-flex align-items-center"><span class="nav-link-icon"><span class="fas fa-user"></span></span><span class="nav-link-text ps-1">Parametros</span>
@@ -159,6 +166,12 @@ const logout = () => {
                 </li>
                 <li class="nav-item"><Link class="nav-link" :href="route('seasons.index')">
                     <div class="d-flex align-items-center"><span class="nav-link-text ps-1">- Temporadas</span>
+                    </div>
+                  </Link>
+                  <!-- more inner pages-->
+                </li>
+                <li class="nav-item"><Link class="nav-link" :href="route('faq')">
+                    <div class="d-flex align-items-center"><span class="nav-link-text ps-1">- FAQ</span>
                     </div>
                   </Link>
                   <!-- more inner pages-->
@@ -319,6 +332,11 @@ const logout = () => {
           </li>
         </ul>
         <ul class="navbar-nav navbar-nav-icons ms-auto flex-row align-items-center">
+          <li class="nav-item">
+            <button @click="toggleDarkMode" class="btn btn-sm btn-secondary ms-2" title="Alternar modo oscuro">
+              <span class="fas fa-moon"></span>
+            </button>
+          </li>
           <li class="nav-item dropdown"><a class="nav-link pe-0 ps-2" id="navbarDropdownUser" role="button" data-bs-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
               <div class="avatar avatar-xl">
                 <img class="rounded-circle" :src="$page.props.auth.user.profile_photo_url" alt="photo" />

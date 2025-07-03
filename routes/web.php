@@ -178,6 +178,11 @@ Route::middleware([
     'verified',
 ])->group(function () {
 
+    // Página de Preguntas Frecuentes (FAQ)
+    Route::get('/faq', function () {
+        return Inertia::render('FaqPage');
+    })->name('faq');
+
     Route::get('/teams', TeamsController::class)->name('teams.index');
     Route::get('/budgets', BudgetsController::class)->name('budgets.index');
     Route::get('/suppliers', SuppliersController::class)->name('suppliers.index');
