@@ -10,7 +10,7 @@
       <div :id="'collapse' + idx" class="accordion-collapse collapse" :aria-labelledby="'heading' + idx"
         data-bs-parent="#faqAccordion">
         <div class="accordion-body">
-          <slot name="answer" :faq="faq">{{ faq.answer }}</slot>
+          <slot name="answer" :faq="faq"><span v-html="faq.answer"></span></slot>
         </div>
       </div>
     </div>

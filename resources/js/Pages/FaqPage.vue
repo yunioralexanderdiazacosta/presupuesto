@@ -1,9 +1,27 @@
 <script setup>
 import Faq from '@/Components/Faq.vue';
 const faqs = [
-  { question: '¿Cómo comenzar?', answer: 'Para comenzar a utilizar este programa debes partir por lo siguiente: 1. Crear razones sociales. 2.Crear Variedades. 3.Crear las Especies. 4.Crear una temporada. 5.Crear los niveles 3 y 4. 5.Crear los centros de costos' },
-  { question: '¿Puedo exportar los datos?', answer: 'Sí, usa el botón de exportar en la parte superior de la tabla.' },
-  { question: '¿Cómo edito un registro?', answer: 'Haz clic en el ícono de lápiz junto al registro que deseas editar.' }
+  {
+    question: '¿Cómo comenzar?',
+    answer: `Para comenzar a utilizar este programa debes partir por lo siguiente:<br>
+    <br>
+      <ol style="margin-left:1em;">
+        <li>Crear razones sociales</li>
+        <li>Crear Variedades</li>
+        <li>Crear las Especies</li>
+        <li>Crear una temporada</li>
+        <li>Crear los niveles 3 y 4</li>
+        <li>Crear los centros de costos</li>
+      </ol>`
+  },
+  {
+    question: '¿Puedo exportar los datos?',
+    answer: 'Sí, usa el botón de <b>exportar</b> en la parte superior de la tabla.'
+  },
+  {
+    question: '¿Cómo edito un registro?',
+    answer: 'Haz clic en el ícono de <i>lápiz</i> junto al registro que deseas editar.'
+  }
 ];
 </script>
 

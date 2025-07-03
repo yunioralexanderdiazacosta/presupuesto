@@ -123,6 +123,13 @@ const items = [
             },
 
             {
+                title: 'Summary de Niveles',
+                icon: `<i class="bi bi-diagram-3"></i>`,
+                link: 'levels.summary',
+                subitems: []
+            },
+
+            {
                 title: 'Usuarios',
                 icon: `<i class="bi bi-card-checklist"></i>`,
                 link: 'users.index',

@@ -13,7 +13,7 @@ class LevelsController extends Controller
     {
         $user = Auth::user();
 
-        $term = $request->term ?? '';  
+        $term = $request->term ?? '';
 
         $season_id = session('season_id');
 
@@ -22,5 +22,18 @@ class LevelsController extends Controller
         })->where('season_id', $season_id)->paginate(10)->withQueryString();
 
         return Inertia::render('Levels', compact('levels', 'term'));
+    }
+
+    // Vista resumen de todos los niveles anidados
+    public function summary()
+    {
+        $user = Auth::user();
+        $season_id = session('season_id');
+        $levels1 = Level1::with(['levels2.level3s.level4s'])
+            ->where('team_id', $user->team_id)
+            ->where('season_id', $season_id)
+            ->get();
+
+        return Inertia::render('LevelsSummary', compact('levels1'));
     }
 }

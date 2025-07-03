@@ -128,11 +128,20 @@ const logout = () => {
                   </Link>
                   <!-- more inner pages-->
                 </li>
-                <li class="nav-item"><Link class="nav-link" :href="route('levels.index')">
-                    <div class="d-flex align-items-center"><span class="nav-link-text ps-1">- Niveles</span>
-                    </div>
-                  </Link>
-                  <!-- more inner pages-->
+                <li class="nav-item">
+                  <a class="nav-link dropdown-indicator" href="#niveles" data-bs-toggle="collapse" aria-expanded="false" aria-controls="niveles">
+                    <div class="d-flex align-items-center"><span class="nav-link-text ps-1">Niveles</span></div>
+                  </a>
+                  <ul class="nav collapse" id="niveles">
+                    <li class="nav-item"><Link class="nav-link" :href="route('levels.index')">
+                        <div class="d-flex align-items-center"><span class="nav-link-text ps-1">- Crear Niveles</span></div>
+                      </Link>
+                    </li>
+                    <li class="nav-item"><Link class="nav-link" :href="route('levels.summary')">
+                        <div class="d-flex align-items-center"><span class="nav-link-text ps-1">- Resumen de Niveles</span></div>
+                      </Link>
+                    </li>
+                  </ul>
                 </li>
                 <li class="nav-item"><Link class="nav-link" :href="route('users.index')">
                     <div class="d-flex align-items-center"><span class="nav-link-text ps-1">- Usuarios</span>

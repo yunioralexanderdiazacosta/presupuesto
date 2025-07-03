@@ -363,6 +363,8 @@ Route::middleware([
 
 Route::get('/weather', [WeatherController::class, 'show'])->name('weather');
 
+// Summary de niveles anidados
+    Route::get('/levels/summary', [LevelsController::class, 'summary'])->name('levels.summary');
 
 
 });
