@@ -9,6 +9,8 @@ import Breadcrumb from '@/Components/Breadcrumb.vue';
 import TitleBudget from '@/Components/Budgets/TitleBudget.vue';
 import CreateAgrochemicalModal from '@/Components/Agrochemicals/CreateAgrochemicalModal.vue';
 import EditAgrochemicalModal from '@/Components/Agrochemicals/EditAgrochemicalModal.vue';
+import ExportExcelButton from '@/Components/ExportExcelButton.vue';
+import ExportPdfButton from '@/Components/ExportPdfButton.vue';
 
 const props = defineProps({
     agrochemicals: Object,
@@ -250,11 +252,7 @@ const onFilter = () => {
                     <div class="col-6 col-sm-auto d-flex align-items-center pe-0">
                       <h5 class="fs-9 mb-0 text-nowrap py-2 py-xl-0">Agroquimicos</h5>
                     </div>
-                    <div class="col-6 col-sm-auto ms-auto text-end ps-0">
-                      <div id="table-purchases-replace-element">
-                        <button class="btn btn-falcon-default btn-sm" type="button" @click="openAdd()"><span class="fas fa-plus" data-fa-transform="shrink-3 down-2"></span><span class="d-none d-sm-inline-block ms-1">Nuevo</span></button>
-                      </div>
-                    </div>
+                    <!-- Botones de exportar y Nuevo solo deben ir en la pestaña Edición -->
                 </div>
             </div>
             <div class="card-body bg-body-tertiary">
@@ -266,6 +264,40 @@ const onFilter = () => {
                 </ul>
                 <div class="tab-content border p-3 mt-3" id="pill-myTabContent">
                     <div class="tab-pane fade show active" id="pill-tab-edicion" role="tabpanel" aria-labelledby="edicion-tab">
+                        <div class="d-flex justify-content-end align-items-center gap-1 mb-1">
+                          <ExportExcelButton
+                            :data="agrochemicals.data"
+                            :headers="[
+                              { label: 'Nombre', key: 'product_name' },
+                              { label: 'SubFamilia', key: 'subfamily.name' },
+                              { label: 'Dosis', key: 'dose' },
+                              { label: 'Unidad', key: 'unit.name' },
+                              { label: 'Tipo Dosis', key: 'dosetype.name' },
+                              { label: 'Mojamiento', key: 'mojamiento' },
+                              { label: 'Precio', key: 'price' }
+                            ]"
+                            class="btn btn-success btn-md d-flex align-items-center p-0"
+                            filename="Agroquimicos.xlsx"
+                          />
+                          <ExportPdfButton
+                            :data="agrochemicals.data"
+                            :headers="[
+                              { label: 'Nombre', key: 'product_name' },
+                              { label: 'SubFamilia', key: 'subfamily.name' },
+                              { label: 'Dosis', key: 'dose' },
+                              { label: 'Unidad', key: 'unit.name' },
+                              { label: 'Tipo Dosis', key: 'dosetype.name' },
+                              { label: 'Mojamiento', key: 'mojamiento' },
+                              { label: 'Precio', key: 'price' }
+                            ]"
+                            class="btn btn-danger btn-md d-flex align-items-center p-0"
+                            filename="Agroquimicos.pdf"
+                          />
+                          <button class="btn btn-falcon-default btn-sm ms-1" type="button" @click="openAdd()">
+                            <span class="fas fa-plus" data-fa-transform="shrink-3 down-2"></span>
+                            <span class="d-none d-sm-inline-block ms-2">Nuevo</span>
+                          </button>
+                        </div>
                         <Table sticky-header :id="'agrochemicals'" :total="agrochemicals.length" :links="agrochemicals.links">
                             <!--begin::Table head-->
                             <template #header>
@@ -283,11 +315,11 @@ const onFilter = () => {
                             <!--end::Table head-->
                             <!--begin::Table body-->
                             <template #body>
-                                <template v-if="agrochemicals.total == 0">
+                                <template v-if="props.agrochemicals.total == 0">
                                     <Empty colspan="7" />
                                 </template>
                                 <template v-else>
-                                    <tr v-for="(agrochemical, index) in agrochemicals.data" :key="index">
+                                    <tr v-for="(agrochemical, index) in props.agrochemicals.data" :key="index">
                                         <td>
                                             <span class="text-dark  fw-bold mb-1">{{agrochemical.product_name}}</span>
                                         </td>
@@ -314,7 +346,7 @@ const onFilter = () => {
                             </template>
                             <!--end::Table body-->
                         </Table>
-                        <Pagination :links="agrochemicals.links" class="mt-2" />
+                        <Pagination :links="props.agrochemicals.links" class="mt-2" />
                     </div>
                     <div class="tab-pane fade" id="pill-tab-detalles" role="tabpanel" aria-labelledby="detalles-tab">
                         <div class="row mb-3">

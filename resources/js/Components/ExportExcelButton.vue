@@ -1,6 +1,6 @@
 <template>
-  <button @click="exportExcel" class="btn btn-success btn-sm d-inline-block px-2 py-1 mb-2" style="font-size:0.75rem;">
-    <i class="fas fa-file-excel me-1"></i> Exportar a Excel
+  <button @click="exportExcel" class="btn btn-success btn-sm d-inline-block px-2 py-1 mb-1" style="font-size:0.75rem;">
+    <i class="fas fa-file-excel fa-2x"></i>
   </button>
 </template>
 
@@ -13,15 +13,34 @@ const props = defineProps({
 });
 
 function stripHtml(html) {
-  return html ? html.replace(/<[^>]+>/g, '') : '';
+  if (typeof html === 'string') {
+    return html.replace(/<[^>]+>/g, '');
+  }
+  if (html === null || html === undefined) {
+    return '';
+  }
+  // Si es un número, booleano, etc., lo convertimos a string
+  return String(html);
+}
+
+function getValueByPath(obj, path) {
+  return path.split('.').reduce((acc, part) => acc && acc[part], obj);
 }
 
 function exportExcel() {
-  // Construye los datos para exportar
+  // Detecta columnas numéricas por nombre (puedes ajustar los nombres aquí)
+  const numericKeys = ['Dosis', 'Precio', 'Mojamiento'];
   const exportData = props.data.map(row => {
     const obj = {};
     props.headers.forEach(h => {
-      obj[h.label] = stripHtml(row[h.key]);
+      let value = getValueByPath(row, h.key);
+      // Si la columna es numérica y el valor es un número válido, lo dejamos como número
+      if (numericKeys.includes(h.label)) {
+        const num = Number(value);
+        obj[h.label] = isNaN(num) ? stripHtml(value) : num;
+      } else {
+        obj[h.label] = stripHtml(value);
+      }
     });
     return obj;
   });
