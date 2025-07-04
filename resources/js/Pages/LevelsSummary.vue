@@ -1,11 +1,39 @@
 <template>
-  <div class="container py-4">
+  <div class="container py-3">
     <div class="card shadow border-0 p-4">
-      <h2 class="mb-4 text-primary">
-        <i class="fas fa-sitemap me-2"></i>Resumen de Niveles
+      <h2 class="mb-1 text-primary">
+        <i class="fas fa-sitemap me-1"></i>Resumen de Niveles
       </h2>
+      <div class="text-end">
+        <ExportExcelButton
+          :data="displayRows"
+          :headers="[
+            { label: 'Nivel 1', key: 'n1' },
+            { label: 'Nivel 2', key: 'n2' },
+            { label: 'Nivel 3', key: 'n3' },
+            { label: 'Nivel 4', key: 'n4' }
+          ]"
+          filename="resumen_niveles.xlsx"
+        />
+        <ExportPdfButton
+          :data="displayRows"
+          :headers="[
+            { label: 'Nivel 1', key: 'n1' },
+            { label: 'Nivel 2', key: 'n2' },
+            { label: 'Nivel 3', key: 'n3' },
+            { label: 'Nivel 4', key: 'n4' }
+          ]"
+          filename="resumen_niveles.pdf"
+        />
+      </div>
       <div class="table-responsive">
-        <table class="table table-striped table-hover mb-0 table-sm small">
+        <table class="table table-bordered table-hover mb-0 table-sm small">
+          <colgroup>
+            <col class="col-n1" />
+            <col class="col-n2" />
+            <col class="col-n3" />
+            <col class="col-n4" />
+          </colgroup>
           <thead class="table-light">
             <tr>
               <th>Nivel 1</th>
@@ -31,6 +59,8 @@
 </template>
 
 <script setup>
+import ExportExcelButton from '../Components/ExportExcelButton.vue';
+import ExportPdfButton from '../Components/ExportPdfButton.vue';
 const props = defineProps({
   levels1: {
     type: Array,
@@ -119,4 +149,8 @@ const displayRows = addRowspanAndIcons(tableRows);
 .card {
   border-radius: 1rem;
 }
+.col-n1 { width: 80px; min-width: 80px; }
+.col-n2 { width: 100px; min-width: 100px; }
+.col-n3 { width: 120px; min-width: 100px; }
+.col-n4 { width: 120px; min-width: 80px; }
 </style>
