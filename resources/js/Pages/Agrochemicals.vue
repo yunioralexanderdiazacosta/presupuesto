@@ -350,39 +350,38 @@ const onFilter = () => {
                     </div>
                     <div class="tab-pane fade" id="pill-tab-detalles" role="tabpanel" aria-labelledby="detalles-tab">
                         <div class="row mb-3">
-                            <div class="col-md-6 col-lg-3 col-xl-6 col-xxl-3">
-                              <div class="card h-md-100 ecommerce-card-min-width">
-                                <div class="card-header pb-0">
-                                  <h6 class="mb-0 mt-2 d-flex align-items-center">Monto Total</h6>
+                            <div class="col-md-4 col-lg-2 col-xl-2 col-xxl-2">
+                              <div class="card h-100 p-1 small-card">
+                                <div class="card-header pb-0 pt-1 px-2">
+                                  <h6 class="mb-0 mt-1 fs-8 d-flex align-items-center small-card-title">Monto Total</h6>
                                 </div>
-                                <div class="card-body d-flex flex-column justify-content-end">
+                                <div class="card-body d-flex flex-column justify-content-end py-1 px-2">
                                   <div class="row">
                                     <div class="col">
-                                      <p class="font-sans-serif lh-1 mb-1 fs-6">{{ totalFilteredData }}</p>
+                                      <p class="font-sans-serif lh-1 mb-1 fs-8 small-card-number">{{ totalFilteredData }}</p>
                                     </div>
                                   </div>
                                 </div>
                               </div>
                             </div>
-
-                            <div class="col-md-6 col-lg-3 col-xl-6 col-xxl-3">
-                              <div class="card h-md-100 ecommerce-card-min-width">
-                                <div class="card-header pb-0">
-                                  <h5 class="mb-0 mt-2 d-flex align-items-center">Porc. Monto</h5>
+                            <div class="col-md-4 col-lg-2 col-xl-2 col-xxl-2">
+                              <div class="card h-100 p-1 small-card">
+                                <div class="card-header pb-0 pt-1 px-2">
+                                  <h6 class="mb-0 mt-1 fs-8 d-flex align-items-center small-card-title">Porc. Monto</h6>
                                 </div>
-                                <div class="card-body d-flex flex-column justify-content-end">
+                                <div class="card-body d-flex flex-column justify-content-end py-1 px-2">
                                   <div class="row">
                                     <div class="col">
-                                      <p class="font-sans-serif lh-1 mb-1 fs-6">{{percentage}}%</p>
+                                      <p class="font-sans-serif lh-1 mb-1 fs-8 small-card-number">{{percentage}}%</p>
                                     </div>
                                   </div>
                                 </div>
                               </div>
-                            </div>  
+                            </div>
                         </div>
                         <!-- Select de especie (fruta) y variedades, lado a lado -->
-                        <div class="mb-3 d-flex align-items-end gap-2 flex-wrap">
-                          <div>
+                        <div class="mb-3 row g-2 align-items-end flex-wrap">
+                          <div class="col-auto">
                             <label for="fruitSelect" class="form-label">Filtrar por especie:</label>
                             <select id="fruitSelect" v-model="selectedFruit" class="form-select form-select-sm" style="min-width: 180px; max-width: 220px;">
                               <option value="">Todas</option>
@@ -391,17 +390,85 @@ const onFilter = () => {
                               </option>
                             </select>
                           </div>
-                          <div>
+                          <div class="col-auto">
                             <label for="varietySelect" class="form-label">Filtrar por variedad:</label>
-                            <select id="varietySelect" v-model="selectedVariety" class="form-select form-select-sm" style="min-width: 180px; max-width: 220px;":disabled="!selectedFruit">
+                            <select id="varietySelect" v-model="selectedVariety" class="form-select form-select-sm" style="min-width: 180px; max-width: 220px;" :disabled="!selectedFruit">
                               <option value="">Todas</option>
                               <option v-for="variety in filteredVarieties" :key="variety.id" :value="variety.id">
                                 {{ variety.name }}
                               </option>
                             </select>
                           </div>
+                          <div class="col d-flex justify-content-end align-items-end gap-1">
+                            <ExportExcelButton
+                              :data="filteredData.flatMap(cc => cc.subfamilies.flatMap(subfamily => subfamily.products.map(product => {
+                                const parseSpanishNumber = val => {
+                                  if (typeof val === 'number') return val;
+                                  if (typeof val !== 'string') return undefined;
+                                  const cleaned = val.replace(/\./g, '').replace(/,/g, '.');
+                                  if (cleaned.trim() === '') return undefined;
+                                  const num = Number(cleaned);
+                                  return isNaN(num) ? undefined : num;
+                                };
+                                const row = {
+                                  cc: cc.name,
+                                  subfamily: subfamily.name,
+                                  producto: product.name,
+                                  cantidad: parseSpanishNumber(product.totalQuantity),
+                                  unidad: product.unit,
+                                  monto: parseSpanishNumber(product.totalAmount)
+                                };
+                                ($page.props.months || []).forEach((month, idx) => {
+                                  row[month.label] = parseSpanishNumber(product.months && product.months[idx]);
+                                });
+                                return row;
+                              })))"
+                              :headers="[
+                                { label: 'CC', key: 'cc' },
+                                { label: 'Subfamilia', key: 'subfamily' },
+                                { label: 'Producto', key: 'producto' },
+                                { label: 'Cantidad Total', key: 'cantidad', type: 'number' },
+                                { label: 'Un', key: 'unidad' },
+                                { label: 'Monto Total', key: 'monto', type: 'number' },
+                                ...($page.props.months || []).map(month => ({ label: month.label, key: month.label, type: 'number' }))
+                              ]"
+                              class="btn btn-success btn-md d-flex align-items-center p-0"
+                              filename="Agroquimicos-Detalles.xlsx"
+                            />
+                            <ExportPdfButton
+                              :data="filteredData.flatMap(cc => cc.subfamilies.flatMap(subfamily => subfamily.products.map(product => {
+                                const parseSpanishNumber = val => {
+                                  if (typeof val === 'number') return val;
+                                  if (typeof val !== 'string') return 0;
+                                  const cleaned = val.replace(/\./g, '').replace(/,/g, '.');
+                                  const num = Number(cleaned);
+                                  return isNaN(num) ? 0 : num;
+                                };
+                                return {
+                                  cc: cc.name,
+                                  subfamily: subfamily.name,
+                                  producto: product.name,
+                                  cantidad: parseSpanishNumber(product.totalQuantity),
+                                  unidad: product.unit,
+                                  monto: parseSpanishNumber(product.totalAmount),
+                                  ...Object.fromEntries(($page.props.months || []).map((month, idx) => [month.label, product.months && product.months[idx] !== undefined && product.months[idx] !== '' ? parseSpanishNumber(product.months[idx]) : '']))
+                                }
+                              })))"
+                              :headers="[
+                                { label: 'CC', key: 'cc' },
+                                { label: 'Subfamilia', key: 'subfamily' },
+                                { label: 'Producto', key: 'producto' },
+                                { label: 'Cantidad Total', key: 'cantidad', type: 'number' },
+                                { label: 'Un', key: 'unidad' },
+                                { label: 'Monto Total', key: 'monto', type: 'number' },
+                                ...($page.props.months || []).map(month => ({ label: month.label, key: month.label, type: 'number' }))
+                              ]"
+                              class="btn btn-danger btn-md d-flex align-items-center p-0"
+                              filename="Agroquimicos-Detalles.pdf"
+                            />
+                          </div>
                         </div>
-                        <!--begin::Table-->
+                       
                         <div class="table-responsive mt-1">
                             <table class="table table-bordered table-hover table-sm custom-striped fs-10 mb-0 agrochem-details">
                                 <!--begin::Table head-->
@@ -412,7 +479,7 @@ const onFilter = () => {
                                         <th class="min-w-100px">Producto</th>
                                         <th>Cantidad Total</th>
                                         <th>Un</th>
-                                        <th class="text-dark">Monto Total</th>
+                                        <th class="text-dark text-end">Monto Total</th>
                                         <th v-for="month in $page.props.months" class="text-primary">{{month.label}}</th> 
                                     </tr>
                                 </thead>
@@ -449,40 +516,39 @@ const onFilter = () => {
                     </div>
                     <div class="tab-pane fade" id="pill-tab-gastos" role="tabpanel" aria-labelledby="gastos-tab">
                         <div class="row mb-3">
-                            <div class="col-md-6 col-lg-3 col-xl-6 col-xxl-3">
-                              <div class="card h-md-100 ecommerce-card-min-width">
-                                <div class="card-header pb-0">
-                                  <h6 class="mb-0 mt-2 d-flex align-items-center">Monto Total</h6>
+                            <div class="col-md-4 col-lg-2 col-xl-2 col-xxl-2">
+                              <div class="card h-100 p-1 small-card">
+                                <div class="card-header pb-0 pt-1 px-2">
+                                  <h6 class="mb-0 mt-1 fs-8 d-flex align-items-center small-card-title">Monto Total</h6>
                                 </div>
-                                <div class="card-body d-flex flex-column justify-content-end">
+                                <div class="card-body d-flex flex-column justify-content-end py-1 px-2">
                                   <div class="row">
                                     <div class="col">
-                                      <p class="font-sans-serif lh-1 mb-1 fs-6">{{ totalFilteredDataGastos }}</p>
+                                      <p class="font-sans-serif lh-1 mb-1 fs-8 small-card-number">{{ totalFilteredDataGastos }}</p>
                                     </div>
                                   </div>
                                 </div>
                               </div>
                             </div>
-
-                            <div class="col-md-6 col-lg-3 col-xl-6 col-xxl-3">
-                              <div class="card h-md-100 ecommerce-card-min-width">
-                                <div class="card-header pb-0">
-                                  <h6 class="mb-0 mt-2 d-flex align-items-center">Porc. Monto</h6>
+                            <div class="col-md-4 col-lg-2 col-xl-2 col-xxl-2">
+                              <div class="card h-100 p-1 small-card">
+                                <div class="card-header pb-0 pt-1 px-2">
+                                  <h6 class="mb-0 mt-1 fs-8 d-flex align-items-center small-card-title">Porc. Monto</h6>
                                 </div>
-                                <div class="card-body d-flex flex-column justify-content-end">
+                                <div class="card-body d-flex flex-column justify-content-end py-1 px-2">
                                   <div class="row">
                                     <div class="col">
-                                      <p class="font-sans-serif lh-1 mb-1 fs-6">{{percentage}}%</p>
+                                      <p class="font-sans-serif lh-1 mb-1 fs-8 small-card-number">{{percentage}}%</p>
                                     </div>
                                   </div>
                                 </div>
                               </div>
-                            </div>  
+                            </div>
                         </div>
 
-                        <!-- Select de especie (fruta) y variedades para Gastos por Hectarea, lado a lado -->
-                        <div class="mb-3 d-flex align-items-end gap-2 flex-wrap">
-                          <div>
+                        <!-- Select de especie (fruta) y variedades para Gastos por Hectarea, lado a lado, y botones de exportar -->
+                        <div class="mb-3 row g-2 align-items-end flex-wrap">
+                          <div class="col-auto">
                             <label for="fruitSelectGastos" class="form-label">Filtrar por especie:</label>
                             <select id="fruitSelectGastos" v-model="selectedFruit" class="form-select form-select-sm" style="min-width: 180px; max-width: 220px;">
                               <option value="">Todas</option>
@@ -491,14 +557,82 @@ const onFilter = () => {
                               </option>
                             </select>
                           </div>
-                          <div>
+                          <div class="col-auto">
                             <label for="varietySelectGastos" class="form-label">Filtrar por variedad:</label>
-                            <select id="varietySelectGastos" v-model="selectedVarietyGastos" class="form-select form-select-sm" style="min-width: 180px; max-width: 220px;":disabled="!selectedFruit">
+                            <select id="varietySelectGastos" v-model="selectedVarietyGastos" class="form-select form-select-sm" style="min-width: 180px; max-width: 220px;" :disabled="!selectedFruit">
                               <option value="">Todas</option>
                               <option v-for="variety in filteredVarietiesGastos" :key="variety.id" :value="variety.id">
                                 {{ variety.name }}
                               </option>
                             </select>
+                          </div>
+                          <div class="col d-flex justify-content-end align-items-end gap-1">
+                            <ExportExcelButton
+                              :data="filteredDataGastos.flatMap(cc => cc.subfamilies.flatMap(subfamily => subfamily.products.map(product => {
+                                const parseSpanishNumber = val => {
+                                  if (typeof val === 'number') return val;
+                                  if (typeof val !== 'string') return undefined;
+                                  const cleaned = val.replace(/\./g, '').replace(/,/g, '.');
+                                  if (cleaned.trim() === '') return undefined;
+                                  const num = Number(cleaned);
+                                  return isNaN(num) ? undefined : num;
+                                };
+                                const row = {
+                                  cc: cc.name,
+                                  subfamily: subfamily.name,
+                                  producto: product.name,
+                                  cantidad: parseSpanishNumber(product.totalQuantity),
+                                  unidad: product.unit,
+                                  monto: parseSpanishNumber(product.totalAmount)
+                                };
+                                ($page.props.months || []).forEach((month, idx) => {
+                                  row[month.label] = parseSpanishNumber(product.months && product.months[idx]);
+                                });
+                                return row;
+                              })))"
+                              :headers="[
+                                { label: 'CC', key: 'cc' },
+                                { label: 'Subfamilia', key: 'subfamily' },
+                                { label: 'Producto', key: 'producto' },
+                                { label: 'Cantidad Total', key: 'cantidad', type: 'number' },
+                                { label: 'Un', key: 'unidad' },
+                                { label: 'Monto Total', key: 'monto', type: 'number' },
+                                ...($page.props.months || []).map(month => ({ label: month.label, key: month.label, type: 'number' }))
+                              ]"
+                              class="btn btn-success btn-md d-flex align-items-center p-0"
+                              filename="Agroquimicos-GastosPorHectarea.xlsx"
+                            />
+                            <ExportPdfButton
+                              :data="filteredDataGastos.flatMap(cc => cc.subfamilies.flatMap(subfamily => subfamily.products.map(product => {
+                                const parseSpanishNumber = val => {
+                                  if (typeof val === 'number') return val;
+                                  if (typeof val !== 'string') return 0;
+                                  const cleaned = val.replace(/\./g, '').replace(/,/g, '.');
+                                  const num = Number(cleaned);
+                                  return isNaN(num) ? 0 : num;
+                                };
+                                return {
+                                  cc: cc.name,
+                                  subfamily: subfamily.name,
+                                  producto: product.name,
+                                  cantidad: parseSpanishNumber(product.totalQuantity),
+                                  unidad: product.unit,
+                                  monto: parseSpanishNumber(product.totalAmount),
+                                  ...Object.fromEntries(($page.props.months || []).map((month, idx) => [month.label, product.months && product.months[idx] !== undefined && product.months[idx] !== '' ? parseSpanishNumber(product.months[idx]) : '']))
+                                }
+                              })))"
+                              :headers="[
+                                { label: 'CC', key: 'cc' },
+                                { label: 'Subfamilia', key: 'subfamily' },
+                                { label: 'Producto', key: 'producto' },
+                                { label: 'Cantidad Total', key: 'cantidad', type: 'number' },
+                                { label: 'Un', key: 'unidad' },
+                                { label: 'Monto Total', key: 'monto', type: 'number' },
+                                ...($page.props.months || []).map(month => ({ label: month.label, key: month.label, type: 'number' }))
+                              ]"
+                              class="btn btn-danger btn-md d-flex align-items-center p-0"
+                              filename="Agroquimicos-GastosPorHectarea.pdf"
+                            />
                           </div>
                         </div>
                         <!--begin::Table-->
@@ -549,36 +683,92 @@ const onFilter = () => {
                     </div>
                     <div class="tab-pane fade" id="pill-tab-detalles-compra" role="tabpanel" aria-labelledby="detalles-compra-tab">
                         <div class="row mb-3">
-                            <div class="col-md-6 col-lg-3 col-xl-6 col-xxl-3">
-                              <div class="card h-md-100 ecommerce-card-min-width">
-                                <div class="card-header pb-0">
-                                  <h6 class="mb-0 mt-2 d-flex align-items-center">Monto Total</h6>
+                            <div class="col-md-4 col-lg-2 col-xl-2 col-xxl-2">
+                              <div class="card h-100 p-1 small-card">
+                                <div class="card-header pb-0 pt-1 px-2">
+                                  <h6 class="mb-0 mt-1 fs-8 d-flex align-items-center small-card-title">Monto Total</h6>
                                 </div>
-                                <div class="card-body d-flex flex-column justify-content-end">
+                                <div class="card-body d-flex flex-column justify-content-end py-1 px-2">
                                   <div class="row">
                                     <div class="col">
-                                      <p class="font-sans-serif lh-1 mb-1 fs-6">{{totalData2}}</p>
+                                      <p class="font-sans-serif lh-1 mb-1 fs-8 small-card-number">{{totalData2}}</p>
                                     </div>
                                   </div>
                                 </div>
                               </div>
                             </div>
-
-                            <div class="col-md-6 col-lg-3 col-xl-6 col-xxl-3">
-                              <div class="card h-md-100 ecommerce-card-min-width">
-                                <div class="card-header pb-0">
-                                  <h6 class="mb-0 mt-2 d-flex align-items-center">Porc. Monto</h6>
+                            <div class="col-md-4 col-lg-2 col-xl-2 col-xxl-2">
+                              <div class="card h-100 p-1 small-card">
+                                <div class="card-header pb-0 pt-1 px-2">
+                                  <h6 class="mb-0 mt-1 fs-8 d-flex align-items-center small-card-title">Porc. Monto</h6>
                                 </div>
-                                <div class="card-body d-flex flex-column justify-content-end">
+                                <div class="card-body d-flex flex-column justify-content-end py-1 px-2">
                                   <div class="row">
                                     <div class="col">
-                                      <p class="font-sans-serif lh-1 mb-1 fs-6">{{percentage}}%</p>
+                                      <p class="font-sans-serif lh-1 mb-1 fs-8 small-card-number">{{percentage}}%</p>
                                     </div>
                                   </div>
                                 </div>
                               </div>
-                            </div>  
-                        </div>   
+                            </div>
+                            <div class="col d-flex justify-content-end align-items-end gap-1">
+                              <ExportExcelButton
+                                :data="data2.flatMap(subfamily => subfamily.products.map(product => {
+                                  const parseSpanishNumber = val => {
+                                    if (typeof val === 'number') return val;
+                                    if (typeof val !== 'string') return undefined;
+                                    const cleaned = val.replace(/\./g, '').replace(/,/g, '.');
+                                    if (cleaned.trim() === '') return undefined;
+                                    const num = Number(cleaned);
+                                    return isNaN(num) ? undefined : num;
+                                  };
+                                  return {
+                                    subfamily: subfamily.name,
+                                    producto: product.name,
+                                    cantidad: parseSpanishNumber(product.totalQuantity),
+                                    unidad: product.unit,
+                                    monto: parseSpanishNumber(product.totalAmount)
+                                  };
+                                }))"
+                                :headers="[
+                                  { label: 'Subfamilia', key: 'subfamily' },
+                                  { label: 'Producto', key: 'producto' },
+                                  { label: 'Cantidad Total', key: 'cantidad', type: 'number' },
+                                  { label: 'Un', key: 'unidad' },
+                                  { label: 'Monto Total', key: 'monto', type: 'number' }
+                                ]"
+                                class="btn btn-success btn-md d-flex align-items-center p-0"
+                                filename="Agroquimicos-DetalleCompra.xlsx"
+                              />
+                              <ExportPdfButton
+                                :data="data2.flatMap(subfamily => subfamily.products.map(product => {
+                                  const parseSpanishNumber = val => {
+                                    if (typeof val === 'number') return val;
+                                    if (typeof val !== 'string') return 0;
+                                    const cleaned = val.replace(/\./g, '').replace(/,/g, '.');
+                                    const num = Number(cleaned);
+                                    return isNaN(num) ? 0 : num;
+                                  };
+                                  return {
+                                    subfamily: subfamily.name,
+                                    producto: product.name,
+                                    cantidad: parseSpanishNumber(product.totalQuantity),
+                                    unidad: product.unit,
+                                    monto: parseSpanishNumber(product.totalAmount)
+                                  };
+                                }))"
+                                :headers="[
+                                  { label: 'Subfamilia', key: 'subfamily' },
+                                  { label: 'Producto', key: 'producto' },
+                                  { label: 'Cantidad Total', key: 'cantidad', type: 'number' },
+                                  { label: 'Un', key: 'unidad' },
+                                  { label: 'Monto Total', key: 'monto', type: 'number' }
+                                ]"
+                                class="btn btn-danger btn-md d-flex align-items-center p-0"
+                                filename="Agroquimicos-DetalleCompra.pdf"
+                              />
+                            </div>
+                        </div>
 
                         <!--begin::Table-->
                         <div class="table-responsive mt-1">
@@ -602,7 +792,7 @@ const onFilter = () => {
                                             <td>{{subfamily.products[0].name}}</td>
                                             <td>{{subfamily.products[0].totalQuantity}}</td>
                                             <td>{{subfamily.products[0].unit}}</td>
-                                            <td class="text-dark">{{subfamily.products[0].totalAmount}}</td>
+                                            <td class="text-dark text-end">{{subfamily.products[0].totalAmount}}</td>
                                         </tr>
 
                                         <template v-for="(product, index3) in subfamily.products">
@@ -610,13 +800,13 @@ const onFilter = () => {
                                                 <td>{{product.name}}</td>
                                                 <td>{{product.totalQuantity}}</td>
                                                 <td>{{product.unit}}</td>
-                                                <td class="text-dark">{{product.totalAmount}}</td>
+                                                <td class="text-dark text-end">{{product.totalAmount}}</td>
                                             </tr>
                                         </template>
                                         <!-- Subtotal row -->
                                         <tr class="table-secondary">
                                             <td colspan="3" class="text-end fw-bold">Subtotal</td>
-                                            <td colspan="2" class="fw-bold text-dark">
+                                            <td colspan="2" class="fw-bold text-dark text-end">
                                               {{ subfamily.products.reduce((acc, p) => {
                                                 let amount = typeof p.totalAmount === 'string' ? Number(p.totalAmount.replace(/\./g, '').replace(/,/g, '.')) : Number(p.totalAmount);
                                                 return !isNaN(amount) ? acc + amount : acc;
@@ -656,3 +846,17 @@ const onFilter = () => {
   word-break: break-word;
 }
 </style>
+
+.small-card {
+  max-width: 170px;
+  min-width: 110px;
+  font-size: 0.85rem;
+}
+.small-card-title {
+  font-size: 0.85rem !important;
+  line-height: 1.1;
+}
+.small-card-number {
+  font-size: 0.95rem !important;
+  line-height: 1.1;
+}

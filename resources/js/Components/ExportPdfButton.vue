@@ -29,7 +29,9 @@ function getValueByPath(obj, path) {
 }
 
 function exportPdf() {
-  const doc = new jsPDF();
+  // Si hay muchas columnas, usar orientación horizontal
+  const isWide = props.headers.length > 7;
+  const doc = new jsPDF({ orientation: isWide ? 'landscape' : 'portrait' });
   const head = [props.headers.map(h => h.label)];
   const body = props.data.map(row => props.headers.map(h => stripHtml(getValueByPath(row, h.key))));
   autoTable(doc, {
@@ -37,7 +39,8 @@ function exportPdf() {
     body,
     styles: { fontSize: 9 },
     headStyles: { fillColor: [220, 53, 69] },
-    margin: { top: 20 }
+    margin: { top: 20 },
+    tableWidth: 'auto',
   });
   doc.save(props.filename);
 }

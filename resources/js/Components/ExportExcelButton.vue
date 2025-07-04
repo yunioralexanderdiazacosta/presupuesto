@@ -28,16 +28,14 @@ function getValueByPath(obj, path) {
 }
 
 function exportExcel() {
-  // Detecta columnas numéricas por nombre (puedes ajustar los nombres aquí)
-  const numericKeys = ['Dosis', 'Precio', 'Mojamiento'];
+  // Detecta columnas numéricas por type: 'number' en el header
   const exportData = props.data.map(row => {
     const obj = {};
     props.headers.forEach(h => {
       let value = getValueByPath(row, h.key);
-      // Si la columna es numérica y el valor es un número válido, lo dejamos como número
-      if (numericKeys.includes(h.label)) {
+      if (h.type === 'number') {
         const num = Number(value);
-        obj[h.label] = isNaN(num) ? stripHtml(value) : num;
+        obj[h.label] = isNaN(num) ? '' : num;
       } else {
         obj[h.label] = stripHtml(value);
       }
