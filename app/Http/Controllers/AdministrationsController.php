@@ -120,8 +120,8 @@ class AdministrationsController extends Controller
         $administrations = Administration::with(['subfamily:id,name', 'unit:id,name', 'items'])
             ->where('team_id', $team_id)
             ->where('season_id', $season_id)
-            ->get()
-            ->transform(function($admin) {
+            ->paginate(10)
+            ->through(function($admin) {
                 return [
                     'id'            => $admin->id,
                     'product_name'  => $admin->product_name,
@@ -136,10 +136,52 @@ class AdministrationsController extends Controller
                 ];
             });
 
-        // ...resto del código del método __invoke()...
+        // --- Data1 y Data2 para tablas agrupadas y resumenes ---
+        $data1 = Administration::from('administrations as f')
+            ->join('level3s as s', 'f.subfamily_id', 's.id')
+            ->join('level2s as l2', 's.level2_id', 'l2.id')
+            ->join('level1s as l1', 'l2.level1_id', 'l1.id')
+            ->select('l2.id', 'l2.name')
+            ->where('f.team_id', $team_id)
+            ->where('f.season_id', $season_id)
+            ->groupBy('l2.id', 'l2.name')
+            ->get()
+            ->transform(function($value) use ($team_id, $season_id){
+                return [
+                    'id'           => $value->id,
+                    'name'         => $value->name,
+                    'subfamilies'  => $this->getSubfamilies($value->id, $team_id, $season_id)
+                ];
+            });
 
-        // Aquí deberías agregar el resto de la lógica y finalmente el return de Inertia::render(...)
-        // Si ya tienes ese return más abajo, asegúrate de que esté dentro de __invoke y antes de la llave de cierre
+        $data2 = Level3::get()->map(function($subfamily) use ($team_id, $season_id) {
+            $products = $this->getProducts2($subfamily->id, $team_id, $season_id);
+            if ($products->count() > 0) {
+                return [
+                    'name' => $subfamily->name,
+                    'products' => $products
+                ];
+            }
+            return null;
+        })->filter()->values();
+
+        $season = isset($season) ? $season : null;
+        $percentageAdministration = $this->percentageAdministration;
+
+        // Return igual que FieldsController pero para Administrations
+        return Inertia::render('Administrations', compact(
+            'units',
+            'subfamilies',
+            'months',
+            'administrations',
+            'data1',
+            'data2',
+            'season',
+            'level2s',
+            'team_id',
+            'season_id',
+            'percentageAdministration'
+        ));
     }
 
     // Mover la función getTotalField aquí, fuera de __invoke
