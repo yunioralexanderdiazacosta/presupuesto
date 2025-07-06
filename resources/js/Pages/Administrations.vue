@@ -16,7 +16,8 @@ const props = defineProps({
     data1: Array,
     data2: Array,
     team_id: [Number, String], // <-- Añadido
-    season_id: [Number, String] // <-- Añadido
+    season_id: [Number, String], // <-- Añadido
+    percentageAdministration: Number // <-- Añadir aquí para recibir el porcentaje
 });
 
 // Definir los filtros reactivos para equipo y temporada
@@ -155,6 +156,9 @@ const acum_products = (quantity) => {
     acum.value = acum.value + quantity;
     return acum.value;
 }
+
+// Computed para mostrar el porcentaje de administración
+const percentage = computed(() => props.percentageAdministration ?? 0);
 
 /*
 const onFilter = () => {

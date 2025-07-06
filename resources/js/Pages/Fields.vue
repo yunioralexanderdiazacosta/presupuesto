@@ -16,7 +16,8 @@ const props = defineProps({
     data1: Array,
     data2: Array,
     team_id: [Number, String],
-    season_id: [Number, String]
+    season_id: [Number, String],
+    percentageField: Number
 });
 
 const selectedTeamId = ref(props.team_id || null);
@@ -151,7 +152,7 @@ const acum_products = (quantity) => {
 </script>
 <template>
     <Head :title="title" />
-	<AppLayout>
+  <AppLayout>
         <!--begin::Breadcrumb-->
         <Breadcrumb :links="links" />
         <!--end::Breadcrumb-->
@@ -263,7 +264,7 @@ const acum_products = (quantity) => {
                                 <div class="card-body d-flex flex-column justify-content-end">
                                   <div class="row">
                                     <div class="col">
-                                      <p class="font-sans-serif lh-1 mb-1 fs-6">{{percentage}}%</p>
+<p class="font-sans-serif lh-1 mb-1 fs-6">{{ props.percentageField }}%</p>
                                     </div>
                                   </div>
                                 </div>
@@ -362,7 +363,7 @@ const acum_products = (quantity) => {
                                 <div class="card-body d-flex flex-column justify-content-end">
                                   <div class="row">
                                     <div class="col">
-                                      <p class="font-sans-serif lh-1 mb-1 fs-6">{{percentage}}%</p>
+                                      <p class="font-sans-serif lh-1 mb-1 fs-6">{{percentageField}}%</p>
                                     </div>
                                   </div>
                                 </div>
@@ -455,7 +456,7 @@ const acum_products = (quantity) => {
                                 <div class="card-body d-flex flex-column justify-content-end">
                                   <div class="row">
                                     <div class="col">
-                                      <p class="font-sans-serif lh-1 mb-1 fs-6">{{percentage}}%</p>
+                                      <p class="font-sans-serif lh-1 mb-1 fs-6">{{percentagefield}}%</p>
                                     </div>
                                   </div>
                                 </div>

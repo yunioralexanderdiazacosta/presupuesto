@@ -11,15 +11,327 @@ use App\Models\Level3;
 use App\Models\Unit;
 use App\Models\CostCenter;
 use Inertia\Inertia;
+use Illuminate\Support\Facades\Log;
 
 use Illuminate\Http\Request;
 
 class FieldsController extends Controller
 {
+
+    /**
+     * Suma el total de fertilizantes para la temporada y equipo dados (price * dosis * meses activos, con conversión de unidades).
+     * El cálculo es similar al de agroquímicos pero para fertilizantes.
+     */
+    private function getTotalFertilizer($season_id, $team_id)
+    {
+        $season = \App\Models\Season::select('month_id')->where('id', $season_id)->first();
+        $currentMonth = $season ? $season->month_id : 1;
+        $months = [];
+        for ($x = $currentMonth; $x < $currentMonth + 12; $x++) {
+            $id = date('n', mktime(0, 0, 0, $x, 1));
+            $months[] = $id;
+        }
+
+        // Obtener todos los cost centers de la temporada (sin team_id)
+        $costCenters = \App\Models\CostCenter::where('season_id', $season_id)
+            ->get();
+
+        $total = 0;
+        foreach ($costCenters as $costCenter) {
+            $surface = $costCenter->surface ?? 1;
+            $fertilizers = \App\Models\Fertilizer::where('season_id', $season_id)
+                ->where('team_id', $team_id)
+                ->get();
+            foreach ($fertilizers as $fert) {
+                $dose = (($fert->unit_id == 4 && $fert->unit_id_price == 3) || ($fert->unit_id == 2 && $fert->unit_id_price == 1)) ? ($fert->dose / 1000) : $fert->dose;
+                $quantity = round($dose * $surface, 2);
+                $amount = round($fert->price * $quantity, 2);
+                foreach ($months as $month) {
+                    $count = DB::table('fertilizer_items')
+                        ->where('fertilizer_id', $fert->id)
+                        ->where('month_id', $month)
+                        ->where('cost_center_id', $costCenter->id)
+                        ->count();
+                    if ($count > 0) {
+                        $total += $amount;
+                    }
+                }
+            }
+        }
+        $this->totalFertilizer = $total;
+        return $total;
+    }
+
+    /**
+     * Suma el total de fields para los cost centers y temporada dados (price * quantity * meses activos).
+     * Unifica el cálculo con el de otros controladores.
+     */
+    private function getTotalField($season_id, $team_id)
+    {
+        $season = \App\Models\Season::select('month_id')->where('id', $season_id)->first();
+        $currentMonth = $season ? $season->month_id : 1;
+        $months = [];
+        for ($x = $currentMonth; $x < $currentMonth + 12; $x++) {
+            $id = date('n', mktime(0, 0, 0, $x, 1));
+            $months[] = $id;
+        }
+
+        $fields = \App\Models\Field::where('season_id', $season_id)
+            ->where('team_id', $team_id)
+            ->get();
+
+        $total = 0;
+        foreach ($fields as $field) {
+            // Buscar los meses activos en los que aparece este field_id
+            $activeMonths = DB::table('field_items')
+                ->where('field_id', $field->id)
+                ->whereIn('month_id', $months)
+                ->distinct('month_id')
+                ->pluck('month_id');
+            $countMonths = $activeMonths->count();
+            if ($countMonths > 0) {
+                $quantity = ($field->quantity !== null && ($field->quantity > 0)) ? ((in_array($field->unit_id ?? null, [2,4])) ? ($field->quantity / 1000) : $field->quantity) : 0;
+                $amount = round($field->price * $quantity * $countMonths, 2);
+                $total += $amount;
+            }
+        }
+        return $total;
+    }
+
+/**
+     * Suma el total de administración para los cost centers y temporada dados.
+     */
+    private function getTotalAdministration($season_id, $team_id)
+    {
+        $season = \App\Models\Season::select('month_id')->where('id', $season_id)->first();
+        $currentMonth = $season ? $season->month_id : 1;
+        $months = [];
+        for ($x = $currentMonth; $x < $currentMonth + 12; $x++) {
+            $id = date('n', mktime(0, 0, 0, $x, 1));
+            $months[] = $id;
+        }
+
+        $administrations = \App\Models\Administration::where('season_id', $season_id)
+            ->where('team_id', $team_id)
+            ->get();
+
+        $total = 0;
+        foreach ($administrations as $adm) {
+            // Buscar los meses activos en los que aparece este administration_id
+            $activeMonths = DB::table('administration_items')
+                ->where('administration_id', $adm->id)
+                ->whereIn('month_id', $months)
+                ->distinct('month_id')
+                ->pluck('month_id');
+            $countMonths = $activeMonths->count();
+            if ($countMonths > 0) {
+                $quantity = ($adm->quantity !== null && ($adm->quantity > 0)) ? ((in_array($adm->unit_id ?? null, [2,4])) ? ($adm->quantity / 1000) : $adm->quantity) : 0;
+                $amount = round($adm->price * $quantity * $countMonths, 2);
+                $total += $amount;
+            }
+        }
+        return $total;
+    }
+
+
+
     public $month_id = '';
-
     public $totalData2 = 0;
+    public $totalField = 0;
+    public $totalFertilizer = 0;
+    public $totalManPower = 0;
+    public $totalAgrochemical = 0;
+    public $totalSupplies = 0;
+    public $totalAdministration = 0;
+    public $totalServices = 0;
+    public $totalAbsolute = 0;
+    public $percentageField = 0;
 
+    /**
+     * Suma el total de agroquímicos para la temporada y equipo dados (price * cantidad calculada * meses activos, con conversión de unidades y tipo de dosis).
+     * El cálculo es similar al de FertilizersController pero sin cost centers.
+     */
+    private function getTotalAgrochemical($season_id, $team_id)
+    {
+        $season = \App\Models\Season::select('month_id')->where('id', $season_id)->first();
+        $currentMonth = $season ? $season->month_id : 1;
+        $months = [];
+        for ($x = $currentMonth; $x < $currentMonth + 12; $x++) {
+            $id = date('n', mktime(0, 0, 0, $x, 1));
+            $months[] = $id;
+        }
+
+        // Obtener todos los cost centers de la temporada (sin team_id)
+        $costCenters = \App\Models\CostCenter::where('season_id', $season_id)
+            ->get();
+
+        $total = 0;
+        foreach ($costCenters as $costCenter) {
+            $surface = $costCenter->surface ?? 1;
+            $agrochemicals = \App\Models\Agrochemical::where('season_id', $season_id)
+                ->where('team_id', $team_id)
+                ->get();
+            foreach ($agrochemicals as $agro) {
+                $dose = (($agro->unit_id == 4 && $agro->unit_id_price == 3) || ($agro->unit_id == 2 && $agro->unit_id_price == 1)) ? ($agro->dose / 1000) : $agro->dose;
+                if ($agro->dose_type_id == 1) {
+                    $quantity = round($dose * $surface, 2);
+                } elseif ($agro->dose_type_id == 2) {
+                    $quantity = round((($agro->mojamiento / 100) * $dose * $surface), 2);
+                } else {
+                    $quantity = round($dose * $surface, 2);
+                }
+                $amount = round($agro->price * $quantity, 2);
+                foreach ($months as $month) {
+                    $count = DB::table('agrochemical_items')
+                        ->where('agrochemical_id', $agro->id)
+                        ->where('month_id', $month)
+                        ->where('cost_center_id', $costCenter->id)
+                        ->count();
+                    if ($count > 0) {
+                        $total += $amount;
+                    }
+                }
+            }
+        }
+        $this->totalAgrochemical = $total;
+        return $total;
+    }
+
+    // public $totalManPower = 0; // ELIMINADO DUPLICADO
+
+    /**
+     * Suma el total de mano de obra (manpowers) para la temporada y equipo dados (price * quantity * meses activos).
+     */
+    private function getTotalManPower($season_id, $team_id)
+    {
+        $season = \App\Models\Season::select('month_id')->where('id', $season_id)->first();
+        $currentMonth = $season ? $season->month_id : 1;
+        $months = [];
+        for ($x = $currentMonth; $x < $currentMonth + 12; $x++) {
+            $id = date('n', mktime(0, 0, 0, $x, 1));
+            $months[] = $id;
+        }
+
+        // Obtener todos los cost centers de la temporada (sin team_id)
+        $costCenters = \App\Models\CostCenter::where('season_id', $season_id)
+            ->get();
+
+        $total = 0;
+        foreach ($costCenters as $costCenter) {
+            $surface = $costCenter->surface ?? 1;
+            $manpowers = \App\Models\ManPower::where('season_id', $season_id)
+                ->where('team_id', $team_id)
+                ->get();
+            foreach ($manpowers as $mp) {
+                $quantity = round($mp->workday * $surface, 2);
+                $amount = round($mp->price * $quantity, 2);
+                foreach ($months as $month) {
+                    $count = DB::table('manpower_items')
+                        ->where('man_power_id', $mp->id)
+                        ->where('month_id', $month)
+                        ->where('cost_center_id', $costCenter->id)
+                        ->count();
+                    if ($count > 0) {
+                        $total += $amount;
+                    }
+                }
+            }
+        }
+        $this->totalManPower = $total;
+        return $total;
+    }
+
+    // public $totalSupplies = 0; // ELIMINADO DUPLICADO
+    // public $totalServices = 0; // ELIMINADO DUPLICADO
+    // public $totalAbsolute = 0; // ELIMINADO DUPLICADO
+    // public $percentageManPower = 0; // ELIMINADO DUPLICADO
+    // public $percentageServices = 0; // ELIMINADO DUPLICADO
+
+    /**
+     * Suma el total de insumos (supplies) para la temporada y equipo dados (price * quantity * meses activos).
+     */
+    private function getTotalSupplies($season_id, $team_id)
+    {
+        $season = \App\Models\Season::select('month_id')->where('id', $season_id)->first();
+        $currentMonth = $season ? $season->month_id : 1;
+        $months = [];
+        for ($x = $currentMonth; $x < $currentMonth + 12; $x++) {
+            $id = date('n', mktime(0, 0, 0, $x, 1));
+            $months[] = $id;
+        }
+
+        // Obtener todos los cost centers de la temporada (sin team_id)
+        $costCenters = \App\Models\CostCenter::where('season_id', $season_id)
+            ->get();
+
+        $total = 0;
+        foreach ($costCenters as $costCenter) {
+            $surface = $costCenter->surface ?? 1;
+            $supplies = \App\Models\Supply::where('season_id', $season_id)
+                ->where('team_id', $team_id)
+                ->get();
+            foreach ($supplies as $supply) {
+                $quantity = (($supply->unit_id == 4 && $supply->unit_id_price == 3) || ($supply->unit_id == 2 && $supply->unit_id_price == 1)) ? ($supply->quantity / 1000) : $supply->quantity;
+                $quantity = round($quantity * $surface, 2);
+                $amount = round($supply->price * $quantity, 2);
+                foreach ($months as $month) {
+                    $count = DB::table('supply_items')
+                        ->where('supply_id', $supply->id)
+                        ->where('month_id', $month)
+                        ->where('cost_center_id', $costCenter->id)
+                        ->count();
+                    if ($count > 0) {
+                        $total += $amount;
+                    }
+                }
+            }
+        }
+        $this->totalSupplies = $total;
+        return $total;
+    }
+
+    /**
+     * Suma el total de servicios (services) para la temporada y equipo dados (price * quantity * meses activos).
+     */
+    private function getTotalServices($season_id, $team_id)
+    {
+        $season = \App\Models\Season::select('month_id')->where('id', $season_id)->first();
+        $currentMonth = $season ? $season->month_id : 1;
+        $months = [];
+        for ($x = $currentMonth; $x < $currentMonth + 12; $x++) {
+            $id = date('n', mktime(0, 0, 0, $x, 1));
+            $months[] = $id;
+        }
+
+        // Obtener todos los cost centers de la temporada (sin team_id)
+        $costCenters = \App\Models\CostCenter::where('season_id', $season_id)
+            ->get();
+
+        $total = 0;
+        foreach ($costCenters as $costCenter) {
+            $surface = $costCenter->surface ?? 1;
+            $services = \App\Models\Service::where('season_id', $season_id)
+                ->where('team_id', $team_id)
+                ->get();
+            foreach ($services as $service) {
+                $quantity = (($service->unit_id == 4 && $service->unit_id_price == 3) || ($service->unit_id == 2 && $service->unit_id_price == 1)) ? ($service->quantity / 1000) : $service->quantity;
+                $quantity = round($quantity * $surface, 2);
+                $amount = round($service->price * $quantity, 2);
+                foreach ($months as $month) {
+                    $count = DB::table('service_items')
+                        ->where('service_id', $service->id)
+                        ->where('month_id', $month)
+                        ->where('cost_center_id', $costCenter->id)
+                        ->count();
+                    if ($count > 0) {
+                        $total += $amount;
+                    }
+                }
+            }
+        }
+        $this->totalServices = $total;
+        return $total;
+    }
     public function __invoke()
     {
         $user = Auth::user();
@@ -31,6 +343,36 @@ class FieldsController extends Controller
         $season = Season::select('name', 'month_id')->where('id', $season_id)->first();
 
         $this->month_id = $season['month_id'];
+
+        // Calcular y asignar los totales globales de cada rubro
+        $this->totalField         = $this->getTotalField($season_id, $team_id);
+        Log::info('totalField: ' . $this->totalField);
+        $this->totalFertilizer    = $this->getTotalFertilizer($season_id, $team_id);
+        Log::info('totalFertilizer: ' . $this->totalFertilizer);
+        $this->totalManPower      = $this->getTotalManPower($season_id, $team_id);
+        Log::info('totalManPower: ' . $this->totalManPower);
+        $this->totalAgrochemical  = $this->getTotalAgrochemical($season_id, $team_id);
+        Log::info('totalAgrochemical: ' . $this->totalAgrochemical);
+        $this->totalSupplies      = $this->getTotalSupplies($season_id, $team_id);
+        Log::info('totalSupplies: ' . $this->totalSupplies);
+        $this->totalAdministration= $this->getTotalAdministration($season_id, $team_id);
+        Log::info('totalAdministration: ' . $this->totalAdministration);
+        $this->totalServices      = $this->getTotalServices($season_id, $team_id);
+        Log::info('totalServices: ' . $this->totalServices);
+
+        // Sumar todos los rubros para el total absoluto (redondeando cada uno como en ServicesController)
+        $this->totalAbsolute = round($this->totalField)
+            + round($this->totalFertilizer)
+            + round($this->totalManPower)
+            + round($this->totalAgrochemical)
+            + round($this->totalSupplies)
+            + round($this->totalAdministration)
+            + round($this->totalServices);
+
+        // Calcular el porcentaje de fields sobre el total absoluto (una sola fila de cálculo, como en ServicesController)
+        $this->percentageField = $this->totalAbsolute > 0
+            ? round((round($this->totalField) / $this->totalAbsolute) * 100, 2)
+            : 0;
 
 
 
@@ -153,13 +495,21 @@ class FieldsController extends Controller
             }
             return null;
         })->filter()->values();
-        return Inertia::render('Fields', compact('units', 'subfamilies', 'months', 'fields', 'data1', 'data2', 'season', 'level2s', 'team_id', 'season_id'));
+        $percentageField = $this->percentageField;
+        return Inertia::render('Fields', compact(
+            'units',
+            'subfamilies',
+            'months',
+            'fields',
+            'data1',
+            'data2',
+            'season',
+            'level2s',
+            'team_id',
+            'season_id',
+            'percentageField' // Pasar el porcentaje de fields al frontend
+        ));
     }
-
-
-
-
-
 
     public function getMonthName($id)
     {
@@ -325,17 +675,17 @@ class FieldsController extends Controller
     }
 
     private function getTotal($id, $team_id)
-    {   
-        $total =Field::from('fields as f')
-        ->join('field_items as fi', 'fi.field_id', 'f.id')
-        ->join('level3s as s', 'f.subfamily_id', 's.id')
-        ->join('level2s as l2', 's.level2_id', 'l2.id')
-        ->where('f.team_id', $team_id)
-        ->where('l2.id', $id)
-        ->select('fi.field_id')
-        ->distinct('fi.field_id')
-        ->count();
+    {
+        $total = Field::from('fields as f')
+            ->join('field_items as fi', 'fi.field_id', 'f.id')
+            ->join('level3s as s', 'f.subfamily_id', 's.id')
+            ->join('level2s as l2', 's.level2_id', 'l2.id')
+            ->where('f.team_id', $team_id)
+            ->where('l2.id', $id)
+            ->select('fi.field_id')
+            ->distinct('fi.field_id')
+            ->count();
 
         return $total;
-}
+    }
 }

@@ -17,10 +17,87 @@ use App\Models\Supply;
 use App\Models\Service;
 use App\Models\DoseType;
 use Inertia\Inertia;
+use Illuminate\Support\Facades\Log;
 
 
 class AgrochemicalsController extends Controller
 {
+    private function getTotalAdministration($season_id, $team_id)
+    {
+        $season = \App\Models\Season::select('month_id')->where('id', $season_id)->first();
+        $currentMonth = $season ? $season->month_id : 1;
+        $months = [];
+        for ($x = $currentMonth; $x < $currentMonth + 12; $x++) {
+            $id = date('n', mktime(0, 0, 0, $x, 1));
+            $months[] = $id;
+        }
+
+        $administrations = \App\Models\Administration::where('season_id', $season_id)
+            ->where('team_id', $team_id)
+            ->get();
+
+        $total = 0;
+        foreach ($administrations as $adm) {
+            // Buscar los meses activos en los que aparece este administration_id
+            $activeMonths = DB::table('administration_items')
+                ->where('administration_id', $adm->id)
+                ->whereIn('month_id', $months)
+                ->distinct('month_id')
+                ->pluck('month_id');
+            $countMonths = $activeMonths->count();
+            if ($countMonths > 0) {
+                $quantity = ($adm->quantity !== null && ($adm->quantity > 0)) ? ((in_array($adm->unit_id ?? null, [2,4])) ? ($adm->quantity / 1000) : $adm->quantity) : 0;
+                $amount = round($adm->price * $quantity * $countMonths, 2);
+                $total += $amount;
+            }
+        }
+        return $total;
+    }
+
+
+/**
+  
+    
+     * Suma el total de administración para los cost centers y temporada dados.
+     */
+    private function getTotalField($season_id, $team_id)
+    {
+        $season = \App\Models\Season::select('month_id')->where('id', $season_id)->first();
+        $currentMonth = $season ? $season->month_id : 1;
+        $months = [];
+        for ($x = $currentMonth; $x < $currentMonth + 12; $x++) {
+            $id = date('n', mktime(0, 0, 0, $x, 1));
+            $months[] = $id;
+        }
+
+        $fields = \App\Models\Field::where('season_id', $season_id)
+            ->where('team_id', $team_id)
+            ->get();
+
+        $total = 0;
+        foreach ($fields as $field) {
+            // Buscar los meses activos en los que aparece este field_id
+            $activeMonths = DB::table('field_items')
+                ->where('field_id', $field->id)
+                ->whereIn('month_id', $months)
+                ->distinct('month_id')
+                ->pluck('month_id');
+            $countMonths = $activeMonths->count();
+            if ($countMonths > 0) {
+                $quantity = ($field->quantity !== null && ($field->quantity > 0)) ? ((in_array($adm->unit_id ?? null, [2,4])) ? ($field->quantity / 1000) : $field->quantity) : 0;
+                $amount = round($field->price * $quantity * $countMonths, 2);
+                $total += $amount;
+            }
+        }
+        return $total;
+    }
+
+
+
+
+
+
+
     public $month_id = '';
 
     public $totalData1 = 0;
@@ -36,6 +113,7 @@ class AgrochemicalsController extends Controller
     public $totalServices = 0;
 
     public function __invoke()
+
     {
         $user = Auth::user();
 
@@ -192,9 +270,15 @@ class AgrochemicalsController extends Controller
         $this->getSuppliesProducts($costCentersId);
         $this->getServicesProducts($costCentersId);
 
-        $totalAbsolute = round($this->totalData2) + round($this->totalFertilizer) + round($this->totalManPower) + round($this->totalSupplies) + round($this->totalServices);
 
-         $percentage = $totalAbsolute > 0 ? round(((round($this->totalData2) / $totalAbsolute) * 100), 2) : 0;
+        // Sumar el total de administración al total absoluto
+
+        $totalAdministration = $this->getTotalAdministration($season_id, $user->team_id);
+        $totalField = $this->getTotalField($season_id, $user->team_id);
+      
+        $totalAbsolute = round($this->totalData2) + round($this->totalFertilizer) + round($this->totalManPower) + round($this->totalSupplies) + round($this->totalServices) + round($totalAdministration) + round($totalField);
+     
+        $percentage = $totalAbsolute > 0 ? round(((round($this->totalData2) / $totalAbsolute) * 100), 2) : 0;
 
         $totalData1 = number_format($this->totalData1, 0, ',', '.');
         $totalData2 = number_format($this->totalData2, 0, ',', '.');
