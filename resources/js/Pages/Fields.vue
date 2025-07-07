@@ -15,6 +15,7 @@ const props = defineProps({
     data: Array,
     data1: Array,
     data2: Array,
+    data3: Array, // <-- Declarado correctamente
     team_id: [Number, String],
     season_id: [Number, String],
     percentageField: Number
@@ -371,52 +372,42 @@ const acum_products = (quantity) => {
                             </div>  
                         </div>
 
-                        <!--
+                      
                         <div class="table-responsive mt-1">
                             <table class="table table-bordered table-hover table-sm custom-striped fs-10 mb-0 agrochem-details">
                                 <thead>
                                     <tr>
-                                        <th class="min-w-150px">CC</th>
-                                        <th>Subfamilia</th>
+                                        <th>Nivel 2</th>
+                                        <th>Nivel 3</th>
                                         <th class="min-w-100px">Producto</th>
                                         <th>Cantidad Total</th>
-                                        <th>Un</th>
                                         <th class="text-dark">Monto Total</th>
-                                        <th v-for="month in $page.props.months" class="text-primary">{{month.label}}</th> 
+                                        <th v-for="(month, mIdx) in $page.props.months" class="text-primary">{{ month.label }}</th>
                                     </tr>
                                 </thead>
                                 <tbody>
-                                    <template v-for="(cc, index) in data3">
-                                        <template v-for="(subfamily, index2) in cc.subfamilies">
+                                    <template v-for="(level2, l2Idx) in data3">
+                                      <template v-for="(level3, l3Idx) in level2.level3s">
+                                        <template v-for="(product, pIdx) in level3.products">
+                                          <template v-for="(item, idx) in product.items" :key="'item-' + l2Idx + '-' + l3Idx + '-' + pIdx + '-' + idx">
                                             <tr>
-                                                <td v-if="index2 == 0" :rowspan="cc.total" style="vertical-align:top">{{cc.name}}</td>
-                                                <td  style="vertical-align:top;" :rowspan="subfamily.products.length > 0 ? subfamily.products.length : 1">{{subfamily.name}}</td>
-                                                <td v-if="subfamily.products.length > 0">{{subfamily.products[0].name}}</td>
-                                                <td v-else>-</td>
-                                                <td v-if="subfamily.products.length > 0">{{subfamily.products[0].totalQuantity}}</td>
-                                                <td v-else>-</td>
-                                                <td v-if="subfamily.products.length > 0">{{subfamily.products[0].unit}}</td>
-                                                <td v-else>-</td>
-                                                <td v-if="subfamily.products.length > 0" class="text-dark">{{subfamily.products[0].totalAmount}}</td>
-                                                <td v-else>-</td>
-                                                <td v-if="subfamily.products.length > 0" class="bg-opacity-5 table-primary" v-for="value in subfamily.products[0].months">{{value}}</td>
-                                                <td v-else v-for="month in $page.props.months">-</td>
+                                              <td v-if="l3Idx === 0 && pIdx === 0 && idx === 0" :rowspan="level2.level3s.reduce((acc, l3) => acc + l3.products.reduce((a, p) => a + p.items.length, 0), 0)">{{ level2.name }}</td>
+                                              <td v-if="pIdx === 0 && idx === 0" :rowspan="level3.products.reduce((a, p) => a + p.items.length, 0)">{{ level3.name }}</td>
+                                              <td v-if="idx === 0" :rowspan="product.items.length">{{ product.name }}</td>
+                                              <td>{{ Number(item.quantity).toLocaleString('es-ES') }}</td>
+                                              <td class="text-dark">{{ Number(item.total).toLocaleString('es-ES') }}</td>
+                                              <td v-for="(value, mIdx) in item.months" class="bg-opacity-5 table-primary">{{ Number(value).toLocaleString('es-ES') }}</td>
                                             </tr>
-
-                                            <template v-for="(product, index3) in subfamily.products">
-                                                <tr v-if="index3 > 0">
-                                                    <td>{{product.name}}</td>
-                                                    <td>{{product.totalQuantity}}</td>
-                                                    <td>{{product.unit}}</td>
-                                                    <td class="text-dark">{{product.totalAmount}}</td>
-                                                    <td class="bg-opacity-5 table-primary" v-for="value in product.months">{{value}}</td>
-                                                </tr>
-                                            </template>
+                                          </template>
                                         </template>
+                                      </template>
                                     </template>
                                 </tbody>
                             </table>
-                        </div>-->
+                        </div>
+ </div> 
+                    </div>
+
 
                     </div>
                     <div class="tab-pane fade" id="pill-tab-detalles-compra" role="tabpanel" aria-labelledby="detalles-compra-tab">
@@ -503,9 +494,7 @@ const acum_products = (quantity) => {
                         </div>
                     </div>
                 </div>
-            </div>
-        </div>
-                  
+
         <CreateFieldModal @store="storeField" :form="formMultiple" />
         <EditFieldModal @update="updateField" :form="form" />
     </AppLayout>

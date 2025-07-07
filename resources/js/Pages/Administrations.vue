@@ -300,8 +300,8 @@ const onFilter = () => {
                             </div>  
                         </div>
 
-                        <div class="table-responsive mt-1">
-                            <table class="table table-bordered table-hover table-sm custom-striped fs-10 mb-0 agrochem-details">
+                        <div class="table-responsive mt-1" style="min-width:1600px;">
+                            <table class="table table-bordered table-hover table-sm custom-striped fs-10 mb-0 agrochem-details" style="min-width:1600px;">
                                 <thead>
                                     <tr>
                                         <th class="min-w-150px">Level 2</th>
@@ -393,8 +393,8 @@ const onFilter = () => {
                             <table class="table table-bordered table-hover table-sm custom-striped fs-10 mb-0 agrochem-details">
                                 <thead>
                                     <tr>
-                                        <th>Familia</th>
-                                        <th>Subfamilia</th>
+                                        <th>Nivel 2</th>
+                                        <th>Nivel 3</th>
                                         <th class="min-w-100px">Producto</th>
                                         <th>Cantidad Total</th>
                                         <th class="text-dark">Monto Total</th>
@@ -402,17 +402,26 @@ const onFilter = () => {
                                     </tr>
                                 </thead>
                                 <tbody>
-                                    <tr v-for="(item, idx) in data3" :key="idx">
-                                        <td>{{ item.family }}</td>
-                                        <td>{{ item.subfamily }}</td>
-                                        <td>{{ item.product }}</td>
-                                        <td>{{ Number(item.quantity).toLocaleString('es-ES') }}</td>
-                                        <td class="text-dark">{{ Number(item.total).toLocaleString('es-ES') }}</td>
-                                        <td v-for="(value, mIdx) in item.months" class="bg-opacity-5 table-primary">{{ Number(value).toLocaleString('es-ES') }}</td>
-                                    </tr>
+                                    <template v-for="(level2, l2Idx) in data3">
+                                      <template v-for="(level3, l3Idx) in level2.level3s">
+                                        <template v-for="(product, pIdx) in level3.products">
+                                          <template v-for="(item, idx) in product.items" :key="'item-' + l2Idx + '-' + l3Idx + '-' + pIdx + '-' + idx">
+                                            <tr>
+                                              <td v-if="l3Idx === 0 && pIdx === 0 && idx === 0" :rowspan="level2.level3s.reduce((acc, l3) => acc + l3.products.reduce((a, p) => a + p.items.length, 0), 0)">{{ level2.name }}</td>
+                                              <td v-if="pIdx === 0 && idx === 0" :rowspan="level3.products.reduce((a, p) => a + p.items.length, 0)">{{ level3.name }}</td>
+                                              <td v-if="idx === 0" :rowspan="product.items.length">{{ product.name }}</td>
+                                              <td>{{ Number(item.quantity).toLocaleString('es-ES') }}</td>
+                                              <td class="text-dark">{{ Number(item.total).toLocaleString('es-ES') }}</td>
+                                              <td v-for="(value, mIdx) in item.months" class="bg-opacity-5 table-primary">{{ Number(value).toLocaleString('es-ES') }}</td>
+                                            </tr>
+                                          </template>
+                                        </template>
+                                      </template>
+                                    </template>
                                 </tbody>
                             </table>
                         </div>
+
 
                     </div>
 

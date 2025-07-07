@@ -41,6 +41,17 @@ class FieldsController extends Controller
     public $totalAbsolute = 0;
     public $percentageField = 0;
 
+     /**
+     * Suma la columna surface de todos los cost centers de la temporada indicada.
+     * @param int $season_id
+     * @return float|int
+     */
+    public function totalsurface($season_id)
+    {
+        return DB::table('cost_centers')->where('season_id', $season_id)->sum('surface');
+    }
+
+
     /**
      * Método principal que se invoca para mostrar la vista de campos.
      * Calcula los totales y prepara los datos necesarios para la vista.
@@ -102,7 +113,79 @@ class FieldsController extends Controller
                 ];
             });
 
+ // --- Data3 agrupado: Gastos por Hectarea agrupado por level2, level3, producto ---
+        $surfaceTotal = $this->totalsurface($season_id);
+        $data3Raw = \App\Models\Field::from('fields as f')
+            ->join('level3s as s', 'f.subfamily_id', 's.id')
+            ->join('level2s as l2', 's.level2_id', 'l2.id')
+            ->join('units as u', 'f.unit_id', 'u.id')
+            ->select('f.id', 'f.product_name', 'f.price', 'f.quantity', 'f.unit_id', 'u.name as unit_name', 's.name as level3_name', 'l2.name as level2_name')
+            ->where('f.season_id', $season_id)
+            ->get()
+            ->map(function($value) use ($surfaceTotal, $season) {
+                $quantity = (($value->unit_id == 4) || ($value->unit_id == 2)) ? ($value->quantity / 1000) : $value->quantity;
+                $amount = $surfaceTotal > 0 ? ($value->price * $quantity) / $surfaceTotal : 0;
+                // Calcular montos por mes
+                $monthsArr = [];
+                $currentMonth = $season ? $season->month_id : 1;
+                for ($x = $currentMonth; $x < $currentMonth + 12; $x++) {
+                    $id = date('n', mktime(0, 0, 0, $x, 1));
+                    $count = DB::table('field_items')
+                        ->where('field_id', $value->id)
+                        ->where('month_id', $id)
+                        ->count();
+                    $amountMonth = $count > 0 ? $amount : 0;
+                    $monthsArr[] = number_format($amountMonth, 0, '', '');
+                }
+                return [
+                    'level2'    => $value->level2_name,
+                    'level3'    => $value->level3_name,
+                    'product'   => $value->product_name,
+                    'quantity'  => number_format($quantity, 0, '', ''),
+                    'total'     => number_format($amount, 0, '', ''),
+                    'months'    => $monthsArr
+                ];
+            });
 
+        // Agrupar por level2, luego level3, luego producto
+        $data3 = [];
+        foreach ($data3Raw as $item) {
+            $level2Name = $item['level2'];
+            $level3Name = $item['level3'];
+            $productName = $item['product'];
+            if (!isset($data3[$level2Name])) {
+                $data3[$level2Name] = [
+                    'name' => $level2Name,
+                    'level3s' => []
+                ];
+            }
+            if (!isset($data3[$level2Name]['level3s'][$level3Name])) {
+                $data3[$level2Name]['level3s'][$level3Name] = [
+                    'name' => $level3Name,
+                    'products' => []
+                ];
+            }
+            if (!isset($data3[$level2Name]['level3s'][$level3Name]['products'][$productName])) {
+                $data3[$level2Name]['level3s'][$level3Name]['products'][$productName] = [
+                    'name' => $productName,
+                    'items' => []
+                ];
+            }
+            $data3[$level2Name]['level3s'][$level3Name]['products'][$productName]['items'][] = [
+                'quantity' => $item['quantity'],
+                'total'    => $item['total'],
+                'months'   => $item['months']
+            ];
+        }
+        // Convertir a arrays indexados para Vue
+        $data3 = array_values(array_map(function($level2) {
+            $level2['level3s'] = array_values(array_map(function($level3) {
+                $level3['products'] = array_values($level3['products']);
+                return $level3;
+            }, $level2['level3s']));
+            return $level2;
+        }, $data3));
+       
 
 
 
@@ -210,6 +293,7 @@ class FieldsController extends Controller
             'fields',
             'data1',
             'data2',
+            'data3',
             'season',
             'level2s',
             'team_id',

@@ -185,13 +185,13 @@ class AdministrationsController extends Controller
             return null;
         })->filter()->values();
 
-        // --- Data3: Gastos por Hectarea plano: familia (level2), subfamilia (level3), producto, cantidad, monto total ---
+        // --- Data3 agrupado: Gastos por Hectarea agrupado por level2, level3, producto ---
         $surfaceTotal = $this->totalsurface($season_id);
-        $data3 = \App\Models\Administration::from('administrations as f')
+        $data3Raw = \App\Models\Administration::from('administrations as f')
             ->join('level3s as s', 'f.subfamily_id', 's.id')
             ->join('level2s as l2', 's.level2_id', 'l2.id')
             ->join('units as u', 'f.unit_id', 'u.id')
-            ->select('f.id', 'f.product_name', 'f.price', 'f.quantity', 'f.unit_id', 'u.name as unit_name', 's.name as subfamily_name', 'l2.name as family_name')
+            ->select('f.id', 'f.product_name', 'f.price', 'f.quantity', 'f.unit_id', 'u.name as unit_name', 's.name as level3_name', 'l2.name as level2_name')
             ->where('f.season_id', $season_id)
             ->get()
             ->map(function($value) use ($surfaceTotal, $season) {
@@ -210,14 +210,53 @@ class AdministrationsController extends Controller
                     $monthsArr[] = number_format($amountMonth, 0, '', '');
                 }
                 return [
-                    'family'    => $value->family_name,
-                    'subfamily' => $value->subfamily_name,
+                    'level2'    => $value->level2_name,
+                    'level3'    => $value->level3_name,
                     'product'   => $value->product_name,
                     'quantity'  => number_format($quantity, 0, '', ''),
                     'total'     => number_format($amount, 0, '', ''),
                     'months'    => $monthsArr
                 ];
             });
+
+        // Agrupar por level2, luego level3, luego producto
+        $data3 = [];
+        foreach ($data3Raw as $item) {
+            $level2Name = $item['level2'];
+            $level3Name = $item['level3'];
+            $productName = $item['product'];
+            if (!isset($data3[$level2Name])) {
+                $data3[$level2Name] = [
+                    'name' => $level2Name,
+                    'level3s' => []
+                ];
+            }
+            if (!isset($data3[$level2Name]['level3s'][$level3Name])) {
+                $data3[$level2Name]['level3s'][$level3Name] = [
+                    'name' => $level3Name,
+                    'products' => []
+                ];
+            }
+            if (!isset($data3[$level2Name]['level3s'][$level3Name]['products'][$productName])) {
+                $data3[$level2Name]['level3s'][$level3Name]['products'][$productName] = [
+                    'name' => $productName,
+                    'items' => []
+                ];
+            }
+            $data3[$level2Name]['level3s'][$level3Name]['products'][$productName]['items'][] = [
+                'quantity' => $item['quantity'],
+                'total'    => $item['total'],
+                'months'   => $item['months']
+            ];
+        }
+        // Convertir a arrays indexados para Vue
+        $data3 = array_values(array_map(function($level2) {
+            $level2['level3s'] = array_values(array_map(function($level3) {
+                $level3['products'] = array_values($level3['products']);
+                return $level3;
+            }, $level2['level3s']));
+            return $level2;
+        }, $data3));
        
 
 
