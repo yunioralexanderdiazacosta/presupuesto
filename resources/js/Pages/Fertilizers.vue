@@ -108,30 +108,8 @@ const totalFilteredDataGastos = computed(() => {
 });
 
 
-// Filtro para Detalle de compra 
-const filteredDataCompra = computed(() => {
-  let data = props.data2;
-  if (selectedFruit.value) {
-    // Filtra por fruta
-    data = data.filter(subfamily => {
-      // Busca si algún producto de la subfamilia pertenece a la fruta seleccionada
-      return subfamily.products.some(product => {
-        const variety = props.varieties.find(v => v.id == product.variety_id);
-        return variety && variety.fruit_id == selectedFruit.value;
-      });
-    });
-    // Si hay variedad seleccionada, filtra por variedad
-    if (selectedVariety.value) {
-      data = data.map(subfamily => {
-        return {
-          ...subfamily,
-          products: subfamily.products.filter(product => product.variety_id == selectedVariety.value)
-        };
-      }).filter(subfamily => subfamily.products.length > 0);
-    }
-  }
-  return data;
-});
+// Filtro para Detalle de compra (independiente de los selectores globales)
+const filteredDataCompra = computed(() => props.data2);
 
 // Monto total dinámico para Detalle de compra
 const totalFilteredDataCompra = computed(() => {

@@ -225,15 +225,21 @@ class FertilizersController extends Controller
                 ];
             });
 
+
+       
         // Obtener variedades asociadas a los cost centers de este equipo y temporada
-        $varieties = \App\Models\CostCenter::where('season_id', $season_id)
-            ->whereHas('season.team', function($query) use ($user){
-                $query->where('team_id', $user->team_id);
-            })
-            ->whereNotNull('variety_id')
-            ->select('id', 'name', 'fruit_id', 'variety_id')
-            ->orderBy('name')
-            ->get();
+        $varieties = \App\Models\Variety::whereIn('id',
+            CostCenter::where('season_id', $season_id)
+                ->whereHas('season.team', function($query) use ($user){
+                    $query->where('team_id', $user->team_id);
+                })
+                ->whereNotNull('variety_id')
+                ->pluck('variety_id')
+                ->unique()
+        )
+        ->select('id', 'name', 'fruit_id')
+        ->orderBy('name')
+        ->get();
 
         // Obtener frutas asociadas a las variedades filtradas
         $fruits = \App\Models\Fruit::whereIn('id', $varieties->pluck('fruit_id')->unique()->filter())->orderBy('name')->get(['id', 'name']);

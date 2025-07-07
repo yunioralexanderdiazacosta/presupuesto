@@ -181,24 +181,9 @@ const filteredData3 = computed(() => {
   return data;
 });
 
-// Filtrado y subtotal para Detalle de compra
-const filteredData2 = computed(() => {
-  // data2 es un array de subfamilias, cada una con products
-  let subfamilies = props.data2;
-  if (selectedFruit.value || selectedVariety.value) {
-    // Filtrar los productos de cada subfamilia
-    subfamilies = subfamilies.map(subfamily => {
-      const filteredProducts = subfamily.products.filter(product => {
-        const variety = props.varieties.find(v => v.id == product.variety_id);
-        if (selectedFruit.value && (!variety || variety.fruit_id != selectedFruit.value)) return false;
-        if (selectedVariety.value && product.variety_id != selectedVariety.value) return false;
-        return true;
-      });
-      return { ...subfamily, products: filteredProducts };
-    }).filter(subfamily => subfamily.products.length > 0);
-  }
-  return subfamilies;
-});
+// Filtro para Detalle de compra (independiente de los selectores globales)
+const filteredDataCompra = computed(() => props.data2);
+
 
 const filteredTotalData2 = computed(() => {
   let total = 0;
@@ -508,102 +493,86 @@ const onFilter = () => {
 
                     <div class="tab-pane fade" id="pill-tab-detalles-compra" role="tabpanel" aria-labelledby="detalles-compra-tab">
                         <div class="row  mb-3">
-                        <div class="col-md-6 col-lg-3 col-xl-6 col-xxl-3">
-                          <div class="card h-md-100 ecommerce-card-min-width">
-                            <div class="card-header pb-0">
-                              <h6 class="mb-0 mt-2 d-flex align-items-center">Monto Total</h6>
-                            </div>
-                            <div class="card-body d-flex flex-column justify-content-end">
-                              <div class="row">
-                                <div class="col">
-                                  <p class="font-sans-serif lh-1 mb-1 fs-6">
-                                    {{ filteredData2.reduce((acc, subfamily) => {
-                                      return acc + subfamily.products.reduce((acc2, p) => {
-                                        let amount = typeof p.totalAmount === 'string' ? Number(p.totalAmount.replace(/\./g, '').replace(/,/g, '.')) : Number(p.totalAmount);
-                                        return !isNaN(amount) ? acc2 + amount : acc2;
-                                      }, 0);
-                                    }, 0).toLocaleString('es-CL', { style: 'currency', currency: 'CLP', maximumFractionDigits: 0 }) }}
-                                  </p>
+                          <div class="col-md-6 col-lg-3 col-xl-6 col-xxl-3">
+                            <div class="card h-md-100 ecommerce-card-min-width">
+                              <div class="card-header pb-0">
+                                <h6 class="mb-0 mt-2 d-flex align-items-center">Monto Total</h6>
+                              </div>
+                              <div class="card-body d-flex flex-column justify-content-end">
+                                <div class="row">
+                                  <div class="col">
+                                    <p class="font-sans-serif lh-1 mb-1 fs-6">
+                                      {{ props.data2.reduce((acc, subfamily) => {
+                                        return acc + subfamily.products.reduce((acc2, p) => {
+                                          let amount = typeof p.totalAmount === 'string' ? Number(p.totalAmount.replace(/\./g, '').replace(/,/g, '.')) : Number(p.totalAmount);
+                                          return !isNaN(amount) ? acc2 + amount : acc2;
+                                        }, 0);
+                                      }, 0).toLocaleString('es-CL', { style: 'currency', currency: 'CLP', maximumFractionDigits: 0 }) }}
+                                    </p>
+                                  </div>
                                 </div>
                               </div>
                             </div>
                           </div>
+
+                          <div class="col-md-6 col-lg-3 col-xl-6 col-xxl-3">
+                            <div class="card h-md-100 ecommerce-card-min-width">
+                              <div class="card-header pb-0">
+                                <h6 class="mb-0 mt-2 d-flex align-items-center">Porc. Monto</h6>
+                              </div>
+                              <div class="card-body d-flex flex-column justify-content-end">
+                                <div class="row">
+                                  <div class="col">
+                                    <p class="font-sans-serif lh-1 mb-1 fs-6">{{percentage}}%</p>
+                                  </div>
+                                </div>
+                              </div>
+                            </div>
+                          </div>  
                         </div>
 
-                        <div class="col-md-6 col-lg-3 col-xl-6 col-xxl-3">
-                          <div class="card h-md-100 ecommerce-card-min-width">
-                            <div class="card-header pb-0">
-                              <h6 class="mb-0 mt-2 d-flex align-items-center">Porc. Monto</h6>
-                            </div>
-                            <div class="card-body d-flex flex-column justify-content-end">
-                              <div class="row">
-                                <div class="col">
-                                  <p class="font-sans-serif lh-1 mb-1 fs-6">{{percentage}}%</p>
-                                </div>
-                              </div>
-                            </div>
-                          </div>
-                        </div>  
-                    </div>
-                    <!-- Filtros debajo de los cards -->
-                    <div class="d-flex gap-2 mb-3">
-                      <div>
-                        <label class="form-label mb-1">Especie</label>
-                        <select v-model="selectedFruit" class="form-select form-select-sm">
-                          <option value="">Todas</option>
-                          <option v-for="fruit in props.fruits" :key="fruit.id" :value="fruit.id">{{ fruit.name }}</option>
-                        </select>
-                      </div>
-                      <div>
-                        <label class="form-label mb-1">Variedad</label>
-                        <select v-model="selectedVariety" class="form-select form-select-sm" :disabled="!selectedFruit">
-                          <option value="">Todas</option>
-                          <option v-for="variety in filteredVarieties" :key="variety.id" :value="variety.id">{{ variety.name }}</option>
-                        </select>
-                      </div>
-                    </div>
-
+                        <!-- Sin filtros de especie/variedad aquí, tabla completamente independiente -->
                         <div class="table-responsive mt-1">
-                            <table class="table table-bordered table-hover table-sm custom-striped fs-10 mb-0 agrochem-details">
+                          <table class="table table-bordered table-hover table-sm custom-striped fs-10 mb-0 agrochem-details">
                             <thead>
-                                <tr class="fw-bold text-muted">
-                                    <th>Subfamilia</th>
-                                    <th class="min-w-100px">Producto</th>
-                                    <th>Cantidad Total</th>
-                                    <th>Un</th>
-                                    <th class="text-dark">Monto Total</th>
-                                </tr>
+                              <tr class="fw-bold text-muted">
+                                <th>Subfamilia</th>
+                                <th class="min-w-100px">Producto</th>
+                                <th>Cantidad Total</th>
+                                <th>Un</th>
+                                <th class="text-dark">Monto Total</th>
+                              </tr>
                             </thead>
                             <tbody>
-                                <template v-for="(subfamily, index2) in filteredData2" :key="index2">
-                                    <tr>
-                                        <td style="vertical-align:top;" :rowspan="subfamily.products.length + 1">{{subfamily.name}}</td>
-                                        <td>{{subfamily.products[0].name}}</td>
-                                        <td>{{subfamily.products[0].totalQuantity}}</td>
-                                        <td>{{subfamily.products[0].unit}}</td>
-                                        <td class="text-dark">{{subfamily.products[0].totalAmount}}</td>
-                                    </tr>
-                                    <template v-for="(product, index3) in subfamily.products" :key="index3">
-                                        <tr v-if="index3 > 0">
-                                            <td>{{product.name}}</td>
-                                            <td>{{product.totalQuantity}}</td>
-                                            <td>{{product.unit}}</td>
-                                            <td class="text-dark">{{product.totalAmount}}</td>
-                                        </tr>
-                                    </template>
-                                    <!-- Subtotal por subfamilia -->
-                                    <tr class="table-secondary fw-bold">
-                                        <td colspan="3" class="text-end">Subtotal</td>
-                                        <td colspan="2" class="text-dark">
-                                            {{ subfamily.products.reduce((acc, p) => {
-                                                let amount = typeof p.totalAmount === 'string' ? Number(p.totalAmount.replace(/\./g, '').replace(/,/g, '.')) : Number(p.totalAmount);
-                                                return !isNaN(amount) ? acc + amount : acc;
-                                            }, 0).toLocaleString('es-CL', { style: 'currency', currency: 'CLP', maximumFractionDigits: 0 }) }}
-                                        </td>
-                                    </tr>
+                              <template v-for="(subfamily, index2) in props.data2" :key="index2">
+                                <tr>
+                                  <td style="vertical-align:top;" :rowspan="subfamily.products.length + 1">{{subfamily.name}}</td>
+                                  <td>{{subfamily.products[0].name}}</td>
+                                  <td>{{subfamily.products[0].totalQuantity}}</td>
+                                  <td>{{subfamily.products[0].unit}}</td>
+                                  <td class="text-dark">{{subfamily.products[0].totalAmount}}</td>
+                                </tr>
+                                <template v-for="(product, index3) in subfamily.products" :key="index3">
+                                  <tr v-if="index3 > 0">
+                                    <td>{{product.name}}</td>
+                                    <td>{{product.totalQuantity}}</td>
+                                    <td>{{product.unit}}</td>
+                                    <td class="text-dark">{{product.totalAmount}}</td>
+                                  </tr>
                                 </template>
+                                <!-- Subtotal por subfamilia -->
+                                <tr class="table-secondary fw-bold">
+                                  <td colspan="3" class="text-end">Subtotal</td>
+                                  <td colspan="2" class="text-dark">
+                                    {{ subfamily.products.reduce((acc, p) => {
+                                      let amount = typeof p.totalAmount === 'string' ? Number(p.totalAmount.replace(/\./g, '').replace(/,/g, '.')) : Number(p.totalAmount);
+                                      return !isNaN(amount) ? acc + amount : acc;
+                                    }, 0).toLocaleString('es-CL', { style: 'currency', currency: 'CLP', maximumFractionDigits: 0 }) }}
+                                  </td>
+                                </tr>
+                              </template>
                             </tbody>
-                        </table>
+                          </table>
                         </div>
                     </div>
 

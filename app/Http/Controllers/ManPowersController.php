@@ -241,11 +241,7 @@ class ManPowersController extends Controller
             ];
         });
 
-        $this->getAgrochemicalProducts($costCentersId);
-        $this->getFertilizerProducts($costCentersId);
-        $this->getSuppliesProducts($costCentersId);
-        $this->getServicesProducts($costCentersId);
-
+      
           $totalAdministration = $this->getTotalAdministration($season_id, $user->team_id);
         $totalField = $this->getTotalField($season_id, $user->team_id);
 

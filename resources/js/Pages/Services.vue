@@ -572,7 +572,14 @@ const onFilter = () => {
                             <div class="card-body d-flex flex-column justify-content-end">
                               <div class="row">
                                 <div class="col">
-                                  <p class="font-sans-serif lh-1 mb-1 fs-6">{{totalFilteredDataCompra}}</p>
+                                  <p class="font-sans-serif lh-1 mb-1 fs-6">
+                                    {{ props.data2.reduce((acc, subfamily) => {
+                                      return acc + subfamily.products.reduce((acc2, p) => {
+                                        let amount = typeof p.totalAmount === 'string' ? Number(p.totalAmount.replace(/\./g, '').replace(/,/g, '.')) : Number(p.totalAmount);
+                                        return !isNaN(amount) ? acc2 + amount : acc2;
+                                      }, 0);
+                                    }, 0).toLocaleString('es-CL', { style: 'currency', currency: 'CLP', maximumFractionDigits: 0 }) }}
+                                  </p>
                                 </div>
                               </div>
                             </div>
@@ -597,7 +604,6 @@ const onFilter = () => {
 
                      <div class="table-responsive mt-1">
                             <table class="table table-bordered table-hover table-sm custom-striped fs-10 mb-0 agrochem-details">
-                                <!--begin::Table head-->
                                 <thead>
                                     <tr>
                                         <th>Subfamilia</th>
@@ -607,10 +613,8 @@ const onFilter = () => {
                                         <th class="text-dark">Monto Total</th>
                                     </tr>
                                 </thead>
-                                <!--end::Table head-->
-                                <!--begin::Table body-->
                                 <tbody>
-                                    <template v-for="(subfamily, index2) in filteredDataCompra">
+                                    <template v-for="(subfamily, index2) in props.data2" :key="index2">
                                         <tr>
                                             <td  style="vertical-align:top;" :rowspan="subfamily.products.length + 1">{{subfamily.name}}</td>
                                             <td>{{subfamily.products[0].name}}</td>
@@ -619,7 +623,7 @@ const onFilter = () => {
                                             <td class="text-dark">{{subfamily.products[0].totalAmount}}</td>
                                         </tr>
 
-                                        <template v-for="(product, index3) in subfamily.products">
+                                        <template v-for="(product, index3) in subfamily.products" :key="index3">
                                             <tr v-if="index3 > 0">
                                                 <td>{{product.name}}</td>
                                                 <td>{{product.totalQuantity}}</td>
@@ -639,7 +643,6 @@ const onFilter = () => {
                                         </tr>
                                     </template>
                                 </tbody>
-                                <!--end::Table body-->
                             </table>
                         </div>
                 </div>
