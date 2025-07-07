@@ -158,7 +158,7 @@ const acum_products = (quantity) => {
 }
 
 // Computed para mostrar el porcentaje de administración
-const percentage = computed(() => props.percentageAdministration ?? 0);
+//const percentage = computed(() => props.percentageAdministration ?? 0);
 
 /*
 const onFilter = () => {
@@ -291,7 +291,7 @@ const onFilter = () => {
                                 <div class="card-body d-flex flex-column justify-content-end">
                                   <div class="row">
                                     <div class="col">
-                                      <p class="font-sans-serif lh-1 mb-1 fs-6">{{percentage}}%</p>
+                                      <p class="font-sans-serif lh-1 mb-1 fs-6">{{percentageAdministration}}%</p>
                                     </div>
                                   </div>
                                 </div>
@@ -355,6 +355,7 @@ const onFilter = () => {
                     </div>
                     <div class="tab-pane fade" id="pill-tab-gastos" role="tabpanel" aria-labelledby="gastos-tab">
                         
+
                         <div class="row mb-3">
                             <div class="col-md-6 col-lg-3 col-xl-6 col-xxl-3">
                               <div class="card h-md-100 ecommerce-card-min-width">
@@ -379,7 +380,7 @@ const onFilter = () => {
                                 <div class="card-body d-flex flex-column justify-content-end">
                                   <div class="row">
                                     <div class="col">
-                                      <p class="font-sans-serif lh-1 mb-1 fs-6">{{percentage}}%</p>
+                                      <p class="font-sans-serif lh-1 mb-1 fs-6">{{percentageAdministration}}%</p>
                                     </div>
                                   </div>
                                 </div>
@@ -387,12 +388,10 @@ const onFilter = () => {
                             </div>  
                         </div>
 
-                        <!--
                         <div class="table-responsive mt-1">
                             <table class="table table-bordered table-hover table-sm custom-striped fs-10 mb-0 agrochem-details">
                                 <thead>
                                     <tr>
-                                        <th class="min-w-150px">CC</th>
                                         <th>Subfamilia</th>
                                         <th class="min-w-100px">Producto</th>
                                         <th>Cantidad Total</th>
@@ -402,37 +401,31 @@ const onFilter = () => {
                                     </tr>
                                 </thead>
                                 <tbody>
-                                    <template v-for="(cc, index) in data3">
-                                        <template v-for="(subfamily, index2) in cc.subfamilies">
+                                    <template v-for="(subfamily, index) in data3">
+                                        <template v-for="(product, pidx) in subfamily.products">
                                             <tr>
-                                                <td v-if="index2 == 0" :rowspan="cc.total" style="vertical-align:top">{{cc.name}}</td>
-                                                <td  style="vertical-align:top;" :rowspan="subfamily.products.length > 0 ? subfamily.products.length : 1">{{subfamily.name}}</td>
-                                                <td v-if="subfamily.products.length > 0">{{subfamily.products[0].name}}</td>
-                                                <td v-else>-</td>
-                                                <td v-if="subfamily.products.length > 0">{{subfamily.products[0].totalQuantity}}</td>
-                                                <td v-else>-</td>
-                                                <td v-if="subfamily.products.length > 0">{{subfamily.products[0].unit}}</td>
-                                                <td v-else>-</td>
-                                                <td v-if="subfamily.products.length > 0" class="text-dark">{{subfamily.products[0].totalAmount}}</td>
-                                                <td v-else>-</td>
-                                                <td v-if="subfamily.products.length > 0" class="bg-opacity-5 table-primary" v-for="value in subfamily.products[0].months">{{value}}</td>
-                                                <td v-else v-for="month in $page.props.months">-</td>
+                                                <td v-if="pidx === 0" :rowspan="subfamily.products.length > 0 ? subfamily.products.length : 1" style="vertical-align:top">{{subfamily.name}}</td>
+                                                <td>{{product.name}}</td>
+                                                <td>{{product.totalQuantity}}</td>
+                                                <td>{{product.unit}}</td>
+                                                <td class="text-dark">{{product.totalAmount}}</td>
+                                                <td class="bg-opacity-5 table-primary" v-for="value in product.months">{{value}}</td>
                                             </tr>
-
-                                            <template v-for="(product, index3) in subfamily.products">
-                                                <tr v-if="index3 > 0">
-                                                    <td>{{product.name}}</td>
-                                                    <td>{{product.totalQuantity}}</td>
-                                                    <td>{{product.unit}}</td>
-                                                    <td class="text-dark">{{product.totalAmount}}</td>
-                                                    <td class="bg-opacity-5 table-primary" v-for="value in product.months">{{value}}</td>
-                                                </tr>
-                                            </template>
                                         </template>
+                                        <!-- Fila de subtotal solo monto total -->
+                                        <tr class="table-secondary fw-bold">
+                                            <td colspan="4" class="text-end">Subtotal {{subfamily.name}}</td>
+                                            <td class="text-dark">
+                                                {{
+                                                  subfamily.products.reduce((sum, p) => sum + parseFloat((p.totalAmount+'').replace(/\./g,'').replace(',','.')), 0).toLocaleString('es-ES')
+                                                }}
+                                            </td>
+                                            <td v-for="month in $page.props.months"></td>
+                                        </tr>
                                     </template>
                                 </tbody>
                             </table>
-                        </div>-->
+                        </div>
 
                     </div>
 
@@ -472,7 +465,7 @@ const onFilter = () => {
                                 <div class="card-body d-flex flex-column justify-content-end">
                                   <div class="row">
                                     <div class="col">
-                                      <p class="font-sans-serif lh-1 mb-1 fs-6">{{percentage}}%</p>
+                                      <p class="font-sans-serif lh-1 mb-1 fs-6">{{percentageAdministration}}%</p>
                                     </div>
                                   </div>
                                 </div>

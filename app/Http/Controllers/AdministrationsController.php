@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Log;
 use App\Models\Administration;
 use Inertia\Inertia;
 
@@ -21,6 +22,8 @@ use App\Models\Level1;
 
 use App\Http\Controllers\Traits\BudgetTotalsTrait;
 
+
+
 class AdministrationsController extends Controller
 {
     use BudgetTotalsTrait;
@@ -38,6 +41,8 @@ class AdministrationsController extends Controller
 
     public function __invoke()
     {
+        // Log para verificar si el método __invoke se ejecuta
+        Log::info('AdministrationsController __invoke ejecutado');
         // Calcular totales globales de cada rubro
         $user = Auth::user();
         $season_id = session('season_id');
@@ -45,26 +50,26 @@ class AdministrationsController extends Controller
         $season = Season::select('name', 'month_id')->where('id', $season_id)->first();
         $this->month_id = $season['month_id'];
 
-        $this->totalAdministration = $this->getTotalAdministration($season_id, $team_id);
-        $this->totalFertilizer = $this->getTotalFertilizer($season_id, $team_id);
-        $this->totalManPower = $this->getTotalManPower($season_id, $team_id);
-        $this->totalAgrochemical = $this->getTotalAgrochemical($season_id, $team_id);
-        $this->totalSupplies = $this->getTotalSupplies($season_id, $team_id);
-        $this->totalServices = $this->getTotalServices($season_id, $team_id);
-        $this->totalField = $this->getTotalField($season_id, $team_id);
+        $totalAdministration = $this->getTotalAdministration($season_id, $team_id);
+        $totalFertilizer = $this->getTotalFertilizer($season_id, $team_id);
+        $totalManPower = $this->getTotalManPower($season_id, $team_id);
+        $totalAgrochemical = $this->getTotalAgrochemical($season_id, $team_id);
+        $totalSupplies = $this->getTotalSupplies($season_id, $team_id);
+        $totalServices = $this->getTotalServices($season_id, $team_id);
+        $totalField = $this->getTotalField($season_id, $team_id);
 
         // Sumar todos los rubros para el total absoluto
-        $this->totalAbsolute = round($this->totalAdministration)
-            + round($this->totalFertilizer)
-            + round($this->totalManPower)
-            + round($this->totalAgrochemical)
-            + round($this->totalSupplies)
-            + round($this->totalServices)
-            + round($this->totalField);
+        $totalAbsolute = round($totalAdministration)
+            + round($totalFertilizer)
+            + round($totalManPower)
+            + round($totalAgrochemical)
+            + round($totalSupplies)
+            + round($totalServices)
+            + round($totalField);
 
         // Calcular el porcentaje de administración sobre el total absoluto
-        $this->percentageAdministration = $this->totalAbsolute > 0
-            ? round((round($this->totalAdministration) / $this->totalAbsolute) * 100, 2)
+        $percentageAdministration = $totalAbsolute > 0
+            ? round((round($totalAdministration) / $totalAbsolute) * 100, 2)
             : 0;
 
 
@@ -168,10 +173,70 @@ class AdministrationsController extends Controller
             return null;
         })->filter()->values();
 
-        $season = isset($season) ? $season : null;
-        $percentageAdministration = $this->percentageAdministration;
+        // --- Data3: igual a Services pero sin costcenter ni división por superficie ---
+        $data3 = Level3::with(['level2.level1'])
+            ->whereHas('level2.level1', function($q) use ($team_id) {
+                $q->where('team_id', $team_id);
+            })
+            ->whereHas('level2', function($q) {
+                $q->where('name', 'administracion');
+            })
+            ->get()
+            ->map(function($subfamily) use ($team_id, $season_id) {
+                $products = Administration::with('unit')
+                    ->where('subfamily_id', $subfamily->id)
+                    ->where('team_id', $team_id)
+                    ->where('season_id', $season_id)
+                    ->get()
+                    ->map(function($admin) {
+                        $quantity = (($admin->unit_id == 4) || ($admin->unit_id == 2)) ? ($admin->quantity / 1000) : $admin->quantity;
+                        $quantity = round($quantity, 2);
+                        $price = $admin->price;
+                        $amount = round($quantity * $price, 2);
+                        // Calcular montos por mes (quantity x price por cada mes presente en administration_items)
+                        $months = array();
+                        $totalAmount = 0;
+                        $totalQuantity = 0;
+                        for ($i = 1; $i <= 12; $i++) {
+                            $count = DB::table('administration_items')
+                                ->where('administration_id', $admin->id)
+                                ->where('month_id', $i)
+                                ->count();
+                            $amountMonth = $count > 0 ? $amount : 0;
+                            $quantityMonth = $count > 0 ? $quantity : 0;
+                            $totalAmount += $amountMonth;
+                            $totalQuantity += $quantityMonth;
+                            array_push($months, number_format($amountMonth, 0, '', '.'));
+                        }
+                        return [
+                            'id'            => $admin->id,
+                            'name'          => $admin->product_name,
+                            'unit'          => optional($admin->unit)->name ?? '',
+                            'totalQuantity' => number_format($totalQuantity, 2, ',', '.'),
+                            'totalAmount'   => number_format($totalAmount, 0, ',', '.'),
+                            'months'        => $months
+                        ];
+                    })->toArray();
+                $total = collect($products)->reduce(function($carry, $product) {
+                    $amountStr = $product['totalAmount'];
+                    $amountStr = str_replace('.', '', $amountStr);
+                    $amountStr = str_replace(',', '.', $amountStr);
+                    $amount = floatval($amountStr);
+                    return floatval($carry) + $amount;
+                }, 0.0);
+                return [
+                    'name' => $subfamily->name,
+                    'products' => $products,
+                    'total' => number_format($total, 0, ',', '.')
+                ];
+            })
+            ->filter(function($item) { return count($item['products']) > 0; })
+            ->values();
+        // DEBUG: Log data3 para ver si devuelve datos
+        Log::info('DATA3_DEBUG', ['data3' => $data3]);
 
-        // Return igual que FieldsController pero para Administrations
+        $season = isset($season) ? $season : null;
+        // Usar la variable local $percentageAdministration para asegurar el valor correcto
         return Inertia::render('Administrations', compact(
             'units',
             'subfamilies',
@@ -179,6 +244,7 @@ class AdministrationsController extends Controller
             'administrations',
             'data1',
             'data2',
+            'data3',
             'season',
             'level2s',
             'team_id',
@@ -350,20 +416,7 @@ class AdministrationsController extends Controller
         ]; 
     }
 
-    private function getTotal($id, $team_id)
-    {   
-        $total =Administration::from('administrations as f')
-        ->join('administration_items as fi', 'fi.administration_id', 'f.id')
-        ->join('level3s as s', 'f.subfamily_id', 's.id')
-        ->join('level2s as l2', 's.level2_id', 'l2.id')
-        ->where('f.team_id', $team_id)
-        ->where('l2.id', $id)
-        ->select('fi.administration_id')
-        ->distinct('fi.administration_id')
-        ->count();
-
-        return $total;
-    }
+    // Método getTotal eliminado porque no se utiliza en el controlador
 
 
 }
