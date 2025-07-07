@@ -1,6 +1,7 @@
 <?php
 
 namespace App\Http\Controllers;
+
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use App\Models\Field;
@@ -90,7 +91,7 @@ class FieldsController extends Controller
                 ->pluck('month_id');
             $countMonths = $activeMonths->count();
             if ($countMonths > 0) {
-                $quantity = ($field->quantity !== null && ($field->quantity > 0)) ? ((in_array($field->unit_id ?? null, [2,4])) ? ($field->quantity / 1000) : $field->quantity) : 0;
+                $quantity = ($field->quantity !== null && ($field->quantity > 0)) ? ((in_array($field->unit_id ?? null, [2, 4])) ? ($field->quantity / 1000) : $field->quantity) : 0;
                 $amount = round($field->price * $quantity * $countMonths, 2);
                 $total += $amount;
             }
@@ -98,7 +99,7 @@ class FieldsController extends Controller
         return $total;
     }
 
-/**
+    /**
      * Suma el total de administración para los cost centers y temporada dados.
      */
     private function getTotalAdministration($season_id, $team_id)
@@ -125,7 +126,7 @@ class FieldsController extends Controller
                 ->pluck('month_id');
             $countMonths = $activeMonths->count();
             if ($countMonths > 0) {
-                $quantity = ($adm->quantity !== null && ($adm->quantity > 0)) ? ((in_array($adm->unit_id ?? null, [2,4])) ? ($adm->quantity / 1000) : $adm->quantity) : 0;
+                $quantity = ($adm->quantity !== null && ($adm->quantity > 0)) ? ((in_array($adm->unit_id ?? null, [2, 4])) ? ($adm->quantity / 1000) : $adm->quantity) : 0;
                 $amount = round($adm->price * $quantity * $countMonths, 2);
                 $total += $amount;
             }
@@ -148,190 +149,21 @@ class FieldsController extends Controller
     public $percentageField = 0;
 
     /**
-     * Suma el total de agroquímicos para la temporada y equipo dados (price * cantidad calculada * meses activos, con conversión de unidades y tipo de dosis).
-     * El cálculo es similar al de FertilizersController pero sin cost centers.
+     * Método principal que se invoca para mostrar la vista de campos.
+     * Calcula los totales y prepara los datos necesarios para la vista.
      */
-    private function getTotalAgrochemical($season_id, $team_id)
-    {
-        $season = \App\Models\Season::select('month_id')->where('id', $season_id)->first();
-        $currentMonth = $season ? $season->month_id : 1;
-        $months = [];
-        for ($x = $currentMonth; $x < $currentMonth + 12; $x++) {
-            $id = date('n', mktime(0, 0, 0, $x, 1));
-            $months[] = $id;
-        }
+    // Este método se invoca cuando se accede a la ruta asociada a este controlador
+    // (por ejemplo, /fields).
+    // Aquí se obtienen los datos necesarios para la vista de campos, como los totales
+    // de cada rubro, los subfamilias, unidades, meses, etc.
+    // Luego, se renderiza la vista 'Fields' con los datos obtenidos.
+    // También se calcula el porcentaje de fields sobre el total absoluto.
+    // Este método es el punto de entrada para la lógica de negocio relacionada con los campos.
+    // Se utiliza el trait BudgetTotalsTrait para obtener los totales de otros rubros.
+    // Este método es invocado por la ruta definida en routes/web.php o routes/api.php
+    // dependiendo de cómo esté configurada la aplicación.
+    // El trait BudgetTotalsTrait se utiliza para obtener los totales de otros rubros       
 
-        // Obtener todos los cost centers de la temporada (sin team_id)
-        $costCenters = \App\Models\CostCenter::where('season_id', $season_id)
-            ->get();
-
-        $total = 0;
-        foreach ($costCenters as $costCenter) {
-            $surface = $costCenter->surface ?? 1;
-            $agrochemicals = \App\Models\Agrochemical::where('season_id', $season_id)
-                ->where('team_id', $team_id)
-                ->get();
-            foreach ($agrochemicals as $agro) {
-                $dose = (($agro->unit_id == 4 && $agro->unit_id_price == 3) || ($agro->unit_id == 2 && $agro->unit_id_price == 1)) ? ($agro->dose / 1000) : $agro->dose;
-                if ($agro->dose_type_id == 1) {
-                    $quantity = round($dose * $surface, 2);
-                } elseif ($agro->dose_type_id == 2) {
-                    $quantity = round((($agro->mojamiento / 100) * $dose * $surface), 2);
-                } else {
-                    $quantity = round($dose * $surface, 2);
-                }
-                $amount = round($agro->price * $quantity, 2);
-                foreach ($months as $month) {
-                    $count = DB::table('agrochemical_items')
-                        ->where('agrochemical_id', $agro->id)
-                        ->where('month_id', $month)
-                        ->where('cost_center_id', $costCenter->id)
-                        ->count();
-                    if ($count > 0) {
-                        $total += $amount;
-                    }
-                }
-            }
-        }
-        $this->totalAgrochemical = $total;
-        return $total;
-    }
-
-    // public $totalManPower = 0; // ELIMINADO DUPLICADO
-
-    /**
-     * Suma el total de mano de obra (manpowers) para la temporada y equipo dados (price * quantity * meses activos).
-     */
-    private function getTotalManPower($season_id, $team_id)
-    {
-        $season = \App\Models\Season::select('month_id')->where('id', $season_id)->first();
-        $currentMonth = $season ? $season->month_id : 1;
-        $months = [];
-        for ($x = $currentMonth; $x < $currentMonth + 12; $x++) {
-            $id = date('n', mktime(0, 0, 0, $x, 1));
-            $months[] = $id;
-        }
-
-        // Obtener todos los cost centers de la temporada (sin team_id)
-        $costCenters = \App\Models\CostCenter::where('season_id', $season_id)
-            ->get();
-
-        $total = 0;
-        foreach ($costCenters as $costCenter) {
-            $surface = $costCenter->surface ?? 1;
-            $manpowers = \App\Models\ManPower::where('season_id', $season_id)
-                ->where('team_id', $team_id)
-                ->get();
-            foreach ($manpowers as $mp) {
-                $quantity = round($mp->workday * $surface, 2);
-                $amount = round($mp->price * $quantity, 2);
-                foreach ($months as $month) {
-                    $count = DB::table('manpower_items')
-                        ->where('man_power_id', $mp->id)
-                        ->where('month_id', $month)
-                        ->where('cost_center_id', $costCenter->id)
-                        ->count();
-                    if ($count > 0) {
-                        $total += $amount;
-                    }
-                }
-            }
-        }
-        $this->totalManPower = $total;
-        return $total;
-    }
-
-    // public $totalSupplies = 0; // ELIMINADO DUPLICADO
-    // public $totalServices = 0; // ELIMINADO DUPLICADO
-    // public $totalAbsolute = 0; // ELIMINADO DUPLICADO
-    // public $percentageManPower = 0; // ELIMINADO DUPLICADO
-    // public $percentageServices = 0; // ELIMINADO DUPLICADO
-
-    /**
-     * Suma el total de insumos (supplies) para la temporada y equipo dados (price * quantity * meses activos).
-     */
-    private function getTotalSupplies($season_id, $team_id)
-    {
-        $season = \App\Models\Season::select('month_id')->where('id', $season_id)->first();
-        $currentMonth = $season ? $season->month_id : 1;
-        $months = [];
-        for ($x = $currentMonth; $x < $currentMonth + 12; $x++) {
-            $id = date('n', mktime(0, 0, 0, $x, 1));
-            $months[] = $id;
-        }
-
-        // Obtener todos los cost centers de la temporada (sin team_id)
-        $costCenters = \App\Models\CostCenter::where('season_id', $season_id)
-            ->get();
-
-        $total = 0;
-        foreach ($costCenters as $costCenter) {
-            $surface = $costCenter->surface ?? 1;
-            $supplies = \App\Models\Supply::where('season_id', $season_id)
-                ->where('team_id', $team_id)
-                ->get();
-            foreach ($supplies as $supply) {
-                $quantity = (($supply->unit_id == 4 && $supply->unit_id_price == 3) || ($supply->unit_id == 2 && $supply->unit_id_price == 1)) ? ($supply->quantity / 1000) : $supply->quantity;
-                $quantity = round($quantity * $surface, 2);
-                $amount = round($supply->price * $quantity, 2);
-                foreach ($months as $month) {
-                    $count = DB::table('supply_items')
-                        ->where('supply_id', $supply->id)
-                        ->where('month_id', $month)
-                        ->where('cost_center_id', $costCenter->id)
-                        ->count();
-                    if ($count > 0) {
-                        $total += $amount;
-                    }
-                }
-            }
-        }
-        $this->totalSupplies = $total;
-        return $total;
-    }
-
-    /**
-     * Suma el total de servicios (services) para la temporada y equipo dados (price * quantity * meses activos).
-     */
-    private function getTotalServices($season_id, $team_id)
-    {
-        $season = \App\Models\Season::select('month_id')->where('id', $season_id)->first();
-        $currentMonth = $season ? $season->month_id : 1;
-        $months = [];
-        for ($x = $currentMonth; $x < $currentMonth + 12; $x++) {
-            $id = date('n', mktime(0, 0, 0, $x, 1));
-            $months[] = $id;
-        }
-
-        // Obtener todos los cost centers de la temporada (sin team_id)
-        $costCenters = \App\Models\CostCenter::where('season_id', $season_id)
-            ->get();
-
-        $total = 0;
-        foreach ($costCenters as $costCenter) {
-            $surface = $costCenter->surface ?? 1;
-            $services = \App\Models\Service::where('season_id', $season_id)
-                ->where('team_id', $team_id)
-                ->get();
-            foreach ($services as $service) {
-                $quantity = (($service->unit_id == 4 && $service->unit_id_price == 3) || ($service->unit_id == 2 && $service->unit_id_price == 1)) ? ($service->quantity / 1000) : $service->quantity;
-                $quantity = round($quantity * $surface, 2);
-                $amount = round($service->price * $quantity, 2);
-                foreach ($months as $month) {
-                    $count = DB::table('service_items')
-                        ->where('service_id', $service->id)
-                        ->where('month_id', $month)
-                        ->where('cost_center_id', $costCenter->id)
-                        ->count();
-                    if ($count > 0) {
-                        $total += $amount;
-                    }
-                }
-            }
-        }
-        $this->totalServices = $total;
-        return $total;
-    }
     public function __invoke()
     {
         $user = Auth::user();
@@ -346,19 +178,12 @@ class FieldsController extends Controller
 
         // Calcular y asignar los totales globales de cada rubro
         $this->totalField         = $this->getTotalField($season_id, $team_id);
-        Log::info('totalField: ' . $this->totalField);
         $this->totalFertilizer    = $this->getTotalFertilizer($season_id, $team_id);
-        Log::info('totalFertilizer: ' . $this->totalFertilizer);
         $this->totalManPower      = $this->getTotalManPower($season_id, $team_id);
-        Log::info('totalManPower: ' . $this->totalManPower);
         $this->totalAgrochemical  = $this->getTotalAgrochemical($season_id, $team_id);
-        Log::info('totalAgrochemical: ' . $this->totalAgrochemical);
         $this->totalSupplies      = $this->getTotalSupplies($season_id, $team_id);
-        Log::info('totalSupplies: ' . $this->totalSupplies);
-        $this->totalAdministration= $this->getTotalAdministration($season_id, $team_id);
-        Log::info('totalAdministration: ' . $this->totalAdministration);
+        $this->totalAdministration = $this->getTotalAdministration($season_id, $team_id);
         $this->totalServices      = $this->getTotalServices($season_id, $team_id);
-        Log::info('totalServices: ' . $this->totalServices);
 
         // Sumar todos los rubros para el total absoluto (redondeando cada uno como en ServicesController)
         $this->totalAbsolute = round($this->totalField)
@@ -376,47 +201,47 @@ class FieldsController extends Controller
 
 
 
-         // Obtener el Level1 correspondiente a 'field' para el equipo del usuario
+        // Obtener el Level1 correspondiente a 'field' para el equipo del usuario
         $level1 = Level1::where('name', 'Generales campo')
             ->where('team_id', $user->team_id)
             ->first();
 
 
         $level2s =  Level2::from('level2s as l2')
-        ->join('level1s as l1', 'l1.id', 'l2.level1_id')
-        ->select('l2.id', 'l2.name')
-        ->where('l1.team_id', $team_id)
-        ->where('season_id', $season_id)
-        ->where('l1.name', 'Generales campo')
-        ->get()->transform(function($subfamily){
-            return [
-                'label' => $subfamily->name, 
-                'value' => $subfamily->id
-            ];
-        });
-
-
-
-
-
-      
-
-         $subfamilies = collect();
-        if ($level1) {
-            $subfamilies = Level3::whereHas('level2', function($query) use ($level1) {
-                $query->where('level1_id', $level1->id);
-            })
-            ->get()
-            ->transform(function($subfamily){
+            ->join('level1s as l1', 'l1.id', 'l2.level1_id')
+            ->select('l2.id', 'l2.name')
+            ->where('l1.team_id', $team_id)
+            ->where('season_id', $season_id)
+            ->where('l1.name', 'Generales campo')
+            ->get()->transform(function ($subfamily) {
                 return [
                     'label' => $subfamily->name,
                     'value' => $subfamily->id
                 ];
             });
-        }
- 
 
-        $units = Unit::get()->transform(function($unit){
+
+
+
+
+
+
+        $subfamilies = collect();
+        if ($level1) {
+            $subfamilies = Level3::whereHas('level2', function ($query) use ($level1) {
+                $query->where('level1_id', $level1->id);
+            })
+                ->get()
+                ->transform(function ($subfamily) {
+                    return [
+                        'label' => $subfamily->name,
+                        'value' => $subfamily->id
+                    ];
+                });
+        }
+
+
+        $units = Unit::get()->transform(function ($unit) {
             return [
                 'label' => $unit->name,
                 'value' => $unit->id
@@ -424,7 +249,7 @@ class FieldsController extends Controller
         });
 
 
-  $months = array();
+        $months = array();
         $currentMonth = $this->month_id;
 
         for ($x = $currentMonth; $x < $currentMonth + 12; $x++) {
@@ -443,7 +268,7 @@ class FieldsController extends Controller
             ->where('team_id', $team_id)
             ->where('season_id', $season_id)
             ->paginate(10)
-            ->through(function($field) {
+            ->through(function ($field) {
                 return [
                     'id'            => $field->id,
                     'product_name'  => $field->product_name,
@@ -465,7 +290,7 @@ class FieldsController extends Controller
             ->where('team_id', $team_id)
             ->where('season_id', $season_id)
             ->get()
-            ->map(function($field) {
+            ->map(function ($field) {
                 $field->months = $field->items->pluck('month_id')->toArray();
                 return $field;
             });
@@ -478,14 +303,14 @@ class FieldsController extends Controller
             ->where('f.season_id', $season_id)
             ->groupBy('l2.id', 'l2.name')
             ->get()
-            ->transform(function($value) use ($team_id, $season_id){
+            ->transform(function ($value) use ($team_id, $season_id) {
                 return [
                     'id'           => $value->id,
                     'name'         => $value->name,
                     'subfamilies'  => $this->getSubfamilies($value->id, $team_id, $season_id)
                 ];
             });
-        $data2 = Level3::get()->map(function($subfamily) use ($team_id, $season_id) {
+        $data2 = Level3::get()->map(function ($subfamily) use ($team_id, $season_id) {
             $products = $this->getProducts2($subfamily->id, $team_id, $season_id);
             if ($products->count() > 0) {
                 return [
@@ -542,7 +367,7 @@ class FieldsController extends Controller
             ->select('s.id', 's.name')
             ->groupBy('s.id', 's.name')
             ->get()
-            ->transform(function($subfamily) use ($team_id, $season_id){
+            ->transform(function ($subfamily) use ($team_id, $season_id) {
                 return [
                     'id' => $subfamily->id,
                     'name' => $subfamily->name,
@@ -562,10 +387,10 @@ class FieldsController extends Controller
             ->where('f.season_id', $season_id)
             ->groupBy('f.id', 'f.product_name', 'f.quantity', 'f.price', 'f.unit_id', 'u.name')
             ->get()
-            ->transform(function($value) use ($team_id, $season_id){
-                $quantity = (($value->unit_id == 4) || ($value->unit_id == 2)) ? ($value->quantity / 1000) : $value->quantity; 
+            ->transform(function ($value) use ($team_id, $season_id) {
+                $quantity = (($value->unit_id == 4) || ($value->unit_id == 2)) ? ($value->quantity / 1000) : $value->quantity;
                 $amountFirst = round($value->price * $quantity, 2);
-                $data = $this->getMonths($value->id, $quantity, $amountFirst); 
+                $data = $this->getMonths($value->id, $quantity, $amountFirst);
                 return [
                     'id'            => $value->id,
                     'name'          => $value->product_name,
@@ -591,19 +416,18 @@ class FieldsController extends Controller
         $months = [];
         $totalAmount = 0;
         $totalQuantity = 0;
-        foreach($data as $month)
-        {
+        foreach ($data as $month) {
             $count = DB::table('field_items')
-            ->select('field_id')
-            ->where('field_id', $fieldId)
-            ->where('month_id', $month)
-            ->count();
+                ->select('field_id')
+                ->where('field_id', $fieldId)
+                ->where('month_id', $month)
+                ->count();
 
             $amountMonth = $count > 0 ? $amount : 0;
             $quantityMonth = $count > 0 ? $quantity : 0;
             $totalAmount += $amountMonth;
             $totalQuantity += $quantityMonth;
-            array_push($months, number_format($amountMonth, 0, '', '.'));        
+            array_push($months, number_format($amountMonth, 0, '', '.'));
         }
 
 
@@ -625,7 +449,7 @@ class FieldsController extends Controller
             ->where('f.season_id', $season_id)
             ->groupBy('f.id', 'f.product_name', 'f.price', 'f.quantity', 'u.name')
             ->get()
-            ->transform(function($value) use ($team_id, $season_id){
+            ->transform(function ($value) use ($team_id, $season_id) {
                 $data = $this->getResult2($value);
                 return [
                     'id'            => $value->id,
@@ -652,13 +476,12 @@ class FieldsController extends Controller
             array_push($data, $id);
         }
 
-        foreach($data as $month)
-        {
+        foreach ($data as $month) {
             $count = DB::table('field_items')
-            ->select('field_id')
-            ->where('field_id', $value->id)
-            ->where('month_id', $month)
-            ->count();
+                ->select('field_id')
+                ->where('field_id', $value->id)
+                ->where('month_id', $month)
+                ->count();
 
             $amountMonth = $count > 0 ? $amountFirst : 0;
             $quantityMonth = $count > 0 ? $value->quantity : 0;
@@ -671,7 +494,7 @@ class FieldsController extends Controller
         return [
             'totalAmount' => number_format($totalAmount, 0, ',', '.'),
             'totalQuantity' => number_format($totalQuantity, 2, ',', '.')
-        ]; 
+        ];
     }
 
     private function getTotal($id, $team_id)

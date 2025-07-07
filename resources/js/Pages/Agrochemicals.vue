@@ -19,7 +19,7 @@ const props = defineProps({
     data3: Array,
     totalData1: String,
     totalData2: String,
-    percentage: String,
+    percentageAgrochemical: String, // Nuevo prop para el porcentaje correcto
     varieties: {
       type: Array,
       default: () => []
@@ -163,6 +163,7 @@ const filteredVarieties = computed(() => {
 });
 
 // Filtra los cost centers por fruit_id y variety_id para la pestaña Detalles
+// Además, asegura que cc.total esté correctamente calculado para el rowspan
 const filteredData = computed(() => {
   let data = props.data;
   if (selectedFruit.value) {
@@ -175,8 +176,11 @@ const filteredData = computed(() => {
       data = data.filter(cc => cc.variety_id == selectedVariety.value);
     }
   }
-  // Si está "Todas" en especie, ignorar filtro de variedad
-  return data;
+  // Aseguramos que cada cc tenga la propiedad total igual a la suma de productos de todas sus subfamilias
+  return data.map(cc => {
+    const total = cc.subfamilies.reduce((acc, subfamily) => acc + (subfamily.products ? subfamily.products.length : 0), 0);
+    return { ...cc, total };
+  });
 });
 
 // Monto total dinámico para la pestaña Detalles (de filteredData)
@@ -204,6 +208,8 @@ const filteredVarietiesGastos = computed(() => {
   }
   return props.varieties.filter(v => v.fruit_id == selectedFruit.value);
 });
+// Filtro por variedad para Gastos por Hectarea
+// Además, asegura que cc.total esté correctamente calculado para el rowspan
 const filteredDataGastos = computed(() => {
   let data = props.data3;
   if (selectedFruit.value) {
@@ -215,8 +221,11 @@ const filteredDataGastos = computed(() => {
       data = data.filter(cc => cc.variety_id == selectedVarietyGastos.value);
     }
   }
-  // Si está "Todas" en especie, ignorar filtro de variedad
-  return data;
+  // Aseguramos que cada cc tenga la propiedad total igual a la suma de productos de todas sus subfamilias
+  return data.map(cc => {
+    const total = cc.subfamilies.reduce((acc, subfamily) => acc + (subfamily.products ? subfamily.products.length : 0), 0);
+    return { ...cc, total };
+  });
 });
 
 // Monto total dinámico para la pestaña Gastos por Hectarea (de filteredDataGastos)
@@ -372,7 +381,7 @@ const onFilter = () => {
                                 <div class="card-body d-flex flex-column justify-content-end py-1 px-2">
                                   <div class="row">
                                     <div class="col">
-                                      <p class="font-sans-serif lh-1 mb-1 fs-8 small-card-number">{{percentage}}%</p>
+                                      <p class="font-sans-serif lh-1 mb-1 fs-8 small-card-number">{{props.percentageAgrochemical}}%</p>
                                     </div>
                                   </div>
                                 </div>
@@ -486,29 +495,29 @@ const onFilter = () => {
                                 <!--end::Table head-->
                                 <!--begin::Table body-->
                                 <tbody>
-                                    <template v-for="(cc, index) in filteredData">
-                                        <template v-for="(subfamily, index2) in cc.subfamilies">
-                                            <tr>
-                                                <td v-if="index2 == 0" :rowspan="cc.total" style="vertical-align:top">{{cc.name}}</td>
-                                                <td  style="vertical-align:top;" :rowspan="subfamily.products.length">{{subfamily.name}}</td>
-                                                <td>{{subfamily.products[0].name}}</td>
-                                                <td>{{subfamily.products[0].totalQuantity}}</td>
-                                                <td>{{subfamily.products[0].unit}}</td>
-                                                <td class="text-dark">{{subfamily.products[0].totalAmount}}</td>
-                                                <td class="bg-opacity-5 table-primary" v-for="value in subfamily.products[0].months">{{value}}</td>
-                                            </tr>
-
-                                            <template v-for="(product, index3) in subfamily.products">
-                                                <tr v-if="index3 > 0">
-                                                    <td>{{product.name}}</td>
-                                                    <td>{{product.totalQuantity}}</td>
-                                                    <td>{{product.unit}}</td>
-                                                    <td class="text-dark">{{product.totalAmount}}</td>
-                                                    <td class="bg-opacity-5 table-primary" v-for="value in product.months">{{value}}</td>
-                                                </tr>
-                                            </template>
-                                        </template>
+                                  <template v-for="cc in filteredData">
+                                    <template v-for="(subfamily, index2) in cc.subfamilies">
+                                      <tr>
+                                        <td v-if="index2 == 0" :rowspan="cc.total" style="vertical-align:top">{{ cc.name }}</td>
+                                        <td style="vertical-align:top;" :rowspan="subfamily.products.length">{{ subfamily.name }}</td>
+                                        <td>{{ subfamily.products[0].name }}</td>
+                                        <td>{{ subfamily.products[0].totalQuantity }}</td>
+                                        <td>{{ subfamily.products[0].unit }}</td>
+                                        <td>{{ subfamily.products[0].totalAmount }}</td>
+                                        <td class="bg-opacity-5 table-primary" v-for="value in subfamily.products[0].months">{{ value }}</td>
+                                      </tr>
+                                      <template v-for="(product, index3) in subfamily.products">
+                                        <tr v-if="index3 > 0">
+                                          <!-- Aquí NO repetimos las columnas de centro de costo ni subfamilia -->
+                                          <td>{{ product.name }}</td>
+                                          <td>{{ product.totalQuantity }}</td>
+                                          <td>{{ product.unit }}</td>
+                                          <td>{{ product.totalAmount }}</td>
+                                          <td class="bg-opacity-5 table-primary" v-for="value in product.months">{{ value }}</td>
+                                        </tr>
+                                      </template>
                                     </template>
+                                  </template>
                                 </tbody>
                                 <!--end::Table body-->
                             </table>
@@ -538,7 +547,7 @@ const onFilter = () => {
                                 <div class="card-body d-flex flex-column justify-content-end py-1 px-2">
                                   <div class="row">
                                     <div class="col">
-                                      <p class="font-sans-serif lh-1 mb-1 fs-8 small-card-number">{{percentage}}%</p>
+                                      <p class="font-sans-serif lh-1 mb-1 fs-8 small-card-number">{{props.percentageAgrochemical}}%</p>
                                     </div>
                                   </div>
                                 </div>
@@ -653,29 +662,29 @@ const onFilter = () => {
                                 <!--end::Table head-->
                                 <!--begin::Table body-->
                                 <tbody>
-                                    <template v-for="(cc, index) in filteredDataGastos">
-                                        <template v-for="(subfamily, index2) in cc.subfamilies">
-                                            <tr>
-                                                <td v-if="index2 == 0" :rowspan="cc.total" style="vertical-align:top">{{cc.name}}</td>
-                                                <td  style="vertical-align:top;" :rowspan="subfamily.products.length">{{subfamily.name}}</td>
-                                                <td>{{subfamily.products[0].name}}</td>
-                                                <td>{{subfamily.products[0].totalQuantity}}</td>
-                                                <td>{{subfamily.products[0].unit}}</td>
-                                                <td class="text-dark">{{subfamily.products[0].totalAmount}}</td>
-                                                <td class="bg-opacity-5 table-primary" v-for="value in subfamily.products[0].months">{{value}}</td>
-                                            </tr>
-
-                                            <template v-for="(product, index3) in subfamily.products">
-                                                <tr v-if="index3 > 0">
-                                                    <td>{{product.name}}</td>
-                                                    <td>{{product.totalQuantity}}</td>
-                                                    <td>{{product.unit}}</td>
-                                                    <td class="text-dark">{{product.totalAmount}}</td>
-                                                    <td class="bg-opacity-5 table-primary" v-for="value in product.months">{{value}}</td>
-                                                </tr>
-                                            </template>
-                                        </template>
+                                  <template v-for="cc in filteredDataGastos">
+                                    <template v-for="(subfamily, index2) in cc.subfamilies">
+                                      <tr>
+                                        <td v-if="index2 == 0" :rowspan="cc.total" style="vertical-align:top">{{ cc.name }}</td>
+                                        <td style="vertical-align:top;" :rowspan="subfamily.products.length">{{ subfamily.name }}</td>
+                                        <td>{{ subfamily.products[0].name }}</td>
+                                        <td>{{ subfamily.products[0].totalQuantity }}</td>
+                                        <td>{{ subfamily.products[0].unit }}</td>
+                                        <td>{{ subfamily.products[0].totalAmount }}</td>
+                                        <td class="bg-opacity-5 table-primary" v-for="value in subfamily.products[0].months">{{ value }}</td>
+                                      </tr>
+                                      <template v-for="(product, index3) in subfamily.products">
+                                        <tr v-if="index3 > 0">
+                                          <!-- Aquí NO repetimos las columnas de centro de costo ni subfamilia -->
+                                          <td>{{ product.name }}</td>
+                                          <td>{{ product.totalQuantity }}</td>
+                                          <td>{{ product.unit }}</td>
+                                          <td>{{ product.totalAmount }}</td>
+                                          <td class="bg-opacity-5 table-primary" v-for="value in product.months">{{ value }}</td>
+                                        </tr>
+                                      </template>
                                     </template>
+                                  </template>
                                 </tbody>
                                 <!--end::Table body-->
                             </table>
@@ -705,7 +714,7 @@ const onFilter = () => {
                                 <div class="card-body d-flex flex-column justify-content-end py-1 px-2">
                                   <div class="row">
                                     <div class="col">
-                                      <p class="font-sans-serif lh-1 mb-1 fs-8 small-card-number">{{percentage}}%</p>
+                                      <p class="font-sans-serif lh-1 mb-1 fs-8 small-card-number">{{props.percentageAgrochemical}}%</p>
                                     </div>
                                   </div>
                                 </div>

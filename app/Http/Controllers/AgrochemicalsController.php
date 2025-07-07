@@ -17,42 +17,15 @@ use App\Models\Supply;
 use App\Models\Service;
 use App\Models\DoseType;
 use Inertia\Inertia;
+
+use App\Http\Controllers\Traits\BudgetTotalsTrait;
 use Illuminate\Support\Facades\Log;
 
 
 class AgrochemicalsController extends Controller
 {
-    private function getTotalAdministration($season_id, $team_id)
-    {
-        $season = \App\Models\Season::select('month_id')->where('id', $season_id)->first();
-        $currentMonth = $season ? $season->month_id : 1;
-        $months = [];
-        for ($x = $currentMonth; $x < $currentMonth + 12; $x++) {
-            $id = date('n', mktime(0, 0, 0, $x, 1));
-            $months[] = $id;
-        }
+    use BudgetTotalsTrait;
 
-        $administrations = \App\Models\Administration::where('season_id', $season_id)
-            ->where('team_id', $team_id)
-            ->get();
-
-        $total = 0;
-        foreach ($administrations as $adm) {
-            // Buscar los meses activos en los que aparece este administration_id
-            $activeMonths = DB::table('administration_items')
-                ->where('administration_id', $adm->id)
-                ->whereIn('month_id', $months)
-                ->distinct('month_id')
-                ->pluck('month_id');
-            $countMonths = $activeMonths->count();
-            if ($countMonths > 0) {
-                $quantity = ($adm->quantity !== null && ($adm->quantity > 0)) ? ((in_array($adm->unit_id ?? null, [2,4])) ? ($adm->quantity / 1000) : $adm->quantity) : 0;
-                $amount = round($adm->price * $quantity * $countMonths, 2);
-                $total += $amount;
-            }
-        }
-        return $total;
-    }
 
 
 /**
@@ -60,41 +33,6 @@ class AgrochemicalsController extends Controller
     
      * Suma el total de administración para los cost centers y temporada dados.
      */
-    private function getTotalField($season_id, $team_id)
-    {
-        $season = \App\Models\Season::select('month_id')->where('id', $season_id)->first();
-        $currentMonth = $season ? $season->month_id : 1;
-        $months = [];
-        for ($x = $currentMonth; $x < $currentMonth + 12; $x++) {
-            $id = date('n', mktime(0, 0, 0, $x, 1));
-            $months[] = $id;
-        }
-
-        $fields = \App\Models\Field::where('season_id', $season_id)
-            ->where('team_id', $team_id)
-            ->get();
-
-        $total = 0;
-        foreach ($fields as $field) {
-            // Buscar los meses activos en los que aparece este field_id
-            $activeMonths = DB::table('field_items')
-                ->where('field_id', $field->id)
-                ->whereIn('month_id', $months)
-                ->distinct('month_id')
-                ->pluck('month_id');
-            $countMonths = $activeMonths->count();
-            if ($countMonths > 0) {
-                $quantity = ($field->quantity !== null && ($field->quantity > 0)) ? ((in_array($adm->unit_id ?? null, [2,4])) ? ($field->quantity / 1000) : $field->quantity) : 0;
-                $amount = round($field->price * $quantity * $countMonths, 2);
-                $total += $amount;
-            }
-        }
-        return $total;
-    }
-
-
-
-
 
 
 
@@ -104,13 +42,16 @@ class AgrochemicalsController extends Controller
 
     public $totalData2 = 0;
 
+
     public $totalFertilizer = 0;
-
     public $totalManPower = 0;
-
     public $totalSupplies = 0;
-
     public $totalServices = 0;
+    public $totalAgrochemical = 0;
+    public $totalAdministration = 0;
+    public $totalField = 0;
+    public $totalAbsolute = 0;
+    public $percentageAgrochemical = 0;
 
     public function __invoke()
 
@@ -224,8 +165,7 @@ class AgrochemicalsController extends Controller
                 'id' => $value->cost_center_id,
                 'name' => $value->name,
                 'variety_id' => $value->variety_id, // <-- Agregamos variety_id al array
-                'subfamilies' => $this->getSubfamilies($value->cost_center_id, $value->surface),
-                'total' => $this->getTotal($value->cost_center_id)
+                'subfamilies' => $this->getSubfamilies($value->cost_center_id, $value->surface)
             ];
         });
 
@@ -241,8 +181,7 @@ class AgrochemicalsController extends Controller
                 'id' => $value->cost_center_id,
                 'name' => $value->name,
                 'variety_id' => $value->variety_id, // <-- Agregamos variety_id al array
-                'subfamilies' => $this->getSubfamilies($value->cost_center_id, null, true),
-                'total' => $this->getTotal($value->cost_center_id)
+                'subfamilies' => $this->getSubfamilies($value->cost_center_id, null, true)
             ];
         }); 
 
@@ -265,23 +204,58 @@ class AgrochemicalsController extends Controller
             ];
         });
 
-        $this->getFertilizerProducts($costCentersId);
-        $this->getManPowerProducts($costCentersId);
-        $this->getSuppliesProducts($costCentersId);
-        $this->getServicesProducts($costCentersId);
+
+        // Calcular totales globales de cada rubro usando el trait
+        $team_id = $user->team_id;
+        $this->totalAgrochemical   = $this->getTotalAgrochemical($season_id, $team_id);
+        $this->totalFertilizer     = $this->getTotalFertilizer($season_id, $team_id);
+        $this->totalManPower       = $this->getTotalManPower($season_id, $team_id);
+        $this->totalSupplies       = $this->getTotalSupplies($season_id, $team_id);
+        $this->totalServices       = $this->getTotalServices($season_id, $team_id);
+        $this->totalAdministration = $this->getTotalAdministration($season_id, $team_id);
+        $this->totalField          = $this->getTotalField($season_id, $team_id);
+
+        // Sumar todos los rubros para el total absoluto
+        $this->totalAbsolute = round($this->totalAgrochemical)
+            + round($this->totalFertilizer)
+            + round($this->totalManPower)
+            + round($this->totalSupplies)
+            + round($this->totalServices)
+            + round($this->totalAdministration)
+            + round($this->totalField);
 
 
-        // Sumar el total de administración al total absoluto
+        // Calcular el porcentaje de agroquímicos sobre el total absoluto
+        $this->percentageAgrochemical = $this->totalAbsolute > 0
+            ? round((round($this->totalAgrochemical) / $this->totalAbsolute) * 100, 2)
+            : 0;
 
-        $totalAdministration = $this->getTotalAdministration($season_id, $user->team_id);
-        $totalField = $this->getTotalField($season_id, $user->team_id);
-      
-        $totalAbsolute = round($this->totalData2) + round($this->totalFertilizer) + round($this->totalManPower) + round($this->totalSupplies) + round($this->totalServices) + round($totalAdministration) + round($totalField);
-     
-        $percentage = $totalAbsolute > 0 ? round(((round($this->totalData2) / $totalAbsolute) * 100), 2) : 0;
+        // Log para depuración
+        Log::info('Totales Agroquímicos:', [
+            'totalAgrochemical' => $this->totalAgrochemical,
+            'totalFertilizer' => $this->totalFertilizer,
+            'totalManPower' => $this->totalManPower,
+            'totalSupplies' => $this->totalSupplies,
+            'totalServices' => $this->totalServices,
+            'totalAdministration' => $this->totalAdministration,
+            'totalField' => $this->totalField,
+            'totalAbsolute' => $this->totalAbsolute,
+            'percentageAgrochemical' => $this->percentageAgrochemical,
+        ]);
 
         $totalData1 = number_format($this->totalData1, 0, ',', '.');
         $totalData2 = number_format($this->totalData2, 0, ',', '.');
+
+        // Variables locales para compact()
+        $totalAgrochemical = $this->totalAgrochemical;
+        $totalFertilizer = $this->totalFertilizer;
+        $totalManPower = $this->totalManPower;
+        $totalSupplies = $this->totalSupplies;
+        $totalServices = $this->totalServices;
+        $totalAdministration = $this->totalAdministration;
+        $totalField = $this->totalField;
+        $totalAbsolute = $this->totalAbsolute;
+        $percentageAgrochemical = $this->percentageAgrochemical;
 
         // Obtener variedades asociadas a los cost centers de este equipo y temporada
         $varieties = \App\Models\Variety::whereIn('id',
@@ -300,7 +274,13 @@ class AgrochemicalsController extends Controller
         // Obtener frutas asociadas a las variedades filtradas
         $fruits = \App\Models\Fruit::whereIn('id', $varieties->pluck('fruit_id')->unique()->filter())->orderBy('name')->get(['id', 'name']);
 
-        return Inertia::render('Agrochemicals', compact('units', 'subfamilies', 'months', 'costCenters', 'agrochemicals', 'data', 'data2', 'data3', 'doseTypes', 'season', 'totalData1', 'totalData2', 'percentage', 'varieties', 'fruits'));
+        return Inertia::render('Agrochemicals', compact(
+            'units', 'subfamilies', 'months', 'costCenters', 'agrochemicals', 'data', 'data2', 'data3', 'doseTypes', 'season',
+            'totalData1', 'totalData2',
+            'totalAgrochemical', 'totalFertilizer', 'totalManPower', 'totalSupplies', 'totalServices', 'totalAdministration', 'totalField', 'totalAbsolute',
+            'percentageAgrochemical',
+            'varieties', 'fruits'
+        ));
     }
 
     private function getSubfamilies($costCenterId, $surface = null, $bills = false)
@@ -360,16 +340,7 @@ class AgrochemicalsController extends Controller
         return $products;
     }
 
-    private function getTotal($costCenterId)
-    {   
-        $total = DB::table('agrochemical_items')
-        ->select('agrochemical_id')
-        ->where('cost_center_id', $costCenterId)
-        ->distinct('agrochemical_id')
-        ->count();
 
-        return $total;
-    }
 
     private function getMonths($agrochemicalId, $quantity, $amount, $bills)
     {
