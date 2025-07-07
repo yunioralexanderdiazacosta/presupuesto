@@ -22,7 +22,11 @@ use App\Services\WeatherService;
  * Incluye funciones auxiliares para obtener totales, agrupaciones y métricas por estado de desarrollo y por hectárea.
  */
 class DashboardController extends Controller
+
+
+
 {
+    use \App\Http\Controllers\Traits\BudgetTotalsTrait;
     public $month_id = '';
 
     public $totalAgrochemical = 0;
@@ -94,7 +98,55 @@ class DashboardController extends Controller
         ];
     }
 
+    /**
+     * Obtiene los totales de cada rubro principal y el porcentaje que representa cada uno respecto al total general.
+     * Devuelve un array de la forma:
+     * [
+     *   [ 'label' => 'Campo', 'total' => 1000, 'percent' => 10.5 ], ...
+     * ]
+     */
+    public function getMainBudgetTotalsAndPercents($season_id, $team_id)
+    {
+        // Usar los métodos del trait BudgetTotalsTrait
+        $totalField = (float) $this->getTotalField($season_id, $team_id);
+        $totalAdministration = (float) $this->getTotalAdministration($season_id, $team_id);
+        $totalFertilizer = (float) $this->getTotalFertilizer($season_id, $team_id);
+        $totalManPower = (float) $this->getTotalManPower($season_id, $team_id);
+        $totalAgrochemical = (float) $this->getTotalAgrochemical($season_id, $team_id);
+        $totalSupplies = (float) $this->getTotalSupplies($season_id, $team_id);
+        $totalServices = (float) $this->getTotalServices($season_id, $team_id);
 
+        $labels = [
+            'Campo',
+            'Administración',
+            'Fertilizantes',
+            'Mano de Obra',
+            'Agroquímicos',
+            'Insumos',
+            'Servicios',
+        ];
+        $totals = [
+            $totalField,
+            $totalAdministration,
+            $totalFertilizer,
+            $totalManPower,
+            $totalAgrochemical,
+            $totalSupplies,
+            $totalServices,
+        ];
+        $grandTotal = array_sum($totals);
+        $result = [];
+        foreach ($labels as $i => $label) {
+            $total = $totals[$i];
+            $percent = $grandTotal > 0 ? round(($total / $grandTotal) * 100, 2) : 0;
+            $result[] = [
+                'label' => $label,
+                'total' => $total,
+                'percent' => $percent
+            ];
+        }
+        return $result;
+    }
 
 
     public function __invoke(Request $request, WeatherService $weatherService)
@@ -323,7 +375,9 @@ class DashboardController extends Controller
         // Calcular el total de superficie de todos los cost centers de la temporada
         $totalSurface = \App\Models\CostCenter::where('season_id', $season_id)->sum('surface');
         $entityCounts = self::getEntityCounts($season_id, $user->team_id);
-        // Pasar ambos al frontend
+        // Calcular los totales y porcentajes de cada rubro principal
+        $mainTotalsAndPercents = $this->getMainBudgetTotalsAndPercents($season_id, $user->team_id);
+        // Pasar todos los datos al frontend
         return Inertia::render('Dashboard', compact(
             'totalSeason', 'pieLabels', 'pieDatasets',
             'monthsAgrochemical', 'totalAgrochemical',
@@ -346,8 +400,9 @@ class DashboardController extends Controller
             'administrationTotalsByLevel12',
             'fieldTotalsByLevel12',
             'totalsByLevel12',
-             'entityCounts',
-            'totalSurface' // <-- aseguro que se envía
+            'entityCounts',
+            'totalSurface',
+            'mainTotalsAndPercents' // <-- nuevo prop para los gauges
         ));
     }
 

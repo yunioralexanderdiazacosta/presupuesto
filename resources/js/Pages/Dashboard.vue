@@ -2,7 +2,7 @@
 import { Head } from '@inertiajs/vue3';
 import AppLayout from '@/Layouts/AppLayout.vue';
 import FalconBarChart from '@/Components/FalconBarChart.vue';
-import { onMounted, ref, computed } from 'vue'
+import { onMounted, ref, computed, nextTick } from 'vue'
 import { router } from '@inertiajs/vue3'
 const title = 'Tablero';
 
@@ -61,7 +61,8 @@ const props = defineProps({
 
   totalSurface: Number, // <-- AGREGADO para mostrar superficie total
   entityCounts: Object, // <-- para la tabla de conteos
-  totalAdministration: Number // <-- AGREGADO para mostrar administración total
+  totalAdministration: Number, // <-- AGREGADO para mostrar administración total
+  mainTotalsAndPercents: Array // <-- nuevo prop para los gauges
 });
 
 // Calcular el máximo para la barra de progreso
@@ -190,12 +191,105 @@ const entityLabels = {
   administrations: 'Administración'
 };
 
+// Renderizar los gauge charts usando ECharts
+onMounted(() => {
+  nextTick(() => {
+    if (props.mainTotalsAndPercents && window.echarts) {
+      props.mainTotalsAndPercents.forEach((item, idx) => {
+        const chartDom = document.getElementById('gauge-ring-' + idx);
+        if (chartDom) {
+          const myChart = window.echarts.init(chartDom);
+          myChart.setOption({
+            series: [
+              {
+                type: 'gauge',
+                startAngle: 225,
+                endAngle: -45,
+                min: 0,
+                max: 100,
+                progress: {
+                  show: true,
+                  width: 18
+                },
+                axisLine: {
+                  lineStyle: {
+                    width: 18
+                  }
+                },
+                axisTick: {
+                  show: false
+                },
+                splitLine: {
+                  show: false
+                },
+                axisLabel: {
+                  show: false
+                },
+                pointer: {
+                  show: false
+                },
+                title: {
+                  show: false
+                },
+                detail: {
+                  valueAnimation: true,
+                  fontSize: 18,
+                  offsetCenter: [0, '90%'],
+                  formatter: '{value}%'
+                },
+                data: [
+                  {
+                    value: item.percent
+                  }
+                ]
+              }
+            ]
+          });
+        }
+      });
+    }
+  });
+});
 </script>
 
 <template>
   <Head :title="title" />
   <AppLayout>
     <div class="container-fluid px-0 py-2" style="max-width: 100vw;">
+
+      <!-- Card de 7 gauge ring charts con porcentajes de cada rubro -->
+      <div class="row mt-2 mb-3">
+        <div class="col-xl-12">
+          <div class="card">
+            <div class="card-header pb-1 pt-1">
+              <h6 class="mb-0">Indicadores clave por rubro (porcentaje del total)</h6>
+            </div>
+            <div class="card-body pt-1 pb-1">
+              <div class="d-flex flex-wrap justify-content-between align-items-center ">
+                <div
+                  v-for="(item, idx) in mainTotalsAndPercents"
+                  :key="'gauge-' + idx"
+                  class="falcon-gauge-card flex-grow-1 d-flex flex-column align-items-center justify-content-center mb-1 "
+                  style="min-width: 150px; max-width: 100px;"
+                >
+                  <div
+                    class="echart-gauge-ring-chart-example"
+                    :id="'gauge-ring-' + idx"
+                    style="min-height: 120px; width: 100%;"
+                    data-echart-responsive="true"
+                  ></div>
+                  <div class="fw-semibold text-center mt-2 text-dark small">{{ item.label }}</div>
+                  <div class="text-center text-primary fw-bold fs-10">{{ Number(item.total).toLocaleString('es-CL', { maximumFractionDigits: 0 }) }}</div>
+                 
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+
+
       <div class="row g-2 g-xl-3">
         <!-- Columna izquierda: Weather, superficie, total presupuestos -->
         <div class="col-xl-5 col-lg-6 d-flex flex-column">
@@ -505,6 +599,8 @@ const entityLabels = {
           </div>
         </div>
       </div>
+
+      
 
     </div>
   </AppLayout>
