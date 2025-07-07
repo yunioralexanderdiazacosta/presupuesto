@@ -15,6 +15,7 @@ const props = defineProps({
     data: Array,
     data1: Array,
     data2: Array,
+    data3: Array,
     team_id: [Number, String], // <-- Añadido
     season_id: [Number, String], // <-- Añadido
     percentageAdministration: Number // <-- Añadir aquí para recibir el porcentaje
@@ -392,37 +393,23 @@ const onFilter = () => {
                             <table class="table table-bordered table-hover table-sm custom-striped fs-10 mb-0 agrochem-details">
                                 <thead>
                                     <tr>
+                                        <th>Familia</th>
                                         <th>Subfamilia</th>
                                         <th class="min-w-100px">Producto</th>
                                         <th>Cantidad Total</th>
-                                        <th>Un</th>
                                         <th class="text-dark">Monto Total</th>
-                                        <th v-for="month in $page.props.months" class="text-primary">{{month.label}}</th> 
+                                        <th v-for="(month, mIdx) in $page.props.months" class="text-primary">{{ month.label }}</th>
                                     </tr>
                                 </thead>
                                 <tbody>
-                                    <template v-for="(subfamily, index) in data3">
-                                        <template v-for="(product, pidx) in subfamily.products">
-                                            <tr>
-                                                <td v-if="pidx === 0" :rowspan="subfamily.products.length > 0 ? subfamily.products.length : 1" style="vertical-align:top">{{subfamily.name}}</td>
-                                                <td>{{product.name}}</td>
-                                                <td>{{product.totalQuantity}}</td>
-                                                <td>{{product.unit}}</td>
-                                                <td class="text-dark">{{product.totalAmount}}</td>
-                                                <td class="bg-opacity-5 table-primary" v-for="value in product.months">{{value}}</td>
-                                            </tr>
-                                        </template>
-                                        <!-- Fila de subtotal solo monto total -->
-                                        <tr class="table-secondary fw-bold">
-                                            <td colspan="4" class="text-end">Subtotal {{subfamily.name}}</td>
-                                            <td class="text-dark">
-                                                {{
-                                                  subfamily.products.reduce((sum, p) => sum + parseFloat((p.totalAmount+'').replace(/\./g,'').replace(',','.')), 0).toLocaleString('es-ES')
-                                                }}
-                                            </td>
-                                            <td v-for="month in $page.props.months"></td>
-                                        </tr>
-                                    </template>
+                                    <tr v-for="(item, idx) in data3" :key="idx">
+                                        <td>{{ item.family }}</td>
+                                        <td>{{ item.subfamily }}</td>
+                                        <td>{{ item.product }}</td>
+                                        <td>{{ Number(item.quantity).toLocaleString('es-ES') }}</td>
+                                        <td class="text-dark">{{ Number(item.total).toLocaleString('es-ES') }}</td>
+                                        <td v-for="(value, mIdx) in item.months" class="bg-opacity-5 table-primary">{{ Number(value).toLocaleString('es-ES') }}</td>
+                                    </tr>
                                 </tbody>
                             </table>
                         </div>

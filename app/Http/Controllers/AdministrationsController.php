@@ -24,6 +24,7 @@ use App\Http\Controllers\Traits\BudgetTotalsTrait;
 
 
 
+
 class AdministrationsController extends Controller
 {
     use BudgetTotalsTrait;
@@ -38,6 +39,17 @@ class AdministrationsController extends Controller
     public $percentageAdministration = 0;
     public $month_id = '';
     public $totalData2 = 0;
+
+    
+    /**
+     * Suma la columna surface de todos los cost centers de la temporada indicada.
+     * @param int $season_id
+     * @return float|int
+     */
+    public function totalsurface($season_id)
+    {
+        return DB::table('cost_centers')->where('season_id', $season_id)->sum('surface');
+    }
 
     public function __invoke()
     {
@@ -173,67 +185,44 @@ class AdministrationsController extends Controller
             return null;
         })->filter()->values();
 
-        // --- Data3: igual a Services pero sin costcenter ni división por superficie ---
-        $data3 = Level3::with(['level2.level1'])
-            ->whereHas('level2.level1', function($q) use ($team_id) {
-                $q->where('team_id', $team_id);
-            })
-            ->whereHas('level2', function($q) {
-                $q->where('name', 'administracion');
-            })
+        // --- Data3: Gastos por Hectarea plano: familia (level2), subfamilia (level3), producto, cantidad, monto total ---
+        $surfaceTotal = $this->totalsurface($season_id);
+        $data3 = \App\Models\Administration::from('administrations as f')
+            ->join('level3s as s', 'f.subfamily_id', 's.id')
+            ->join('level2s as l2', 's.level2_id', 'l2.id')
+            ->join('units as u', 'f.unit_id', 'u.id')
+            ->select('f.id', 'f.product_name', 'f.price', 'f.quantity', 'f.unit_id', 'u.name as unit_name', 's.name as subfamily_name', 'l2.name as family_name')
+            ->where('f.season_id', $season_id)
             ->get()
-            ->map(function($subfamily) use ($team_id, $season_id) {
-                $products = Administration::with('unit')
-                    ->where('subfamily_id', $subfamily->id)
-                    ->where('team_id', $team_id)
-                    ->where('season_id', $season_id)
-                    ->get()
-                    ->map(function($admin) {
-                        $quantity = (($admin->unit_id == 4) || ($admin->unit_id == 2)) ? ($admin->quantity / 1000) : $admin->quantity;
-                        $quantity = round($quantity, 2);
-                        $price = $admin->price;
-                        $amount = round($quantity * $price, 2);
-                        // Calcular montos por mes (quantity x price por cada mes presente en administration_items)
-                        $months = array();
-                        $totalAmount = 0;
-                        $totalQuantity = 0;
-                        for ($i = 1; $i <= 12; $i++) {
-                            $count = DB::table('administration_items')
-                                ->where('administration_id', $admin->id)
-                                ->where('month_id', $i)
-                                ->count();
-                            $amountMonth = $count > 0 ? $amount : 0;
-                            $quantityMonth = $count > 0 ? $quantity : 0;
-                            $totalAmount += $amountMonth;
-                            $totalQuantity += $quantityMonth;
-                            array_push($months, number_format($amountMonth, 0, '', '.'));
-                        }
-                        return [
-                            'id'            => $admin->id,
-                            'name'          => $admin->product_name,
-                            'unit'          => optional($admin->unit)->name ?? '',
-                            'totalQuantity' => number_format($totalQuantity, 2, ',', '.'),
-                            'totalAmount'   => number_format($totalAmount, 0, ',', '.'),
-                            'months'        => $months
-                        ];
-                    })->toArray();
-                $total = collect($products)->reduce(function($carry, $product) {
-                    $amountStr = $product['totalAmount'];
-                    $amountStr = str_replace('.', '', $amountStr);
-                    $amountStr = str_replace(',', '.', $amountStr);
-                    $amount = floatval($amountStr);
-                    return floatval($carry) + $amount;
-                }, 0.0);
+            ->map(function($value) use ($surfaceTotal, $season) {
+                $quantity = (($value->unit_id == 4) || ($value->unit_id == 2)) ? ($value->quantity / 1000) : $value->quantity;
+                $amount = $surfaceTotal > 0 ? ($value->price * $quantity) / $surfaceTotal : 0;
+                // Calcular montos por mes
+                $monthsArr = [];
+                $currentMonth = $season ? $season->month_id : 1;
+                for ($x = $currentMonth; $x < $currentMonth + 12; $x++) {
+                    $id = date('n', mktime(0, 0, 0, $x, 1));
+                    $count = DB::table('administration_items')
+                        ->where('administration_id', $value->id)
+                        ->where('month_id', $id)
+                        ->count();
+                    $amountMonth = $count > 0 ? $amount : 0;
+                    $monthsArr[] = number_format($amountMonth, 0, '', '');
+                }
                 return [
-                    'name' => $subfamily->name,
-                    'products' => $products,
-                    'total' => number_format($total, 0, ',', '.')
+                    'family'    => $value->family_name,
+                    'subfamily' => $value->subfamily_name,
+                    'product'   => $value->product_name,
+                    'quantity'  => number_format($quantity, 0, '', ''),
+                    'total'     => number_format($amount, 0, '', ''),
+                    'months'    => $monthsArr
                 ];
-            })
-            ->filter(function($item) { return count($item['products']) > 0; })
-            ->values();
-        // DEBUG: Log data3 para ver si devuelve datos
-        Log::info('DATA3_DEBUG', ['data3' => $data3]);
+            });
+       
+
+
+
+      
 
         $season = isset($season) ? $season : null;
         // Usar la variable local $percentageAdministration para asegurar el valor correcto
