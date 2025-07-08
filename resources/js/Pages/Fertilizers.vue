@@ -274,22 +274,7 @@ const onFilter = () => {
                 </ul>
                 <div class="tab-content border p-3 mt-3" id="pill-myTabContent">
                     <div class="tab-pane fade show active" id="pill-tab-edicion" role="tabpanel" aria-labelledby="edicion-tab">        
-                        <div class="row mb-3 g-4">
-                          <div class="col-md-6 col-lg-3 col-xl-6 col-xxl-3">
-                            <div class="card h-md-100 ecommerce-card-min-width">
-                              <div class="card-header pb-0">
-                                <h6 class="mb-0 mt-2 d-flex align-items-center">Monto Total</h6>
-                              </div>
-                              <div class="card-body d-flex flex-column justify-content-end">
-                                <div class="row">
-                                  <div class="col">
-                                    <p class="font-sans-serif lh-1 mb-1 fs-6">{{ totalFilteredData }}</p>
-                                  </div>
-                                </div>
-                              </div>
-                            </div>
-                          </div>
-                        </div>
+                      
                         <Table :id="'fertilizers'" :total="fertilizers.length" :links="fertilizers.links">
                             <!--begin::Table head-->
                             <template #header>
@@ -339,35 +324,35 @@ const onFilter = () => {
                     </div>
 
                     <div class="tab-pane fade" id="pill-tab-detalles" role="tabpanel" aria-labelledby="detalles-tab">
-                        <div class="row mb-3 g-4">
-                          <div class="col-md-6 col-lg-3 col-xl-6 col-xxl-3">
-                            <div class="card h-md-100 ecommerce-card-min-width">
-                              <div class="card-header pb-0">
-                                <h6 class="mb-0 mt-2 d-flex align-items-center">Monto Total</h6>
+                        <div class="row mb-3">
+                          <div class="col-md-4 col-lg-2 col-xl-2 col-xxl-2">
+                            <div class="card h-100 p-1 small-card">
+                              <div class="card-header pb-0 pt-1 px-2">
+                                <h6 class="mb-0 mt-1 fs-8 d-flex align-items-center small-card-title">Monto Total</h6>
                               </div>
-                              <div class="card-body d-flex flex-column justify-content-end">
+                              <div class="card-body d-flex flex-column justify-content-end py-1 px-2">
                                 <div class="row">
                                   <div class="col">
-                                    <p class="font-sans-serif lh-1 mb-1 fs-6">{{ totalFilteredData }}</p>
+                                    <p class="font-sans-serif lh-1 mb-1 fs-8 small-card-number">{{ totalFilteredData }}</p>
                                   </div>
                                 </div>
                               </div>
                             </div>
                           </div>
-                          <div class="col-md-6 col-lg-3 col-xl-6 col-xxl-3">
-                            <div class="card h-md-100 ecommerce-card-min-width">
-                              <div class="card-header pb-0">
-                                <h6 class="mb-0 mt-2 d-flex align-items-center">Porc. Monto</h6>
+                          <div class="col-md-4 col-lg-2 col-xl-2 col-xxl-2">
+                            <div class="card h-100 p-1 small-card">
+                              <div class="card-header pb-0 pt-1 px-2">
+                                <h6 class="mb-0 mt-1 fs-8 d-flex align-items-center small-card-title">Porc. Monto</h6>
                               </div>
-                              <div class="card-body d-flex flex-column justify-content-end">
+                              <div class="card-body d-flex flex-column justify-content-end py-1 px-2">
                                 <div class="row">
                                   <div class="col">
-                                    <p class="font-sans-serif lh-1 mb-1 fs-6">{{percentage}}%</p>
+                                    <p class="font-sans-serif lh-1 mb-1 fs-8 small-card-number">{{percentage}}%</p>
                                   </div>
                                 </div>
                               </div>
                             </div>
-                          </div>  
+                          </div>
                         </div>
 
                         <!-- Select de especie (fruta) y variedades, lado a lado -->
@@ -438,35 +423,34 @@ const onFilter = () => {
 
                     <div class="tab-pane fade" id="pill-tab-gastos" role="tabpanel" aria-labelledby="gastos-tab">
                         <div class="row mb-3">
-                            <div class="col-md-6 col-lg-3 col-xl-6 col-xxl-3">
-                              <div class="card h-md-100 ecommerce-card-min-width">
-                                <div class="card-header pb-0">
-                                  <h6 class="mb-0 mt-2 d-flex align-items-center">Monto Total</h6>
-                                </div>
-                                <div class="card-body d-flex flex-column justify-content-end">
-                                  <div class="row">
-                                    <div class="col">
-                                      <p class="font-sans-serif lh-1 mb-1 fs-6">{{totalFilteredDataGastos}}</p>
-                                    </div>
+                          <div class="col-md-4 col-lg-2 col-xl-2 col-xxl-2">
+                            <div class="card h-100 p-1 small-card">
+                              <div class="card-header pb-0 pt-1 px-2">
+                                <h6 class="mb-0 mt-1 fs-8 d-flex align-items-center small-card-title">Monto Total</h6>
+                              </div>
+                              <div class="card-body d-flex flex-column justify-content-end py-1 px-2">
+                                <div class="row">
+                                  <div class="col">
+                                    <p class="font-sans-serif lh-1 mb-1 fs-8 small-card-number">{{ totalFilteredDataGastos }}</p>
                                   </div>
                                 </div>
                               </div>
                             </div>
-
-                            <div class="col-md-6 col-lg-3 col-xl-6 col-xxl-3">
-                              <div class="card h-md-100 ecommerce-card-min-width">
-                                <div class="card-header pb-0">
-                                  <h6 class="mb-0 mt-2 d-flex align-items-center">Porc. Monto</h6>
-                                </div>
-                                <div class="card-body d-flex flex-column justify-content-end">
-                                  <div class="row">
-                                    <div class="col">
-                                      <p class="font-sans-serif lh-1 mb-1 fs-6">{{percentage}}%</p>
-                                    </div>
+                          </div>
+                          <div class="col-md-4 col-lg-2 col-xl-2 col-xxl-2">
+                            <div class="card h-100 p-1 small-card">
+                              <div class="card-header pb-0 pt-1 px-2">
+                                <h6 class="mb-0 mt-1 fs-8 d-flex align-items-center small-card-title">Porc. Monto</h6>
+                              </div>
+                              <div class="card-body d-flex flex-column justify-content-end py-1 px-2">
+                                <div class="row">
+                                  <div class="col">
+                                    <p class="font-sans-serif lh-1 mb-1 fs-8 small-card-number">{{percentage}}%</p>
                                   </div>
                                 </div>
                               </div>
-                            </div>  
+                            </div>
+                          </div>
                         </div>
 
                         <!-- Select de especie (fruta) y variedades para Gastos por Hectarea, lado a lado -->
@@ -537,35 +521,34 @@ const onFilter = () => {
 
                     <div class="tab-pane fade" id="pill-tab-detalles-compra" role="tabpanel" aria-labelledby="detalles-compra-tab">
                         <div class="row mb-3">
-                            <div class="col-md-6 col-lg-3 col-xl-6 col-xxl-3">
-                              <div class="card h-md-100 ecommerce-card-min-width">
-                                <div class="card-header pb-0">
-                                  <h6 class="mb-0 mt-2 d-flex align-items-center">Monto Total</h6>
-                                </div>
-                                <div class="card-body d-flex flex-column justify-content-end">
-                                  <div class="row">
-                                    <div class="col">
-                                      <p class="font-sans-serif lh-1 mb-1 fs-6">{{ totalFilteredDataCompra }}</p>
-                                    </div>
+                          <div class="col-md-4 col-lg-2 col-xl-2 col-xxl-2">
+                            <div class="card h-100 p-1 small-card">
+                              <div class="card-header pb-0 pt-1 px-2">
+                                <h6 class="mb-0 mt-1 fs-8 d-flex align-items-center small-card-title">Monto Total</h6>
+                              </div>
+                              <div class="card-body d-flex flex-column justify-content-end py-1 px-2">
+                                <div class="row">
+                                  <div class="col">
+                                    <p class="font-sans-serif lh-1 mb-1 fs-8 small-card-number">{{ totalFilteredDataCompra }}</p>
                                   </div>
                                 </div>
                               </div>
                             </div>
-
-                            <div class="col-md-6 col-lg-3 col-xl-6 col-xxl-3">
-                              <div class="card h-md-100 ecommerce-card-min-width">
-                                <div class="card-header pb-0">
-                                  <h6 class="mb-0 mt-2 d-flex align-items-center">Porc. Monto</h6>
-                                </div>
-                                <div class="card-body d-flex flex-column justify-content-end">
-                                  <div class="row">
-                                    <div class="col">
-                                      <p class="font-sans-serif lh-1 mb-1 fs-6">{{percentage}}%</p>
-                                    </div>
+                          </div>
+                          <div class="col-md-4 col-lg-2 col-xl-2 col-xxl-2">
+                            <div class="card h-100 p-1 small-card">
+                              <div class="card-header pb-0 pt-1 px-2">
+                                <h6 class="mb-0 mt-1 fs-8 d-flex align-items-center small-card-title">Porc. Monto</h6>
+                              </div>
+                              <div class="card-body d-flex flex-column justify-content-end py-1 px-2">
+                                <div class="row">
+                                  <div class="col">
+                                    <p class="font-sans-serif lh-1 mb-1 fs-8 small-card-number">{{percentage}}%</p>
                                   </div>
                                 </div>
                               </div>
-                            </div>  
+                            </div>
+                          </div>
                         </div>
 
                         <div class="table-responsive mt-1">

@@ -258,15 +258,15 @@ const onFilter = () => {
  <div class="tab-pane fade" id="pill-tab-detalles" role="tabpanel" aria-labelledby="detalles-tab">
                         
                         <div class="row mb-3">
-                            <div class="col-md-6 col-lg-3 col-xl-6 col-xxl-3">
-                              <div class="card h-md-100 ecommerce-card-min-width">
-                                <div class="card-header pb-0">
-                                  <h6 class="mb-0 mt-2 d-flex align-items-center">Monto Total</h6>
+                            <div class="col-md-4 col-lg-2 col-xl-2 col-xxl-2">
+                              <div class="card h-100 p-1 small-card">
+                                <div class="card-header pb-0 pt-1 px-2">
+                                  <h6 class="mb-0 mt-1 fs-8 d-flex align-items-center small-card-title">Monto Total</h6>
                                 </div>
-                                <div class="card-body d-flex flex-column justify-content-end">
+                                <div class="card-body d-flex flex-column justify-content-end py-1 px-2">
                                   <div class="row">
                                     <div class="col">
-                                      <p class="font-sans-serif lh-1 mb-1 fs-6">
+                                      <p class="font-sans-serif lh-1 mb-1 fs-8 small-card-number">
                                         {{
                                           data1.reduce((sum, level) =>
                                             sum + level.subfamilies.reduce((sfSum, subfamily) =>
@@ -283,25 +283,24 @@ const onFilter = () => {
                                 </div>
                               </div>
                             </div>
-
-                            <div class="col-md-6 col-lg-3 col-xl-6 col-xxl-3">
-                              <div class="card h-md-100 ecommerce-card-min-width">
-                                <div class="card-header pb-0">
-                                  <h5 class="mb-0 mt-2 d-flex align-items-center">Porc. Monto</h5>
+                            <div class="col-md-4 col-lg-2 col-xl-2 col-xxl-2">
+                              <div class="card h-100 p-1 small-card">
+                                <div class="card-header pb-0 pt-1 px-2">
+                                  <h6 class="mb-0 mt-1 fs-8 d-flex align-items-center small-card-title">Porc. Monto</h6>
                                 </div>
-                                <div class="card-body d-flex flex-column justify-content-end">
+                                <div class="card-body d-flex flex-column justify-content-end py-1 px-2">
                                   <div class="row">
                                     <div class="col">
-                                      <p class="font-sans-serif lh-1 mb-1 fs-6">{{percentageAdministration}}%</p>
+                                      <p class="font-sans-serif lh-1 mb-1 fs-8 small-card-number">{{percentageAdministration}}%</p>
                                     </div>
                                   </div>
                                 </div>
                               </div>
-                            </div>  
+                            </div>
                         </div>
 
-                        <div class="table-responsive mt-1" style="min-width:1600px;">
-                            <table class="table table-bordered table-hover table-sm custom-striped fs-10 mb-0 agrochem-details" style="min-width:1600px;">
+                        <div class="table-responsive mt-1">
+                            <table class="table table-bordered table-hover table-sm custom-striped fs-10 mb-0 agrochem-details">
                                 <thead>
                                     <tr>
                                         <th class="min-w-150px">Level 2</th>
@@ -358,35 +357,34 @@ const onFilter = () => {
                         
 
                         <div class="row mb-3">
-                            <div class="col-md-6 col-lg-3 col-xl-6 col-xxl-3">
-                              <div class="card h-md-100 ecommerce-card-min-width">
-                                <div class="card-header pb-0">
-                                  <h6 class="mb-0 mt-2 d-flex align-items-center">Monto Total</h6>
+                            <div class="col-md-4 col-lg-2 col-xl-2 col-xxl-2">
+                              <div class="card h-100 p-1 small-card">
+                                <div class="card-header pb-0 pt-1 px-2">
+                                  <h6 class="mb-0 mt-1 fs-8 d-flex align-items-center small-card-title">Monto Total</h6>
                                 </div>
-                                <div class="card-body d-flex flex-column justify-content-end">
+                                <div class="card-body d-flex flex-column justify-content-end py-1 px-2">
                                   <div class="row">
                                     <div class="col">
-                                      <p class="font-sans-serif lh-1 mb-1 fs-6">{{totalData1}}</p>
+                                      <p class="font-sans-serif lh-1 mb-1 fs-8 small-card-number">{{ totalData1 }}</p>
                                     </div>
                                   </div>
                                 </div>
                               </div>
                             </div>
-
-                            <div class="col-md-6 col-lg-3 col-xl-6 col-xxl-3">
-                              <div class="card h-md-100 ecommerce-card-min-width">
-                                <div class="card-header pb-0">
-                                  <h6 class="mb-0 mt-2 d-flex align-items-center">Porc. Monto</h6>
+                            <div class="col-md-4 col-lg-2 col-xl-2 col-xxl-2">
+                              <div class="card h-100 p-1 small-card">
+                                <div class="card-header pb-0 pt-1 px-2">
+                                  <h6 class="mb-0 mt-1 fs-8 d-flex align-items-center small-card-title">Porc. Monto</h6>
                                 </div>
-                                <div class="card-body d-flex flex-column justify-content-end">
+                                <div class="card-body d-flex flex-column justify-content-end py-1 px-2">
                                   <div class="row">
                                     <div class="col">
-                                      <p class="font-sans-serif lh-1 mb-1 fs-6">{{percentageAdministration}}%</p>
+                                      <p class="font-sans-serif lh-1 mb-1 fs-8 small-card-number">{{ percentageAdministration }}%</p>
                                     </div>
                                   </div>
                                 </div>
                               </div>
-                            </div>  
+                            </div>
                         </div>
 
                         <div class="table-responsive mt-1">
@@ -429,15 +427,15 @@ const onFilter = () => {
               <div class="tab-pane fade" id="pill-tab-detalles-compra" role="tabpanel" aria-labelledby="detalles-compra-tab">
                         
                         <div class="row mb-3">
-                            <div class="col-md-6 col-lg-3 col-xl-6 col-xxl-3">
-                              <div class="card h-md-100 ecommerce-card-min-width">
-                                <div class="card-header pb-0">
-                                  <h6 class="mb-0 mt-2 d-flex align-items-center">Monto Total</h6>
+                            <div class="col-md-4 col-lg-2 col-xl-2 col-xxl-2">
+                              <div class="card h-100 p-1 small-card">
+                                <div class="card-header pb-0 pt-1 px-2">
+                                  <h6 class="mb-0 mt-1 fs-8 d-flex align-items-center small-card-title">Monto Total</h6>
                                 </div>
-                                <div class="card-body d-flex flex-column justify-content-end">
+                                <div class="card-body d-flex flex-column justify-content-end py-1 px-2">
                                   <div class="row">
                                     <div class="col">
-                                      <p class="font-sans-serif lh-1 mb-1 fs-6">
+                                      <p class="font-sans-serif lh-1 mb-1 fs-8 small-card-number">
                                         {{
                                           data2.reduce((sum, subfamily) =>
                                             sum + subfamily.products.reduce((pSum, product) => {
@@ -452,21 +450,20 @@ const onFilter = () => {
                                 </div>
                               </div>
                             </div>
-
-                            <div class="col-md-6 col-lg-3 col-xl-6 col-xxl-3">
-                              <div class="card h-md-100 ecommerce-card-min-width">
-                                <div class="card-header pb-0">
-                                  <h5 class="mb-0 mt-2 d-flex align-items-center">Porc. Monto</h5>
+                            <div class="col-md-4 col-lg-2 col-xl-2 col-xxl-2">
+                              <div class="card h-100 p-1 small-card">
+                                <div class="card-header pb-0 pt-1 px-2">
+                                  <h6 class="mb-0 mt-1 fs-8 d-flex align-items-center small-card-title">Porc. Monto</h6>
                                 </div>
-                                <div class="card-body d-flex flex-column justify-content-end">
+                                <div class="card-body d-flex flex-column justify-content-end py-1 px-2">
                                   <div class="row">
                                     <div class="col">
-                                      <p class="font-sans-serif lh-1 mb-1 fs-6">{{percentageAdministration}}%</p>
+                                      <p class="font-sans-serif lh-1 mb-1 fs-8 small-card-number">{{ percentageAdministration }}%</p>
                                     </div>
                                   </div>
                                 </div>
                               </div>
-                            </div>  
+                            </div>
                         </div>
 
                         <div class="table-responsive mt-1">
