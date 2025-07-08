@@ -117,7 +117,7 @@ class DashboardController extends Controller
         $totalServices = (float) $this->getTotalServices($season_id, $team_id);
 
         $labels = [
-            'Campo',
+            'Generales Campo',
             'Administración',
             'Fertilizantes',
             'Mano de Obra',
@@ -198,6 +198,31 @@ class DashboardController extends Controller
         $totalManPower = number_format($this->totalManPower, 0, ',', '.');
         $totalServices = number_format($this->totalServices, 0, ',', '.');
         $totalSupplies = number_format($this->totalSupplies, 0, ',', '.');
+
+        // NUEVO: Calcular y formatear los meses de administración y fields
+        $monthsAdministrationRaw = $this->getMonthsAdministration($user->team_id);
+        $monthsFieldsRaw = $this->getMonthsFields($user->team_id);
+        $monthsAdministration = [];
+        foreach($monthsAdministrationRaw as $key => $value){
+            $monthsAdministration[$key] = number_format($value, 0, ',', '.');
+        }
+        $monthsFields = [];
+
+        foreach($monthsFieldsRaw as $key => $value){
+            $monthsFields[$key] = number_format($value, 0, ',', '.');
+        }
+
+        // Asegurar que monthsAdministration y monthsFields tengan SIEMPRE los 12 meses (1-12) como claves
+        $allMonthsAdministration = [];
+        $allMonthsFields = [];
+        for ($i = 1; $i <= 12; $i++) {
+            $key = (string)$i;
+            $allMonthsAdministration[$key] = isset($monthsAdministration[$key]) ? $monthsAdministration[$key] : '0';
+            $allMonthsFields[$key] = isset($monthsFields[$key]) ? $monthsFields[$key] : '0';
+        }
+        $monthsAdministration = $allMonthsAdministration;
+        $monthsFields = $allMonthsFields;
+
         $monthsAgrochemical = [];
         foreach($this->monthsAgrochemical as $key => $value){
             $monthsAgrochemical[$key] = number_format($value, 0, ',','.');
@@ -385,6 +410,7 @@ class DashboardController extends Controller
             'monthsManPower', 'totalManPower',
             'totalServices', 'monthsServices',
             'totalSupplies', 'monthsSupplies',
+            'monthsAdministration', 'monthsFields',
             'months', 'weather', 'city',
             'agrochemicalByDevState',
             'fertilizerByDevState',
@@ -1488,6 +1514,76 @@ class DashboardController extends Controller
             $addTotal($s->level1_id, $s->level1_name, $s->level2_id, $s->level2_name, $amount);
         }
         return collect(array_values($totals));
+    }
+
+        // Calcula los totales mensuales de administración
+    private function getMonthsAdministration($team_id = null)
+    {
+        $season_id = session('season_id');
+        $season = \App\Models\Season::select('month_id')->where('id', $season_id)->first();
+        $currentMonth = $season ? $season->month_id : 1;
+        $months = [];
+        for ($x = $currentMonth; $x < $currentMonth + 12; $x++) {
+            $id = date('n', mktime(0, 0, 0, $x, 1));
+            $months[] = $id;
+        }
+        $result = array_fill_keys($months, 0);
+        $administrations = DB::table('administrations as a')
+            ->select('a.id', 'a.price', 'a.quantity', 'a.unit_id')
+            ->where('a.season_id', $season_id);
+        if ($team_id) {
+            $administrations->where('a.team_id', $team_id);
+        }
+        $administrations = $administrations->get();
+        foreach ($administrations as $adm) {
+            $items = DB::table('administration_items')
+                ->where('administration_id', $adm->id)
+                ->whereIn('month_id', $months)
+                ->get();
+            foreach ($items as $item) {
+                $quantity = ($adm->quantity !== null && ($adm->quantity > 0)) ? ((in_array($adm->unit_id ?? null, [2,4])) ? ($adm->quantity / 1000) : $adm->quantity) : 0;
+                $amount = round($adm->price * $quantity, 2);
+                if (isset($result[$item->month_id])) {
+                    $result[$item->month_id] += $amount;
+                }
+            }
+        }
+        return $result;
+    }
+
+    // Calcula los totales mensuales de fields
+    private function getMonthsFields($team_id = null)
+    {
+        $season_id = session('season_id');
+        $season = \App\Models\Season::select('month_id')->where('id', $season_id)->first();
+        $currentMonth = $season ? $season->month_id : 1;
+        $months = [];
+        for ($x = $currentMonth; $x < $currentMonth + 12; $x++) {
+            $id = date('n', mktime(0, 0, 0, $x, 1));
+            $months[] = $id;
+        }
+        $result = array_fill_keys($months, 0);
+        $fields = DB::table('fields as a')
+            ->select('a.id', 'a.price', 'a.quantity', 'a.unit_id')
+            ->where('a.season_id', $season_id);
+        if ($team_id) {
+            $fields->where('a.team_id', $team_id);
+        }
+        $fields = $fields->get();
+        foreach ($fields as $adm) {
+            $items = DB::table('field_items')
+                ->where('field_id', $adm->id)
+                ->whereIn('month_id', $months)
+                ->get();
+            foreach ($items as $item) {
+                $quantity = ($adm->quantity !== null && ($adm->quantity > 0)) ? ((in_array($adm->unit_id ?? null, [2,4])) ? ($adm->quantity / 1000) : $adm->quantity) : 0;
+                $amount = round($adm->price * $quantity, 2);
+                if (isset($result[$item->month_id])) {
+                    $result[$item->month_id] += $amount;
+                }
+            }
+        }
+        return $result;
     }
 
 

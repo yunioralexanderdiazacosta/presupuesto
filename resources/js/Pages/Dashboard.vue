@@ -37,6 +37,8 @@ const props = defineProps({
     monthsManPower: Object,
     monthsServices: Object,
     monthsSupplies: Object,
+    monthsAdministration: Object,
+  monthsFields: Object,
     totalAgrochemical: Number,
     totalFertilizer: Number,
     totalManPower: Number,
@@ -557,6 +559,7 @@ onMounted(() => {
         <div class="col-xl-12">
           <div class="card">
             <div class="card-body pt-2 pb-2">
+                <h6 class="mb-3">Totales Mensuales</h6>
               <div class="table-responsive scrollbar">
                 <table class="table table-sm table-hover align-middle border rounded shadow-sm bg-white">
                   <thead class="table-light border-bottom">
@@ -567,6 +570,20 @@ onMounted(() => {
                     </tr>
                   </thead>
                   <tbody>
+                    <tr>
+                      <td class="fw-semibold small">Administración</td>
+                      <td class="text-end text-primary fw-bold small">
+                        {{ Object.values(monthsAdministration || {}).reduce((sum, v) => sum + Number((v+'').replace(/\./g, '')), 0).toLocaleString('es-CL', { maximumFractionDigits: 0 }) }}
+                      </td>
+                      <td class="bg-opacity-5 table-primary text-end small" v-for="value in months">{{ (monthsAdministration && monthsAdministration[value.value]) ? monthsAdministration[value.value] : 0 }}</td>
+                    </tr>
+                    <tr>
+                      <td class="fw-semibold small">Gral Campo</td>
+                      <td class="text-end text-primary fw-bold small">
+                        {{ Object.values(monthsFields || {}).reduce((sum, v) => sum + Number((v+'').replace(/\./g, '')), 0).toLocaleString('es-CL', { maximumFractionDigits: 0 }) }}
+                      </td>
+                      <td class="bg-opacity-5 table-primary text-end small" v-for="value in months">{{ (monthsFields && monthsFields[value.value]) ? monthsFields[value.value] : 0 }}</td>
+                    </tr>
                     <tr>
                       <td class="fw-semibold small">Agroquimicos</td>
                       <td class="text-end text-primary fw-bold small">{{totalAgrochemical}}</td>
