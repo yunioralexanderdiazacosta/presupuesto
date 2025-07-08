@@ -194,12 +194,25 @@ const entityLabels = {
 };
 
 // Renderizar los gauge charts usando ECharts
+// Colores personalizados para los gauges (excepto fields y administration)
+const gaugeColors = [
+  '#1a922e ', // Agroquímicos
+  '#1a922e ', // Fertilizantes
+  '#1a922e ', // Mano de Obra
+  '#1a922e ', // Insumos
+  '#1a922e ', // Servicios
+];
+
 onMounted(() => {
   nextTick(() => {
     if (props.mainTotalsAndPercents && window.echarts) {
       props.mainTotalsAndPercents.forEach((item, idx) => {
         const chartDom = document.getElementById('gauge-ring-' + idx);
         if (chartDom) {
+          // Determina si es fields o administration
+          const isSpecial = ['Generales Campo', 'Administración'].includes(item.label);
+          // Si es especial, usa azul Bootstrap, si no, usa el color del arreglo
+          const color = isSpecial ? '#0d6efd' : gaugeColors[idx % gaugeColors.length];
           const myChart = window.echarts.init(chartDom);
           myChart.setOption({
             series: [
@@ -211,11 +224,18 @@ onMounted(() => {
                 max: 100,
                 progress: {
                   show: true,
-                  width: 18
+                  width: 18,
+                  itemStyle: {
+                    color: color // color frontal de la barra
+                  }
                 },
                 axisLine: {
                   lineStyle: {
-                    width: 18
+                    width: 18,
+                    color: [
+                      [item.percent / 100, color], // color de la parte llena
+                      [1, '#e3e1e1'] // color de la parte vacía (blanco)
+                    ]
                   }
                 },
                 axisTick: {
@@ -609,15 +629,36 @@ onMounted(() => {
                       <td class="text-end text-primary fw-bold small">{{totalServices}}</td>
                       <td class="bg-opacity-5 table-primary text-end small" v-for="value in months">{{monthsServices[value.value]}}</td>
                     </tr>
+                    <!-- ...existing code... -->
                   </tbody>
+                  <tfoot>
+                    <tr class="table-secondary">
+                      <td class="fw-bold text-end small">Total mes</td>
+                      <td class="fw-bold text-end small text-primary">
+                        {{
+                          months && months.length
+                            ? months.reduce((sum, value) => {
+                                return sum + [monthsAdministration, monthsFields, monthsAgrochemical, monthsFertilizer, monthsManPower, monthsSupplies, monthsServices]
+                                  .reduce((s, obj) => s + Number((obj && obj[value.value]) ? (obj[value.value]+"").replace(/\./g, "") : 0), 0)
+                              }, 0).toLocaleString('es-CL', { maximumFractionDigits: 0 })
+                            : 0
+                        }}
+                      </td>
+                      <td class="fw-bold text-end small" v-for="value in months">
+                        {{
+                          [monthsAdministration, monthsFields, monthsAgrochemical, monthsFertilizer, monthsManPower, monthsSupplies, monthsServices]
+                            .reduce((sum, obj) => sum + Number((obj && obj[value.value]) ? (obj[value.value]+"").replace(/\./g, "") : 0), 0)
+                            .toLocaleString('es-CL', { maximumFractionDigits: 0 })
+                        }}
+                      </td>
+                    </tr>
+                  </tfoot>
                 </table>
               </div>
             </div>
           </div>
         </div>
       </div>
-
-      
 
     </div>
   </AppLayout>
