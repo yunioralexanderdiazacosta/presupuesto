@@ -7,8 +7,8 @@ const props = defineProps({
 });
 </script>
 <template>
-    <div class="fv-row mb-8">
-        <label class="required fs-6 fw-semibold mb-2">Nombre del contacto</label>
+    <div class="fv-row">
+        <label class="col-form-label">Nombre del contacto</label>
         <TextInput
             id="name"
             v-model="form.name"
@@ -18,8 +18,8 @@ const props = defineProps({
         <InputError class="mt-2" :message="form.errors.team_name" />
     </div>
 
-    <div class="fv-row mb-8">
-        <label class="required fs-6 fw-semibold mb-2">Nombre de la empresa</label>
+    <div class="fv-row">
+        <label class="col-form-label">Nombre de la empresa</label>
         <TextInput
             id="team_name"
             v-model="form.team_name"
@@ -29,8 +29,8 @@ const props = defineProps({
         <InputError class="mt-2" :message="form.errors.team_name" />
     </div>
 
-    <div class="fv-row mb-8">
-        <label class="required fs-6 fw-semibold mb-2">Correo electronico</label>
+    <div class="fv-row">
+        <label class="col-form-label">Correo electronico</label>
         <TextInput
             id="email"
             v-model="form.email"
@@ -40,8 +40,8 @@ const props = defineProps({
         <InputError class="mt-2" :message="form.errors.email" />
     </div>
 
-     <div class="fv-row mb-8">
-        <label class="required fs-6 fw-semibold mb-2">Contraseña</label>
+     <div class="fv-row">
+        <label class="col-form-label">Contraseña</label>
         <TextInput
             id="email"
             v-model="form.password"
@@ -51,8 +51,8 @@ const props = defineProps({
         <InputError class="mt-2" :message="form.errors.password" />
     </div>
 
-    <div class="fv-row mb-3">
-        <label for="address" class="form-label fs-6 fw-bold mb-3">Observaciones</label>
+    <div class="fv-row">
+        <label for="address" class="col-form-label">Observaciones</label>
         <textarea v-model="form.observations" rows="3" class="form-control form-control-lg form-control-solid mb-3 mb-lg-0" :class="{'is-invalid': form.errors.observations }" ></textarea>
         <InputError class="mt-2" :message="form.errors.observations" />
     </div>

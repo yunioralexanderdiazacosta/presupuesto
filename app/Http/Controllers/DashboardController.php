@@ -152,7 +152,13 @@ class DashboardController extends Controller
     public function __invoke(Request $request, WeatherService $weatherService)
     {
         $user = Auth::user();
-        $season_id = session('season_id');
+        //Si es super admin
+        if($user->hasRole('Super Admin')){
+            return Inertia::render('Dashboard2');
+        //Si es otro rol
+        } else {
+
+            $season_id = session('season_id');
         $season = Season::select('name', 'month_id')->where('id', $season_id)->first();
 
         $this->month_id = $season ? $season['month_id'] : 1;
@@ -430,6 +436,9 @@ class DashboardController extends Controller
             'totalSurface',
             'mainTotalsAndPercents' // <-- nuevo prop para los gauges
         ));
+
+        }
+        
     }
 
     /**

@@ -19,6 +19,7 @@ class UpdateTeamController extends Controller
         $user->save();
 
         $user->team->name = $request->team_name;
+        $user->team->user_id = $user->id;
         $user->team->save(); 
     }
 }

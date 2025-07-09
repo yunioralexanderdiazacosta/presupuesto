@@ -318,10 +318,10 @@ onMounted(() => {
           <!-- Weather card -->
           <div class="card mb-3" v-if="weather">
             <div class="card-body py-2 d-flex align-items-center">
-              <img :src="weather.current.condition.icon" alt="icon" style="width:32px;height:32px;" class="me-2" />
+              <img :src="weather.current ? weather.current.condition.icon : ''" alt="icon" style="width:32px;height:32px;" class="me-2" />
               <div>
-                <div class="fw-bold">Clima en {{ weatherCity || userCity || weather.location.name }}</div>
-                <div class="">{{ weather.current.temp_c }} °C, {{ weather.current.condition.text }}</div>
+                <div class="fw-bold">Clima en {{ weatherCity || userCity || weather.location ? weather.location.name : '' }}</div>
+                <div class="">{{ weather.current ? weather.current.temp_c : '' }} °C, {{ weather.current ? weather.current.condition.text : '' }}</div>
               </div>
             </div>
           </div>
