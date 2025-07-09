@@ -22,7 +22,7 @@ const props = defineProps({
     data3: Array,
     totalData1: String,
     totalData2: String,
-    percentage: String,
+    percentageManPower: String,
      varieties: {
     type: Array,
     default: () => []
@@ -331,7 +331,7 @@ const onFilter = () => {
                             <div class="card-body d-flex flex-column justify-content-end py-1 px-2">
                               <div class="row">
                                 <div class="col">
-                                  <p class="font-sans-serif lh-1 mb-1 fs-8 small-card-number">{{percentage}}%</p>
+                                  <p class="font-sans-serif lh-1 mb-1 fs-8 small-card-number">{{props.percentageManPower}}%</p>
                                 </div>
                               </div>
                             </div>
@@ -422,7 +422,7 @@ const onFilter = () => {
                             <div class="card-body d-flex flex-column justify-content-end py-1 px-2">
                               <div class="row">
                                 <div class="col">
-                                  <p class="font-sans-serif lh-1 mb-1 fs-8 small-card-number">{{percentage}}%</p>
+                                  <p class="font-sans-serif lh-1 mb-1 fs-8 small-card-number">{{props.percentageManPower}}%</p>
                                 </div>
                               </div>
                             </div>
@@ -520,7 +520,7 @@ const onFilter = () => {
                               <div class="card-body d-flex flex-column justify-content-end py-1 px-2">
                                 <div class="row">
                                   <div class="col">
-                                    <p class="font-sans-serif lh-1 mb-1 fs-8 small-card-number">{{percentage}}%</p>
+                                    <p class="font-sans-serif lh-1 mb-1 fs-8 small-card-number">{{props.percentageManPower}}%</p>
                                   </div>
                                 </div>
                               </div>

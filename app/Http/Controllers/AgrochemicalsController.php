@@ -230,18 +230,7 @@ class AgrochemicalsController extends Controller
             ? round((round($this->totalAgrochemical) / $this->totalAbsolute) * 100, 2)
             : 0;
 
-        // Log para depuración
-        Log::info('Totales Agroquímicos:', [
-            'totalAgrochemical' => $this->totalAgrochemical,
-            'totalFertilizer' => $this->totalFertilizer,
-            'totalManPower' => $this->totalManPower,
-            'totalSupplies' => $this->totalSupplies,
-            'totalServices' => $this->totalServices,
-            'totalAdministration' => $this->totalAdministration,
-            'totalField' => $this->totalField,
-            'totalAbsolute' => $this->totalAbsolute,
-            'percentageAgrochemical' => $this->percentageAgrochemical,
-        ]);
+      
 
         $totalData1 = number_format($this->totalData1, 0, ',', '.');
         $totalData2 = number_format($this->totalData2, 0, ',', '.');

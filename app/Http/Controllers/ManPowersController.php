@@ -111,6 +111,12 @@ class ManPowersController extends Controller
     public $totalSupplies = 0;
 
     public $totalServices = 0;
+    public $totalManPower = 0;
+    public $totalAdministration = 0;
+    public $totalField = 0;
+    public $totalAbsolute = 0;
+    public $percentageManPower = 0;
+
 
     public function __invoke()
     {
@@ -241,16 +247,64 @@ class ManPowersController extends Controller
             ];
         });
 
-      
-          $totalAdministration = $this->getTotalAdministration($season_id, $user->team_id);
-        $totalField = $this->getTotalField($season_id, $user->team_id);
 
-        $totalAbsolute = round($this->totalData2) + round($this->totalAgrochemical) + round($this->totalFertilizer) + round($this->totalSupplies) + round($this->totalServices)+ round($totalAdministration) + round($totalField);
-        $percentage = $totalAbsolute > 0 ? round(((round($this->totalData2) / $totalAbsolute) * 100), 2) : 0;
+
+
+       // Calcular totales globales de cada rubro usando el trait
+        $team_id = $user->team_id;
+        $this->totalAgrochemical   = $this->getTotalAgrochemical($season_id, $team_id);
+        $this->totalFertilizer     = $this->getTotalFertilizer($season_id, $team_id);
+        $this->totalManPower       = $this->getTotalManPower($season_id, $team_id);
+        $this->totalSupplies       = $this->getTotalSupplies($season_id, $team_id);
+        $this->totalServices       = $this->getTotalServices($season_id, $team_id);
+        $this->totalAdministration = $this->getTotalAdministration($season_id, $team_id);
+        $this->totalField          = $this->getTotalField($season_id, $team_id);
+
+        // Sumar todos los rubros para el total absoluto
+        $this->totalAbsolute = round($this->totalAgrochemical)
+            + round($this->totalFertilizer)
+            + round($this->totalManPower)
+            + round($this->totalSupplies)
+            + round($this->totalServices)
+            + round($this->totalAdministration)
+            + round($this->totalField);
+
+
+  // Calcular el porcentaje de agroquímicos sobre el total absoluto
+        $this->percentageManPower = $this->totalAbsolute > 0
+            ? round((round($this->totalManPower) / $this->totalAbsolute) * 100, 2)
+            : 0;
+
+
         $totalData1 = number_format($this->totalData1, 0, ',', '.');
         $totalData2 = number_format($this->totalData2, 0, ',', '.');
-        return Inertia::render('ManPowers', compact('subfamilies', 'months', 'costCenters', 'manPowers', 'season', 'data', 'data2', 'data3', 'totalData1', 'totalData2', 'percentage', 'varieties', 'fruits'));
+
+      // Variables locales para compact()
+        $totalAgrochemical = $this->totalAgrochemical;
+        $totalFertilizer = $this->totalFertilizer;
+        $totalManPower = $this->totalManPower;
+        $totalSupplies = $this->totalSupplies;
+        $totalServices = $this->totalServices;
+        $totalAdministration = $this->totalAdministration;
+        $totalField = $this->totalField;
+        $totalAbsolute = $this->totalAbsolute;
+        $percentageManPower = $this->percentageManPower;
+
+
+
+
+        return Inertia::render('ManPowers', compact('subfamilies', 'months', 'costCenters', 'manPowers', 'season', 'data', 'data2', 'data3', 'totalData1', 'totalData2', 
+        'totalAgrochemical', 'totalFertilizer', 'totalManPower', 'totalSupplies', 'totalServices', 'totalAdministration', 'totalField', 'totalAbsolute',
+            'percentageManPower',
+            'varieties', 'fruits'));
     }
+
+
+
+
+
+
+
 
     private function getSubfamilies($costCenterId, $surface = null, $bills = false)
     {
