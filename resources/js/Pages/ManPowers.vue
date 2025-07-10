@@ -23,6 +23,7 @@ const props = defineProps({
     totalData1: String,
     totalData2: String,
     percentageManPower: String,
+      costCenters: { type: Array, default: () => [] }, // <-- AGREGAR ESTA LÍNEA
      varieties: {
     type: Array,
     default: () => []
@@ -35,6 +36,7 @@ const props = defineProps({
 
 const selectedFruit = ref('');
 const selectedVariety = ref('');
+const selectedCostCenter = ref('');
 
 const formMultiple = useForm({
     cc: [],
@@ -141,21 +143,25 @@ const acum_products = (quantity) => {
 }
 
 
-
-
 // Variedades filtradas por fruta
 const filteredVarieties = computed(() => {
   if (!selectedFruit.value) {
+    // Si está seleccionado "Todas" en especie, también forzar "Todas" en variedad
     if (selectedVariety.value) selectedVariety.value = '';
     return props.varieties;
   }
   return props.varieties.filter(v => v.fruit_id == selectedFruit.value);
 });
 
-// Filtra los datos por fruit_id y variety_id
+// Filtra los cost centers por fruit_id y variedad_id para la pestaña Detalles
+// Además, asegura que cc.total esté correctamente calculado para el rowspan
 const filteredData = computed(() => {
   let data = props.data;
+  if (selectedCostCenter.value) {
+    data = data.filter(cc => cc.id == selectedCostCenter.value);
+  }
   if (selectedFruit.value) {
+    const filteredVarieties = props.varieties.filter(v => v.fruit_id == selectedFruit.value);
     data = data.filter(cc => {
       const variety = props.varieties.find(v => v.id == cc.variety_id);
       return variety && variety.fruit_id == selectedFruit.value;
@@ -164,11 +170,20 @@ const filteredData = computed(() => {
       data = data.filter(cc => cc.variety_id == selectedVariety.value);
     }
   }
-  return data;
+  // Aseguramos que cada cc tenga la propiedad total igual a la suma de productos de todas sus subfamilias
+  return data.map(cc => {
+    const total = cc.subfamilies.reduce((acc, subfamily) => acc + (subfamily.products ? subfamily.products.length : 0), 0);
+    return { ...cc, total };
+  });
 });
+
+
 
 const filteredData3 = computed(() => {
   let data = props.data3;
+  if (selectedCostCenter.value) {
+    data = data.filter(cc => String(cc.id) === String(selectedCostCenter.value));
+  }
   if (selectedFruit.value) {
     data = data.filter(cc => {
       const variety = props.varieties.find(v => v.id == cc.variety_id);
@@ -339,15 +354,22 @@ const onFilter = () => {
                         </div>
                     </div>
                     <!-- Filtros debajo de los cards -->
-                    <div class="d-flex gap-2 mb-3">
-                      <div>
+                    <div  class="mb-3 d-flex align-items-end gap-2 flex-wrap">
+                      <div class="col-auto">
+                            <label for="costCenterSelect" class="form-label">Filtrar por Cc:</label>
+                            <select id="costCenterSelect" v-model="selectedCostCenter" class="form-select form-select-sm" style="min-width: 180px; max-width: 220px;">
+                              <option value="">Todos</option>
+                              <option v-for="cc in props.costCenters" :key="cc.value" :value="cc.value">{{ cc.label }}</option>
+                            </select>
+                          </div>
+                       <div class="col-auto">
                         <label class="form-label mb-1">Especie</label>
                         <select v-model="selectedFruit" class="form-select form-select-sm"style="min-width: 180px; max-width: 220px;">
                           <option value="">Todas</option>
                           <option v-for="fruit in props.fruits" :key="fruit.id" :value="fruit.id">{{ fruit.name }}</option>
                         </select>
                       </div>
-                      <div>
+                       <div class="col-auto">
                         <label class="form-label mb-1">Variedad</label>
                         <select v-model="selectedVariety" class="form-select form-select-sm" style="min-width: 180px; max-width: 220px;":disabled="!selectedFruit">
                           <option value="">Todas</option>
@@ -430,15 +452,22 @@ const onFilter = () => {
                         </div>
                     </div>
                     <!-- Filtros debajo de los cards -->
-                    <div class="d-flex gap-2 mb-3">
-                      <div>
+                    <div  class="mb-3 d-flex align-items-end gap-2 flex-wrap">
+                      <div class="col-auto">
+                            <label for="costCenterSelect" class="form-label">Filtrar por centro de costo:</label>
+                            <select id="costCenterSelect" v-model="selectedCostCenter" class="form-select form-select-sm" style="min-width: 180px; max-width: 220px;">
+                              <option value="">Todos</option>
+                              <option v-for="cc in props.costCenters" :key="cc.value" :value="cc.value">{{ cc.label }}</option>
+                            </select>
+                          </div>
+                      <div class="col-auto">
                         <label class="form-label mb-1">Especie</label>
                         <select v-model="selectedFruit" class="form-select form-select-sm"style="min-width: 180px; max-width: 220px;">
                           <option value="">Todas</option>
                           <option v-for="fruit in props.fruits" :key="fruit.id" :value="fruit.id">{{ fruit.name }}</option>
                         </select>
                       </div>
-                      <div>
+                      <div class="col-auto">
                         <label class="form-label mb-1">Variedad</label>
                         <select v-model="selectedVariety" class="form-select form-select-sm" style="min-width: 180px; max-width: 220px;" :disabled="!selectedFruit">
                           <option value="">Todas</option>
