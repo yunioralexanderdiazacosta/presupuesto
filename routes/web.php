@@ -3,6 +3,7 @@
 use Illuminate\Foundation\Application;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\DashboardController;
+use App\Http\Controllers\TechnicalPanelController;
 use App\Http\Controllers\AgrochemicalsController;
 use App\Http\Controllers\FertilizersController;
 use App\Http\Controllers\TeamsController;
@@ -301,6 +302,7 @@ Route::middleware([
 
     Route::middleware(['check.selected.budget'])->group(function () {
         Route::get('/dashboard', DashboardController::class)->name('dashboard');
+         Route::get('/technicalpanel', TechnicalPanelController::class)->name('technicalpanel');
 
         Route::get('/agrochemicals', AgrochemicalsController::class)->name('agrochemicals.index');
         Route::get('/fertilizers', FertilizersController::class)->name('fertilizers.index');

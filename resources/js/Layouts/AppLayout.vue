@@ -58,7 +58,13 @@ const logout = () => {
               </a>
               <ul class="nav collapse" id="authentication">
                 <li class="nav-item"><Link class="nav-link" :href="route('dashboard')">
-                    <div class="d-flex align-items-center"><span class="nav-link-text ps-1">Tablero</span>
+                    <div class="d-flex align-items-center"><span class="nav-link-text ps-1">Dashboard</span>
+                    </div>
+                  </Link>
+                  <!-- more inner pages-->
+                </li>
+                 <li class="nav-item"><Link class="nav-link" :href="route('technicalpanel')">
+                    <div class="d-flex align-items-center"><span class="nav-link-text ps-1">Panel Tecnico</span>
                     </div>
                   </Link>
                   <!-- more inner pages-->

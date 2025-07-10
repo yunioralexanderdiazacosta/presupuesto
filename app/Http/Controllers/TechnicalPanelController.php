@@ -22,7 +22,7 @@ use Spatie\Permission\Traits\HasRoles;
  * Calcula y agrupa los datos necesarios para mostrar los gráficos y tablas del dashboard.
  * Incluye funciones auxiliares para obtener totales, agrupaciones y métricas por estado de desarrollo y por hectárea.
  */
-class DashboardController extends Controller
+class TechnicalPanelController extends Controller
 {
     use HasRoles;
     use \App\Http\Controllers\Traits\BudgetTotalsTrait;
@@ -408,7 +408,7 @@ class DashboardController extends Controller
         // Calcular los totales y porcentajes de cada rubro principal
         $mainTotalsAndPercents = $this->getMainBudgetTotalsAndPercents($season_id, $user->team_id);
         // Pasar todos los datos al frontend
-        return Inertia::render('Dashboard', compact(
+        return Inertia::render('TechnicalPanel', compact(
             'totalSeason', 'pieLabels', 'pieDatasets',
             'monthsAgrochemical', 'totalAgrochemical',
             'monthsFertilizer', 'totalFertilizer',
@@ -1597,6 +1597,7 @@ class DashboardController extends Controller
 
 
 }
+
 
 
 
