@@ -9,6 +9,9 @@ import Breadcrumb from '@/Components/Breadcrumb.vue';
 import TitleBudget from '@/Components/Budgets/TitleBudget.vue';
 import CreateManPowerModal from '@/Components/ManPowers/CreateManPowerModal.vue';
 import EditManPowerModal from '@/Components/ManPowers/EditManPowerModal.vue';
+import ExportExcelButton from '@/Components/ExportExcelButton.vue';
+import ExportPdfButton from '@/Components/ExportPdfButton.vue';
+import SearchInput from '@/Components/SearchInput.vue';
 
 
 
@@ -245,6 +248,28 @@ const onFilter = () => {
   router.get(route('manage.providers', {term: term.value, plan: plan.value, membership: membership.value}), { preserveState: true});  
 }
 */
+
+// Buscador global para la tabla de mano de obra
+const search = ref('');
+
+// Computed para filtrar los registros según el texto de búsqueda
+const filteredManPowers = computed(() => {
+  if (!props.manPowers || !props.manPowers.data) return [];
+  if (!search.value) return props.manPowers.data;
+  const term = search.value.toLowerCase();
+  return props.manPowers.data.filter(item => {
+    const name = item.product_name ? item.product_name.toLowerCase() : '';
+    const subfamily = item.subfamily && item.subfamily.name ? item.subfamily.name.toLowerCase() : '';
+    const workday = item.workday ? String(item.workday).toLowerCase() : '';
+    const price = item.price ? String(item.price).toLowerCase() : '';
+    return (
+      name.includes(term) ||
+      subfamily.includes(term) ||
+      workday.includes(term) ||
+      price.includes(term)
+    );
+  });
+});
 </script>
 <template>
     <Head :title="title" />
@@ -276,7 +301,42 @@ const onFilter = () => {
                 </ul>
                 <div class="tab-content border p-3 mt-3" id="pill-myTabContent">
                     <div class="tab-pane fade show active" id="pill-tab-edicion" role="tabpanel" aria-labelledby="edicion-tab">
-                        <Table sticky-header :id="'manPowers'" :total="manPowers.length" :links="manPowers.links">
+                        <!-- Buscador y botones de exportación -->
+<div class="d-flex justify-content-between align-items-center gap-1 mb-1">
+  <SearchInput
+    v-model="search"
+    placeholder="Buscar por nombre, nivel 2, jornadas, precio..."
+  />
+  <div class="d-flex align-items-center gap-1">
+    <ExportExcelButton
+      :data="manPowers.data"
+      :headers="[
+        { label: 'Nombre', key: 'product_name' },
+        { label: 'SubFamilia', key: 'subfamily.name' },
+        { label: 'Jornadas', key: 'workday' },
+        { label: 'Precio', key: 'price' }
+      ]"
+      class="btn btn-success btn-md d-flex align-items-center p-0"
+      filename="ManoDeObra.xlsx"
+    />
+    <ExportPdfButton
+      :data="manPowers.data"
+      :headers="[
+        { label: 'Nombre', key: 'product_name' },
+        { label: 'SubFamilia', key: 'subfamily.name' },
+        { label: 'Jornadas', key: 'workday' },
+        { label: 'Precio', key: 'price' }
+      ]"
+      class="btn btn-danger btn-md d-flex align-items-center p-0"
+      filename="ManoDeObra.pdf"
+    />
+    <button class="btn btn-falcon-default btn-sm ms-1" type="button" @click="openAdd()">
+      <span class="fas fa-plus" data-fa-transform="shrink-3 down-2"></span>
+      <span class="d-none d-sm-inline-block ms-2">Nuevo</span>
+    </button>
+  </div>
+</div>
+<Table sticky-header :id="'manPowers'" :total="filteredManPowers.length" :links="manPowers.links">
                             <!--begin::Table head-->
                             <template #header>
                                 <!--begin::Table row-->
@@ -290,11 +350,11 @@ const onFilter = () => {
                             <!--end::Table head-->
                             <!--begin::Table body-->
                             <template #body>
-                                <template v-if="manPowers.total == 0">
+                                <template v-if="filteredManPowers.length === 0">
                                     <Empty colspan="5" />
                                 </template>
                                 <template v-else>
-                                    <tr v-for="(manPower, index) in manPowers.data" :key="index">
+                                    <tr v-for="(manPower, index) in filteredManPowers" :key="index">
                                         <td>
                                             <span class="text-dark  fw-bold mb-1">{{manPower.product_name}}</span>
                                         </td>

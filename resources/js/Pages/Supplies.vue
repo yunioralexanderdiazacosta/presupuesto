@@ -9,6 +9,9 @@ import Breadcrumb from '@/Components/Breadcrumb.vue';
 import TitleBudget from '@/Components/Budgets/TitleBudget.vue';
 import CreateSupplyModal from '@/Components/Supplies/CreateSupplyModal.vue';
 import EditSupplyModal from '@/Components/Supplies/EditSupplyModal.vue';
+import ExportExcelButton from '@/Components/ExportExcelButton.vue';
+import ExportPdfButton from '@/Components/ExportPdfButton.vue';
+import SearchInput from '@/Components/SearchInput.vue';
 
 
 const props = defineProps({
@@ -34,6 +37,9 @@ const selectedFruit = ref('');
 const selectedVariety = ref('');
 const selectedCostCenter = ref('');
 
+// Buscador global para la tabla de insumos
+const search = ref('');
+
 // Variedades filtradas por fruta
 const filteredVarieties = computed(() => {
   if (!selectedFruit.value) {
@@ -42,6 +48,25 @@ const filteredVarieties = computed(() => {
     return props.varieties;
   }
   return props.varieties.filter(v => v.fruit_id == selectedFruit.value);
+});
+
+// Computed para filtrar los insumos según el texto de búsqueda
+const filteredSupplies = computed(() => {
+  if (!props.supplies || !props.supplies.data) return [];
+  if (!search.value) return props.supplies.data;
+  const term = search.value.toLowerCase();
+  return props.supplies.data.filter(item => {
+    const name = item.product_name ? item.product_name.toLowerCase() : '';
+    const subfamily = item.subfamily && item.subfamily.name ? item.subfamily.name.toLowerCase() : '';
+    const unit = item.unit && item.unit.name ? item.unit.name.toLowerCase() : '';
+    const unit2 = item.unit2 && item.unit2.name ? item.unit2.name.toLowerCase() : '';
+    return (
+      name.includes(term) ||
+      subfamily.includes(term) ||
+      unit.includes(term) ||
+      unit2.includes(term)
+    );
+  });
 });
 
 // Filtra los cost centers por fruit_id y variedad_id para la pestaña Detalles
@@ -309,7 +334,46 @@ const onFilter = () => {
                 </ul>
                 <div class="tab-content border p-3 mt-3" id="pill-myTabContent">
                     <div class="tab-pane fade show active" id="pill-tab-edicion" role="tabpanel" aria-labelledby="edicion-tab">
-                        <Table sticky-header :id="'agrochemicals'" :total="supplies.length" :links="supplies.links">
+                        <!-- Buscador global y botones de exportación -->
+                        <div class="d-flex justify-content-between align-items-center gap-1 mb-1">
+                          <SearchInput
+                            v-model="search"
+                            placeholder="Buscar por nombre, subfamilia, unidad..."
+                          />
+                          <div class="d-flex align-items-center gap-1">
+                            <ExportExcelButton
+                              :data="supplies.data"
+                              :headers="[
+                                { label: 'Nombre', key: 'product_name' },
+                                { label: 'SubFamilia', key: 'subfamily.name' },
+                                { label: 'Cantidad', key: 'quantity' },
+                                { label: 'Unidad', key: 'unit.name' },
+                                { label: 'Precio', key: 'price' },
+                                { label: 'Unidad de $', key: 'unit2.name' }
+                              ]"
+                              class="btn btn-success btn-md d-flex align-items-center p-0"
+                              filename="Insumos.xlsx"
+                            />
+                            <ExportPdfButton
+                              :data="supplies.data"
+                              :headers="[
+                                { label: 'Nombre', key: 'product_name' },
+                                { label: 'SubFamilia', key: 'subfamily.name' },
+                                { label: 'Cantidad', key: 'quantity' },
+                                { label: 'Unidad', key: 'unit.name' },
+                                { label: 'Precio', key: 'price' },
+                                { label: 'Unidad de $', key: 'unit2.name' }
+                              ]"
+                              class="btn btn-danger btn-md d-flex align-items-center p-0"
+                              filename="Insumos.pdf"
+                            />
+                            <button class="btn btn-falcon-default btn-sm ms-1" type="button" @click="openAdd()">
+                              <span class="fas fa-plus" data-fa-transform="shrink-3 down-2"></span>
+                              <span class="d-none d-sm-inline-block ms-2">Nuevo</span>
+                            </button>
+                          </div>
+                        </div>
+                        <Table sticky-header :id="'agrochemicals'" :total="filteredSupplies.length" :links="supplies.links">
                             <!--begin::Table head-->
                             <template #header>
                                 <!--begin::Table row-->
@@ -325,11 +389,11 @@ const onFilter = () => {
                             <!--end::Table head-->
                             <!--begin::Table body-->
                             <template #body>
-                                <template v-if="supplies.total == 0">
+                                <template v-if="filteredSupplies.length === 0">
                                     <Empty colspan="7" />
                                 </template>
                                 <template v-else>
-                                    <tr v-for="(supply, index) in supplies.data" :key="index">
+                                    <tr v-for="(supply, index) in filteredSupplies" :key="index">
                                         <td>
                                             <span class="text-dark  fw-bold mb-1">{{supply.product_name}}</span>
                                         </td>

@@ -7,8 +7,31 @@ import Table from '@/Components/Table.vue';
 import Empty from '@/Components/Empty.vue';
 import Breadcrumb from '@/Components/Breadcrumb.vue';
 import TitleBudget from '@/Components/Budgets/TitleBudget.vue';
+
 import CreateFieldModal from '@/Components/Fields/CreateFieldModal.vue';
 import EditFieldModal from '@/Components/Fields/EditFieldModal.vue';
+import ExportExcelButton from '@/Components/ExportExcelButton.vue';
+import ExportPdfButton from '@/Components/ExportPdfButton.vue';
+import SearchInput from '@/Components/SearchInput.vue';
+// Buscador global para la tabla de campos
+const search = ref('');
+
+// Computed para filtrar los campos según el texto de búsqueda
+const filteredFields = computed(() => {
+  if (!props.fields || !props.fields.data) return [];
+  if (!search.value) return props.fields.data;
+  const term = search.value.toLowerCase();
+  return props.fields.data.filter(item => {
+    const name = item.product_name ? item.product_name.toLowerCase() : '';
+    const subfamily = item.subfamily && item.subfamily.name ? item.subfamily.name.toLowerCase() : '';
+    const unit = item.unit && item.unit.name ? item.unit.name.toLowerCase() : '';
+    return (
+      name.includes(term) ||
+      subfamily.includes(term) ||
+      unit.includes(term)
+    );
+  });
+});
 
 const props = defineProps({
     fields: Object,
@@ -180,7 +203,44 @@ const acum_products = (quantity) => {
                 </ul>
                 <div class="tab-content border p-3 mt-3" id="pill-myTabContent">
                     <div class="tab-pane fade show active" id="pill-tab-edicion" role="tabpanel" aria-labelledby="edicion-tab">
-                        <Table sticky-header :id="'fields'" :total="fields.length" :links="fields.links">
+                        <!-- Buscador global y botones de exportación -->
+                        <div class="d-flex justify-content-between align-items-center gap-1 mb-1">
+                          <SearchInput
+                            v-model="search"
+                            placeholder="Buscar por nombre, subfamilia, unidad..."
+                          />
+                          <div class="d-flex align-items-center gap-1">
+                            <ExportExcelButton
+                              :data="fields.data"
+                              :headers="[
+                                { label: 'Nombre', key: 'product_name' },
+                                { label: 'SubFamilia', key: 'subfamily.name' },
+                                { label: 'Cantidad', key: 'quantity' },
+                                { label: 'Unidad', key: 'unit.name' },
+                                { label: 'Precio', key: 'price' }
+                              ]"
+                              class="btn btn-success btn-md d-flex align-items-center p-0"
+                              filename="Campos.xlsx"
+                            />
+                            <ExportPdfButton
+                              :data="fields.data"
+                              :headers="[
+                                { label: 'Nombre', key: 'product_name' },
+                                { label: 'SubFamilia', key: 'subfamily.name' },
+                                { label: 'Cantidad', key: 'quantity' },
+                                { label: 'Unidad', key: 'unit.name' },
+                                { label: 'Precio', key: 'price' }
+                              ]"
+                              class="btn btn-danger btn-md d-flex align-items-center p-0"
+                              filename="Campos.pdf"
+                            />
+                            <button class="btn btn-falcon-default btn-sm ms-1" type="button" @click="openAdd()">
+                              <span class="fas fa-plus" data-fa-transform="shrink-3 down-2"></span>
+                              <span class="d-none d-sm-inline-block ms-2">Nuevo</span>
+                            </button>
+                          </div>
+                        </div>
+                        <Table sticky-header :id="'fields'" :total="filteredFields.length" :links="fields.links">
                             <!--begin::Table head-->
                             <template #header>
                                 <!--begin::Table row-->
@@ -195,15 +255,14 @@ const acum_products = (quantity) => {
                             <!--end::Table head-->
                             <!--begin::Table body-->
                             <template #body>
-                                <template v-if="fields.total == 0">
+                                <template v-if="filteredFields.length === 0">
                                     <Empty colspan="6" />
                                 </template>
                                 <template v-else>
-                                    <tr v-for="(field, index) in fields.data" :key="index">
+                                    <tr v-for="(field, index) in filteredFields" :key="index">
                                         <td>
                                             <span class="text-dark  fw-bold mb-1">{{field.product_name}}</span>
                                         </td>
-                                       
                                         <td>{{field.subfamily.name}}</td>
                                         <td>{{field.quantity}}</td>
                                         <td>{{field.unit.name}}</td>

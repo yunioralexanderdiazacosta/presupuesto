@@ -11,6 +11,7 @@ import CreateAgrochemicalModal from '@/Components/Agrochemicals/CreateAgrochemic
 import EditAgrochemicalModal from '@/Components/Agrochemicals/EditAgrochemicalModal.vue';
 import ExportExcelButton from '@/Components/ExportExcelButton.vue';
 import ExportPdfButton from '@/Components/ExportPdfButton.vue';
+import SearchInput from '@/Components/SearchInput.vue';
 
 const props = defineProps({
     agrochemicals: Object,
@@ -57,6 +58,32 @@ const form = useForm({
     observations: '',
     cc: [],
     months: []
+});
+
+
+// Buscador global para la tabla de agroquímicos
+const search = ref('');
+
+// Computed para filtrar los agroquímicos según el texto de búsqueda
+const filteredAgrochemicals = computed(() => {
+  // Si no hay datos, retorna array vacío para evitar errores
+  if (!props.agrochemicals || !props.agrochemicals.data) return [];
+  // Si no hay búsqueda, retorna todos
+  if (!search.value) return props.agrochemicals.data;
+  const term = search.value.toLowerCase();
+  return props.agrochemicals.data.filter(item => {
+    // Protege contra campos nulos
+    const name = item.product_name ? item.product_name.toLowerCase() : '';
+    const subfamily = item.subfamily && item.subfamily.name ? item.subfamily.name.toLowerCase() : '';
+    const unit = item.unit && item.unit.name ? item.unit.name.toLowerCase() : '';
+    const dosetype = item.dosetype && item.dosetype.name ? item.dosetype.name.toLowerCase() : '';
+    return (
+      name.includes(term) ||
+      subfamily.includes(term) ||
+      unit.includes(term) ||
+      dosetype.includes(term)
+    );
+  });
 });
 
 const title = 'Agroquimicos';
@@ -249,6 +276,8 @@ const onFilter = () => {
   router.get(route('manage.providers', {term: term.value, plan: plan.value, membership: membership.value}), { preserveState: true});  
 }
 */
+
+
 </script>
 <template>
     <Head :title="title" />
@@ -275,41 +304,47 @@ const onFilter = () => {
                 </ul>
                 <div class="tab-content border p-3 mt-3" id="pill-myTabContent">
                     <div class="tab-pane fade show active" id="pill-tab-edicion" role="tabpanel" aria-labelledby="edicion-tab">
-                        <div class="d-flex justify-content-end align-items-center gap-1 mb-1">
-                          <ExportExcelButton
-                            :data="agrochemicals.data"
-                            :headers="[
-                              { label: 'Nombre', key: 'product_name' },
-                              { label: 'SubFamilia', key: 'subfamily.name' },
-                              { label: 'Dosis', key: 'dose' },
-                              { label: 'Unidad', key: 'unit.name' },
-                              { label: 'Tipo Dosis', key: 'dosetype.name' },
-                              { label: 'Mojamiento', key: 'mojamiento' },
-                              { label: 'Precio', key: 'price' }
-                            ]"
-                            class="btn btn-success btn-md d-flex align-items-center p-0"
-                            filename="Agroquimicos.xlsx"
+                        <div class="d-flex justify-content-between align-items-center gap-1 mb-1">
+                          <SearchInput
+                            v-model="search"
+                            placeholder="Buscar por nombre, nivel 2, unidad, tipo dosis..."
                           />
-                          <ExportPdfButton
-                            :data="agrochemicals.data"
-                            :headers="[
-                              { label: 'Nombre', key: 'product_name' },
-                              { label: 'SubFamilia', key: 'subfamily.name' },
-                              { label: 'Dosis', key: 'dose' },
-                              { label: 'Unidad', key: 'unit.name' },
-                              { label: 'Tipo Dosis', key: 'dosetype.name' },
-                              { label: 'Mojamiento', key: 'mojamiento' },
-                              { label: 'Precio', key: 'price' }
-                            ]"
-                            class="btn btn-danger btn-md d-flex align-items-center p-0"
-                            filename="Agroquimicos.pdf"
-                          />
-                          <button class="btn btn-falcon-default btn-sm ms-1" type="button" @click="openAdd()">
-                            <span class="fas fa-plus" data-fa-transform="shrink-3 down-2"></span>
-                            <span class="d-none d-sm-inline-block ms-2">Nuevo</span>
-                          </button>
+                          <div class="d-flex align-items-center gap-1">
+                            <ExportExcelButton
+                              :data="agrochemicals.data"
+                              :headers="[
+                                { label: 'Nombre', key: 'product_name' },
+                                { label: 'SubFamilia', key: 'subfamily.name' },
+                                { label: 'Dosis', key: 'dose' },
+                                { label: 'Unidad', key: 'unit.name' },
+                                { label: 'Tipo Dosis', key: 'dosetype.name' },
+                                { label: 'Mojamiento', key: 'mojamiento' },
+                                { label: 'Precio', key: 'price' }
+                              ]"
+                              class="btn btn-success btn-md d-flex align-items-center p-0"
+                              filename="Agroquimicos.xlsx"
+                            />
+                            <ExportPdfButton
+                              :data="agrochemicals.data"
+                              :headers="[
+                                { label: 'Nombre', key: 'product_name' },
+                                { label: 'SubFamilia', key: 'subfamily.name' },
+                                { label: 'Dosis', key: 'dose' },
+                                { label: 'Unidad', key: 'unit.name' },
+                                { label: 'Tipo Dosis', key: 'dosetype.name' },
+                                { label: 'Mojamiento', key: 'mojamiento' },
+                                { label: 'Precio', key: 'price' }
+                              ]"
+                              class="btn btn-danger btn-md d-flex align-items-center p-0"
+                              filename="Agroquimicos.pdf"
+                            />
+                            <button class="btn btn-falcon-default btn-sm ms-1" type="button" @click="openAdd()">
+                              <span class="fas fa-plus" data-fa-transform="shrink-3 down-2"></span>
+                              <span class="d-none d-sm-inline-block ms-2">Nuevo</span>
+                            </button>
+                          </div>
                         </div>
-                        <Table sticky-header :id="'agrochemicals'" :total="agrochemicals.length" :links="agrochemicals.links">
+                        <Table sticky-header :id="'agrochemicals'" :total="filteredAgrochemicals.length" :links="agrochemicals.links">
                             <!--begin::Table head-->
                             <template #header>
                                 <!--begin::Table row-->
@@ -326,11 +361,11 @@ const onFilter = () => {
                             <!--end::Table head-->
                             <!--begin::Table body-->
                             <template #body>
-                                <template v-if="props.agrochemicals.total == 0">
+                                <template v-if="filteredAgrochemicals.length == 0">
                                     <Empty colspan="7" />
                                 </template>
                                 <template v-else>
-                                    <tr v-for="(agrochemical, index) in props.agrochemicals.data" :key="index">
+                                    <tr v-for="(agrochemical, index) in filteredAgrochemicals" :key="index">
                                         <td>
                                             <span class="text-dark  fw-bold mb-1">{{agrochemical.product_name}}</span>
                                         </td>

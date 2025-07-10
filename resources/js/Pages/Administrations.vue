@@ -7,8 +7,31 @@ import Table from '@/Components/Table.vue';
 import Empty from '@/Components/Empty.vue';
 import Breadcrumb from '@/Components/Breadcrumb.vue';
 import TitleBudget from '@/Components/Budgets/TitleBudget.vue';
+
 import CreateAdministrationModal from '@/Components/Administrations/CreateAdministrationModal.vue';
 import EditAdministrationModal from '@/Components/Administrations/EditAdministrationModal.vue';
+import ExportExcelButton from '@/Components/ExportExcelButton.vue';
+import ExportPdfButton from '@/Components/ExportPdfButton.vue';
+import SearchInput from '@/Components/SearchInput.vue';
+// Buscador global para la tabla de administración
+const search = ref('');
+
+// Computed para filtrar las administraciones según el texto de búsqueda
+const filteredAdministrations = computed(() => {
+  if (!props.administrations || !props.administrations.data) return [];
+  if (!search.value) return props.administrations.data;
+  const term = search.value.toLowerCase();
+  return props.administrations.data.filter(item => {
+    const name = item.product_name ? item.product_name.toLowerCase() : '';
+    const subfamily = item.subfamily && item.subfamily.name ? item.subfamily.name.toLowerCase() : '';
+    const unit = item.unit && item.unit.name ? item.unit.name.toLowerCase() : '';
+    return (
+      name.includes(term) ||
+      subfamily.includes(term) ||
+      unit.includes(term)
+    );
+  });
+});
 
 const props = defineProps({
     administrations: Object,
@@ -197,7 +220,44 @@ const onFilter = () => {
             </ul>
             <div class="tab-content border p-3 mt-3" id="pill-myTabContent">
                 <div class="tab-pane fade show active" id="pill-tab-edicion" role="tabpanel" aria-labelledby="edicion-tab">
-                    <Table sticky-header :id="'administrations'" :total="administrations.length" :links="administrations.links">
+                    <!-- Buscador global y botones de exportación -->
+                    <div class="d-flex justify-content-between align-items-center gap-1 mb-1">
+                      <SearchInput
+                        v-model="search"
+                        placeholder="Buscar por nombre, subfamilia, unidad..."
+                      />
+                      <div class="d-flex align-items-center gap-1">
+                        <ExportExcelButton
+                          :data="administrations.data"
+                          :headers="[
+                            { label: 'Nombre', key: 'product_name' },
+                            { label: 'SubFamilia', key: 'subfamily.name' },
+                            { label: 'Cantidad', key: 'quantity' },
+                            { label: 'Unidad', key: 'unit.name' },
+                            { label: 'Precio', key: 'price' }
+                          ]"
+                          class="btn btn-success btn-md d-flex align-items-center p-0"
+                          filename="Administracion.xlsx"
+                        />
+                        <ExportPdfButton
+                          :data="administrations.data"
+                          :headers="[
+                            { label: 'Nombre', key: 'product_name' },
+                            { label: 'SubFamilia', key: 'subfamily.name' },
+                            { label: 'Cantidad', key: 'quantity' },
+                            { label: 'Unidad', key: 'unit.name' },
+                            { label: 'Precio', key: 'price' }
+                          ]"
+                          class="btn btn-danger btn-md d-flex align-items-center p-0"
+                          filename="Administracion.pdf"
+                        />
+                        <button class="btn btn-falcon-default btn-sm ms-1" type="button" @click="openAdd()">
+                          <span class="fas fa-plus" data-fa-transform="shrink-3 down-2"></span>
+                          <span class="d-none d-sm-inline-block ms-2">Nuevo</span>
+                        </button>
+                      </div>
+                    </div>
+                    <Table sticky-header :id="'administrations'" :total="filteredAdministrations.length" :links="administrations.links">
                         <!--begin::Table head-->
                         <template #header>
                             <!--begin::Table row-->
@@ -212,11 +272,11 @@ const onFilter = () => {
                         <!--end::Table head-->
                         <!--begin::Table body-->
                         <template #body>
-                            <template v-if="administrations.total == 0">
+                            <template v-if="filteredAdministrations.length === 0">
                                 <Empty colspan="6" />
                             </template>
                             <template v-else>
-                                <tr v-for="(administration, index) in administrations.data" :key="index">
+                                <tr v-for="(administration, index) in filteredAdministrations" :key="index">
                                     <td>
                                         <span class="text-dark  fw-bold mb-1">{{administration.product_name}}</span>
                                     </td>
@@ -227,7 +287,6 @@ const onFilter = () => {
                                     <td class="text-end text-center">
                                         <!--begin::Update-->
                                         <button type="button" @click="openEdit(administration)" v-tooltip="'Editar'" class="btn btn-icon btn-active-light-primary w-30px h-30px me-3">
-                                            
                                             <span class="svg-icon svg-icon-3">
                                             <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
                                                 <path opacity="0.3" d="M21.4 8.35303L19.241 10.511L13.485 4.755L15.643 2.59595C16.0248 2.21423 16.5426 1.99988 17.0825 1.99988C17.6224 1.99988 18.1402 2.21423 18.522 2.59595L21.4 5.474C21.7817 5.85581 21.9962 6.37355 21.9962 6.91345C21.9962 7.45335 21.7817 7.97122 21.4 8.35303ZM3.68699 21.932L9.88699 19.865L4.13099 14.109L2.06399 20.309C1.98815 20.5354 1.97703 20.7787 2.03189 21.0111C2.08674 21.2436 2.2054 21.4561 2.37449 21.6248C2.54359 21.7934 2.75641 21.9115 2.989 21.9658C3.22158 22.0201 3.4647 22.0084 3.69099 21.932H3.68699Z" fill="currentColor"></path>

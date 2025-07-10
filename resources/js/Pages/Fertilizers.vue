@@ -9,6 +9,9 @@ import Breadcrumb from '@/Components/Breadcrumb.vue';
 import TitleBudget from '@/Components/Budgets/TitleBudget.vue';
 import CreateFertilizerModal from '@/Components/Fertilizers/CreateFertilizerModal.vue';
 import EditFertilizerModal from '@/Components/Fertilizers/EditFertilizerModal.vue';
+import ExportExcelButton from '@/Components/ExportExcelButton.vue';
+import ExportPdfButton from '@/Components/ExportPdfButton.vue';
+import SearchInput from '@/Components/SearchInput.vue';
 
 const props = defineProps({
     fertilizers: Object,
@@ -34,6 +37,9 @@ const selectedFruit = ref('');
 const selectedVariety = ref('');
 const selectedCostCenter = ref('');
 
+// Buscador global para la tabla de fertilizantes
+const search = ref('');
+
 // Variedades filtradas por fruta
 const filteredVarieties = computed(() => {
   if (!selectedFruit.value) {
@@ -42,6 +48,25 @@ const filteredVarieties = computed(() => {
     return props.varieties;
   }
   return props.varieties.filter(v => v.fruit_id == selectedFruit.value);
+});
+
+// Computed para filtrar los fertilizantes según el texto de búsqueda
+const filteredFertilizers = computed(() => {
+  if (!props.fertilizers || !props.fertilizers.data) return [];
+  if (!search.value) return props.fertilizers.data;
+  const term = search.value.toLowerCase();
+  return props.fertilizers.data.filter(item => {
+    const name = item.product_name ? item.product_name.toLowerCase() : '';
+    const subfamily = item.subfamily && item.subfamily.name ? item.subfamily.name.toLowerCase() : '';
+    const unit = item.unit && item.unit.name ? item.unit.name.toLowerCase() : '';
+    const unit2 = item.unit2 && item.unit2.name ? item.unit2.name.toLowerCase() : '';
+    return (
+      name.includes(term) ||
+      subfamily.includes(term) ||
+      unit.includes(term) ||
+      unit2.includes(term)
+    );
+  });
 });
 
 // Filtra los cost centers por fruit_id y variedad_id para la pestaña Detalles
@@ -248,6 +273,8 @@ const onDeleted = (id) => {
 }
 
 
+
+
 const acum_products = (quantity) => {
     acum.value = acum.value + quantity;
     return acum.value;
@@ -289,8 +316,45 @@ const onFilter = () => {
                 </ul>
                 <div class="tab-content border p-3 mt-3" id="pill-myTabContent">
                     <div class="tab-pane fade show active" id="pill-tab-edicion" role="tabpanel" aria-labelledby="edicion-tab">        
-                      
-                        <Table :id="'fertilizers'" :total="fertilizers.length" :links="fertilizers.links">
+                         <div class="d-flex justify-content-between align-items-center gap-1 mb-1">
+                          <SearchInput
+                            v-model="search"
+                            placeholder="Buscar por nombre, nivel 2, unidad..."
+                          />
+                          <div class="d-flex align-items-center gap-1">
+                            <ExportExcelButton
+                              :data="fertilizers.data"
+                              :headers="[
+                                { label: 'Nombre', key: 'product_name' },
+                                { label: 'SubFamilia', key: 'subfamily.name' },
+                                { label: 'Dosis', key: 'dose' },
+                                { label: 'Unidad', key: 'unit.name' },
+                                { label: 'Precio', key: 'price' },
+                                { label: 'Unidad de $', key: 'unit2.name' }
+                              ]"
+                              class="btn btn-success btn-md d-flex align-items-center p-0"
+                              filename="Fertilizantes.xlsx"
+                            />
+                            <ExportPdfButton
+                              :data="fertilizers.data"
+                              :headers="[
+                                { label: 'Nombre', key: 'product_name' },
+                                { label: 'SubFamilia', key: 'subfamily.name' },
+                                { label: 'Dosis', key: 'dose' },
+                                { label: 'Unidad', key: 'unit.name' },
+                                { label: 'Precio', key: 'price' },
+                                { label: 'Unidad de $', key: 'unit2.name' }
+                              ]"
+                              class="btn btn-danger btn-md d-flex align-items-center p-0"
+                              filename="Fertilizantes.pdf"
+                            />
+                            <button class="btn btn-falcon-default btn-sm ms-1" type="button" @click="openAdd()">
+                              <span class="fas fa-plus" data-fa-transform="shrink-3 down-2"></span>
+                              <span class="d-none d-sm-inline-block ms-2">Nuevo</span>
+                            </button>
+                          </div>
+                        </div>
+                        <Table :id="'fertilizers'" :total="filteredFertilizers.length" :links="fertilizers.links">
                             <!--begin::Table head-->
                             <template #header>
                                 <!--begin::Table row-->
@@ -306,11 +370,11 @@ const onFilter = () => {
                             <!--end::Table head-->
                             <!--begin::Table body-->
                             <template #body>
-                                <template v-if="fertilizers.total == 0">
-                                    <Empty colspan="5" />
+                                <template v-if="filteredFertilizers.length === 0">
+                                    <Empty colspan="7" />
                                 </template>
                                 <template v-else>
-                                    <tr v-for="(fertilizer, index) in fertilizers.data" :key="index">
+                                    <tr v-for="(fertilizer, index) in filteredFertilizers" :key="index">
                                         <td>
                                             <span class="text-dark  fw-bold mb-1">{{fertilizer.product_name}}</span>
                                         </td>
@@ -630,6 +694,7 @@ const onFilter = () => {
                     </div>               
                 </div>
             </div>
+         
         </div>
         <CreateFertilizerModal @store="storeFertilizer" :form="formMultiple" />
         <EditFertilizerModal @update="updateFertilizer" :form="form" />
