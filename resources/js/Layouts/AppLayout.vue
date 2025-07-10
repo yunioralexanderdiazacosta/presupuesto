@@ -44,33 +44,26 @@ const logout = () => {
                 </Link>
             </li>
             <li class="nav-item" v-role="'Admin'">
-              <!--<a class="nav-link" href="pages/starter.html" role="button">
-                <div class="d-flex align-items-center"><span class="nav-link-icon"><span class="fas fa-flag"></span></span><span class="nav-link-text ps-1">Starter</span>
+          
+              <!-- parent pages--><a class="nav-link dropdown-indicator" href="#authentication" role="button" data-bs-toggle="collapse" aria-expanded="true" aria-controls="authentication">
+                <div class="d-flex align-items-center"><span class="nav-link-icon"><span class="fas fa-lock"></span></span><span class="nav-link-text text-dark ps-1">Presupuestos</span>
                 </div>
               </a>
-              <a class="nav-link" href="pages/landing.html" role="button">
-                <div class="d-flex align-items-center"><span class="nav-link-icon"><span class="fas fa-globe"></span></span><span class="nav-link-text ps-1">Landing</span>
-                </div>
-              </a>-->
-              <!-- parent pages--><a class="nav-link dropdown-indicator" href="#authentication" role="button" data-bs-toggle="collapse" aria-expanded="false" aria-controls="authentication">
-                <div class="d-flex align-items-center"><span class="nav-link-icon"><span class="fas fa-lock"></span></span><span class="nav-link-text ps-1">Presupuestos</span>
-                </div>
-              </a>
-              <ul class="nav collapse" id="authentication">
+              <ul class="nav collapse show" id="authentication">
                 <li class="nav-item"><Link class="nav-link" :href="route('dashboard')">
-                    <div class="d-flex align-items-center"><span class="nav-link-text ps-1">Dashboard</span>
+                    <div class="d-flex align-items-center"><span class="nav-link-text ps-3">Dashboard</span>
                     </div>
                   </Link>
                   <!-- more inner pages-->
                 </li>
                  <li class="nav-item"><Link class="nav-link" :href="route('technicalpanel')">
-                    <div class="d-flex align-items-center"><span class="nav-link-text ps-1">Panel Tecnico</span>
+                    <div class="d-flex align-items-center"><span class="nav-link-text ps-3">Panel Tecnico</span>
                     </div>
                   </Link>
                   <!-- more inner pages-->
                 </li>
                 <li class="nav-item"><a class="nav-link dropdown-indicator" href="#simple" data-bs-toggle="collapse" aria-expanded="false" aria-controls="authentication">
-                    <div class="d-flex align-items-center"><span class="nav-link-text ps-1 mb-1">Presupuesto por CC</span>
+                    <div class="d-flex align-items-center"><span class="nav-link-text ps-3">Presupuestar por CC</span>
                     </div>
                   </a>
                   <!-- more inner pages-->
@@ -108,13 +101,13 @@ const logout = () => {
                   </ul>
                 </li>
                 <li class="nav-item"><a class="nav-link dropdown-indicator" href="#card" data-bs-toggle="collapse" aria-expanded="false" aria-controls="authentication">
-                    <div class="d-flex align-items-center"><span class="nav-link-text ps-1 mb-1">Presupuesto por GG Campo</span>
+                    <div class="d-flex align-items-center"><span class="nav-link-text ps-3 mb-1">Presupuestar Gral Campo</span>
                     </div>
                   </a>
                   <!-- more inner pages-->
                   <ul class="nav collapse" id="card">
                     <li class="nav-item"><Link class="nav-link" :href="route('fields.index')">
-                        <div class="d-flex align-items-center"><span class="nav-link-text ps-4 mb-1 text-primary">Gral Campo</span>
+                        <div class="d-flex align-items-center"><span class="nav-link-text ps-3 mb-1 text-primary">Gral Campo</span>
                         </div>
                       </Link>
                       <!-- more inner pages-->
@@ -122,13 +115,13 @@ const logout = () => {
                   </ul>
                 </li>
                 <li class="nav-item"><a class="nav-link dropdown-indicator" href="#split" data-bs-toggle="collapse" aria-expanded="false" aria-controls="authentication">
-                    <div class="d-flex align-items-center"><span class="nav-link-text ps-1 mb-1">Presupuesto Administración</span>
+                    <div class="d-flex align-items-center"><span class="nav-link-text ps-3 mb-1">Presupuestar Administración</span>
                     </div>
                   </a>
                   <!-- more inner pages-->
                   <ul class="nav collapse" id="split">
                     <li class="nav-item"><Link class="nav-link" :href="route('administrations.index')">
-                        <div class="d-flex align-items-center"><span class="nav-link-text ps-4 mb-1 text-primary">Administración</span>
+                        <div class="d-flex align-items-center"><span class="nav-link-text ps-3 mb-1 text-primary">Administración</span>
                         </div>
                       </Link>
                       <!-- more inner pages-->
@@ -136,112 +129,112 @@ const logout = () => {
                   </ul>
                 </li>
                 <li class="nav-item"><Link class="nav-link" :href="route('faq')">
-                    <div class="d-flex align-items-center"><span class="nav-link-text ps-1 mb-1">FAQ</span>
+                    <div class="d-flex align-items-center"><span class="nav-link-text ps-3 mb-1">FAQ</span>
                     </div>
                   </Link>
                   <!-- more inner pages-->
                 </li>
               </ul>
-              <!-- parent pages--><a class="nav-link dropdown-indicator" href="#user" role="button" data-bs-toggle="collapse" aria-expanded="false" aria-controls="user">
-                <div class="d-flex align-items-center"><span class="nav-link-icon"><span class="fas fa-user"></span></span><span class="nav-link-text ps-1">Parametros</span>
+              <!-- parent pages--><a class="nav-link dropdown-indicator" href="#user" role="button" data-bs-toggle="collapse" aria-expanded="true" aria-controls="user">
+                <div class="d-flex align-items-center"><span class="nav-link-icon"><span class="fas fa-user"></span></span><span class="nav-link-text text-dark ps-1">Parametros</span>
                 </div>
               </a>
-              <ul class="nav collapse" id="user">
+              <ul class="nav collapse show" id="user">
                 <li class="nav-item"><Link class="nav-link" :href="route('cost.centers.index')">
-                    <div class="d-flex align-items-center"><span class="nav-link-text ps-1">- Centros de costos</span>
+                    <div class="d-flex align-items-center"><span class="nav-link-text ps-3">Centros de costos</span>
                     </div>
                   </Link>
                   <!-- more inner pages-->
                 </li>
                 <li class="nav-item">
                   <a class="nav-link dropdown-indicator" href="#niveles" data-bs-toggle="collapse" aria-expanded="false" aria-controls="niveles">
-                    <div class="d-flex align-items-center"><span class="nav-link-text ps-1">Niveles</span></div>
+                    <div class="d-flex align-items-center"><span class="nav-link-text ps-3">Niveles</span></div>
                   </a>
                   <ul class="nav collapse" id="niveles">
                     <li class="nav-item"><Link class="nav-link" :href="route('levels.index')">
-                        <div class="d-flex align-items-center"><span class="nav-link-text ps-1">- Crear Niveles</span></div>
+                        <div class="d-flex align-items-center"><span class="nav-link-text ps-1">Crear Niveles</span></div>
                       </Link>
                     </li>
                     <li class="nav-item"><Link class="nav-link" :href="route('levels.summary')">
-                        <div class="d-flex align-items-center"><span class="nav-link-text ps-1">- Resumen de Niveles</span></div>
+                        <div class="d-flex align-items-center"><span class="nav-link-text ps-1">Resumen de Niveles</span></div>
                       </Link>
                     </li>
                   </ul>
                 </li>
                 <li class="nav-item"><Link class="nav-link" :href="route('users.index')">
-                    <div class="d-flex align-items-center"><span class="nav-link-text ps-1">- Usuarios</span>
+                    <div class="d-flex align-items-center"><span class="nav-link-text ps-3">Usuarios</span>
                     </div>
                   </Link>
                   <!-- more inner pages-->
                 </li>
                 <li class="nav-item"><Link class="nav-link" :href="route('company.reasons.index')">
-                    <div class="d-flex align-items-center"><span class="nav-link-text ps-1">- Razón Social</span>
+                    <div class="d-flex align-items-center"><span class="nav-link-text ps-3">Razón Social</span>
                     </div>
                   </Link>
                   <!-- more inner pages-->
                 </li>
                 <li class="nav-item"><Link class="nav-link" :href="route('fruits.index')">
-                    <div class="d-flex align-items-center"><span class="nav-link-text ps-1">- Frutal</span>
+                    <div class="d-flex align-items-center"><span class="nav-link-text ps-3">Frutal</span>
                     </div>
                   </Link>
                   <!-- more inner pages-->
                 </li>
                 <li class="nav-item"><Link class="nav-link" :href="route('varieties.index')">
-                    <div class="d-flex align-items-center"><span class="nav-link-text ps-1">- Variedades</span>
+                    <div class="d-flex align-items-center"><span class="nav-link-text ps-3">Variedades</span>
                     </div>
                   </Link>
                   <!-- more inner pages-->
                 </li>
                 <li class="nav-item"><Link class="nav-link" :href="route('parcels.index')">
-                    <div class="d-flex align-items-center"><span class="nav-link-text ps-1">- Parcelas</span>
+                    <div class="d-flex align-items-center"><span class="nav-link-text ps-3">Parcelas</span>
                     </div>
                   </Link>
                   <!-- more inner pages-->
                 </li>
                 <li class="nav-item"><Link class="nav-link" :href="route('seasons.index')">
-                    <div class="d-flex align-items-center"><span class="nav-link-text ps-1">- Temporadas</span>
+                    <div class="d-flex align-items-center"><span class="nav-link-text ps-3">Temporadas</span>
                     </div>
                   </Link>
                   <!-- more inner pages-->
                 </li>
                 <li class="nav-item"><Link class="nav-link" :href="route('faq')">
-                    <div class="d-flex align-items-center"><span class="nav-link-text ps-1">- FAQ</span>
+                    <div class="d-flex align-items-center"><span class="nav-link-text ps-3">FAQ</span>
                     </div>
                   </Link>
                   <!-- more inner pages-->
                 </li>
               </ul>
-              <!-- parent pages--><a class="nav-link dropdown-indicator" href="#pricing" role="button" data-bs-toggle="collapse" aria-expanded="false" aria-controls="pricing">
-                <div class="d-flex align-items-center"><span class="nav-link-icon"><span class="fas fa-tags"></span></span><span class="nav-link-text ps-1">Gestión</span>
+              <!-- parent pages--><a class="nav-link dropdown-indicator" href="#pricing" role="button" data-bs-toggle="collapse" aria-expanded="true" aria-controls="pricing">
+                <div class="d-flex align-items-center"><span class="nav-link-icon"><span class="fas fa-tags"></span></span><span class="nav-link-text text-dark ps-1">Gestión</span>
                 </div>
               </a>
-              <ul class="nav collapse" id="pricing">
+              <ul class="nav collapse show" id="pricing">
                 <li class="nav-item"><Link class="nav-link" :href="route('suppliers.index')">
-                    <div class="d-flex align-items-center"><span class="nav-link-text ps-1">- Proveedores</span>
+                    <div class="d-flex align-items-center"><span class="nav-link-text ps-3">Proveedores</span>
                     </div>
                   </Link>
                   <!-- more inner pages-->
                 </li>
                 <li class="nav-item"><Link class="nav-link" :href="route('products.index')">
-                    <div class="d-flex align-items-center"><span class="nav-link-text ps-1">- Productos</span>
+                    <div class="d-flex align-items-center"><span class="nav-link-text ps-3">Productos</span>
                     </div>
                   </Link>
                   <!-- more inner pages-->
                 </li>
                 <li class="nav-item"><Link class="nav-link" :href="route('invoices.index')">
-                    <div class="d-flex align-items-center"><span class="nav-link-text ps-1">- Facturas</span>
+                    <div class="d-flex align-items-center"><span class="nav-link-text ps-3">Facturas</span>
                     </div>
                   </Link>
                   <!-- more inner pages-->
                 </li>
                 <li class="nav-item"><Link class="nav-link" :href="route('machineries.index')">
-                    <div class="d-flex align-items-center"><span class="nav-link-text ps-1">- Maquinarias</span>
+                    <div class="d-flex align-items-center"><span class="nav-link-text ps-3">Maquinarias</span>
                     </div>
                   </Link>
                   <!-- more inner pages-->
                 </li>
                 <li class="nav-item"><Link class="nav-link" :href="route('type.machineries.index')">
-                    <div class="d-flex align-items-center"><span class="nav-link-text ps-1">- Tipo de Maquinarias</span>
+                    <div class="d-flex align-items-center"><span class="nav-link-text ps-3">Tipo de Maquinarias</span>
                     </div>
                   </Link>
                   <!-- more inner pages-->

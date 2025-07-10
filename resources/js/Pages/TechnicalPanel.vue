@@ -1,11 +1,9 @@
 <script setup>
 
 import AppLayout from '@/Layouts/AppLayout.vue';
-import FalconBarChart from '@/Components/FalconBarChart.vue';
-import { onMounted, ref, computed, nextTick } from 'vue'
-import { router } from '@inertiajs/vue3'
-const title = 'Panel Tecnico';
+import {computed} from 'vue'
 
+const title = 'Panel Tecnico';
 const links = [{ title: 'Panel Tecnico', link: 'technicalpanel', active: true }];
 
 
@@ -49,11 +47,7 @@ const props = defineProps({
   mainTotalsAndPercents: Array // <-- nuevo prop para los gauges
 });
 
-// Calcular el máximo para la barra de progreso
-const maxCount = computed(() => {
-  if (!props.entityCounts) return 0;
-  return Math.max(...Object.values(props.entityCounts));
-});
+
 
 // Calcular el total de administración sumando los montos de administrationTotalsByLevel12
 const totalAdministrationCalc = computed(() => {
@@ -68,45 +62,6 @@ const totalFieldsCalc = computed(() => {
 
 
 
-// Agrupación por Level1 para la tabla de administración y fields
-function groupByLevel1() {
-  // Junta administración y fields en un solo array, pero mantiene el orden original
-  const allRows = [
-    ...(props.administrationTotalsByLevel12?.map(r => ({...r, key: 'adm-' + r.level1_id + '-' + r.level2_id})) || []),
-    ...(props.fieldTotalsByLevel12?.map(r => ({...r, key: 'field-' + r.level1_id + '-' + r.level2_id})) || [])
-  ];
-  // Agrupa por level1_id
-  const groups = {};
-  allRows.forEach(row => {
-    if (!groups[row.level1_id]) {
-      groups[row.level1_id] = {
-        level1_id: row.level1_id,
-        level1_name: row.level1_name,
-        rows: []
-      };
-    }
-    groups[row.level1_id].rows.push(row);
-  });
-  // Devuelve como array
-  return Object.values(groups);
-}
-
-// Nueva función para agrupar por Level1 y Level2 los totales generales
-function groupTotalsByLevel1() {
-  const allRows = props.totalsByLevel12?.map(r => ({...r, key: 'total-' + r.level1_id + '-' + r.level2_id})) || [];
-  const groups = {};
-  allRows.forEach(row => {
-    if (!groups[row.level1_id]) {
-      groups[row.level1_id] = {
-        level1_id: row.level1_id,
-        level1_name: row.level1_name,
-        rows: []
-      };
-    }
-    groups[row.level1_id].rows.push(row);
-  });
-  return Object.values(groups);
-}
 
 // Unir y agrupar ambas tablas por Level1 y Level2
 function groupAllTotalsByLevel1() {
@@ -129,127 +84,7 @@ function groupAllTotalsByLevel1() {
   return Object.values(groups);
 }
 
-// Unir y agrupar administración, fields y totales generales por Level 1 para el gráfico
-const barChartFromTable = computed(() => {
-  // Unificar todos los level1_id posibles de los tres arrays
-  const allRows = [
-    ...(props.administrationTotalsByLevel12 || []),
-    ...(props.fieldTotalsByLevel12 || []),
-    ...(props.totalsByLevel12 || [])
-  ];
-  // Crear un set de todos los level1_id únicos
-  const level1Ids = new Set(allRows.map(row => row.level1_id));
-  const groups = {};
-  // Inicializar todos los level1_id con total 0 y nombre
-  level1Ids.forEach(id => {
-    // Buscar el primer nombre disponible para ese id
-    const found = allRows.find(r => r.level1_id === id);
-    groups[id] = {
-      level1_id: id,
-      level1_name: found ? found.level1_name : '',
-      total_amount: 0
-    };
-  });
-  // Sumar los montos de todos los arrays para cada level1_id
-  allRows.forEach(row => {
-    if (groups[row.level1_id]) {
-      groups[row.level1_id].total_amount += Number(row.total_amount || 0);
-    }
-  });
-  return Object.values(groups);
-});
 
-
-//(nombra los form en el grafico de barras)
-const entityLabels = {
-  agrochemicals: 'Agroquímicos',
-  fertilizers: 'Fertilizantes',
-  manpowers: 'Mano de Obra',
-  supplies: 'Insumos',
-  services: 'Servicios',
-  fields: 'Generales Campo',
-  administrations: 'Administración'
-};
-
-// Renderizar los gauge charts usando ECharts
-// Colores personalizados para los gauges (excepto fields y administration)
-const gaugeColors = [
-  '#1a922e ', // Agroquímicos
-  '#1a922e ', // Fertilizantes
-  '#1a922e ', // Mano de Obra
-  '#1a922e ', // Insumos
-  '#1a922e ', // Servicios
-];
-
-onMounted(() => {
-  nextTick(() => {
-    if (props.mainTotalsAndPercents && window.echarts) {
-      props.mainTotalsAndPercents.forEach((item, idx) => {
-        const chartDom = document.getElementById('gauge-ring-' + idx);
-        if (chartDom) {
-          // Determina si es fields o administration
-          const isSpecial = ['Generales Campo', 'Administración'].includes(item.label);
-          // Si es especial, usa azul Bootstrap, si no, usa el color del arreglo
-          const color = isSpecial ? '#0d6efd' : gaugeColors[idx % gaugeColors.length];
-          const myChart = window.echarts.init(chartDom);
-          myChart.setOption({
-            series: [
-              {
-                type: 'gauge',
-                startAngle: 225,
-                endAngle: -45,
-                min: 0,
-                max: 100,
-                progress: {
-                  show: true,
-                  width: 18,
-                  itemStyle: {
-                    color: color // color frontal de la barra
-                  }
-                },
-                axisLine: {
-                  lineStyle: {
-                    width: 18,
-                    color: [
-                      [item.percent / 100, color], // color de la parte llena
-                      [1, '#e3e1e1'] // color de la parte vacía (blanco)
-                    ]
-                  }
-                },
-                axisTick: {
-                  show: false
-                },
-                splitLine: {
-                  show: false
-                },
-                axisLabel: {
-                  show: false
-                },
-                pointer: {
-                  show: false
-                },
-                title: {
-                  show: false
-                },
-                detail: {
-                  valueAnimation: true,
-                  fontSize: 18,
-                  offsetCenter: [0, '90%'],
-                  formatter: '{value}%'
-                },
-                data: [
-                  {
-                    value: item.percent
-                  }
-                ]
-              }
-            ]
-          });
-        }
-      });
-    }
-  });
-});
 </script>
 
 <template>
