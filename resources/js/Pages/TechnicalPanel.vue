@@ -189,6 +189,7 @@ onMounted(() => {
                 <table class="table table-sm table-hover align-middle border rounded shadow-sm bg-white">
                   <thead class="table-light border-bottom">
                     <tr>
+                       <th class="text-start text-uppercase text-secondary small fw-bold">Especie</th>
                       <th class="text-start text-uppercase text-secondary small fw-bold">Estado de desarrollo</th>
                       <th class="text-center text-uppercase text-secondary small fw-bold">Agroquímicos</th>
                       <th class="text-center text-uppercase text-secondary small fw-bold">Fertilizantes</th>
@@ -201,36 +202,43 @@ onMounted(() => {
                     </tr>
                   </thead>
                   <tbody>
-                    <tr v-for="devStateId in Object.keys(devStates)" :key="devStateId" class="border-bottom">
-                      <td class="text-start fw-semibold">{{ devStates[devStateId]?.name || 'Sin estado' }}</td>
-                      <td class="text-center text-warning fw-bold small">{{ Number(agrochemicalExpensePerHectare[devStateId] || 0).toLocaleString('es-CL', { maximumFractionDigits: 0 }) }}</td>
-                      <td class="text-center text-warning fw-bold small">{{ Number(fertilizerExpensePerHectare[devStateId] || 0).toLocaleString('es-CL', { maximumFractionDigits: 0 }) }}</td>
-                      <td class="text-center text-warning fw-bold small">{{ Number(manPowerExpensePerHectare[devStateId] || 0).toLocaleString('es-CL', { maximumFractionDigits: 0 }) }}</td>
-                      <td class="text-center text-warning fw-bold small">{{ Number(servicesExpensePerHectare[devStateId] || 0).toLocaleString('es-CL', { maximumFractionDigits: 0 }) }}</td>
-                      <td class="text-center text-warning fw-bold small">{{ Number(suppliesExpensePerHectare[devStateId] || 0).toLocaleString('es-CL', { maximumFractionDigits: 0 }) }}</td>
-                      <td class="text-center text-warning fw-bold small">
-                        {{
-                          (totalFieldsCalc / (totalSurface || 1)).toLocaleString('es-CL', { maximumFractionDigits: 0 })
-                        }}
-                      </td>
-                      <td class="text-center text-warning fw-bold small">
-                        {{
-                          (totalAdministrationCalc / (totalSurface || 1)).toLocaleString('es-CL', { maximumFractionDigits: 0 })
-                        }}
-                      </td>
-                      <td class="text-center text-warning fw-bold small">
-                        {{
-                          (
-                            Number(agrochemicalExpensePerHectare[devStateId] || 0) +
-                            Number(fertilizerExpensePerHectare[devStateId] || 0) +
-                            Number(manPowerExpensePerHectare[devStateId] || 0) +
-                            Number(servicesExpensePerHectare[devStateId] || 0) +
-                            Number(suppliesExpensePerHectare[devStateId] || 0) +
-                            (totalFieldsCalc / (totalSurface || 1)) +
-                            (totalAdministrationCalc / (totalSurface || 1))
-                          ).toLocaleString('es-CL', { maximumFractionDigits: 0 })
-                        }}</td>
-                    </tr>
+                    <template v-for="(devStatesObj, fruitId) in agrochemicalExpensePerHectare" :key="'hect-fruit-' + fruitId">
+                      <tr v-for="(amount, devStateId, idx) in devStatesObj" :key="'hect-' + fruitId + '-' + devStateId" class="border-bottom">
+                        <td v-if="idx === 0" :rowspan="Object.keys(devStatesObj).length" class="align-top">
+                          {{ $props.fruitsMap?.[String(fruitId)] || 'Sin especie' }}
+                        </td>
+                        <td class="text-start fw-semibold">{{ devStates[devStateId]?.name || 'Sin estado' }}</td>
+                        <td class="text-center text-warning fw-bold small">{{ Number(amount || 0).toLocaleString('es-CL', { maximumFractionDigits: 0 }) }}</td>
+                        <td class="text-center text-warning fw-bold small">{{ Number(fertilizerExpensePerHectare?.[fruitId]?.[devStateId] ?? 0).toLocaleString('es-CL', { maximumFractionDigits: 0 }) }}</td>
+                        <td class="text-center text-warning fw-bold small">{{ Number(manPowerExpensePerHectare?.[String(fruitId)]?.[String(devStateId)] ?? 0).toLocaleString('es-CL', { maximumFractionDigits: 0 }) }}</td>
+                        <td class="text-center text-warning fw-bold small">{{ Number(servicesExpensePerHectare?.[String(fruitId)]?.[String(devStateId)] ?? 0).toLocaleString('es-CL', { maximumFractionDigits: 0 }) }}</td>
+                        <td class="text-center text-warning fw-bold small">{{ Number(suppliesExpensePerHectare?.[String(fruitId)]?.[String(devStateId)] ?? 0).toLocaleString('es-CL', { maximumFractionDigits: 0 }) }}</td>
+                        <td class="text-center text-warning fw-bold small">
+                          {{
+                            (totalFieldsCalc / (totalSurface || 1)).toLocaleString('es-CL', { maximumFractionDigits: 0 })
+                          }}
+                        </td>
+                        <td class="text-center text-warning fw-bold small">
+                          {{
+                            (totalAdministrationCalc / (totalSurface || 1)).toLocaleString('es-CL', { maximumFractionDigits: 0 })
+                          }}
+                        </td>
+                        <td class="text-center text-warning fw-bold small">
+                          {{
+                            (
+                              Number(amount || 0) +
+                              Number(fertilizerExpensePerHectare?.[fruitId]?.[devStateId] ?? 0) +
+                              Number(manPowerExpensePerHectare?.[String(fruitId)]?.[String(devStateId)] ?? 0) +
+                              Number(servicesExpensePerHectare?.[String(fruitId)]?.[String(devStateId)] ?? 0) +
+                              Number(suppliesExpensePerHectare?.[String(fruitId)]?.[String(devStateId)] ?? 0) +
+                              (totalFieldsCalc / (totalSurface || 1)) +
+                              (totalAdministrationCalc / (totalSurface || 1))
+                            ).toLocaleString('es-CL', { maximumFractionDigits: 0 })
+                          }}</td>
+                      </tr>
+                     
+                      
+                    </template>
                   </tbody>
                 </table>
               </div>
