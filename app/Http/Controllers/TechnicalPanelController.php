@@ -14,6 +14,7 @@ use App\Models\ManPower;
 use App\Models\Supply;
 use App\Models\Service;
 use Inertia\Inertia;
+use App\Models\Fruit;
 use App\Services\WeatherService;
 use Spatie\Permission\Traits\HasRoles;
 
@@ -252,7 +253,7 @@ class TechnicalPanelController extends Controller
         $city = $request->input('city') ?? $request->input('weatherCity') ?? 'Curico, Chile'; // Usa la ciudad enviada por el frontend o la default
         $weather = $weatherService->getCurrentWeather($city);
         
-        // Calcular totales de agroquímicos por estado de desarrollo
+        // Calcular totales de agroquímicos por estado de desarrollo (agrupado por fruit_id y development_state_id)
         $agrochemicalByDevState = [];
         $agrochemicals = Agrochemical::from('agrochemicals as a')
             ->join('agrochemical_items as ai', 'a.id', 'ai.agrochemical_id')
@@ -263,11 +264,20 @@ class TechnicalPanelController extends Controller
             ->get();
         foreach ($agrochemicals as $agrochemical) {
             $byDev = $this->getAgrochemicalResultByDevelopmentState($agrochemical, $costCentersId);
-            foreach ($byDev as $devStateId => $amount) {
-                if (!isset($agrochemicalByDevState[$devStateId])) {
-                    $agrochemicalByDevState[$devStateId] = 0;
+            if (is_array($byDev) || is_object($byDev)) {
+                foreach ($byDev as $fruitId => $devStates) {
+                    foreach ($devStates as $devStateId => $amount) {
+                        $fruitIdStr = (string)$fruitId;
+                        $devStateIdStr = (string)$devStateId;
+                        if (!isset($agrochemicalByDevState[$fruitIdStr])) {
+                            $agrochemicalByDevState[$fruitIdStr] = [];
+                        }
+                        if (!isset($agrochemicalByDevState[$fruitIdStr][$devStateIdStr])) {
+                            $agrochemicalByDevState[$fruitIdStr][$devStateIdStr] = 0;
+                        }
+                        $agrochemicalByDevState[$fruitIdStr][$devStateIdStr] += $amount;
+                    }
                 }
-                $agrochemicalByDevState[$devStateId] += $amount;
             }
         }
         // Calcular gasto por hectárea de agroquímicos por estado de desarrollo
@@ -407,7 +417,8 @@ class TechnicalPanelController extends Controller
         $entityCounts = self::getEntityCounts($season_id, $user->team_id);
         // Calcular los totales y porcentajes de cada rubro principal
         $mainTotalsAndPercents = $this->getMainBudgetTotalsAndPercents($season_id, $user->team_id);
-        // Pasar todos los datos al frontend
+        // Construir fruitsMap y pasarlo al frontend
+        $fruitsMap = $this->getFruitsMap($user->team_id);
         return Inertia::render('TechnicalPanel', compact(
             'totalSeason', 'pieLabels', 'pieDatasets',
             'monthsAgrochemical', 'totalAgrochemical',
@@ -433,11 +444,23 @@ class TechnicalPanelController extends Controller
             'totalsByLevel12',
             'entityCounts',
             'totalSurface',
-            'mainTotalsAndPercents' // <-- nuevo prop para los gauges
+            'mainTotalsAndPercents', // <-- nuevo prop para los gauges
+            'fruitsMap'
         ));
 
+
         }
-        
+    }
+
+    /**
+     * Construye el mapeo [fruitId => fruitName] para la vista
+     */
+    private function getFruitsMap($team_id = null) {
+        $query = Fruit::query();
+        if ($team_id) {
+            $query->where('team_id', $team_id);
+        }
+        return $query->pluck('name', 'id')->toArray();
     }
 
     /**
@@ -802,15 +825,17 @@ class TechnicalPanelController extends Controller
      * Calcula el total de agroquímicos por estado de desarrollo.
      * Devuelve un array: [development_state_id => totalAmount]
      */
-    private function getAgrochemicalResultByDevelopmentState($value, $costCentersId)
-    {
-        $result = [];
-        $currentMonth = $this->month_id;
-        // Obtener todos los cost centers con su development_state_id
-        $costCenters = \App\Models\CostCenter::whereIn('id', $costCentersId)
-            ->select('id', 'development_state_id', 'surface')
-            ->get();
-        foreach ($costCenters->groupBy('development_state_id') as $devStateId => $centers) {
+private function getAgrochemicalResultByDevelopmentState($value, $costCentersId)
+{
+    $result = [];
+    $currentMonth = $this->month_id;
+    // Obtener todos los cost centers con su fruit_id y development_state_id
+    $costCenters = \App\Models\CostCenter::whereIn('id', $costCentersId)
+        ->select('id', 'fruit_id', 'development_state_id', 'surface')
+        ->get();
+    $grouped = $costCenters->groupBy(['fruit_id', 'development_state_id']);
+    foreach ($grouped as $fruitId => $devStates) {
+        foreach ($devStates as $devStateId => $centers) {
             $totalAmountDev = 0;
             foreach ($centers as $center) {
                 $dose = (($value->unit_id == 4 && $value->unit_id_price == 3) || ($value->unit_id == 2 && $value->unit_id_price == 1)) ? ($value->dose / 1000) : $value->dose;
@@ -839,10 +864,11 @@ class TechnicalPanelController extends Controller
                     $totalAmountDev += $amountMonth;
                 }
             }
-            $result[$devStateId] = $totalAmountDev;
+            $result[(string)$fruitId][(string)$devStateId] = $totalAmountDev;
         }
-        return $result;
     }
+    return $result;
+}
 
     /**
      * Calcula el gasto promedio de agroquímicos por hectárea y estado de desarrollo.

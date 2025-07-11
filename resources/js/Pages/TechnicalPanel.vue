@@ -10,6 +10,7 @@ const links = [{ title: 'Panel Tecnico', link: 'technicalpanel', active: true }]
 
 
 const props = defineProps({
+  fruitsMap: Object,
     totalSeason: String,
     pieLabels: Array,
     pieDatasets: Array,
@@ -85,6 +86,15 @@ function groupAllTotalsByLevel1() {
 }
 
 
+
+import { onMounted } from 'vue';
+onMounted(() => {
+  // Debug: log fruitsMap and agrochemicalByDevState
+  // eslint-disable-next-line no-console
+  console.log('fruitsMap:', props.fruitsMap);
+  // eslint-disable-next-line no-console
+  console.log('agrochemicalByDevState:', props.agrochemicalByDevState);
+});
 </script>
 
 <template>
@@ -105,23 +115,24 @@ function groupAllTotalsByLevel1() {
                 <table class="table table-sm table-hover align-middle border rounded shadow-sm bg-white">
                   <thead class="table-light border-bottom">
                     <tr>
-                      <th class="text-start text-uppercase text-secondary small fw-bold small">Estado de desarrollo</th>
-                      <th class="text-center text-uppercase text-secondary small fw-bold small">Agroquímicos</th>
-                      <th class="text-center text-uppercase text-secondary small fw-bold small">Fertilizantes</th>
-                      <th class="text-center text-uppercase text-secondary small fw-bold small">Mano de Obra</th>
-                      <th class="text-center text-uppercase text-secondary small fw-bold small">Servicios</th>
-                      <th class="text-center text-uppercase text-secondary small fw-bold small">Insumos</th>
+                      <th class="text-start text-uppercase text-secondary small fw-bold">Especie</th>
+                      <th class="text-start text-uppercase text-secondary small fw-bold">Estado de desarrollo</th>
+                      <th class="text-center text-uppercase text-secondary small fw-bold">Agroquímicos</th>
+                      <th class="text-center text-uppercase text-secondary small fw-bold">Fertilizantes</th>
+                      <!-- Puedes agregar más columnas aquí si lo deseas -->
                     </tr>
                   </thead>
                   <tbody>
-                    <tr v-for="devStateId in Object.keys(devStates)" :key="devStateId" class="border-bottom">
-                      <td class="fw-semibold">{{ devStates[devStateId]?.name || 'Sin estado' }}</td>
-                      <td class="text-center text-end text-success fw-bold small">{{ Number(agrochemicalByDevState[devStateId] || 0).toLocaleString('es-CL', { maximumFractionDigits: 0 }) }}</td>
-                      <td class="text-center text-end text-success fw-bold small">{{ Number(fertilizerByDevState[devStateId] || 0).toLocaleString('es-CL', { maximumFractionDigits: 0 }) }}</td>
-                      <td class="text-center text-end text-success fw-bold small">{{ Number(manPowerByDevState[devStateId] || 0).toLocaleString('es-CL', { maximumFractionDigits: 0 }) }}</td>
-                      <td class="text-center text-end text-success fw-bold small">{{ Number(servicesByDevState[devStateId] || 0).toLocaleString('es-CL', { maximumFractionDigits: 0 }) }}</td>
-                      <td class="text-center text-end text-success fw-bold small">{{ Number(suppliesByDevState[devStateId] || 0).toLocaleString('es-CL', { maximumFractionDigits: 0 }) }}</td>
-                    </tr>
+                    <template v-for="(devStatesObj, fruitId) in agrochemicalByDevState" :key="fruitId">
+                      <tr v-for="(amount, devStateId) in devStatesObj" :key="fruitId + '-' + devStateId">
+                        <td>{{ $props.fruitsMap?.[String(fruitId)] || 'Sin especie' }}</td>
+                        <td>{{ devStates[devStateId]?.name || 'Sin estado' }}</td>
+                        <td class="text-center text-end text-success fw-bold small">
+                          {{ Number(amount || 0).toLocaleString('es-CL', { maximumFractionDigits: 0 }) }}
+                        </td>
+                        <!-- Puedes agregar más columnas aquí si lo deseas -->
+                      </tr>
+                    </template>
                   </tbody>
                 </table>
               </div>
