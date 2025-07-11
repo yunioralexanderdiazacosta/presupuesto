@@ -119,18 +119,54 @@ onMounted(() => {
                       <th class="text-start text-uppercase text-secondary small fw-bold">Estado de desarrollo</th>
                       <th class="text-center text-uppercase text-secondary small fw-bold">Agroquímicos</th>
                       <th class="text-center text-uppercase text-secondary small fw-bold">Fertilizantes</th>
+                      <th class="text-center text-uppercase text-secondary small fw-bold">Mano de Obra</th>
+                       <th class="text-center text-uppercase text-secondary small fw-bold">Servicios</th>
+                        <th class="text-center text-uppercase text-secondary small fw-bold">Insumos</th>
                       <!-- Puedes agregar más columnas aquí si lo deseas -->
                     </tr>
                   </thead>
                   <tbody>
                     <template v-for="(devStatesObj, fruitId) in agrochemicalByDevState" :key="fruitId">
-                      <tr v-for="(amount, devStateId) in devStatesObj" :key="fruitId + '-' + devStateId">
-                        <td>{{ $props.fruitsMap?.[String(fruitId)] || 'Sin especie' }}</td>
+                      <tr v-for="(amount, devStateId, idx) in devStatesObj" :key="fruitId + '-' + devStateId">
+                        <td v-if="idx === 0" :rowspan="Object.keys(devStatesObj).length" class="align-top">
+                          {{ $props.fruitsMap?.[String(fruitId)] || 'Sin especie' }}
+                        </td>
                         <td>{{ devStates[devStateId]?.name || 'Sin estado' }}</td>
                         <td class="text-center text-end text-success fw-bold small">
                           {{ Number(amount || 0).toLocaleString('es-CL', { maximumFractionDigits: 0 }) }}
                         </td>
+                        <td class="text-center text-end text-primary fw-bold small">
+                          {{ Number(fertilizerByDevState?.[fruitId]?.[devStateId] ?? 0).toLocaleString('es-CL', { maximumFractionDigits: 0 }) }}
+                        </td>
+                        <td class="text-center text-end text-primary fw-bold small">
+                          {{ Number(manPowerByDevState?.[String(fruitId)]?.[String(devStateId)] ?? 0).toLocaleString('es-CL', { maximumFractionDigits: 0 }) }}
+                        </td>
+                        <td class="text-center text-end text-primary fw-bold small">
+                          {{ Number(servicesByDevState?.[String(fruitId)]?.[String(devStateId)] ?? 0).toLocaleString('es-CL', { maximumFractionDigits: 0 }) }}
+                        </td>
+                        <td class="text-center text-end text-primary fw-bold small">
+                          {{ Number(suppliesByDevState?.[String(fruitId)]?.[String(devStateId)] ?? 0).toLocaleString('es-CL', { maximumFractionDigits: 0 }) }}
+                        </td>
                         <!-- Puedes agregar más columnas aquí si lo deseas -->
+                      </tr>
+                      <!-- Subtotal por especie -->
+                      <tr class="table-secondary fw-bold" style="font-size:0.8em;">
+                        <td colspan="2" class="text-end">Subtotal {{ $props.fruitsMap?.[String(fruitId)] || 'Sin especie' }}</td>
+                        <td class="text-center text-end">
+                          {{ Object.values(devStatesObj).reduce((sum, val) => sum + Number(val || 0), 0).toLocaleString('es-CL', { maximumFractionDigits: 0 }) }}
+                        </td>
+                        <td class="text-center text-end">
+                          {{ Object.values(fertilizerByDevState?.[fruitId] || {}).reduce((sum, val) => sum + Number(val || 0), 0).toLocaleString('es-CL', { maximumFractionDigits: 0 }) }}
+                        </td>
+                        <td class="text-center text-end">
+                          {{ Object.values(manPowerByDevState?.[String(fruitId)] || {}).reduce((sum, val) => sum + Number(val || 0), 0).toLocaleString('es-CL', { maximumFractionDigits: 0 }) }}
+                        </td>
+                        <td class="text-center text-end">
+                          {{ Object.values(servicesByDevState?.[String(fruitId)] || {}).reduce((sum, val) => sum + Number(val || 0), 0).toLocaleString('es-CL', { maximumFractionDigits: 0 }) }}
+                        </td>
+                        <td class="text-center text-end">
+                          {{ Object.values(suppliesByDevState?.[String(fruitId)] || {}).reduce((sum, val) => sum + Number(val || 0), 0).toLocaleString('es-CL', { maximumFractionDigits: 0 }) }}
+                        </td>
                       </tr>
                     </template>
                   </tbody>
