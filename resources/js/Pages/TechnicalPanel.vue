@@ -2,6 +2,7 @@
 
 import AppLayout from '@/Layouts/AppLayout.vue';
 import {computed} from 'vue'
+import ExportExcelButton from '@/Components/ExportExcelButton.vue';
 
 const title = 'Panel Tecnico';
 const links = [{ title: 'Panel Tecnico', link: 'technicalpanel', active: true }];
@@ -110,29 +111,36 @@ onMounted(() => {
             <div class="card-body pt-1 pb-2">
               <div class="d-flex justify-content-between align-items-center mb-1">
                 <div class="card-body pt-2 pb-2">
-                <h6 class="mb-2">Estado de Desarrollo</h6>
+                <div class="d-flex justify-content-between align-items-center mb-2">
+                  <h5 class="mb-0">Estado de Desarrollo</h5>
+                  <ExportExcelButton
+                    class="ms-2"
+                    :file-name="'estado_desarrollo.xlsx'"
+                    table-id="tabla-estado-desarrollo"
+                  />
+                </div>
               
-                <table class="table table-sm table-hover align-middle border rounded shadow-sm bg-white">
+                <table id="tabla-estado-desarrollo" class="table table-sm table-hover align-middle border rounded shadow-sm bg-white">
                   <thead class="table-light border-bottom">
                     <tr>
-                      <th class="text-start text-uppercase text-secondary small fw-bold">Especie</th>
-                      <th class="text-start text-uppercase text-secondary small fw-bold">Estado de desarrollo</th>
-                      <th class="text-center text-uppercase text-secondary small fw-bold">Agroquímicos</th>
-                      <th class="text-center text-uppercase text-secondary small fw-bold">Fertilizantes</th>
-                      <th class="text-center text-uppercase text-secondary small fw-bold">Mano de Obra</th>
-                       <th class="text-center text-uppercase text-secondary small fw-bold">Servicios</th>
-                        <th class="text-center text-uppercase text-secondary small fw-bold">Insumos</th>
+                      <th class="text-start text-uppercase text-secondary small fw-bold small">Especie</th>
+                      <th class="text-start text-uppercase text-secondary small fw-bold small">Estado de desarrollo</th>
+                      <th class="text-center text-uppercase text-secondary small fw-bold small">Agroquímicos</th>
+                      <th class="text-center text-uppercase text-secondary small fw-bold small">Fertilizantes</th>
+                      <th class="text-center text-uppercase text-secondary small fw-bold small">Mano de Obra</th>
+                      <th class="text-center text-uppercase text-secondary small fw-bold small">Servicios</th>
+                      <th class="text-center text-uppercase text-secondary small fw-bold small">Insumos</th>
                       <!-- Puedes agregar más columnas aquí si lo deseas -->
                     </tr>
                   </thead>
                   <tbody>
                     <template v-for="(devStatesObj, fruitId) in agrochemicalByDevState" :key="fruitId">
                       <tr v-for="(amount, devStateId, idx) in devStatesObj" :key="fruitId + '-' + devStateId">
-                        <td v-if="idx === 0" :rowspan="Object.keys(devStatesObj).length" class="align-top">
+                        <td v-if="idx === 0" :rowspan="Object.keys(devStatesObj).length" class="align-top small">
                           {{ $props.fruitsMap?.[String(fruitId)] || 'Sin especie' }}
                         </td>
-                        <td>{{ devStates[devStateId]?.name || 'Sin estado' }}</td>
-                        <td class="text-center text-end text-success fw-bold small">
+                        <td class="small">{{ devStates[devStateId]?.name || 'Sin estado' }}</td>
+                        <td class="text-center text-end text-primary fw-bold small">
                           {{ Number(amount || 0).toLocaleString('es-CL', { maximumFractionDigits: 0 }) }}
                         </td>
                         <td class="text-center text-end text-primary fw-bold small">
@@ -150,7 +158,7 @@ onMounted(() => {
                         <!-- Puedes agregar más columnas aquí si lo deseas -->
                       </tr>
                       <!-- Subtotal por especie -->
-                      <tr class="table-secondary fw-bold" style="font-size:0.8em;">
+                      <tr class="table-secondary small" style="font-size:0.8em;">
                         <td colspan="2" class="text-end">Subtotal {{ $props.fruitsMap?.[String(fruitId)] || 'Sin especie' }}</td>
                         <td class="text-center text-end">
                           {{ Object.values(devStatesObj).reduce((sum, val) => sum + Number(val || 0), 0).toLocaleString('es-CL', { maximumFractionDigits: 0 }) }}
@@ -170,6 +178,26 @@ onMounted(() => {
                       </tr>
                     </template>
                   </tbody>
+                  <tfoot>
+                    <tr style="background-color: #555858; font-weight: bold;">
+                      <td colspan="2" class="fw-bold text-end small text-white">Total General</td>
+                      <td class="text-center text-end fw-bold small text-white">
+                        {{ Object.values(agrochemicalByDevState).reduce((sum, devStatesObj) => sum + Object.values(devStatesObj).reduce((s, v) => s + Number(v || 0), 0), 0).toLocaleString('es-CL', { maximumFractionDigits: 0 }) }}
+                      </td>
+                      <td class="text-center text-end fw-bold small text-white">
+                        {{ Object.values(fertilizerByDevState).reduce((sum, devStatesObj) => sum + Object.values(devStatesObj).reduce((s, v) => s + Number(v || 0), 0), 0).toLocaleString('es-CL', { maximumFractionDigits: 0 }) }}
+                      </td>
+                      <td class="text-center text-end fw-bold small text-white">
+                        {{ Object.values(manPowerByDevState).reduce((sum, devStatesObj) => sum + Object.values(devStatesObj).reduce((s, v) => s + Number(v || 0), 0), 0).toLocaleString('es-CL', { maximumFractionDigits: 0 }) }}
+                      </td>
+                      <td class="text-center text-end fw-bold small text-white">
+                        {{ Object.values(servicesByDevState).reduce((sum, devStatesObj) => sum + Object.values(devStatesObj).reduce((s, v) => s + Number(v || 0), 0), 0).toLocaleString('es-CL', { maximumFractionDigits: 0 }) }}
+                      </td>
+                      <td class="text-center text-end fw-bold small text-white">
+                        {{ Object.values(suppliesByDevState).reduce((sum, devStatesObj) => sum + Object.values(devStatesObj).reduce((s, v) => s + Number(v || 0), 0), 0).toLocaleString('es-CL', { maximumFractionDigits: 0 }) }}
+                      </td>
+                    </tr>
+                  </tfoot>
                 </table>
               </div>
             </div>
@@ -183,32 +211,38 @@ onMounted(() => {
           <div class="card">
             <div class="card-body pt-1 pb-2">
               <div class="d-flex justify-content-between align-items-center mb-1">
-                    <div class="card-body pt-2 pb-2">
-                <h6 class="mb-2">Gastos por Hectáreas</h6>
-                        
-                <table class="table table-sm table-hover align-middle border rounded shadow-sm bg-white">
+                <div class="card-body pt-2 pb-2">
+                  <div class="d-flex justify-content-between align-items-center mb-2">
+                    <h5 class="mb-0">Gastos por Hectáreas</h5>
+                    <ExportExcelButton
+                      class="ms-2"
+                      :file-name="'gastos_por_hectarea.xlsx'"
+                      table-id="tabla-gastos-hectarea"
+                    />
+                  </div>
+                  <table id="tabla-gastos-hectarea" class="table table-sm table-hover align-middle border rounded shadow-sm bg-white">
                   <thead class="table-light border-bottom">
                     <tr>
-                       <th class="text-start text-uppercase text-secondary small fw-bold">Especie</th>
-                      <th class="text-start text-uppercase text-secondary small fw-bold">Estado de desarrollo</th>
-                      <th class="text-center text-uppercase text-secondary small fw-bold">Agroquímicos</th>
-                      <th class="text-center text-uppercase text-secondary small fw-bold">Fertilizantes</th>
-                      <th class="text-center text-uppercase text-secondary small fw-bold">Mano de Obra</th>
-                      <th class="text-center text-uppercase text-secondary small fw-bold">Servicios</th>
-                      <th class="text-center text-uppercase text-secondary small fw-bold">Insumos</th>
-                      <th class="text-center text-uppercase text-secondary small fw-bold">Gral campo</th>
-                      <th class="text-center text-uppercase text-secondary small fw-bold">Administración</th>
-                      <th class="text-center text-uppercase text-secondary small fw-bold">Total</th>
+                      <th class="text-start text-uppercase text-secondary small fw-bold small">Especie</th>
+                      <th class="text-start text-uppercase text-secondary small fw-bold small">Estado de desarrollo</th>
+                      <th class="text-center text-uppercase text-secondary small fw-bold small">Agroquímicos</th>
+                      <th class="text-center text-uppercase text-secondary small fw-bold small">Fertilizantes</th>
+                      <th class="text-center text-uppercase text-secondary small fw-bold small">Mano de Obra</th>
+                      <th class="text-center text-uppercase text-secondary small fw-bold small">Servicios</th>
+                      <th class="text-center text-uppercase text-secondary small fw-bold small">Insumos</th>
+                      <th class="text-center text-uppercase text-secondary small fw-bold small">Gral campo</th>
+                      <th class="text-center text-uppercase text-secondary small fw-bold small">Administración</th>
+                      <th class="text-center text-uppercase text-secondary small fw-bold small">Total</th>
                     </tr>
                   </thead>
                   <tbody>
                     <template v-for="(devStatesObj, fruitId) in agrochemicalExpensePerHectare" :key="'hect-fruit-' + fruitId">
                       <tr v-for="(amount, devStateId, idx) in devStatesObj" :key="'hect-' + fruitId + '-' + devStateId" class="border-bottom">
-                        <td v-if="idx === 0" :rowspan="Object.keys(devStatesObj).length" class="align-top">
+                        <td v-if="idx === 0" :rowspan="Object.keys(devStatesObj).length" class="align-top small">
                           {{ $props.fruitsMap?.[String(fruitId)] || 'Sin especie' }}
                         </td>
-                        <td class="text-start fw-semibold">{{ devStates[devStateId]?.name || 'Sin estado' }}</td>
-                        <td class="text-center text-warning fw-bold small">{{ Number(amount || 0).toLocaleString('es-CL', { maximumFractionDigits: 0 }) }}</td>
+                        <td class="text-start fw-semibold small">{{ devStates[devStateId]?.name || 'Sin estado' }}</td>
+                        <td class="text-center text-small text-warning fw-bold small">{{ Number(amount || 0).toLocaleString('es-CL', { maximumFractionDigits: 0 }) }}</td>
                         <td class="text-center text-warning fw-bold small">{{ Number(fertilizerExpensePerHectare?.[fruitId]?.[devStateId] ?? 0).toLocaleString('es-CL', { maximumFractionDigits: 0 }) }}</td>
                         <td class="text-center text-warning fw-bold small">{{ Number(manPowerExpensePerHectare?.[String(fruitId)]?.[String(devStateId)] ?? 0).toLocaleString('es-CL', { maximumFractionDigits: 0 }) }}</td>
                         <td class="text-center text-warning fw-bold small">{{ Number(servicesExpensePerHectare?.[String(fruitId)]?.[String(devStateId)] ?? 0).toLocaleString('es-CL', { maximumFractionDigits: 0 }) }}</td>
@@ -223,7 +257,7 @@ onMounted(() => {
                             (totalAdministrationCalc / (totalSurface || 1)).toLocaleString('es-CL', { maximumFractionDigits: 0 })
                           }}
                         </td>
-                        <td class="text-center text-warning fw-bold small">
+                        <td class="text-center text-black fw-bold small">
                           {{
                             (
                               Number(amount || 0) +
@@ -236,8 +270,6 @@ onMounted(() => {
                             ).toLocaleString('es-CL', { maximumFractionDigits: 0 })
                           }}</td>
                       </tr>
-                     
-                      
                     </template>
                   </tbody>
                 </table>
@@ -255,14 +287,21 @@ onMounted(() => {
         <div class="col-xl-12">
           <div class="card">
             <div class="card-body pt-2 pb-2">
-              <h6 class="mb-2">Totales unificados por nivel 1 y nivel 2</h6>
+              <div class="d-flex justify-content-between align-items-center mb-2">
+                <h5 class="mb-0">Totales unificados por nivel 1 y nivel 2</h5>
+                <ExportExcelButton
+                  class="ms-2"
+                  :file-name="'totales_nivel1_nivel2.xlsx'"
+                  table-id="tabla-totales-nivel1-nivel2"
+                />
+              </div>
               <div class="table-responsive scrollbar">
-                <table class="table table-sm table-hover align-middle border rounded shadow-sm bg-white">
+                <table id="tabla-totales-nivel1-nivel2" class="table table-sm table-hover align-middle border rounded shadow-sm bg-white">
                   <thead class="table-light border-bottom">
                     <tr>
                       <th class="text-uppercase text-secondary small fw-bold small">Level 1</th>
                       <th class="text-uppercase text-secondary small fw-bold small">Level 2</th>
-                      <th class="text-uppercase text-secondary small fw-bold small">Monto Total</th>
+                      <th class="text-uppercase text-secondary small text-end fw-bold small">Monto Total</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -283,9 +322,9 @@ onMounted(() => {
                     </template>
                   </tbody>
                   <tfoot>
-                    <tr class="table-dark">
-                      <td colspan="2" class="fw-bold text-end small">Total General</td>
-                      <td class="fw-bold text-end small">
+                    <tr style="background-color: #555858; font-weight: bold;">
+                      <td colspan="2" class="fw-bold text-end small text-white">Total General</td>
+                      <td class="fw-bold text-end small text-white">
                         {{ groupAllTotalsByLevel1().reduce((grand, group) => grand + group.rows.reduce((sum, r) => sum + Number(r.total_amount), 0), 0).toLocaleString('es-CL', { maximumFractionDigits: 0 }) }}
                       </td>
                     </tr>
@@ -303,9 +342,16 @@ onMounted(() => {
         <div class="col-xl-12">
           <div class="card">
             <div class="card-body pt-2 pb-2">
-                <h6 class="mb-2">Totales Mensuales</h6>
+              <div class="d-flex justify-content-between align-items-center mb-2">
+                <h5 class="mb-0">Totales Mensuales</h5>
+                <ExportExcelButton
+                  class="ms-2"
+                  :file-name="'totales_mensuales.xlsx'"
+                  table-id="tabla-totales-mensuales"
+                />
+              </div>
               <div class="table-responsive scrollbar">
-                <table class="table table-sm table-hover align-middle border rounded shadow-sm bg-white">
+                <table id="tabla-totales-mensuales" class="table table-sm table-hover align-middle border rounded shadow-sm bg-white">
                   <thead class="table-light border-bottom">
                     <tr>
                       <th class="text-uppercase text-secondary small fw-bold"></th>
