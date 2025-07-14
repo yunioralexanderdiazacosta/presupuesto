@@ -190,7 +190,18 @@ const page = usePage();
 </template>
 <style src="@vueform/multiselect/themes/default.css"></style>
 <style>
+
+select,
+select.form-control {
+    height: 26px !important;
+    min-height: 26px !important;
+    font-size: 0.95rem;
+    padding-top: 2px !important;
+    padding-bottom: 2px !important;
+}
+
 .multiselect-blue {
+   
     --ms-bg: var(--kt-input-solid-bg) !important;
     --ms-border-color: var(--kt-input-solid-bg);
     --ms-py: 3px !important;

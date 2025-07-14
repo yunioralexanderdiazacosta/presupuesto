@@ -11,7 +11,7 @@ defineEmits(['store']);
 <template>
     <Modal :maxWidth="'xl'" :id="'createFieldModal'">
         <template #header>
-            <h1 class="mb-3">Agregar Generales Campo</h1>
+            <h2 class="mb-1">Agregar Generales Campo</h2>
         </template>
         <template #body>
             <FieldForm :form="form" />

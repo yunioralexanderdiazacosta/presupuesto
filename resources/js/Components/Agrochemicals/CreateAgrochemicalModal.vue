@@ -11,7 +11,7 @@ defineEmits(['store']);
 <template>
     <Modal :maxWidth="'xl'" :id="'createAgrochemicalModal'">
         <template #header>
-            <h3 class="mt-1">Agregar un agroquimico</h3>
+            <h3 class="mt-0 mb-2">Agregar un agroquimico</h3>
         </template>
         <template #body>
             <AgrochemicalForm :form="form" />

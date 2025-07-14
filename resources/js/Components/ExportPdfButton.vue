@@ -1,6 +1,6 @@
 <template>
   <button @click="exportPdf" class="btn btn-danger btn-sm d-inline-block px-2 py-1 ms-2 mb-1" style="font-size:0.75rem;">
-    <i class="fas fa-file-pdf fa-2x"></i>
+    Pdf
   </button>
 </template>
 
