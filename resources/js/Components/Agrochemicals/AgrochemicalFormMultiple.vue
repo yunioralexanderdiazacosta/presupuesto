@@ -63,7 +63,7 @@ const selectAllMonths = (index, months) => {
             </div>
             <InputError class="mt-2" :message="form.errors.subfamily_id" />
         </div>
-        <div class="col-sm-6">
+        <div class="col-sm-8">
             <label for="cc" class="col-form-label">CC</label>
             <div class="input-group mb-2">
                 <span class="input-group-text"
@@ -85,11 +85,12 @@ const selectAllMonths = (index, months) => {
         </div>
     </div>
     <template v-for="(product, index) in form.products">
-        <hr />
-        <div class="row">
-            <div class="col-md-4">
+        <hr class="custom-hr" />
+        <div class="row mt-0">
+            <div class="col-sm-3 pe-0">
+                <div class="fv-row">
                 <label class="col-form-label">Nombre del producto</label>
-                <div class="input-group mb-1">
+                <div class="input-group">
                     <span class="input-group-text"
                         ><i class="fas fa-flask"></i
                     ></span>
@@ -108,12 +109,14 @@ const selectAllMonths = (index, months) => {
                 </div>
                 <InputError class="mt-2" :message="form.errors.product_name" />
             </div>
-            <div class="col-lg-3">
-                <label class="col-form-label">Tipo de dosis</label><br />
+            </div>
+            <div class="col-sm-3 pe-0">
+                <div class="fv-row">
+                <label class="col-form-label">Tipo de dosis</label>
                 <div class="d-flex flex-wrap gap-1">
                     <template v-for="value in $page.props.doseTypes">
                         <div
-                            class="form-check form-check-solid form-check-inline mb-1 mt-1 mr-3"
+                            class="form-check form-check-solid form-check-inline mb-0 mt-0 mr-1"
                         >
                             <input
                                 class="form-check-input"
@@ -137,10 +140,12 @@ const selectAllMonths = (index, months) => {
                         form.errors["products." + index + ".dose_type_id"]
                     }}</small
                 >
+                </div>
             </div>
-            <div class="col-lg-3">
+            <div class="col-sm-3 pe-0">
+                <div class="fv-row">
                 <label class="col-form-label">Dosis</label>
-                <div class="input-group mb-1">
+                <div class="input-group">
                     <span class="input-group-text"
                         ><i class="fas fa-vial"></i
                     ></span>
@@ -161,8 +166,9 @@ const selectAllMonths = (index, months) => {
                     :message="form.errors['products.' + index + '.dose']"
                 />
             </div>
+            </div>
         </div>
-        <div class="row gy-0 mt-0">
+        <div class="row mt-0">
             <div class="col-sm-3">
                 <label for="unit" class="col-form-label"
                     >Unidad de la dosis</label
@@ -192,7 +198,7 @@ const selectAllMonths = (index, months) => {
             </div>
             <div class="col-sm-3">
                 <label class="col-form-label">Mojamiento</label>
-                <div class="input-group mb-1">
+                <div class="input-group mb-0">
                     <span class="input-group-text"
                         ><i class="fas fa-tint"></i
                     ></span>
@@ -210,7 +216,7 @@ const selectAllMonths = (index, months) => {
                     />
                 </div>
                 <InputError
-                    class="mt-2"
+                    class="mt-0"
                     :message="form.errors['products.' + index + '.mojamiento']"
                 />
             </div>
@@ -440,6 +446,12 @@ label {
     vertical-align: middle;
 }
 
+.custom-hr {
+    height: 1px;
+    background: #888;
+    border: none;
+    margin: 0.5rem 0;
+}
 /* Achicar el botón 'Seleccionar todos' */
 .btn.btn-outline-primary.btn-sm.ms-2 {
     padding: 0.1rem 0.35rem !important;

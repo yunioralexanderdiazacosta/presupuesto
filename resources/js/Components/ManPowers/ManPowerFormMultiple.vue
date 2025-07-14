@@ -1,113 +1,155 @@
 <script setup>
-    import { ref } from 'vue';
-    import { useForm } from '@inertiajs/vue3';
-    import Multiselect from '@vueform/multiselect';
-	import TextInput from '@/Components/TextInput.vue';
-	import InputError from '@/Components/InputError.vue';
-    import CalculateWorkDayModal from '@/Components/ManPowers/CalculateWorkDayModal.vue';
+import { ref } from "vue";
+import { useForm } from "@inertiajs/vue3";
+import Multiselect from "@vueform/multiselect";
+import TextInput from "@/Components/TextInput.vue";
+import InputError from "@/Components/InputError.vue";
+import CalculateWorkDayModal from "@/Components/ManPowers/CalculateWorkDayModal.vue";
 
-    const valid = ref(false);
+const valid = ref(false);
 
-	const props = defineProps({
-		form: Object
-	});
+const props = defineProps({
+    form: Object,
+});
 
-    const formWorkDay = useForm({
-        performance: '',
-        floors: '',
-        index: ''
+const formWorkDay = useForm({
+    performance: "",
+    floors: "",
+    index: "",
+});
+
+const addItem = () => {
+    props.form.products.push({
+        product_name: "",
+        price: "",
+        observations: "",
+        months: [],
     });
+};
 
-    const addItem = () => {
-        props.form.products.push({
-            product_name: '',
-            price: '',
-            observations: '',
-            months: []
-        });
-    }
+const removeItem = (index) => {
+    props.form.products.splice(index, 1);
+};
 
-    const removeItem = (index) => {
-        props.form.products.splice(index, 1);
-    }
-
-    const storeWorkDay = () => {
-        onValidated();
-        if(valid.value == true){
-            props.form.products[formWorkDay.index].workday = (formWorkDay.floors / formWorkDay.performance).toFixed(2).replace(/\.00$/, '');
-            $('#calculateWorkDay').modal('hide');
-            formWorkDay.reset();
-        }
-    }
-
-    const onCalculated = (index) => {
+const storeWorkDay = () => {
+    onValidated();
+    if (valid.value == true) {
+        props.form.products[formWorkDay.index].workday = (
+            formWorkDay.floors / formWorkDay.performance
+        )
+            .toFixed(2)
+            .replace(/\.00$/, "");
+        $("#calculateWorkDay").modal("hide");
         formWorkDay.reset();
-        formWorkDay.index = index;
-        $('#calculateWorkDay').modal('show');
     }
+};
 
-    const onValidated = () => {
-        formWorkDay.errors = {};
-        valid.value = true;
-        if(formWorkDay.performance == ""){
-            formWorkDay.errors.performance = 'Este campo es obligatorio';
-            valid.value = false;
-        } if(formWorkDay.floors == ""){
-            formWorkDay.errors.floors = 'Este campo es obligatorio';
-            valid.value = false;
-        }
+const onCalculated = (index) => {
+    formWorkDay.reset();
+    formWorkDay.index = index;
+    $("#calculateWorkDay").modal("show");
+};
+
+const onValidated = () => {
+    formWorkDay.errors = {};
+    valid.value = true;
+    if (formWorkDay.performance == "") {
+        formWorkDay.errors.performance = "Este campo es obligatorio";
+        valid.value = false;
     }
+    if (formWorkDay.floors == "") {
+        formWorkDay.errors.floors = "Este campo es obligatorio";
+        valid.value = false;
+    }
+};
+const selectAllMonths = (index, months) => {
+    const allMonths = months.map((m) => m.value);
+    const current = props.form.products[index].months || [];
+    if (
+        current.length === allMonths.length &&
+        allMonths.every((m) => current.includes(m))
+    ) {
+        // Si ya están todos seleccionados, deselecciona todos
+        props.form.products[index].months = [];
+    } else {
+        // Si no, selecciona todos
+        props.form.products[index].months = allMonths;
+    }
+};
 </script>
 <template>
     <div class="row">
         <div class="col-md-6">
             <div class="fv-row">
                 <label for="cc" class="col-form-label">CC</label>
-                <Multiselect
-                    mode="tags"
-                    :placeholder="'Seleccione CC'"
-                    v-model="form.cc"
-                    :close-on-select="false"
-                    :options="$page.props.costCenters"
-                    class="multiselect-blue form-control"
-                    :class="{'is-invalid': form.errors.cc}"
-                    :searchable="true"
-                    :hide-selected="false"
-                />
+                <div class="input-group">
+                    <span class="input-group-text"
+                        ><i class="fas fa-building"></i
+                    ></span>
+                    <Multiselect
+                        mode="tags"
+                        :placeholder="'Seleccione CC'"
+                        v-model="form.cc"
+                        :close-on-select="false"
+                        :options="$page.props.costCenters"
+                        class="multiselect-blue form-control"
+                        :class="{ 'is-invalid': form.errors.cc }"
+                        :searchable="true"
+                        :hide-selected="false"
+                    />
+                </div>
                 <InputError class="mt-2" :message="form.errors.cc" />
             </div>
         </div>
         <div class="col-md-6">
             <div class="fv-row mb-2">
                 <label for="families" class="col-form-label">Familia</label>
-                <Multiselect
-                    :placeholder="'Seleccione familia'"
-                    v-model="form.subfamily_id"
-                    :close-on-select="true"
-                    :options="$page.props.subfamilies"
-                    class="multiselect-blue form-control"
-                    :class="{'is-invalid': form.errors.subfamily_id}"
-                    :searchable="true"
-                    :hide-selected="false"
-                />
+                <div class="input-group">
+                    <span class="input-group-text"
+                        ><i class="fas fa-tags"></i
+                    ></span>
+                    <Multiselect
+                        :placeholder="'Seleccione familia'"
+                        v-model="form.subfamily_id"
+                        :close-on-select="true"
+                        :options="$page.props.subfamilies"
+                        class="multiselect-blue form-control"
+                        :class="{ 'is-invalid': form.errors.subfamily_id }"
+                        :searchable="true"
+                        :hide-selected="false"
+                    />
+                </div>
                 <InputError class="mt-2" :message="form.errors.subfamily_id" />
             </div>
         </div>
     </div>
-    <template v-for="(product,index) in form.products" :key="index">
-        <hr>
+    <template v-for="(product, index) in form.products" :key="index">
+        <hr />
         <div class="row">
             <div class="col-md-4">
                 <div class="fv-row">
                     <label class="col-form-label">Nombre del producto</label>
-                    <TextInput
-                        id="product_name"
-                        v-model="product.product_name"
-                        class="form-control form-control-solid"
-                        type="text"
-                         :class="{'is-invalid': form.errors['products.'+index+'.product_name']}"
+                    <div class="input-group">
+                        <span class="input-group-text"
+                            ><i class="fas fa-flask"></i
+                        ></span>
+                        <TextInput
+                            id="product_name"
+                            v-model="product.product_name"
+                            class="form-control form-control-solid"
+                            type="text"
+                            :class="{
+                                'is-invalid':
+                                    form.errors[
+                                        'products.' + index + '.product_name'
+                                    ],
+                            }"
+                        />
+                    </div>
+                    <InputError
+                        class="mt-2"
+                        :message="form.errors.product_name"
                     />
-                    <InputError class="mt-2" :message="form.errors.product_name" />
                 </div>
             </div>
 
@@ -115,24 +157,64 @@
                 <div class="fv-row">
                     <label class="col-form-label">Jornadas/hectarea</label>
                     <div class="input-group">
-                        <input type="number" id="workday" v-model="product.workday" class="form-control form-control-solid" aria-describedby="jornadas" step="0.00" :class="{'is-invalid': form.errors['products.'+index+'.workday']}">
-                        <button type="button" @click="onCalculated(index)" id="jornadas" class="btn btn-light text-primary"><i class="fas fa-question-circle" style="font-size: 20px"></i></button>
+                        <span class="input-group-text"
+                            ><i class="fas fa-user-clock"></i
+                        ></span>
+                        <input
+                            type="number"
+                            id="workday"
+                            v-model="product.workday"
+                            class="form-control form-control-solid"
+                            aria-describedby="jornadas"
+                            step="0.00"
+                            :class="{
+                                'is-invalid':
+                                    form.errors[
+                                        'products.' + index + '.workday'
+                                    ],
+                            }"
+                        />
+                        <button
+                            type="button"
+                            @click="onCalculated(index)"
+                            id="jornadas"
+                            class="btn btn-light text-primary"
+                        >
+                            <i
+                                class="fas fa-question-circle"
+                                style="font-size: 20px"
+                            ></i>
+                        </button>
                     </div>
-                    <InputError class="mt-2" :message="form.errors['products.'+index+'.workday']" />
+                    <InputError
+                        class="mt-2"
+                        :message="form.errors['products.' + index + '.workday']"
+                    />
                 </div>
             </div>
 
             <div class="col-lg-4">
                 <div class="fv-row">
                     <label class="col-form-label">Precio</label>
-                    <TextInput
-                        id="price"
-                        v-model="product.price"
-                        class="form-control form-control-solid"
-                        type="number"
-                        :class="{'is-invalid': form.errors['products.'+index+'.price']}"
+                    <div class="input-group">
+                        <span class="input-group-text"
+                            ><i class="fas fa-dollar-sign"></i
+                        ></span>
+                        <TextInput
+                            id="price"
+                            v-model="product.price"
+                            class="form-control form-control-solid"
+                            type="number"
+                            :class="{
+                                'is-invalid':
+                                    form.errors['products.' + index + '.price'],
+                            }"
+                        />
+                    </div>
+                    <InputError
+                        class="mt-2"
+                        :message="form.errors['products.' + index + '.price']"
                     />
-                    <InputError class="mt-2" :message="form.errors['products.'+index+'.price']" />
                 </div>
             </div>
         </div>
@@ -140,31 +222,82 @@
         <div class="row">
             <div class="col-lg-7">
                 <div class="fv-row">
-                    <label for="months" class="col-form-label">Meses</label><br>
-                    <template v-for="value in $page.props.months" :key="value.id">
-                        <div style="margin-right: 0.5rem;" class="form-check form-check-solid form-check-inline mb-1">
-                            <input class="form-check-input" type="checkbox" v-model="product.months" :id="'kt_month_'+value.id" :value="value.value">
-                            <label class="form-check-label ps-2" :for="'kt_month_'+value.id">{{value.label}}</label>
-                        </div>
-                    </template>
-                    <small class="text-danger" v-if="form.errors['products.'+index+'.months']"><br>{{form.errors['products.'+index+'.months']}}</small> 
+                    <div class="d-flex align-items-center mb-1">
+                        <label for="months" class="col-form-label mb-0 me-2">Meses</label>
+                        <button
+                            type="button"
+                            class="btn btn-outline-primary btn-sm"
+                            @click="selectAllMonths(index, $page.props.months)"
+                        >
+                            {{
+                                product.months &&
+                                product.months.length ===
+                                    $page.props.months.length &&
+                                $page.props.months.every((m) =>
+                                    product.months.includes(m.value)
+                                )
+                                    ? "Deseleccionar todos"
+                                    : "Seleccionar todos"
+                            }}
+                        </button>
+                    </div>
+                    <div class="d-flex flex-wrap gap-1">
+                        <template v-for="value in $page.props.months" :key="value.id">
+                            <div class="form-check form-check-solid form-check-inline mb-1">
+                                <input
+                                    class="form-check-input"
+                                    type="checkbox"
+                                    v-model="product.months"
+                                    :id="'kt_month_' + value.id"
+                                    :value="value.value"
+                                />
+                                <label
+                                    class="form-check-label ps-1"
+                                    :for="'kt_month_' + value.id"
+                                >{{ value.label }}</label>
+                            </div>
+                        </template>
+                    </div>
+                    <small
+                        class="text-danger"
+                        v-if="form.errors['products.' + index + '.months']"
+                        ><br />{{
+                            form.errors["products." + index + ".months"]
+                        }}</small
+                    >
                 </div>
             </div>
-            <div class="col-lg-5">
-                <div class="fv-row">
-                    <label for="observations" class="col-form-label">Observaciones</label>
-                    <textarea v-model="product.observations" rows="3" class="form-control form-control-lg form-control-solid mb-3 mb-lg-0" :class="{'is-invalid': form.errors.observations }" ></textarea>
-                    <InputError class="mt-2" :message="form.errors.observations" />
-                </div>
+           <div class="col-lg-5 align-self-start ps-0">
+                <label for="observations" class="col-form-label">Observaciones</label>
+                    <textarea
+                        v-model="product.observations"
+                        rows="10"
+                         class="form-control mb-3 mb-lg-0"
+                        :class="{ 'is-invalid': form.errors.observations }"
+                        style="resize: vertical; min-height: 80px;"
+                    ></textarea>
+            
+                <InputError class="mt-2" :message="form.errors.observations" />
             </div>
         </div>
+     
 
         <div class="row">
             <div class="col-lg-12 text-end">
-                <button type="button" @click="removeItem(index)" class="btn btn-sm btn-danger me-2" v-if="form.products.length > 1">
+                <button
+                    type="button"
+                    @click="removeItem(index)"
+                    class="btn btn-sm btn-danger me-2"
+                    v-if="form.products.length > 1"
+                >
                     <i class="fa fa-minus"></i>
                 </button>
-                <button type="button" @click="addItem()" v-if="form.products.length == (index + 1)" class="btn btn-sm btn-primary">
+                <button
+                    type="button"
+                    @click="addItem()"
+                    v-if="form.products.length == index + 1"
+                    class="btn btn-sm btn-primary"
+                >
                     <i class="fa fa-plus"></i>
                 </button>
             </div>
@@ -172,35 +305,104 @@
         <CalculateWorkDayModal @store="storeWorkDay" :form="formWorkDay" />
     </template>
 </template>
-<style src="@vueform/multiselect/themes/default.css"></style>
+<!-- <style src="@vueform/multiselect/themes/default.css"></style>-->
 <style>
-.multiselect,
-.multiselect__input,
-.multiselect__single {
-  min-height: 32px !important;
-  height: 32px !important;
-  padding-top: 0.375rem !important;
-  padding-bottom: 0.375rem !important;
-  font-size: 1rem;
+select,
+select.form-control {
+    height: 26px !important;
+    min-height: 26px !important;
+    font-size: 0.95rem;
+    padding-top: 2px !important;
+    padding-bottom: 2px !important;
 }
 
 /* Agrandar la casilla de verificación (checkbox) */
 .form-check-input[type="checkbox"] {
-  width: 1.1em;
-  height: 1.1em;
+    width: 0.8em !important;
+    height: 0.8em !important;
+    min-width: 0.95em !important;
+    min-height: 0.95em !important;
+    max-width: 0.95em !important;
+    max-height: 0.95em !important;
+    vertical-align: middle;
 }
 
-.multiselect-blue {
-    --ms-bg: var(--kt-input-solid-bg) !important;
-    --ms-border-color: var(--kt-input-solid-bg);
-    --ms-py: 3px !important;
-    --ms-tag-bg: #2c7be5;
-    --ms-tag-color: var(--kt-primary);
-    --ms-option-bg-selected: var(--kt-primary);
-    --ms-option-bg-selected-pointed: var(--kt-primary);
+/* Ajustar el alto de todos los vueform/multiselect (no solo los blue) */
+
+/* Forzar el alto de los vueform/multiselect en este archivo */
+.multiselect,
+.multiselect.form-control,
+.multiselect__tags {
+    min-height: 26px !important;
+    height: 26px !important;
+    max-height: 26px !important;
+    font-size: 0.95rem !important;
+    padding-top: 2px !important;
+    padding-bottom: 2px !important;
+    line-height: 22px !important;
 }
 
-.multiselect-tags-search, .multiselect-search{
-    background: var(--kt-input-solid-bg) !important;
+/* Forzar el alto de los inputs (TextInput y nativos), excepto textarea */
+.form-control:not(textarea),
+.form-control-lg:not(textarea),
+.form-control-sm:not(textarea) {
+    min-height: 26px !important;
+    height: 26px !important;
+    max-height: 26px !important;
+    font-size: 0.95rem !important;
+    padding-top: 2px !important;
+    padding-bottom: 2px !important;
+    line-height: 22px !important;
+}
+
+/* Ajustar el alto y alineación de los contenedores de iconos, inputs y selects */
+.input-group {
+    min-height: 26px !important;
+    height: 26px !important;
+    align-items: center !important;
+}
+
+.input-group-text {
+    min-height: 26px !important;
+    height: 26px !important;
+    max-height: 26px !important;
+    padding-top: 2px !important;
+    padding-bottom: 2px !important;
+    font-size: 1rem !important;
+    display: flex;
+    align-items: center;
+}
+
+.col-form-label,
+label {
+    font-size: 0.8rem !important;
+}
+
+/* Reducir el tamaño del texto de los labels de los meses (checkboxes) */
+.form-check-label.ps-1,
+.form-check-label.ps-2,
+.form-check-label {
+    font-size: 0.8rem !important;
+    line-height: 1.1 !important;
+    padding-left: 0.25rem !important;
+    margin-bottom: 0 !important;
+    display: inline-block;
+    vertical-align: middle;
+}
+
+.custom-hr {
+    height: 1px;
+    background: #888;
+    border: none;
+    margin: 0.5rem 0;
+}
+/* Achicar el botón 'Seleccionar todos' */
+.btn.btn-outline-primary.btn-sm.ms-2 {
+    padding: 0.1rem 0.35rem !important;
+    font-size: 0.75rem !important;
+    line-height: 1 !important;
+    height: 20px !important;
+    min-height: 20px !important;
+    border-radius: 0.15rem !important;
 }
 </style>

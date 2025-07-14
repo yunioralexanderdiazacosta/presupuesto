@@ -86,7 +86,7 @@ const selectAllMonths = (index, months) => {
     </div>
 
     <template v-for="(product, index) in form.products">
-        <hr />
+        <hr  class="custom-hr" />
         <div class="row">
             <div class="col-lg-3 pe-0">
                 <div class="fv-row">
@@ -391,6 +391,13 @@ label {
     margin-bottom: 0 !important;
     display: inline-block;
     vertical-align: middle;
+}
+
+.custom-hr {
+    height: 1px;
+    background: #888;
+    border: none;
+    margin: 0.5rem 0;
 }
 
 /* Achicar el botón 'Seleccionar todos' */
