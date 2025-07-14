@@ -16,6 +16,7 @@ use App\Models\ManPower;
 use App\Models\Supply;
 use App\Models\Service;
 use App\Models\DoseType;
+use App\Models\Product2;
 use Inertia\Inertia;
 
 use App\Http\Controllers\Traits\BudgetTotalsTrait;
@@ -153,7 +154,7 @@ class AgrochemicalsController extends Controller
             ];
         });
 
-        $products = $agrochemicals->pluck('product_name')->unique()->values();
+        $products = Product2::select('name', 'level3')->get()->toArray();
 
 
         $data = Agrochemical::from('agrochemicals as a')

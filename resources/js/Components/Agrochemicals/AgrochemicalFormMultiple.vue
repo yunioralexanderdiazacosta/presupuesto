@@ -18,16 +18,22 @@ const props = defineProps({
 const { appContext } = getCurrentInstance();
 const page = appContext.config.globalProperties.$page || { props: {} };
 
-// Normalizar productsList para que siempre sea [{id, name}]
+
+// Normalizar productsList para que siempre sea [{name, level3}]
 const productsList = computed(() => {
     const raw = page.props.products || [];
-    // Si ya es array de objetos con name, devolver tal cual
     if (raw.length && typeof raw[0] === 'object' && raw[0].name) return raw;
-    // Si es array de strings, convertir a objetos
-    if (raw.length && typeof raw[0] === 'string') {
-        return raw.map((name, idx) => ({ id: idx, name }));
-    }
     return [];
+});
+
+// Filtrar productos según la familia seleccionada (level3)
+const filteredProductsByFamily = computed(() => {
+    if (!props.form.subfamily_id) return [];
+    // Buscar el label de la familia seleccionada
+    const selectedFamily = page.props.subfamilies.find(f => f.value === props.form.subfamily_id);
+    if (!selectedFamily) return [];
+    // Filtrar productos cuyo level3 coincida con el label de la familia
+    return productsList.value.filter(p => p.level3 === selectedFamily.label);
 });
 
 // Controlar sugerencias por producto
@@ -169,7 +175,7 @@ const selectAllMonths = (index, months) => {
                         placeholder="Escriba o seleccione un producto..."
                     />
                     <datalist :id="'products-list-' + index">
-                        <option v-for="option in productsList" :key="option.id" :value="option.name">{{ option.name }}</option>
+                        <option v-for="option in filteredProductsByFamily" :key="option.name" :value="option.name">{{ option.name }}</option>
                     </datalist>
                 </div>
                 <InputError class="mt-2" :message="form.errors.product_name" />
@@ -252,7 +258,7 @@ const selectAllMonths = (index, months) => {
                             'is-invalid':
                                 form.errors['products.' + index + '.unit_id'],
                         }"
-                        :searchable="true"
+                        :searchable="false"
                         :hide-selected="false"
                     />
                 </div>
@@ -328,7 +334,7 @@ const selectAllMonths = (index, months) => {
                                     'products.' + index + '.unit_id_price'
                                 ],
                         }"
-                        :searchable="true"
+                        :searchable="false"
                         :hide-selected="false"
                     />
                 </div>
@@ -441,10 +447,10 @@ select.form-control {
 .form-check-input[type="checkbox"] {
     width: 0.8em !important;
     height: 0.8em !important;
-    min-width: 0.95em !important;
-    min-height: 0.95em !important;
-    max-width: 0.95em !important;
-    max-height: 0.95em !important;
+    min-width: 0.85em !important;
+    min-height: 0.85em !important;
+    max-width: 0.85em !important;
+    max-height: 0.85em !important;
     vertical-align: middle;
 }
 
@@ -457,7 +463,8 @@ select.form-control {
     min-height: 26px !important;
     height: 26px !important;
     max-height: 26px !important;
-    font-size: 0.95rem !important;
+    font-size: 0.8
+    rem !important;
     padding-top: 2px !important;
     padding-bottom: 2px !important;
     line-height: 22px !important;
@@ -505,7 +512,7 @@ label {
 .form-check-label {
     font-size: 0.8rem !important;
     line-height: 1.1 !important;
-    padding-left: 0.25rem !important;
+    padding-left: 0.01rem !important;
     margin-bottom: 0 !important;
     display: inline-block;
     vertical-align: middle;
@@ -533,4 +540,21 @@ label {
     top: 100%;
     left: 0;
 }
+
+.multiselect .multiselect-options,
+.multiselect .multiselect-option,
+.multiselect__option {
+    font-size: 0.7rem !important;
+}
+
+::placeholder {
+    font-size: 0.7rem !important;
+    color: #888 !important; /* Opcional: cambia el color si lo deseas */
+    opacity: 1; /* Para asegurar que el color se aplique en todos los navegadores */
+}
+
+.input-group .form-control {
+    border-radius: 0.25rem !important;
+}
+
 </style>

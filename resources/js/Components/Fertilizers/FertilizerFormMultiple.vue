@@ -1,4 +1,12 @@
 <script setup>
+
+import { onMounted } from "vue";
+onMounted(() => {
+    console.log('page.props.products:', page.props.products);
+    console.log('productsList.value:', productsList.value);
+});
+
+import { ref, computed, getCurrentInstance } from "vue";
 import Multiselect from "@vueform/multiselect";
 import TextInput from "@/Components/TextInput.vue";
 import InputError from "@/Components/InputError.vue";
@@ -6,6 +14,62 @@ import InputError from "@/Components/InputError.vue";
 const props = defineProps({
     form: Object,
 });
+
+// Preparar acceso a productos para sugerencias (cuando estén disponibles)
+const { appContext } = getCurrentInstance();
+const page = appContext.config.globalProperties.$page || { props: {} };
+
+// Normalizar productsList para que siempre sea [{id, name}]
+const productsList = computed(() => {
+    const raw = page.props.products || [];
+    // Si ya es array de objetos con name, devolver tal cual
+    if (raw.length && typeof raw[0] === 'object' && raw[0].name) return raw;
+    // Si es array de strings, convertir a objetos
+    if (raw.length && typeof raw[0] === 'string') {
+        return raw.map((name, idx) => ({ id: idx, name }));
+    }
+    return [];
+});
+
+// Controlar sugerencias por producto
+const productSearch = ref([]); // Un array de v-models para cada producto
+const showSuggestions = ref([]); // Un array de flags para mostrar sugerencias
+
+// Inicializar arrays según la cantidad de productos
+const ensureProductSearchArrays = () => {
+    while (productSearch.value.length < props.form.products.length) {
+        productSearch.value.push("");
+        showSuggestions.value.push(false);
+    }
+    while (productSearch.value.length > props.form.products.length) {
+        productSearch.value.pop();
+        showSuggestions.value.pop();
+    }
+};
+
+// Llamar en el template antes de renderizar productos
+ensureProductSearchArrays();
+
+const filteredProducts = (search) => {
+    if (!search) return [];
+    return productsList.value.filter(p =>
+        p.name && p.name.toLowerCase().includes(search.toLowerCase())
+    ).slice(0, 8); // máximo 8 sugerencias
+};
+
+const selectSuggestion = (index, product) => {
+    props.form.products[index].product_name = product.name;
+    productSearch.value[index] = product.name;
+    showSuggestions.value[index] = false;
+};
+
+const onInput = (index) => {
+    showSuggestions.value[index] = true;
+};
+
+const onBlur = (index) => {
+    setTimeout(() => (showSuggestions.value[index] = false), 150);
+};
 
 const addItem = () => {
     props.form.products.push({
@@ -88,26 +152,28 @@ const selectAllMonths = (index, months) => {
     <template v-for="(product, index) in form.products">
         <hr  class="custom-hr" />
         <div class="row">
-            <div class="col-lg-3 pe-0">
+            <div class="col-lg-4 pe-0">
                 <div class="fv-row">
                     <label class="col-form-label">Nombre del producto</label>
                     <div class="input-group mb-1">
                         <span class="input-group-text"
                             ><i class="fas fa-flask"></i
                         ></span>
-                        <TextInput
-                            id="product_name"
-                            v-model="product.product_name"
-                            class="form-control form-control-solid"
-                            type="text"
-                            :class="{
-                                'is-invalid':
-                                    form.errors[
-                                        'products.' + index + '.product_name'
-                                    ],
-                            }"
-                        />
-                    </div>
+                         <input
+                        :id="'product_name_' + index"
+                        v-model="product.product_name"
+                        class="form-control"
+                        :list="'products-list-' + index"
+                        :class="{
+                            'is-invalid':
+                                form.errors['products.' + index + '.product_name'],
+                        }"
+                        placeholder="Escriba o seleccione un producto..."
+                    />
+                    <datalist :id="'products-list-' + index">
+                        <option v-for="option in productsList" :key="option.id" :value="option.name">{{ option.name }}</option>
+                    </datalist>
+                </div>
                     <InputError
                         class="mt-2"
                         :message="
@@ -132,7 +198,7 @@ const selectAllMonths = (index, months) => {
                             'is-invalid':
                                 form.errors['products.' + index + '.unit_id'],
                         }"
-                        :searchable="true"
+                        :searchable="false"
                         :hide-selected="false"
                     />
                 </div>
@@ -142,7 +208,7 @@ const selectAllMonths = (index, months) => {
                 />
             </div>
 
-            <div class="col-lg-3 pe-0">
+            <div class="col-lg-2 pe-0">
                 <label class="col-form-label">Dosis</label>
                 <div class="input-group mb-1">
                     <span class="input-group-text"
@@ -208,7 +274,7 @@ const selectAllMonths = (index, months) => {
                             :class="{
                                 'is-invalid': form.errors['products.' + index + '.unit_id_price'],
                             }"
-                            :searchable="true"
+                            :searchable="false"
                             :hide-selected="false"
                         />
                     </div>
@@ -339,10 +405,16 @@ select.form-control {
     min-height: 26px !important;
     height: 26px !important;
     max-height: 26px !important;
-    font-size: 0.95rem !important;
+    font-size: 0.8rem !important;
     padding-top: 2px !important;
     padding-bottom: 2px !important;
     line-height: 22px !important;
+}
+
+.multiselect .multiselect-options,
+.multiselect .multiselect-option,
+.multiselect__option {
+    font-size: 0.8rem !important;
 }
 
 /* Forzar el alto de los inputs (TextInput y nativos), excepto textarea */
@@ -352,7 +424,7 @@ select.form-control {
     min-height: 26px !important;
     height: 26px !important;
     max-height: 26px !important;
-    font-size: 0.95rem !important;
+    font-size: 0.8rem !important;
     padding-top: 2px !important;
     padding-bottom: 2px !important;
     line-height: 22px !important;
@@ -387,7 +459,7 @@ label {
 .form-check-label {
     font-size: 0.8rem !important;
     line-height: 1.1 !important;
-    padding-left: 0.25rem !important;
+    padding-left: 0.01rem !important;
     margin-bottom: 0 !important;
     display: inline-block;
     vertical-align: middle;
@@ -408,5 +480,16 @@ label {
     height: 20px !important;
     min-height: 20px !important;
     border-radius: 0.15rem !important;
+}
+
+::placeholder {
+    font-size: 0.7rem !important;
+    color: #888 !important; /* Opcional: cambia el color si lo deseas */
+    opacity: 1; /* Para asegurar que el color se aplique en todos los navegadores */
+}
+
+
+.input-group .form-control {
+    border-radius: 0.25rem !important;
 }
 </style>

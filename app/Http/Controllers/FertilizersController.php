@@ -191,6 +191,8 @@ class FertilizersController extends Controller
             ];
         });
 
+        $products = $fertilizers->pluck('product_name')->unique()->values();
+
         $data = Fertilizer::from('fertilizers as f')
             ->join('fertilizer_items as fi', 'f.id', 'fi.fertilizer_id')
             ->join('cost_centers as cc', 'fi.cost_center_id', 'cc.id')
@@ -276,7 +278,7 @@ class FertilizersController extends Controller
         $totalData1 = number_format($this->totalData1, 0, ',', '.');
         $totalData2 = number_format($totalFertilizer, 0, ',', '.');
 
-        return Inertia::render('Fertilizers', compact('units', 'subfamilies', 'months', 'costCenters', 'fertilizers', 'season', 'data', 'data2', 'data3', 'totalData1', 'totalData2', 'percentage', 'varieties', 'fruits'));
+        return Inertia::render('Fertilizers', compact('units', 'subfamilies', 'months', 'costCenters', 'fertilizers', 'season', 'data', 'data2', 'data3', 'totalData1', 'totalData2', 'percentage', 'varieties', 'fruits','products'));
     }
 
     private function getSubfamilies($costCenterId, $surface = null, $bills = false)
