@@ -11,7 +11,7 @@ defineEmits(['store']);
 <template>
     <Modal :maxWidth="'xl'" :id="'createManPowerModal'">
         <template #header>
-            <h1 class="mt-1">Agregar mano de obra</h1>
+            <h3 class="mt-1">Agregar mano de obra</h3>
         </template>
         <template #body>
             <ManPowerForm :form="form" />

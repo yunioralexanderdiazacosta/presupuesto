@@ -11,7 +11,7 @@ defineEmits(['store']);
 <template>
     <Modal :maxWidth="'xl'" :id="'createFertilizerModal'">
         <template #header>
-            <h3  class="mt-0 mb-2">Agregar fertilizante</h3>
+            <h3  class="mt-0 mb-1">Agregar fertilizante</h3>
         </template>
         <template #body>
             <FertilizerForm :form="form" />

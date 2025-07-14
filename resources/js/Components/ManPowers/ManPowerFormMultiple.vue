@@ -78,30 +78,8 @@ const selectAllMonths = (index, months) => {
 };
 </script>
 <template>
-    <div class="row">
-        <div class="col-md-6">
-            <div class="fv-row">
-                <label for="cc" class="col-form-label">CC</label>
-                <div class="input-group">
-                    <span class="input-group-text"
-                        ><i class="fas fa-building"></i
-                    ></span>
-                    <Multiselect
-                        mode="tags"
-                        :placeholder="'Seleccione CC'"
-                        v-model="form.cc"
-                        :close-on-select="false"
-                        :options="$page.props.costCenters"
-                        class="multiselect-blue form-control"
-                        :class="{ 'is-invalid': form.errors.cc }"
-                        :searchable="true"
-                        :hide-selected="false"
-                    />
-                </div>
-                <InputError class="mt-2" :message="form.errors.cc" />
-            </div>
-        </div>
-        <div class="col-md-6">
+    <div class="row mb-3">
+        <div class="col-md-4">
             <div class="fv-row mb-2">
                 <label for="families" class="col-form-label">Familia</label>
                 <div class="input-group">
@@ -122,10 +100,32 @@ const selectAllMonths = (index, months) => {
                 <InputError class="mt-2" :message="form.errors.subfamily_id" />
             </div>
         </div>
+         <div class="col-md-8">
+            <div class="fv-row">
+                <label for="cc" class="col-form-label">CC</label>
+                <div class="input-group">
+                    <span class="input-group-text"
+                        ><i class="fas fa-sitemap"></i
+                    ></span>
+                    <Multiselect
+                        mode="tags"
+                        :placeholder="'Seleccione CC'"
+                        v-model="form.cc"
+                        :close-on-select="false"
+                        :options="$page.props.costCenters"
+                        class="multiselect-blue form-control"
+                        :class="{ 'is-invalid': form.errors.cc }"
+                        :searchable="true"
+                        :hide-selected="false"
+                    />
+                </div>
+                <InputError class="mt-2" :message="form.errors.cc" />
+            </div>
+        </div>
     </div>
     <template v-for="(product, index) in form.products" :key="index">
-        <hr />
-        <div class="row">
+        <hr class="custom-hr" />
+        <div class="row mt-3 mb-3">
             <div class="col-md-4">
                 <div class="fv-row">
                     <label class="col-form-label">Nombre del producto</label>
@@ -226,7 +226,7 @@ const selectAllMonths = (index, months) => {
                         <label for="months" class="col-form-label mb-0 me-2">Meses</label>
                         <button
                             type="button"
-                            class="btn btn-outline-primary btn-sm"
+                            class="btn btn-outline-primary btn-sm text-small"
                             @click="selectAllMonths(index, $page.props.months)"
                         >
                             {{
@@ -274,7 +274,7 @@ const selectAllMonths = (index, months) => {
                         rows="10"
                          class="form-control mb-3 mb-lg-0"
                         :class="{ 'is-invalid': form.errors.observations }"
-                        style="resize: vertical; min-height: 80px;"
+                        style="resize: vertical; min-height: 60px;"
                     ></textarea>
             
                 <InputError class="mt-2" :message="form.errors.observations" />
