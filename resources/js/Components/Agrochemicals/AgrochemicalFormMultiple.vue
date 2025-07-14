@@ -161,28 +161,16 @@ const selectAllMonths = (index, months) => {
                         :id="'product_name_' + index"
                         v-model="product.product_name"
                         class="form-control"
-                        type="text"
+                        :list="'products-list-' + index"
                         :class="{
                             'is-invalid':
                                 form.errors['products.' + index + '.product_name'],
                         }"
-                        autocomplete="off"
-                        @input="onInput(index)"
-                        @focus="onInput(index)"
-                        @blur="onBlur(index)"
                         placeholder="Escriba o seleccione un producto..."
                     />
-                    <!-- Sugerencias -->
-                    <ul v-if="showSuggestions[index] && filteredProducts(product.product_name).length" class="autocomplete-list bg-white border rounded shadow-sm position-absolute w-100 z-3" style="max-height: 180px; overflow-y: auto;">
-                        <li
-                            v-for="suggestion in filteredProducts(product.product_name)"
-                            :key="suggestion.id"
-                            class="px-2 py-1 cursor-pointer hover-bg-primary"
-                            @mousedown.prevent="selectSuggestion(index, suggestion)"
-                        >
-                            {{ suggestion.name }}
-                        </li>
-                    </ul>
+                    <datalist :id="'products-list-' + index">
+                        <option v-for="option in productsList" :key="option.id" :value="option.name">{{ option.name }}</option>
+                    </datalist>
                 </div>
                 <InputError class="mt-2" :message="form.errors.product_name" />
             </div>
