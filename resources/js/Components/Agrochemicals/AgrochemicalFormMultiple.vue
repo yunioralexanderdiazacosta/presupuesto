@@ -1,4 +1,11 @@
 <script setup>
+import { onMounted } from "vue";
+onMounted(() => {
+    console.log('page.props.products:', page.props.products);
+    console.log('productsList.value:', productsList.value);
+});
+
+import { ref, computed, getCurrentInstance } from "vue";
 import Multiselect from "@vueform/multiselect";
 import TextInput from "@/Components/TextInput.vue";
 import InputError from "@/Components/InputError.vue";
@@ -6,6 +13,62 @@ import InputError from "@/Components/InputError.vue";
 const props = defineProps({
     form: Object,
 });
+
+// Preparar acceso a productos para sugerencias (cuando estén disponibles)
+const { appContext } = getCurrentInstance();
+const page = appContext.config.globalProperties.$page || { props: {} };
+
+// Normalizar productsList para que siempre sea [{id, name}]
+const productsList = computed(() => {
+    const raw = page.props.products || [];
+    // Si ya es array de objetos con name, devolver tal cual
+    if (raw.length && typeof raw[0] === 'object' && raw[0].name) return raw;
+    // Si es array de strings, convertir a objetos
+    if (raw.length && typeof raw[0] === 'string') {
+        return raw.map((name, idx) => ({ id: idx, name }));
+    }
+    return [];
+});
+
+// Controlar sugerencias por producto
+const productSearch = ref([]); // Un array de v-models para cada producto
+const showSuggestions = ref([]); // Un array de flags para mostrar sugerencias
+
+// Inicializar arrays según la cantidad de productos
+const ensureProductSearchArrays = () => {
+    while (productSearch.value.length < props.form.products.length) {
+        productSearch.value.push("");
+        showSuggestions.value.push(false);
+    }
+    while (productSearch.value.length > props.form.products.length) {
+        productSearch.value.pop();
+        showSuggestions.value.pop();
+    }
+};
+
+// Llamar en el template antes de renderizar productos
+ensureProductSearchArrays();
+
+const filteredProducts = (search) => {
+    if (!search) return [];
+    return productsList.value.filter(p =>
+        p.name && p.name.toLowerCase().includes(search.toLowerCase())
+    ).slice(0, 8); // máximo 8 sugerencias
+};
+
+const selectSuggestion = (index, product) => {
+    props.form.products[index].product_name = product.name;
+    productSearch.value[index] = product.name;
+    showSuggestions.value[index] = false;
+};
+
+const onInput = (index) => {
+    showSuggestions.value[index] = true;
+};
+
+const onBlur = (index) => {
+    setTimeout(() => (showSuggestions.value[index] = false), 150);
+};
 
 const addItem = () => {
     props.form.products.push({
@@ -87,25 +150,39 @@ const selectAllMonths = (index, months) => {
     <template v-for="(product, index) in form.products">
         <hr class="custom-hr" />
         <div class="row mt-0">
-            <div class="col-sm-3 pe-0">
+            <div class="col-sm-5 pe-0">
                 <div class="fv-row">
                 <label class="col-form-label">Nombre del producto</label>
-                <div class="input-group">
+                <div class="input-group position-relative">
                     <span class="input-group-text"
                         ><i class="fas fa-flask"></i
                     ></span>
-                    <TextInput
-                        id="product_name"
+                    <input
+                        :id="'product_name_' + index"
                         v-model="product.product_name"
                         class="form-control"
                         type="text"
                         :class="{
                             'is-invalid':
-                                form.errors[
-                                    'products.' + index + '.product_name'
-                                ],
+                                form.errors['products.' + index + '.product_name'],
                         }"
+                        autocomplete="off"
+                        @input="onInput(index)"
+                        @focus="onInput(index)"
+                        @blur="onBlur(index)"
+                        placeholder="Escriba o seleccione un producto..."
                     />
+                    <!-- Sugerencias -->
+                    <ul v-if="showSuggestions[index] && filteredProducts(product.product_name).length" class="autocomplete-list bg-white border rounded shadow-sm position-absolute w-100 z-3" style="max-height: 180px; overflow-y: auto;">
+                        <li
+                            v-for="suggestion in filteredProducts(product.product_name)"
+                            :key="suggestion.id"
+                            class="px-2 py-1 cursor-pointer hover-bg-primary"
+                            @mousedown.prevent="selectSuggestion(index, suggestion)"
+                        >
+                            {{ suggestion.name }}
+                        </li>
+                    </ul>
                 </div>
                 <InputError class="mt-2" :message="form.errors.product_name" />
             </div>
@@ -460,5 +537,12 @@ label {
     height: 20px !important;
     min-height: 20px !important;
     border-radius: 0.15rem !important;
+}
+/* Asegura que el dropdown de autocomplete esté justo debajo del input */
+.autocomplete-list {
+    z-index: 1050 !important;
+    background: #fff;
+    top: 100%;
+    left: 0;
 }
 </style>

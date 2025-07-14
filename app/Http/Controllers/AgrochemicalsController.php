@@ -153,6 +153,9 @@ class AgrochemicalsController extends Controller
             ];
         });
 
+        $products = $agrochemicals->pluck('product_name')->unique()->values();
+
+
         $data = Agrochemical::from('agrochemicals as a')
         ->join('agrochemical_items as ai', 'a.id', 'ai.agrochemical_id')
         ->join('cost_centers as cc', 'ai.cost_center_id', 'cc.id')
@@ -268,7 +271,7 @@ class AgrochemicalsController extends Controller
             'totalData1', 'totalData2',
             'totalAgrochemical', 'totalFertilizer', 'totalManPower', 'totalSupplies', 'totalServices', 'totalAdministration', 'totalField', 'totalAbsolute',
             'percentageAgrochemical',
-            'varieties', 'fruits'
+            'varieties', 'fruits','products'
         ));
     }
 
