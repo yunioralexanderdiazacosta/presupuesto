@@ -11,7 +11,7 @@ defineEmits(['update']);
 <template>
     <Modal :maxWidth="'xl'" :id="'editServiceModal'">
         <template #header>
-            <h1 class="mb-3">Editar servicio</h1>
+            <h3 class="mb-3">Editar servicio</h3>
         </template>
         <template #body>
             <ServiceForm :form="form" />
