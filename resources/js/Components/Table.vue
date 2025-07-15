@@ -32,7 +32,7 @@ defineProps({
         </table>
         <!--end::Table-->
     </div>
-    <paginate v-if="total > 0" :links="links"></paginate>
+ 
 </template>
 
 <style>
