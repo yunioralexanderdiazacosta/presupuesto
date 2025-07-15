@@ -336,6 +336,7 @@ const filteredManPowers = computed(() => {
     </button>
   </div>
 </div>
+<div class="table-responsive mt-1" style="max-height: 450px; overflow-y: auto;">
 <Table sticky-header :id="'manPowers'" :total="filteredManPowers.length" :links="manPowers.links">
                             <!--begin::Table head-->
                             <template #header>
@@ -378,6 +379,7 @@ const filteredManPowers = computed(() => {
                             </template>
                             <!--end::Table body-->
                         </Table>
+                        </div>
                     </div>
 
 
@@ -438,7 +440,7 @@ const filteredManPowers = computed(() => {
                       </div>
                     </div>
 
-                        <div class="table-responsive mt-1">
+                        <div class="table-responsive mt-1" style="max-height: 450px; overflow-y: auto;">
                            <table class="table table-bordered table-hover table-sm custom-striped fs-10 mb-0 agrochem-details">
                             <thead>
                                 <tr class="fw-bold text-muted">
@@ -536,7 +538,7 @@ const filteredManPowers = computed(() => {
                       </div>
                     </div>
 
-                        <div class="table-responsive mt-1">
+                       <div class="table-responsive mt-1" style="max-height: 450px; overflow-y: auto;">
                             <table class="table table-bordered table-hover table-sm custom-striped fs-10 mb-0 agrochem-details">
                                 <thead>
                                     <tr class="fw-bold text-muted">
@@ -618,7 +620,7 @@ const filteredManPowers = computed(() => {
                         </div>
 
                         <!-- Sin filtros de especie/variedad aquí, tabla completamente independiente -->
-                        <div class="table-responsive mt-1">
+                        <div class="table-responsive mt-1" style="max-height: 450px; overflow-y: auto;">
                           <table class="table table-bordered table-hover table-sm custom-striped fs-10 mb-0 agrochem-details">
                             <thead>
                               <tr class="fw-bold text-muted">

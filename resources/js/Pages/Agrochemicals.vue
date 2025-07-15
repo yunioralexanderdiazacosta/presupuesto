@@ -344,6 +344,7 @@ const onFilter = () => {
                             </button>
                           </div>
                         </div>
+                        <div class="table-responsive mt-1" style="max-height: 450px; overflow-y: auto;">
                         <Table sticky-header :id="'agrochemicals'" :total="filteredAgrochemicals.length" :links="agrochemicals.links">
                             <!--begin::Table head-->
                             <template #header>
@@ -392,7 +393,7 @@ const onFilter = () => {
                             </template>
                             <!--end::Table body-->
                         </Table>
-                      
+                      </div>
                     </div>
                     <div class="tab-pane fade" id="pill-tab-detalles" role="tabpanel" aria-labelledby="detalles-tab">
                         <div class="row mb-3">

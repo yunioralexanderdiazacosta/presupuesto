@@ -257,6 +257,7 @@ const onFilter = () => {
                         </button>
                       </div>
                     </div>
+                    <div class="table-responsive mt-1" style="max-height: 450px; overflow-y: auto;">
                     <Table sticky-header :id="'administrations'" :total="filteredAdministrations.length" :links="administrations.links">
                         <!--begin::Table head-->
                         <template #header>
@@ -312,6 +313,7 @@ const onFilter = () => {
                         </template>
                         <!--end::Table body-->
                     </Table>
+                    </div>
                 </div>
 
  <div class="tab-pane fade" id="pill-tab-detalles" role="tabpanel" aria-labelledby="detalles-tab">
@@ -358,7 +360,7 @@ const onFilter = () => {
                             </div>
                         </div>
 
-                        <div class="table-responsive mt-1">
+                        <div class="table-responsive mt-1" style="max-height: 450px; overflow-y: auto;">
                             <table class="table table-bordered table-hover table-sm custom-striped fs-10 mb-0 agrochem-details">
                                 <thead>
                                     <tr>
@@ -446,7 +448,7 @@ const onFilter = () => {
                             </div>
                         </div>
 
-                        <div class="table-responsive mt-1">
+                        <div class="table-responsive mt-1" style="max-height: 450px; overflow-y: auto;">
                             <table class="table table-bordered table-hover table-sm custom-striped fs-10 mb-0 agrochem-details">
                                 <thead>
                                     <tr>
@@ -525,7 +527,7 @@ const onFilter = () => {
                             </div>
                         </div>
 
-                        <div class="table-responsive mt-1">
+                        <div class="table-responsive mt-1" style="max-height: 450px; overflow-y: auto;">
                             <table class="table table-bordered table-hover table-sm custom-striped fs-10 mb-0 agrochem-details">
                                 <thead>
                                     <tr>
