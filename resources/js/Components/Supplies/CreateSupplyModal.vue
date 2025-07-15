@@ -11,7 +11,7 @@ defineEmits(['store']);
 <template>
     <Modal :maxWidth="'xl'" :id="'createSupplyModal'">
         <template #header>
-            <h1 class="mb-3">Agregar insumo</h1>
+            <h3 class="mb-3">Agregar insumos</h3>
         </template>
         <template #body>
             <SupplyForm :form="form" />

@@ -104,7 +104,7 @@ const selectAllMonths = (index, months) => {
                     "
                 />
             </div>
-            <div class="col-lg-2">
+            <div class="col-lg-3">
                 <label for="unit" class="col-form-label">Unidad</label>
                 <div class="input-group">
                     <span class="input-group-text"><i class="fas fa-ruler-combined"></i></span>
@@ -118,9 +118,8 @@ const selectAllMonths = (index, months) => {
                             'is-invalid':
                                 form.errors['products.' + index + '.unit_id'],
                         }"
-                        :searchable="true"
+                        :searchable="false"
                         :hide-selected="false"
-                        @update:model-value="val => product.unit_id_price = val"
                     />
                 </div>
                 <InputError
@@ -173,7 +172,12 @@ const selectAllMonths = (index, months) => {
                     />
                 </div>
             </div>
-            <div class="col-lg-2">
+           
+        </div>
+
+        <div class="row">
+
+             <div class="col-lg-3">
                 <div class="fv-row">
                     <label for="unit" class="col-form-label">Unidad</label>
                     <div class="input-group">
@@ -190,7 +194,7 @@ const selectAllMonths = (index, months) => {
                                         'products.' + index + '.unit_id_price'
                                     ],
                             }"
-                            :searchable="true"
+                            :searchable="false"
                             :hide-selected="false"
                         />
                     </div>
@@ -202,10 +206,7 @@ const selectAllMonths = (index, months) => {
                     />
                 </div>
             </div>
-        </div>
-
-        <div class="row">
-            <div class="col-lg-8">
+            <div class="col-lg-6">
                 <div class="d-flex align-items-center mb-1">
                     <label for="months" class="col-form-label mb-1">Meses</label>
                     <button
@@ -253,7 +254,7 @@ const selectAllMonths = (index, months) => {
 
 
             
-            <div class="col-lg-4 align-self-start ps-0">
+            <div class="col-lg-3 align-self-start ps-0">
                 <label for="observations" class="col-form-label">Observaciones</label>
                     <textarea
                         v-model="product.observations"
@@ -334,7 +335,7 @@ select.form-control {
     min-height: 26px !important;
     height: 26px !important;
     max-height: 26px !important;
-    font-size: 0.95rem !important;
+    font-size: 0.8rem !important;
     padding-top: 2px !important;
     padding-bottom: 2px !important;
     line-height: 22px !important;
@@ -353,7 +354,7 @@ select.form-control {
     max-height: 26px !important;
     padding-top: 2px !important;
     padding-bottom: 2px !important;
-    font-size: 1rem !important;
+    font-size: 0.8rem !important;
     display: flex;
     align-items: center;
 }
@@ -376,8 +377,8 @@ label {
 }
 
 .custom-hr {
-    height: 1px;
-    background: #888;
+    height: 2px;
+    background: #b1b1b1;
     border: none;
     margin: 0.5rem 0;
 }

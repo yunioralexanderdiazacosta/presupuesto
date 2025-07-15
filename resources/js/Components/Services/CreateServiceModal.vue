@@ -11,7 +11,7 @@ defineEmits(['store']);
 <template>
     <Modal :maxWidth="'xl'" :id="'createServiceModal'">
         <template #header>
-            <h3 class="mb-3">Agregar Servicio</h3>
+            <h3 class="mb-3">Agregar Servicios</h3>
         </template>
         <template #body>
             <ServiceForm :form="form" />

@@ -477,7 +477,7 @@ select.form-control {
     min-height: 26px !important;
     height: 26px !important;
     max-height: 26px !important;
-    font-size: 0.95rem !important;
+    font-size: 0.85rem !important;
     padding-top: 2px !important;
     padding-bottom: 2px !important;
     line-height: 22px !important;
@@ -519,8 +519,8 @@ label {
 }
 
 .custom-hr {
-    height: 1px;
-    background: #888;
+    height: 2px;
+    background: #b1b1b1;
     border: none;
     margin: 0.5rem 0;
 }

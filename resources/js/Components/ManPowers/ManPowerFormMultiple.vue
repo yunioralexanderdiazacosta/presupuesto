@@ -391,8 +391,8 @@ label {
 }
 
 .custom-hr {
-    height: 1px;
-    background: #888;
+    height: 2px;
+    background: #b1b1b1;
     border: none;
     margin: 0.5rem 0;
 }
