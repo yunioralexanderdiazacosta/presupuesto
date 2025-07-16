@@ -115,37 +115,47 @@ class FieldsController extends Controller
 
  // --- Data3 agrupado: Gastos por Hectarea agrupado por level2, level3, producto ---
         $surfaceTotal = $this->totalsurface($season_id);
-        $data3Raw = \App\Models\Field::from('fields as f')
+        // Preload all field_items for all fields in this season
+        $fieldsRaw = \App\Models\Field::from('fields as f')
             ->join('level3s as s', 'f.subfamily_id', 's.id')
             ->join('level2s as l2', 's.level2_id', 'l2.id')
             ->join('units as u', 'f.unit_id', 'u.id')
             ->select('f.id', 'f.product_name', 'f.price', 'f.quantity', 'f.unit_id', 'u.name as unit_name', 's.name as level3_name', 'l2.name as level2_name')
             ->where('f.season_id', $season_id)
-            ->get()
-            ->map(function($value) use ($surfaceTotal, $season) {
-                $quantity = (($value->unit_id == 4) || ($value->unit_id == 2)) ? ($value->quantity / 1000) : $value->quantity;
-                $amount = $surfaceTotal > 0 ? ($value->price * $quantity) / $surfaceTotal : 0;
-                // Calcular montos por mes
-                $monthsArr = [];
-                $currentMonth = $season ? $season->month_id : 1;
-                for ($x = $currentMonth; $x < $currentMonth + 12; $x++) {
-                    $id = date('n', mktime(0, 0, 0, $x, 1));
-                    $count = DB::table('field_items')
-                        ->where('field_id', $value->id)
-                        ->where('month_id', $id)
-                        ->count();
-                    $amountMonth = $count > 0 ? $amount : 0;
-                    $monthsArr[] = number_format($amountMonth, 0, '', '');
-                }
-                return [
-                    'level2'    => $value->level2_name,
-                    'level3'    => $value->level3_name,
-                    'product'   => $value->product_name,
-                    'quantity'  => number_format($quantity, 0, '', ''),
-                    'total'     => number_format($amount, 0, '', ''),
-                    'months'    => $monthsArr
-                ];
-            });
+            ->get();
+
+        $fieldIds = $fieldsRaw->pluck('id')->unique();
+        $month_id = $season ? $season->month_id : 1;
+        $monthsRange = [];
+        for ($x = $month_id; $x < $month_id + 12; $x++) {
+            $monthsRange[] = date('n', mktime(0, 0, 0, $x, 1));
+        }
+        $fieldItems = DB::table('field_items')
+            ->select('field_id', 'month_id')
+            ->whereIn('field_id', $fieldIds)
+            ->whereIn('month_id', $monthsRange)
+            ->get();
+
+        $data3Raw = $fieldsRaw->map(function($value) use ($surfaceTotal, $monthsRange, $fieldItems) {
+            $quantity = (($value->unit_id == 4) || ($value->unit_id == 2)) ? ($value->quantity / 1000) : $value->quantity;
+            $amount = $surfaceTotal > 0 ? ($value->price * $quantity) / $surfaceTotal : 0;
+            // Vectorized months calculation
+            $activeMonths = $fieldItems->where('field_id', $value->id)->pluck('month_id')->toArray();
+            $monthsArr = [];
+            foreach ($monthsRange as $month) {
+                $isActive = in_array($month, $activeMonths);
+                $amountMonth = $isActive ? $amount : 0;
+                $monthsArr[] = number_format($amountMonth, 0, '', '');
+            }
+            return [
+                'level2'    => $value->level2_name,
+                'level3'    => $value->level3_name,
+                'product'   => $value->product_name,
+                'quantity'  => number_format($quantity, 0, '', ''),
+                'total'     => number_format($amount, 0, '', ''),
+                'months'    => $monthsArr
+            ];
+        });
 
         // Agrupar por level2, luego level3, luego producto
         $data3 = [];
@@ -345,62 +355,62 @@ class FieldsController extends Controller
 
     public function getProducts($id, $team_id, $season_id)
     {
-        $products = Field::from('fields as f')
+        $productsRaw = Field::from('fields as f')
             ->join('units as u', 'f.unit_id', 'u.id')
-            ->select('f.id', 'f.product_name', 'f.quantity', 'f.price', 'f.unit_id', 'u.name')
+            ->select('f.id', 'f.product_name', 'f.quantity', 'f.price', 'f.unit_id', 'u.name as unit_name')
             ->where('f.subfamily_id', $id)
             ->where('f.team_id', $team_id)
             ->where('f.season_id', $season_id)
             ->groupBy('f.id', 'f.product_name', 'f.quantity', 'f.price', 'f.unit_id', 'u.name')
-            ->get()
-            ->transform(function ($value) use ($team_id, $season_id) {
-                $quantity = (($value->unit_id == 4) || ($value->unit_id == 2)) ? ($value->quantity / 1000) : $value->quantity;
-                $amountFirst = round($value->price * $quantity, 2);
-                $data = $this->getMonths($value->id, $quantity, $amountFirst);
-                return [
-                    'id'            => $value->id,
-                    'name'          => $value->product_name,
-                    'unit'          => $value->name ?? '',
-                    'totalQuantity' => $data['totalQuantity'],
-                    'totalAmount'   => $data['totalAmount'],
-                    'months'        => $data['months']
-                ];
-            });
+            ->get();
+
+        $fieldIds = $productsRaw->pluck('id')->unique();
+        $month_id = $this->month_id;
+        $monthsRange = [];
+        for ($x = $month_id; $x < $month_id + 12; $x++) {
+            $monthsRange[] = date('n', mktime(0, 0, 0, $x, 1));
+        }
+        $fieldItems = DB::table('field_items')
+            ->select('field_id', 'month_id')
+            ->whereIn('field_id', $fieldIds)
+            ->whereIn('month_id', $monthsRange)
+            ->get();
+
+        $products = $productsRaw->map(function($value) use ($fieldItems, $monthsRange) {
+            $quantity = (($value->unit_id == 4) || ($value->unit_id == 2)) ? ($value->quantity / 1000) : $value->quantity;
+            $amountFirst = round($value->price * $quantity, 2);
+            $activeMonths = $fieldItems->where('field_id', $value->id)->pluck('month_id')->toArray();
+            $months = [];
+            $totalAmount = 0;
+            $totalQuantity = 0;
+            foreach ($monthsRange as $month) {
+                $isActive = in_array($month, $activeMonths);
+                $amountMonth = $isActive ? $amountFirst : 0;
+                $quantityMonth = $isActive ? $quantity : 0;
+                $totalAmount += $amountMonth;
+                $totalQuantity += $quantityMonth;
+                $months[] = number_format($amountMonth, 0, '', '.');
+            }
+            return [
+                'id'            => $value->id,
+                'name'          => $value->product_name,
+                'unit'          => $value->unit_name ?? '',
+                'totalQuantity' => number_format($totalQuantity, 2, ',', '.'),
+                'totalAmount'   => number_format($totalAmount, 0, ',', '.'),
+                'months'        => $months
+            ];
+        });
         return $products;
     }
 
+    // getMonths is now vectorized inside getProducts; kept for compatibility but not used anymore
     private function getMonths($fieldId, $quantity, $amount)
     {
-        $data = array();
-        $currentMonth = $this->month_id;
-
-        for ($x = $currentMonth; $x < $currentMonth + 12; $x++) {
-            $id = date('n', mktime(0, 0, 0, $x, 1));
-            array_push($data, $id);
-        }
-
-        $months = [];
-        $totalAmount = 0;
-        $totalQuantity = 0;
-        foreach ($data as $month) {
-            $count = DB::table('field_items')
-                ->select('field_id')
-                ->where('field_id', $fieldId)
-                ->where('month_id', $month)
-                ->count();
-
-            $amountMonth = $count > 0 ? $amount : 0;
-            $quantityMonth = $count > 0 ? $quantity : 0;
-            $totalAmount += $amountMonth;
-            $totalQuantity += $quantityMonth;
-            array_push($months, number_format($amountMonth, 0, '', '.'));
-        }
-
-
+        // Deprecated: logic now handled in getProducts for vectorization
         return [
-            'months' => $months,
-            'totalAmount' => number_format($totalAmount, 0, ',', '.'),
-            'totalQuantity' => number_format($totalQuantity, 2, ',', '.')
+            'months' => [],
+            'totalAmount' => '0',
+            'totalQuantity' => '0.00'
         ];
     }
 
@@ -430,33 +440,39 @@ class FieldsController extends Controller
 
     private function getResult2($value)
     {
+        // Vectorized version: precarga todos los field_items para los productos relevantes
+        static $fieldItemsCache = [];
+        static $monthsRangeCache = [];
+        $season_id = property_exists($value, 'season_id') && $value->season_id ? $value->season_id : (request('season_id') ?? session('season_id'));
+        if (!isset($fieldItemsCache[$season_id]) || !isset($monthsRangeCache[$season_id])) {
+            $month_id = $this->month_id;
+            $monthsRange = [];
+            for ($x = $month_id; $x < $month_id + 12; $x++) {
+                $monthsRange[] = date('n', mktime(0, 0, 0, $x, 1));
+            }
+            $fieldIds = Field::where('season_id', $season_id)->pluck('id');
+            $fieldItemsCache[$season_id] = DB::table('field_items')
+                ->select('field_id', 'month_id')
+                ->whereIn('field_id', $fieldIds)
+                ->whereIn('month_id', $monthsRange)
+                ->get();
+            $monthsRangeCache[$season_id] = $monthsRange;
+        }
+        $monthsRange = $monthsRangeCache[$season_id];
+        $fieldItems = $fieldItemsCache[$season_id];
+
         $totalAmount = 0;
         $totalQuantity = 0;
-        $currentMonth = $this->month_id;
         $amountFirst = round($value->price * $value->quantity, 2);
-
-        $data = array();
-
-        for ($x = $currentMonth; $x < $currentMonth + 12; $x++) {
-            $id = date('n', mktime(0, 0, 0, $x, 1));
-            array_push($data, $id);
-        }
-
-        foreach ($data as $month) {
-            $count = DB::table('field_items')
-                ->select('field_id')
-                ->where('field_id', $value->id)
-                ->where('month_id', $month)
-                ->count();
-
-            $amountMonth = $count > 0 ? $amountFirst : 0;
-            $quantityMonth = $count > 0 ? $value->quantity : 0;
+        $activeMonths = $fieldItems->where('field_id', $value->id)->pluck('month_id')->toArray();
+        foreach ($monthsRange as $month) {
+            $isActive = in_array($month, $activeMonths);
+            $amountMonth = $isActive ? $amountFirst : 0;
+            $quantityMonth = $isActive ? $value->quantity : 0;
             $totalAmount += $amountMonth;
             $totalQuantity += $quantityMonth;
         }
-
         $this->totalData2 += $totalAmount;
-
         return [
             'totalAmount' => number_format($totalAmount, 0, ',', '.'),
             'totalQuantity' => number_format($totalQuantity, 2, ',', '.')

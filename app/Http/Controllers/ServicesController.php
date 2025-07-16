@@ -213,16 +213,110 @@ class ServicesController extends Controller
         ->select('si.cost_center_id', 'cc.name', 'cc.surface', 'cc.variety_id')
         ->whereIn('si.cost_center_id', $costCenters->pluck('value'))
         ->groupBy('si.cost_center_id', 'cc.name', 'cc.surface', 'cc.variety_id')
+        ->get();
+
+    // Preload subfamilies and totals for all cost centers in one go
+    $costCenterIds = $data3->pluck('cost_center_id');
+
+    // Preload subfamilies for all cost centers
+    $subfamiliesRaw = Service::from('services as s')
+        ->join('service_items as si', 's.id', 'si.service_id')
+        ->join('level3s as l3', 's.subfamily_id', 'l3.id')
+        ->join('level2s as l2', 'l3.level2_id', 'l2.id')
+        ->where('l2.name', 'servicios')
+        ->whereIn('si.cost_center_id', $costCenterIds)
+        ->select('si.cost_center_id', 'l3.id as subfamily_id', 'l3.name as subfamily_name')
+        ->groupBy('si.cost_center_id', 'l3.id', 'l3.name')
+        ->get();
+
+    // Preload products for all subfamilies in all cost centers
+    $productsRaw = Service::from('services as s')
+        ->join('service_items as si', 's.id', 'si.service_id')
+        ->leftJoin('units as u', 's.unit_id_price', 'u.id')
+        ->select('s.id', 's.product_name', 's.price', 's.quantity', 's.unit_id', 's.unit_id_price', 'u.name as unit_name', 's.subfamily_id', 'si.cost_center_id', 'cc.surface')
+        ->join('cost_centers as cc', 'si.cost_center_id', 'cc.id')
+        ->whereIn('si.cost_center_id', $costCenterIds)
+        ->get();
+
+    // Group products by cost_center_id and subfamily_id
+    $productsByCostCenterAndSubfamily = $productsRaw->groupBy(function($item) {
+        return $item->cost_center_id . '-' . $item->subfamily_id;
+    });
+
+    // Group subfamilies by cost_center_id
+    $subfamiliesByCostCenter = $subfamiliesRaw->groupBy('cost_center_id');
+
+    // Preload totals for all cost centers
+    $totalsByCostCenter = DB::table('service_items')
+        ->select('cost_center_id', DB::raw('COUNT(DISTINCT service_id) as total'))
+        ->whereIn('cost_center_id', $costCenterIds)
+        ->groupBy('cost_center_id')
+        ->pluck('total', 'cost_center_id');
+
+    $month_id = $this->month_id;
+    $monthsRange = [];
+    for ($x = $month_id; $x < $month_id + 12; $x++) {
+        $id = date('n', mktime(0, 0, 0, $x, 1));
+        $monthsRange[] = $id;
+    }
+
+    // Preload all service_items for all products in one query
+    $serviceItemData = DB::table('service_items')
+        ->select('service_id', 'cost_center_id', 'month_id')
+        ->whereIn('cost_center_id', $costCenterIds)
+        ->whereIn('month_id', $monthsRange)
         ->get()
-        ->transform(function($value) use ($costCenters){
+        ->groupBy(function($item) {
+            return $item->cost_center_id . '-' . $item->service_id;
+        });
+
+    $data3 = $data3->map(function($value) use ($subfamiliesByCostCenter, $productsByCostCenterAndSubfamily, $totalsByCostCenter, $monthsRange, $serviceItemData) {
+        $costCenterId = $value->cost_center_id;
+        $surface = $value->surface;
+        $subfamilies = $subfamiliesByCostCenter->get($costCenterId, collect())->map(function($subfamily) use ($costCenterId, $productsByCostCenterAndSubfamily, $monthsRange, $serviceItemData, $surface) {
+            $key = $costCenterId . '-' . $subfamily->subfamily_id;
+            $products = $productsByCostCenterAndSubfamily->get($key, collect())->map(function($product) use ($costCenterId, $monthsRange, $serviceItemData, $surface) {
+                // Calcular cantidad y monto como en getProducts
+                $quantity = (($product->unit_id == 4 && $product->unit_id_price == 3) || ($product->unit_id == 2 && $product->unit_id_price == 1)) ? ($product->quantity / 1000) : $product->quantity;
+                $quantityFirst = round($quantity * $surface, 2);
+                $amountFirst = round($product->price * $quantityFirst, 2);
+                // Obtener meses activos
+                $serviceKey = $costCenterId . '-' . $product->id;
+                $activeMonths = $serviceItemData->get($serviceKey, collect())->pluck('month_id')->toArray();
+                $months = [];
+                $totalAmount = 0;
+                $totalQuantity = 0;
+                foreach ($monthsRange as $month) {
+                    $isActive = in_array($month, $activeMonths);
+                    $amountMonth = $isActive ? $amountFirst : 0;
+                    $quantityMonth = $isActive ? $quantityFirst : 0;
+                    $totalAmount += $amountMonth;
+                    $totalQuantity += $quantityMonth;
+                    $months[] = number_format($amountMonth, 0, '', '.');
+                }
+                return [
+                    'id' => $product->id,
+                    'name' => $product->product_name,
+                    'unit' => $product->unit_name ?? '',
+                    'totalQuantity' => number_format($totalQuantity, 2, ',', '.'),
+                    'totalAmount' => number_format($totalAmount, 0, ',', '.'),
+                    'months' => $months
+                ];
+            });
             return [
-                'id' => $value->cost_center_id,
-                'name' => $value->name,
-                 'variety_id' => $value->variety_id, // Add variety_id
-                'subfamilies' => $this->getSubfamilies($value->cost_center_id, null, true),
-                'total' => $this->getTotal($value->cost_center_id)
+                'id' => $subfamily->subfamily_id,
+                'name' => $subfamily->subfamily_name,
+                'products' => $products
             ];
         });
+        return [
+            'id' => $costCenterId,
+            'name' => $value->name,
+            'variety_id' => $value->variety_id,
+            'subfamilies' => $subfamilies,
+            'total' => $totalsByCostCenter[$costCenterId] ?? 0
+        ];
+    });
 
          // Obtener variedades asociadas a los cost centers de este equipo y temporada
         $varieties = \App\Models\Variety::whereIn('id',
@@ -359,33 +453,35 @@ class ServicesController extends Controller
 
     private function getMonths($serviceId, $quantity, $amount, $bills)
     {
-        $data = array();
         $currentMonth = $this->month_id;
-
+        $monthsRange = [];
         for ($x = $currentMonth; $x < $currentMonth + 12; $x++) {
             $id = date('n', mktime(0, 0, 0, $x, 1));
-            array_push($data, $id);
+            $monthsRange[] = $id;
         }
+
+        // Obtener todos los meses activos de una sola vez
+        $activeMonths = DB::table('service_items')
+            ->select('month_id')
+            ->where('service_id', $serviceId)
+            ->whereIn('month_id', $monthsRange)
+            ->distinct()
+            ->pluck('month_id')
+            ->toArray();
 
         $months = [];
         $totalAmount = 0;
         $totalQuantity = 0;
-        foreach($data as $month)
-        {
-            $count = DB::table('service_items')
-            ->select('service_id')
-            ->where('service_id', $serviceId)
-            ->where('month_id', $month)
-            ->count();
-
-            $amountMonth = $count > 0 ? $amount : 0;
-            $quantityMonth = $count > 0 ? $quantity : 0;
+        foreach ($monthsRange as $month) {
+            $isActive = in_array($month, $activeMonths);
+            $amountMonth = $isActive ? $amount : 0;
+            $quantityMonth = $isActive ? $quantity : 0;
             $totalAmount += $amountMonth;
             $totalQuantity += $quantityMonth;
-            array_push($months, number_format($amountMonth, 0, '', '.'));        
+            $months[] = number_format($amountMonth, 0, '', '.');
         }
 
-        if($bills == false){
+        if ($bills == false) {
             $this->totalData1 += $totalAmount;
         }
 
@@ -418,67 +514,101 @@ class ServicesController extends Controller
 
     private function getProducts2($subfamilyId, $costCentersId)
     {
-        $products = Service::from('services as s')
-        ->join('service_items as si', 's.id', 'si.service_id')
-        ->leftJoin('units as u', 's.unit_id_price', 'u.id')
-        ->select('s.id', 's.product_name', 's.price', 's.quantity', 's.unit_id', 's.unit_id_price', 'u.name')
-        ->whereIn('si.cost_center_id', $costCentersId)
-        ->where('s.subfamily_id', $subfamilyId)
-        ->groupBy('s.id', 's.product_name', 's.price', 's.quantity', 's.unit_id', 's.unit_id_price', 'u.name')
-        ->get()
-        ->transform(function($value) use ($costCentersId){
-            $data = $this->getResult2($value, $costCentersId);
+        // Preload surfaces for all cost centers
+        $surfaces = \App\Models\CostCenter::whereIn('id', $costCentersId)->pluck('surface', 'id');
+
+        // Preload all service_items for these products and cost centers
+        $productsRaw = Service::from('services as s')
+            ->join('service_items as si', 's.id', 'si.service_id')
+            ->leftJoin('units as u', 's.unit_id_price', 'u.id')
+            ->select('s.id', 's.product_name', 's.price', 's.quantity', 's.unit_id', 's.unit_id_price', 'u.name as unit_name', 'si.cost_center_id')
+            ->whereIn('si.cost_center_id', $costCentersId)
+            ->where('s.subfamily_id', $subfamilyId)
+            ->get();
+
+        // Agrupar por producto
+        $productsGrouped = $productsRaw->groupBy('id');
+
+        // Preload all service_items for these products and cost centers
+        $serviceItems = DB::table('service_items')
+            ->select('service_id', 'cost_center_id', 'month_id')
+            ->whereIn('cost_center_id', $costCentersId)
+            ->whereIn('service_id', $productsRaw->pluck('id')->unique())
+            ->get();
+
+        $month_id = $this->month_id;
+        $monthsRange = [];
+        for ($x = $month_id; $x < $month_id + 12; $x++) {
+            $id = date('n', mktime(0, 0, 0, $x, 1));
+            $monthsRange[] = $id;
+        }
+
+        $products = $productsGrouped->map(function($group) use ($surfaces, $serviceItems, $costCentersId, $monthsRange) {
+            $value = $group->first();
+            $totalAmount = 0;
+            $totalQuantity = 0;
+            foreach ($costCentersId as $costCenter) {
+                $surface = $surfaces[$costCenter] ?? 0;
+                $quantity = (($value->unit_id == 4 && $value->unit_id_price == 3) || ($value->unit_id == 2 && $value->unit_id_price == 1)) ? ($value->quantity / 1000) : $value->quantity;
+                $quantityFirst = round($quantity * $surface, 2);
+                $amountFirst = round($value->price * $quantityFirst, 2);
+                $items = $serviceItems->where('service_id', $value->id)->where('cost_center_id', $costCenter);
+                $activeMonths = $items->pluck('month_id')->toArray();
+                foreach ($monthsRange as $month) {
+                    $isActive = in_array($month, $activeMonths);
+                    $amountMonth = $isActive ? $amountFirst : 0;
+                    $quantityMonth = $isActive ? $quantityFirst : 0;
+                    $totalAmount += $amountMonth;
+                    $totalQuantity += $quantityMonth;
+                }
+            }
             return [
                 'id'            => $value->id,
                 'name'          => $value->product_name,
-                'unit'          => $value->name ?? '',
-                'totalQuantity' => $data['totalQuantity'],
-                'totalAmount'   => $data['totalAmount'],
+                'unit'          => $value->unit_name ?? '',
+                'totalQuantity' => number_format($totalQuantity, 2, ',', '.'),
+                'totalAmount'   => number_format($totalAmount, 0, ',', '.'),
             ];
-        });
+        })->values();
 
         return $products;
     }
 
     private function getResult2($value, $costCentersId)
     {
+        // Preload surfaces for all cost centers
+        $surfaces = \App\Models\CostCenter::whereIn('id', $costCentersId)->pluck('surface', 'id');
+
+        // Preload all service_items for this product and cost centers
+        $serviceItems = DB::table('service_items')
+            ->select('service_id', 'cost_center_id', 'month_id')
+            ->whereIn('cost_center_id', $costCentersId)
+            ->where('service_id', $value->id)
+            ->get();
+
+        $month_id = $this->month_id;
+        $monthsRange = [];
+        for ($x = $month_id; $x < $month_id + 12; $x++) {
+            $id = date('n', mktime(0, 0, 0, $x, 1));
+            $monthsRange[] = $id;
+        }
+
         $totalAmount = 0;
         $totalQuantity = 0;
-        $currentMonth = $this->month_id;
         foreach($costCentersId as $costCenter){
-           $first = CostCenter::select('surface')->where('id', $costCenter)->first();
-
-           $quantity = (($value->unit_id == 4 && $value->unit_id_price == 3) || ($value->unit_id == 2 && $value->unit_id_price == 1)) ? ($value->quantity / 1000) : $value->quantity;
-           
-            $surface = $first->surface;
+            $surface = $surfaces[$costCenter] ?? 0;
+            $quantity = (($value->unit_id == 4 && $value->unit_id_price == 3) || ($value->unit_id == 2 && $value->unit_id_price == 1)) ? ($value->quantity / 1000) : $value->quantity;
             $quantityFirst = round($quantity * $surface, 2);
             $amountFirst = round($value->price * $quantityFirst, 2);
-
-            $data = array();
-
-            for ($x = $currentMonth; $x < $currentMonth + 12; $x++) {
-                $id = date('n', mktime(0, 0, 0, $x, 1));
-                array_push($data, $id);
+            $items = $serviceItems->where('cost_center_id', $costCenter);
+            $activeMonths = $items->pluck('month_id')->toArray();
+            foreach ($monthsRange as $month) {
+                $isActive = in_array($month, $activeMonths);
+                $amountMonth = $isActive ? $amountFirst : 0;
+                $quantityMonth = $isActive ? $quantityFirst : 0;
+                $totalAmount += $amountMonth;
+                $totalQuantity += $quantityMonth;
             }
-
-            $totalAmountCostCenter = 0;
-            $totalQuantityCostCenter = 0;
-            foreach($data as $month)
-            {
-                $count = DB::table('service_items')
-                ->select('service_id')
-                ->where('service_id', $value->id)
-                ->where('month_id', $month)
-                ->where('cost_center_id', $costCenter)
-                ->count();
-
-                $amountMonth = $count > 0 ? $amountFirst : 0;
-                $quantityMonth = $count > 0 ? $quantityFirst : 0;
-                $totalAmountCostCenter += $amountMonth;
-                $totalQuantityCostCenter += $quantityMonth;
-            }
-            $totalAmount += $totalAmountCostCenter;
-            $totalQuantity += $totalQuantityCostCenter;
         }
 
         $this->totalData2 += $totalAmount;
