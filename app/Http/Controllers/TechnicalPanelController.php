@@ -533,73 +533,73 @@ class TechnicalPanelController extends Controller
      */
     private function getAgrochemicalProducts($costCentersId)
     {
-        $products = Agrochemical::from('agrochemicals as a')
-        ->join('agrochemical_items as ai', 'a.id', 'ai.agrochemical_id')
-        ->leftJoin('units as u', 'a.unit_id_price', 'u.id')
-        ->select('a.id', 'a.price', 'a.dose_type_id', 'a.dose', 'a.unit_id', 'a.unit_id_price', 'a.mojamiento')
-        ->whereIn('ai.cost_center_id', $costCentersId)
-        ->groupBy('a.id', 'a.price', 'a.dose_type_id', 'a.dose', 'a.unit_id', 'a.unit_id_price', 'a.mojamiento')
-        ->get()
-        ->transform(function($value) use ($costCentersId){
-            $data = $this->getAgrochemicalResult($value, $costCentersId);
-            return [
-                'id' => $value->id
-            ];
-        });
+        $currentMonth = $this->month_id;
+        $months = [];
+        for ($x = $currentMonth; $x < $currentMonth + 12; $x++) {
+            $id = date('n', mktime(0, 0, 0, $x, 1));
+            $months[] = $id;
+        }
+        // Consulta agregada: suma de items por agrochemical_id, cost_center_id, month_id
+        $items = DB::table('agrochemical_items')
+            ->select('agrochemical_id', 'cost_center_id', 'month_id', DB::raw('COUNT(*) as count'))
+            ->whereIn('cost_center_id', $costCentersId)
+            ->whereIn('month_id', $months)
+            ->groupBy('agrochemical_id', 'cost_center_id', 'month_id')
+            ->get();
 
+        // Traer todos los productos necesarios de una vez
+        $products = Agrochemical::from('agrochemicals as a')
+            ->leftJoin('units as u', 'a.unit_id_price', 'u.id')
+            ->select('a.id', 'a.price', 'a.dose_type_id', 'a.dose', 'a.unit_id', 'a.unit_id_price', 'a.mojamiento')
+            ->whereIn('a.id', $items->pluck('agrochemical_id')->unique())
+            ->get();
+
+        // Traer superficies de los cost centers de una vez
+        $surfaces = \App\Models\CostCenter::whereIn('id', $costCentersId)->pluck('surface', 'id');
+
+        // Indexar items por agrochemical_id y cost_center_id y month_id
+        $itemIndex = [];
+        foreach ($items as $item) {
+            $itemIndex[$item->agrochemical_id][$item->cost_center_id][$item->month_id] = $item->count;
+        }
+
+        // Calcular totales y meses
+        foreach ($products as $value) {
+            $this->getAgrochemicalResultOptimized($value, $costCentersId, $months, $itemIndex, $surfaces);
+        }
         return $products;
-    } 
+    }
 
     /**
      * Calcula el monto total de un producto agroquímico en todos los cost centers y meses.
      * Actualiza los acumuladores globales.
      */
-    private function getAgrochemicalResult($value, $costCentersId)
+    // Versión optimizada: calcula totales usando los datos agregados
+    private function getAgrochemicalResultOptimized($value, $costCentersId, $months, $itemIndex, $surfaces)
     {
         $totalAmount = 0;
-        $currentMonth = $this->month_id;
-
-        foreach($costCentersId as $costCenter){
-           $first = CostCenter::select('surface')->where('id', $costCenter)->first();
-
-           $dose = (($value->unit_id == 4 && $value->unit_id_price == 3) || ($value->unit_id == 2 && $value->unit_id_price == 1)) ? ($value->dose / 1000) : $value->dose;
-           
-            $surface = $first->surface;
-            if($value->dose_type_id == 1){
+        foreach ($costCentersId as $costCenter) {
+            $surface = isset($surfaces[$costCenter]) ? $surfaces[$costCenter] : 0;
+            $dose = (($value->unit_id == 4 && $value->unit_id_price == 3) || ($value->unit_id == 2 && $value->unit_id_price == 1)) ? ($value->dose / 1000) : $value->dose;
+            if ($value->dose_type_id == 1) {
                 $quantityFirst = round($dose * $surface, 2);
-            }elseif($value->dose_type_id == 2){
+            } elseif ($value->dose_type_id == 2) {
                 $quantityFirst = round((($value->mojamiento / 100) * $dose * $surface), 2);
+            } else {
+                $quantityFirst = 0;
             }
             $amountFirst = round($value->price * $quantityFirst, 2);
-
-            $data = array();
-
-            for ($x = $currentMonth; $x < $currentMonth + 12; $x++) {
-                $id = date('n', mktime(0, 0, 0, $x, 1));
-                array_push($data, $id);
-            }
-
-            $totalAmountCostCenter = 0;
-            foreach($data as $month)
-            {
-                $count = DB::table('agrochemical_items')
-                ->select('agrochemical_id')
-                ->where('agrochemical_id', $value->id)
-                ->where('month_id', $month)
-                ->where('cost_center_id', $costCenter)
-                ->count();
-
+            foreach ($months as $month) {
+                $count = isset($itemIndex[$value->id][$costCenter][$month]) ? $itemIndex[$value->id][$costCenter][$month] : 0;
                 $amountMonth = $count > 0 ? $amountFirst : 0;
-                $totalAmountCostCenter += $amountMonth;
-                if(!isset($this->monthsAgrochemical[$month])){
-                    $this->monthsAgrochemical[$month] = 0;    
+                $totalAmount += $amountMonth;
+                if (!isset($this->monthsAgrochemical[$month])) {
+                    $this->monthsAgrochemical[$month] = 0;
                 }
                 $this->monthsAgrochemical[$month] += $amountMonth;
             }
-            $totalAmount += $totalAmountCostCenter;
         }
-
-        $this->totalAgrochemical += $totalAmount; 
+        $this->totalAgrochemical += $totalAmount;
     }
 
     /**
@@ -608,20 +608,40 @@ class TechnicalPanelController extends Controller
      */
     private function getFertilizerProducts($costCentersId)
     {
-        $products = Fertilizer::from('fertilizers as f')
-        ->join('fertilizer_items as fi', 'f.id', 'fi.fertilizer_id')
-        ->leftJoin('units as u', 'f.unit_id_price', 'u.id')
-        ->select('f.id', 'f.price', 'f.dose', 'f.unit_id', 'f.unit_id_price')
-        ->whereIn('fi.cost_center_id', $costCentersId)
-        ->groupBy('f.id', 'f.price', 'f.dose', 'f.unit_id', 'f.unit_id_price')
-        ->get()
-        ->transform(function($value) use ($costCentersId){
-            $data = $this->getFertilizerResult($value, $costCentersId);
-            return [
-                'id' => $value->id
-            ];
-        });
+        $currentMonth = $this->month_id;
+        $months = [];
+        for ($x = $currentMonth; $x < $currentMonth + 12; $x++) {
+            $id = date('n', mktime(0, 0, 0, $x, 1));
+            $months[] = $id;
+        }
+        // Consulta agregada: suma de items por fertilizer_id, cost_center_id, month_id
+        $items = DB::table('fertilizer_items')
+            ->select('fertilizer_id', 'cost_center_id', 'month_id', DB::raw('COUNT(*) as count'))
+            ->whereIn('cost_center_id', $costCentersId)
+            ->whereIn('month_id', $months)
+            ->groupBy('fertilizer_id', 'cost_center_id', 'month_id')
+            ->get();
 
+        // Traer todos los productos necesarios de una vez
+        $products = Fertilizer::from('fertilizers as f')
+            ->leftJoin('units as u', 'f.unit_id_price', 'u.id')
+            ->select('f.id', 'f.price', 'f.dose', 'f.unit_id', 'f.unit_id_price')
+            ->whereIn('f.id', $items->pluck('fertilizer_id')->unique())
+            ->get();
+
+        // Traer superficies de los cost centers de una vez
+        $surfaces = \App\Models\CostCenter::whereIn('id', $costCentersId)->pluck('surface', 'id');
+
+        // Indexar items por fertilizer_id y cost_center_id y month_id
+        $itemIndex = [];
+        foreach ($items as $item) {
+            $itemIndex[$item->fertilizer_id][$item->cost_center_id][$item->month_id] = $item->count;
+        }
+
+        // Calcular totales y meses
+        foreach ($products as $value) {
+            $this->getFertilizerResultOptimized($value, $costCentersId, $months, $itemIndex, $surfaces);
+        }
         return $products;
     }
 
@@ -629,45 +649,25 @@ class TechnicalPanelController extends Controller
      * Calcula el monto total de un fertilizante en todos los cost centers y meses.
      * Actualiza los acumuladores globales.
      */
-    private function getFertilizerResult($value, $costCentersId)
+    // Versión optimizada: calcula totales usando los datos agregados
+    private function getFertilizerResultOptimized($value, $costCentersId, $months, $itemIndex, $surfaces)
     {
         $totalAmount = 0;
-        $currentMonth = $this->month_id;
-        foreach($costCentersId as $costCenter){
-           $first = CostCenter::select('surface')->where('id', $costCenter)->first();
-           
-            $surface = $first->surface;
-            $dose = (($value->unit_id == '4' && $value->unit_id_price == '3') ||($value->unit_id == '2' && $value->unit_id_price == '1')) ? ($value->dose / 1000) : $value->dose;
+        foreach ($costCentersId as $costCenter) {
+            $surface = isset($surfaces[$costCenter]) ? $surfaces[$costCenter] : 0;
+            $dose = (($value->unit_id == 4 && $value->unit_id_price == 3) || ($value->unit_id == 2 && $value->unit_id_price == 1)) ? ($value->dose / 1000) : $value->dose;
             $quantityFirst = round($dose * $surface, 2);
             $amountFirst = round($value->price * $quantityFirst, 2);
-
-            $data = array();
-
-            for ($x = $currentMonth; $x < $currentMonth + 12; $x++) {
-                $id = date('n', mktime(0, 0, 0, $x, 1));
-                array_push($data, $id);
-            }
-
-            $totalAmountCostCenter = 0;
-            foreach($data as $month)
-            {
-                $count = DB::table('fertilizer_items')
-                ->select('fertilizer_id')
-                ->where('fertilizer_id', $value->id)
-                ->where('month_id', $month)
-                ->where('cost_center_id', $costCenter)
-                ->count();
-
+            foreach ($months as $month) {
+                $count = isset($itemIndex[$value->id][$costCenter][$month]) ? $itemIndex[$value->id][$costCenter][$month] : 0;
                 $amountMonth = $count > 0 ? $amountFirst : 0;
-                $totalAmountCostCenter += $amountMonth;
-                if(!isset($this->monthsFertilizer[$month])){
-                    $this->monthsFertilizer[$month] = 0;    
+                $totalAmount += $amountMonth;
+                if (!isset($this->monthsFertilizer[$month])) {
+                    $this->monthsFertilizer[$month] = 0;
                 }
                 $this->monthsFertilizer[$month] += $amountMonth;
             }
-            $totalAmount += $totalAmountCostCenter;
         }
-
         $this->totalFertilizer += $totalAmount;
     }
 
@@ -677,20 +677,40 @@ class TechnicalPanelController extends Controller
      */
     private function getManPowerProducts($costCentersId)
     {
-        $products = ManPower::from('man_powers as mp')
-        ->join('manpower_items as mpi', 'mp.id', 'mpi.man_power_id')
-        ->leftJoin('units as u', 'mp.unit_id', 'u.id')
-        ->select('mp.id', 'mp.price', 'mp.workday')
-        ->whereIn('mpi.cost_center_id', $costCentersId)
-        ->groupBy('mp.id', 'mp.price', 'mp.workday')
-        ->get()
-        ->transform(function($value) use ($costCentersId){
-            $data = $this->getManPowerResult($value, $costCentersId);
-            return [
-                'id' => $value->id
-            ];
-        });
+        $currentMonth = $this->month_id;
+        $months = [];
+        for ($x = $currentMonth; $x < $currentMonth + 12; $x++) {
+            $id = date('n', mktime(0, 0, 0, $x, 1));
+            $months[] = $id;
+        }
+        // Consulta agregada: suma de items por man_power_id, cost_center_id, month_id
+        $items = DB::table('manpower_items')
+            ->select('man_power_id', 'cost_center_id', 'month_id', DB::raw('COUNT(*) as count'))
+            ->whereIn('cost_center_id', $costCentersId)
+            ->whereIn('month_id', $months)
+            ->groupBy('man_power_id', 'cost_center_id', 'month_id')
+            ->get();
 
+        // Traer todos los productos necesarios de una vez
+        $products = ManPower::from('man_powers as mp')
+            ->leftJoin('units as u', 'mp.unit_id', 'u.id')
+            ->select('mp.id', 'mp.price', 'mp.workday')
+            ->whereIn('mp.id', $items->pluck('man_power_id')->unique())
+            ->get();
+
+        // Traer superficies de los cost centers de una vez
+        $surfaces = \App\Models\CostCenter::whereIn('id', $costCentersId)->pluck('surface', 'id');
+
+        // Indexar items por man_power_id y cost_center_id y month_id
+        $itemIndex = [];
+        foreach ($items as $item) {
+            $itemIndex[$item->man_power_id][$item->cost_center_id][$item->month_id] = $item->count;
+        }
+
+        // Calcular totales y meses
+        foreach ($products as $value) {
+            $this->getManPowerResultOptimized($value, $costCentersId, $months, $itemIndex, $surfaces);
+        }
         return $products;
     }
 
@@ -698,44 +718,24 @@ class TechnicalPanelController extends Controller
      * Calcula el monto total de mano de obra en todos los cost centers y meses.
      * Actualiza los acumuladores globales.
      */
-    private function getManPowerResult($value, $costCentersId)
+    // Versión optimizada: calcula totales usando los datos agregados
+    private function getManPowerResultOptimized($value, $costCentersId, $months, $itemIndex, $surfaces)
     {
         $totalAmount = 0;
-        $currentMonth = $this->month_id;
-        foreach($costCentersId as $costCenter){
-           $first = CostCenter::select('surface')->where('id', $costCenter)->first();
-
-            $surface = $first->surface;
+        foreach ($costCentersId as $costCenter) {
+            $surface = isset($surfaces[$costCenter]) ? $surfaces[$costCenter] : 0;
             $quantityFirst = round($value->workday * $surface, 2);
             $amountFirst = round($value->price * $quantityFirst, 2);
-
-            $data = array();
-
-            for ($x = $currentMonth; $x < $currentMonth + 12; $x++) {
-                $id = date('n', mktime(0, 0, 0, $x, 1));
-                array_push($data, $id);
-            }
-
-            $totalAmountCostCenter = 0;
-            foreach($data as $month)
-            {
-                $count = DB::table('manpower_items')
-                ->select('man_power_id')
-                ->where('man_power_id', $value->id)
-                ->where('month_id', $month)
-                ->where('cost_center_id', $costCenter)
-                ->count();
-
+            foreach ($months as $month) {
+                $count = isset($itemIndex[$value->id][$costCenter][$month]) ? $itemIndex[$value->id][$costCenter][$month] : 0;
                 $amountMonth = $count > 0 ? $amountFirst : 0;
-                $totalAmountCostCenter += $amountMonth;
-                if(!isset($this->monthsManPower[$month])){
-                    $this->monthsManPower[$month] = 0;    
+                $totalAmount += $amountMonth;
+                if (!isset($this->monthsManPower[$month])) {
+                    $this->monthsManPower[$month] = 0;
                 }
                 $this->monthsManPower[$month] += $amountMonth;
             }
-            $totalAmount += $totalAmountCostCenter;
         }
-
         $this->totalManPower += $totalAmount;
     }
 
@@ -746,20 +746,40 @@ class TechnicalPanelController extends Controller
      */
     private function getServicesProducts($costCentersId)
     {
-        $products = Service::from('services as s')
-        ->join('service_items as si', 's.id', 'si.service_id')
-        ->leftJoin('units as u', 's.unit_id_price', 'u.id')
-        ->select('s.id', 's.product_name', 's.price', 's.quantity', 's.unit_id', 's.unit_id_price',  'u.name')
-        ->whereIn('si.cost_center_id', $costCentersId)
-        ->groupBy('s.id', 's.product_name', 's.price', 's.quantity', 's.unit_id', 's.unit_id_price', 'u.name')
-        ->get()
-        ->transform(function($value) use($costCentersId){
-            $data = $this->getServicesResult($value, $costCentersId);
-            return [
-                'id'            => $value->id
-            ];
-        });
+        $currentMonth = $this->month_id;
+        $months = [];
+        for ($x = $currentMonth; $x < $currentMonth + 12; $x++) {
+            $id = date('n', mktime(0, 0, 0, $x, 1));
+            $months[] = $id;
+        }
+        // Consulta agregada: suma de items por service_id, cost_center_id, month_id
+        $items = DB::table('service_items')
+            ->select('service_id', 'cost_center_id', 'month_id', DB::raw('COUNT(*) as count'))
+            ->whereIn('cost_center_id', $costCentersId)
+            ->whereIn('month_id', $months)
+            ->groupBy('service_id', 'cost_center_id', 'month_id')
+            ->get();
 
+        // Traer todos los productos necesarios de una vez
+        $products = Service::from('services as s')
+            ->leftJoin('units as u', 's.unit_id_price', 'u.id')
+            ->select('s.id', 's.product_name', 's.price', 's.quantity', 's.unit_id', 's.unit_id_price',  'u.name')
+            ->whereIn('s.id', $items->pluck('service_id')->unique())
+            ->get();
+
+        // Traer superficies de los cost centers de una vez
+        $surfaces = \App\Models\CostCenter::whereIn('id', $costCentersId)->pluck('surface', 'id');
+
+        // Indexar items por service_id y cost_center_id y month_id
+        $itemIndex = [];
+        foreach ($items as $item) {
+            $itemIndex[$item->service_id][$item->cost_center_id][$item->month_id] = $item->count;
+        }
+
+        // Calcular totales y meses
+        foreach ($products as $value) {
+            $this->getServicesResultOptimized($value, $costCentersId, $months, $itemIndex, $surfaces);
+        }
         return $products;
     }
 
@@ -767,49 +787,26 @@ class TechnicalPanelController extends Controller
      * Calcula el monto total de un servicio en todos los cost centers y meses.
      * Actualiza los acumuladores globales.
      */
-    private function getServicesResult($value, $costCentersId)
+    // Versión optimizada: calcula totales usando los datos agregados
+    private function getServicesResultOptimized($value, $costCentersId, $months, $itemIndex, $surfaces)
     {
         $totalAmount = 0;
-        $currentMonth = $this->month_id;
-        foreach($costCentersId as $costCenter){
-           $first = CostCenter::select('surface')->where('id', $costCenter)->first();
-
-           $quantity = (($value->unit_id == 4 && $value->unit_id_price == 3) || ($value->unit_id == 2 && $value->unit_id_price == 1)) ? ($value->quantity / 1000) : $value->quantity;
-           
-            $surface = $first->surface;
+        foreach ($costCentersId as $costCenter) {
+            $surface = isset($surfaces[$costCenter]) ? $surfaces[$costCenter] : 0;
+            $quantity = (($value->unit_id == 4 && $value->unit_id_price == 3) || ($value->unit_id == 2 && $value->unit_id_price == 1)) ? ($value->quantity / 1000) : $value->quantity;
             $quantityFirst = round($quantity * $surface, 2);
             $amountFirst = round($value->price * $quantityFirst, 2);
-
-            $data = array();
-
-            for ($x = $currentMonth; $x < $currentMonth + 12; $x++) {
-                $id = date('n', mktime(0, 0, 0, $x, 1));
-                array_push($data, $id);
-            }
-
-            $totalAmountCostCenter = 0;
-            foreach($data as $month)
-            {
-                $count = DB::table('service_items')
-                ->select('service_id')
-                ->where('service_id', $value->id)
-                ->where('month_id', $month)
-                ->where('cost_center_id', $costCenter)
-                ->count();
-
+            foreach ($months as $month) {
+                $count = isset($itemIndex[$value->id][$costCenter][$month]) ? $itemIndex[$value->id][$costCenter][$month] : 0;
                 $amountMonth = $count > 0 ? $amountFirst : 0;
-                $totalAmountCostCenter += $amountMonth;
-                
-
-                if(!isset($this->monthsServices[$month])){
-                    $this->monthsServices[$month] = 0;    
+                $totalAmount += $amountMonth;
+                if (!isset($this->monthsServices[$month])) {
+                    $this->monthsServices[$month] = 0;
                 }
                 $this->monthsServices[$month] += $amountMonth;
             }
-            $totalAmount += $totalAmountCostCenter;
         }
-
-        $this->totalServices += $totalAmount; 
+        $this->totalServices += $totalAmount;
     }
 
     /**
@@ -818,20 +815,40 @@ class TechnicalPanelController extends Controller
      */
     private function getSuppliesProducts($costCentersId)
     {
-        $products = Supply::from('supplies as s')
-        ->join('supply_items as si', 's.id', 'si.supply_id')
-        ->leftJoin('units as u', 's.unit_id_price', 'u.id')
-        ->select('s.id', 's.product_name', 's.price', 's.quantity', 's.unit_id', 's.unit_id_price',  'u.name')
-        ->whereIn('si.cost_center_id', $costCentersId)
-        ->groupBy('s.id', 's.product_name', 's.price', 's.quantity', 's.unit_id', 's.unit_id_price', 'u.name')
-        ->get()
-        ->transform(function($value) use($costCentersId){
-            $data = $this->getSuppliesResult($value, $costCentersId);
-            return [
-                'id'            => $value->id
-            ];
-        });
+        $currentMonth = $this->month_id;
+        $months = [];
+        for ($x = $currentMonth; $x < $currentMonth + 12; $x++) {
+            $id = date('n', mktime(0, 0, 0, $x, 1));
+            $months[] = $id;
+        }
+        // Consulta agregada: suma de items por supply_id, cost_center_id, month_id
+        $items = DB::table('supply_items')
+            ->select('supply_id', 'cost_center_id', 'month_id', DB::raw('COUNT(*) as count'))
+            ->whereIn('cost_center_id', $costCentersId)
+            ->whereIn('month_id', $months)
+            ->groupBy('supply_id', 'cost_center_id', 'month_id')
+            ->get();
 
+        // Traer todos los productos necesarios de una vez
+        $products = Supply::from('supplies as s')
+            ->leftJoin('units as u', 's.unit_id_price', 'u.id')
+            ->select('s.id', 's.product_name', 's.price', 's.quantity', 's.unit_id', 's.unit_id_price',  'u.name')
+            ->whereIn('s.id', $items->pluck('supply_id')->unique())
+            ->get();
+
+        // Traer superficies de los cost centers de una vez
+        $surfaces = \App\Models\CostCenter::whereIn('id', $costCentersId)->pluck('surface', 'id');
+
+        // Indexar items por supply_id y cost_center_id y month_id
+        $itemIndex = [];
+        foreach ($items as $item) {
+            $itemIndex[$item->supply_id][$item->cost_center_id][$item->month_id] = $item->count;
+        }
+
+        // Calcular totales y meses
+        foreach ($products as $value) {
+            $this->getSuppliesResultOptimized($value, $costCentersId, $months, $itemIndex, $surfaces);
+        }
         return $products;
     }
 
@@ -839,99 +856,88 @@ class TechnicalPanelController extends Controller
      * Calcula el monto total de un insumo en todos los cost centers y meses.
      * Actualiza los acumuladores globales.
      */
-    private function getSuppliesResult($value, $costCentersId)
+    // Versión optimizada: calcula totales usando los datos agregados
+    private function getSuppliesResultOptimized($value, $costCentersId, $months, $itemIndex, $surfaces)
     {
         $totalAmount = 0;
-        $currentMonth = $this->month_id;
-        foreach($costCentersId as $costCenter){
-           $first = CostCenter::select('surface')->where('id', $costCenter)->first();
-
-           $quantity = (($value->unit_id == 4 && $value->unit_id_price == 3) || ($value->unit_id == 2 && $value->unit_id_price == 1)) ? ($value->quantity / 1000) : $value->quantity;
-           
-            $surface = $first->surface;
+        foreach ($costCentersId as $costCenter) {
+            $surface = isset($surfaces[$costCenter]) ? $surfaces[$costCenter] : 0;
+            $quantity = (($value->unit_id == 4 && $value->unit_id_price == 3) || ($value->unit_id == 2 && $value->unit_id_price == 1)) ? ($value->quantity / 1000) : $value->quantity;
             $quantityFirst = round($quantity * $surface, 2);
             $amountFirst = round($value->price * $quantityFirst, 2);
-
-            $data = array();
-
-            for ($x = $currentMonth; $x < $currentMonth + 12; $x++) {
-                $id = date('n', mktime(0, 0, 0, $x, 1));
-                array_push($data, $id);
-            }
-
-            $totalAmountCostCenter = 0;
-            foreach($data as $month)
-            {
-                $count = DB::table('supply_items')
-                ->select('supply_id')
-                ->where('supply_id', $value->id)
-                ->where('month_id', $month)
-                ->where('cost_center_id', $costCenter)
-                ->count();
-
+            foreach ($months as $month) {
+                $count = isset($itemIndex[$value->id][$costCenter][$month]) ? $itemIndex[$value->id][$costCenter][$month] : 0;
                 $amountMonth = $count > 0 ? $amountFirst : 0;
-                $totalAmountCostCenter += $amountMonth;
-
-                if(!isset($this->monthsSupplies[$month])){
-                    $this->monthsSupplies[$month] = 0;    
+                $totalAmount += $amountMonth;
+                if (!isset($this->monthsSupplies[$month])) {
+                    $this->monthsSupplies[$month] = 0;
                 }
                 $this->monthsSupplies[$month] += $amountMonth;
             }
-            $totalAmount += $totalAmountCostCenter;
-
         }
-
-        $this->totalSupplies += $totalAmount; 
+        $this->totalSupplies += $totalAmount;
     }
 
     /**
      * Calcula el total de agroquímicos por estado de desarrollo.
      * Devuelve un array: [development_state_id => totalAmount]
      */
-private function getAgrochemicalResultByDevelopmentState($value, $costCentersId)
-{
-    $result = [];
-    $currentMonth = $this->month_id;
-    // Obtener todos los cost centers con su fruit_id y development_state_id
-    $costCenters = \App\Models\CostCenter::whereIn('id', $costCentersId)
-        ->select('id', 'fruit_id', 'development_state_id', 'surface')
-        ->get();
-    $grouped = $costCenters->groupBy(['fruit_id', 'development_state_id']);
-    foreach ($grouped as $fruitId => $devStates) {
-        foreach ($devStates as $devStateId => $centers) {
-            $totalAmountDev = 0;
-            foreach ($centers as $center) {
-                $dose = (($value->unit_id == 4 && $value->unit_id_price == 3) || ($value->unit_id == 2 && $value->unit_id_price == 1)) ? ($value->dose / 1000) : $value->dose;
-                $surface = $center->surface;
-                if ($value->dose_type_id == 1) {
-                    $quantityFirst = round($dose * $surface, 2);
-                } elseif ($value->dose_type_id == 2) {
-                    $quantityFirst = round((($value->mojamiento / 100) * $dose * $surface), 2);
-                } else {
-                    $quantityFirst = 0;
-                }
-                $amountFirst = round($value->price * $quantityFirst, 2);
-                $data = [];
-                for ($x = $currentMonth; $x < $currentMonth + 12; $x++) {
-                    $id = date('n', mktime(0, 0, 0, $x, 1));
-                    array_push($data, $id);
-                }
-                foreach ($data as $month) {
-                    $count = DB::table('agrochemical_items')
-                        ->select('agrochemical_id')
-                        ->where('agrochemical_id', $value->id)
-                        ->where('month_id', $month)
-                        ->where('cost_center_id', $center->id)
-                        ->count();
-                    $amountMonth = $count > 0 ? $amountFirst : 0;
-                    $totalAmountDev += $amountMonth;
-                }
-            }
-            $result[(string)$fruitId][(string)$devStateId] = $totalAmountDev;
+    private function getAgrochemicalResultByDevelopmentState($value, $costCentersId)
+    {
+        $result = [];
+        $currentMonth = $this->month_id;
+        $months = [];
+        for ($x = $currentMonth; $x < $currentMonth + 12; $x++) {
+            $id = date('n', mktime(0, 0, 0, $x, 1));
+            $months[] = $id;
         }
+        // Traer cost centers y superficies
+        $costCenters = \App\Models\CostCenter::whereIn('id', $costCentersId)
+            ->select('id', 'fruit_id', 'development_state_id', 'surface')
+            ->get();
+        $centerData = [];
+        foreach ($costCenters as $c) {
+            $centerData[$c->id] = [
+                'fruit_id' => $c->fruit_id,
+                'development_state_id' => $c->development_state_id,
+                'surface' => $c->surface
+            ];
+        }
+        // Consulta agregada: contar items por agrochemical_id, cost_center_id, month_id
+        $items = DB::table('agrochemical_items')
+            ->select('agrochemical_id', 'cost_center_id', 'month_id', DB::raw('COUNT(*) as count'))
+            ->where('agrochemical_id', $value->id)
+            ->whereIn('cost_center_id', $costCentersId)
+            ->whereIn('month_id', $months)
+            ->groupBy('agrochemical_id', 'cost_center_id', 'month_id')
+            ->get();
+        // Calcular totales por fruit_id y development_state_id
+        foreach ($items as $item) {
+            $center = $centerData[$item->cost_center_id] ?? null;
+            if (!$center) continue;
+            $dose = (($value->unit_id == 4 && $value->unit_id_price == 3) || ($value->unit_id == 2 && $value->unit_id_price == 1)) ? ($value->dose / 1000) : $value->dose;
+            $surface = $center['surface'];
+            if ($value->dose_type_id == 1) {
+                $quantityFirst = round($dose * $surface, 2);
+            } elseif ($value->dose_type_id == 2) {
+                $quantityFirst = round((($value->mojamiento / 100) * $dose * $surface), 2);
+            } else {
+                $quantityFirst = 0;
+            }
+            $amountFirst = round($value->price * $quantityFirst, 2);
+            $amountMonth = $item->count > 0 ? $amountFirst : 0;
+            $fruitIdStr = (string)$center['fruit_id'];
+            $devStateIdStr = (string)$center['development_state_id'];
+            if (!isset($result[$fruitIdStr])) {
+                $result[$fruitIdStr] = [];
+            }
+            if (!isset($result[$fruitIdStr][$devStateIdStr])) {
+                $result[$fruitIdStr][$devStateIdStr] = 0;
+            }
+            $result[$fruitIdStr][$devStateIdStr] += $amountMonth;
+        }
+        return $result;
     }
-    return $result;
-}
 
     /**
      * Calcula el gasto promedio de agroquímicos por hectárea y estado de desarrollo.
@@ -941,45 +947,61 @@ private function getAgrochemicalResultByDevelopmentState($value, $costCentersId)
     {
         $result = [];
         $currentMonth = $this->month_id;
-        // Obtener todos los cost centers con su fruit_id y development_state_id
+        $months = [];
+        for ($x = $currentMonth; $x < $currentMonth + 12; $x++) {
+            $id = date('n', mktime(0, 0, 0, $x, 1));
+            $months[] = $id;
+        }
+        // Traer cost centers y superficies
         $costCenters = \App\Models\CostCenter::whereIn('id', $costCentersId)
             ->select('id', 'fruit_id', 'development_state_id', 'surface')
             ->get();
-        $grouped = $costCenters->groupBy(['fruit_id', 'development_state_id']);
-        foreach ($grouped as $fruitId => $devStates) {
-            foreach ($devStates as $devStateId => $centers) {
-                $totalAmountDev = 0;
-                $totalSurface = 0;
-                foreach ($centers as $center) {
-                    $dose = (($value->unit_id == 4 && $value->unit_id_price == 3) || ($value->unit_id == 2 && $value->unit_id_price == 1)) ? ($value->dose / 1000) : $value->dose;
-                    $surface = $center->surface;
-                    if ($value->dose_type_id == 1) {
-                        $quantityFirst = round($dose * $surface, 2);
-                    } elseif ($value->dose_type_id == 2) {
-                        $quantityFirst = round((($value->mojamiento / 100) * $dose * $surface), 2);
-                    } else {
-                        $quantityFirst = 0;
-                    }
-                    $amountFirst = round($value->price * $quantityFirst, 2);
-                    $data = [];
-                    for ($x = $currentMonth; $x < $currentMonth + 12; $x++) {
-                        $id = date('n', mktime(0, 0, 0, $x, 1));
-                        array_push($data, $id);
-                    }
-                    foreach ($data as $month) {
-                        $count = DB::table('agrochemical_items')
-                            ->select('agrochemical_id')
-                            ->where('agrochemical_id', $value->id)
-                            ->where('month_id', $month)
-                            ->where('cost_center_id', $center->id)
-                            ->count();
-                        $amountMonth = $count > 0 ? $amountFirst : 0;
-                        $totalAmountDev += $amountMonth;
-                    }
-                    $totalSurface += $surface;
-                }
-                // Evitar división por cero
-                $result[(string)$fruitId][(string)$devStateId] = $totalSurface > 0 ? $totalAmountDev / $totalSurface : 0;
+        $centerData = [];
+        foreach ($costCenters as $c) {
+            $centerData[$c->id] = [
+                'fruit_id' => $c->fruit_id,
+                'development_state_id' => $c->development_state_id,
+                'surface' => $c->surface
+            ];
+        }
+        // Consulta agregada: contar items por agrochemical_id, cost_center_id, month_id
+        $items = DB::table('agrochemical_items')
+            ->select('agrochemical_id', 'cost_center_id', 'month_id', DB::raw('COUNT(*) as count'))
+            ->where('agrochemical_id', $value->id)
+            ->whereIn('cost_center_id', $costCentersId)
+            ->whereIn('month_id', $months)
+            ->groupBy('agrochemical_id', 'cost_center_id', 'month_id')
+            ->get();
+        // Calcular totales por fruit_id y development_state_id
+        $amounts = [];
+        $surfaces = [];
+        foreach ($items as $item) {
+            $center = $centerData[$item->cost_center_id] ?? null;
+            if (!$center) continue;
+            $dose = (($value->unit_id == 4 && $value->unit_id_price == 3) || ($value->unit_id == 2 && $value->unit_id_price == 1)) ? ($value->dose / 1000) : $value->dose;
+            $surface = $center['surface'];
+            if ($value->dose_type_id == 1) {
+                $quantityFirst = round($dose * $surface, 2);
+            } elseif ($value->dose_type_id == 2) {
+                $quantityFirst = round((($value->mojamiento / 100) * $dose * $surface), 2);
+            } else {
+                $quantityFirst = 0;
+            }
+            $amountFirst = round($value->price * $quantityFirst, 2);
+            $amountMonth = $item->count > 0 ? $amountFirst : 0;
+            $fruitIdStr = (string)$center['fruit_id'];
+            $devStateIdStr = (string)$center['development_state_id'];
+            if (!isset($amounts[$fruitIdStr][$devStateIdStr])) {
+                $amounts[$fruitIdStr][$devStateIdStr] = 0;
+                $surfaces[$fruitIdStr][$devStateIdStr] = 0;
+            }
+            $amounts[$fruitIdStr][$devStateIdStr] += $amountMonth;
+            $surfaces[$fruitIdStr][$devStateIdStr] += $surface;
+        }
+        foreach ($amounts as $fruitId => $devStates) {
+            foreach ($devStates as $devStateId => $amount) {
+                $surface = $surfaces[$fruitId][$devStateId];
+                $result[$fruitId][$devStateId] = $surface > 0 ? $amount / $surface : 0;
             }
         }
         return $result;
@@ -993,37 +1015,46 @@ private function getAgrochemicalResultByDevelopmentState($value, $costCentersId)
     {
         $result = [];
         $currentMonth = $this->month_id;
-        // Obtener todos los cost centers con su fruit_id y development_state_id
+        $months = [];
+        for ($x = $currentMonth; $x < $currentMonth + 12; $x++) {
+            $id = date('n', mktime(0, 0, 0, $x, 1));
+            $months[] = $id;
+        }
         $costCenters = \App\Models\CostCenter::whereIn('id', $costCentersId)
             ->select('id', 'fruit_id', 'development_state_id', 'surface')
             ->get();
-        $grouped = $costCenters->groupBy(['fruit_id', 'development_state_id']);
-        foreach ($grouped as $fruitId => $devStates) {
-            foreach ($devStates as $devStateId => $centers) {
-                $totalAmountDev = 0;
-                foreach ($centers as $center) {
-                    $surface = $center->surface;
-                    $dose = (($value->unit_id == 4 && $value->unit_id_price == 3) || ($value->unit_id == 2 && $value->unit_id_price == 1)) ? ($value->dose / 1000) : $value->dose;
-                    $quantityFirst = round($dose * $surface, 2);
-                    $amountFirst = round($value->price * $quantityFirst, 2);
-                    $data = [];
-                    for ($x = $currentMonth; $x < $currentMonth + 12; $x++) {
-                        $id = date('n', mktime(0, 0, 0, $x, 1));
-                        array_push($data, $id);
-                    }
-                    foreach ($data as $month) {
-                        $count = DB::table('fertilizer_items')
-                            ->select('fertilizer_id')
-                            ->where('fertilizer_id', $value->id)
-                            ->where('month_id', $month)
-                            ->where('cost_center_id', $center->id)
-                            ->count();
-                        $amountMonth = $count > 0 ? $amountFirst : 0;
-                        $totalAmountDev += $amountMonth;
-                    }
-                }
-                $result[(string)$fruitId][(string)$devStateId] = $totalAmountDev;
+        $centerData = [];
+        foreach ($costCenters as $c) {
+            $centerData[$c->id] = [
+                'fruit_id' => $c->fruit_id,
+                'development_state_id' => $c->development_state_id,
+                'surface' => $c->surface
+            ];
+        }
+        $items = DB::table('fertilizer_items')
+            ->select('fertilizer_id', 'cost_center_id', 'month_id', DB::raw('COUNT(*) as count'))
+            ->where('fertilizer_id', $value->id)
+            ->whereIn('cost_center_id', $costCentersId)
+            ->whereIn('month_id', $months)
+            ->groupBy('fertilizer_id', 'cost_center_id', 'month_id')
+            ->get();
+        foreach ($items as $item) {
+            $center = $centerData[$item->cost_center_id] ?? null;
+            if (!$center) continue;
+            $surface = $center['surface'];
+            $dose = (($value->unit_id == 4 && $value->unit_id_price == 3) || ($value->unit_id == 2 && $value->unit_id_price == 1)) ? ($value->dose / 1000) : $value->dose;
+            $quantityFirst = round($dose * $surface, 2);
+            $amountFirst = round($value->price * $quantityFirst, 2);
+            $amountMonth = $item->count > 0 ? $amountFirst : 0;
+            $fruitIdStr = (string)$center['fruit_id'];
+            $devStateIdStr = (string)$center['development_state_id'];
+            if (!isset($result[$fruitIdStr])) {
+                $result[$fruitIdStr] = [];
             }
+            if (!isset($result[$fruitIdStr][$devStateIdStr])) {
+                $result[$fruitIdStr][$devStateIdStr] = 0;
+            }
+            $result[$fruitIdStr][$devStateIdStr] += $amountMonth;
         }
         return $result;
     }
@@ -1036,37 +1067,52 @@ private function getAgrochemicalResultByDevelopmentState($value, $costCentersId)
     {
         $result = [];
         $currentMonth = $this->month_id;
+        $months = [];
+        for ($x = $currentMonth; $x < $currentMonth + 12; $x++) {
+            $id = date('n', mktime(0, 0, 0, $x, 1));
+            $months[] = $id;
+        }
         $costCenters = \App\Models\CostCenter::whereIn('id', $costCentersId)
             ->select('id', 'fruit_id', 'development_state_id', 'surface')
             ->get();
-        $grouped = $costCenters->groupBy(['fruit_id', 'development_state_id']);
-        foreach ($grouped as $fruitId => $devStates) {
-            foreach ($devStates as $devStateId => $centers) {
-                $totalAmountDev = 0;
-                $totalSurface = 0;
-                foreach ($centers as $center) {
-                    $surface = $center->surface;
-                    $dose = (($value->unit_id == 4 && $value->unit_id_price == 3) || ($value->unit_id == 2 && $value->unit_id_price == 1)) ? ($value->dose / 1000) : $value->dose;
-                    $quantityFirst = round($dose * $surface, 2);
-                    $amountFirst = round($value->price * $quantityFirst, 2);
-                    $data = [];
-                    for ($x = $currentMonth; $x < $currentMonth + 12; $x++) {
-                        $id = date('n', mktime(0, 0, 0, $x, 1));
-                        array_push($data, $id);
-                    }
-                    foreach ($data as $month) {
-                        $count = DB::table('fertilizer_items')
-                            ->select('fertilizer_id')
-                            ->where('fertilizer_id', $value->id)
-                            ->where('month_id', $month)
-                            ->where('cost_center_id', $center->id)
-                            ->count();
-                        $amountMonth = $count > 0 ? $amountFirst : 0;
-                        $totalAmountDev += $amountMonth;
-                    }
-                    $totalSurface += $surface;
-                }
-                $result[(string)$fruitId][(string)$devStateId] = $totalSurface > 0 ? $totalAmountDev / $totalSurface : 0;
+        $centerData = [];
+        foreach ($costCenters as $c) {
+            $centerData[$c->id] = [
+                'fruit_id' => $c->fruit_id,
+                'development_state_id' => $c->development_state_id,
+                'surface' => $c->surface
+            ];
+        }
+        $items = DB::table('fertilizer_items')
+            ->select('fertilizer_id', 'cost_center_id', 'month_id', DB::raw('COUNT(*) as count'))
+            ->where('fertilizer_id', $value->id)
+            ->whereIn('cost_center_id', $costCentersId)
+            ->whereIn('month_id', $months)
+            ->groupBy('fertilizer_id', 'cost_center_id', 'month_id')
+            ->get();
+        $amounts = [];
+        $surfaces = [];
+        foreach ($items as $item) {
+            $center = $centerData[$item->cost_center_id] ?? null;
+            if (!$center) continue;
+            $surface = $center['surface'];
+            $dose = (($value->unit_id == 4 && $value->unit_id_price == 3) || ($value->unit_id == 2 && $value->unit_id_price == 1)) ? ($value->dose / 1000) : $value->dose;
+            $quantityFirst = round($dose * $surface, 2);
+            $amountFirst = round($value->price * $quantityFirst, 2);
+            $amountMonth = $item->count > 0 ? $amountFirst : 0;
+            $fruitIdStr = (string)$center['fruit_id'];
+            $devStateIdStr = (string)$center['development_state_id'];
+            if (!isset($amounts[$fruitIdStr][$devStateIdStr])) {
+                $amounts[$fruitIdStr][$devStateIdStr] = 0;
+                $surfaces[$fruitIdStr][$devStateIdStr] = 0;
+            }
+            $amounts[$fruitIdStr][$devStateIdStr] += $amountMonth;
+            $surfaces[$fruitIdStr][$devStateIdStr] += $surface;
+        }
+        foreach ($amounts as $fruitId => $devStates) {
+            foreach ($devStates as $devStateId => $amount) {
+                $surface = $surfaces[$fruitId][$devStateId];
+                $result[$fruitId][$devStateId] = $surface > 0 ? $amount / $surface : 0;
             }
         }
         return $result;
@@ -1080,36 +1126,45 @@ private function getAgrochemicalResultByDevelopmentState($value, $costCentersId)
     {
         $result = [];
         $currentMonth = $this->month_id;
-        // Obtener todos los cost centers con su fruit_id y development_state_id
+        $months = [];
+        for ($x = $currentMonth; $x < $currentMonth + 12; $x++) {
+            $id = date('n', mktime(0, 0, 0, $x, 1));
+            $months[] = $id;
+        }
         $costCenters = \App\Models\CostCenter::whereIn('id', $costCentersId)
             ->select('id', 'fruit_id', 'development_state_id', 'surface')
             ->get();
-        $grouped = $costCenters->groupBy(['fruit_id', 'development_state_id']);
-        foreach ($grouped as $fruitId => $devStates) {
-            foreach ($devStates as $devStateId => $centers) {
-                $totalAmountDev = 0;
-                foreach ($centers as $center) {
-                    $surface = $center->surface;
-                    $quantityFirst = round($value->workday * $surface, 2);
-                    $amountFirst = round($value->price * $quantityFirst, 2);
-                    $data = [];
-                    for ($x = $currentMonth; $x < $currentMonth + 12; $x++) {
-                        $id = date('n', mktime(0, 0, 0, $x, 1));
-                        array_push($data, $id);
-                    }
-                    foreach ($data as $month) {
-                        $count = DB::table('manpower_items')
-                            ->select('man_power_id')
-                            ->where('man_power_id', $value->id)
-                            ->where('month_id', $month)
-                            ->where('cost_center_id', $center->id)
-                            ->count();
-                        $amountMonth = $count > 0 ? $amountFirst : 0;
-                        $totalAmountDev += $amountMonth;
-                    }
-                }
-                $result[(string)$fruitId][(string)$devStateId] = $totalAmountDev;
+        $centerData = [];
+        foreach ($costCenters as $c) {
+            $centerData[$c->id] = [
+                'fruit_id' => $c->fruit_id,
+                'development_state_id' => $c->development_state_id,
+                'surface' => $c->surface
+            ];
+        }
+        $items = DB::table('manpower_items')
+            ->select('man_power_id', 'cost_center_id', 'month_id', DB::raw('COUNT(*) as count'))
+            ->where('man_power_id', $value->id)
+            ->whereIn('cost_center_id', $costCentersId)
+            ->whereIn('month_id', $months)
+            ->groupBy('man_power_id', 'cost_center_id', 'month_id')
+            ->get();
+        foreach ($items as $item) {
+            $center = $centerData[$item->cost_center_id] ?? null;
+            if (!$center) continue;
+            $surface = $center['surface'];
+            $quantityFirst = round($value->workday * $surface, 2);
+            $amountFirst = round($value->price * $quantityFirst, 2);
+            $amountMonth = $item->count > 0 ? $amountFirst : 0;
+            $fruitIdStr = (string)$center['fruit_id'];
+            $devStateIdStr = (string)$center['development_state_id'];
+            if (!isset($result[$fruitIdStr])) {
+                $result[$fruitIdStr] = [];
             }
+            if (!isset($result[$fruitIdStr][$devStateIdStr])) {
+                $result[$fruitIdStr][$devStateIdStr] = 0;
+            }
+            $result[$fruitIdStr][$devStateIdStr] += $amountMonth;
         }
         return $result;
     }
@@ -1122,36 +1177,51 @@ private function getAgrochemicalResultByDevelopmentState($value, $costCentersId)
     {
         $result = [];
         $currentMonth = $this->month_id;
+        $months = [];
+        for ($x = $currentMonth; $x < $currentMonth + 12; $x++) {
+            $id = date('n', mktime(0, 0, 0, $x, 1));
+            $months[] = $id;
+        }
         $costCenters = \App\Models\CostCenter::whereIn('id', $costCentersId)
             ->select('id', 'fruit_id', 'development_state_id', 'surface')
             ->get();
-        $grouped = $costCenters->groupBy(['fruit_id', 'development_state_id']);
-        foreach ($grouped as $fruitId => $devStates) {
-            foreach ($devStates as $devStateId => $centers) {
-                $totalAmountDev = 0;
-                $totalSurface = 0;
-                foreach ($centers as $center) {
-                    $surface = $center->surface;
-                    $quantityFirst = round($value->workday * $surface, 2);
-                    $amountFirst = round($value->price * $quantityFirst, 2);
-                    $data = [];
-                    for ($x = $currentMonth; $x < $currentMonth + 12; $x++) {
-                        $id = date('n', mktime(0, 0, 0, $x, 1));
-                        array_push($data, $id);
-                    }
-                    foreach ($data as $month) {
-                        $count = DB::table('manpower_items')
-                            ->select('man_power_id')
-                            ->where('man_power_id', $value->id)
-                            ->where('month_id', $month)
-                            ->where('cost_center_id', $center->id)
-                            ->count();
-                        $amountMonth = $count > 0 ? $amountFirst : 0;
-                        $totalAmountDev += $amountMonth;
-                    }
-                    $totalSurface += $surface;
-                }
-                $result[(string)$fruitId][(string)$devStateId] = $totalSurface > 0 ? $totalAmountDev / $totalSurface : 0;
+        $centerData = [];
+        foreach ($costCenters as $c) {
+            $centerData[$c->id] = [
+                'fruit_id' => $c->fruit_id,
+                'development_state_id' => $c->development_state_id,
+                'surface' => $c->surface
+            ];
+        }
+        $items = DB::table('manpower_items')
+            ->select('man_power_id', 'cost_center_id', 'month_id', DB::raw('COUNT(*) as count'))
+            ->where('man_power_id', $value->id)
+            ->whereIn('cost_center_id', $costCentersId)
+            ->whereIn('month_id', $months)
+            ->groupBy('man_power_id', 'cost_center_id', 'month_id')
+            ->get();
+        $amounts = [];
+        $surfaces = [];
+        foreach ($items as $item) {
+            $center = $centerData[$item->cost_center_id] ?? null;
+            if (!$center) continue;
+            $surface = $center['surface'];
+            $quantityFirst = round($value->workday * $surface, 2);
+            $amountFirst = round($value->price * $quantityFirst, 2);
+            $amountMonth = $item->count > 0 ? $amountFirst : 0;
+            $fruitIdStr = (string)$center['fruit_id'];
+            $devStateIdStr = (string)$center['development_state_id'];
+            if (!isset($amounts[$fruitIdStr][$devStateIdStr])) {
+                $amounts[$fruitIdStr][$devStateIdStr] = 0;
+                $surfaces[$fruitIdStr][$devStateIdStr] = 0;
+            }
+            $amounts[$fruitIdStr][$devStateIdStr] += $amountMonth;
+            $surfaces[$fruitIdStr][$devStateIdStr] += $surface;
+        }
+        foreach ($amounts as $fruitId => $devStates) {
+            foreach ($devStates as $devStateId => $amount) {
+                $surface = $surfaces[$fruitId][$devStateId];
+                $result[$fruitId][$devStateId] = $surface > 0 ? $amount / $surface : 0;
             }
         }
         return $result;
@@ -1165,37 +1235,46 @@ private function getAgrochemicalResultByDevelopmentState($value, $costCentersId)
     {
         $result = [];
         $currentMonth = $this->month_id;
-        // Obtener todos los cost centers con su fruit_id y development_state_id
+        $months = [];
+        for ($x = $currentMonth; $x < $currentMonth + 12; $x++) {
+            $id = date('n', mktime(0, 0, 0, $x, 1));
+            $months[] = $id;
+        }
         $costCenters = \App\Models\CostCenter::whereIn('id', $costCentersId)
             ->select('id', 'fruit_id', 'development_state_id', 'surface')
             ->get();
-        $grouped = $costCenters->groupBy(['fruit_id', 'development_state_id']);
-        foreach ($grouped as $fruitId => $devStates) {
-            foreach ($devStates as $devStateId => $centers) {
-                $totalAmountDev = 0;
-                foreach ($centers as $center) {
-                    $surface = $center->surface;
-                    $quantity = (($value->unit_id == 4 && $value->unit_id_price == 3) || ($value->unit_id == 2 && $value->unit_id_price == 1)) ? ($value->quantity / 1000) : $value->quantity;
-                    $quantityFirst = round($quantity * $surface, 2);
-                    $amountFirst = round($value->price * $quantityFirst, 2);
-                    $data = [];
-                    for ($x = $currentMonth; $x < $currentMonth + 12; $x++) {
-                        $id = date('n', mktime(0, 0, 0, $x, 1));
-                        array_push($data, $id);
-                    }
-                    foreach ($data as $month) {
-                        $count = DB::table('service_items')
-                            ->select('service_id')
-                            ->where('service_id', $value->id)
-                            ->where('month_id', $month)
-                            ->where('cost_center_id', $center->id)
-                            ->count();
-                        $amountMonth = $count > 0 ? $amountFirst : 0;
-                        $totalAmountDev += $amountMonth;
-                    }
-                }
-                $result[(string)$fruitId][(string)$devStateId] = $totalAmountDev;
+        $centerData = [];
+        foreach ($costCenters as $c) {
+            $centerData[$c->id] = [
+                'fruit_id' => $c->fruit_id,
+                'development_state_id' => $c->development_state_id,
+                'surface' => $c->surface
+            ];
+        }
+        $items = DB::table('service_items')
+            ->select('service_id', 'cost_center_id', 'month_id', DB::raw('COUNT(*) as count'))
+            ->where('service_id', $value->id)
+            ->whereIn('cost_center_id', $costCentersId)
+            ->whereIn('month_id', $months)
+            ->groupBy('service_id', 'cost_center_id', 'month_id')
+            ->get();
+        foreach ($items as $item) {
+            $center = $centerData[$item->cost_center_id] ?? null;
+            if (!$center) continue;
+            $surface = $center['surface'];
+            $quantity = (($value->unit_id == 4 && $value->unit_id_price == 3) || ($value->unit_id == 2 && $value->unit_id_price == 1)) ? ($value->quantity / 1000) : $value->quantity;
+            $quantityFirst = round($quantity * $surface, 2);
+            $amountFirst = round($value->price * $quantityFirst, 2);
+            $amountMonth = $item->count > 0 ? $amountFirst : 0;
+            $fruitIdStr = (string)$center['fruit_id'];
+            $devStateIdStr = (string)$center['development_state_id'];
+            if (!isset($result[$fruitIdStr])) {
+                $result[$fruitIdStr] = [];
             }
+            if (!isset($result[$fruitIdStr][$devStateIdStr])) {
+                $result[$fruitIdStr][$devStateIdStr] = 0;
+            }
+            $result[$fruitIdStr][$devStateIdStr] += $amountMonth;
         }
         return $result;
     }
@@ -1208,37 +1287,52 @@ private function getAgrochemicalResultByDevelopmentState($value, $costCentersId)
     {
         $result = [];
         $currentMonth = $this->month_id;
+        $months = [];
+        for ($x = $currentMonth; $x < $currentMonth + 12; $x++) {
+            $id = date('n', mktime(0, 0, 0, $x, 1));
+            $months[] = $id;
+        }
         $costCenters = \App\Models\CostCenter::whereIn('id', $costCentersId)
             ->select('id', 'fruit_id', 'development_state_id', 'surface')
             ->get();
-        $grouped = $costCenters->groupBy(['fruit_id', 'development_state_id']);
-        foreach ($grouped as $fruitId => $devStates) {
-            foreach ($devStates as $devStateId => $centers) {
-                $totalAmountDev = 0;
-                $totalSurface = 0;
-                foreach ($centers as $center) {
-                    $surface = $center->surface;
-                    $quantity = (($value->unit_id == 4 && $value->unit_id_price == 3) || ($value->unit_id == 2 && $value->unit_id_price == 1)) ? ($value->quantity / 1000) : $value->quantity;
-                    $quantityFirst = round($quantity * $surface, 2);
-                    $amountFirst = round($value->price * $quantityFirst, 2);
-                    $data = [];
-                    for ($x = $currentMonth; $x < $currentMonth + 12; $x++) {
-                        $id = date('n', mktime(0, 0, 0, $x, 1));
-                        array_push($data, $id);
-                    }
-                    foreach ($data as $month) {
-                        $count = DB::table('service_items')
-                            ->select('service_id')
-                            ->where('service_id', $value->id)
-                            ->where('month_id', $month)
-                            ->where('cost_center_id', $center->id)
-                            ->count();
-                        $amountMonth = $count > 0 ? $amountFirst : 0;
-                        $totalAmountDev += $amountMonth;
-                    }
-                    $totalSurface += $surface;
-                }
-                $result[(string)$fruitId][(string)$devStateId] = $totalSurface > 0 ? $totalAmountDev / $totalSurface : 0;
+        $centerData = [];
+        foreach ($costCenters as $c) {
+            $centerData[$c->id] = [
+                'fruit_id' => $c->fruit_id,
+                'development_state_id' => $c->development_state_id,
+                'surface' => $c->surface
+            ];
+        }
+        $items = DB::table('service_items')
+            ->select('service_id', 'cost_center_id', 'month_id', DB::raw('COUNT(*) as count'))
+            ->where('service_id', $value->id)
+            ->whereIn('cost_center_id', $costCentersId)
+            ->whereIn('month_id', $months)
+            ->groupBy('service_id', 'cost_center_id', 'month_id')
+            ->get();
+        $amounts = [];
+        $surfaces = [];
+        foreach ($items as $item) {
+            $center = $centerData[$item->cost_center_id] ?? null;
+            if (!$center) continue;
+            $surface = $center['surface'];
+            $quantity = (($value->unit_id == 4 && $value->unit_id_price == 3) || ($value->unit_id == 2 && $value->unit_id_price == 1)) ? ($value->quantity / 1000) : $value->quantity;
+            $quantityFirst = round($quantity * $surface, 2);
+            $amountFirst = round($value->price * $quantityFirst, 2);
+            $amountMonth = $item->count > 0 ? $amountFirst : 0;
+            $fruitIdStr = (string)$center['fruit_id'];
+            $devStateIdStr = (string)$center['development_state_id'];
+            if (!isset($amounts[$fruitIdStr][$devStateIdStr])) {
+                $amounts[$fruitIdStr][$devStateIdStr] = 0;
+                $surfaces[$fruitIdStr][$devStateIdStr] = 0;
+            }
+            $amounts[$fruitIdStr][$devStateIdStr] += $amountMonth;
+            $surfaces[$fruitIdStr][$devStateIdStr] += $surface;
+        }
+        foreach ($amounts as $fruitId => $devStates) {
+            foreach ($devStates as $devStateId => $amount) {
+                $surface = $surfaces[$fruitId][$devStateId];
+                $result[$fruitId][$devStateId] = $surface > 0 ? $amount / $surface : 0;
             }
         }
         return $result;
@@ -1252,37 +1346,46 @@ private function getAgrochemicalResultByDevelopmentState($value, $costCentersId)
     {
         $result = [];
         $currentMonth = $this->month_id;
-        // Obtener todos los cost centers con su fruit_id y development_state_id
+        $months = [];
+        for ($x = $currentMonth; $x < $currentMonth + 12; $x++) {
+            $id = date('n', mktime(0, 0, 0, $x, 1));
+            $months[] = $id;
+        }
         $costCenters = \App\Models\CostCenter::whereIn('id', $costCentersId)
             ->select('id', 'fruit_id', 'development_state_id', 'surface')
             ->get();
-        $grouped = $costCenters->groupBy(['fruit_id', 'development_state_id']);
-        foreach ($grouped as $fruitId => $devStates) {
-            foreach ($devStates as $devStateId => $centers) {
-                $totalAmountDev = 0;
-                foreach ($centers as $center) {
-                    $surface = $center->surface;
-                    $quantity = (($value->unit_id == 4 && $value->unit_id_price == 3) || ($value->unit_id == 2 && $value->unit_id_price == 1)) ? ($value->quantity / 1000) : $value->quantity;
-                    $quantityFirst = round($quantity * $surface, 2);
-                    $amountFirst = round($value->price * $quantityFirst, 2);
-                    $data = [];
-                    for ($x = $currentMonth; $x < $currentMonth + 12; $x++) {
-                        $id = date('n', mktime(0, 0, 0, $x, 1));
-                        array_push($data, $id);
-                    }
-                    foreach ($data as $month) {
-                        $count = DB::table('supply_items')
-                            ->select('supply_id')
-                            ->where('supply_id', $value->id)
-                            ->where('month_id', $month)
-                            ->where('cost_center_id', $center->id)
-                            ->count();
-                        $amountMonth = $count > 0 ? $amountFirst : 0;
-                        $totalAmountDev += $amountMonth;
-                    }
-                }
-                $result[(string)$fruitId][(string)$devStateId] = $totalAmountDev;
+        $centerData = [];
+        foreach ($costCenters as $c) {
+            $centerData[$c->id] = [
+                'fruit_id' => $c->fruit_id,
+                'development_state_id' => $c->development_state_id,
+                'surface' => $c->surface
+            ];
+        }
+        $items = DB::table('supply_items')
+            ->select('supply_id', 'cost_center_id', 'month_id', DB::raw('COUNT(*) as count'))
+            ->where('supply_id', $value->id)
+            ->whereIn('cost_center_id', $costCentersId)
+            ->whereIn('month_id', $months)
+            ->groupBy('supply_id', 'cost_center_id', 'month_id')
+            ->get();
+        foreach ($items as $item) {
+            $center = $centerData[$item->cost_center_id] ?? null;
+            if (!$center) continue;
+            $surface = $center['surface'];
+            $quantity = (($value->unit_id == 4 && $value->unit_id_price == 3) || ($value->unit_id == 2 && $value->unit_id_price == 1)) ? ($value->quantity / 1000) : $value->quantity;
+            $quantityFirst = round($quantity * $surface, 2);
+            $amountFirst = round($value->price * $quantityFirst, 2);
+            $amountMonth = $item->count > 0 ? $amountFirst : 0;
+            $fruitIdStr = (string)$center['fruit_id'];
+            $devStateIdStr = (string)$center['development_state_id'];
+            if (!isset($result[$fruitIdStr])) {
+                $result[$fruitIdStr] = [];
             }
+            if (!isset($result[$fruitIdStr][$devStateIdStr])) {
+                $result[$fruitIdStr][$devStateIdStr] = 0;
+            }
+            $result[$fruitIdStr][$devStateIdStr] += $amountMonth;
         }
         return $result;
     }
@@ -1295,38 +1398,52 @@ private function getAgrochemicalResultByDevelopmentState($value, $costCentersId)
     {
         $result = [];
         $currentMonth = $this->month_id;
-        // Obtener todos los cost centers con su fruit_id y development_state_id
+        $months = [];
+        for ($x = $currentMonth; $x < $currentMonth + 12; $x++) {
+            $id = date('n', mktime(0, 0, 0, $x, 1));
+            $months[] = $id;
+        }
         $costCenters = \App\Models\CostCenter::whereIn('id', $costCentersId)
             ->select('id', 'fruit_id', 'development_state_id', 'surface')
             ->get();
-        $grouped = $costCenters->groupBy(['fruit_id', 'development_state_id']);
-        foreach ($grouped as $fruitId => $devStates) {
-            foreach ($devStates as $devStateId => $centers) {
-                $totalAmountDev = 0;
-                $totalSurface = 0;
-                foreach ($centers as $center) {
-                    $surface = $center->surface;
-                    $quantity = (($value->unit_id == 4 && $value->unit_id_price == 3) || ($value->unit_id == 2 && $value->unit_id_price == 1)) ? ($value->quantity / 1000) : $value->quantity;
-                    $quantityFirst = round($quantity * $surface, 2);
-                    $amountFirst = round($value->price * $quantityFirst, 2);
-                    $data = [];
-                    for ($x = $currentMonth; $x < $currentMonth + 12; $x++) {
-                        $id = date('n', mktime(0, 0, 0, $x, 1));
-                        array_push($data, $id);
-                    }
-                    foreach ($data as $month) {
-                        $count = DB::table('supply_items')
-                            ->select('supply_id')
-                            ->where('supply_id', $value->id)
-                            ->where('month_id', $month)
-                            ->where('cost_center_id', $center->id)
-                            ->count();
-                        $amountMonth = $count > 0 ? $amountFirst : 0;
-                        $totalAmountDev += $amountMonth;
-                    }
-                    $totalSurface += $surface;
-                }
-                $result[(string)$fruitId][(string)$devStateId] = $totalSurface > 0 ? $totalAmountDev / $totalSurface : 0;
+        $centerData = [];
+        foreach ($costCenters as $c) {
+            $centerData[$c->id] = [
+                'fruit_id' => $c->fruit_id,
+                'development_state_id' => $c->development_state_id,
+                'surface' => $c->surface
+            ];
+        }
+        $items = DB::table('supply_items')
+            ->select('supply_id', 'cost_center_id', 'month_id', DB::raw('COUNT(*) as count'))
+            ->where('supply_id', $value->id)
+            ->whereIn('cost_center_id', $costCentersId)
+            ->whereIn('month_id', $months)
+            ->groupBy('supply_id', 'cost_center_id', 'month_id')
+            ->get();
+        $amounts = [];
+        $surfaces = [];
+        foreach ($items as $item) {
+            $center = $centerData[$item->cost_center_id] ?? null;
+            if (!$center) continue;
+            $surface = $center['surface'];
+            $quantity = (($value->unit_id == 4 && $value->unit_id_price == 3) || ($value->unit_id == 2 && $value->unit_id_price == 1)) ? ($value->quantity / 1000) : $value->quantity;
+            $quantityFirst = round($quantity * $surface, 2);
+            $amountFirst = round($value->price * $quantityFirst, 2);
+            $amountMonth = $item->count > 0 ? $amountFirst : 0;
+            $fruitIdStr = (string)$center['fruit_id'];
+            $devStateIdStr = (string)$center['development_state_id'];
+            if (!isset($amounts[$fruitIdStr][$devStateIdStr])) {
+                $amounts[$fruitIdStr][$devStateIdStr] = 0;
+                $surfaces[$fruitIdStr][$devStateIdStr] = 0;
+            }
+            $amounts[$fruitIdStr][$devStateIdStr] += $amountMonth;
+            $surfaces[$fruitIdStr][$devStateIdStr] += $surface;
+        }
+        foreach ($amounts as $fruitId => $devStates) {
+            foreach ($devStates as $devStateId => $amount) {
+                $surface = $surfaces[$fruitId][$devStateId];
+                $result[$fruitId][$devStateId] = $surface > 0 ? $amount / $surface : 0;
             }
         }
         return $result;
@@ -1366,7 +1483,7 @@ private function getAgrochemicalResultByDevelopmentState($value, $costCentersId)
             $id = date('n', mktime(0, 0, 0, $x, 1));
             $months[] = $id;
         }
-
+        // Traer todas las administraciones y sus datos
         $administrations = DB::table('administrations as a')
             ->join('level3s as l3', 'a.subfamily_id', '=', 'l3.id')
             ->join('level2s as l2', 'l3.level2_id', '=', 'l2.id')
@@ -1382,16 +1499,23 @@ private function getAgrochemicalResultByDevelopmentState($value, $costCentersId)
         }
         $administrations = $administrations->get();
 
+        // Traer todos los administration_items de una vez
+        $items = DB::table('administration_items')
+            ->select('administration_id', 'month_id')
+            ->whereIn('month_id', $months)
+            ->whereIn('administration_id', $administrations->pluck('administration_id'))
+            ->get();
+
+        // Indexar items por administration_id
+        $itemIndex = [];
+        foreach ($items as $item) {
+            $itemIndex[$item->administration_id][$item->month_id] = true;
+        }
+
         $totals = [];
         foreach ($administrations as $adm) {
-            // Buscar los meses activos en los que aparece este administration_id
-            $activeMonths = DB::table('administration_items')
-                ->where('administration_id', $adm->administration_id)
-                ->whereIn('month_id', $months)
-                ->distinct('month_id')
-                ->pluck('month_id');
-            $countMonths = $activeMonths->count();
-            if ($countMonths > 0) {
+            $activeMonths = isset($itemIndex[$adm->administration_id]) ? count($itemIndex[$adm->administration_id]) : 0;
+            if ($activeMonths > 0) {
                 $key = $adm->level1_id . '-' . $adm->level2_id;
                 if (!isset($totals[$key])) {
                     $totals[$key] = [
@@ -1403,7 +1527,7 @@ private function getAgrochemicalResultByDevelopmentState($value, $costCentersId)
                     ];
                 }
                 $quantity = ($adm->quantity !== null && ($adm->quantity > 0)) ? ((in_array($adm->unit_id ?? null, [2,4])) ? ($adm->quantity / 1000) : $adm->quantity) : 0;
-                $amount = round($adm->price * $quantity * $countMonths, 2);
+                $amount = round($adm->price * $quantity * $activeMonths, 2);
                 $totals[$key]['total_amount'] += $amount;
             }
         }
@@ -1412,7 +1536,7 @@ private function getAgrochemicalResultByDevelopmentState($value, $costCentersId)
 
 
 
- private function getFieldTotalsByLevel12($team_id = null)
+    private function getFieldTotalsByLevel12($team_id = null)
     {
         $season_id = session('season_id');
         $season = \App\Models\Season::select('month_id')->where('id', $season_id)->first();
@@ -1438,16 +1562,23 @@ private function getAgrochemicalResultByDevelopmentState($value, $costCentersId)
         }
         $fields = $fields->get();
 
+        // Traer todos los field_items de una vez
+        $items = DB::table('field_items')
+            ->select('field_id', 'month_id')
+            ->whereIn('month_id', $months)
+            ->whereIn('field_id', $fields->pluck('field_id'))
+            ->get();
+
+        // Indexar items por field_id
+        $itemIndex = [];
+        foreach ($items as $item) {
+            $itemIndex[$item->field_id][$item->month_id] = true;
+        }
+
         $totals = [];
         foreach ($fields as $adm) {
-            // Buscar los meses activos en los que aparece este field_id
-            $activeMonths = DB::table('field_items')
-                ->where('field_id', $adm->field_id)
-                ->whereIn('month_id', $months)
-                ->distinct('month_id')
-                ->pluck('month_id');
-            $countMonths = $activeMonths->count();
-            if ($countMonths > 0) {
+            $activeMonths = isset($itemIndex[$adm->field_id]) ? count($itemIndex[$adm->field_id]) : 0;
+            if ($activeMonths > 0) {
                 $key = $adm->level1_id . '-' . $adm->level2_id;
                 if (!isset($totals[$key])) {
                     $totals[$key] = [
@@ -1459,7 +1590,7 @@ private function getAgrochemicalResultByDevelopmentState($value, $costCentersId)
                     ];
                 }
                 $quantity = ($adm->quantity !== null && ($adm->quantity > 0)) ? ((in_array($adm->unit_id ?? null, [2,4])) ? ($adm->quantity / 1000) : $adm->quantity) : 0;
-                $amount = round($adm->price * $quantity * $countMonths, 2);
+                $amount = round($adm->price * $quantity * $activeMonths, 2);
                 $totals[$key]['total_amount'] += $amount;
             }
         }

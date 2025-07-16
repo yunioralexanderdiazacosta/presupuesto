@@ -304,30 +304,67 @@ class FertilizersController extends Controller
     private function getProducts($subfamilyId, $costCenterId, $surface, $bills)
     {
         $products = Fertilizer::from('fertilizers as f')
-        ->join('fertilizer_items as fi', 'f.id', 'fi.fertilizer_id')
-        ->leftJoin('units as u', 'f.unit_id_price', 'u.id')
-        ->select('f.id', 'f.product_name', 'f.price', 'f.dose', 'f.unit_id', 'f.unit_id_price', 'u.name')
-        ->where('fi.cost_center_id', $costCenterId)
-        ->where('f.subfamily_id', $subfamilyId)
-        ->groupBy('f.id', 'f.product_name', 'f.price', 'f.dose', 'f.unit_id', 'f.unit_id_price', 'u.name')
-        ->get()
-        ->transform(function($value) use ($surface, $bills){
-            $dose = (($value->unit_id == '4' && $value->unit_id_price == '3') ||($value->unit_id == '2' && $value->unit_id_price == '1')) ? ($value->dose / 1000) : $value->dose;
+            ->join('fertilizer_items as fi', 'f.id', 'fi.fertilizer_id')
+            ->leftJoin('units as u', 'f.unit_id_price', 'u.id')
+            ->select('f.id', 'f.product_name', 'f.price', 'f.dose', 'f.unit_id', 'f.unit_id_price', 'u.name')
+            ->where('fi.cost_center_id', $costCenterId)
+            ->where('f.subfamily_id', $subfamilyId)
+            ->groupBy('f.id', 'f.product_name', 'f.price', 'f.dose', 'f.unit_id', 'f.unit_id_price', 'u.name')
+            ->get();
+
+        // Precalcular los meses activos para todos los productos de este cost center
+        $productIds = $products->pluck('id')->all();
+        $currentMonth = $this->month_id;
+        $monthsRange = [];
+        for ($x = $currentMonth; $x < $currentMonth + 12; $x++) {
+            $id = date('n', mktime(0, 0, 0, $x, 1));
+            $monthsRange[] = $id;
+        }
+        $activeMonthsByProduct = DB::table('fertilizer_items')
+            ->select('fertilizer_id', 'month_id')
+            ->where('cost_center_id', $costCenterId)
+            ->whereIn('fertilizer_id', $productIds)
+            ->whereIn('month_id', $monthsRange)
+            ->get()
+            ->groupBy('fertilizer_id');
+
+        $result = $products->map(function($value) use ($surface, $bills, $activeMonthsByProduct, $monthsRange) {
+            $dose = (($value->unit_id == '4' && $value->unit_id_price == '3') || ($value->unit_id == '2' && $value->unit_id_price == '1')) ? ($value->dose / 1000) : $value->dose;
             $quantityFirst = $bills == true ? round($dose, 2) : round(($dose * $surface), 2);
             $amountFirst = round(($value->price * $quantityFirst), 2);
-            $data = $this->getMonths($value->id, $quantityFirst, $amountFirst, $bills); 
+
+            // Obtener meses activos para este producto
+            $activeMonths = isset($activeMonthsByProduct[$value->id])
+                ? $activeMonthsByProduct[$value->id]->pluck('month_id')->all()
+                : [];
+
+            $months = [];
+            $totalAmount = 0;
+            $totalQuantity = 0;
+            foreach ($monthsRange as $month) {
+                $isActive = in_array($month, $activeMonths);
+                $amountMonth = $isActive ? $amountFirst : 0;
+                $quantityMonth = $isActive ? $quantityFirst : 0;
+                $totalAmount += $amountMonth;
+                $totalQuantity += $quantityMonth;
+                $months[] = number_format($amountMonth, 0, '', '.');
+            }
+
+            if ($bills == false) {
+                $this->totalData1 += $totalAmount;
+            }
 
             return [
                 'id'            => $value->id,
                 'name'          => $value->product_name,
                 'unit'          => $value->name,
-                'totalQuantity' => $data['totalQuantity'],
-                'totalAmount'   => $data['totalAmount'],
-                'months'        => $data['months']
+                'totalQuantity' => number_format($totalQuantity, 2, ',', '.'),
+                'totalAmount'   => number_format($totalAmount, 0, ',', '.'),
+                'months'        => $months
             ];
         });
 
-        return $products;
+        return $result;
     }
 
     private function getTotal($costCenterId)
@@ -343,33 +380,35 @@ class FertilizersController extends Controller
 
     private function getMonths($fertilizerId, $quantity, $amount, $bills)
     {
-        $data = array();
         $currentMonth = $this->month_id;
-
+        $monthsRange = [];
         for ($x = $currentMonth; $x < $currentMonth + 12; $x++) {
             $id = date('n', mktime(0, 0, 0, $x, 1));
-            array_push($data, $id);
+            $monthsRange[] = $id;
         }
+
+        // Obtener todos los meses activos de una sola vez
+        $activeMonths = DB::table('fertilizer_items')
+            ->select('month_id')
+            ->where('fertilizer_id', $fertilizerId)
+            ->whereIn('month_id', $monthsRange)
+            ->distinct()
+            ->pluck('month_id')
+            ->toArray();
 
         $months = [];
         $totalAmount = 0;
         $totalQuantity = 0;
-        foreach($data as $month)
-        {
-            $count = DB::table('fertilizer_items')
-            ->select('fertilizer_id')
-            ->where('fertilizer_id', $fertilizerId)
-            ->where('month_id', $month)
-            ->count();
-
-            $amountMonth = $count > 0 ? $amount : 0;
-            $quantityMonth = $count > 0 ? $quantity : 0;
+        foreach ($monthsRange as $month) {
+            $isActive = in_array($month, $activeMonths);
+            $amountMonth = $isActive ? $amount : 0;
+            $quantityMonth = $isActive ? $quantity : 0;
             $totalAmount += $amountMonth;
             $totalQuantity += $quantityMonth;
-            array_push($months, number_format($amountMonth, 0, '', '.'));        
+            $months[] = number_format($amountMonth, 0, '', '.');
         }
 
-        if($bills == false){
+        if ($bills == false) {
             $this->totalData1 += $totalAmount;
         }
 
@@ -403,65 +442,114 @@ class FertilizersController extends Controller
      private function getProducts2($subfamilyId, $costCentersId)
     {
         $products = Fertilizer::from('fertilizers as f')
-        ->join('fertilizer_items as fi', 'f.id', 'fi.fertilizer_id')
-        ->leftJoin('units as u', 'f.unit_id_price', 'u.id')
-        ->select('f.id', 'f.product_name', 'f.price', 'f.dose', 'f.unit_id', 'f.unit_id_price', 'u.name')
-        ->whereIn('fi.cost_center_id', $costCentersId)
-        ->where('f.subfamily_id', $subfamilyId)
-        ->groupBy('f.id', 'f.product_name', 'f.price', 'f.dose', 'f.unit_id', 'f.unit_id_price', 'u.name')
-        ->get()
-        ->transform(function($value) use ($costCentersId){
-            $data = $this->getResult2($value, $costCentersId);
+            ->join('fertilizer_items as fi', 'f.id', 'fi.fertilizer_id')
+            ->leftJoin('units as u', 'f.unit_id_price', 'u.id')
+            ->select('f.id', 'f.product_name', 'f.price', 'f.dose', 'f.unit_id', 'f.unit_id_price', 'u.name')
+            ->whereIn('fi.cost_center_id', $costCentersId)
+            ->where('f.subfamily_id', $subfamilyId)
+            ->groupBy('f.id', 'f.product_name', 'f.price', 'f.dose', 'f.unit_id', 'f.unit_id_price', 'u.name')
+            ->get();
+
+        // Precalcular superficies de los cost centers
+        $surfaces = DB::table('cost_centers')
+            ->whereIn('id', $costCentersId)
+            ->pluck('surface', 'id');
+
+        // Precalcular meses activos por producto y cost center
+        $productIds = $products->pluck('id')->all();
+        $currentMonth = $this->month_id;
+        $monthsRange = [];
+        for ($x = $currentMonth; $x < $currentMonth + 12; $x++) {
+            $id = date('n', mktime(0, 0, 0, $x, 1));
+            $monthsRange[] = $id;
+        }
+        $activeMonthsByProductCostCenter = DB::table('fertilizer_items')
+            ->select('fertilizer_id', 'cost_center_id', 'month_id')
+            ->whereIn('fertilizer_id', $productIds)
+            ->whereIn('cost_center_id', $costCentersId)
+            ->whereIn('month_id', $monthsRange)
+            ->get()
+            ->groupBy(function($item) {
+                return $item->fertilizer_id . '-' . $item->cost_center_id;
+            });
+
+        $result = $products->map(function($value) use ($costCentersId, $surfaces, $activeMonthsByProductCostCenter, $monthsRange) {
+            $totalAmount = 0;
+            $totalQuantity = 0;
+            foreach ($costCentersId as $costCenter) {
+                $surface = isset($surfaces[$costCenter]) ? $surfaces[$costCenter] : 0;
+                $dose = (($value->unit_id == '4' && $value->unit_id_price == '3') || ($value->unit_id == '2' && $value->unit_id_price == '1')) ? ($value->dose / 1000) : $value->dose;
+                $quantityFirst = round($dose * $surface, 2);
+                $amountFirst = round($value->price * $quantityFirst, 2);
+
+                $key = $value->id . '-' . $costCenter;
+                $activeMonths = isset($activeMonthsByProductCostCenter[$key])
+                    ? $activeMonthsByProductCostCenter[$key]->pluck('month_id')->all()
+                    : [];
+
+                foreach ($monthsRange as $month) {
+                    $isActive = in_array($month, $activeMonths);
+                    $amountMonth = $isActive ? $amountFirst : 0;
+                    $quantityMonth = $isActive ? $quantityFirst : 0;
+                    $totalAmount += $amountMonth;
+                    $totalQuantity += $quantityMonth;
+                }
+            }
+            $this->totalData2 += $totalAmount;
             return [
                 'id'            => $value->id,
                 'name'          => $value->product_name,
                 'unit'          => $value->name ?? '',
-                'totalQuantity' => $data['totalQuantity'],
-                'totalAmount'   => $data['totalAmount'],
+                'totalQuantity' => number_format($totalQuantity, 2, ',', '.'),
+                'totalAmount'   => number_format($totalAmount, 0, ',', '.'),
             ];
         });
 
-        return $products;
+        return $result;
     }
 
     private function getResult2($value, $costCentersId)
     {
+        // Precalcular superficies de los cost centers
+        $surfaces = DB::table('cost_centers')
+            ->whereIn('id', $costCentersId)
+            ->pluck('surface', 'id');
+
+        $currentMonth = $this->month_id;
+        $monthsRange = [];
+        for ($x = $currentMonth; $x < $currentMonth + 12; $x++) {
+            $id = date('n', mktime(0, 0, 0, $x, 1));
+            $monthsRange[] = $id;
+        }
+
+        // Precalcular meses activos por cost center para este producto
+        $activeMonthsByCostCenter = DB::table('fertilizer_items')
+            ->select('cost_center_id', 'month_id')
+            ->where('fertilizer_id', $value->id)
+            ->whereIn('cost_center_id', $costCentersId)
+            ->whereIn('month_id', $monthsRange)
+            ->get()
+            ->groupBy('cost_center_id');
+
         $totalAmount = 0;
         $totalQuantity = 0;
-        $currentMonth = $this->month_id;
-        foreach($costCentersId as $costCenter){
-           $first = CostCenter::select('surface')->where('id', $costCenter)->first();
-           
-            $surface = $first->surface;
-            $dose = (($value->unit_id == '4' && $value->unit_id_price == '3') ||($value->unit_id == '2' && $value->unit_id_price == '1')) ? ($value->dose / 1000) : $value->dose;
+        foreach ($costCentersId as $costCenter) {
+            $surface = isset($surfaces[$costCenter]) ? $surfaces[$costCenter] : 0;
+            $dose = (($value->unit_id == '4' && $value->unit_id_price == '3') || ($value->unit_id == '2' && $value->unit_id_price == '1')) ? ($value->dose / 1000) : $value->dose;
             $quantityFirst = round($dose * $surface, 2);
             $amountFirst = round($value->price * $quantityFirst, 2);
 
-            $data = array();
+            $activeMonths = isset($activeMonthsByCostCenter[$costCenter])
+                ? $activeMonthsByCostCenter[$costCenter]->pluck('month_id')->all()
+                : [];
 
-            for ($x = $currentMonth; $x < $currentMonth + 12; $x++) {
-                $id = date('n', mktime(0, 0, 0, $x, 1));
-                array_push($data, $id);
+            foreach ($monthsRange as $month) {
+                $isActive = in_array($month, $activeMonths);
+                $amountMonth = $isActive ? $amountFirst : 0;
+                $quantityMonth = $isActive ? $quantityFirst : 0;
+                $totalAmount += $amountMonth;
+                $totalQuantity += $quantityMonth;
             }
-
-            $totalAmountCostCenter = 0;
-            $totalQuantityCostCenter = 0;
-            foreach($data as $month)
-            {
-                $count = DB::table('fertilizer_items')
-                ->select('fertilizer_id')
-                ->where('fertilizer_id', $value->id)
-                ->where('month_id', $month)
-                ->where('cost_center_id', $costCenter)
-                ->count();
-
-                $amountMonth = $count > 0 ? $amountFirst : 0;
-                $quantityMonth = $count > 0 ? $quantityFirst : 0;
-                $totalAmountCostCenter += $amountMonth;
-                $totalQuantityCostCenter += $quantityMonth;
-            }
-            $totalAmount += $totalAmountCostCenter;
-            $totalQuantity += $totalQuantityCostCenter;
         }
 
         $this->totalData2 += $totalAmount;
@@ -469,7 +557,7 @@ class FertilizersController extends Controller
         return [
             'totalAmount' => number_format($totalAmount, 0, ',', '.'),
             'totalQuantity' => number_format($totalQuantity, 2, ',', '.')
-        ]; 
+        ];
     }
 
 }
