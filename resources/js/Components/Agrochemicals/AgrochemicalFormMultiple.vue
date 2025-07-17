@@ -1,11 +1,8 @@
 <script setup>
-import { onMounted } from "vue";
-onMounted(() => {
-    console.log('page.props.products:', page.props.products);
-    console.log('productsList.value:', productsList.value);
-});
 
-import { ref, computed, getCurrentInstance } from "vue";
+
+
+import { ref, computed, getCurrentInstance, watch } from "vue";
 import Multiselect from "@vueform/multiselect";
 import TextInput from "@/Components/TextInput.vue";
 import InputError from "@/Components/InputError.vue";
@@ -66,10 +63,38 @@ const selectSuggestion = (index, product) => {
     props.form.products[index].product_name = product.name;
     productSearch.value[index] = product.name;
     showSuggestions.value[index] = false;
+    // Asignar el precio automáticamente si existe
+    if (typeof product.price !== 'undefined') {
+        props.form.products[index].price = product.price;
+    } else {
+        props.form.products[index].price = '';
+    }
 };
+
+// Watch para actualizar el precio cuando el nombre del producto cambie manualmente
+watch(
+    () => props.form.products.map(p => p.product_name),
+    (newNames, oldNames) => {
+        newNames.forEach((name, idx) => {
+            const found = productsList.value.find(p => p.name === name);
+            if (found && typeof found.price !== 'undefined') {
+                props.form.products[idx].price = found.price;
+            } else {
+                props.form.products[idx].price = '';
+            }
+        });
+    },
+    { deep: true }
+);
 
 const onInput = (index) => {
     showSuggestions.value[index] = true;
+    // Si el nombre coincide exactamente con un producto, asignar el precio
+    const name = props.form.products[index].product_name;
+    const found = productsList.value.find(p => p.name === name);
+    if (found && typeof found.price !== 'undefined') {
+        props.form.products[index].price = found.price;
+    }
 };
 
 const onBlur = (index) => {
@@ -108,6 +133,11 @@ const selectAllMonths = (index, months) => {
         // Si no, selecciona todos
         props.form.products[index].months = allMonths;
     }
+};
+
+const formatPrice = (value) => {
+  if (value === null || value === undefined || value === '') return '';
+  return parseInt(value);
 };
 </script>
 <script setup></script>
@@ -298,16 +328,18 @@ const selectAllMonths = (index, months) => {
                     <span class="input-group-text"
                         ><i class="fas fa-dollar-sign"></i
                     ></span>
-                    <TextInput
-                        id="price"
-                        v-model="product.price"
-                        class="form-control"
-                        type="number"
-                        :class="{
-                            'is-invalid':
-                                form.errors['products.' + index + '.price'],
-                        }"
-                    />
+<TextInput
+    id="price"
+    :model-value="formatPrice(product.price)"
+    @update:model-value="val => product.price = val"
+    class="form-control"
+    type="number"
+    :class="{
+        'is-invalid':
+            form.errors['products.' + index + '.price'],
+    }"
+/> 
+
                 </div>
                 <InputError
                     class="mt-2"

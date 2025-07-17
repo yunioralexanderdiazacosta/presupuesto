@@ -154,7 +154,7 @@ class AgrochemicalsController extends Controller
             ];
         });
 
-        $products = Product2::select('name', 'level3')->get()->toArray();
+        $products = Product2::select('name', 'level3', 'price', 'unit_price_id')->get()->toArray();
 
 
         $data = Agrochemical::from('agrochemicals as a')
