@@ -1,11 +1,104 @@
 <script setup>
 import { router, Link } from '@inertiajs/vue3';
+import { ref, onMounted } from 'vue';
 import JetDropdownLink from '@/Components/DropdownLink.vue';
-import { onMounted } from 'vue';
+
+const hasCostCenter = ref(null); // null: loading, true/false: resultado
+const hasVariety = ref(null);
+const hasFruit = ref(null);
+const hasCompanyReason = ref(null);
+const hasSeason = ref(null);
+const hasParcel = ref(null);
+const hasLevel3 = ref(null);
 
 const logout = () => {
     router.post(route('logout'));
 };
+
+onMounted(async () => {
+    try {
+        const [costCenterRes, varietyRes, fruitRes, companyReasonRes, seasonRes, parcelRes, level3Res] = await Promise.all([
+            fetch('/sidebar/has-costcenter-for-season', {
+                method: 'POST',
+                headers: {
+                    'X-Requested-With': 'XMLHttpRequest',
+                    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content'),
+                    'Content-Type': 'application/json',
+                },
+            }),
+            fetch('/sidebar/has-variety-for-season', {
+                method: 'POST',
+                headers: {
+                    'X-Requested-With': 'XMLHttpRequest',
+                    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content'),
+                    'Content-Type': 'application/json',
+                },
+            }),
+            fetch('/sidebar/has-fruit-for-season', {
+                method: 'POST',
+                headers: {
+                    'X-Requested-With': 'XMLHttpRequest',
+                    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content'),
+                    'Content-Type': 'application/json',
+                },
+            }),
+            fetch('/sidebar/has-companyreason-for-team', {
+                method: 'POST',
+                headers: {
+                    'X-Requested-With': 'XMLHttpRequest',
+                    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content'),
+                    'Content-Type': 'application/json',
+                },
+            }),
+            fetch('/sidebar/has-season-for-team', {
+                method: 'POST',
+                headers: {
+                    'X-Requested-With': 'XMLHttpRequest',
+                    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content'),
+                    'Content-Type': 'application/json',
+                },
+            }),
+            fetch('/sidebar/has-parcel-for-team', {
+                method: 'POST',
+                headers: {
+                    'X-Requested-With': 'XMLHttpRequest',
+                    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content'),
+                    'Content-Type': 'application/json',
+                },
+            }),
+            fetch('/sidebar/has-level3-for-level2', {
+                method: 'POST',
+                headers: {
+                    'X-Requested-With': 'XMLHttpRequest',
+                    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content'),
+                    'Content-Type': 'application/json',
+                },
+            })
+        ]);
+        const costCenterData = await costCenterRes.json();
+        const varietyData = await varietyRes.json();
+        const fruitData = await fruitRes.json();
+        const companyReasonData = await companyReasonRes.json();
+        const seasonData = await seasonRes.json();
+        const parcelData = await parcelRes.json();
+        const level3Data = await level3Res.json();
+        hasCostCenter.value = !!costCenterData.exists;
+        hasVariety.value = !!varietyData.exists;
+        hasFruit.value = !!fruitData.exists;
+        hasCompanyReason.value = !!companyReasonData.exists;
+        hasSeason.value = !!seasonData.exists;
+        hasParcel.value = !!parcelData.exists;
+        hasLevel3.value = !!level3Data.exists;
+    } catch (e) {
+        hasCostCenter.value = false;
+        hasVariety.value = false;
+        hasFruit.value = false;
+        hasCompanyReason.value = false;
+        hasSeason.value = false;
+        hasParcel.value = false;
+        hasLevel3.value = false;
+    }
+});
 </script>
 
 <template>
@@ -140,15 +233,26 @@ const logout = () => {
                 </div>
               </a>
               <ul class="nav collapse show" id="user">
-                <li class="nav-item"><Link class="nav-link" :href="route('cost.centers.index')">
-                    <div class="d-flex align-items-center"><span class="nav-link-text ps-3">Centros de costos</span>
+                <li class="nav-item">
+                  <Link class="nav-link" :href="route('cost.centers.index')">
+                    <div class="d-flex align-items-center">
+                      <span class="nav-link-text ps-3">Centros de costos</span>
+                      <span v-if="hasCostCenter !== null" class="ms-2">
+                        <span v-if="hasCostCenter" class="text-success"><i class="fas fa-check-circle"></i></span>
+                        <span v-else class="text-danger"><i class="fas fa-times-circle"></i></span>
+                      </span>
                     </div>
                   </Link>
                   <!-- more inner pages-->
                 </li>
                 <li class="nav-item">
                   <a class="nav-link dropdown-indicator" href="#niveles" data-bs-toggle="collapse" aria-expanded="false" aria-controls="niveles">
-                    <div class="d-flex align-items-center"><span class="nav-link-text ps-3">Niveles</span></div>
+                    <div class="d-flex align-items-center"><span class="nav-link-text ps-3">Niveles</span>
+                      <span v-if="hasLevel3 !== null" class="ms-2">
+                        <span v-if="hasLevel3" class="text-success"><i class="fas fa-check-circle"></i></span>
+                        <span v-else class="text-danger"><i class="fas fa-times-circle"></i></span>
+                      </span>
+                    </div>
                   </a>
                   <ul class="nav collapse" id="niveles">
                     <li class="nav-item"><Link class="nav-link" :href="route('levels.index')">
@@ -167,32 +271,62 @@ const logout = () => {
                   </Link>
                   <!-- more inner pages-->
                 </li>
-                <li class="nav-item"><Link class="nav-link" :href="route('company.reasons.index')">
-                    <div class="d-flex align-items-center"><span class="nav-link-text ps-3">Razón Social</span>
+                <li class="nav-item">
+                  <Link class="nav-link" :href="route('company.reasons.index')">
+                    <div class="d-flex align-items-center">
+                      <span class="nav-link-text ps-3">Razón Social</span>
+                      <span v-if="hasCompanyReason !== null" class="ms-2">
+                        <span v-if="hasCompanyReason" class="text-success"><i class="fas fa-check-circle"></i></span>
+                        <span v-else class="text-danger"><i class="fas fa-times-circle"></i></span>
+                      </span>
                     </div>
                   </Link>
                   <!-- more inner pages-->
                 </li>
-                <li class="nav-item"><Link class="nav-link" :href="route('fruits.index')">
-                    <div class="d-flex align-items-center"><span class="nav-link-text ps-3">Frutal</span>
+                <li class="nav-item">
+                  <Link class="nav-link" :href="route('fruits.index')">
+                    <div class="d-flex align-items-center">
+                      <span class="nav-link-text ps-3">Frutal</span>
+                      <span v-if="hasFruit !== null" class="ms-2">
+                        <span v-if="hasFruit" class="text-success"><i class="fas fa-check-circle"></i></span>
+                        <span v-else class="text-danger"><i class="fas fa-times-circle"></i></span>
+                      </span>
                     </div>
                   </Link>
                   <!-- more inner pages-->
                 </li>
-                <li class="nav-item"><Link class="nav-link" :href="route('varieties.index')">
-                    <div class="d-flex align-items-center"><span class="nav-link-text ps-3">Variedades</span>
+                <li class="nav-item">
+                  <Link class="nav-link" :href="route('varieties.index')">
+                    <div class="d-flex align-items-center">
+                      <span class="nav-link-text ps-3">Variedades</span>
+                      <span v-if="hasVariety !== null" class="ms-2">
+                        <span v-if="hasVariety" class="text-success"><i class="fas fa-check-circle"></i></span>
+                        <span v-else class="text-danger"><i class="fas fa-times-circle"></i></span>
+                      </span>
                     </div>
                   </Link>
                   <!-- more inner pages-->
                 </li>
-                <li class="nav-item"><Link class="nav-link" :href="route('parcels.index')">
-                    <div class="d-flex align-items-center"><span class="nav-link-text ps-3">Parcelas</span>
+                <li class="nav-item">
+                  <Link class="nav-link" :href="route('parcels.index')">
+                    <div class="d-flex align-items-center">
+                      <span class="nav-link-text ps-3">Parcelas</span>
+                      <span v-if="hasParcel !== null" class="ms-2">
+                        <span v-if="hasParcel" class="text-success"><i class="fas fa-check-circle"></i></span>
+                        <span v-else class="text-danger"><i class="fas fa-times-circle"></i></span>
+                      </span>
                     </div>
                   </Link>
                   <!-- more inner pages-->
                 </li>
-                <li class="nav-item"><Link class="nav-link" :href="route('seasons.index')">
-                    <div class="d-flex align-items-center"><span class="nav-link-text ps-3">Temporadas</span>
+                <li class="nav-item">
+                  <Link class="nav-link" :href="route('seasons.index')">
+                    <div class="d-flex align-items-center">
+                      <span class="nav-link-text ps-3">Temporadas</span>
+                      <span v-if="hasSeason !== null" class="ms-2">
+                        <span v-if="hasSeason" class="text-success"><i class="fas fa-check-circle"></i></span>
+                        <span v-else class="text-danger"><i class="fas fa-times-circle"></i></span>
+                      </span>
                     </div>
                   </Link>
                   <!-- more inner pages-->
@@ -392,3 +526,4 @@ const logout = () => {
     </div>
   </div>
 </template>
+

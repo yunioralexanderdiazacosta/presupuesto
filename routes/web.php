@@ -150,6 +150,7 @@ use App\Http\Controllers\Administrations\UpdateAdministrationController;
 use App\Http\Controllers\Fields\StoreFieldController;
 use App\Http\Controllers\Fields\UpdateFieldController;
 use App\Http\Controllers\Fields\DeleteFieldController;
+use App\Http\Controllers\SidebarController;
 
 use Inertia\Inertia;
 
@@ -183,6 +184,16 @@ Route::middleware([
     Route::get('/faq', function () {
         return Inertia::render('FaqPage');
     })->name('faq');
+
+
+      Route::post('/sidebar/has-variety-for-season', [SidebarController::class, 'hasVarietyForSeason'])->name('sidebar.hasVarietyForSeason');
+    Route::post('/sidebar/has-fruit-for-season', [SidebarController::class, 'hasFruitForSeason'])->name('sidebar.hasFruitForSeason');
+    Route::post('/sidebar/has-costcenter-for-season', [SidebarController::class, 'hasCostCenterForSeason'])->name('sidebar.hasCostCenterForSeason');
+    Route::post('/sidebar/has-companyreason-for-team', [SidebarController::class, 'hasCompanyReasonForTeam'])->name('sidebar.hasCompanyReasonForTeam');
+    Route::post('/sidebar/has-season-for-team', [SidebarController::class, 'hasSeasonForTeam'])->name('sidebar.hasSeasonForTeam');
+    Route::post('/sidebar/has-parcel-for-team', [SidebarController::class, 'hasParcelForTeam'])->name('sidebar.hasParcelForTeam');
+      Route::post('/sidebar/has-level3-for-level2', [SidebarController::class, 'hasLevel3ForLevel2'])->name('sidebar.hasLevel3ForLevel2');
+
 
     Route::get('/teams', TeamsController::class)->name('teams.index');
     Route::get('/budgets', BudgetsController::class)->name('budgets.index');
