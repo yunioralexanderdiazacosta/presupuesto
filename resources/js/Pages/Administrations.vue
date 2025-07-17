@@ -563,7 +563,7 @@ const onFilter = () => {
                             </table>
                         </div>
                     </div>
-                    <div class="tab-pane fade" id="pill-tab-gastos" role="tabpanel" aria-labelledby="gastos-tab"></div>
+                    
                 
                 </div>
 

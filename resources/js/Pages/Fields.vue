@@ -287,8 +287,8 @@ const acum_products = (quantity) => {
                         </Table>
                         </div>
                     </div>
+                    <!-- inicio de Detalles -->
                     <div class="tab-pane fade" id="pill-tab-detalles" role="tabpanel" aria-labelledby="detalles-tab">
-                        
                         <div class="row mb-3">
                             <div class="col-md-4 col-lg-2 col-xl-2 col-xxl-2">
                               <div class="card h-100 p-1 small-card">
@@ -385,8 +385,10 @@ const acum_products = (quantity) => {
                             </table>
                         </div>
                     </div>
+
+
+                        <!--inicio gasto por hectarea-->
                     <div class="tab-pane fade" id="pill-tab-gastos" role="tabpanel" aria-labelledby="gastos-tab">
-                        
                         <div class="row mb-3">
                             <div class="col-md-4 col-lg-2 col-xl-2 col-xxl-2">
                               <div class="card h-100 p-1 small-card">
@@ -462,13 +464,10 @@ const acum_products = (quantity) => {
                                 </tbody>
                             </table>
                         </div>
- </div> 
-                    </div>
-
-
-                    </div>
+                      </div> 
+                  
+                        <!--inicio detalle compra-->
                     <div class="tab-pane fade" id="pill-tab-detalles-compra" role="tabpanel" aria-labelledby="detalles-compra-tab">
-                        
                         <div class="row mb-3">
                             <div class="col-md-4 col-lg-2 col-xl-2 col-xxl-2">
                               <div class="card h-100 p-1 small-card">
@@ -550,6 +549,9 @@ const acum_products = (quantity) => {
                         </div>
                     </div>
                 </div>
+                 </div>   
+
+             </div>  
 
         <CreateFieldModal @store="storeField" :form="formMultiple" />
         <EditFieldModal @update="updateField" :form="form" />
