@@ -10,7 +10,24 @@
 <script setup></script>
 <template>
     <div class="row">
-        <div class="col-md-6">
+         <div class="col-md-4">
+            <label for="families" class="col-form-label">Familia</label>
+            <div class="input-group mb-2">
+                <span class="input-group-text"><i class="fas fa-layer-group"></i></span>
+                <Multiselect
+                    :placeholder="'Seleccione familia'"
+                    v-model="form.subfamily_id"
+                    :close-on-select="true"
+                    :options="$page.props.subfamilies"
+                    class="form-control"
+                    :class="{'is-invalid': form.errors.subfamily_id}"
+                    :searchable="true"
+                    :hide-selected="false"
+                />
+            </div>
+            <InputError class="mt-2" :message="form.errors.subfamily_id" />
+        </div>
+        <div class="col-md-8">
             <label for="cc" class="col-form-label">CC</label>
             <div class="input-group mb-2">
                 <span class="input-group-text"><i class="fas fa-sitemap"></i></span>
@@ -28,27 +45,11 @@
             </div>
             <InputError class="mt-2" :message="form.errors.cc" />
         </div>
-        <div class="col-md-6">
-            <label for="families" class="col-form-label">Familia</label>
-            <div class="input-group mb-2">
-                <span class="input-group-text"><i class="fas fa-layer-group"></i></span>
-                <Multiselect
-                    :placeholder="'Seleccione familia'"
-                    v-model="form.subfamily_id"
-                    :close-on-select="true"
-                    :options="$page.props.subfamilies"
-                    class="form-control"
-                    :class="{'is-invalid': form.errors.subfamily_id}"
-                    :searchable="true"
-                    :hide-selected="false"
-                />
-            </div>
-            <InputError class="mt-2" :message="form.errors.subfamily_id" />
-        </div>
+       
     </div>
 <hr>
     <div class="row">
-        <div class="col-md-6">
+        <div class="col-md-4">
             <label class="col-form-label">Nombre del producto</label>
             <div class="input-group mb-2">
                 <span class="input-group-text"><i class="fas fa-flask"></i></span>
@@ -61,7 +62,7 @@
             </div>
             <InputError class="mt-2" :message="form.errors.product_name" />
         </div>
-        <div class="col-md-6">
+        <div class="col-md-4">
             <label for="unit" class="col-form-label">Unidad de la dosis</label>
             <div class="input-group mb-2">
                 <span class="input-group-text"><i class="fas fa-balance-scale"></i></span>
@@ -78,10 +79,8 @@
             </div>
             <InputError class="mt-2" :message="form.errors.unit_id" />
         </div>
-    </div>
 
-    <div class="row">
-        <div class="col-lg-6">
+         <div class="col-lg-4">
             <label class="col-form-label">Tipo de dosis</label><br>
             <template v-for="value in $page.props.doseTypes">
                 <div class="form-check form-check-solid form-check-inline mb-3 mt-3">
@@ -91,7 +90,11 @@
             </template>
             <small class="text-danger mt-2" :v-if="form.errors.dose_type_id">{{form.errors.dose_type_id}}</small>
         </div>
-        <div class="col-lg-6">
+    </div>
+
+    <div class="row">
+       
+        <div class="col-lg-3">
             <div class="fv-row">
                 <label class="col-form-label">Dosis</label>
                 <div class="input-group mb-2">
@@ -108,10 +111,7 @@
                 <InputError class="mt-2" :message="form.errors.dose" />
             </div>
         </div>
-    </div>
-
-    <div class="row">
-        <div class="col-lg-3">
+         <div class="col-lg-3">
             <div class="fv-row">
                 <label class="col-form-label">Mojamiento</label>
                 <div class="input-group mb-2">
@@ -127,7 +127,7 @@
                 <InputError class="mt-2" :message="form.errors.mojamiento" />
             </div>
         </div>
-        <div class="col-lg-5">
+          <div class="col-lg-3">
             <div class="fv-row">
                 <label class="col-form-label">Precio</label>
                 <div class="input-group mb-2">
@@ -143,7 +143,7 @@
                 <InputError class="mt-2" :message="form.errors.price" />
             </div>
         </div>
-        <div class="col-lg-4">
+         <div class="col-lg-3">
             <div class="fv-row">
                 <label for="unit" class="col-form-label">Unidad del precio</label>
                 <div class="input-group mb-2">
@@ -162,6 +162,12 @@
                 <InputError class="mt-2" :message="form.errors.unit_id_price" />
             </div>
         </div>
+    </div>
+
+    <div class="row">
+       
+      
+       
     </div>
 
     <div class="mb-3">

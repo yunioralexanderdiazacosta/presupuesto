@@ -11,7 +11,16 @@ defineEmits(['update']);
 <template>
     <Modal :maxWidth="'xl'" :id="'editAgrochemicalModal'">
         <template #header>
-            <h3 class="mb-3">Editar agroquimico</h3>
+            <div class="d-flex align-items-center gap-2 mb-3">
+                <span class="bg-primary text-white rounded-circle d-flex align-items-center justify-content-center" style="width: 38px; height: 38px; font-size: 1.4rem;">
+                    <i class="fas fa-flask"></i>
+                </span>
+                <span>
+                    <span class="fw-bold" style="font-size: 1.2rem; color: #2d3748; letter-spacing: 0.5px;">Editar un agroquímico</span>
+                    <br>
+                    <span class="text-muted" style="font-size: 0.85rem;">Actualiza los datos del producto</span>
+                </span>
+            </div>
         </template>
         <template #body>
             <AgrochemicalForm :form="form" />

@@ -11,7 +11,16 @@ defineEmits(['store']);
 <template>
     <Modal :maxWidth="'xl'" :id="'createManPowerModal'">
         <template #header>
-            <h3 class="mt-1">Agregar mano de obra</h3>
+            <div class="d-flex align-items-center gap-2 mb-3">
+                <span class="bg-primary text-white rounded-circle d-flex align-items-center justify-content-center" style="width: 38px; height: 38px; font-size: 1.4rem;">
+                    <i class="fas fa-user-cog"></i>
+                </span>
+                <span>
+                    <span class="fw-bold" style="font-size: 1.2rem; color: #2d3748; letter-spacing: 0.5px;">Agregar jornada de trabajo</span>
+                    <br>
+                    <span class="text-muted" style="font-size: 0.85rem;">Completa los datos de las jornadas</span>
+                </span>
+            </div>
         </template>
         <template #body>
             <ManPowerForm :form="form" />

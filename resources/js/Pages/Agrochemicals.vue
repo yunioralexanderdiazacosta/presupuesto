@@ -289,10 +289,17 @@ const onFilter = () => {
         <div class="card my-3">
             <div class="card-header">
                 <div class="row flex-between-center">
-                    <div class="col-6 col-sm-auto d-flex align-items-center pe-0">
-                      <h5 class="fs-9 mb-0 text-nowrap py-2 py-xl-0">Agroquimicos</h5>
+                    <div class="col-12 d-flex align-items-center justify-content-between pe-0 gap-2">
+                      <h5 class="fs-9 mb-0 text-nowrap py-2 py-xl-0">
+                        <i class="fas fa-flask text-primary me-2"></i>
+                        Agroquimicos
+                      </h5>
+                       <div class="col-6 col-sm-auto ms-auto text-end ps-0">
+                      <div id="table-purchases-replace-element">
+                        <button class="btn btn-falcon-default btn-sm ms-auto" type="button" @click="openAdd()" style="margin-right: 0.8rem;"><span class="fas fa-plus" data-fa-transform="shrink-3 down-2"></span><span class="d-none d-sm-inline-block ms-1">Nuevo</span></button>
+                      </div>
                     </div>
-                    <!-- Botones de exportar y Nuevo solo deben ir en la pestaña Edición -->
+                    </div>
                 </div>
             </div>
             <div class="card-body bg-body-tertiary">
@@ -338,10 +345,6 @@ const onFilter = () => {
                               class="btn btn-danger btn-md d-flex align-items-center p-0"
                               filename="Agroquimicos.pdf"
                             />
-                            <button class="btn btn-falcon-default btn-sm ms-1" type="button" @click="openAdd()">
-                              <span class="fas fa-plus" data-fa-transform="shrink-3 down-2"></span>
-                              <span class="d-none d-sm-inline-block ms-2">Nuevo</span>
-                            </button>
                           </div>
                         </div>
                         <div class="table-responsive mt-1" style="max-height: 450px; overflow-y: auto;">

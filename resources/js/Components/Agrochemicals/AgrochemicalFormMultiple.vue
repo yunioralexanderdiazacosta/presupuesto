@@ -59,6 +59,7 @@ const filteredProducts = (search) => {
     ).slice(0, 8); // máximo 8 sugerencias
 };
 
+
 const selectSuggestion = (index, product) => {
     props.form.products[index].product_name = product.name;
     productSearch.value[index] = product.name;
@@ -68,6 +69,12 @@ const selectSuggestion = (index, product) => {
         props.form.products[index].price = product.price;
     } else {
         props.form.products[index].price = '';
+    }
+    // Asignar unidad del precio automáticamente si existe
+    if (typeof product.unit_price_id !== 'undefined') {
+        props.form.products[index].unit_id_price = product.unit_price_id;
+    } else {
+        props.form.products[index].unit_id_price = '';
     }
 };
 
@@ -81,6 +88,12 @@ watch(
                 props.form.products[idx].price = found.price;
             } else {
                 props.form.products[idx].price = '';
+            }
+            // Asignar unidad del precio automáticamente si existe
+            if (found && typeof found.unit_price_id !== 'undefined') {
+                props.form.products[idx].unit_id_price = found.unit_price_id;
+            } else {
+                props.form.products[idx].unit_id_price = '';
             }
         });
     },
