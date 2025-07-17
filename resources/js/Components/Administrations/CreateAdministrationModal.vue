@@ -11,7 +11,16 @@ defineEmits(['store']);
 <template>
     <Modal :maxWidth="'xl'" :id="'createAdministrationModal'">
         <template #header>
-            <h3 class="mt-1">Agregar</h3>
+            <div class="d-flex align-items-center gap-2 mb-3">
+                <span class="bg-primary text-white rounded-circle d-flex align-items-center justify-content-center" style="width: 38px; height: 38px; font-size: 1.4rem;">
+                    <i class="fas fa-chess"></i>
+                </span>
+                <span>
+                    <span class="fw-bold" style="font-size: 1.2rem; color: #2d3748; letter-spacing: 0.5px;">Agregar Costos de Administracion</span>
+                    <br>
+                    <span class="text-muted" style="font-size: 0.85rem;">Completa los datos del producto a registrar</span>
+                </span>
+            </div>
         </template>
         <template #body>
             <AdministrationForm :form="form" />

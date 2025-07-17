@@ -11,7 +11,16 @@ defineEmits(['update']);
 <template>
     <Modal :maxWidth="'xl'" :id="'editServiceModal'">
         <template #header>
-            <h3 class="mb-3">Editar servicio</h3>
+            <div class="d-flex align-items-center gap-2 mb-3">
+                <span class="bg-secondary text-white rounded-circle d-flex align-items-center justify-content-center" style="width: 38px; height: 38px; font-size: 1.4rem;">
+                    <i class="fas fa-seedling"></i>
+                </span>
+                <span>
+                    <span class="fw-bold" style="font-size: 1.2rem; color: #2d3748; letter-spacing: 0.5px;">Editar un Servicio</span>
+                    <br>
+                    <span class="text-muted" style="font-size: 0.85rem;">Modificar los datos del servicio</span>
+                </span>
+            </div>
         </template>
         <template #body>
             <ServiceForm :form="form" />
