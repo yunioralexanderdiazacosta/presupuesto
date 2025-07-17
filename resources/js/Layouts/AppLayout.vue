@@ -1,4 +1,4 @@
-<script setup>
+<<script setup>
 import { router, Link } from '@inertiajs/vue3';
 import { ref, onMounted } from 'vue';
 import JetDropdownLink from '@/Components/DropdownLink.vue';
