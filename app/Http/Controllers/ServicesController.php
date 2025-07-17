@@ -374,12 +374,17 @@ class ServicesController extends Controller
 
        
 
-          $totalAdministration = $this->getTotalAdministration($season_id, $user->team_id);
+      // Calcular totales usando el trait
+        $totalSupplies = $this->getTotalSupplies($season_id, $user->team_id);
+        $totalFertilizer = $this->getTotalFertilizer($season_id, $user->team_id);
+        $totalManPower = $this->getTotalManPower($season_id, $user->team_id);
+        $totalAgrochemical = $this->getTotalAgrochemical($season_id, $user->team_id);
+        $totalServices = $this->getTotalServices($season_id, $user->team_id);
+        $totalAdministration = $this->getTotalAdministration($season_id, $user->team_id);
         $totalField = $this->getTotalField($season_id, $user->team_id);
 
-        $totalAbsolute = round($this->totalData2) + round($this->totalFertilizer) + round($this->totalManPower) + round($this->totalAgrochemical) + round($this->totalSupplies) + round($totalAdministration) + round($totalField);
-
-        $percentage = $totalAbsolute > 0 ? round(((round($this->totalData2) / $totalAbsolute) * 100), 2) : 0;
+        $totalAbsolute = $totalSupplies + $totalFertilizer + $totalManPower + $totalAgrochemical + $totalServices + $totalAdministration + $totalField;
+        $percentage = $totalAbsolute > 0 ? round(($totalServices / $totalAbsolute) * 100, 2) : 0;
 
         $totalData1 = number_format($this->totalData1, 0, ',', '.');
         $totalData2 = number_format($this->totalData2, 0, ',', '.');

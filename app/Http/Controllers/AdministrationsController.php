@@ -53,8 +53,7 @@ class AdministrationsController extends Controller
 
     public function __invoke()
     {
-        // Log para verificar si el método __invoke se ejecuta
-        Log::info('AdministrationsController __invoke ejecutado');
+      
         // Calcular totales globales de cada rubro
         $user = Auth::user();
         $season_id = session('season_id');
