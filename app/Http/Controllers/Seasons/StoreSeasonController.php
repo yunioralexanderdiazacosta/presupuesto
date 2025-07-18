@@ -8,8 +8,6 @@ use Illuminate\Support\Facades\Auth;
 use App\Models\Season;
 use App\Models\Level1;
 use App\Models\Level2;
-use App\Models\Level3;
-use App\Models\Level4;
 
 class StoreSeasonController extends Controller
 {
@@ -42,23 +40,6 @@ class StoreSeasonController extends Controller
                     'name'      => $sublevel2->name
                 ]);
 
-                $sublevel3s = Level3::where('level2_id', $sublevel2->id)->get();
-
-                foreach($sublevel3s as $sublevel3){
-                    $level3 = Level3::create([
-                        'level2_id' => $level2->id,
-                        'name'      => $sublevel3->name
-                    ]);
-
-                    $sublevel4s = Level4::where('level3_id', $sublevel3->id)->get();
-
-                    foreach($sublevel4s as $sublevel4){
-                        $level4 = Level4::create([
-                            'level3_id' => $level3->id,
-                            'name'      => $sublevel4->name
-                        ]);
-                    }
-                }
             }
         }
     }
