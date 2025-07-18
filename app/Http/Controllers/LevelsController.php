@@ -6,6 +6,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Inertia\Inertia;
 use App\Models\Level1;
+use App\Models\Level2;
 
 class LevelsController extends Controller
 {
