@@ -151,6 +151,10 @@ use App\Http\Controllers\Fields\StoreFieldController;
 use App\Http\Controllers\Fields\UpdateFieldController;
 use App\Http\Controllers\Fields\DeleteFieldController;
 use App\Http\Controllers\SidebarController;
+use App\Http\Controllers\EstimatesController;
+use App\Http\Controllers\Estimates\StoreEstimateController;
+use App\Http\Controllers\Estimates\DeleteEstimateController;
+use App\Http\Controllers\Estimates\UpdateEstimateController;
 
 use Inertia\Inertia;
 
@@ -179,6 +183,7 @@ Route::middleware([
     config('jetstream.auth_session'),
     'verified',
 ])->group(function () {
+  
 
     // Página de Preguntas Frecuentes (FAQ)
     Route::get('/faq', function () {
@@ -323,7 +328,7 @@ Route::middleware([
         Route::get('/services', ServicesController::class)->name('services.index');
         Route::get('/administrations', AdministrationsController::class)->name('administrations.index');
         Route::get('/fields', FieldsController::class)->name('fields.index');
-
+        Route::get('/estimates', EstimatesController::class)->name('estimates.index');
 
         Route::get('/cost-centers/pdf', CostCentersPdfController::class)->name('cost.centers.pdf');
         Route::get('/cost-centers/excel', CostCentersExcelController::class)->name('cost.centers.excel');
@@ -362,6 +367,10 @@ Route::middleware([
         Route::post('/services/store', StoreServiceController::class)->name('services.store');
         Route::post('/services/{service}/update', UpdateServiceController::class)->name('services.update');
         Route::delete('/services/{service}/delete', DeleteServiceController::class)->name('services.delete');
+
+        Route::post('/estimates/store', StoreEstimateController::class)->name('estimates.store');
+        Route::post('/estimates/{estimate}/update', UpdateEstimateController::class)->name('estimates.update');
+        Route::delete('/estimates/{estimate}/delete', DeleteEstimateController::class)->name('estimates.delete');
 
         Route::post('/administrations/store', StoreAdministrationController::class)->name('administrations.store');
         Route::post('/administrations/{administration}/update', UpdateAdministrationController::class)->name('administrations.update');

@@ -343,6 +343,14 @@ onMounted(async () => {
                 </div>
               </a>
               <ul class="nav collapse show" id="pricing">
+
+                    <li class="nav-item"><Link class="nav-link" :href="route('estimates.index')">
+                    <div class="d-flex align-items-center"><span class="nav-link-text ps-3">Estimaciones</span>
+                    </div>
+                  </Link>
+                  <!-- more inner pages-->
+                </li>
+
                 <li class="nav-item"><Link class="nav-link" :href="route('suppliers.index')">
                     <div class="d-flex align-items-center"><span class="nav-link-text ps-3">Proveedores</span>
                     </div>
