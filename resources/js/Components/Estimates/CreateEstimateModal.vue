@@ -6,8 +6,13 @@ import { router } from '@inertiajs/vue3';
 import Swal from 'sweetalert2';
 
 const props = defineProps({
-    form: Object
+    form: Object,
+    costcenters: Array,
+    estimates: Array,
+    estimate_statuses: Array,
+    season_id: Number
 });
+
 const { costcenters, estimates, success } = usePage().props;
 
 defineEmits(['store']);
@@ -60,7 +65,7 @@ const handleStore = (data) => {
             </div>
         </template>
         <template #body>
-            <EstimateForm :form="form" :costcenters="costcenters" :estimates="estimates" :season_id="form.season_id" @store="handleStore" />
+            <EstimateForm :form="form" :costcenters="costcenters" :estimates="estimates" :estimate_statuses="estimate_statuses" :season_id="form.season_id" @store="handleStore" />
         </template>
         <template #footer>
             <button type="button" id="kt_modal_add_estimate_cancel" data-bs-dismiss="modal" class="btn btn-light me-3">Cerrar</button>

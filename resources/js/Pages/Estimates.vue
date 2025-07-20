@@ -6,17 +6,39 @@ import AppLayout from '@/Layouts/AppLayout.vue';
 import Table from '@/Components/Table.vue';
 import Breadcrumb from '@/Components/Breadcrumb.vue';
 
-const { costcenters, estimates } = usePage().props;
+const { costcenters, estimates, estimate_statuses, fruits } = usePage().props;
 
-const estimateNames = computed(() => {
-  // Extrae nombres únicos de las estimaciones
-  const names = estimates.map(e => e.estimate_name);
-  return [...new Set(names)];
+const fruitOptions = computed(() => {
+  if (!fruits) return [];
+  return fruits.map(f => ({ id: f.id, name: f.name }));
 });
 
-const selectedEstimate = ref(estimateNames.value[0] || '');
+const selectedFruit = ref('');
+
+const estimateStatusOptions = computed(() => {
+  if (!estimate_statuses) return [];
+  // Mostrar solo estados relacionados al fruit_id seleccionado
+  return estimate_statuses.filter(s => s.fruit_id == selectedFruit.value).map(s => ({ id: s.id, name: s.name }));
+});
+
+const selectedEstimateStatus = ref(estimateStatusOptions.value[0]?.id || '');
+
 const selectedCostCenter = ref('');
 const selectedVariety = ref('');
+
+const filteredCostCenters = computed(() => {
+  if (!selectedFruit.value) return costcenters;
+  return costcenters.filter(cc => {
+    // Buscar si hay estimate con esta fruta y costcenter
+    return estimates.some(e => e.cost_center_id === cc.id && e.fruit_id === selectedFruit.value);
+  });
+});
+
+const filteredVarieties = computed(() => {
+  if (!selectedFruit.value) return costcenters.map(cc => cc.variety).filter(v => v);
+  // Solo variedades de costcenters filtrados
+  return filteredCostCenters.value.map(cc => cc.variety).filter(v => v);
+});
 
 const form = ref({});
 
@@ -31,7 +53,10 @@ function openAdd() {
 }
 
 const filteredEstimates = computed(() => {
-  return estimates.filter(e => e.estimate_name === selectedEstimate.value);
+  return estimates.filter(e =>
+    (selectedEstimateStatus.value ? e.estimate_status_id === selectedEstimateStatus.value : true) &&
+    (selectedFruit.value ? e.fruit_id == selectedFruit.value : true)
+  );
 });
 
 const rows = computed(() => {
@@ -50,6 +75,7 @@ const rows = computed(() => {
         surface: cc.surface,
         kilos: kilos !== 0 ? Math.round(kilos).toLocaleString('es-ES') : '',
         totalKilos: totalKilos !== '' ? totalKilos.toLocaleString('es-ES') : '',
+        estimateStatus: estimate_statuses?.find(s => s.id === selectedEstimateStatus.value)?.name || '',
       });
     }
   });
@@ -63,7 +89,9 @@ const filteredRows = computed(() => {
   return rows.value.filter(row => {
     const ccFilter = selectedCostCenter.value ? row.costcenterId == selectedCostCenter.value : true;
     const varietyFilter = selectedVariety.value ? row.varietyId == selectedVariety.value : true;
-    return ccFilter && varietyFilter;
+    // Filtrar por fruta
+    const fruitFilter = selectedFruit.value ? (estimates.find(e => e.cost_center_id == row.costcenterId && e.variety_id == row.varietyId && e.fruit_id == selectedFruit.value)) : true;
+    return ccFilter && varietyFilter && fruitFilter;
   });
 });
 </script>
@@ -123,23 +151,30 @@ const filteredRows = computed(() => {
       </div>
       <div class="row g-2 align-items-end mb-3">
         <div class="col-md-4">
-          <label class="form-label mb-1">Nombre de la estimación</label>
-          <select v-model="selectedEstimate" class="form-select form-select-sm">
-            <option v-for="name in estimateNames" :key="name" :value="name">{{ name }}</option>
+          <label class="form-label mb-1">Especie</label>
+          <select v-model="selectedFruit" class="form-select form-select-sm">
+            <option value="">Todas</option>
+            <option v-for="fruit in fruitOptions" :key="fruit.id" :value="fruit.id">{{ fruit.name }}</option>
+          </select>
+        </div>
+        <div class="col-md-4">
+          <label class="form-label mb-1">Estado de la estimación</label>
+          <select v-model="selectedEstimateStatus" class="form-select form-select-sm">
+            <option v-for="status in estimateStatusOptions" :key="status.id" :value="status.id">{{ status.name }}</option>
           </select>
         </div>
         <div class="col-md-4">
           <label class="form-label mb-1">Centro de Costo</label>
           <select v-model="selectedCostCenter" class="form-select form-select-sm">
             <option value="">Todos</option>
-            <option v-for="cc in costcenters" :key="cc.id" :value="cc.id">{{ cc.name }}</option>
+            <option v-for="cc in filteredCostCenters" :key="cc.id" :value="cc.id">{{ cc.name }}</option>
           </select>
         </div>
         <div class="col-md-4">
           <label class="form-label mb-1">Variedad</label>
           <select v-model="selectedVariety" class="form-select form-select-sm">
             <option value="">Todas</option>
-            <option v-for="cc in costcenters" :key="cc.variety.id" :value="cc.variety.id">{{ cc.variety.name }}</option>
+            <option v-for="v in filteredVarieties" :key="v.id" :value="v.id">{{ v.name }}</option>
           </select>
         </div>
       </div>
@@ -175,7 +210,14 @@ const filteredRows = computed(() => {
         </div>
       </div>
  </div>
-  <CreateEstimateModal :form="form" @store="() => {}" />
+  <CreateEstimateModal
+    :form="form"
+    :costcenters="costcenters"
+    :estimates="estimates"
+    :estimate_statuses="estimate_statuses"
+    :season_id="form.season_id"
+    @store="() => {}"
+  />
  </div>
  </div>
 </AppLayout>

@@ -6,7 +6,7 @@ use Illuminate\Database\Eloquent\Model;
 class Estimate extends Model
 {
     protected $fillable = [
-        'estimate_name',
+        'estimate_status_id',
         'kilos_ha',
         'cost_center_id',
         'observations',
@@ -25,5 +25,13 @@ class Estimate extends Model
     public function team()
     {
         return $this->belongsTo(Team::class);
+    }
+
+    /**
+     * Relación con el estado de la estimación.
+     */
+    public function estimateStatus()
+    {
+        return $this->belongsTo(EstimateStatus::class, 'estimate_status_id');
     }
 }

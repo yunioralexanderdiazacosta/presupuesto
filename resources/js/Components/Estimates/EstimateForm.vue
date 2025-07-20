@@ -9,10 +9,17 @@
         form: Object,
         costcenters: Array,
         estimates: Array,
+        estimate_statuses: Array,
         season_id: Number
     });
 
-    const estimateName = ref('');
+    // Depuración: mostrar estimate_statuses en consola
+    console.log('estimate_statuses:', props.estimate_statuses);
+    // Usar directamente la lista de estados enviada por el backend
+    const availableEstimateStatuses = computed(() => {
+        return props.estimate_statuses ? props.estimate_statuses.map(s => ({ id: s.id, name: s.name })) : [];
+    });
+    const selectedEstimateStatusId = ref(availableEstimateStatuses.value[0]?.id || '');
     const kilosInputs = ref([]);
     const observationsInputs = ref([]);
 
@@ -49,7 +56,7 @@
             .map(row => ({
                 cost_center_id: row.costcenterId,
                 kilos_ha: row.kilos,
-                estimate_name: estimateName.value,
+                estimate_status_id: selectedEstimateStatusId.value,
                 observations: row.observation || '',
                 season_id: props.season_id
             }));
@@ -58,8 +65,10 @@
 </script>
 <template>
     <div class="mb-3">
-        <label class="form-label mb-1">Nombre de la estimación</label>
-        <input v-model="estimateName" class="form-control form-control-sm" placeholder="Ingrese nombre de la estimación" />
+        <label class="form-label mb-1">Estado de la estimación</label>
+        <select v-model="selectedEstimateStatusId" class="form-select form-select-sm">
+            <option v-for="status in availableEstimateStatuses" :key="status.id" :value="status.id">{{ status.name }}</option>
+        </select>
     </div>
     <div class="table-responsive">
         <table class="table table-bordered table-hover table-sm fs-10 mb-0">

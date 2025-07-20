@@ -23,14 +23,12 @@ class FormEstimateRequest extends FormRequest
     public function rules(): array
     {
         return [
-               'estimate_name' => 'required|string|max:255',
+            'estimate_status_id' => 'required|exists:estimate_status,id',
             'kilos_ha' => 'required|integer',
             'cost_center_id' => 'required|exists:cost_centers,id',
             'season_id' => 'required|exists:seasons,id',
             'team_id' => 'required|exists:teams,id',
             'observations' => 'nullable|string',
-           
-           
         ];
     }
 }

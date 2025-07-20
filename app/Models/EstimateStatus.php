@@ -11,7 +11,7 @@ class EstimateStatus extends Model
 
     protected $fillable = [
         'name',
-        'id_fruit',
+        'fruit_id',
         'observations',
     ];
 
@@ -20,6 +20,6 @@ class EstimateStatus extends Model
      */
     public function fruit(): BelongsTo
     {
-        return $this->belongsTo(Fruit::class, 'id_fruit');
+        return $this->belongsTo(Fruit::class, 'fruit_id');
     }
 }
