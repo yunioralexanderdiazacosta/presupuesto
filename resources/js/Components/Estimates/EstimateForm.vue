@@ -1,5 +1,5 @@
 <script setup>
-    import Multiselect from '@vueform/multiselect';
+    // import Multiselect from '@vueform/multiselect'; (no usado actualmente)
     import TextInput from '@/Components/TextInput.vue';
     import InputError from '@/Components/InputError.vue';
     import { ref, computed, watch } from 'vue';
@@ -16,10 +16,7 @@
     });
     // Igual que Estimates.vue: frutaOptions solo mapea id y name
 
-    const fruitOptions = computed(() => {
-        if (!props.fruits) return [];
-        return props.fruits.map(f => ({ id: f.id, name: f.name }));
-    });
+    const fruitOptions = computed(() => props.fruits?.map(f => ({ id: f.id, name: f.name })) || []);
 
 
     // Estado local para selects
@@ -30,9 +27,21 @@
     });
     const selectedEstimateStatusId = ref('');
 
-    // Cuando cambia la fruta, reiniciar estado de estimación al primero disponible
-    watch(selectedFruitId, () => {
-        selectedEstimateStatusId.value = estimateStatusOptions.value[0]?.id || '';
+    // Inicializar fruta al primero disponible
+    watch(() => props.fruits, (fruits) => {
+        if (fruits && fruits.length) {
+            selectedFruitId.value = fruits[0].id;
+        }
+    }, { immediate: true });
+    // Inicializar estado al primero disponible según fruta
+    watch(() => props.estimate_statuses, (statuses) => {
+        const opts = statuses.filter(s => s.fruit_id == selectedFruitId.value);
+        if (opts.length) selectedEstimateStatusId.value = opts[0].id;
+    }, { immediate: true });
+    // Cuando cambia la fruta, reiniciar estado de estimación
+    watch(selectedFruitId, (newId) => {
+        const opts = props.estimate_statuses.filter(s => s.fruit_id == newId);
+        selectedEstimateStatusId.value = opts.length ? opts[0].id : '';
     });
 
     const kilosInputs = ref([]);

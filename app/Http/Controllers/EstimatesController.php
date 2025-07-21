@@ -19,6 +19,9 @@ class EstimatesController extends Controller
         $fruitId = $request->input('fruit_id');
         $estimateStatusId = $request->input('estimate_status_id');
         $estimates = Estimate::query()
+            // Filtrar por temporada y por el equipo del usuario
+            ->where('season_id', $season_id)
+            ->where('team_id', $user->team_id)
             ->when($fruitId, function ($query) use ($fruitId) {
                 $query->whereHas('costcenter', function ($q) use ($fruitId) {
                     $q->where('fruit_id', $fruitId);
@@ -27,6 +30,8 @@ class EstimatesController extends Controller
             ->when($estimateStatusId, function ($query) use ($estimateStatusId) {
                 $query->where('estimate_status_id', $estimateStatusId);
             })
+            // Cargar relaciones para evitar consultas adicionales en la vista
+            ->with(['costcenter.variety', 'estimateStatus'])
             ->get();
 
         // Frutas relacionadas al team (por costcenters del team)

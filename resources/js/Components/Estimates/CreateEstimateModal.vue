@@ -14,7 +14,7 @@ const props = defineProps({
     season_id: Number
 });
 
-const { costcenters, estimates, success } = usePage().props;
+// Se usan las props recibidas en el componente, no es necesario extraer de usePage().props
 
 const emit = defineEmits(['store', 'edit', 'delete']);
 

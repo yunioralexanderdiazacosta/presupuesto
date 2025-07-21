@@ -36,9 +36,17 @@ public function __invoke($id, \Illuminate\Http\Request $request)
         $estimate->season_id = $request->season_id;
         $estimate->team_id = auth()->user()->team_id;
         $estimate->save();
-        return redirect()->back()->with('success', 'Estimación actualizada correctamente.');
+        $message = 'Estimación actualizada correctamente.';
+        if ($request->wantsJson()) {
+            return response()->json(['success' => $message]);
+        }
+        return redirect()->back()->with('success', $message);
     } catch (\Illuminate\Validation\ValidationException $e) {
-        return response()->json(['errors' => $e->errors()], 422);
+        // Retornar errores de validación en JSON o fallback
+        if ($request->wantsJson()) {
+            return response()->json(['errors' => $e->errors()], 422);
+        }
+        return redirect()->back()->withErrors($e->errors());
     }
 }
 }

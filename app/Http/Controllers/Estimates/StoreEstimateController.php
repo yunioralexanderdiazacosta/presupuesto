@@ -44,11 +44,18 @@ class StoreEstimateController extends Controller
             }
             Estimate::create($dataToSave);
         }
-        // Retornar respuesta para Inertia
+        // Responder JSON si la petición es Inertia/XHR, o fallback a redirect
         if (count($errores)) {
-            return redirect()->back()->with('error', implode(' | ', $errores));
+            $message = implode(' | ', $errores);
+            if ($request->wantsJson()) {
+                return response()->json(['error' => $message], 422);
+            }
+            return redirect()->back()->with('error', $message);
         }
-        // Retornar respuesta para Inertia
-        return redirect()->back()->with('success', 'Las estimaciones se han guardado correctamente.');
+        $successMsg = 'Las estimaciones se han guardado correctamente.';
+        if ($request->wantsJson()) {
+            return response()->json(['success' => $successMsg]);
+        }
+        return redirect()->back()->with('success', $successMsg);
     }
 }

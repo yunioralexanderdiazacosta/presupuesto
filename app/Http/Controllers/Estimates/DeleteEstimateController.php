@@ -18,10 +18,18 @@ class DeleteEstimateController extends Controller
         if ($estimate) {
             $estimate->delete();
             Log::info('Estimate eliminado', ['id' => $id]);
-            return redirect()->back()->with('success', 'Estimación eliminada correctamente.');
+            $message = 'Estimación eliminada correctamente.';
+            if (request()->wantsJson()) {
+                return response()->json(['success' => $message]);
+            }
+            return redirect()->back()->with('success', $message);
         } else {
             Log::warning('Estimate no encontrado para eliminar', ['id' => $id]);
-            return redirect()->back()->with('error', 'Estimación no encontrada.');
+            $errorMsg = 'Estimación no encontrada.';
+            if (request()->wantsJson()) {
+                return response()->json(['error' => $errorMsg], 404);
+            }
+            return redirect()->back()->with('error', $errorMsg);
         }
     }
 }
