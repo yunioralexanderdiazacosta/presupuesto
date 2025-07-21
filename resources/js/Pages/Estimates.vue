@@ -1,12 +1,12 @@
 <script setup>
-import { ref, computed } from 'vue';
+import { ref, computed, watch } from 'vue';
 import CreateEstimateModal from '@/Components/Estimates/CreateEstimateModal.vue';
 import { usePage } from '@inertiajs/vue3';
 import AppLayout from '@/Layouts/AppLayout.vue';
 import Table from '@/Components/Table.vue';
 import Breadcrumb from '@/Components/Breadcrumb.vue';
 
-const { costcenters, estimates, estimate_statuses, fruits } = usePage().props;
+const { costcenters, estimates, estimate_statuses, fruits, season_id } = usePage().props;
 
 const fruitOptions = computed(() => {
   if (!fruits) return [];
@@ -14,6 +14,12 @@ const fruitOptions = computed(() => {
 });
 
 const selectedFruit = ref('');
+
+// Reiniciar centro de costo y variedad al cambiar fruta
+watch(selectedFruit, () => {
+  selectedCostCenter.value = '';
+  selectedVariety.value = '';
+});
 
 const estimateStatusOptions = computed(() => {
   if (!estimate_statuses) return [];
@@ -28,19 +34,28 @@ const selectedVariety = ref('');
 
 const filteredCostCenters = computed(() => {
   if (!selectedFruit.value) return costcenters;
-  return costcenters.filter(cc => {
-    // Buscar si hay estimate con esta fruta y costcenter
-    return estimates.some(e => e.cost_center_id === cc.id && e.fruit_id === selectedFruit.value);
-  });
+  // Mostrar todos los centros de costo de la temporada que tengan el fruit_id seleccionado
+  return costcenters.filter(cc => cc.fruit_id == selectedFruit.value);
 });
 
 const filteredVarieties = computed(() => {
-  if (!selectedFruit.value) return costcenters.map(cc => cc.variety).filter(v => v);
-  // Solo variedades de costcenters filtrados
-  return filteredCostCenters.value.map(cc => cc.variety).filter(v => v);
+  // Si no hay centro de costo seleccionado, mostrar todas las variedades únicas de los costcenters filtrados por fruta
+  if (!selectedCostCenter.value) {
+    const seen = new Set();
+    return filteredCostCenters.value
+      .map(cc => cc.variety)
+      .filter(v => {
+        if (!v || seen.has(v.id)) return false;
+        seen.add(v.id);
+        return true;
+      });
+  }
+  // Si hay centro de costo seleccionado, mostrar solo la variedad de ese costcenter
+  const cc = costcenters.find(c => c.id == selectedCostCenter.value);
+  return cc && cc.variety ? [cc.variety] : [];
 });
 
-const form = ref({});
+const form = ref({ season_id });
 
 function openAdd() {
   // Usar Bootstrap modal
@@ -59,39 +74,53 @@ const filteredEstimates = computed(() => {
   );
 });
 
+// Nueva lógica: la tabla se llena con combinaciones de fruta, estado de estimación, centro de costo y variedad
 const rows = computed(() => {
+  // La tabla solo se llena si el usuario ha seleccionado fruta y estado de estimación
+  if (!selectedFruit.value || !selectedEstimateStatus.value) return [];
   let result = [];
-  costcenters.forEach(cc => {
-    if (cc.variety) {
-      const estimate = filteredEstimates.value.find(e => e.cost_center_id === cc.id);
-      const kilos = estimate ? Number(estimate.kilos_ha) : 0;
-      const surface = cc.surface ? Number(cc.surface) : 0;
-      const totalKilos = kilos && surface ? Math.round(kilos * surface) : '';
-      result.push({
-        costcenter: cc.name,
-        costcenterId: cc.id,
-        variety: cc.variety.name,
-        varietyId: cc.variety.id,
-        surface: cc.surface,
-        kilos: kilos !== 0 ? Math.round(kilos).toLocaleString('es-ES') : '',
-        totalKilos: totalKilos !== '' ? totalKilos.toLocaleString('es-ES') : '',
-        estimateStatus: estimate_statuses?.find(s => s.id === selectedEstimateStatus.value)?.name || '',
-      });
-    }
+  fruits.forEach(fruit => {
+    if (fruit.id != selectedFruit.value) return;
+    estimate_statuses.forEach(status => {
+      if (status.fruit_id == fruit.id && status.id == selectedEstimateStatus.value) {
+        costcenters.forEach(cc => {
+          if (cc.fruit_id == fruit.id && cc.variety) {
+            // Buscar estimate para esta combinación (solo por costcenter y estado)
+            const estimate = estimates.find(e =>
+              e.estimate_status_id == status.id &&
+              e.cost_center_id == cc.id
+            );
+            // Parse surface and kilos as numbers for calculation
+            const surfaceNum = cc.surface ? Number(cc.surface) : 0;
+            const kilosNum = estimate ? Number(estimate.kilos_ha) : 0;
+            result.push({
+              fruit: fruit.name,
+              fruitId: fruit.id,
+              estimateStatus: status.name,
+              estimateStatusId: status.id,
+              costcenter: cc.name,
+              costcenterId: cc.id,
+              variety: cc.variety.name,
+              varietyId: cc.variety.id,
+              surface: surfaceNum ? surfaceNum.toLocaleString('es-ES') : '',
+              kilos: kilosNum ? kilosNum.toLocaleString('es-ES') : '',
+              kilosTotal: surfaceNum && kilosNum ? (surfaceNum * kilosNum).toLocaleString('es-ES') : '',
+            });
+          }
+        });
+      }
+    });
   });
-  if (result.length === 0) {
-    result.push({ costcenter: '', costcenterId: '', variety: '', varietyId: '', kilos: '' });
-  }
   return result;
 });
 
 const filteredRows = computed(() => {
   return rows.value.filter(row => {
+    const fruitFilter = selectedFruit.value ? row.fruitId == selectedFruit.value : true;
+    const statusFilter = selectedEstimateStatus.value ? row.estimateStatusId == selectedEstimateStatus.value : true;
     const ccFilter = selectedCostCenter.value ? row.costcenterId == selectedCostCenter.value : true;
     const varietyFilter = selectedVariety.value ? row.varietyId == selectedVariety.value : true;
-    // Filtrar por fruta
-    const fruitFilter = selectedFruit.value ? (estimates.find(e => e.cost_center_id == row.costcenterId && e.variety_id == row.varietyId && e.fruit_id == selectedFruit.value)) : true;
-    return ccFilter && varietyFilter && fruitFilter;
+    return fruitFilter && statusFilter && ccFilter && varietyFilter;
   });
 });
 </script>
@@ -138,7 +167,8 @@ const filteredRows = computed(() => {
                   <p class="font-sans-serif lh-1 mb-1 fs-8 small-card-number">
                     {{
                       filteredRows.reduce((sum, row) => {
-                        const val = row.totalKilos ? Number(row.totalKilos.replace(/\./g,'').replace(',','.')) : 0;
+                        // Parse kilosTotal from string to number
+                        const val = row.kilosTotal ? Number(row.kilosTotal.replace(/\./g,'').replace(',','.')) : 0;
                         return sum + val;
                       }, 0).toLocaleString('es-ES')
                     }}
@@ -153,7 +183,6 @@ const filteredRows = computed(() => {
         <div class="col-md-4">
           <label class="form-label mb-1">Especie</label>
           <select v-model="selectedFruit" class="form-select form-select-sm">
-            <option value="">Todas</option>
             <option v-for="fruit in fruitOptions" :key="fruit.id" :value="fruit.id">{{ fruit.name }}</option>
           </select>
         </div>
@@ -183,25 +212,29 @@ const filteredRows = computed(() => {
         <div class="card-body p-0 px-4">
             <Table sticky-header :id="'estimates'" :total="filteredRows.length">
               <template #header>
+                <th scope="col">Fruta</th>
+                <th scope="col">Estado de estimación</th>
                 <th scope="col">Centro de Costo</th>
                 <th scope="col">Variedad</th>
                 <th scope="col">Superficie</th>
-                <th scope="col">Kilos</th>
-                <th scope="col">Total Kilos</th>
+                <th scope="col">Kilos/ha</th>
+                <th scope="col">Kilos total</th>
               </template>
               <template #body>
                 <template v-if="filteredRows.length === 0">
                   <tr>
-                    <td colspan="5" class="text-center">Sin datos</td>
+                    <td colspan="7" class="text-center">Sin datos</td>
                   </tr>
                 </template>
                 <template v-else>
                   <tr v-for="(row, idx) in filteredRows" :key="idx">
+                    <td>{{ row.fruit }}</td>
+                    <td>{{ row.estimateStatus }}</td>
                     <td>{{ row.costcenter }}</td>
                     <td>{{ row.variety }}</td>
                     <td>{{ row.surface }}</td>
                     <td>{{ row.kilos }}</td>
-                    <td>{{ row.totalKilos }}</td>
+                    <td>{{ row.kilosTotal }}</td>
                   </tr>
                 </template>
               </template>
@@ -215,7 +248,8 @@ const filteredRows = computed(() => {
     :costcenters="costcenters"
     :estimates="estimates"
     :estimate_statuses="estimate_statuses"
-    :season_id="form.season_id"
+    :fruits="fruits"
+    :season_id="season_id"
     @store="() => {}"
   />
  </div>

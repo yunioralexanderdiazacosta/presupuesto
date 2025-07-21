@@ -10,42 +10,158 @@ const props = defineProps({
     costcenters: Array,
     estimates: Array,
     estimate_statuses: Array,
+    fruits: Array,
     season_id: Number
 });
 
 const { costcenters, estimates, success } = usePage().props;
 
-defineEmits(['store']);
+const emit = defineEmits(['store', 'edit', 'delete']);
+
+
+import { ref, watch, nextTick } from 'vue';
+const selectedFruitId = ref(null);
+const selectedEstimateStatusId = ref(null);
+
+// Inicializar selección al abrir el modal o cuando cambian los datos
+watch([
+    () => props.fruits,
+    () => props.estimate_statuses
+], ([fruits, statuses]) => {
+    nextTick(() => {
+        if (fruits && fruits.length && !selectedFruitId.value) {
+            selectedFruitId.value = fruits[0].id;
+        }
+        if (statuses && statuses.length) {
+            // Filtrar estados por fruta seleccionada
+            const filtered = statuses.filter(s => s.fruit_id == selectedFruitId.value);
+            if (filtered.length && !selectedEstimateStatusId.value) {
+                selectedEstimateStatusId.value = filtered[0].id;
+            }
+        }
+    });
+}, { immediate: true });
+
+// Cuando cambia la fruta, reiniciar estado de estimación
+watch(selectedFruitId, (newFruitId) => {
+    if (props.estimate_statuses && props.estimate_statuses.length) {
+        const filtered = props.estimate_statuses.filter(s => s.fruit_id == newFruitId);
+        selectedEstimateStatusId.value = filtered.length ? filtered[0].id : null;
+    }
+});
 
 const handleStore = (data) => {
-    console.log('handleStore recibido:', data);
+    // Guardar selección actual antes de refrescar
+    if (data.length && data[0].fruit_id && data[0].estimate_status_id) {
+        selectedFruitId.value = data[0].fruit_id;
+        selectedEstimateStatusId.value = data[0].estimate_status_id;
+    }
     router.post(route('estimates.store'), data, {
         preserveState: true,
         preserveScroll: true,
         onSuccess: () => {
-            if (usePage().props.error) {
-                Swal.fire({
-                    position: 'center',
-                    icon: 'error',
-                    title: 'Error',
-                    text: usePage().props.error,
-                    showConfirmButton: true
-                });
-                return;
-            }
-            // Resetear el formulario si existe el método
             props.form.reset && props.form.reset();
-            // Cerrar el modal (jQuery)
-            if (window.$) {
-                $('#createEstimateModal').modal('hide');
-            }
             Swal.fire({
                 position: 'center',
                 icon: 'success',
                 title: 'Guardado correctamente',
+                text: usePage().props.success || '',
                 showConfirmButton: false,
-                timer: 1000
+                timer: 2000
             });
+        },
+        onError: (errors) => {
+            // Si hay error de validación o duplicado, mostrar alerta
+            let msg = 'Ya existe una estimación para ese centro de costo y estado. Por favor revisa los datos.';
+            if (errors && (errors.duplicate || errors.error)) {
+                msg = errors.duplicate || errors.error;
+            } else if (typeof errors === 'string') {
+                msg = errors;
+            }
+            Swal.fire({
+                position: 'center',
+                icon: 'error',
+                title: 'Dato duplicado',
+                text: msg,
+                showConfirmButton: true
+            });
+        }
+    });
+};
+
+const handleEdit = (estimate) => {
+    // Guardar selección actual antes de refrescar
+    selectedFruitId.value = estimate.fruit_id;
+    selectedEstimateStatusId.value = estimate.estimate_status_id;
+    router.post(`/estimates/${estimate.id}/update`, estimate, {
+        preserveState: true,
+        preserveScroll: true,
+        onSuccess: (page) => {
+            // Si la respuesta es JSON con error (no Inertia), mostrar error y no cerrar modal
+            if (page && page.error) {
+                Swal.fire({
+                    position: 'center',
+                    icon: 'error',
+                    title: 'Error',
+                    text: page.error,
+                    showConfirmButton: true
+                });
+                return;
+            }
+            if (props.form.errors) props.form.errors = {};
+            Swal.fire({
+                position: 'center',
+                icon: 'success',
+                title: 'Estimación actualizada',
+                showConfirmButton: false,
+                timer: 1200
+            });
+            // Cierra el modal
+            const modal = document.getElementById('createEstimateModal');
+            if (modal) {
+                const evt = new Event('hidden.bs.modal', { bubbles: true });
+                modal.dispatchEvent(evt);
+                if (window.$ && window.$(modal).modal) {
+                    window.$(modal).modal('hide');
+                }
+            }
+            // Refresca estimates (SPA)
+            router.reload({ only: ['estimates'] });
+        },
+        onError: (errors) => {
+            if (!props.form.errors) props.form.errors = {};
+            Object.keys(errors).forEach(key => {
+                props.form.errors[key] = errors[key];
+            });
+        }
+    });
+};
+
+const handleDelete = (id) => {
+    router.delete(`/estimates/${id}/delete`, {
+        preserveState: true,
+        preserveScroll: true,
+        onSuccess: () => {
+            Swal.fire({
+                position: 'center',
+                icon: 'success',
+                title: 'Estimación eliminada',
+                showConfirmButton: false,
+                timer: 1200
+            });
+            // Cierra el modal
+            const modal = document.getElementById('createEstimateModal');
+            if (modal) {
+                // Bootstrap 5 modal close
+                const evt = new Event('hidden.bs.modal', { bubbles: true });
+                modal.dispatchEvent(evt);
+                // Si usas jQuery/Bootstrap modal plugin:
+                if (window.$ && window.$(modal).modal) {
+                    window.$(modal).modal('hide');
+                }
+            }
+            // Refresca estimates (SPA)
+            router.reload({ only: ['estimates'] });
         }
     });
 };
@@ -65,10 +181,30 @@ const handleStore = (data) => {
             </div>
         </template>
         <template #body>
-            <EstimateForm :form="form" :costcenters="costcenters" :estimates="estimates" :estimate_statuses="estimate_statuses" :season_id="form.season_id" @store="handleStore" />
+            <EstimateForm 
+                :form="form" 
+                :costcenters="costcenters" 
+                :estimates="estimates" 
+                :estimate_statuses="estimate_statuses" 
+                :fruits="fruits" 
+                :season_id="season_id" 
+                :selected-fruit-id="selectedFruitId"
+                :selected-estimate-status-id="selectedEstimateStatusId"
+                @store="handleStore"
+                @edit="handleEdit"
+                @delete="handleDelete"
+                enable-edit
+            />
         </template>
         <template #footer>
-            <button type="button" id="kt_modal_add_estimate_cancel" data-bs-dismiss="modal" class="btn btn-light me-3">Cerrar</button>
+            <button
+                type="button"
+                id="kt_modal_add_estimate_cancel"
+                data-bs-dismiss="modal"
+                class="btn btn-secondary"
+            >
+                <i class="fas fa-times me-1"></i> Cerrar
+            </button>
         </template>
     </Modal>
 </template>

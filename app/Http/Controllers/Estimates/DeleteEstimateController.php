@@ -4,18 +4,24 @@ namespace App\Http\Controllers\Estimates;
 
 use App\Http\Controllers\Controller;
 use App\Models\Estimate;
+use Illuminate\Support\Facades\Log;
+
+
 
 class DeleteEstimateController extends Controller
 {
-    public function __invoke(Estimate $estimate)
+    public function __invoke($id)
     {
-        // Delete related items if necessary
-        // $estimate->items()->delete(); // Uncomment if there are related items to delete
+        $estimate = Estimate::find($id);
+        Log::info('Intentando eliminar estimate', ['id' => $id, 'found' => $estimate ? true : false]);
 
-        // Delete the estimate itself
-        $estimate->delete();
-        
-        // Optionally, you can return a response or redirect
-        return response()->json(['message' => 'Estimate deleted successfully.']);
+        if ($estimate) {
+            $estimate->delete();
+            Log::info('Estimate eliminado', ['id' => $id]);
+            return redirect()->back()->with('success', 'Estimación eliminada correctamente.');
+        } else {
+            Log::warning('Estimate no encontrado para eliminar', ['id' => $id]);
+            return redirect()->back()->with('error', 'Estimación no encontrada.');
+        }
     }
 }
