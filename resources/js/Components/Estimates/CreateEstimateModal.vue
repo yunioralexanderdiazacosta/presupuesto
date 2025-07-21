@@ -116,15 +116,6 @@ const handleEdit = (estimate) => {
                 showConfirmButton: false,
                 timer: 1200
             });
-            // Cierra el modal
-            const modal = document.getElementById('createEstimateModal');
-            if (modal) {
-                const evt = new Event('hidden.bs.modal', { bubbles: true });
-                modal.dispatchEvent(evt);
-                if (window.$ && window.$(modal).modal) {
-                    window.$(modal).modal('hide');
-                }
-            }
             // Refresca estimates (SPA)
             router.reload({ only: ['estimates'] });
         },
@@ -138,7 +129,8 @@ const handleEdit = (estimate) => {
 };
 
 const handleDelete = (id) => {
-    router.delete(`/estimates/${id}/delete`, {
+    // Eliminar estimate sin cerrar modal ni pasar datos adicionales
+    router.delete(`/estimates/${id}/delete`, {}, {
         preserveState: true,
         preserveScroll: true,
         onSuccess: () => {
@@ -149,18 +141,7 @@ const handleDelete = (id) => {
                 showConfirmButton: false,
                 timer: 1200
             });
-            // Cierra el modal
-            const modal = document.getElementById('createEstimateModal');
-            if (modal) {
-                // Bootstrap 5 modal close
-                const evt = new Event('hidden.bs.modal', { bubbles: true });
-                modal.dispatchEvent(evt);
-                // Si usas jQuery/Bootstrap modal plugin:
-                if (window.$ && window.$(modal).modal) {
-                    window.$(modal).modal('hide');
-                }
-            }
-            // Refresca estimates (SPA)
+            // Refrescar solo el fragmento 'estimates'
             router.reload({ only: ['estimates'] });
         }
     });

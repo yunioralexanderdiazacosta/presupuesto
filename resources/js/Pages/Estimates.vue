@@ -6,11 +6,17 @@ import AppLayout from '@/Layouts/AppLayout.vue';
 import Table from '@/Components/Table.vue';
 import Breadcrumb from '@/Components/Breadcrumb.vue';
 
-const { costcenters, estimates, estimate_statuses, fruits, season_id } = usePage().props;
+const page = usePage();
+const costcenters = computed(() => page.props.costcenters);
+const estimates = computed(() => page.props.estimates);
+const estimate_statuses = computed(() => page.props.estimate_statuses);
+const fruits = computed(() => page.props.fruits);
+const season_id = computed(() => page.props.season_id);
 
 const fruitOptions = computed(() => {
-  if (!fruits) return [];
-  return fruits.map(f => ({ id: f.id, name: f.name }));
+  const list = fruits.value;
+  if (!list) return [];
+  return list.map(f => ({ id: f.id, name: f.name }));
 });
 
 const selectedFruit = ref('');
@@ -22,9 +28,12 @@ watch(selectedFruit, () => {
 });
 
 const estimateStatusOptions = computed(() => {
-  if (!estimate_statuses) return [];
+  const statuses = estimate_statuses.value;
+  if (!statuses) return [];
   // Mostrar solo estados relacionados al fruit_id seleccionado
-  return estimate_statuses.filter(s => s.fruit_id == selectedFruit.value).map(s => ({ id: s.id, name: s.name }));
+  return statuses
+    .filter(s => s.fruit_id == selectedFruit.value)
+    .map(s => ({ id: s.id, name: s.name }));
 });
 
 const selectedEstimateStatus = ref(estimateStatusOptions.value[0]?.id || '');
@@ -33,16 +42,18 @@ const selectedCostCenter = ref('');
 const selectedVariety = ref('');
 
 const filteredCostCenters = computed(() => {
-  if (!selectedFruit.value) return costcenters;
+  const list = costcenters.value;
+  if (!selectedFruit.value) return list;
   // Mostrar todos los centros de costo de la temporada que tengan el fruit_id seleccionado
-  return costcenters.filter(cc => cc.fruit_id == selectedFruit.value);
+  return list.filter(cc => cc.fruit_id == selectedFruit.value);
 });
 
 const filteredVarieties = computed(() => {
   // Si no hay centro de costo seleccionado, mostrar todas las variedades únicas de los costcenters filtrados por fruta
+  const list = filteredCostCenters.value;
   if (!selectedCostCenter.value) {
     const seen = new Set();
-    return filteredCostCenters.value
+    return list
       .map(cc => cc.variety)
       .filter(v => {
         if (!v || seen.has(v.id)) return false;
@@ -51,7 +62,7 @@ const filteredVarieties = computed(() => {
       });
   }
   // Si hay centro de costo seleccionado, mostrar solo la variedad de ese costcenter
-  const cc = costcenters.find(c => c.id == selectedCostCenter.value);
+  const cc = costcenters.value.find(c => c.id == selectedCostCenter.value);
   return cc && cc.variety ? [cc.variety] : [];
 });
 
@@ -68,7 +79,7 @@ function openAdd() {
 }
 
 const filteredEstimates = computed(() => {
-  return estimates.filter(e =>
+  return estimates.value.filter(e =>
     (selectedEstimateStatus.value ? e.estimate_status_id === selectedEstimateStatus.value : true) &&
     (selectedFruit.value ? e.fruit_id == selectedFruit.value : true)
   );
@@ -79,14 +90,14 @@ const rows = computed(() => {
   // La tabla solo se llena si el usuario ha seleccionado fruta y estado de estimación
   if (!selectedFruit.value || !selectedEstimateStatus.value) return [];
   let result = [];
-  fruits.forEach(fruit => {
+  fruits.value.forEach(fruit => {
     if (fruit.id != selectedFruit.value) return;
-    estimate_statuses.forEach(status => {
+    estimate_statuses.value.forEach(status => {
       if (status.fruit_id == fruit.id && status.id == selectedEstimateStatus.value) {
-        costcenters.forEach(cc => {
+        costcenters.value.forEach(cc => {
           if (cc.fruit_id == fruit.id && cc.variety) {
             // Buscar estimate para esta combinación (solo por costcenter y estado)
-            const estimate = estimates.find(e =>
+            const estimate = estimates.value.find(e =>
               e.estimate_status_id == status.id &&
               e.cost_center_id == cc.id
             );
