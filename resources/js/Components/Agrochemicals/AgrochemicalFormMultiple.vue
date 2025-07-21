@@ -152,6 +152,65 @@ const formatPrice = (value) => {
   if (value === null || value === undefined || value === '') return '';
   return parseInt(value);
 };
+
+// Nuevas reglas para filtrar 'Unidad del precio' según la unidad de la dosis
+const allowedPriceUnitIdsForDose1 = [1, 2, 8];
+const allowedPriceUnitIdsForDose3 = [3, 4];
+const allowedPriceUnitIdsForDose8 = [1, 2, 8];
+const allowedPriceUnitIdsForDose2 = [1, 2, 8];
+const allowedPriceUnitIdsForDose4 = [3, 4];
+const allowedPriceUnitIdsForDose5 = [5];
+
+// Excluir unidades de dosis con id 6 y 7
+const disallowedDoseUnitIds = [6, 7];
+const getDoseUnitOptions = () => page.props.units.filter(u => !disallowedDoseUnitIds.includes(u.value));
+
+const getPriceUnitOptions = (product) => {
+  if (product.unit_id === 1) {
+    return page.props.units.filter(u => allowedPriceUnitIdsForDose1.includes(u.value));
+  } else if (product.unit_id === 2) {
+    return page.props.units.filter(u => allowedPriceUnitIdsForDose2.includes(u.value));
+  } else if (product.unit_id === 3) {
+    return page.props.units.filter(u => allowedPriceUnitIdsForDose3.includes(u.value));
+  } else if (product.unit_id === 4) {
+    return page.props.units.filter(u => allowedPriceUnitIdsForDose4.includes(u.value));
+  } else if (product.unit_id === 5) {
+    return page.props.units.filter(u => allowedPriceUnitIdsForDose5.includes(u.value));
+  } else if (product.unit_id === 8) {
+    return page.props.units.filter(u => allowedPriceUnitIdsForDose8.includes(u.value));
+  }
+  return page.props.units;
+};
+
+watch(
+  () => props.form.products.map(p => p.unit_id),
+  (newUnitIds) => {
+    newUnitIds.forEach((id, idx) => {
+      const currentPriceUnit = props.form.products[idx].unit_id_price;
+      if (id === 1 && !allowedPriceUnitIdsForDose1.includes(currentPriceUnit)) {
+        props.form.products[idx].unit_id_price = null;
+      }
+      if (id === 2 && !allowedPriceUnitIdsForDose2.includes(currentPriceUnit)) {
+        props.form.products[idx].unit_id_price = null;
+      }
+      if (id === 3 && !allowedPriceUnitIdsForDose3.includes(currentPriceUnit)) {
+        props.form.products[idx].unit_id_price = null;
+      }
+      if (id === 4 && !allowedPriceUnitIdsForDose4.includes(currentPriceUnit)) {
+        props.form.products[idx].unit_id_price = null;
+      }
+      if (id === 5 && !allowedPriceUnitIdsForDose5.includes(currentPriceUnit)) {
+        props.form.products[idx].unit_id_price = null;
+      }
+      if (id === 8 && !allowedPriceUnitIdsForDose8.includes(currentPriceUnit)) {
+        props.form.products[idx].unit_id_price = null;
+      }
+    });
+  },
+  { deep: true }
+);
+
+
 </script>
 <script setup></script>
 <template>
@@ -203,25 +262,22 @@ const formatPrice = (value) => {
                 <div class="fv-row">
                 <label class="col-form-label">Nombre del producto</label>
                 <div class="input-group position-relative">
-                    <span class="input-group-text"
-                        ><i class="fas fa-flask"></i
-                    ></span>
+                    <span class="input-group-text"><i class="fas fa-flask"></i></span>
                     <input
                         :id="'product_name_' + index"
                         v-model="product.product_name"
                         class="form-control"
                         :list="'products-list-' + index"
-                        :class="{
-                            'is-invalid':
-                                form.errors['products.' + index + '.product_name'],
-                        }"
+                        :class="{ 'is-invalid': form.errors['products.' + index + '.product_name'] }"
                         placeholder="Escriba o seleccione un producto..."
                     />
                     <datalist :id="'products-list-' + index">
-                        <option v-for="option in filteredProductsByFamily" :key="option.name" :value="option.name">{{ option.name }}</option>
+                        <option v-for="option in filteredProductsByFamily" :key="option.name" :value="option.name">
+                            {{ option.name }}
+                        </option>
                     </datalist>
                 </div>
-                <InputError class="mt-2" :message="form.errors.product_name" />
+                <InputError class="mt-2" :message="form.errors['products.' + index + '.product_name']" />
             </div>
             </div>
             <div class="col-sm-3 pe-0">
@@ -295,7 +351,7 @@ const formatPrice = (value) => {
                         :placeholder="''"
                         v-model="product.unit_id"
                         :close-on-select="true"
-                        :options="$page.props.units"
+                        :options="getDoseUnitOptions()"
                         class="form-control"
                         :class="{
                             'is-invalid':
@@ -371,7 +427,7 @@ const formatPrice = (value) => {
                         :placeholder="''"
                         v-model="product.unit_id_price"
                         :close-on-select="true"
-                        :options="$page.props.units"
+                        :options="getPriceUnitOptions(product)"
                         class="form-control"
                         :class="{
                             'is-invalid':

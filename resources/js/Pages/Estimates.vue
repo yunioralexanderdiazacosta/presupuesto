@@ -134,6 +134,19 @@ const filteredRows = computed(() => {
     return fruitFilter && statusFilter && ccFilter && varietyFilter;
   });
 });
+
+const averageKilosPerHa = computed(() => {
+  const totalKilos = filteredRows.value.reduce((sum, row) => {
+    const val = row.kilosTotal ? Number(row.kilosTotal.replace(/\./g,'').replace(',','.')) : 0;
+    return sum + val;
+  }, 0);
+  const totalSurface = filteredRows.value.reduce((sum, row) => {
+    const val = row.surface ? Number(row.surface.replace(/\./g,'').replace(',','.')) : 0;
+    return sum + val;
+  }, 0);
+  if (!totalSurface) return 0;
+  return Math.floor(totalKilos / totalSurface);
+});
 </script>
 <template>
   <Head :title="title" />
@@ -183,6 +196,22 @@ const filteredRows = computed(() => {
                         return sum + val;
                       }, 0).toLocaleString('es-ES')
                     }}
+                  </p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="col-md-4">
+          <div class="card h-100 p-1 small-card">
+            <div class="card-header pb-0 pt-1 px-2">
+              <h6 class="mb-0 mt-1 fs-8 d-flex align-items-center small-card-title">Promedio kg/ha</h6>git 
+            </div>
+            <div class="card-body d-flex flex-column justify-content-end py-1 px-2">
+              <div class="row">
+                <div class="col">
+                  <p class="font-sans-serif lh-1 mb-1 fs-8 small-card-number">
+                    {{ averageKilosPerHa.toLocaleString('es-ES') }}
                   </p>
                 </div>
               </div>

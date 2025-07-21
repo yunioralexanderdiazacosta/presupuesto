@@ -2,6 +2,14 @@
     import Multiselect from '@vueform/multiselect';
     import TextInput from '@/Components/TextInput.vue';
     import InputError from '@/Components/InputError.vue';
+    import { getCurrentInstance } from 'vue';
+
+    const { appContext } = getCurrentInstance();
+    const page = appContext.config.globalProperties.$page;
+
+    // Excluir unidades de dosis con id 6 y 7
+    const disallowedDoseUnitIds = [6, 7];
+    const getDoseUnitOptions = () => page.props.units.filter(u => !disallowedDoseUnitIds.includes(u.value));
 
     defineProps({
         form: Object
@@ -70,7 +78,7 @@
                     :placeholder="''"
                     v-model="form.unit_id"
                     :close-on-select="true"
-                    :options="$page.props.units"
+                    :options="getDoseUnitOptions()"
                     class="multiselect-blue form-control"
                     :class="{'is-invalid': form.errors.unit_id}"
                     :searchable="true"
@@ -194,16 +202,6 @@
 </template>
 <style src="@vueform/multiselect/themes/default.css"></style>
 <style>
-.multiselect,
-.multiselect__input,
-.multiselect__single {
-  min-height: 32px !important;
-  height: 32px !important;
-  padding-top: 0.375rem !important;
-  padding-bottom: 0.375rem !important;
-  font-size: 1rem;
-}
-
 /* Agrandar la casilla de verificación (checkbox) */
 .form-check-input[type="checkbox"] {
   width: 1.1em;
