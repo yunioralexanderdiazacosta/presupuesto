@@ -88,6 +88,7 @@ class AdministrationsController extends Controller
         $level1 = Level1::where('name', 'Administracion')
             ->where('team_id', $user->team_id)
             ->first();
+            
         $level2s =  Level2::from('level2s as l2')
             ->join('level1s as l1', 'l1.id', 'l2.level1_id')
             ->select('l2.id', 'l2.name')

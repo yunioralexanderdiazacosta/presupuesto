@@ -353,7 +353,7 @@ const onFilter = () => {
                             { label: 'Unidad de $', key: 'unit2.name' }
                           ]"
                           class="btn btn-success btn-md d-flex align-items-center p-0"
-                          filename="Servicios.xlsx"
+                          filename="cosecha.xlsx"
                         />
                         <ExportPdfButton
                           :data="harvests.data"
@@ -366,7 +366,7 @@ const onFilter = () => {
                             { label: 'Unidad de $', key: 'unit2.name' }
                           ]"
                           class="btn btn-danger btn-md d-flex align-items-center p-0"
-                          filename="Servicios.pdf"
+                          filename="cosecha.pdf"
                         />
                        
                       </div>

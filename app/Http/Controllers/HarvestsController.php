@@ -120,19 +120,40 @@ class HarvestsController extends Controller
         $this->month_id = $season['month_id'];
 
 
-        $subfamilies = Level3::from('level3s as l3')
-        ->join('level2s as l2', 'l2.id', 'l3.level2_id')
-        ->join('level1s as l1', 'l1.id', 'l2.level1_id')
-        ->select('l3.id', 'l3.name')
-        ->where('l1.team_id', $user->team_id)
-        ->where('l2.name', 'servicios')
-        ->where('season_id', $season_id)
-        ->get()->transform(function($subfamily){
-            return [
-                'label' => $subfamily->name, 
-                'value' => $subfamily->id
-            ];
-        });
+        // Obtener el Level1 correspondiente a 'Cosecha' para el equipo del usuario
+        $level1 = \App\Models\Level1::where('name', 'Cosecha')
+            ->where('team_id', $user->team_id)
+            ->first();
+
+        $level2s = collect();
+        if ($level1) {
+            $level2s = \App\Models\Level2::from('level2s as l2')
+                ->join('level1s as l1', 'l1.id', 'l2.level1_id')
+                ->select('l2.id', 'l2.name')
+                ->where('l1.team_id', $user->team_id)
+                ->where('season_id', $season_id)
+                ->where('l1.name', 'Cosecha')
+                ->get()->transform(function($subfamily){
+                    return [
+                        'label' => $subfamily->name,
+                        'value' => $subfamily->id
+                    ];
+                });
+        }
+
+        $subfamilies = collect();
+        if ($level1) {
+            $subfamilies = \App\Models\Level3::whereHas('level2', function($query) use ($level1) {
+                $query->where('level1_id', $level1->id);
+            })
+            ->get()
+            ->transform(function($subfamily){
+                return [
+                    'label' => $subfamily->name,
+                    'value' => $subfamily->id
+                ];
+            });
+        }
 
         $units = Unit::get()->transform(function($unit){
             return [
@@ -219,7 +240,8 @@ class HarvestsController extends Controller
         ->join('harvest_items as hi', 'h.id', 'hi.harvest_id')
         ->join('level3s as l3', 'h.subfamily_id', 'l3.id')
         ->join('level2s as l2', 'l3.level2_id', 'l2.id')
-        ->where('l2.name', 'servicios')
+         ->join('level1s as l1', 'l2.level1_id', 'l1.id')
+        ->where('l1.name', 'Cosecha')
         ->whereIn('hi.cost_center_id', $costCenterIds)
         ->select('hi.cost_center_id', 'l3.id as subfamily_id', 'l3.name as subfamily_name')
         ->groupBy('hi.cost_center_id', 'l3.id', 'l3.name')
@@ -338,7 +360,8 @@ class HarvestsController extends Controller
         ->join('harvest_items as si', 's.id', 'si.harvest_id')
         ->join('level3s as l3', 's.subfamily_id', 'l3.id')
         ->join('level2s as l2', 'l3.level2_id', 'l2.id')
-        ->where('l2.name', 'servicios')
+         ->join('level1s as l1', 'l2.level1_id', 'l1.id')
+        ->where('l1.name', 'Cosecha')
         ->select('l3.id', 'l3.name')
         ->whereIn('si.cost_center_id', $costCentersId)
         ->groupBy('l3.id', 'l3.name')
@@ -386,7 +409,7 @@ class HarvestsController extends Controller
         $totalData1 = number_format($this->totalData1, 0, ',', '.');
         $totalData2 = number_format($this->totalData2, 0, ',', '.');
 
-        return Inertia::render('Harvests', compact('units', 'subfamilies', 'months', 'costCenters', 'harvests', 'data', 'data2', 'data3', 'season', 'totalData1', 'totalData2', 'percentage', 'varieties', 'fruits'));
+        return Inertia::render('Harvests', compact('units', 'subfamilies', 'months', 'costCenters', 'harvests', 'data', 'data2', 'data3', 'season', 'totalData1', 'totalData2', 'percentage', 'varieties', 'fruits', 'level2s'));
     }
 
     private function getSubfamilies($costCenterId, $surface = null, $bills = false)
@@ -395,7 +418,8 @@ class HarvestsController extends Controller
         ->join('harvest_items as si', 's.id', 'si.harvest_id')
         ->join('level3s as l3', 's.subfamily_id', 'l3.id')
         ->join('level2s as l2', 'l3.level2_id', 'l2.id')
-        ->where('l2.name', 'servicios')
+        ->join('level1s as l1', 'l2.level1_id', 'l1.id')
+        ->where('l1.name', 'Cosecha')
         ->select('l3.id', 'l3.name')
         ->where('si.cost_center_id', $costCenterId)
         ->groupBy('l3.id', 'l3.name')

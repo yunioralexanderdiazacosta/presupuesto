@@ -2,11 +2,32 @@
 import Multiselect from "@vueform/multiselect";
 import TextInput from "@/Components/TextInput.vue";
 import InputError from "@/Components/InputError.vue";
+import { usePage } from '@inertiajs/vue3';
+import axios from 'axios';
+const page = usePage();
 
 const props = defineProps({
     form: Object,
 });
 
+// Inicializar el array de subfamilias dinámicas
+if (!props.form.level3s) {
+    props.form.level3s = [];
+}
+
+// Función para obtener subfamilias (level3s) según el nivel2 seleccionado
+const getLevel3s = (event) => {
+    if (event && event !== '') {
+        axios.get(route('levels3.get', event))
+            .then(response => {
+                props.form.level3s = response.data;
+                props.form.subfamily_id = '';
+            }).catch(error => console.log(error));
+    } else {
+        props.form.level3s = [];
+        props.form.subfamily_id = '';
+    }
+};
 const addItem = () => {
     props.form.products.push({
         product_name: "",
@@ -41,16 +62,33 @@ const selectAllMonths = (index, months) => {
 <script setup></script>
 <template>
     <div class="row">
-      
         <div class="col-lg-4">
-            <label for="families" class="col-form-label">Familia</label>
+            <label for="level2" class="col-form-label">Nivel 2</label>
+            <div class="input-group">
+                <span class="input-group-text"><i class="fas fa-layer-group"></i></span>
+                <Multiselect
+                    :placeholder="'Seleccione nivel 2'"
+                    v-model="form.level2_id"
+                    :close-on-select="true"
+                    :options="$page.props.level2s"
+                    class="multiselect-blue form-control"
+                    :class="{ 'is-invalid': form.errors.level2_id }"
+                    :searchable="true"
+                    :hide-selected="false"
+                    @select="getLevel3s($event)"
+                />
+            </div>
+            <InputError class="mt-2" :message="form.errors.level2_id" />
+        </div>
+        <div class="col-lg-4">
+            <label for="families" class="col-form-label">Nivel 3</label>
             <div class="input-group">
                 <span class="input-group-text"><i class="fas fa-layer-group"></i></span>
                 <Multiselect
                     :placeholder="'Seleccione familia'"
                     v-model="form.subfamily_id"
                     :close-on-select="true"
-                    :options="$page.props.subfamilies"
+                    :options="form.level3s"
                     class="multiselect-blue form-control"
                     :class="{ 'is-invalid': form.errors.subfamily_id }"
                     :searchable="true"
@@ -59,7 +97,7 @@ const selectAllMonths = (index, months) => {
             </div>
             <InputError class="mt-2" :message="form.errors.subfamily_id" />
         </div>
-          <div class="col-lg-8">
+        <div class="col-lg-4">
             <label for="cc" class="col-form-label">CC</label>
             <div class="input-group">
                 <span class="input-group-text"><i class="fas fa-sitemap"></i></span>
