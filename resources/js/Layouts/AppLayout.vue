@@ -191,6 +191,12 @@ onMounted(async () => {
                       </Link>
                       <!-- more inner pages-->
                     </li>
+                     <li class="nav-item"><Link class="nav-link" :href="route('harvests.index')">
+                        <div class="d-flex align-items-center"><span class="nav-link-text ps-4 mt-1 mb-1 text-primary">Cosecha</span>
+                        </div>
+                      </Link>
+                      <!-- more inner pages-->
+                    </li>
                   </ul>
                 </li>
                 <li class="nav-item"><a class="nav-link dropdown-indicator" href="#card" data-bs-toggle="collapse" aria-expanded="false" aria-controls="authentication">

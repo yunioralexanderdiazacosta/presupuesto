@@ -6,7 +6,7 @@ onMounted(() => {
     console.log('productsList.value:', productsList.value);
 });
 
-import { ref, computed, getCurrentInstance } from "vue";
+import { ref, computed, getCurrentInstance, watch } from "vue";
 import Multiselect from "@vueform/multiselect";
 import TextInput from "@/Components/TextInput.vue";
 import InputError from "@/Components/InputError.vue";
@@ -100,6 +100,69 @@ const selectAllMonths = (index, months) => {
         props.form.products[index].months = allMonths;
     }
 };
+
+
+// Nuevas reglas para filtrar 'Unidad del precio' según la unidad de la dosis
+const allowedPriceUnitIdsForDose1 = [1, 2, 8];
+const allowedPriceUnitIdsForDose3 = [3, 4];
+const allowedPriceUnitIdsForDose8 = [1, 2, 8];
+const allowedPriceUnitIdsForDose2 = [1, 2, 8];
+const allowedPriceUnitIdsForDose4 = [3, 4];
+const allowedPriceUnitIdsForDose5 = [5];
+
+// Excluir unidades de dosis con id 6 y 7
+const disallowedUnitIds = [6, 7];
+const getDoseUnitOptions = () => page.props.units.filter(u => !disallowedUnitIds.includes(u.value));
+const getPriceUnitOptions = (product) => {
+  let options;
+  if (product.unit_id === 1) {
+    options = page.props.units.filter(u => allowedPriceUnitIdsForDose1.includes(u.value));
+  } else if (product.unit_id === 2) {
+    options = page.props.units.filter(u => allowedPriceUnitIdsForDose2.includes(u.value));
+  } else if (product.unit_id === 3) {
+    options = page.props.units.filter(u => allowedPriceUnitIdsForDose3.includes(u.value));
+  } else if (product.unit_id === 4) {
+    options = page.props.units.filter(u => allowedPriceUnitIdsForDose4.includes(u.value));
+  } else if (product.unit_id === 5) {
+    options = page.props.units.filter(u => allowedPriceUnitIdsForDose5.includes(u.value));
+  } else if (product.unit_id === 8) {
+    options = page.props.units.filter(u => allowedPriceUnitIdsForDose8.includes(u.value));
+  } else {
+    options = page.props.units;
+  }
+  return options.filter(u => !disallowedUnitIds.includes(u.value));
+};
+
+watch(
+  () => props.form.products.map(p => p.unit_id),
+  (newUnitIds) => {
+    newUnitIds.forEach((id, idx) => {
+      const currentPriceUnit = props.form.products[idx].unit_id_price;
+      if (id === 1 && !allowedPriceUnitIdsForDose1.includes(currentPriceUnit)) {
+        props.form.products[idx].unit_id_price = null;
+      }
+      if (id === 2 && !allowedPriceUnitIdsForDose2.includes(currentPriceUnit)) {
+        props.form.products[idx].unit_id_price = null;
+      }
+      if (id === 3 && !allowedPriceUnitIdsForDose3.includes(currentPriceUnit)) {
+        props.form.products[idx].unit_id_price = null;
+      }
+      if (id === 4 && !allowedPriceUnitIdsForDose4.includes(currentPriceUnit)) {
+        props.form.products[idx].unit_id_price = null;
+      }
+      if (id === 5 && !allowedPriceUnitIdsForDose5.includes(currentPriceUnit)) {
+        props.form.products[idx].unit_id_price = null;
+      }
+      if (id === 8 && !allowedPriceUnitIdsForDose8.includes(currentPriceUnit)) {
+        props.form.products[idx].unit_id_price = null;
+      }
+    });
+  },
+  { deep: true }
+);
+
+
+
 </script>
 <script setup></script>
 <template>
@@ -192,7 +255,7 @@ const selectAllMonths = (index, months) => {
                         :placeholder="''"
                         v-model="product.unit_id"
                         :close-on-select="true"
-                        :options="$page.props.units"
+                        :options="getDoseUnitOptions()"
                         class="multiselect-blue form-control"
                         :class="{
                             'is-invalid':
@@ -269,7 +332,7 @@ const selectAllMonths = (index, months) => {
                             :placeholder="''"
                             v-model="product.unit_id_price"
                             :close-on-select="true"
-                            :options="$page.props.units"
+                            :options="getPriceUnitOptions(product)"
                             class="multiselect-blue form-control"
                             :class="{
                                 'is-invalid': form.errors['products.' + index + '.unit_id_price'],

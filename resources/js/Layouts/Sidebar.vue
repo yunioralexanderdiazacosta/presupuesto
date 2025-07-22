@@ -75,6 +75,11 @@ const items = [
                         title: 'Servicios',
                         icon: `<i class="bi bi-card-checklist"></i>`,
                         link: 'services.index'
+                    },
+                     {
+                        title: 'Cosecha',
+                        icon: `<i class="bi bi-card-checklist"></i>`,
+                        link: 'harvests.index'
                     }
                 ]
             },

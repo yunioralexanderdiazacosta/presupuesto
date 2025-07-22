@@ -291,7 +291,10 @@ onMounted(() => {
                 <div
                   v-for="(item, idx) in mainTotalsAndPercents"
                   :key="'gauge-' + idx"
-                  class="falcon-gauge-card flex-grow-1 d-flex flex-column align-items-center justify-content-center mb-1 "
+                  class="falcon-gauge-card flex-grow-1 d-flex flex-column align-items-center justify-content-center mb-1 rounded"
+                  :class="{
+                    'bg-secondary bg-opacity-10': item.label === 'Generales Campo' || item.label === 'Administración'
+                  }"
                   style="min-width: 150px; max-width: 100px;"
                 >
                   <div

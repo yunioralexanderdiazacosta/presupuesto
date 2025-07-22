@@ -246,4 +246,46 @@ trait BudgetTotalsTrait
         }
         return $total;
     }
+
+    // Calcula el total global de cosechas
+    public function getTotalHarvests($season_id, $team_id)
+    {
+        $season = \App\Models\Season::select('month_id')->where('id', $season_id)->first();
+        $currentMonth = $season ? $season->month_id : 1;
+        $months = [];
+        for ($x = $currentMonth; $x < $currentMonth + 12; $x++) {
+            $id = date('n', mktime(0, 0, 0, $x, 1));
+            $months[] = $id;
+        }
+        $costCenters = \App\Models\CostCenter::where('season_id', $season_id)->get()->keyBy('id');
+        $harvests = \App\Models\Harvest::where('season_id', $season_id)
+            ->where('team_id', $team_id)
+            ->get()->keyBy('id');
+        if ($costCenters->isEmpty() || $harvests->isEmpty()) return 0;
+        $harvestIds = $harvests->keys();
+        $centerIds = $costCenters->keys();
+        $items = DB::table('harvest_items')
+            ->select('harvest_id', 'cost_center_id', DB::raw('COUNT(DISTINCT month_id) as months'))
+            ->whereIn('harvest_id', $harvestIds)
+            ->whereIn('cost_center_id', $centerIds)
+            ->whereIn('month_id', $months)
+            ->groupBy('harvest_id', 'cost_center_id')
+            ->get();
+        $total = 0;
+        foreach ($items as $item) {
+            $harvest = $harvests[$item->harvest_id];
+            $surface = $costCenters[$item->cost_center_id]->surface ?? 1;
+            $quantity = (($harvest->unit_id == 4 && $harvest->unit_id_price == 3) || ($harvest->unit_id == 2 && $harvest->unit_id_price == 1)) ? ($harvest->quantity / 1000) : $harvest->quantity;
+            $quantity = round($quantity * $surface, 2);
+            $amount = round($harvest->price * $quantity, 2);
+            $total += $amount * $item->months;
+        }
+        return $total;
+    }
+
+
+
+
+
+
 }

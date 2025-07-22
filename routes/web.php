@@ -155,6 +155,10 @@ use App\Http\Controllers\EstimatesController;
 use App\Http\Controllers\Estimates\StoreEstimateController;
 use App\Http\Controllers\Estimates\DeleteEstimateController;
 use App\Http\Controllers\Estimates\UpdateEstimateController;
+use App\Http\Controllers\Harvests\StoreHarvestController;
+use App\Http\Controllers\Harvests\DeleteHarvestController;
+use App\Http\Controllers\Harvests\UpdateHarvestController;
+use App\Http\Controllers\HarvestsController;
 
 use Inertia\Inertia;
 
@@ -328,6 +332,7 @@ Route::middleware([
         Route::get('/services', ServicesController::class)->name('services.index');
         Route::get('/administrations', AdministrationsController::class)->name('administrations.index');
         Route::get('/fields', FieldsController::class)->name('fields.index');
+        Route::get('/harvests', HarvestsController::class)->name('harvests.index');
         Route::get('/estimates', EstimatesController::class)->name('estimates.index');
 
         Route::get('/cost-centers/pdf', CostCentersPdfController::class)->name('cost.centers.pdf');
@@ -343,6 +348,15 @@ Route::middleware([
         Route::post('/fertilizers/store', StoreFertilizerController::class)->name('fertilizers.store');
         Route::post('/fertilizers/{fertilizer}/update', UpdateFertilizerController::class)->name('fertilizers.update');
         Route::delete('/fertilizers/{fertilizer}/delete', DeleteFertilizerController::class)->name('fertilizers.delete');
+
+
+        Route::post('/harvests/store', StoreHarvestController::class)->name('harvests.store');
+        Route::post('/harvests/{harvest}/update', UpdateHarvestController::class)->name('harvests.update');
+        Route::delete('/harvests/{harvest}/delete', DeleteHarvestController::class)->name('harvests.delete');
+
+
+
+
 
         Route::post('/man-powers/store', StoreManPowerController::class)->name('man.powers.store');
         Route::post('/man-powers/{manPower}/update', UpdateManPowerController::class)->name('man.powers.update');

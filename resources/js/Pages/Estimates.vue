@@ -205,7 +205,7 @@ const averageKilosPerHa = computed(() => {
         <div class="col-md-4">
           <div class="card h-100 p-1 small-card">
             <div class="card-header pb-0 pt-1 px-2">
-              <h6 class="mb-0 mt-1 fs-8 d-flex align-items-center small-card-title">Promedio kg/ha</h6>git 
+              <h6 class="mb-0 mt-1 fs-8 d-flex align-items-center small-card-title">Promedio kg/ha</h6>
             </div>
             <div class="card-body d-flex flex-column justify-content-end py-1 px-2">
               <div class="row">
