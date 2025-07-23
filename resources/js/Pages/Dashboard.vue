@@ -206,10 +206,21 @@ const gaugeColors = [
   '#1a922e ', // Cosecha
 ];
 
+// Mover 'Cosecha' a la posición 2 en orderedMainTotalsAndPercents
+const orderedMainTotalsAndPercents = computed(() => {
+  const arr = [...props.mainTotalsAndPercents];
+  const idx = arr.findIndex(i => i.label === 'Cosecha');
+  if (idx !== -1) {
+    const [harvest] = arr.splice(idx, 1);
+    arr.splice(2, 0, harvest);
+  }
+  return arr;
+});
+
 onMounted(() => {
   nextTick(() => {
-    if (props.mainTotalsAndPercents && window.echarts) {
-      props.mainTotalsAndPercents.forEach((item, idx) => {
+    if (orderedMainTotalsAndPercents.value && window.echarts) {
+      orderedMainTotalsAndPercents.value.forEach((item, idx) => {
         const chartDom = document.getElementById('gauge-ring-' + idx);
         if (chartDom) {
           // Determina si es fields o administration
@@ -292,7 +303,7 @@ onMounted(() => {
             <div class="card-body pt-1 pb-1">
               <div class="d-flex flex-nowrap overflow-auto justify-content-start align-items-center ">
                 <div
-                  v-for="(item, idx) in mainTotalsAndPercents"
+                  v-for="(item, idx) in orderedMainTotalsAndPercents"
                   :key="'gauge-' + idx"
                   class="falcon-gauge-card flex-grow-1 d-flex flex-column align-items-center justify-content-center mb-1 rounded"
                   :class="{
