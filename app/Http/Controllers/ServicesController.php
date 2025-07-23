@@ -106,7 +106,7 @@ class ServicesController extends Controller
     public $totalData2 = 0;
 
     public $totalFertilizer = 0;
-
+public $totalHarvest = 0;
     public $totalAgrochemical = 0;
 
     public $totalManPower = 0;
@@ -382,8 +382,9 @@ class ServicesController extends Controller
         $totalServices = $this->getTotalServices($season_id, $user->team_id);
         $totalAdministration = $this->getTotalAdministration($season_id, $user->team_id);
         $totalField = $this->getTotalField($season_id, $user->team_id);
+        $totalHarvest = $this->getTotalHarvest($season_id, $user->team_id);
 
-        $totalAbsolute = $totalSupplies + $totalFertilizer + $totalManPower + $totalAgrochemical + $totalServices + $totalAdministration + $totalField;
+        $totalAbsolute = $totalSupplies + $totalFertilizer + $totalManPower + $totalAgrochemical + $totalServices + $totalAdministration + $totalField + $totalHarvest;
         $percentage = $totalAbsolute > 0 ? round(($totalServices / $totalAbsolute) * 100, 2) : 0;
 
         $totalData1 = number_format($this->totalData1, 0, ',', '.');

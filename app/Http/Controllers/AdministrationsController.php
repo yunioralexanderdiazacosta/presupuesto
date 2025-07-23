@@ -39,6 +39,7 @@ class AdministrationsController extends Controller
     public $percentageAdministration = 0;
     public $month_id = '';
     public $totalData2 = 0;
+    public $totalHarvest = 0;
 
     
     /**
@@ -68,6 +69,7 @@ class AdministrationsController extends Controller
         $totalSupplies = $this->getTotalSupplies($season_id, $team_id);
         $totalServices = $this->getTotalServices($season_id, $team_id);
         $totalField = $this->getTotalField($season_id, $team_id);
+        $totalHarvest = $this->getTotalHarvest($season_id, $team_id);
 
         // Sumar todos los rubros para el total absoluto
         $totalAbsolute = round($totalAdministration)
@@ -76,7 +78,8 @@ class AdministrationsController extends Controller
             + round($totalAgrochemical)
             + round($totalSupplies)
             + round($totalServices)
-            + round($totalField);
+            + round($totalField)
+            + round($totalHarvest);
 
         // Calcular el porcentaje de administración sobre el total absoluto
         $percentageAdministration = $totalAbsolute > 0

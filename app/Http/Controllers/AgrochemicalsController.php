@@ -28,15 +28,6 @@ class AgrochemicalsController extends Controller
     use BudgetTotalsTrait;
 
 
-
-/**
-  
-    
-     * Suma el total de administración para los cost centers y temporada dados.
-     */
-
-
-
     public $month_id = '';
 
     public $totalData1 = 0;
@@ -49,6 +40,7 @@ class AgrochemicalsController extends Controller
     public $totalSupplies = 0;
     public $totalServices = 0;
     public $totalAgrochemical = 0;
+      public $totalHarvest = 0;
     public $totalAdministration = 0;
     public $totalField = 0;
     public $totalAbsolute = 0;
@@ -218,6 +210,7 @@ class AgrochemicalsController extends Controller
         $this->totalServices       = $this->getTotalServices($season_id, $team_id);
         $this->totalAdministration = $this->getTotalAdministration($season_id, $team_id);
         $this->totalField          = $this->getTotalField($season_id, $team_id);
+        $this->totalHarvest       = $this->getTotalHarvest($season_id, $team_id);
 
         // Sumar todos los rubros para el total absoluto
         $this->totalAbsolute = round($this->totalAgrochemical)
@@ -226,7 +219,8 @@ class AgrochemicalsController extends Controller
             + round($this->totalSupplies)
             + round($this->totalServices)
             + round($this->totalAdministration)
-            + round($this->totalField);
+            + round($this->totalField)
+            + round($this->totalHarvest);
 
 
         // Calcular el porcentaje de agroquímicos sobre el total absoluto
@@ -247,6 +241,7 @@ class AgrochemicalsController extends Controller
         $totalServices = $this->totalServices;
         $totalAdministration = $this->totalAdministration;
         $totalField = $this->totalField;
+        $totalHarvest = $this->totalHarvest;    
         $totalAbsolute = $this->totalAbsolute;
         $percentageAgrochemical = $this->percentageAgrochemical;
 
@@ -270,7 +265,7 @@ class AgrochemicalsController extends Controller
         return Inertia::render('Agrochemicals', compact(
             'units', 'subfamilies', 'months', 'costCenters', 'agrochemicals', 'data', 'data2', 'data3', 'doseTypes', 'season',
             'totalData1', 'totalData2',
-            'totalAgrochemical', 'totalFertilizer', 'totalManPower', 'totalSupplies', 'totalServices', 'totalAdministration', 'totalField', 'totalAbsolute',
+            'totalAgrochemical', 'totalFertilizer', 'totalManPower', 'totalSupplies', 'totalServices', 'totalAdministration', 'totalField', 'totalHarvest', 'totalAbsolute',
             'percentageAgrochemical',
             'varieties', 'fruits','products'
         ));

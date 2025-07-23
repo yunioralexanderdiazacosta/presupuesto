@@ -40,6 +40,7 @@ class FieldsController extends Controller
     public $totalServices = 0;
     public $totalAbsolute = 0;
     public $percentageField = 0;
+    public $totalHarvest = 0;
 
      /**
      * Suma la columna surface de todos los cost centers de la temporada indicada.
@@ -88,8 +89,9 @@ class FieldsController extends Controller
         $totalSupplies      = $this->getTotalSupplies($season_id, $team_id);
         $totalAdministration = $this->getTotalAdministration($season_id, $team_id);
         $totalServices      = $this->getTotalServices($season_id, $team_id);
+        $totalHarvest       = $this->getTotalHarvest($season_id, $team_id);
 
-        $totalAbsolute = $totalField + $totalFertilizer + $totalManPower + $totalAgrochemical + $totalSupplies + $totalAdministration + $totalServices;
+        $totalAbsolute = $totalField + $totalFertilizer + $totalManPower + $totalAgrochemical + $totalSupplies + $totalAdministration + $totalServices + $totalHarvest;
         $percentageField = $totalAbsolute > 0 ? round(($totalField / $totalAbsolute) * 100, 2) : 0;
 
 

@@ -248,7 +248,7 @@ trait BudgetTotalsTrait
     }
 
     // Calcula el total global de cosechas
-    public function getTotalHarvests($season_id, $team_id)
+    public function getTotalHarvest($season_id, $team_id)
     {
         $season = \App\Models\Season::select('month_id')->where('id', $season_id)->first();
         $currentMonth = $season ? $season->month_id : 1;

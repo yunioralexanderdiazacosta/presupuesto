@@ -12,7 +12,7 @@ defineEmits(['store']);
     <Modal :maxWidth="'xl'" :id="'createHarvestModal'">
         <template #header>
              <div class="d-flex align-items-center gap-2 mb-3">
-                <span class="bg-primary text-white rounded-circle d-flex align-items-center justify-content-center" style="width: 38px; height: 38px; font-size: 1.4rem;">
+                <span class="bg-danger text-white rounded-circle d-flex align-items-center justify-content-center" style="width: 38px; height: 38px; font-size: 1.4rem;">
                     <i class="fas fa-apple-alt"></i>
                 </span>
                 <span>

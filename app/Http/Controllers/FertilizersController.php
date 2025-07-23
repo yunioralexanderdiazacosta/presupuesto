@@ -107,7 +107,7 @@ class FertilizersController extends Controller
     public $totalData2 = 0;
 
     public $totalAgrochemical = 0;
-
+    public $totalHarvest = 0;
     public $totalManPower = 0;
 
     public $totalSupplies = 0;
@@ -271,14 +271,15 @@ class FertilizersController extends Controller
         $totalManPower = $this->getTotalManPower($season_id, $user->team_id);
         $totalSupplies = $this->getTotalSupplies($season_id, $user->team_id);
         $totalServices = $this->getTotalServices($season_id, $user->team_id);
+        $totalHarvest = $this->getTotalHarvest($season_id, $user->team_id);
 
-        $totalAbsolute = round($totalFertilizer) + round($totalAgrochemical) + round($totalManPower) + round($totalSupplies) + round($totalServices) + round($totalAdministration) + round($totalField);
+        $totalAbsolute = round($totalFertilizer) + round($totalAgrochemical) + round($totalManPower) + round($totalSupplies) + round($totalServices) + round($totalAdministration) + round($totalField) + round($totalHarvest);
         $percentage = $totalAbsolute > 0 ? round(((round($totalFertilizer) / $totalAbsolute) * 100), 2) : 0;
 
         $totalData1 = number_format($this->totalData1, 0, ',', '.');
         $totalData2 = number_format($totalFertilizer, 0, ',', '.');
 
-        return Inertia::render('Fertilizers', compact('units', 'subfamilies', 'months', 'costCenters', 'fertilizers', 'season', 'data', 'data2', 'data3', 'totalData1', 'totalData2', 'percentage', 'varieties', 'fruits','products'));
+        return Inertia::render('Fertilizers', compact('units', 'subfamilies', 'months', 'costCenters', 'fertilizers', 'season', 'data', 'data2', 'data3', 'totalData1', 'totalData2', 'percentage', 'varieties', 'fruits', 'products'));
     }
 
     private function getSubfamilies($costCenterId, $surface = null, $bills = false)

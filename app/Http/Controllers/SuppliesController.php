@@ -108,7 +108,7 @@ class SuppliesController extends Controller
     public $totalAgrochemical = 0;
 
     public $totalManPower = 0;
-
+    public $totalHarvest = 0;
     public $totalServices = 0;
 
     public function __invoke()
@@ -263,8 +263,9 @@ class SuppliesController extends Controller
         $totalServices = $this->getTotalServices($season_id, $user->team_id);
         $totalAdministration = $this->getTotalAdministration($season_id, $user->team_id);
         $totalField = $this->getTotalField($season_id, $user->team_id);
+        $totalHarvest = $this->getTotalHarvest($season_id, $user->team_id);
 
-        $totalAbsolute = $totalSupplies + $totalFertilizer + $totalManPower + $totalAgrochemical + $totalServices + $totalAdministration + $totalField;
+        $totalAbsolute = $totalSupplies + $totalFertilizer + $totalManPower + $totalAgrochemical + $totalServices + $totalAdministration + $totalField + $totalHarvest;
         $percentage = $totalAbsolute > 0 ? round(($totalSupplies / $totalAbsolute) * 100, 2) : 0;
 
         $totalData1 = number_format($this->totalData1, 0, ',', '.');

@@ -109,7 +109,7 @@ class ManPowersController extends Controller
     public $totalFertilizer = 0;
 
     public $totalSupplies = 0;
-
+public $totalHarvest = 0;
     public $totalServices = 0;
     public $totalManPower = 0;
     public $totalAdministration = 0;
@@ -259,6 +259,7 @@ class ManPowersController extends Controller
         $this->totalServices       = $this->getTotalServices($season_id, $team_id);
         $this->totalAdministration = $this->getTotalAdministration($season_id, $team_id);
         $this->totalField          = $this->getTotalField($season_id, $team_id);
+        $this->totalHarvest       = $this->getTotalHarvest($season_id, $team_id);
 
         // Sumar todos los rubros para el total absoluto
         $this->totalAbsolute = round($this->totalAgrochemical)
@@ -267,10 +268,10 @@ class ManPowersController extends Controller
             + round($this->totalSupplies)
             + round($this->totalServices)
             + round($this->totalAdministration)
-            + round($this->totalField);
+            + round($this->totalField)
+            + round($this->totalHarvest);
 
-
-  // Calcular el porcentaje de agroquímicos sobre el total absoluto
+        // Calcular el porcentaje de agroquímicos sobre el total absoluto
         $this->percentageManPower = $this->totalAbsolute > 0
             ? round((round($this->totalManPower) / $this->totalAbsolute) * 100, 2)
             : 0;
@@ -287,14 +288,15 @@ class ManPowersController extends Controller
         $totalServices = $this->totalServices;
         $totalAdministration = $this->totalAdministration;
         $totalField = $this->totalField;
+        $totalHarvest = $this->totalHarvest;
         $totalAbsolute = $this->totalAbsolute;
         $percentageManPower = $this->percentageManPower;
 
 
 
 
-        return Inertia::render('ManPowers', compact('subfamilies', 'months', 'costCenters', 'manPowers', 'season', 'data', 'data2', 'data3', 'totalData1', 'totalData2', 
-        'totalAgrochemical', 'totalFertilizer', 'totalManPower', 'totalSupplies', 'totalServices', 'totalAdministration', 'totalField', 'totalAbsolute',
+        return Inertia::render('ManPowers', compact('subfamilies', 'months', 'costCenters', 'manPowers', 'season', 'data', 'data2', 'data3', 'totalData1', 'totalData2',
+        'totalAgrochemical', 'totalFertilizer', 'totalManPower', 'totalSupplies', 'totalServices', 'totalHarvest', 'totalAdministration', 'totalField', 'totalAbsolute',
             'percentageManPower',
             'varieties', 'fruits'));
     }

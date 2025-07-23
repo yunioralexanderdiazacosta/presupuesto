@@ -44,6 +44,7 @@ const props = defineProps({
     totalManPower: Number,
     totalSupplies: Number,
     totalServices: Number,
+    totalHarvest: Number,
     weather: Object,
   weatherCity: String,
   agrochemicalByDevState: Object,
@@ -190,7 +191,8 @@ const entityLabels = {
   supplies: 'Insumos',
   services: 'Servicios',
   fields: 'Generales Campo',
-  administrations: 'Administración'
+  administrations: 'Administración',
+  harvests: 'Cosecha'
 };
 
 // Renderizar los gauge charts usando ECharts
@@ -201,6 +203,7 @@ const gaugeColors = [
   '#1a922e ', // Mano de Obra
   '#1a922e ', // Insumos
   '#1a922e ', // Servicios
+  '#1a922e ', // Cosecha
 ];
 
 onMounted(() => {
@@ -287,7 +290,7 @@ onMounted(() => {
               <h6 class="mb-0">Indicadores clave por rubro (porcentaje del total)</h6>
             </div>
             <div class="card-body pt-1 pb-1">
-              <div class="d-flex flex-wrap justify-content-between align-items-center ">
+              <div class="d-flex flex-nowrap overflow-auto justify-content-start align-items-center ">
                 <div
                   v-for="(item, idx) in mainTotalsAndPercents"
                   :key="'gauge-' + idx"

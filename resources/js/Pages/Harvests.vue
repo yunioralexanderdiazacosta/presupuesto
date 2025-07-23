@@ -316,7 +316,7 @@ const onFilter = () => {
         <div class="card-header">
             <div class="row flex-between-center">
                 <div class="col-6 col-sm-auto d-flex align-items-center pe-0">
-                  <h5 class="fs-9 mb-0 text-nowrap py-2 py-xl-0"><i class="fas fa-apple-alt text-primary me-2"></i>Cosecha</h5>
+                  <h5 class="fs-9 mb-0 text-nowrap py-2 py-xl-0"><i class="fas fa-apple-alt text-danger me-2"></i>Cosecha</h5>
                 </div>
                 <div class="col-6 col-sm-auto ms-auto text-end ps-0">
                   <div id="table-purchases-replace-element">
@@ -619,24 +619,40 @@ const onFilter = () => {
                             <!--end::Table head-->
                             <!--begin::Table body-->
                             <tbody>
-                                <template v-for="cc in filteredDataGastos">
-                                    <template v-for="(subfamily, index2) in cc.subfamilies">
+                                <template v-for="(cc, ccIdx) in filteredDataGastos" :key="ccIdx">
+                                    <template v-for="(subfamily, sfIdx) in cc.subfamilies" :key="sfIdx">
                                         <tr>
-                                            <td v-if="index2 == 0" :rowspan="cc.total" style="vertical-align:top">{{cc.name}}</td>
-                                            <td style="vertical-align:top;" :rowspan="subfamily.products.length">{{subfamily.name}}</td>
-                                            <td>{{subfamily.products[0].name}}</td>
-                                            <td>{{subfamily.products[0].totalQuantity}}</td>
-                                            <td>{{subfamily.products[0].unit}}</td>
-                                            <td>{{subfamily.products[0].totalAmount}}</td>
-                                            <td class="bg-opacity-5 table-primary" v-for="value in subfamily.products[0].months">{{value}}</td>
+                                            <!-- Centro de costo sólo en la primera fila -->
+                                            <td v-if="sfIdx === 0"
+                                                :rowspan="cc.subfamilies.reduce((sum, sf) => sum + sf.products.length, 0)"
+                                                style="vertical-align: top;">
+                                                {{ cc.name }}
+                                            </td>
+                                            <!-- Subfamilia sólo en la primera fila de cada subfamilia -->
+                                            <td style="vertical-align: top;"
+                                                :rowspan="subfamily.products.length">
+                                                {{ subfamily.name }}
+                                            </td>
+                                            <!-- Primer producto de la subfamilia -->
+                                            <td>{{ subfamily.products[0].name }}</td>
+                                            <td>{{ subfamily.products[0].totalQuantity }}</td>
+                                            <td>{{ subfamily.products[0].unit }}</td>
+                                            <td>{{ subfamily.products[0].totalAmount }}</td>
+                                            <td v-for="(value, mIdx) in subfamily.products[0].months" :key="mIdx"
+                                                class="bg-opacity-5 table-primary">
+                                                {{ value }}
+                                            </td>
                                         </tr>
-                                        <template v-for="(product, index3) in subfamily.products">
-                                            <tr v-if="index3 > 0">
-                                                <td>{{product.name}}</td>
-                                                <td>{{product.totalQuantity}}</td>
-                                                <td>{{product.unit}}</td>
-                                                <td>{{product.totalAmount}}</td>
-                                                <td class="bg-opacity-5 table-primary" v-for="value in product.months">{{value}}</td>
+                                        <template v-for="(product, pIdx) in subfamily.products" :key="pIdx">
+                                            <tr v-if="pIdx > 0">
+                                                <td>{{ product.name }}</td>
+                                                <td>{{ product.totalQuantity }}</td>
+                                                <td>{{ product.unit }}</td>
+                                                <td>{{ product.totalAmount }}</td>
+                                                <td v-for="(value, mIdx) in product.months" :key="mIdx"
+                                                    class="bg-opacity-5 table-primary">
+                                                    {{ value }}
+                                                </td>
                                             </tr>
                                         </template>
                                     </template>

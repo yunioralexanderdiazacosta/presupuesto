@@ -76,7 +76,12 @@ const setChart = () => {
       data: props.barLabels,
       axisTick: { alignWithLabel: true },
       axisLine: { lineStyle: { color: '#e3e6ed' } },
-      axisLabel: { color: '#6c757d', fontWeight: 'bold' }
+      axisLabel: {
+        color: '#6c757d',
+        fontWeight: 'bold',
+        interval: 0,
+        rotate: 30
+      }
     },
     yAxis: {
       type: 'value',
