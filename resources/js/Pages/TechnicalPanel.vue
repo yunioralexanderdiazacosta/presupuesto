@@ -20,6 +20,7 @@ const props = defineProps({
     monthsFertilizer: Object,
     monthsManPower: Object,
     monthsServices: Object,
+    monthsHarvests: Object,
     monthsSupplies: Object,
     monthsAdministration: Object,
   monthsFields: Object,
@@ -28,16 +29,19 @@ const props = defineProps({
     totalManPower: Number,
     totalSupplies: Number,
     totalServices: Number,
+    totalharvests: Number,
   agrochemicalByDevState: Object,
   fertilizerByDevState: Object,
   manPowerByDevState: Object,
   servicesByDevState: Object, // <-- agregar
+  harvestsByDevState: Object, // <-- agregar
   suppliesByDevState: Object, // <-- agregar
   agrochemicalExpensePerHectare: Object,
   fertilizerExpensePerHectare: Object,
   manPowerExpensePerHectare: Object, // <-- agregar
   servicesExpensePerHectare: Object, // <-- agregar
   suppliesExpensePerHectare: Object, // <-- agregar
+  harvestsExpensePerHectare: Object, // <-- agregar
   devStates: Object, // <-- nombres de estados de desarrollo
   administrationTotalsByLevel12: Array, // <-- agregar prop para la tabla de administración
   fieldTotalsByLevel12: Array, // <-- agregar prop para la tabla de fields
@@ -70,7 +74,8 @@ function groupAllTotalsByLevel1() {
   const allRows = [
     ...(props.administrationTotalsByLevel12?.map(r => ({...r, key: 'adm-' + r.level1_id + '-' + r.level2_id, source: 'Administración'})) || []),
     ...(props.fieldTotalsByLevel12?.map(r => ({...r, key: 'field-' + r.level1_id + '-' + r.level2_id, source: 'Campo'})) || []),
-    ...(props.totalsByLevel12?.map(r => ({...r, key: 'total-' + r.level1_id + '-' + r.level2_id, source: 'General'})) || [])
+    ...(props.totalsByLevel12?.map(r => ({...r, key: 'total-' + r.level1_id + '-' + r.level2_id, source: 'General'})) || []),
+    ...(props.totalsByLevel12?.map(r => ({...r, key: 'total-' + r.level1_id + '-' + r.level2_id, source: 'Cosecha'})) || [])
   ];
   const groups = {};
   allRows.forEach(row => {
@@ -130,6 +135,7 @@ onMounted(() => {
                       <th class="text-center text-uppercase text-secondary small fw-bold small">Mano de Obra</th>
                       <th class="text-center text-uppercase text-secondary small fw-bold small">Servicios</th>
                       <th class="text-center text-uppercase text-secondary small fw-bold small">Insumos</th>
+                       <th class="text-center text-uppercase text-secondary small fw-bold small">Cosecha</th>
                       <!-- Puedes agregar más columnas aquí si lo deseas -->
                     </tr>
                   </thead>
@@ -155,6 +161,9 @@ onMounted(() => {
                         <td class="text-center text-end text-primary fw-bold small">
                           {{ Number(suppliesByDevState?.[String(fruitId)]?.[String(devStateId)] ?? 0).toLocaleString('es-CL', { maximumFractionDigits: 0 }) }}
                         </td>
+                        <td class="text-center text-end text-primary fw-bold small">
+                          {{ Number(harvestsByDevState?.[String(fruitId)]?.[String(devStateId)] ?? 0).toLocaleString('es-CL', { maximumFractionDigits: 0 }) }}
+                        </td>
                         <!-- Puedes agregar más columnas aquí si lo deseas -->
                       </tr>
                       <!-- Subtotal por especie -->
@@ -174,6 +183,9 @@ onMounted(() => {
                         </td>
                         <td class="text-center text-end">
                           {{ Object.values(suppliesByDevState?.[String(fruitId)] || {}).reduce((sum, val) => sum + Number(val || 0), 0).toLocaleString('es-CL', { maximumFractionDigits: 0 }) }}
+                        </td>
+                        <td class="text-center text-end">
+                          {{ Object.values(harvestsByDevState?.[String(fruitId)] || {}).reduce((sum, val) => sum + Number(val || 0), 0).toLocaleString('es-CL', { maximumFractionDigits: 0 }) }}
                         </td>
                       </tr>
                     </template>
@@ -195,6 +207,9 @@ onMounted(() => {
                       </td>
                       <td class="text-center text-end fw-bold small text-white">
                         {{ Object.values(suppliesByDevState).reduce((sum, devStatesObj) => sum + Object.values(devStatesObj).reduce((s, v) => s + Number(v || 0), 0), 0).toLocaleString('es-CL', { maximumFractionDigits: 0 }) }}
+                      </td>
+                      <td class="text-center text-end fw-bold small text-white">
+                        {{ Object.values(harvestsByDevState).reduce((sum, devStatesObj) => sum + Object.values(devStatesObj).reduce((s, v) => s + Number(v || 0), 0), 0).toLocaleString('es-CL', { maximumFractionDigits: 0 }) }}
                       </td>
                     </tr>
                   </tfoot>
@@ -232,6 +247,7 @@ onMounted(() => {
                       <th class="text-center text-uppercase text-secondary small fw-bold small">Insumos</th>
                       <th class="text-center text-uppercase text-secondary small fw-bold small">Gral campo</th>
                       <th class="text-center text-uppercase text-secondary small fw-bold small">Administración</th>
+                      <th class="text-center text-uppercase text-secondary small fw-bold small">Cosecha</th>
                       <th class="text-center text-uppercase text-secondary small fw-bold small">Total</th>
                     </tr>
                   </thead>
@@ -247,6 +263,7 @@ onMounted(() => {
                         <td class="text-center text-warning fw-bold small">{{ Number(manPowerExpensePerHectare?.[String(fruitId)]?.[String(devStateId)] ?? 0).toLocaleString('es-CL', { maximumFractionDigits: 0 }) }}</td>
                         <td class="text-center text-warning fw-bold small">{{ Number(servicesExpensePerHectare?.[String(fruitId)]?.[String(devStateId)] ?? 0).toLocaleString('es-CL', { maximumFractionDigits: 0 }) }}</td>
                         <td class="text-center text-warning fw-bold small">{{ Number(suppliesExpensePerHectare?.[String(fruitId)]?.[String(devStateId)] ?? 0).toLocaleString('es-CL', { maximumFractionDigits: 0 }) }}</td>
+                        <td class="text-center text-warning fw-bold small">{{ Number(harvestsExpensePerHectare?.[String(fruitId)]?.[String(devStateId)] ?? 0).toLocaleString('es-CL', { maximumFractionDigits: 0 }) }}</td>
                         <td class="text-center text-warning fw-bold small">
                           {{
                             (totalFieldsCalc / (totalSurface || 1)).toLocaleString('es-CL', { maximumFractionDigits: 0 })
@@ -265,6 +282,7 @@ onMounted(() => {
                               Number(manPowerExpensePerHectare?.[String(fruitId)]?.[String(devStateId)] ?? 0) +
                               Number(servicesExpensePerHectare?.[String(fruitId)]?.[String(devStateId)] ?? 0) +
                               Number(suppliesExpensePerHectare?.[String(fruitId)]?.[String(devStateId)] ?? 0) +
+                              Number(harvestsExpensePerHectare?.[String(fruitId)]?.[String(devStateId)] ?? 0) +
                               (totalFieldsCalc / (totalSurface || 1)) +
                               (totalAdministrationCalc / (totalSurface || 1))
                             ).toLocaleString('es-CL', { maximumFractionDigits: 0 })
@@ -399,6 +417,12 @@ onMounted(() => {
                       <td class="text-end text-primary fw-bold small">{{totalServices}}</td>
                       <td class="bg-opacity-5 table-primary text-end small" v-for="value in months">{{monthsServices[value.value]}}</td>
                     </tr>
+                    <tr>
+                      <td class="fw-semibold small">Cosecha</td>
+                      <td class="text-end text-primary fw-bold small">{{totalHarvests}}</td>
+                      <td class="bg-opacity-5 table-primary text-end small" v-for="value in months">{{monthsHarvests[value.value]}}</td>
+                    </tr>
+
                     <!-- ...existing code... -->
                   </tbody>
                   <tfoot>
@@ -408,7 +432,7 @@ onMounted(() => {
                         {{
                           months && months.length
                             ? months.reduce((sum, value) => {
-                                return sum + [monthsAdministration, monthsFields, monthsAgrochemical, monthsFertilizer, monthsManPower, monthsSupplies, monthsServices]
+                                return sum + [monthsAdministration, monthsFields, monthsAgrochemical, monthsFertilizer, monthsManPower, monthsSupplies, monthsServices, monthsHarvests]
                                   .reduce((s, obj) => s + Number((obj && obj[value.value]) ? (obj[value.value]+"").replace(/\./g, "") : 0), 0)
                               }, 0).toLocaleString('es-CL', { maximumFractionDigits: 0 })
                             : 0
@@ -416,7 +440,7 @@ onMounted(() => {
                       </td>
                       <td class="fw-bold text-end small" v-for="value in months">
                         {{
-                          [monthsAdministration, monthsFields, monthsAgrochemical, monthsFertilizer, monthsManPower, monthsSupplies, monthsServices]
+                          [monthsAdministration, monthsFields, monthsAgrochemical, monthsFertilizer, monthsManPower, monthsSupplies, monthsServices, monthsHarvests]
                             .reduce((sum, obj) => sum + Number((obj && obj[value.value]) ? (obj[value.value]+"").replace(/\./g, "") : 0), 0)
                             .toLocaleString('es-CL', { maximumFractionDigits: 0 })
                         }}
