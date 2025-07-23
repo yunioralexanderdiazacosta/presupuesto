@@ -401,7 +401,7 @@ class HarvestsController extends Controller
         $totalServices = $this->getTotalServices($season_id, $user->team_id);
         $totalAdministration = $this->getTotalAdministration($season_id, $user->team_id);
         $totalField = $this->getTotalField($season_id, $user->team_id);
-        $totalHarvests = $this->getTotalHarvests($season_id, $user->team_id);
+        $totalHarvests = $this->getTotalHarvest($season_id, $user->team_id);
 
         $totalAbsolute = $totalSupplies + $totalFertilizer + $totalManPower + $totalAgrochemical + $totalServices + $totalAdministration + $totalField + $totalHarvests;
         $percentage = $totalAbsolute > 0 ? round(($totalHarvests / $totalAbsolute) * 100, 2) : 0;
