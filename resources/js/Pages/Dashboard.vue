@@ -28,44 +28,45 @@ onMounted(async () => {
 
 
 const props = defineProps({
-    totalSeason: String,
-    pieLabels: Array,
-    pieDatasets: Array,
-    months: Array,
-    monthsAgrochemical: Object,
-    monthsFertilizer: Object,
-    monthsManPower: Object,
-    monthsServices: Object,
-    monthsSupplies: Object,
-    monthsAdministration: Object,
+  totalSeason: String,
+  pieLabels: Array,
+  pieDatasets: Array,
+  months: Array,
+  monthsAgrochemical: Object,
+  monthsFertilizer: Object,
+  monthsManPower: Object,
+  monthsServices: Object,
+  monthsSupplies: Object,
+  monthsAdministration: Object,
   monthsFields: Object,
-    totalAgrochemical: Number,
-    totalFertilizer: Number,
-    totalManPower: Number,
-    totalSupplies: Number,
-    totalServices: Number,
-    totalHarvest: Number,
-    weather: Object,
+  totalAgrochemical: Number,
+  totalFertilizer: Number,
+  totalManPower: Number,
+  totalSupplies: Number,
+  totalServices: Number,
+  totalHarvest: Number,
+  weather: Object,
   weatherCity: String,
   agrochemicalByDevState: Object,
   fertilizerByDevState: Object,
   manPowerByDevState: Object,
-  servicesByDevState: Object, // <-- agregar
-  suppliesByDevState: Object, // <-- agregar
+  servicesByDevState: Object,
+  suppliesByDevState: Object,
   agrochemicalExpensePerHectare: Object,
   fertilizerExpensePerHectare: Object,
-  manPowerExpensePerHectare: Object, // <-- agregar
-  servicesExpensePerHectare: Object, // <-- agregar
-  suppliesExpensePerHectare: Object, // <-- agregar
-  devStates: Object, // <-- nombres de estados de desarrollo
-  administrationTotalsByLevel12: Array, // <-- agregar prop para la tabla de administración
-  fieldTotalsByLevel12: Array, // <-- agregar prop para la tabla de fields
-  totalsByLevel12: Array, // <-- nuevo prop para la tabla de totales generales
-
-  totalSurface: Number, // <-- AGREGADO para mostrar superficie total
-  entityCounts: Object, // <-- para la tabla de conteos
-  totalAdministration: Number, // <-- AGREGADO para mostrar administración total
-  mainTotalsAndPercents: Array // <-- nuevo prop para los gauges
+  manPowerExpensePerHectare: Object,
+  servicesExpensePerHectare: Object,
+  suppliesExpensePerHectare: Object,
+  devStates: Object,
+  administrationTotalsByLevel12: Array,
+  fieldTotalsByLevel12: Array,
+  totalsByLevel12: Array,
+  totalSurface: Number,
+  entityCounts: Object,
+  totalAdministration: Number,
+  mainTotalsAndPercents: Array,
+  kilosByFruit: Object, // <-- nuevo prop para kilos por fruta
+  fruitNames: Object // <-- nuevo prop para nombres de fruta
 });
 
 // Calcular el máximo para la barra de progreso
@@ -238,14 +239,14 @@ onMounted(() => {
                 max: 100,
                 progress: {
                   show: true,
-                  width: 18,
+                  width: 18, // ancho reducido
                   itemStyle: {
                     color: color // color frontal de la barra
                   }
                 },
                 axisLine: {
                   lineStyle: {
-                    width: 18,
+                    width: 18, // ancho reducido
                     color: [
                       [item.percent / 100, color], // color de la parte llena
                       [1, '#e3e1e1'] // color de la parte vacía (blanco)
@@ -307,7 +308,8 @@ onMounted(() => {
                   :key="'gauge-' + idx"
                   class="falcon-gauge-card flex-grow-1 d-flex flex-column align-items-center justify-content-center mb-1 rounded"
                   :class="{
-                    'bg-secondary bg-opacity-10': item.label === 'Generales Campo' || item.label === 'Administración'
+                    'bg-secondary bg-opacity-10': item.label === 'Generales Campo' || item.label === 'Administración',
+                    'bg-success bg-opacity-10': item.label === 'Cosecha'
                   }"
                   style="min-width: 150px; max-width: 100px;"
                 >
@@ -332,7 +334,8 @@ onMounted(() => {
       <div class="row g-2 g-xl-3">
         <!-- Columna izquierda: Weather, superficie, total presupuestos -->
         <div class="col-xl-5 col-lg-6 d-flex flex-column">
-          <!-- Weather card -->
+          <!-- Weather card (comentado) -->
+          <!--
           <div class="card mb-3" v-if="weather">
             <div class="card-body py-2 d-flex align-items-center">
               <img :src="weather.current ? weather.current.condition.icon : ''" alt="icon" style="width:32px;height:32px;" class="me-2" />
@@ -342,6 +345,32 @@ onMounted(() => {
               </div>
             </div>
           </div>
+          -->
+
+
+          <div class="card ecommerce-card-min-width mb-3">
+            <div class="card-header pb-2 bg-secondary bg-opacity-10">
+              <h5 class="mb-0 mt-1 d-flex align-items-center fs-10">Ultima Estimación de kilos por Especie
+                <span class="ms-1 text-400" data-bs-toggle="tooltip" data-bs-placement="top" title="Kilos estimados agrupados por fruta">
+                  <span class="far fa-question-circle" data-fa-transform="shrink-1"></span>
+                </span>
+              </h5>
+            </div>
+            <div class="card-body d-flex flex-column justify-content-end py-1 align-items-center">
+              <div v-if="kilosByFruit && Object.keys(kilosByFruit).length" class="d-flex flex-wrap gap-1 align-items-center">
+                <div v-for="(kilos, fruitId, idx) in kilosByFruit" :key="fruitId" class="d-flex align-items-center">
+                  <span class="fs-8 text-secondary me-1">{{ fruitNames && fruitNames[fruitId] ? fruitNames[fruitId] : ('Fruta ' + fruitId) }}:</span>
+                  <span class="lh-1 fs-8 text-primary">{{ Number(kilos).toLocaleString('es-CL', { maximumFractionDigits: 0 }) }} <span class="text-secondary">Kg</span></span>
+                  <span v-if="idx < Object.keys(kilosByFruit).length - 1" class="mx-2" style="border-left:1px solid #bbb;height:60px;"></span>
+                </div>
+              </div>
+              <div v-else>
+                <span class="text-muted">No hay datos de kilos estimados.</span>
+              </div>
+            </div>
+          </div>
+
+
           <!-- Superficie -->
           <div class="alert alert-info mb-3">
             <strong>Total superficie:</strong> {{ totalSurface }} <strong> hectareas</strong>
@@ -349,11 +378,11 @@ onMounted(() => {
           <!-- Total Presupuestos -->
           <div class="card ecommerce-card-min-width mb-3">
             <div class="card-header pb-3">
-              <h4 class="mb-0 mt-1 d-flex align-items-center fs-6">Total Presupuestos
-                <span class="ms-1 text-400" data-bs-toggle="tooltip" data-bs-placement="top" title="Calculated according to last week's sales">
+              <h6 class="mb-0 mt-1 d-flex align-items-center fs-10">Total Presupuestos
+                <span class="ms-1 text-300" data-bs-toggle="tooltip" data-bs-placement="top" title="Calculated according to last week's sales">
                   <span class="far fa-question-circle" data-fa-transform="shrink-1"></span>
                 </span>
-              </h4>
+              </h6>
             </div>
             <div class="card-body d-flex flex-column justify-content-end py-2">
               <div class="row">

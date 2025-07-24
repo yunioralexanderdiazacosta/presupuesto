@@ -15,7 +15,7 @@ use App\Models\ManPower;
 use App\Models\Supply;
 use App\Models\Service;
 use Inertia\Inertia;
-use App\Services\WeatherService;
+//use App\Services\WeatherService;
 use Spatie\Permission\Traits\HasRoles;
 
 /**
@@ -148,7 +148,8 @@ class DashboardController extends Controller
     }
 
 
-    public function __invoke(Request $request, WeatherService $weatherService)
+    //public function __invoke(Request $request, WeatherService $weatherService)
+     public function __invoke(Request $request)
     {
         $user = Auth::user();
         //Si es super admin
@@ -254,9 +255,9 @@ class DashboardController extends Controller
             foreach ($this->monthsHarvests as $key => $value) {
                 $monthsHarvests[$key] = number_format($value, 0, ',', '.');
             }
-            // Weather integration
-            $city = $request->input('city') ?? $request->input('weatherCity') ?? 'Curico, Chile'; // Usa la ciudad enviada por el frontend o la default
-            $weather = $weatherService->getCurrentWeather($city);
+            // Weather integration (comentado)
+            // $city = $request->input('city') ?? $request->input('weatherCity') ?? 'Curico, Chile'; // Usa la ciudad enviada por el frontend o la default
+            // $weather = $weatherService->getCurrentWeather($city);
 
             // Calcular totales de agroquímicos por estado de desarrollo
             $agrochemicalByDevState = [];
@@ -443,6 +444,13 @@ class DashboardController extends Controller
                     $suppliesExpensePerHectare[$devStateId] += $amount;
                 }
             }
+
+
+            //obtener total estimacion en kilos
+            $totalEstimatedKilosData = $this->getTotalEstimatedKilos($season_id, $user->team_id);
+            $kilosByFruit = $totalEstimatedKilosData['kilosByFruit'] ?? [];
+            $fruitNames = $totalEstimatedKilosData['fruitNames'] ?? [];
+
             // Obtener nombres de estados de desarrollo
             $devStates = \App\Models\DevelopmentState::all(['id', 'name'])->keyBy('id')->toArray();
 
@@ -476,8 +484,8 @@ class DashboardController extends Controller
                 'monthsAdministration',
                 'monthsFields',
                 'months',
-                'weather',
-                'city',
+                //'weather',
+                //'city',
                 'agrochemicalByDevState',
                 'fertilizerByDevState',
                 'manPowerByDevState',
@@ -496,7 +504,10 @@ class DashboardController extends Controller
                 'totalsByLevel12',
                 'entityCounts',
                 'totalSurface',
-                'mainTotalsAndPercents' // <-- nuevo prop para los gauges
+                'mainTotalsAndPercents', // <-- nuevo prop para los gauges
+                'totalEstimatedKilosData', // <-- nuevo prop para total estimado en kilos
+                'kilosByFruit',
+                'fruitNames'
             ));
         }
     }

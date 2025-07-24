@@ -283,8 +283,77 @@ trait BudgetTotalsTrait
         return $total;
     }
 
+    /**
+     * Obtiene el total de kilos estimados para un equipo y temporada,
+     * usando el último estimate_status_id disponible.
+     * El total de kilos corresponde a la suma de kilos_ha * surface de cada cost center relacionado.
+     *
+     * @param int $season_id
+     * @param int $team_id
+     * @return float
+     */
+    public function getTotalEstimatedKilos($season_id, $team_id)
+    {
+        // Obtener todas las estimaciones de la temporada/equipo
+        $estimates = \App\Models\Estimate::where('season_id', $season_id)
+            ->where('team_id', $team_id)
+            ->get();
+
+        if ($estimates->isEmpty()) return [];
 
 
+        // Agrupar estimates por fruta (vía estimate_status)
+        $estimatesByFruit = [];
+        foreach ($estimates as $estimate) {
+            $estimateStatus = $estimate->estimateStatus;
+            $fruitId = $estimateStatus ? $estimateStatus->fruit_id : null;
+            if (!$fruitId) continue;
+            if (!isset($estimatesByFruit[$fruitId])) {
+                $estimatesByFruit[$fruitId] = [];
+            }
+            $estimatesByFruit[$fruitId][] = $estimate;
+        }
+
+        $kilosByFruit = [];
+        $fruitIds = array_keys($estimatesByFruit);
+
+        // Para cada fruta, tomar los estimates con el mayor estimate_status_id y sumar los kilos
+        foreach ($estimatesByFruit as $fruitId => $estimatesGroup) {
+            // Encontrar el último estimate_status_id para esta fruta
+            $maxStatusId = collect($estimatesGroup)->max('estimate_status_id');
+            // Filtrar los estimates con ese status
+            $latestEstimates = collect($estimatesGroup)->where('estimate_status_id', $maxStatusId);
+            $totalKilos = 0;
+            foreach ($latestEstimates as $estimate) {
+                $surface = $estimate->costCenter ? $estimate->costCenter->surface : 0;
+                $kilos = ($estimate->kilos_ha ?? 0) * $surface;
+                $totalKilos += $kilos;
+            }
+            $kilosByFruit[$fruitId] = $totalKilos;
+        }
+
+        // Obtener nombres de las frutas
+        $fruitNames = [];
+        if (!empty($fruitIds)) {
+            $fruits = \App\Models\Fruit::whereIn('id', $fruitIds)->pluck('name', 'id');
+            foreach ($fruits as $id => $name) {
+                $fruitNames[$id] = $name;
+            }
+        }
+
+        // Retornar ambos
+        return [
+            'kilosByFruit' => $kilosByFruit,
+            'fruitNames' => $fruitNames
+        ];
+    }
+
+
+
+
+
+
+    
 
 
 
