@@ -149,6 +149,7 @@ const selectAllMonths = (index, months) => {
                     <Multiselect
                         :placeholder="''"
                         v-model="product.unit_id"
+                         @update:modelValue="val => product.unit_id_price = val"
                         :close-on-select="true"
                         :options="$page.props.units"
                         class="multiselect-blue form-control"
@@ -223,6 +224,7 @@ const selectAllMonths = (index, months) => {
                         <Multiselect
                             :placeholder="''"
                             v-model="product.unit_id_price"
+                             @update:modelValue="val => product.unit_id = val"
                             :close-on-select="true"
                             :options="$page.props.units"
                             class="multiselect-blue form-control"

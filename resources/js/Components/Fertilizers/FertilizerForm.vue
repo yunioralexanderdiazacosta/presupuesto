@@ -2,10 +2,18 @@
     import Multiselect from '@vueform/multiselect';
 	import TextInput from '@/Components/TextInput.vue';
 	import InputError from '@/Components/InputError.vue';
+	import { computed } from 'vue';
+	import { usePage } from '@inertiajs/vue3';
+
+	const page = usePage();
 
 	defineProps({
 		form: Object
 	});
+
+	const disallowedUnitIds = [6, 7];
+	const filteredUnits = computed(() => page.props.units.filter(u => !disallowedUnitIds.includes(u.value)));
+
 </script>
 <script setup></script>
 <template>
@@ -65,8 +73,9 @@
                  <Multiselect
                     :placeholder="''"
                     v-model="form.unit_id"
+                    @update:modelValue="val => form.unit_id_price = val"
                     :close-on-select="true"
-                    :options="$page.props.units"
+                    :options="filteredUnits"
                     class="multiselect-blue form-control"
                     :class="{'is-invalid': form.errors.unit_id}"
                     :searchable="true"
@@ -114,8 +123,9 @@
                          <Multiselect
                             :placeholder="''"
                             v-model="form.unit_id_price"
+                            @update:modelValue="val => form.unit_id = val"
                             :close-on-select="true"
-                            :options="$page.props.units"
+                            :options="filteredUnits"
                             class="multiselect-blue form-control"
                             :class="{'is-invalid': form.errors.unit_id_price}"
                             :searchable="true"

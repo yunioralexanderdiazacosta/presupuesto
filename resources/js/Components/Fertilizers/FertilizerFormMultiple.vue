@@ -254,6 +254,7 @@ watch(
                     <Multiselect
                         :placeholder="''"
                         v-model="product.unit_id"
+                          @update:modelValue="val => product.unit_id_price = val"
                         :close-on-select="true"
                         :options="getDoseUnitOptions()"
                         class="multiselect-blue form-control"
@@ -331,6 +332,7 @@ watch(
                         <Multiselect
                             :placeholder="''"
                             v-model="product.unit_id_price"
+                              @update:modelValue="val => product.unit_id = val"
                             :close-on-select="true"
                             :options="getPriceUnitOptions(product)"
                             class="multiselect-blue form-control"

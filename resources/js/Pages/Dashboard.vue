@@ -8,6 +8,9 @@ const title = 'Tablero';
 
 const links = [{ title: 'Tablero', link: 'dashboard', active: true }];
 
+
+
+/* 
 const userCity = ref(null)
 
 onMounted(async () => {
@@ -24,7 +27,7 @@ onMounted(async () => {
       // Si falla, puedes dejar la ciudad por defecto
     }
   }
-});
+});*/
 
 
 const props = defineProps({
@@ -45,8 +48,8 @@ const props = defineProps({
   totalSupplies: Number,
   totalServices: Number,
   totalHarvest: Number,
-  weather: Object,
-  weatherCity: String,
+  //weather: Object,
+  //weatherCity: String,
   agrochemicalByDevState: Object,
   fertilizerByDevState: Object,
   manPowerByDevState: Object,
