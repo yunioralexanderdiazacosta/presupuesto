@@ -43,13 +43,13 @@ const selectAllMonths = (index, months) => {
     <div class="row">
         <div class="col-lg-4">
             <div class="fv-row">
-                <label for="families" class="col-form-label">Familia</label>
+                <label for="families" class="col-form-label">Nivel 3</label>
                 <div class="input-group">
                     <span class="input-group-text"
                         ><i class="fas fa-layer-group"></i
                     ></span>
                     <Multiselect
-                        :placeholder="'Seleccione familia'"
+                        :placeholder="'Seleccione nivel 3'"
                         v-model="form.subfamily_id"
                         :close-on-select="true"
                         :options="$page.props.subfamilies"

@@ -54,9 +54,9 @@ const page = usePage();
     <div class="row">
         <div class="col-lg-6">
             <div class="fv-row">
-                <label for="level2_id" class="col-form-label">Level 2</label>
+                <label for="level2_id" class="col-form-label">Nivel 2</label>
                 <Multiselect
-                    :placeholder="'Seleccione Level 2'"
+                    :placeholder="'Seleccione Nivel 2'"
                     v-model="form.level2_id"
                     :close-on-select="true"
                     :options="$page.props.level2s"
@@ -71,9 +71,9 @@ const page = usePage();
         </div>
         <div class="col-lg-6">
             <div class="fv-row">
-                <label for="families" class="col-form-label">Familia</label>
+                <label for="families" class="col-form-label">Nivel 3</label>
                 <Multiselect
-                    :placeholder="'Seleccione familia'"
+                    :placeholder="'Seleccione nivel 3'"
                     v-model="form.subfamily_id"
                     :close-on-select="true"
                     :options="form.level3s"

@@ -216,13 +216,13 @@ watch(
 <template>
     <div class="row gy-1">
         <div class="col-sm-4">
-            <label for="families" class="col-form-label">Familia</label>
+            <label for="families" class="col-form-label">Nivel 3</label>
             <div class="input-group mb-2">
                 <span class="input-group-text"
                     ><i class="fas fa-layer-group"></i
                 ></span>
                 <Multiselect
-                    :placeholder="'Seleccione familia'"
+                    :placeholder="'Seleccione nivel 3'"
                     v-model="form.subfamily_id"
                     :close-on-select="true"
                     :options="$page.props.subfamilies"

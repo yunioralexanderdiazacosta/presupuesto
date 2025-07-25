@@ -54,7 +54,7 @@
     <div class="row">
            <div class="col-lg-6">
             <div class="fv-row">
-                <label for="level2_id" class="col-form-label">Level 2<span
+                <label for="level2_id" class="col-form-label">Nivel 2<span
                     style="cursor: pointer;"
                     title="Seleccione el grupo principal para filtrar las familias disponibles.">
                     <i class="fas fa-question-circle text-info ms-1"></i>
@@ -76,9 +76,9 @@
         </div>
        
         <div class="col-lg-6">
-            <label for="families" class="col-form-label">Familia</label>
+            <label for="families" class="col-form-label">Nivel 3</label>
             <Multiselect
-                :placeholder="'Seleccione familia'"
+                :placeholder="'Seleccione nivel 3'"
                 v-model="form.subfamily_id"
                 :close-on-select="true"
                :options="form.level3s"
