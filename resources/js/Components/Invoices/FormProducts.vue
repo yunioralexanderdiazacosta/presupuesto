@@ -79,9 +79,9 @@
 					<td>
 						<input type="number" class="form-control form-control-solid text-end unit_price" v-model="product.unit_price" value="0.00" step="0.00" />
 					</td>
-					<td class="pt-8 text-end text-nowrap">$
+					<td class="text-end text-nowrap">$
 					<span data-kt-element="total">{{product.unit_price * product.amount}}</span></td>
-					<td class="pt-5 text-end">
+					<td class="text-end">
 						<button type="button" @click="onDeleted(index)" class="btn btn-sm btn-icon btn-active-color-primary" data-kt-element="remove-item">
 							<!--begin::Svg Icon | path: icons/duotune/general/gen027.svg-->
 							<span class="svg-icon svg-icon-3">
@@ -130,7 +130,7 @@
 			<td>
 				<input type="text" class="form-control form-control-solid text-end" name="price[]" placeholder="0.00" data-kt-element="price" />
 			</td>
-			<td class="pt-8 text-end">$
+			<td class="text-end">$
 			<span data-kt-element="total">0.00</span></td>
 			<td class="pt-5 text-end">
 				<button type="button" class="btn btn-sm btn-icon btn-active-color-primary" data-kt-element="remove-item">

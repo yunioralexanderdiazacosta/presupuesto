@@ -19,8 +19,8 @@
     }
 </script>
 <template>
-    <div class="fv-row mb-8">
-        <label class="required fs-6 fw-semibold mb-2">Nombre del centro de costo</label>
+    <div class="fv-row">
+        <label class="col-form-label">Nombre del centro de costo</label>
         <TextInput
             id="name"
             v-model="form.name"
@@ -31,8 +31,8 @@
         <InputError class="mt-2" :message="form.errors.name" />
     </div>
 
-    <div class="fv-row mb-8">
-        <label class="required fs-6 fw-semibold mb-2">Superficie</label>
+    <div class="fv-row">
+        <label class="col-form-label">Superficie</label>
         <TextInput
             id="surface"
             v-model="form.surface"
@@ -44,16 +44,16 @@
         <InputError class="mt-2" :message="form.errors.surface" />
     </div>
 
-    <div class="fv-row mb-8">
-        <label for="observations" class="form-label fs-6 fw-bold mb-3">Observaciones</label>
+    <div class="fv-row">
+        <label for="observations" class="col-form-label">Observaciones</label>
         <textarea v-model="form.observations" rows="3" class="form-control form-control-lg form-control-solid mb-3 mb-lg-0" :class="{'is-invalid': form.errors.observations }"></textarea>
         <InputError class="mt-2" :message="form.errors.observations" />
     </div>
 
     <div class="row">
         <div class="col-lg-6">
-            <div class="fv-row mb-8">
-                <label for="fruit" class="form-label required fs-6 fw-bold mb-3">Frutal</label>
+            <div class="fv-row">
+                <label for="fruit" class="col-form-label">Frutal</label>
                 <Multiselect
                     :placeholder="'Seleccione el frutal'"
                     v-model="form.fruit_id"
@@ -68,8 +68,8 @@
             </div>
         </div>
         <div class="col-lg-6">
-            <div class="fv-row mb-8">
-                <label for="variety" class="form-label required fs-6 fw-bold mb-3">Variedad</label>
+            <div class="fv-row">
+                <label for="variety" class="col-form-label">Variedad</label>
                 <Multiselect
                     :placeholder="'Seleccione variedad'"
                     v-model="form.variety_id"
@@ -86,10 +86,10 @@
     
     <div class="row">
         <div class="col-lg-4">
-            <div class="fv-row mb-8">
-                <label for="fruit" class="form-label required fs-6 fw-bold mb-3">Parcela</label>
+            <div class="fv-row">
+                <label for="fruit" class="col-form-label">Parcela</label>
                 <Multiselect
-                    :placeholder="'Seleccione la parcela'"
+                    :placeholder="'parcela'"
                     v-model="form.parcel_id"
                     :close-on-select="true"
                     :options="$page.props.parcels"
@@ -100,11 +100,11 @@
                 <InputError class="mt-2" :message="form.errors.parcel_id" />
             </div>
         </div>
-         <div class="col-lg-4">
-            <div class="fv-row mb-8">
-               <label for="fruit" class="form-label required fs-6 fw-bold mb-3">Estado de desarrollo</label>
+        <div class="col-lg-4">
+            <div class="fv-row">
+               <label for="fruit" class="col-form-label">Estado de desarrollo</label>
                 <Multiselect
-                    :placeholder="'Seleccione el estado de desarrollo'"
+                    :placeholder="'estado de desarrollo'"
                     v-model="form.development_state_id"
                     :close-on-select="true"
                     :options="$page.props.developmentStates"
@@ -116,8 +116,8 @@
             </div>
         </div>
         <div class="col-lg-4">
-            <div class="fv-row mb-8">
-                <label class="required fs-6 fw-semibold mb-3">Año plantación</label>
+            <div class="fv-row">
+                <label class="col-form-label">Año plantación</label>
                 <TextInput
                     id="ano_plantacion"
                     v-model="form.year_plantation"
@@ -131,8 +131,23 @@
         </div>
     </div>
 
+    
+    <div class="fv-row">
+        <label for="companyreason" class="col-form-label">Razon social</label>
+        <Multiselect
+            :placeholder="'Seleccione la razon social'"
+            v-model="form.company_reason_id"
+            :close-on-select="true"
+            :options="$page.props.companyReasons"
+            class="multiselect-blue form-control"
+            :class="{'is-invalid': form.errors.company_reason_id}"
+            :searchable="true"
+        />
+        <InputError class="mt-2" :message="form.errors.company_reason_id" />
+    </div>
 
-    <div class="fv-row mb-8 mt-8">
+
+    <div class="fv-row">
         <label class="form-check form-check-inline">
             <Checkbox class="form-check-input" v-model:checked="form.status" name="status" />
             <span class="form-check-label fw-semibold text-gray-700 fs-base ms-1">Activo</span>

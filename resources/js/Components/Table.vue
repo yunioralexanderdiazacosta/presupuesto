@@ -12,23 +12,35 @@ defineProps({
 })
 </script>
 <template>
-    <div class="table-responsive">
+    <div class="table-responsive scrollbar">
         <!--begin::Table-->
-        <table class="table table-row-bordered table-row-gray-300 align-middle gs-0 gy-2">
+        <table class="table table-bordered table-striped table-hover table-sm custom-striped fs-10 mb-0">
             <!--begin::Table head-->
             <thead>
-                <tr class="fw-bold fs-6">
+                <tr>
                     <slot name="header"></slot>
                 </tr>
             </thead>
             <!--end::Table head-->
             <!--begin::Table body-->
             <tbody>
+                 
                 <slot name="body"></slot>
+                
             </tbody>
             <!--end::Table body-->
         </table>
         <!--end::Table-->
     </div>
-    <paginate v-if="total > 0" :links="links"></paginate>
+ 
 </template>
+
+<style>
+.table-striped > tbody > tr:nth-of-type(odd) {
+  background-color: #ffffff !important;
+}
+.table th, .table td {
+  vertical-align: middle;
+}
+
+</style>

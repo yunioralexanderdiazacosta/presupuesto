@@ -11,7 +11,7 @@ defineEmits(['update']);
 <template>
     <Modal :maxWidth="'lg'" :id="'editMachineryModal'">
         <template #header>
-            <h1 class="mb-3">Editar Maquinaria</h1>
+            <h2 class="mb-3">Editar Maquinaria</h2>
         </template>
         <template #body>
             <MachineryForm :form="form" />

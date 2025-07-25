@@ -8,8 +8,8 @@
 	});
 </script>
 <template>
-    <div class="fv-row mb-8">
-        <label class="required fs-6 fw-semibold mb-2">Nombre</label>
+    <div class="fv-row">
+        <label class="col-form-label">Nombre</label>
         <TextInput
             id="name"
             v-model="form.name"
@@ -20,15 +20,15 @@
         <InputError class="mt-2" :message="form.errors.name" />
     </div>
 
-    <div class="fv-row mb-8">
-        <label for="observations" class="form-label fs-6 fw-bold mb-3">Observaciones</label>
+    <div class="fv-row">
+        <label for="observations" class="col-form-label">Observaciones</label>
         <textarea v-model="form.observations" rows="3" class="form-control form-control-lg form-control-solid mb-3 mb-lg-0" :class="{'is-invalid': form.errors.observations }"></textarea>
         <InputError class="mt-2" :message="form.errors.observations" />
     </div>
 
        
-    <div class="fv-row mb-3">
-        <label for="month" class="form-label required fs-6 fw-bold mb-3">Mes de inicio</label>
+    <div class="fv-row">
+        <label for="month" class="col-form-label">Mes de inicio</label>
         <Multiselect
             :placeholder="'Seleccione mes de inicio'"
             v-model="form.month_id"
@@ -47,7 +47,7 @@
     --ms-bg: var(--kt-input-solid-bg) !important;
     --ms-border-color: var(--kt-input-solid-bg);
     --ms-py: 3px !important;
-    --ms-tag-bg: #eee;
+    --ms-tag-bg: #2c7be5;
     --ms-tag-color: var(--kt-primary);
     --ms-option-bg-selected: var(--kt-primary);
     --ms-option-bg-selected-pointed: var(--kt-primary);

@@ -9,7 +9,7 @@ const props = defineProps({
 defineEmits(['store']);
 </script>
 <template>
-    <Modal :id="'createUserModal'">
+    <Modal :maxWidth="'lg'" :id="'createUserModal'">
         <template #header>
             <h1 class="mb-3">Agregar usuario</h1>
         </template>

@@ -32,7 +32,7 @@
     --ms-bg: var(--kt-input-solid-bg) !important;
     --ms-border-color: var(--kt-input-solid-bg);
     --ms-py: 3px !important;
-    --ms-tag-bg: #eee;
+    --ms-tag-bg: #2c7be5;
     --ms-tag-color: var(--kt-primary);
     --ms-option-bg-selected: var(--kt-primary);
     --ms-option-bg-selected-pointed: var(--kt-primary);

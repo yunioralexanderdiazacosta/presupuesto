@@ -13,6 +13,6 @@ class Level1 extends Model
 
     public function levels2()
     {
-        return $this->hasMany(level2::class, 'level1_id');
+        return $this->hasMany(Level2::class, 'level1_id');
     }
 }

@@ -7,8 +7,8 @@
 	});
 </script>
 <template>
-    <div class="fv-row mb-8">
-        <label class="required fs-6 fw-semibold mb-2">Nombre</label>
+    <div class="fv-row">
+        <label class="col-form-label">Nombre</label>
         <TextInput
             id="name"
             v-model="form.name"

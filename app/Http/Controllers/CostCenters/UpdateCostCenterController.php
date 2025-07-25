@@ -19,6 +19,7 @@ class UpdateCostCenterController extends Controller
         $costCenter->parcel_id = $request->parcel_id;
         $costCenter->development_state_id = $request->development_state_id;
         $costCenter->year_plantation = $request->year_plantation;
+        $costCenter->company_reason_id = $request->company_reason_id;
         $costCenter->status = $request->status ?? false;
         $costCenter->save();
     }

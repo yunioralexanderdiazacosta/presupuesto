@@ -3,6 +3,7 @@
 use Illuminate\Foundation\Application;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\DashboardController;
+use App\Http\Controllers\TechnicalPanelController;
 use App\Http\Controllers\AgrochemicalsController;
 use App\Http\Controllers\FertilizersController;
 use App\Http\Controllers\TeamsController;
@@ -23,6 +24,9 @@ use App\Http\Controllers\UsersController;
 use App\Http\Controllers\MachineriesController;
 use App\Http\Controllers\TypeMachineriesController;
 use App\Http\Controllers\SuppliesController;
+use App\Http\Controllers\ServicesController;
+use App\Http\Controllers\AdministrationsController;
+use App\Http\Controllers\FieldsController;
 use App\Http\Controllers\Teams\StoreTeamController;
 use App\Http\Controllers\Teams\UpdateTeamController;
 use App\Http\Controllers\Teams\DeleteTeamController;
@@ -102,6 +106,9 @@ use App\Http\Controllers\TypeMachineries\DeleteTypeMachineryController;
 use App\Http\Controllers\Supplies\StoreSupplyController;
 use App\Http\Controllers\Supplies\UpdateSupplyController;
 use App\Http\Controllers\Supplies\DeleteSupplyController;
+use App\Http\Controllers\Services\StoreServiceController;
+use App\Http\Controllers\Services\DeleteServiceController;
+use App\Http\Controllers\Services\UpdateServiceController;
 use App\Http\Controllers\Pdfs\BudgetsPdfController;
 use App\Http\Controllers\Pdfs\CostCentersPdfController;
 use App\Http\Controllers\Pdfs\LevelsPdfController;
@@ -116,7 +123,7 @@ use App\Http\Controllers\Pdfs\VarietiesPdfController;
 use App\Http\Controllers\Pdfs\SeasonsPdfController;
 use App\Http\Controllers\Pdfs\SuppliersPdfController;
 use App\Http\Controllers\Pdfs\ProductsPdfController;
-use App\Http\Controllers\Pdfs\invoicesPdfController;
+use App\Http\Controllers\Pdfs\InvoicesPdfController;
 use App\Http\Controllers\Pdfs\MachineriesPdfController;
 use App\Http\Controllers\Pdfs\TypeMachineriesPdfController;
 use App\Http\Controllers\Excels\BudgetsExcelController;
@@ -133,9 +140,26 @@ use App\Http\Controllers\Excels\VarietiesExcelController;
 use App\Http\Controllers\Excels\SeasonsExcelController;
 use App\Http\Controllers\Excels\SuppliersExcelController;
 use App\Http\Controllers\Excels\ProductsExcelController;
-use App\Http\Controllers\Excels\invoicesExcelController;
+use App\Http\Controllers\Excels\InvoicesExcelController;
 use App\Http\Controllers\Excels\MachineriesExcelController;
 use App\Http\Controllers\Excels\TypeMachineriesExcelController;
+use App\Http\Controllers\WeatherController;
+use App\Http\Controllers\Administrations\StoreAdministrationController;
+use App\Http\Controllers\Administrations\DeleteAdministrationController;
+use App\Http\Controllers\Administrations\UpdateAdministrationController;
+use App\Http\Controllers\Fields\StoreFieldController;
+use App\Http\Controllers\Fields\UpdateFieldController;
+use App\Http\Controllers\Fields\DeleteFieldController;
+use App\Http\Controllers\SidebarController;
+use App\Http\Controllers\EstimatesController;
+use App\Http\Controllers\Estimates\StoreEstimateController;
+use App\Http\Controllers\Estimates\DeleteEstimateController;
+use App\Http\Controllers\Estimates\UpdateEstimateController;
+use App\Http\Controllers\Harvests\StoreHarvestController;
+use App\Http\Controllers\Harvests\DeleteHarvestController;
+use App\Http\Controllers\Harvests\UpdateHarvestController;
+use App\Http\Controllers\HarvestsController;
+
 use Inertia\Inertia;
 
 /*
@@ -163,6 +187,22 @@ Route::middleware([
     config('jetstream.auth_session'),
     'verified',
 ])->group(function () {
+  
+
+    // Página de Preguntas Frecuentes (FAQ)
+    Route::get('/faq', function () {
+        return Inertia::render('FaqPage');
+    })->name('faq');
+
+
+      Route::post('/sidebar/has-variety-for-season', [SidebarController::class, 'hasVarietyForSeason'])->name('sidebar.hasVarietyForSeason');
+    Route::post('/sidebar/has-fruit-for-season', [SidebarController::class, 'hasFruitForSeason'])->name('sidebar.hasFruitForSeason');
+    Route::post('/sidebar/has-costcenter-for-season', [SidebarController::class, 'hasCostCenterForSeason'])->name('sidebar.hasCostCenterForSeason');
+    Route::post('/sidebar/has-companyreason-for-team', [SidebarController::class, 'hasCompanyReasonForTeam'])->name('sidebar.hasCompanyReasonForTeam');
+    Route::post('/sidebar/has-season-for-team', [SidebarController::class, 'hasSeasonForTeam'])->name('sidebar.hasSeasonForTeam');
+    Route::post('/sidebar/has-parcel-for-team', [SidebarController::class, 'hasParcelForTeam'])->name('sidebar.hasParcelForTeam');
+      Route::post('/sidebar/has-level3-for-level2', [SidebarController::class, 'hasLevel3ForLevel2'])->name('sidebar.hasLevel3ForLevel2');
+
 
     Route::get('/teams', TeamsController::class)->name('teams.index');
     Route::get('/budgets', BudgetsController::class)->name('budgets.index');
@@ -282,13 +322,18 @@ Route::middleware([
 
     Route::middleware(['check.selected.budget'])->group(function () {
         Route::get('/dashboard', DashboardController::class)->name('dashboard');
+         Route::get('/technicalpanel', TechnicalPanelController::class)->name('technicalpanel');
 
         Route::get('/agrochemicals', AgrochemicalsController::class)->name('agrochemicals.index');
         Route::get('/fertilizers', FertilizersController::class)->name('fertilizers.index');
         Route::get('/cost-centers', CostCentersController::class)->name('cost.centers.index');
         Route::get('/manpowers', ManPowersController::class)->name('manpowers.index');
         Route::get('/supplies', SuppliesController::class)->name('supplies.index');
-
+        Route::get('/services', ServicesController::class)->name('services.index');
+        Route::get('/administrations', AdministrationsController::class)->name('administrations.index');
+        Route::get('/fields', FieldsController::class)->name('fields.index');
+        Route::get('/harvests', HarvestsController::class)->name('harvests.index');
+        Route::get('/estimates', EstimatesController::class)->name('estimates.index');
 
         Route::get('/cost-centers/pdf', CostCentersPdfController::class)->name('cost.centers.pdf');
         Route::get('/cost-centers/excel', CostCentersExcelController::class)->name('cost.centers.excel');
@@ -303,6 +348,15 @@ Route::middleware([
         Route::post('/fertilizers/store', StoreFertilizerController::class)->name('fertilizers.store');
         Route::post('/fertilizers/{fertilizer}/update', UpdateFertilizerController::class)->name('fertilizers.update');
         Route::delete('/fertilizers/{fertilizer}/delete', DeleteFertilizerController::class)->name('fertilizers.delete');
+
+
+        Route::post('/harvests/store', StoreHarvestController::class)->name('harvests.store');
+        Route::post('/harvests/{harvest}/update', UpdateHarvestController::class)->name('harvests.update');
+        Route::delete('/harvests/{harvest}/delete', DeleteHarvestController::class)->name('harvests.delete');
+
+
+
+
 
         Route::post('/man-powers/store', StoreManPowerController::class)->name('man.powers.store');
         Route::post('/man-powers/{manPower}/update', UpdateManPowerController::class)->name('man.powers.update');
@@ -324,7 +378,29 @@ Route::middleware([
         Route::post('/supplies/{supply}/update', UpdateSupplyController::class)->name('supplies.update');
         Route::delete('/supplies/{supply}/delete', DeleteSupplyController::class)->name('supplies.delete');
 
+        Route::post('/services/store', StoreServiceController::class)->name('services.store');
+        Route::post('/services/{service}/update', UpdateServiceController::class)->name('services.update');
+        Route::delete('/services/{service}/delete', DeleteServiceController::class)->name('services.delete');
+
+        Route::post('/estimates/store', StoreEstimateController::class)->name('estimates.store');
+        Route::post('/estimates/{estimate}/update', UpdateEstimateController::class)->name('estimates.update');
+        Route::delete('/estimates/{estimate}/delete', DeleteEstimateController::class)->name('estimates.delete');
+
+        Route::post('/administrations/store', StoreAdministrationController::class)->name('administrations.store');
+        Route::post('/administrations/{administration}/update', UpdateAdministrationController::class)->name('administrations.update');
+        Route::delete('/administrations/{administration}/delete', DeleteAdministrationController::class)->name('administrations.delete');
+
+        Route::post('/fields/store', StoreFieldController::class)->name('fields.store');
+        Route::post('/fields/{field}/update', UpdateFieldController::class)->name('fields.update');
+        Route::delete('/fields/{field}/delete', DeleteFieldController::class)->name('fields.delete');
     });
     Route::get('/select-budge', SelectBudgetController::class)->name('select.budget');
     Route::post('/select-season/save', SaveSeasonController::class)->name('select.seasons.save');
+
+Route::get('/weather', [WeatherController::class, 'show'])->name('weather');
+
+// Summary de niveles anidados
+    Route::get('/levels/summary', [LevelsController::class, 'summary'])->name('levels.summary');
+
+
 });
