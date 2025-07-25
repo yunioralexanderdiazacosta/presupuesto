@@ -1,16 +1,16 @@
 <script setup>
     import Multiselect from '@vueform/multiselect';
-	import TextInput from '@/Components/TextInput.vue';
-	import InputError from '@/Components/InputError.vue';
-	import { usePage } from '@inertiajs/vue3';
-	const page = usePage();
+    import TextInput from '@/Components/TextInput.vue';
+    import InputError from '@/Components/InputError.vue';
+    import { usePage } from '@inertiajs/vue3';
+    const page = usePage();
 
 
 
 
-	const props = defineProps({
-		form: Object
-	});
+    const props = defineProps({
+        form: Object
+    });
 
     const addItem = () => {
         props.form.products.push({
@@ -54,7 +54,12 @@
     <div class="row">
            <div class="col-lg-6">
             <div class="fv-row">
-                <label for="level2_id" class="col-form-label">Level 2</label>
+                <label for="level2_id" class="col-form-label">Level 2<span
+                    style="cursor: pointer;"
+                    title="Seleccione el grupo principal para filtrar las familias disponibles.">
+                    <i class="fas fa-question-circle text-info ms-1"></i>
+                  </span>
+                </label>
                 <Multiselect
                     :placeholder="'Seleccione Level 2'"
                     v-model="form.level2_id"

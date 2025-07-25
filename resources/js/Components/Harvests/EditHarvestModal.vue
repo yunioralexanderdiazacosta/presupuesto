@@ -11,14 +11,14 @@ defineEmits(['update']);
 <template>
     <Modal :maxWidth="'xl'" :id="'editHarvestModal'">
         <template #header>
-            <div class="d-flex align-items-center gap-2 mb-3">
+            <div class="d-flex align-items-center gap-2 mb-3 text-start">
                 <span class="bg-secondary text-white rounded-circle d-flex align-items-center justify-content-center" style="width: 38px; height: 38px; font-size: 1.4rem;">
                     <i class="fas fa-seedling"></i>
                 </span>
                 <span>
-                    <span class="fw-bold" style="font-size: 1.2rem; color: #2d3748; letter-spacing: 0.5px;">Editar un Servicio</span>
+                    <span class="fw-bold" style="font-size: 1.2rem; color: #2d3748; letter-spacing: 0.5px;">Editar Cosecha</span>
                     <br>
-                    <span class="text-muted" style="font-size: 0.85rem;">Modificar los datos del servicio</span>
+                    <span class="text-muted ml-1" style="font-size: 0.85rem;">Modificar los datos</span>
                 </span>
             </div>
         </template>

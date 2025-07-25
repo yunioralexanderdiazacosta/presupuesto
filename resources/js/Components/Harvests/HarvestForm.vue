@@ -10,7 +10,23 @@
 <script setup></script>
 <template>
     <div class="row">
-        <div class="col-lg-6">
+      
+        <div class="col-lg-4">
+            <label for="families" class="col-form-label">Familia</label>
+            <Multiselect
+                :placeholder="'Seleccione familia'"
+                v-model="form.subfamily_id"
+                :close-on-select="true"
+                :options="$page.props.subfamilies"
+                class="multiselect-blue form-control"
+                :class="{'is-invalid': form.errors.subfamily_id}"
+                :searchable="true"
+                :hide-selected="false"
+            />
+            <InputError class="mt-2" :message="form.errors.subfamily_id" />
+        </div>
+
+  <div class="col-lg-8">
             <label for="cc" class="col-form-label">CC</label>
             <Multiselect
                 mode="tags"
@@ -25,20 +41,11 @@
             />
             <InputError class="mt-2" :message="form.errors.cc" />
         </div>
-        <div class="col-lg-6">
-            <label for="families" class="col-form-label">Familia</label>
-            <Multiselect
-                :placeholder="'Seleccione familia'"
-                v-model="form.subfamily_id"
-                :close-on-select="true"
-                :options="$page.props.subfamilies"
-                class="multiselect-blue form-control"
-                :class="{'is-invalid': form.errors.subfamily_id}"
-                :searchable="true"
-                :hide-selected="false"
-            />
-            <InputError class="mt-2" :message="form.errors.subfamily_id" />
-        </div>
+
+
+
+
+
     </div>
 
     <div class="row">
