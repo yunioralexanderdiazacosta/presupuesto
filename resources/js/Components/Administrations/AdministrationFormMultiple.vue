@@ -191,19 +191,129 @@
         </div>
     </template>
 </template>
-<style src="@vueform/multiselect/themes/default.css"></style>
+<!-- <style src="@vueform/multiselect/themes/default.css"></style>-->
 <style>
-.multiselect-blue {
-    --ms-bg: var(--kt-input-solid-bg) !important;
-    --ms-border-color: var(--kt-input-solid-bg);
-    --ms-py: 3px !important;
-    --ms-tag-bg: #2c7be5;
-    --ms-tag-color: var(--kt-primary);
-    --ms-option-bg-selected: var(--kt-primary);
-    --ms-option-bg-selected-pointed: var(--kt-primary);
+select,
+select.form-control {
+    height: 26px !important;
+    min-height: 26px !important;
+    font-size: 0.95rem;
+    padding-top: 2px !important;
+    padding-bottom: 2px !important;
 }
 
-.multiselect-tags-search, .multiselect-search{
-    background: var(--kt-input-solid-bg) !important;
+/* Agrandar la casilla de verificación (checkbox) */
+.form-check-input[type="checkbox"] {
+    width: 0.8em !important;
+    height: 0.8em !important;
+    min-width: 0.85em !important;
+    min-height: 0.85em !important;
+    max-width: 0.85em !important;
+    max-height: 0.85em !important;
+    vertical-align: middle;
 }
+
+/* Ajustar el alto de todos los vueform/multiselect (no solo los blue) */
+
+/* Forzar el alto de los vueform/multiselect en este archivo */
+.multiselect,
+.multiselect.form-control,
+.multiselect__tags {
+    min-height: 26px !important;
+    height: 26px !important;
+    max-height: 26px !important;
+    font-size: 0.8
+    rem !important;
+    padding-top: 2px !important;
+    padding-bottom: 2px !important;
+    line-height: 22px !important;
+}
+
+/* Forzar el alto de los inputs (TextInput y nativos), excepto textarea */
+.form-control:not(textarea),
+.form-control-lg:not(textarea),
+.form-control-sm:not(textarea) {
+    min-height: 26px !important;
+    height: 26px !important;
+    max-height: 26px !important;
+    font-size: 0.85rem !important;
+    padding-top: 2px !important;
+    padding-bottom: 2px !important;
+    line-height: 22px !important;
+}
+
+/* Ajustar el alto y alineación de los contenedores de iconos, inputs y selects */
+.input-group {
+    min-height: 26px !important;
+    height: 26px !important;
+    align-items: center !important;
+}
+
+.input-group-text {
+    min-height: 26px !important;
+    height: 26px !important;
+    max-height: 26px !important;
+    padding-top: 2px !important;
+    padding-bottom: 2px !important;
+    font-size: 1rem !important;
+    display: flex;
+    align-items: center;
+}
+
+.col-form-label,
+label {
+    font-size: 0.8rem !important;
+}
+
+/* Reducir el tamaño del texto de los labels de los meses (checkboxes) */
+.form-check-label.ps-1,
+.form-check-label.ps-2,
+.form-check-label {
+    font-size: 0.8rem !important;
+    line-height: 1.1 !important;
+    padding-left: 0.01rem !important;
+    margin-bottom: 0 !important;
+    display: inline-block;
+    vertical-align: middle;
+}
+
+.custom-hr {
+    height: 2px;
+    background: #b1b1b1;
+    border: none;
+    margin: 0.5rem 0;
+}
+/* Achicar el botón 'Seleccionar todos' */
+.btn.btn-outline-primary.btn-sm.ms-2 {
+    padding: 0.1rem 0.35rem !important;
+    font-size: 0.75rem !important;
+    line-height: 1 !important;
+    height: 20px !important;
+    min-height: 20px !important;
+    border-radius: 0.15rem !important;
+}
+/* Asegura que el dropdown de autocomplete esté justo debajo del input */
+.autocomplete-list {
+    z-index: 1050 !important;
+    background: #fff;
+    top: 100%;
+    left: 0;
+}
+
+.multiselect .multiselect-options,
+.multiselect .multiselect-option,
+.multiselect__option {
+    font-size: 0.7rem !important;
+}
+
+::placeholder {
+    font-size: 0.7rem !important;
+    color: #888 !important; /* Opcional: cambia el color si lo deseas */
+    opacity: 1; /* Para asegurar que el color se aplique en todos los navegadores */
+}
+
+.input-group .form-control {
+    border-radius: 0.25rem !important;
+}
+
 </style>

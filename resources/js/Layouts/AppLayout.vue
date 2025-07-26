@@ -1,4 +1,5 @@
-<<script setup>
+
+<script setup>
 import { router, Link } from '@inertiajs/vue3';
 import { ref, onMounted } from 'vue';
 import JetDropdownLink from '@/Components/DropdownLink.vue';
@@ -265,9 +266,10 @@ onMounted(async () => {
                         <div class="d-flex align-items-center"><span class="nav-link-text ps-1">Crear Niveles</span></div>
                       </Link>
                     </li>
-                    <li class="nav-item"><Link class="nav-link" :href="route('levels.summary')">
-                        <div class="d-flex align-items-center"><span class="nav-link-text ps-1">Resumen de Niveles</span></div>
-                      </Link>
+                    <li class="nav-item">
+                      <a class="nav-link" :href="route('levels.summary')" target="_blank" rel="noopener">
+                        <div class="d-flex align-items-center"><span class="nav-link-text ps-1 text-nowrap">Resumen de Niveles <i class="fas fa-external-link-alt ms-1"></i></span></div>
+                      </a>
                     </li>
                   </ul>
                 </li>
@@ -540,4 +542,5 @@ onMounted(async () => {
     </div>
   </div>
 </template>
+
 

@@ -175,7 +175,7 @@ watch(
                         ><i class="fas fa-layer-group"></i
                     ></span>
                     <Multiselect
-                        :placeholder="'Seleccione nivel 3'"
+                        :placeholder="'Seleccione familia'"
                         v-model="form.subfamily_id"
                         :close-on-select="true"
                         :options="$page.props.subfamilies"
@@ -358,13 +358,15 @@ watch(
                                 type="button"
                                 class="btn btn-outline-primary btn-sm ms-2"
                                 @click="selectAllMonths(index, $page.props.months)"
+                                
                             >
+                                <i class="fas fa-tasks me-1"></i>
                                 {{
                                     product.months &&
                                     product.months.length === $page.props.months.length &&
                                     $page.props.months.every((m) => product.months.includes(m.value))
-                                        ? "Deseleccionar todos"
-                                        : "Seleccionar todos"
+                                        ? "Quitar todos"
+                                        : "Todos"
                                 }}
                             </button>
                         </div>

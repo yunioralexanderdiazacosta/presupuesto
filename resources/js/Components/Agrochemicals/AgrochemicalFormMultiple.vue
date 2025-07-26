@@ -464,7 +464,11 @@ watch(
                                 ? "Deseleccionar todos"
                                 : "Seleccionar todos"
                         }}
-                    </button>
+                    </button><span
+                    style="cursor: pointer;"
+                    title="Por cada mes que selecciones, el producto se incluirá en el presupuesto para ese mes.">
+                    <i class="fas fa-question-circle text-info ms-1"></i>
+                  </span>
                 </div>
                 <div class="d-flex flex-wrap gap-1">
                     <template v-for="value in $page.props.months">
