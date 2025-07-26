@@ -62,8 +62,8 @@ trait BudgetTotalsTrait
         return $total;
     }
 
-    // Calcula el total global de fertilizantes
-    public function getTotalFertilizer($season_id, $team_id)
+    // Calcula el total global de fertilizantes (opcionalmente por fruta)
+    public function getTotalFertilizer($season_id, $team_id, $fruit_id = null)
     {
         $season = \App\Models\Season::select('month_id')->where('id', $season_id)->first();
         $currentMonth = $season ? $season->month_id : 1;
@@ -72,7 +72,11 @@ trait BudgetTotalsTrait
             $id = date('n', mktime(0, 0, 0, $x, 1));
             $months[] = $id;
         }
-        $costCenters = \App\Models\CostCenter::where('season_id', $season_id)->get()->keyBy('id');
+        $costCentersQuery = \App\Models\CostCenter::where('season_id', $season_id);
+        if ($fruit_id) {
+            $costCentersQuery->where('fruit_id', $fruit_id);
+        }
+        $costCenters = $costCentersQuery->get()->keyBy('id');
         $fertilizers = \App\Models\Fertilizer::where('season_id', $season_id)
             ->where('team_id', $team_id)
             ->get()->keyBy('id');
@@ -98,8 +102,8 @@ trait BudgetTotalsTrait
         return $total;
     }
 
-    // Calcula el total global de mano de obra
-    public function getTotalManPower($season_id, $team_id)
+    // Calcula el total global de mano de obra (opcionalmente por fruta)
+    public function getTotalManPower($season_id, $team_id, $fruit_id = null)
     {
         $season = \App\Models\Season::select('month_id')->where('id', $season_id)->first();
         $currentMonth = $season ? $season->month_id : 1;
@@ -108,7 +112,11 @@ trait BudgetTotalsTrait
             $id = date('n', mktime(0, 0, 0, $x, 1));
             $months[] = $id;
         }
-        $costCenters = \App\Models\CostCenter::where('season_id', $season_id)->get()->keyBy('id');
+        $costCentersQuery = \App\Models\CostCenter::where('season_id', $season_id);
+        if ($fruit_id) {
+            $costCentersQuery->where('fruit_id', $fruit_id);
+        }
+        $costCenters = $costCentersQuery->get()->keyBy('id');
         $manpowers = \App\Models\ManPower::where('season_id', $season_id)
             ->where('team_id', $team_id)
             ->get()->keyBy('id');
@@ -133,8 +141,8 @@ trait BudgetTotalsTrait
         return $total;
     }
 
-    // Calcula el total global de agroquímicos
-    public function getTotalAgrochemical($season_id, $team_id)
+    // Calcula el total global de agroquímicos (opcionalmente por fruta)
+    public function getTotalAgrochemical($season_id, $team_id, $fruit_id = null)
     {
         $season = \App\Models\Season::select('month_id')->where('id', $season_id)->first();
         $currentMonth = $season ? $season->month_id : 1;
@@ -143,7 +151,11 @@ trait BudgetTotalsTrait
             $id = date('n', mktime(0, 0, 0, $x, 1));
             $months[] = $id;
         }
-        $costCenters = \App\Models\CostCenter::where('season_id', $season_id)->get()->keyBy('id');
+        $costCentersQuery = \App\Models\CostCenter::where('season_id', $season_id);
+        if ($fruit_id) {
+            $costCentersQuery->where('fruit_id', $fruit_id);
+        }
+        $costCenters = $costCentersQuery->get()->keyBy('id');
         $agrochemicals = \App\Models\Agrochemical::where('season_id', $season_id)
             ->where('team_id', $team_id)
             ->get()->keyBy('id');
@@ -175,8 +187,8 @@ trait BudgetTotalsTrait
         return $total;
     }
 
-    // Calcula el total global de insumos
-    public function getTotalSupplies($season_id, $team_id)
+    // Calcula el total global de insumos (opcionalmente por fruta)
+    public function getTotalSupplies($season_id, $team_id, $fruit_id = null)
     {
         $season = \App\Models\Season::select('month_id')->where('id', $season_id)->first();
         $currentMonth = $season ? $season->month_id : 1;
@@ -185,7 +197,11 @@ trait BudgetTotalsTrait
             $id = date('n', mktime(0, 0, 0, $x, 1));
             $months[] = $id;
         }
-        $costCenters = \App\Models\CostCenter::where('season_id', $season_id)->get()->keyBy('id');
+        $costCentersQuery = \App\Models\CostCenter::where('season_id', $season_id);
+        if ($fruit_id) {
+            $costCentersQuery->where('fruit_id', $fruit_id);
+        }
+        $costCenters = $costCentersQuery->get()->keyBy('id');
         $supplies = \App\Models\Supply::where('season_id', $season_id)
             ->where('team_id', $team_id)
             ->get()->keyBy('id');
@@ -211,8 +227,8 @@ trait BudgetTotalsTrait
         return $total;
     }
 
-    // Calcula el total global de servicios
-    public function getTotalServices($season_id, $team_id)
+    // Calcula el total global de servicios (opcionalmente por fruta)
+    public function getTotalServices($season_id, $team_id, $fruit_id = null)
     {
         $season = \App\Models\Season::select('month_id')->where('id', $season_id)->first();
         $currentMonth = $season ? $season->month_id : 1;
@@ -221,7 +237,11 @@ trait BudgetTotalsTrait
             $id = date('n', mktime(0, 0, 0, $x, 1));
             $months[] = $id;
         }
-        $costCenters = \App\Models\CostCenter::where('season_id', $season_id)->get()->keyBy('id');
+        $costCentersQuery = \App\Models\CostCenter::where('season_id', $season_id);
+        if ($fruit_id) {
+            $costCentersQuery->where('fruit_id', $fruit_id);
+        }
+        $costCenters = $costCentersQuery->get()->keyBy('id');
         $services = \App\Models\Service::where('season_id', $season_id)
             ->where('team_id', $team_id)
             ->get()->keyBy('id');
@@ -247,8 +267,8 @@ trait BudgetTotalsTrait
         return $total;
     }
 
-    // Calcula el total global de cosechas
-    public function getTotalHarvest($season_id, $team_id)
+    // Calcula el total global de cosechas (opcionalmente por fruta)
+    public function getTotalHarvest($season_id, $team_id, $fruit_id = null)
     {
         $season = \App\Models\Season::select('month_id')->where('id', $season_id)->first();
         $currentMonth = $season ? $season->month_id : 1;
@@ -257,7 +277,11 @@ trait BudgetTotalsTrait
             $id = date('n', mktime(0, 0, 0, $x, 1));
             $months[] = $id;
         }
-        $costCenters = \App\Models\CostCenter::where('season_id', $season_id)->get()->keyBy('id');
+        $costCentersQuery = \App\Models\CostCenter::where('season_id', $season_id);
+        if ($fruit_id) {
+            $costCentersQuery->where('fruit_id', $fruit_id);
+        }
+        $costCenters = $costCentersQuery->get()->keyBy('id');
         $harvests = \App\Models\Harvest::where('season_id', $season_id)
             ->where('team_id', $team_id)
             ->get()->keyBy('id');

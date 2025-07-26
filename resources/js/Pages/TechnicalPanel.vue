@@ -69,25 +69,72 @@ const totalFieldsCalc = computed(() => {
 
 
 
-// Unir y agrupar ambas tablas por Level1 y Level2
-function groupAllTotalsByLevel1() {
-  const allRows = [
-    ...(props.administrationTotalsByLevel12?.map(r => ({...r, key: 'adm-' + r.level1_id + '-' + r.level2_id, source: 'Administración'})) || []),
-    ...(props.fieldTotalsByLevel12?.map(r => ({...r, key: 'field-' + r.level1_id + '-' + r.level2_id, source: 'Campo'})) || []),
-    ...(props.totalsByLevel12?.map(r => ({...r, key: 'total-' + r.level1_id + '-' + r.level2_id, source: 'General'})) || [])
-  ];
+// Agrupar por Level1 y Level2, y mapear subtotales por fruta, sumando administración/campo repartido
+function groupTotalsByLevelAndFruit() {
+  // Obtener especies (fruits) presentes
+  const fruits = props.totalsByLevel12?.reduce((acc, r) => {
+    if (r.fruit_id && r.fruit_name) acc[r.fruit_id] = r.fruit_name;
+    return acc;
+  }, {}) || {};
+  // Si no hay especies, no hacer nada especial
+  const fruitIds = Object.keys(fruits);
+  const nFruits = fruitIds.length;
+  // Agrupar totales generales por level1/level2/fruta
   const groups = {};
-  allRows.forEach(row => {
-    if (!groups[row.level1_id]) {
-      groups[row.level1_id] = {
+  (props.totalsByLevel12 || []).forEach(row => {
+    const key = row.level1_id + '-' + row.level2_id;
+    if (!groups[key]) {
+      groups[key] = {
         level1_id: row.level1_id,
         level1_name: row.level1_name,
-        rows: []
+        level2_id: row.level2_id,
+        level2_name: row.level2_name,
+        fruits: {}
       };
     }
-    groups[row.level1_id].rows.push(row);
+    if (row.fruit_id) {
+      groups[key].fruits[row.fruit_id] = row.total_amount;
+    }
   });
-  return Object.values(groups);
+
+  // Agregar administración y campo repartido
+  // Administración
+  (props.administrationTotalsByLevel12 || []).forEach(row => {
+    const key = row.level1_id + '-' + row.level2_id;
+    if (!groups[key]) {
+      groups[key] = {
+        level1_id: row.level1_id,
+        level1_name: row.level1_name,
+        level2_id: row.level2_id,
+        level2_name: row.level2_name,
+        fruits: {}
+      };
+    }
+    if (nFruits > 0) {
+      fruitIds.forEach(fruitId => {
+        groups[key].fruits[fruitId] = (groups[key].fruits[fruitId] || 0) + (Number(row.total_amount) / nFruits);
+      });
+    }
+  });
+  // Campo
+  (props.fieldTotalsByLevel12 || []).forEach(row => {
+    const key = row.level1_id + '-' + row.level2_id;
+    if (!groups[key]) {
+      groups[key] = {
+        level1_id: row.level1_id,
+        level1_name: row.level1_name,
+        level2_id: row.level2_id,
+        level2_name: row.level2_name,
+        fruits: {}
+      };
+    }
+    if (nFruits > 0) {
+      fruitIds.forEach(fruitId => {
+        groups[key].fruits[fruitId] = (groups[key].fruits[fruitId] || 0) + (Number(row.total_amount) / nFruits);
+      });
+    }
+  });
+  return { groups: Object.values(groups), fruits };
 }
 
 
@@ -318,22 +365,30 @@ onMounted(() => {
                     <tr>
                       <th class="text-uppercase text-secondary small fw-bold small">Level 1</th>
                       <th class="text-uppercase text-secondary small fw-bold small">Level 2</th>
-                      <th class="text-uppercase text-secondary small text-end fw-bold small">Monto Total</th>
+                      <th v-for="(fruitName, fruitId) in groupTotalsByLevelAndFruit().fruits" :key="'fruit-col-' + fruitId" class="text-end text-uppercase text-secondary small fw-bold small">{{ fruitName }}</th>
+                      <th class="text-end text-uppercase text-secondary small fw-bold small text-primary">Total</th>
                     </tr>
                   </thead>
                   <tbody>
-                    <template v-for="(group, l1idx) in groupAllTotalsByLevel1()" :key="'all-l1-' + group.level1_id">
-                      <template v-for="(row, idx) in group.rows" :key="row.key">
-                        <tr>
-                          <td v-if="idx === 0" :rowspan="group.rows.length + 1" style="vertical-align:top" class="small">{{ group.level1_name }}</td>
-                          <td class="small">{{ row.level2_name }}</td>
-                          <td class="text-end small">{{ Number(row.total_amount).toLocaleString('es-CL', { maximumFractionDigits: 0 }) }}</td>
-                        </tr>
-                      </template>
-                      <tr class="table-secondary">
-                        <td class="small">Subtotal {{ group.level1_name }}</td>
-                        <td class="text-end small" colspan="2">
-                          {{ group.rows.reduce((sum, r) => sum + Number(r.total_amount), 0).toLocaleString('es-CL', { maximumFractionDigits: 0 }) }}
+                    <template v-for="(group, idx) in groupTotalsByLevelAndFruit().groups" :key="'row-' + group.level1_id + '-' + group.level2_id">
+                      <tr>
+                        <td class="small">{{ group.level1_name }}</td>
+                        <td class="small">{{ group.level2_name }}</td>
+                        <td v-for="(fruitName, fruitId) in groupTotalsByLevelAndFruit().fruits" :key="'cell-' + group.level1_id + '-' + group.level2_id + '-' + fruitId" class="text-end small">
+                          {{ Number(group.fruits[fruitId] || 0).toLocaleString('es-CL', { maximumFractionDigits: 0 }) }}
+                        </td>
+                        <td class="text-end text-primary fw-bold small">
+                          {{ Object.keys(group.fruits).reduce((sum, fruitId) => sum + Number(group.fruits[fruitId] || 0), 0).toLocaleString('es-CL', { maximumFractionDigits: 0 }) }}
+                        </td>
+                      </tr>
+                      <!-- Subtotal por Level 1 -->
+                      <tr v-if="idx === groupTotalsByLevelAndFruit().groups.length - 1 || group.level1_id !== groupTotalsByLevelAndFruit().groups[idx + 1].level1_id" class="table-secondary fw-bold small">
+                        <td colspan="2" class="text-end">Subtotal {{ group.level1_name }}</td>
+                        <td v-for="(fruitName, fruitId) in groupTotalsByLevelAndFruit().fruits" :key="'subtotal-' + group.level1_id + '-' + fruitId" class="text-end">
+                          {{ groupTotalsByLevelAndFruit().groups.filter(g => g.level1_id === group.level1_id).reduce((sum, g) => sum + Number(g.fruits[fruitId] || 0), 0).toLocaleString('es-CL', { maximumFractionDigits: 0 }) }}
+                        </td>
+                        <td class="text-end text-primary">
+                          {{ groupTotalsByLevelAndFruit().groups.filter(g => g.level1_id === group.level1_id).reduce((sum, g) => sum + Object.keys(g.fruits).reduce((s, fruitId) => s + Number(g.fruits[fruitId] || 0), 0), 0).toLocaleString('es-CL', { maximumFractionDigits: 0 }) }}
                         </td>
                       </tr>
                     </template>
@@ -341,8 +396,11 @@ onMounted(() => {
                   <tfoot>
                     <tr style="background-color: #555858; font-weight: bold;">
                       <td colspan="2" class="fw-bold text-end small text-white">Total General</td>
+                      <td v-for="(fruitName, fruitId) in groupTotalsByLevelAndFruit().fruits" :key="'total-' + fruitId" class="fw-bold text-end small text-white">
+                        {{ groupTotalsByLevelAndFruit().groups.reduce((sum, group) => sum + Number(group.fruits[fruitId] || 0), 0).toLocaleString('es-CL', { maximumFractionDigits: 0 }) }}
+                      </td>
                       <td class="fw-bold text-end small text-white">
-                        {{ groupAllTotalsByLevel1().reduce((grand, group) => grand + group.rows.reduce((sum, r) => sum + Number(r.total_amount), 0), 0).toLocaleString('es-CL', { maximumFractionDigits: 0 }) }}
+                        {{ groupTotalsByLevelAndFruit().groups.reduce((sum, group) => sum + Object.keys(group.fruits).reduce((s, fruitId) => s + Number(group.fruits[fruitId] || 0), 0), 0).toLocaleString('es-CL', { maximumFractionDigits: 0 }) }}
                       </td>
                     </tr>
                   </tfoot>
