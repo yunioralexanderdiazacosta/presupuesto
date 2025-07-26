@@ -183,29 +183,28 @@ const selectAllMonths = (index) => {
         </div>
 
         <div class="row">
-            <div class="col-lg-8">
-                <div class="fv-row">
-                    <label for="months" class="col-form-label">Meses</label>
+            <div class="col-lg-6">
+                <div class="row align-items-start">
+                        <div class="d-flex align-items-center mb-1">
+                    <label for="months" class="col-form-label mb-1">Meses</label>
                     <button
                         type="button"
                         class="btn btn-outline-primary btn-sm ms-2"
-                        :class="{
-                            'btn-success':
-                                product.months &&
-                                product.months.length ===
-                                    page.props.months.length,
-                        }"
-                        @click="selectAllMonths(index)"
+                         @click="selectAllMonths(index, $page.props.months)"
                     >
                         <i class="fas fa-tasks me-1"></i>
                         {{
                             product.months &&
-                            product.months.length === page.props.months.length
+                            product.months.length === page.props.months.length &&
+                              $page.props.months.every((m) => product.months.includes(m.value))
                                 ? "Quitar todos"
                                 : "todos"
-                        }}</button
-                    ><br />
-                    <template v-for="value in $page.props.months">
+                        }}
+                        </button>
+                        </div>
+
+                     <div class="d-flex flex-wrap gap-1">
+                        <template v-for="value in $page.props.months">
                         <div
                             style="margin-right: 0.5rem"
                             class="form-check form-check-solid form-check-inline mb-1"
@@ -224,8 +223,9 @@ const selectAllMonths = (index) => {
                             >
                         </div>
                     </template>
+                    </div>
                     <small
-                        class="text-danger"
+                        class="text-danger  ms-2 align-self-start"
                         v-if="form.errors['products.' + index + '.months']"
                         ><br />{{
                             form.errors["products." + index + ".months"]
@@ -240,8 +240,8 @@ const selectAllMonths = (index) => {
                     >
                     <textarea
                         v-model="product.observations"
-                        rows="3"
-                        class="form-control form-control-lg form-control-solid mb-3 mb-lg-0"
+                        rows="5"
+                        class="form-control mb-3 mb-lg-0"
                         :class="{ 'is-invalid': form.errors.observations }"
                     ></textarea>
                     <InputError
@@ -250,7 +250,7 @@ const selectAllMonths = (index) => {
                     />
                 </div>
             </div>
-        </div>
+          </div>
 
         <div class="row">
             <div class="col-lg-12 text-end">
@@ -272,6 +272,11 @@ const selectAllMonths = (index) => {
                 </button>
             </div>
         </div>
+
+
+
+
+
     </template>
 </template>
 <!-- <style src="@vueform/multiselect/themes/default.css"></style>-->

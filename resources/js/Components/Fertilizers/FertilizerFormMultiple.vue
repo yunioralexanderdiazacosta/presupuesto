@@ -349,9 +349,10 @@ watch(
                     />
                 </div>
             </div>
+
+
             <div class="col-lg-6">
                 <div class="row align-items-start">
-                    
                         <div class="d-flex align-items-center mb-1">
                             <label for="months" class="col-form-label mb-1">Meses</label>
                             <button
@@ -399,6 +400,10 @@ watch(
                     
                 </div>
             </div>
+
+
+
+            
             <div class="col-lg-3 align-self-start ps-0">
                 <label for="observations" class="col-form-label">Observaciones</label>
                 <textarea
