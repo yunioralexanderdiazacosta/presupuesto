@@ -214,24 +214,25 @@ class TechnicalPanelController extends Controller
         $totalAdministration = $this->getAdministrationTotalsByLevel12($user->team_id)->sum('total_amount');
         $totalFields = $this->getFieldTotalsByLevel12($user->team_id)->sum('total_amount');
         $totalSeason = number_format(($this->totalAgrochemical + $this->totalFertilizer + $this->totalManPower + $this->totalServices + $this->totalSupplies + $totalAdministration + $totalFields), 0, ',', '.');
-        $totalAgrochemical = number_format($this->totalAgrochemical, 0, ',', '.');
-        $totalFertilizer = number_format($this->totalFertilizer, 0, ',', '.');
-        $totalManPower = number_format($this->totalManPower, 0, ',', '.');
-        $totalServices = number_format($this->totalServices, 0, ',', '.');
-        $totalSupplies = number_format($this->totalSupplies, 0, ',', '.');
-        $totalHarvests = number_format($this->totalHarvests, 0, ',', '.');
+        // Enviar los totales como números puros para el frontend (para Totales Mensuales)
+        $totalAgrochemical = $this->totalAgrochemical;
+        $totalFertilizer = $this->totalFertilizer;
+        $totalManPower = $this->totalManPower;
+        $totalServices = $this->totalServices;
+        $totalSupplies = $this->totalSupplies;
+        $totalHarvests = $this->totalHarvests;
 
         // NUEVO: Calcular y formatear los meses de administración y fields
         $monthsAdministrationRaw = $this->getMonthsAdministration($user->team_id);
         $monthsFieldsRaw = $this->getMonthsFields($user->team_id);
         $monthsAdministration = [];
         foreach($monthsAdministrationRaw as $key => $value){
-            $monthsAdministration[$key] = number_format($value, 0, ',', '.');
+            $monthsAdministration[$key] = (float)$value;
         }
         $monthsFields = [];
 
         foreach($monthsFieldsRaw as $key => $value){
-            $monthsFields[$key] = number_format($value, 0, ',', '.');
+            $monthsFields[$key] = (float)$value;
         }
 
         // Asegurar que monthsAdministration y monthsFields tengan SIEMPRE los 12 meses (1-12) como claves
@@ -239,36 +240,78 @@ class TechnicalPanelController extends Controller
         $allMonthsFields = [];
         for ($i = 1; $i <= 12; $i++) {
             $key = (string)$i;
-            $allMonthsAdministration[$key] = isset($monthsAdministration[$key]) ? $monthsAdministration[$key] : '0';
-            $allMonthsFields[$key] = isset($monthsFields[$key]) ? $monthsFields[$key] : '0';
+            $allMonthsAdministration[$key] = isset($monthsAdministration[$key]) ? $monthsAdministration[$key] : 0;
+            $allMonthsFields[$key] = isset($monthsFields[$key]) ? $monthsFields[$key] : 0;
         }
         $monthsAdministration = $allMonthsAdministration;
         $monthsFields = $allMonthsFields;
 
+        // Normalizar todos los arrays de meses para que tengan SIEMPRE los 12 meses (1-12) como claves
         $monthsAgrochemical = [];
         foreach($this->monthsAgrochemical as $key => $value){
-            $monthsAgrochemical[$key] = number_format($value, 0, ',','.');
+            $monthsAgrochemical[$key] = (float)$value;
         }
+        $allMonthsAgrochemical = [];
+        for ($i = 1; $i <= 12; $i++) {
+            $key = (string)$i;
+            $allMonthsAgrochemical[$key] = isset($monthsAgrochemical[$key]) ? $monthsAgrochemical[$key] : 0;
+        }
+        $monthsAgrochemical = $allMonthsAgrochemical;
+
         $monthsFertilizer = [];
         foreach($this->monthsFertilizer as $key => $value){
-            $monthsFertilizer[$key] = number_format($value, 0, ',','.');
+            $monthsFertilizer[$key] = (float)$value;
         }
+        $allMonthsFertilizer = [];
+        for ($i = 1; $i <= 12; $i++) {
+            $key = (string)$i;
+            $allMonthsFertilizer[$key] = isset($monthsFertilizer[$key]) ? $monthsFertilizer[$key] : 0;
+        }
+        $monthsFertilizer = $allMonthsFertilizer;
+
         $monthsManPower = [];
         foreach($this->monthsManPower as $key => $value){
-            $monthsManPower[$key] = number_format($value, 0, ',','.');
+            $monthsManPower[$key] = (float)$value;
         }
+        $allMonthsManPower = [];
+        for ($i = 1; $i <= 12; $i++) {
+            $key = (string)$i;
+            $allMonthsManPower[$key] = isset($monthsManPower[$key]) ? $monthsManPower[$key] : 0;
+        }
+        $monthsManPower = $allMonthsManPower;
+
         $monthsServices = [];
         foreach($this->monthsServices as $key => $value){
-            $monthsServices[$key] = number_format($value, 0, ',','.');
+            $monthsServices[$key] = (float)$value;
         }
+        $allMonthsServices = [];
+        for ($i = 1; $i <= 12; $i++) {
+            $key = (string)$i;
+            $allMonthsServices[$key] = isset($monthsServices[$key]) ? $monthsServices[$key] : 0;
+        }
+        $monthsServices = $allMonthsServices;
+
         $monthsSupplies = [];
         foreach($this->monthsSupplies as $key => $value){
-            $monthsSupplies[$key] = number_format($value, 0, ',','.');
+            $monthsSupplies[$key] = (float)$value;
         }
+        $allMonthsSupplies = [];
+        for ($i = 1; $i <= 12; $i++) {
+            $key = (string)$i;
+            $allMonthsSupplies[$key] = isset($monthsSupplies[$key]) ? $monthsSupplies[$key] : 0;
+        }
+        $monthsSupplies = $allMonthsSupplies;
+
         $monthsHarvests = [];
         foreach($this->monthsHarvests as $key => $value){
-            $monthsHarvests[$key] = number_format($value, 0, ',','.');
+            $monthsHarvests[$key] = (float)$value;
         }
+        $allMonthsHarvests = [];
+        for ($i = 1; $i <= 12; $i++) {
+            $key = (string)$i;
+            $allMonthsHarvests[$key] = isset($monthsHarvests[$key]) ? $monthsHarvests[$key] : 0;
+        }
+        $monthsHarvests = $allMonthsHarvests;
         // Weather integration
         $city = $request->input('city') ?? $request->input('weatherCity') ?? 'Curico, Chile'; // Usa la ciudad enviada por el frontend o la default
         $weather = $weatherService->getCurrentWeather($city);
@@ -941,6 +984,7 @@ private function getHarvestsProducts($costCentersId)
             ->whereIn('h.id', $items->pluck('harvest_id')->unique())
             ->get();
 
+     
         // Traer superficies de los cost centers de una vez
         $surfaces = \App\Models\CostCenter::whereIn('id', $costCentersId)->pluck('surface', 'id');
 
@@ -954,6 +998,7 @@ private function getHarvestsProducts($costCentersId)
         foreach ($products as $value) {
             $this->getHarvestsResultOptimized($value, $costCentersId, $months, $itemIndex, $surfaces);
         }
+      
         return $products;
     }
 
@@ -981,6 +1026,7 @@ private function getHarvestsProducts($costCentersId)
             }
         }
         $this->totalHarvests += $totalAmount;
+        \Log::info('totalHarvests parcial en getHarvestsResultOptimized:', ['totalAmount' => $totalAmount, 'totalHarvests' => $this->totalHarvests, 'producto_id' => $value->id]);
     }
 
 

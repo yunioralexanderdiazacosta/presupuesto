@@ -39,12 +39,12 @@ const props = defineProps({
     monthsSupplies: Object,
     monthsAdministration: Object,
   monthsFields: Object,
-    totalAgrochemical: Number,
-    totalFertilizer: Number,
-    totalManPower: Number,
-    totalSupplies: Number,
-    totalServices: Number,
-    totalharvests: Number,
+  totalAgrochemical: Number,
+  totalFertilizer: Number,
+  totalManPower: Number,
+  totalSupplies: Number,
+  totalServices: Number,
+  totalHarvests: Number,
   agrochemicalByDevState: Object,
   fertilizerByDevState: Object,
   manPowerByDevState: Object,
@@ -349,34 +349,48 @@ onMounted(() => {
                           {{ $props.fruitsMap?.[String(fruitId)] || 'Sin especie' }}
                         </td>
                         <td class="text-start fw-semibold small">{{ devStates[devStateId]?.name || 'Sin estado' }}</td>
-                        <td class="text-center text-small text-warning fw-bold small">{{ Number(amount || 0).toLocaleString('es-CL', { maximumFractionDigits: 0 }) }}</td>
-                        <td class="text-center text-warning fw-bold small">{{ Number(fertilizerExpensePerHectare?.[fruitId]?.[devStateId] ?? 0).toLocaleString('es-CL', { maximumFractionDigits: 0 }) }}</td>
-                        <td class="text-center text-warning fw-bold small">{{ Number(manPowerExpensePerHectare?.[String(fruitId)]?.[String(devStateId)] ?? 0).toLocaleString('es-CL', { maximumFractionDigits: 0 }) }}</td>
-                        <td class="text-center text-warning fw-bold small">{{ Number(servicesExpensePerHectare?.[String(fruitId)]?.[String(devStateId)] ?? 0).toLocaleString('es-CL', { maximumFractionDigits: 0 }) }}</td>
-                        <td class="text-center text-warning fw-bold small">{{ Number(suppliesExpensePerHectare?.[String(fruitId)]?.[String(devStateId)] ?? 0).toLocaleString('es-CL', { maximumFractionDigits: 0 }) }}</td>
-                        <td class="text-center text-warning fw-bold small">{{ Number(harvestsExpensePerHectare?.[String(fruitId)]?.[String(devStateId)] ?? 0).toLocaleString('es-CL', { maximumFractionDigits: 0 }) }}</td>
+                        <td class="text-center text-small text-warning fw-bold small">{{ formatNumber(dividir && divisor ? (Number(amount || 0) / divisor) : Number(amount || 0)) }}</td>
+                        <td class="text-center text-small text-warning fw-bold small">{{ formatNumber(dividir && divisor ? (Number(agrochemicalExpensePerHectare?.[String(fruitId)]?.[String(devStateId)] ?? 0) / divisor) : Number(agrochemicalExpensePerHectare?.[String(fruitId)]?.[String(devStateId)] ?? 0)) }}</td>
+                        <td class="text-center text-small text-warning fw-bold small">{{ formatNumber(dividir && divisor ? (Number(fertilizerExpensePerHectare?.[String(fruitId)]?.[String(devStateId)] ?? 0) / divisor) : Number(fertilizerExpensePerHectare?.[String(fruitId)]?.[String(devStateId)] ?? 0)) }}</td>
+                        <td class="text-center text-small text-warning fw-bold small">{{ formatNumber(dividir && divisor ? (Number(manPowerExpensePerHectare?.[String(fruitId)]?.[String(devStateId)] ?? 0) / divisor) : Number(manPowerExpensePerHectare?.[String(fruitId)]?.[String(devStateId)] ?? 0)) }}</td>
+                        <td class="text-center text-small text-warning fw-bold small">{{ formatNumber(dividir && divisor ? (Number(servicesExpensePerHectare?.[String(fruitId)]?.[String(devStateId)] ?? 0) / divisor) : Number(servicesExpensePerHectare?.[String(fruitId)]?.[String(devStateId)] ?? 0)) }}</td>
+                        <td class="text-center text-small text-warning fw-bold small">{{ formatNumber(dividir && divisor ? (Number(suppliesExpensePerHectare?.[String(fruitId)]?.[String(devStateId)] ?? 0) / divisor) : Number(suppliesExpensePerHectare?.[String(fruitId)]?.[String(devStateId)] ?? 0)) }}</td>
+                        <td class="text-center text-small text-warning fw-bold small">{{ formatNumber(dividir && divisor ? (Number(harvestsExpensePerHectare?.[String(fruitId)]?.[String(devStateId)] ?? 0) / divisor) : Number(harvestsExpensePerHectare?.[String(fruitId)]?.[String(devStateId)] ?? 0)) }}</td>
                         <td class="text-center text-warning fw-bold small">
                           {{
-                            (totalFieldsCalc / (totalSurface || 1)).toLocaleString('es-CL', { maximumFractionDigits: 0 })
+                            formatNumber(dividir && divisor ? ((totalFieldsCalc / (totalSurface || 1)) / divisor) : (totalFieldsCalc / (totalSurface || 1)))
                           }}
                         </td>
                         <td class="text-center text-warning fw-bold small">
                           {{
-                            (totalAdministrationCalc / (totalSurface || 1)).toLocaleString('es-CL', { maximumFractionDigits: 0 })
+                            formatNumber(dividir && divisor ? ((totalAdministrationCalc / (totalSurface || 1)) / divisor) : (totalAdministrationCalc / (totalSurface || 1)))
                           }}
                         </td>
                         <td class="text-center text-black fw-bold small">
                           {{
-                            (
-                              Number(amount || 0) +
-                              Number(fertilizerExpensePerHectare?.[fruitId]?.[devStateId] ?? 0) +
-                              Number(manPowerExpensePerHectare?.[String(fruitId)]?.[String(devStateId)] ?? 0) +
-                              Number(servicesExpensePerHectare?.[String(fruitId)]?.[String(devStateId)] ?? 0) +
-                              Number(suppliesExpensePerHectare?.[String(fruitId)]?.[String(devStateId)] ?? 0) +
-                              Number(harvestsExpensePerHectare?.[String(fruitId)]?.[String(devStateId)] ?? 0) +
-                              (totalFieldsCalc / (totalSurface || 1)) +
-                              (totalAdministrationCalc / (totalSurface || 1))
-                            ).toLocaleString('es-CL', { maximumFractionDigits: 0 })
+                            formatNumber(dividir && divisor
+                              ? (
+                                  (Number(amount || 0) +
+                                  Number(fertilizerExpensePerHectare?.[fruitId]?.[devStateId] ?? 0) +
+                                  Number(manPowerExpensePerHectare?.[String(fruitId)]?.[String(devStateId)] ?? 0) +
+                                  Number(servicesExpensePerHectare?.[String(fruitId)]?.[String(devStateId)] ?? 0) +
+                                  Number(suppliesExpensePerHectare?.[String(fruitId)]?.[String(devStateId)] ?? 0) +
+                                  Number(harvestsExpensePerHectare?.[String(fruitId)]?.[String(devStateId)] ?? 0) +
+                                  (totalFieldsCalc / (totalSurface || 1)) +
+                                  (totalAdministrationCalc / (totalSurface || 1))
+                                  ) / divisor
+                                )
+                              : (
+                                  Number(amount || 0) +
+                                  Number(fertilizerExpensePerHectare?.[fruitId]?.[devStateId] ?? 0) +
+                                  Number(manPowerExpensePerHectare?.[String(fruitId)]?.[String(devStateId)] ?? 0) +
+                                  Number(servicesExpensePerHectare?.[String(fruitId)]?.[String(devStateId)] ?? 0) +
+                                  Number(suppliesExpensePerHectare?.[String(fruitId)]?.[String(devStateId)] ?? 0) +
+                                  Number(harvestsExpensePerHectare?.[String(fruitId)]?.[String(devStateId)] ?? 0) +
+                                  (totalFieldsCalc / (totalSurface || 1)) +
+                                  (totalAdministrationCalc / (totalSurface || 1))
+                                )
+                            )
                           }}</td>
                       </tr>
                     </template>
@@ -424,20 +438,20 @@ onMounted(() => {
                         </td>
                         <td class="small">{{ group.level2_name }}</td>
                         <td v-for="(fruitName, fruitId) in groupTotalsByLevelAndFruit().fruits" :key="'cell-' + group.level1_id + '-' + group.level2_id + '-' + fruitId" class="text-end small">
-                          {{ Number(group.fruits[fruitId] || 0).toLocaleString('es-CL', { maximumFractionDigits: 0 }) }}
+                          {{ formatNumber(dividir && divisor ? (Number(group.fruits[fruitId] || 0) / divisor) : Number(group.fruits[fruitId] || 0)) }}
                         </td>
                         <td class="text-end text-primary fw-bold small">
-                          {{ Object.keys(group.fruits).reduce((sum, fruitId) => sum + Number(group.fruits[fruitId] || 0), 0).toLocaleString('es-CL', { maximumFractionDigits: 0 }) }}
+                          {{ formatNumber(dividir && divisor ? (Object.keys(group.fruits).reduce((sum, fruitId) => sum + Number(group.fruits[fruitId] || 0), 0) / divisor) : Object.keys(group.fruits).reduce((sum, fruitId) => sum + Number(group.fruits[fruitId] || 0), 0)) }}
                         </td>
                       </tr>
                       <!-- Subtotal por Level 1 -->
                       <tr v-if="idx === groupTotalsByLevelAndFruit().groups.length - 1 || group.level1_id !== groupTotalsByLevelAndFruit().groups[idx + 1].level1_id" class="table-secondary fw-bold small">
                         <td class="text-end" colspan="2">Subtotal {{ group.level1_name }}</td>
                         <td v-for="(fruitName, fruitId) in groupTotalsByLevelAndFruit().fruits" :key="'subtotal-' + group.level1_id + '-' + fruitId" class="text-end">
-                          {{ groupTotalsByLevelAndFruit().groups.filter(g => g.level1_id === group.level1_id).reduce((sum, g) => sum + Number(g.fruits[fruitId] || 0), 0).toLocaleString('es-CL', { maximumFractionDigits: 0 }) }}
+                          {{ formatNumber(dividir && divisor ? (groupTotalsByLevelAndFruit().groups.filter(g => g.level1_id === group.level1_id).reduce((sum, g) => sum + Number(g.fruits[fruitId] || 0), 0) / divisor) : groupTotalsByLevelAndFruit().groups.filter(g => g.level1_id === group.level1_id).reduce((sum, g) => sum + Number(g.fruits[fruitId] || 0), 0)) }}
                         </td>
                         <td class="text-end text-primary">
-                          {{ groupTotalsByLevelAndFruit().groups.filter(g => g.level1_id === group.level1_id).reduce((sum, g) => sum + Object.keys(g.fruits).reduce((s, fruitId) => s + Number(g.fruits[fruitId] || 0), 0), 0).toLocaleString('es-CL', { maximumFractionDigits: 0 }) }}
+                          {{ formatNumber(dividir && divisor ? (groupTotalsByLevelAndFruit().groups.filter(g => g.level1_id === group.level1_id).reduce((sum, g) => sum + Object.keys(g.fruits).reduce((s, fruitId) => s + Number(g.fruits[fruitId] || 0), 0), 0) / divisor) : groupTotalsByLevelAndFruit().groups.filter(g => g.level1_id === group.level1_id).reduce((sum, g) => sum + Object.keys(g.fruits).reduce((s, fruitId) => s + Number(g.fruits[fruitId] || 0), 0), 0)) }}
                         </td>
                       </tr>
                     </template>
@@ -446,10 +460,10 @@ onMounted(() => {
                     <tr style="background-color: #555858; font-weight: bold;">
                       <td class="fw-bold text-end small text-white" colspan="2">Total General</td>
                       <td v-for="(fruitName, fruitId) in groupTotalsByLevelAndFruit().fruits" :key="'total-' + fruitId" class="fw-bold text-end small text-white">
-                        {{ groupTotalsByLevelAndFruit().groups.reduce((sum, group) => sum + Number(group.fruits[fruitId] || 0), 0).toLocaleString('es-CL', { maximumFractionDigits: 0 }) }}
+                        {{ formatNumber(dividir && divisor ? (groupTotalsByLevelAndFruit().groups.reduce((sum, group) => sum + Number(group.fruits[fruitId] || 0), 0) / divisor) : groupTotalsByLevelAndFruit().groups.reduce((sum, group) => sum + Number(group.fruits[fruitId] || 0), 0)) }}
                       </td>
                       <td class="fw-bold text-end small text-white">
-                        {{ groupTotalsByLevelAndFruit().groups.reduce((sum, group) => sum + Object.keys(group.fruits).reduce((s, fruitId) => s + Number(group.fruits[fruitId] || 0), 0), 0).toLocaleString('es-CL', { maximumFractionDigits: 0 }) }}
+                        {{ formatNumber(dividir && divisor ? (groupTotalsByLevelAndFruit().groups.reduce((sum, group) => sum + Object.keys(group.fruits).reduce((s, fruitId) => s + Number(group.fruits[fruitId] || 0), 0), 0) / divisor) : groupTotalsByLevelAndFruit().groups.reduce((sum, group) => sum + Object.keys(group.fruits).reduce((s, fruitId) => s + Number(group.fruits[fruitId] || 0), 0), 0)) }}
                       </td>
                     </tr>
                   </tfoot>
@@ -487,46 +501,74 @@ onMounted(() => {
                     <tr>
                       <td class="fw-semibold small">Administración</td>
                       <td class="text-end text-primary fw-bold small">
-                        {{ Object.values(monthsAdministration || {}).reduce((sum, v) => sum + Number((v+'').replace(/\./g, '')), 0).toLocaleString('es-CL', { maximumFractionDigits: 0 }) }}
+                        {{ formatNumber(dividir && divisor ? Object.values(monthsAdministration || {}).reduce((sum, v) => sum + (v || 0), 0) / divisor : Object.values(monthsAdministration || {}).reduce((sum, v) => sum + (v || 0), 0)) }}
                       </td>
-                      <td class="bg-opacity-5 table-primary text-end small" v-for="value in months">{{ (monthsAdministration && monthsAdministration[value.value]) ? monthsAdministration[value.value] : 0 }}</td>
+                      <td class="bg-opacity-5 table-primary text-end small" v-for="value in months">
+                        {{ formatNumber(dividir && divisor ? (monthsAdministration && monthsAdministration[value.value] ? monthsAdministration[value.value] / divisor : 0) : (monthsAdministration && monthsAdministration[value.value] ? monthsAdministration[value.value] : 0)) }}
+                      </td>
                     </tr>
                     <tr>
                       <td class="fw-semibold small">Gral Campo</td>
                       <td class="text-end text-primary fw-bold small">
-                        {{ Object.values(monthsFields || {}).reduce((sum, v) => sum + Number((v+'').replace(/\./g, '')), 0).toLocaleString('es-CL', { maximumFractionDigits: 0 }) }}
+                        {{ formatNumber(dividir && divisor ? Object.values(monthsFields || {}).reduce((sum, v) => sum + (v || 0), 0) / divisor : Object.values(monthsFields || {}).reduce((sum, v) => sum + (v || 0), 0)) }}
                       </td>
-                      <td class="bg-opacity-5 table-primary text-end small" v-for="value in months">{{ (monthsFields && monthsFields[value.value]) ? monthsFields[value.value] : 0 }}</td>
+                      <td class="bg-opacity-5 table-primary text-end small" v-for="value in months">
+                        {{ formatNumber(dividir && divisor ? (monthsFields && monthsFields[value.value] ? monthsFields[value.value] / divisor : 0) : (monthsFields && monthsFields[value.value] ? monthsFields[value.value] : 0)) }}
+                      </td>
                     </tr>
                     <tr>
                       <td class="fw-semibold small">Agroquimicos</td>
-                      <td class="text-end text-primary fw-bold small">{{totalAgrochemical}}</td>
-                      <td class="bg-opacity-5 table-primary text-end small" v-for="value in months">{{monthsAgrochemical[value.value]}}</td>
+                      <td class="text-end text-primary fw-bold small">
+                        {{ formatNumber(dividir && divisor ? (Number(totalAgrochemical) / divisor) : Number(totalAgrochemical)) }}
+                      </td>
+                      <td class="bg-opacity-5 table-primary text-end small" v-for="value in months">
+                        {{ formatNumber(dividir && divisor ? (monthsAgrochemical && monthsAgrochemical[value.value] ? monthsAgrochemical[value.value] / divisor : 0) : (monthsAgrochemical && monthsAgrochemical[value.value] ? monthsAgrochemical[value.value] : 0)) }}
+                      </td>
                     </tr>
                     <tr>
                       <td class="fw-semibold small">Fertilizantes</td>
-                      <td class="text-end text-primary fw-bold small">{{totalFertilizer}}</td>
-                      <td class="bg-opacity-5 table-primary text-end small" v-for="value in months">{{monthsFertilizer[value.value]}}</td>
+                      <td class="text-end text-primary fw-bold small">
+                        {{ formatNumber(dividir && divisor ? (Number(totalFertilizer) / divisor) : Number(totalFertilizer)) }}
+                      </td>
+                      <td class="bg-opacity-5 table-primary text-end small" v-for="value in months">
+                        {{ formatNumber(dividir && divisor ? (monthsFertilizer && monthsFertilizer[value.value] ? monthsFertilizer[value.value] / divisor : 0) : (monthsFertilizer && monthsFertilizer[value.value] ? monthsFertilizer[value.value] : 0)) }}
+                      </td>
                     </tr>
                     <tr>
                       <td class="fw-semibold small">Mano de obra</td>
-                      <td class="text-end text-primary fw-bold small">{{totalManPower}}</td>
-                      <td class="bg-opacity-5 table-primary text-end small" v-for="value in months">{{monthsManPower[value.value]}}</td>
+                      <td class="text-end text-primary fw-bold small">
+                        {{ formatNumber(dividir && divisor ? (Number(totalManPower) / divisor) : Number(totalManPower)) }}
+                      </td>
+                      <td class="bg-opacity-5 table-primary text-end small" v-for="value in months">
+                        {{ formatNumber(dividir && divisor ? (monthsManPower && monthsManPower[value.value] ? monthsManPower[value.value] / divisor : 0) : (monthsManPower && monthsManPower[value.value] ? monthsManPower[value.value] : 0)) }}
+                      </td>
                     </tr>
                     <tr>
                       <td class="fw-semibold small">Insumos</td>
-                      <td class="text-end text-primary fw-bold small">{{totalSupplies}}</td>
-                      <td class="bg-opacity-5 table-primary text-end small" v-for="value in months">{{monthsSupplies[value.value]}}</td>
+                      <td class="text-end text-primary fw-bold small">
+                        {{ formatNumber(dividir && divisor ? (Number(totalSupplies) / divisor) : Number(totalSupplies)) }}
+                      </td>
+                      <td class="bg-opacity-5 table-primary text-end small" v-for="value in months">
+                        {{ formatNumber(dividir && divisor ? (monthsSupplies && monthsSupplies[value.value] ? monthsSupplies[value.value] / divisor : 0) : (monthsSupplies && monthsSupplies[value.value] ? monthsSupplies[value.value] : 0)) }}
+                      </td>
                     </tr>
                     <tr>
                       <td class="fw-semibold small">Servicios</td>
-                      <td class="text-end text-primary fw-bold small">{{totalServices}}</td>
-                      <td class="bg-opacity-5 table-primary text-end small" v-for="value in months">{{monthsServices[value.value]}}</td>
+                      <td class="text-end text-primary fw-bold small">
+                        {{ formatNumber(dividir && divisor ? (Number(totalServices) / divisor) : Number(totalServices)) }}
+                      </td>
+                      <td class="bg-opacity-5 table-primary text-end small" v-for="value in months">
+                        {{ formatNumber(dividir && divisor ? (monthsServices && monthsServices[value.value] ? monthsServices[value.value] / divisor : 0) : (monthsServices && monthsServices[value.value] ? monthsServices[value.value] : 0)) }}
+                      </td>
                     </tr>
                     <tr>
                       <td class="fw-semibold small">Cosecha</td>
-                      <td class="text-end text-primary fw-bold small">{{totalHarvests}}</td>
-                      <td class="bg-opacity-5 table-primary text-end small" v-for="value in months">{{monthsHarvests[value.value]}}</td>
+                      <td class="text-end text-primary fw-bold small">
+                        {{ formatNumber(dividir && divisor ? (Number(totalHarvests) / divisor) : Number(totalHarvests)) }}
+                      </td>
+                      <td class="bg-opacity-5 table-primary text-end small" v-for="value in months">
+                        {{ formatNumber(dividir && divisor ? (monthsHarvests && monthsHarvests[value.value] ? monthsHarvests[value.value] / divisor : 0) : (monthsHarvests && monthsHarvests[value.value] ? monthsHarvests[value.value] : 0)) }}
+                      </td>
                     </tr>
 
                     <!-- ...existing code... -->
@@ -535,21 +577,22 @@ onMounted(() => {
                     <tr class="table-secondary">
                       <td class="fw-bold text-end small">Total mes</td>
                       <td class="fw-bold text-end small text-primary">
-                        {{
-                          months && months.length
-                            ? months.reduce((sum, value) => {
-                                return sum + [monthsAdministration, monthsFields, monthsAgrochemical, monthsFertilizer, monthsManPower, monthsSupplies, monthsServices, monthsHarvests]
-                                  .reduce((s, obj) => s + Number((obj && obj[value.value]) ? (obj[value.value]+"").replace(/\./g, "") : 0), 0)
-                              }, 0).toLocaleString('es-CL', { maximumFractionDigits: 0 })
-                            : 0
-                        }}
+                        {{ formatNumber(
+                          dividir && divisor
+                            ? [monthsAdministration, monthsFields, monthsAgrochemical, monthsFertilizer, monthsManPower, monthsSupplies, monthsServices, monthsHarvests]
+                                .reduce((sum, obj) => sum + Object.values(obj || {}).reduce((s, v) => s + (v || 0), 0), 0) / divisor
+                            : [monthsAdministration, monthsFields, monthsAgrochemical, monthsFertilizer, monthsManPower, monthsSupplies, monthsServices, monthsHarvests]
+                                .reduce((sum, obj) => sum + Object.values(obj || {}).reduce((s, v) => s + (v || 0), 0), 0)
+                        ) }}
                       </td>
                       <td class="fw-bold text-end small" v-for="value in months">
-                        {{
-                          [monthsAdministration, monthsFields, monthsAgrochemical, monthsFertilizer, monthsManPower, monthsSupplies, monthsServices, monthsHarvests]
-                            .reduce((sum, obj) => sum + Number((obj && obj[value.value]) ? (obj[value.value]+"").replace(/\./g, "") : 0), 0)
-                            .toLocaleString('es-CL', { maximumFractionDigits: 0 })
-                        }}
+                        {{ formatNumber(
+                          dividir && divisor
+                            ? ([monthsAdministration, monthsFields, monthsAgrochemical, monthsFertilizer, monthsManPower, monthsSupplies, monthsServices, monthsHarvests]
+                                .reduce((sum, obj) => sum + (obj && obj[value.value] ? obj[value.value] : 0), 0) / divisor)
+                            : ([monthsAdministration, monthsFields, monthsAgrochemical, monthsFertilizer, monthsManPower, monthsSupplies, monthsServices, monthsHarvests]
+                                .reduce((sum, obj) => sum + (obj && obj[value.value] ? obj[value.value] : 0), 0))
+                        ) }}
                       </td>
                     </tr>
                   </tfoot>
