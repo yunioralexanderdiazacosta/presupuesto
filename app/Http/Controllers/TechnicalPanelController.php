@@ -1853,6 +1853,7 @@ private function getHarvestsProducts($costCentersId)
                 $totals[$key]['total_amount'] += $amount;
             }
         }
+  
         return collect(array_values($totals));
     }
 
@@ -1944,7 +1945,7 @@ private function getHarvestsProducts($costCentersId)
         $fruitNames = $fruitIds->isNotEmpty() ? \App\Models\Fruit::whereIn('id', $fruitIds->toArray())->pluck('name','id') : collect();
         $costCenterFruitMap = $costCenters->pluck('fruit_id','id');
         $totals = [];
-        $addTotal = function($level1_id, $level1_name, $level2_id, $level2_name, $fruit_id, $amount) use (&$totals, $fruitNames) {
+        $addTotal = function($level1_id, $level1_name, $level2_id, $level2_name, $fruit_id, $amount, $surface = null) use (&$totals, $fruitNames) {
             $key = $level1_id.'-'.$level2_id.'-'.$fruit_id;
             if (!isset($totals[$key])) {
                 $totals[$key] = [
@@ -1954,8 +1955,12 @@ private function getHarvestsProducts($costCentersId)
                     'level2_name' => $level2_name,
                     'fruit_id' => $fruit_id,
                     'fruit_name' => $fruit_id && isset($fruitNames[$fruit_id]) ? $fruitNames[$fruit_id] : null,
-                    'total_amount' => 0
+                    'total_amount' => 0,
+                    'surface' => $surface
                 ];
+            } else if ($surface !== null) {
+                // Si ya existe, suma la superficie
+                $totals[$key]['surface'] = ($totals[$key]['surface'] ?? 0) + $surface;
             }
             $totals[$key]['total_amount'] += $amount;
         };
@@ -1992,7 +1997,7 @@ private function getHarvestsProducts($costCentersId)
                     ->count();
                 $amount += ($count > 0 ? $amountFirst : 0);
             }
-            $addTotal($a->level1_id, $a->level1_name, $a->level2_id, $a->level2_name, $fruit_id, $amount);
+            $addTotal($a->level1_id, $a->level1_name, $a->level2_id, $a->level2_name, $fruit_id, $amount, $surface);
         }
         // FERTILIZERS
         $fertilizers = \App\Models\Fertilizer::from('fertilizers as f')
@@ -2020,7 +2025,7 @@ private function getHarvestsProducts($costCentersId)
                     ->count();
                 $amount += ($count > 0 ? $amountFirst : 0);
             }
-            $addTotal($f->level1_id, $f->level1_name, $f->level2_id, $f->level2_name, $fruit_id, $amount);
+            $addTotal($f->level1_id, $f->level1_name, $f->level2_id, $f->level2_name, $fruit_id, $amount, $surface);
         }
         // MANPOWER
         $manpowers = \App\Models\ManPower::from('man_powers as mp')
@@ -2047,7 +2052,7 @@ private function getHarvestsProducts($costCentersId)
                     ->count();
                 $amount += ($count > 0 ? $amountFirst : 0);
             }
-            $addTotal($mp->level1_id, $mp->level1_name, $mp->level2_id, $mp->level2_name, $fruit_id, $amount);
+            $addTotal($mp->level1_id, $mp->level1_name, $mp->level2_id, $mp->level2_name, $fruit_id, $amount, $surface);
         }
         // SERVICES
         $services = \App\Models\Service::from('services as s')
@@ -2075,7 +2080,7 @@ private function getHarvestsProducts($costCentersId)
                     ->count();
                 $amount += ($count > 0 ? $amountFirst : 0);
             }
-            $addTotal($s->level1_id, $s->level1_name, $s->level2_id, $s->level2_name, $fruit_id, $amount);
+            $addTotal($s->level1_id, $s->level1_name, $s->level2_id, $s->level2_name, $fruit_id, $amount, $surface);
         }
 
 
@@ -2106,7 +2111,7 @@ private function getHarvestsProducts($costCentersId)
                     ->count();
                 $amount += ($count > 0 ? $amountFirst : 0);
             }
-            $addTotal($s->level1_id, $s->level1_name, $s->level2_id, $s->level2_name, $fruit_id, $amount);
+            $addTotal($s->level1_id, $s->level1_name, $s->level2_id, $s->level2_name, $fruit_id, $amount, $surface);
         }
 
 
@@ -2138,7 +2143,7 @@ private function getHarvestsProducts($costCentersId)
                     ->count();
                 $amount += ($count > 0 ? $amountFirst : 0);
             }
-            $addTotal($s->level1_id, $s->level1_name, $s->level2_id, $s->level2_name, $fruit_id, $amount);
+            $addTotal($s->level1_id, $s->level1_name, $s->level2_id, $s->level2_name, $fruit_id, $amount, $surface);
         }
         return collect(array_values($totals));
     }
@@ -2210,9 +2215,15 @@ private function getHarvestsProducts($costCentersId)
                 }
             }
         }
+
+
+   
+
+
         return $result;
     }
 
+       
 
 
 }

@@ -3,6 +3,21 @@
 import AppLayout from '@/Layouts/AppLayout.vue';
 import {computed} from 'vue'
 import ExportExcelButton from '@/Components/ExportExcelButton.vue';
+import { ref } from 'vue';
+
+
+
+const divisor = ref(1000);
+const divisorMin = 800;
+const divisorMax = 1100;
+const dividir = ref(false); // Por defecto, no dividir
+
+const formatNumber = (value) => {
+  if (typeof value !== 'number' || isNaN(value)) return '';
+  return value.toLocaleString('es-CL', { maximumFractionDigits: 0 });
+};
+
+
 
 const title = 'Panel Tecnico';
 const links = [{ title: 'Panel Tecnico', link: 'technicalpanel', active: true }];
@@ -70,15 +85,23 @@ const totalFieldsCalc = computed(() => {
 
 
 // Agrupar por Level1 y Level2, y mapear subtotales por fruta, sumando administración/campo repartido
+
 function groupTotalsByLevelAndFruit() {
   // Obtener especies (fruits) presentes
   const fruits = props.totalsByLevel12?.reduce((acc, r) => {
     if (r.fruit_id && r.fruit_name) acc[r.fruit_id] = r.fruit_name;
     return acc;
   }, {}) || {};
-  // Si no hay especies, no hacer nada especial
   const fruitIds = Object.keys(fruits);
-  const nFruits = fruitIds.length;
+  // Calcular superficies totales y por fruta
+  let totalSurface = 0;
+  const surfaceByFruit = {};
+  (props.totalsByLevel12 || []).forEach(row => {
+    if (row.fruit_id && row.surface) {
+      surfaceByFruit[row.fruit_id] = (surfaceByFruit[row.fruit_id] || 0) + Number(row.surface);
+      totalSurface += Number(row.surface);
+    }
+  });
   // Agrupar totales generales por level1/level2/fruta
   const groups = {};
   (props.totalsByLevel12 || []).forEach(row => {
@@ -96,45 +119,49 @@ function groupTotalsByLevelAndFruit() {
       groups[key].fruits[row.fruit_id] = row.total_amount;
     }
   });
-
-  // Agregar administración y campo repartido
-  // Administración
+  // Prorratear administración y campo repartido según superficie
   (props.administrationTotalsByLevel12 || []).forEach(row => {
     const key = row.level1_id + '-' + row.level2_id;
-    if (!groups[key]) {
-      groups[key] = {
-        level1_id: row.level1_id,
-        level1_name: row.level1_name,
-        level2_id: row.level2_id,
-        level2_name: row.level2_name,
-        fruits: {}
-      };
-    }
-    if (nFruits > 0) {
-      fruitIds.forEach(fruitId => {
-        groups[key].fruits[fruitId] = (groups[key].fruits[fruitId] || 0) + (Number(row.total_amount) / nFruits);
-      });
-    }
+    fruitIds.forEach(fruitId => {
+      const prop = totalSurface > 0 ? (surfaceByFruit[fruitId] || 0) / totalSurface : 0;
+      const prorrateo = Number(row.total_amount) * prop;
+      if (!groups[key]) {
+        groups[key] = {
+          level1_id: row.level1_id,
+          level1_name: row.level1_name,
+          level2_id: row.level2_id,
+          level2_name: row.level2_name,
+          fruits: {}
+        };
+      }
+      groups[key].fruits[fruitId] = (groups[key].fruits[fruitId] || 0) + prorrateo;
+    });
   });
-  // Campo
   (props.fieldTotalsByLevel12 || []).forEach(row => {
     const key = row.level1_id + '-' + row.level2_id;
-    if (!groups[key]) {
-      groups[key] = {
-        level1_id: row.level1_id,
-        level1_name: row.level1_name,
-        level2_id: row.level2_id,
-        level2_name: row.level2_name,
-        fruits: {}
-      };
-    }
-    if (nFruits > 0) {
-      fruitIds.forEach(fruitId => {
-        groups[key].fruits[fruitId] = (groups[key].fruits[fruitId] || 0) + (Number(row.total_amount) / nFruits);
-      });
-    }
+    fruitIds.forEach(fruitId => {
+      const prop = totalSurface > 0 ? (surfaceByFruit[fruitId] || 0) / totalSurface : 0;
+      const prorrateo = Number(row.total_amount) * prop;
+      if (!groups[key]) {
+        groups[key] = {
+          level1_id: row.level1_id,
+          level1_name: row.level1_name,
+          level2_id: row.level2_id,
+          level2_name: row.level2_name,
+          fruits: {}
+        };
+      }
+      groups[key].fruits[fruitId] = (groups[key].fruits[fruitId] || 0) + prorrateo;
+    });
   });
-  return { groups: Object.values(groups), fruits };
+  // Ordenar los grupos por level1_id y luego por level2_id
+  const sortedGroups = Object.values(groups).sort((a, b) => {
+    if (a.level1_id !== b.level1_id) {
+      return a.level1_id - b.level1_id;
+    }
+    return a.level2_id - b.level2_id;
+  });
+  return { groups: sortedGroups, fruits };
 }
 
 
@@ -153,7 +180,25 @@ onMounted(() => {
    <Head :title="title" />
   <AppLayout>
     <div class="container-fluid px-2 py-0" style="max-width: 100vw;">
-
+     
+      <!-- Switch para activar/desactivar la división y divisor slider/input -->
+<div class="row mb-2">
+  <div class="col-12">
+    <div class="d-flex flex-wrap align-items-center gap-3">
+      <div class="form-check form-switch d-flex align-items-center mb-0 me-4">
+        <input class="form-check-input" type="checkbox" id="dividir-switch" v-model="dividir">
+        <label class="form-check-label ms-2 mb-0" for="dividir-switch">ver en Usd</label>
+      </div>
+      <template v-if="dividir">
+        <div class="d-flex align-items-center flex-grow-1 ms-4" style="min-width:220px;">
+          <label for="divisor-slider" class="form-label mb-0 me-2">Divisor:</label>
+          <input id="divisor-slider" type="range" class="form-range flex-grow-1" v-model.number="divisor" :min="divisorMin" :max="divisorMax" :step="1" style="max-width:250px;" />
+          <span class="text-muted small ms-2">({{divisorMin}}-{{divisorMax}}) <b>{{ divisor }}</b></span>
+        </div>
+      </template>
+    </div>
+  </div>
+</div>
      
 
       <div class="row mt-4">
@@ -193,22 +238,22 @@ onMounted(() => {
                         </td>
                         <td class="small">{{ devStates[devStateId]?.name || 'Sin estado' }}</td>
                         <td class="text-center text-end text-primary fw-bold small">
-                          {{ Number(amount || 0).toLocaleString('es-CL', { maximumFractionDigits: 0 }) }}
+                          {{ formatNumber(dividir && divisor ? (Number(amount || 0) / divisor) : Number(amount || 0)) }}
                         </td>
                         <td class="text-center text-end text-primary fw-bold small">
-                          {{ Number(fertilizerByDevState?.[fruitId]?.[devStateId] ?? 0).toLocaleString('es-CL', { maximumFractionDigits: 0 }) }}
+                          {{ formatNumber(dividir && divisor ? (Number(fertilizerByDevState?.[fruitId]?.[devStateId] ?? 0) / divisor) : Number(fertilizerByDevState?.[fruitId]?.[devStateId] ?? 0)) }}
                         </td>
                         <td class="text-center text-end text-primary fw-bold small">
-                          {{ Number(manPowerByDevState?.[String(fruitId)]?.[String(devStateId)] ?? 0).toLocaleString('es-CL', { maximumFractionDigits: 0 }) }}
+                          {{ formatNumber(dividir && divisor ? (Number(manPowerByDevState?.[String(fruitId)]?.[String(devStateId)] ?? 0) / divisor) : Number(manPowerByDevState?.[String(fruitId)]?.[String(devStateId)] ?? 0)) }}
                         </td>
                         <td class="text-center text-end text-primary fw-bold small">
-                          {{ Number(servicesByDevState?.[String(fruitId)]?.[String(devStateId)] ?? 0).toLocaleString('es-CL', { maximumFractionDigits: 0 }) }}
+                          {{ formatNumber(dividir && divisor ? (Number(servicesByDevState?.[String(fruitId)]?.[String(devStateId)] ?? 0) / divisor) : Number(servicesByDevState?.[String(fruitId)]?.[String(devStateId)] ?? 0)) }}
                         </td>
                         <td class="text-center text-end text-primary fw-bold small">
-                          {{ Number(suppliesByDevState?.[String(fruitId)]?.[String(devStateId)] ?? 0).toLocaleString('es-CL', { maximumFractionDigits: 0 }) }}
+                          {{ formatNumber(dividir && divisor ? (Number(suppliesByDevState?.[String(fruitId)]?.[String(devStateId)] ?? 0) / divisor) : Number(suppliesByDevState?.[String(fruitId)]?.[String(devStateId)] ?? 0)) }}
                         </td>
                         <td class="text-center text-end text-primary fw-bold small">
-                          {{ Number(harvestsByDevState?.[String(fruitId)]?.[String(devStateId)] ?? 0).toLocaleString('es-CL', { maximumFractionDigits: 0 }) }}
+                          {{ formatNumber(dividir && divisor ? (Number(harvestsByDevState?.[String(fruitId)]?.[String(devStateId)] ?? 0) / divisor) : Number(harvestsByDevState?.[String(fruitId)]?.[String(devStateId)] ?? 0)) }}
                         </td>
                         <!-- Puedes agregar más columnas aquí si lo deseas -->
                       </tr>
@@ -216,22 +261,22 @@ onMounted(() => {
                       <tr class="table-secondary small" style="font-size:0.8em;">
                         <td colspan="2" class="text-end">Subtotal {{ $props.fruitsMap?.[String(fruitId)] || 'Sin especie' }}</td>
                         <td class="text-center text-end">
-                          {{ Object.values(devStatesObj).reduce((sum, val) => sum + Number(val || 0), 0).toLocaleString('es-CL', { maximumFractionDigits: 0 }) }}
+                          {{ formatNumber(dividir && divisor ? (Object.values(devStatesObj).reduce((sum, val) => sum + Number(val || 0), 0) / divisor) : Object.values(devStatesObj).reduce((sum, val) => sum + Number(val || 0), 0)) }}
                         </td>
                         <td class="text-center text-end">
-                          {{ Object.values(fertilizerByDevState?.[fruitId] || {}).reduce((sum, val) => sum + Number(val || 0), 0).toLocaleString('es-CL', { maximumFractionDigits: 0 }) }}
+                          {{ formatNumber(dividir && divisor ? (Object.values(fertilizerByDevState?.[fruitId] || {}).reduce((sum, val) => sum + Number(val || 0), 0) / divisor) : Object.values(fertilizerByDevState?.[fruitId] || {}).reduce((sum, val) => sum + Number(val || 0), 0)) }}
                         </td>
                         <td class="text-center text-end">
-                          {{ Object.values(manPowerByDevState?.[String(fruitId)] || {}).reduce((sum, val) => sum + Number(val || 0), 0).toLocaleString('es-CL', { maximumFractionDigits: 0 }) }}
+                          {{ formatNumber(dividir && divisor ? (Object.values(manPowerByDevState?.[String(fruitId)] || {}).reduce((sum, val) => sum + Number(val || 0), 0) / divisor) : Object.values(manPowerByDevState?.[String(fruitId)] || {}).reduce((sum, val) => sum + Number(val || 0), 0)) }}
                         </td>
                         <td class="text-center text-end">
-                          {{ Object.values(servicesByDevState?.[String(fruitId)] || {}).reduce((sum, val) => sum + Number(val || 0), 0).toLocaleString('es-CL', { maximumFractionDigits: 0 }) }}
+                          {{ formatNumber(dividir && divisor ? (Object.values(servicesByDevState?.[String(fruitId)] || {}).reduce((sum, val) => sum + Number(val || 0), 0) / divisor) : Object.values(servicesByDevState?.[String(fruitId)] || {}).reduce((sum, val) => sum + Number(val || 0), 0)) }}
                         </td>
                         <td class="text-center text-end">
-                          {{ Object.values(suppliesByDevState?.[String(fruitId)] || {}).reduce((sum, val) => sum + Number(val || 0), 0).toLocaleString('es-CL', { maximumFractionDigits: 0 }) }}
+                          {{ formatNumber(dividir && divisor ? (Object.values(suppliesByDevState?.[String(fruitId)] || {}).reduce((sum, val) => sum + Number(val || 0), 0) / divisor) : Object.values(suppliesByDevState?.[String(fruitId)] || {}).reduce((sum, val) => sum + Number(val || 0), 0)) }}
                         </td>
                         <td class="text-center text-end">
-                          {{ Object.values(harvestsByDevState?.[String(fruitId)] || {}).reduce((sum, val) => sum + Number(val || 0), 0).toLocaleString('es-CL', { maximumFractionDigits: 0 }) }}
+                          {{ formatNumber(dividir && divisor ? (Object.values(harvestsByDevState?.[String(fruitId)] || {}).reduce((sum, val) => sum + Number(val || 0), 0) / divisor) : Object.values(harvestsByDevState?.[String(fruitId)] || {}).reduce((sum, val) => sum + Number(val || 0), 0)) }}
                         </td>
                       </tr>
                     </template>
@@ -240,22 +285,22 @@ onMounted(() => {
                     <tr style="background-color: #555858; font-weight: bold;">
                       <td colspan="2" class="fw-bold text-end small text-white">Total General</td>
                       <td class="text-center text-end fw-bold small text-white">
-                        {{ Object.values(agrochemicalByDevState).reduce((sum, devStatesObj) => sum + Object.values(devStatesObj).reduce((s, v) => s + Number(v || 0), 0), 0).toLocaleString('es-CL', { maximumFractionDigits: 0 }) }}
+                        {{ formatNumber(dividir && divisor ? (Object.values(agrochemicalByDevState).reduce((sum, devStatesObj) => sum + Object.values(devStatesObj).reduce((s, v) => s + Number(v || 0), 0), 0) / divisor) : Object.values(agrochemicalByDevState).reduce((sum, devStatesObj) => sum + Object.values(devStatesObj).reduce((s, v) => s + Number(v || 0), 0), 0)) }}
                       </td>
                       <td class="text-center text-end fw-bold small text-white">
-                        {{ Object.values(fertilizerByDevState).reduce((sum, devStatesObj) => sum + Object.values(devStatesObj).reduce((s, v) => s + Number(v || 0), 0), 0).toLocaleString('es-CL', { maximumFractionDigits: 0 }) }}
+                        {{ formatNumber(dividir && divisor ? (Object.values(fertilizerByDevState).reduce((sum, devStatesObj) => sum + Object.values(devStatesObj).reduce((s, v) => s + Number(v || 0), 0), 0) / divisor) : Object.values(fertilizerByDevState).reduce((sum, devStatesObj) => sum + Object.values(devStatesObj).reduce((s, v) => s + Number(v || 0), 0), 0)) }}
                       </td>
                       <td class="text-center text-end fw-bold small text-white">
-                        {{ Object.values(manPowerByDevState).reduce((sum, devStatesObj) => sum + Object.values(devStatesObj).reduce((s, v) => s + Number(v || 0), 0), 0).toLocaleString('es-CL', { maximumFractionDigits: 0 }) }}
+                        {{ formatNumber(dividir && divisor ? (Object.values(manPowerByDevState).reduce((sum, devStatesObj) => sum + Object.values(devStatesObj).reduce((s, v) => s + Number(v || 0), 0), 0) / divisor) : Object.values(manPowerByDevState).reduce((sum, devStatesObj) => sum + Object.values(devStatesObj).reduce((s, v) => s + Number(v || 0), 0), 0)) }}
                       </td>
                       <td class="text-center text-end fw-bold small text-white">
-                        {{ Object.values(servicesByDevState).reduce((sum, devStatesObj) => sum + Object.values(devStatesObj).reduce((s, v) => s + Number(v || 0), 0), 0).toLocaleString('es-CL', { maximumFractionDigits: 0 }) }}
+                        {{ formatNumber(dividir && divisor ? (Object.values(servicesByDevState).reduce((sum, devStatesObj) => sum + Object.values(devStatesObj).reduce((s, v) => s + Number(v || 0), 0), 0) / divisor) : Object.values(servicesByDevState).reduce((sum, devStatesObj) => sum + Object.values(devStatesObj).reduce((s, v) => s + Number(v || 0), 0), 0)) }}
                       </td>
                       <td class="text-center text-end fw-bold small text-white">
-                        {{ Object.values(suppliesByDevState).reduce((sum, devStatesObj) => sum + Object.values(devStatesObj).reduce((s, v) => s + Number(v || 0), 0), 0).toLocaleString('es-CL', { maximumFractionDigits: 0 }) }}
+                        {{ formatNumber(dividir && divisor ? (Object.values(suppliesByDevState).reduce((sum, devStatesObj) => sum + Object.values(devStatesObj).reduce((s, v) => s + Number(v || 0), 0), 0) / divisor) : Object.values(suppliesByDevState).reduce((sum, devStatesObj) => sum + Object.values(devStatesObj).reduce((s, v) => s + Number(v || 0), 0), 0)) }}
                       </td>
                       <td class="text-center text-end fw-bold small text-white">
-                        {{ Object.values(harvestsByDevState).reduce((sum, devStatesObj) => sum + Object.values(devStatesObj).reduce((s, v) => s + Number(v || 0), 0), 0).toLocaleString('es-CL', { maximumFractionDigits: 0 }) }}
+                        {{ formatNumber(dividir && divisor ? (Object.values(harvestsByDevState).reduce((sum, devStatesObj) => sum + Object.values(devStatesObj).reduce((s, v) => s + Number(v || 0), 0), 0) / divisor) : Object.values(harvestsByDevState).reduce((sum, devStatesObj) => sum + Object.values(devStatesObj).reduce((s, v) => s + Number(v || 0), 0), 0)) }}
                       </td>
                     </tr>
                   </tfoot>
@@ -372,7 +417,11 @@ onMounted(() => {
                   <tbody>
                     <template v-for="(group, idx) in groupTotalsByLevelAndFruit().groups" :key="'row-' + group.level1_id + '-' + group.level2_id">
                       <tr>
-                        <td class="small">{{ group.level1_name }}</td>
+                        <td v-if="idx === 0 || group.level1_id !== groupTotalsByLevelAndFruit().groups[idx - 1].level1_id"
+                            class="align-top small"
+                            :rowspan="groupTotalsByLevelAndFruit().groups.filter(g => g.level1_id === group.level1_id).length">
+                          {{ group.level1_name }}
+                        </td>
                         <td class="small">{{ group.level2_name }}</td>
                         <td v-for="(fruitName, fruitId) in groupTotalsByLevelAndFruit().fruits" :key="'cell-' + group.level1_id + '-' + group.level2_id + '-' + fruitId" class="text-end small">
                           {{ Number(group.fruits[fruitId] || 0).toLocaleString('es-CL', { maximumFractionDigits: 0 }) }}
@@ -383,7 +432,7 @@ onMounted(() => {
                       </tr>
                       <!-- Subtotal por Level 1 -->
                       <tr v-if="idx === groupTotalsByLevelAndFruit().groups.length - 1 || group.level1_id !== groupTotalsByLevelAndFruit().groups[idx + 1].level1_id" class="table-secondary fw-bold small">
-                        <td colspan="2" class="text-end">Subtotal {{ group.level1_name }}</td>
+                        <td class="text-end" colspan="2">Subtotal {{ group.level1_name }}</td>
                         <td v-for="(fruitName, fruitId) in groupTotalsByLevelAndFruit().fruits" :key="'subtotal-' + group.level1_id + '-' + fruitId" class="text-end">
                           {{ groupTotalsByLevelAndFruit().groups.filter(g => g.level1_id === group.level1_id).reduce((sum, g) => sum + Number(g.fruits[fruitId] || 0), 0).toLocaleString('es-CL', { maximumFractionDigits: 0 }) }}
                         </td>
@@ -395,7 +444,7 @@ onMounted(() => {
                   </tbody>
                   <tfoot>
                     <tr style="background-color: #555858; font-weight: bold;">
-                      <td colspan="2" class="fw-bold text-end small text-white">Total General</td>
+                      <td class="fw-bold text-end small text-white" colspan="2">Total General</td>
                       <td v-for="(fruitName, fruitId) in groupTotalsByLevelAndFruit().fruits" :key="'total-' + fruitId" class="fw-bold text-end small text-white">
                         {{ groupTotalsByLevelAndFruit().groups.reduce((sum, group) => sum + Number(group.fruits[fruitId] || 0), 0).toLocaleString('es-CL', { maximumFractionDigits: 0 }) }}
                       </td>
