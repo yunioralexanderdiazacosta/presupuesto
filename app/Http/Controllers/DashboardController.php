@@ -265,21 +265,34 @@ class DashboardController extends Controller
 
             
 
-            //agrupar totaels por especie (fruit)
-            // $team_id = $user->team_id; // Asegúrate de tener $user = Auth::user();
-            // $fruits = \App\Models\Fruit::all();
-            // $totalsByFruit = [];
-            // foreach ($fruits as $fruit) {
-            //     $totalsByFruit[$fruit->id] = [
-            //         'name' => $fruit->name,
-            //         'total' => $this->getTotalFertilizer($season_id, $team_id, $fruit->id)
-            //             + $this->getTotalManPower($season_id, $team_id, $fruit->id)
-            //             + $this->getTotalAgrochemical($season_id, $team_id, $fruit->id)
-            //             + $this->getTotalSupplies($season_id, $team_id, $fruit->id)
-            //             + $this->getTotalServices($season_id, $team_id, $fruit->id)
-            //             + $this->getTotalHarvest($season_id, $team_id, $fruit->id)
-            //     ];
-            // }
+            // Calcular costos prorrateados de administración y fields por especie (fruit)
+            $fruits = \App\Models\Fruit::all();
+            $costCenters = \App\Models\CostCenter::where('season_id', $season_id)->get(['id', 'fruit_id', 'surface']);
+            $totalSurface = $costCenters->sum('surface');
+            $totalAdministration = $this->getAdministrationTotalsByLevel12($user->team_id)->sum('total_amount');
+            $totalFields = $this->getFieldTotalsByLevel12($user->team_id)->sum('total_amount');
+            $totalAdminFields = $totalAdministration + $totalFields;
+            // Agrupar superficie por fruit_id
+            $surfaceByFruit = $costCenters->groupBy('fruit_id')->map(function($group) {
+                return $group->sum('surface');
+            });
+            $adminFieldsByFruit = [];
+            foreach ($fruits as $fruit) {
+                $surface = $surfaceByFruit[$fruit->id] ?? 0;
+                $prorrateo = ($totalSurface > 0) ? ($surface / $totalSurface) : 0;
+                $adminFieldsByFruit[$fruit->id] = [
+                    'name' => $fruit->name,
+                    'admin_fields_total' => round($totalAdminFields * $prorrateo, 2),
+                    'surface' => $surface,
+                    'prorrateo' => $prorrateo
+                ];
+            }
+
+            // Calcular total de cosecha por especie (fruit)
+            $totalHarvestByFruit = [];
+            foreach ($fruits as $fruit) {
+                $totalHarvestByFruit[$fruit->id] = $this->getTotalHarvest($season_id, $user->team_id, $fruit->id);
+            }
 
 
 
@@ -490,6 +503,7 @@ class DashboardController extends Controller
             // Calcular los totales y porcentajes de cada rubro principal
             $mainTotalsAndPercents = $this->getMainBudgetTotalsAndPercents($season_id, $user->team_id);
             // Pasar todos los datos al frontend
+            // Nuevo: adminFieldsByFruit contiene el total prorrateado de administración+fields por especie
             return Inertia::render('Dashboard', compact(
                 'totalSeason',
                 'pieLabels',
@@ -532,7 +546,9 @@ class DashboardController extends Controller
                 'mainTotalsAndPercents', // <-- nuevo prop para los gauges
                 'totalEstimatedKilosData', // <-- nuevo prop para total estimado en kilos
                 'kilosByFruit',
-                'fruitNames'
+                'fruitNames',
+                'adminFieldsByFruit',
+                'totalHarvestByFruit'
             ));
         }
     }

@@ -1026,7 +1026,7 @@ private function getHarvestsProducts($costCentersId)
             }
         }
         $this->totalHarvests += $totalAmount;
-        \Log::info('totalHarvests parcial en getHarvestsResultOptimized:', ['totalAmount' => $totalAmount, 'totalHarvests' => $this->totalHarvests, 'producto_id' => $value->id]);
+       
     }
 
 

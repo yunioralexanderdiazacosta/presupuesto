@@ -193,7 +193,7 @@ onMounted(() => {
         <div class="d-flex align-items-center flex-grow-1 ms-4" style="min-width:220px;">
           <label for="divisor-slider" class="form-label mb-0 me-2">Divisor:</label>
           <input id="divisor-slider" type="range" class="form-range flex-grow-1" v-model.number="divisor" :min="divisorMin" :max="divisorMax" :step="1" style="max-width:250px;" />
-          <span class="text-muted small ms-2">({{divisorMin}}-{{divisorMax}}) <b>{{ divisor }}</b></span>
+          <span class="text-muted small ms-2"><b>{{ divisor }} CLP</b> ({{divisorMin}}-{{divisorMax}}) </span>
         </div>
       </template>
     </div>
