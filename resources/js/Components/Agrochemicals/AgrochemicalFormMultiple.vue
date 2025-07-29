@@ -11,6 +11,9 @@ const props = defineProps({
     form: Object,
 });
 
+
+
+
 // Preparar acceso a productos para sugerencias (cuando estén disponibles)
 const { appContext } = getCurrentInstance();
 const page = appContext.config.globalProperties.$page || { props: {} };
@@ -23,14 +26,16 @@ const productsList = computed(() => {
     return [];
 });
 
-// Filtrar productos según la familia seleccionada (level3)
+// Filtrar productos según la familia seleccionada (level3) y ordenar alfabéticamente por nombre
 const filteredProductsByFamily = computed(() => {
     if (!props.form.subfamily_id) return [];
     // Buscar el label de la familia seleccionada
     const selectedFamily = page.props.subfamilies.find(f => f.value === props.form.subfamily_id);
     if (!selectedFamily) return [];
-    // Filtrar productos cuyo level3 coincida con el label de la familia
-    return productsList.value.filter(p => p.level3 === selectedFamily.label);
+    // Filtrar productos cuyo level3 coincida con el label de la familia y ordenar por nombre
+    return productsList.value
+        .filter(p => p.level3 === selectedFamily.label)
+        .sort((a, b) => a.name.localeCompare(b.name));
 });
 
 // Controlar sugerencias por producto
