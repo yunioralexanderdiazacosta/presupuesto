@@ -4,10 +4,29 @@ import AppLayout from '@/Layouts/AppLayout.vue';
 import FalconBarChart from '@/Components/FalconBarChart.vue';
 import { onMounted, ref, computed, nextTick } from 'vue'
 import { router } from '@inertiajs/vue3'
+
+
 const title = 'Tablero';
+import { reactive } from 'vue'
+// Estado reactivo para switches de prorrateo por especie
+const showProrrateo = reactive({});
+
+
+// Función utilitaria para formatear números en el template
+const formatNumber = (value) => {
+  if (typeof value !== 'number' || isNaN(value)) return '';
+  return value.toLocaleString('es-CL', { maximumFractionDigits: 0 });
+}
+
+
+const divisor = ref(1000)
+const divisorMin = 800
+const divisorMax = 1100
+const dividir = ref(false) // Por defecto, no dividir
+
+
 
 const links = [{ title: 'Tablero', link: 'dashboard', active: true }];
-
 
 
 /* 
@@ -69,8 +88,26 @@ const props = defineProps({
   totalAdministration: Number,
   mainTotalsAndPercents: Array,
   kilosByFruit: Object, // <-- nuevo prop para kilos por fruta
-  fruitNames: Object // <-- nuevo prop para nombres de fruta
+  fruitNames: Object, // <-- nuevo prop para nombres de fruta
+  adminFieldsByFruit: Object, // <-- nuevo prop para admin+fields prorrateado por especie
+  totalHarvestByFruit: Object // <-- nuevo prop para total de cosecha por especie
 });
+
+// Calcular el total por fruta usando totalsByLevel12 (sin dividir aquí, solo suma cruda)
+const totalByFruit = computed(() => {
+  const map = {};
+  (props.totalsByLevel12 || []).forEach(row => {
+    if (row.fruit_id) {
+      map[row.fruit_id] = (map[row.fruit_id] || 0) + Number(row.total_amount || 0);
+    }
+  });
+  return map;
+});
+
+
+
+
+
 
 // Calcular el máximo para la barra de progreso
 const maxCount = computed(() => {
@@ -177,14 +214,19 @@ const barChartFromTable = computed(() => {
       total_amount: 0
     };
   });
-  // Sumar los montos de todos los arrays para cada level1_id
+// Sumar los montos de todos los arrays para cada level1_id y dividir solo si dividir.value está activo
   allRows.forEach(row => {
     if (groups[row.level1_id]) {
       groups[row.level1_id].total_amount += Number(row.total_amount || 0);
     }
   });
-  return Object.values(groups);
+  return Object.values(groups).map(g => ({
+    ...g,
+    total_amount: dividir.value && divisor.value ? g.total_amount / divisor.value : g.total_amount
+  }));
 });
+
+
 
 
 //(nombra los form en el grafico de barras)
@@ -211,6 +253,7 @@ const gaugeColors = [
 ];
 
 // Mover 'Cosecha' a la posición 2 en orderedMainTotalsAndPercents
+// Además, dividir el total por el divisor (no el porcentaje) solo si dividir.value está activo
 const orderedMainTotalsAndPercents = computed(() => {
   const arr = [...props.mainTotalsAndPercents];
   const idx = arr.findIndex(i => i.label === 'Cosecha');
@@ -218,7 +261,11 @@ const orderedMainTotalsAndPercents = computed(() => {
     const [harvest] = arr.splice(idx, 1);
     arr.splice(2, 0, harvest);
   }
-  return arr;
+  return arr.map(item => ({
+    ...item,
+    total: dividir.value && divisor.value ? (Number(item.total) / divisor.value) : Number(item.total),
+    percent: item.percent
+  }));
 });
 
 onMounted(() => {
@@ -290,19 +337,126 @@ onMounted(() => {
     }
   });
 });
+
+
 </script>
 
+<style scoped>
+/* Puedes agregar aquí estilos personalizados si lo deseas */
+</style>
+
 <template>
+
   <Head :title="title" />
   <AppLayout>
     <div class="container-fluid px-0 py-2" style="max-width: 100vw;">
+      <!-- Switch para activar/desactivar la división y divisor slider/input -->
+      <div class="row mb-2">
+        <div class="col-12">
+          <div class="d-flex flex-wrap align-items-center gap-3">
+            <div class="form-check form-switch d-flex align-items-center mb-2 me-4">
+              <input class="form-check-input" type="checkbox" id="dividir-switch" v-model="dividir">
+              <label class="form-check-label ms-2 mb-0" for="dividir-switch">ver en Usd</label>
+            </div>
+            <template v-if="dividir">
+              <div class="d-flex align-items-center flex-grow-1 ms-4" style="min-width:220px;">
+                <label for="divisor-slider" class="form-label mb-2 me-2">Divisor:</label>
+                <input id="divisor-slider" type="range" class="form-range flex-grow-1" v-model.number="divisor" :min="divisorMin" :max="divisorMax" :step="1" style="max-width:250px;" />
+                <span class="text-muted small ms-2"><b>{{ divisor }} CLP</b> ({{divisorMin}}-{{divisorMax}})</span>
+              </div>
+            </template>
+          </div>
+        </div>
+      </div>
+
+     <!-- Total Presupuestos y Totales por Especie -->
+      <div class="row">
+        <div class="col-md-3">
+          <div class="card ecommerce-card-min-width mb-2">
+            <div class="card-header pb-2 bg-info bg-opacity-10 d-flex align-items-center justify-content-between">
+              <h6 class="mb-0 mt-1 d-flex align-items-center fs-10">
+                Total Presupuestos
+                <span class="ms-1 text-300" data-bs-toggle="tooltip" data-bs-placement="top" title="Calculated according to last week's sales">
+                  <span class="far fa-question-circle" data-fa-transform="shrink-1"></span>
+                </span>
+              </h6>
+            </div>
+            <div class="card-body d-flex flex-column justify-content-end py-2">
+              <div class="row">
+                <div class="col">
+                  <p class="font-sans-serif lh-1 mb-1 fs-6">
+                    {{
+                      (props.totalSeason === undefined || props.totalSeason === null || props.totalSeason === '' || isNaN(Number(String(props.totalSeason).replace(/\./g, ''))))
+                        ? 'Nodata'
+                        : Number(
+                            dividir && divisor
+                              ? (Number(String(props.totalSeason).replace(/\./g, '')) / divisor)
+                              : Number(String(props.totalSeason).replace(/\./g, ''))
+                          ).toLocaleString('es-CL', { maximumFractionDigits: 0 })
+                    }}
+                  </p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <!-- Card por cada fruta -->
+        <div class="col-md-3" v-for="(total, fruitId) in totalByFruit" :key="'fruit-card-' + fruitId">
+          <div class="card ecommerce-card-min-width mb-2">
+            <div class="card-header pb-2 bg-success bg-opacity-10 d-flex align-items-center justify-content-between">
+              <h6 class="mb-0 mt-1 d-flex align-items-center fs-10">
+                Total {{ fruitNames && fruitNames[fruitId] ? fruitNames[fruitId] : ('Fruta ' + fruitId) }}
+              </h6>
+              <div class="d-flex align-items-center ms-2" style="margin-bottom:0;">
+                <div class="form-check form-switch me-1" style="margin-bottom:0;">
+                  <input class="form-check-input" type="checkbox" :id="'switch-prorrateo-' + fruitId" v-model="showProrrateo[fruitId]" :title="'Mostrar prorrateo de Admin+GralCampo para esta especie'">
+                </div>
+                <label :for="'switch-prorrateo-' + fruitId" class="small text-secondary mb-0" style="cursor:pointer;user-select:none;">+generales</label>
+              </div>
+            </div>
+            <div class="card-body d-flex flex-column justify-content-end py-2">
+              <div class="row">
+                <div class="col">
+                  <p class="font-sans-serif lh-1 mb-1 fs-6 text-success">
+                    {{
+                      (() => {
+                        let value;
+                        if (showProrrateo[fruitId] && adminFieldsByFruit && adminFieldsByFruit[fruitId]) {
+                          value = Number(total) + Number(adminFieldsByFruit[fruitId].admin_fields_total);
+                        } else {
+                          value = Number(total);
+                        }
+                        if (dividir && divisor && !isNaN(Number(divisor))) {
+                          value = value / Number(divisor);
+                        }
+                        return value.toLocaleString('es-CL', { maximumFractionDigits: 0 });
+                      })()
+                    }}
+                  </p>
+                  <template v-if="showProrrateo[fruitId] && adminFieldsByFruit && adminFieldsByFruit[fruitId]">
+                    <p class="lh-1 mb-0 fs-10 text-secondary">
+                      <p>Incluye Admin+GralCampo:</p> {{
+                        dividir && divisor
+                          ? (Number(adminFieldsByFruit[fruitId].admin_fields_total) / divisor).toLocaleString('es-CL', { maximumFractionDigits: 0 })
+                          : Number(adminFieldsByFruit[fruitId].admin_fields_total).toLocaleString('es-CL', { maximumFractionDigits: 0 })
+                      }}
+                    </p>
+                  </template>
+                </div>
+              </div>
+            </div>
+          </div>
+
+        </div>
+      </div>
+
 
       <!-- Card de 7 gauge ring charts con porcentajes de cada rubro -->
-      <div class="row mt-2 mb-3">
+      <div class="row mt-2 mb-2">
         <div class="col-xl-12">
           <div class="card">
             <div class="card-header pb-1 pt-1">
-              <h6 class="mb-0">Indicadores clave por rubro (porcentaje del total)</h6>
+              <h6 class="mb-0">Indicadores por rubro (porcentaje del total)</h6>
             </div>
             <div class="card-body pt-1 pb-1">
               <div class="d-flex flex-nowrap overflow-auto justify-content-start align-items-center ">
@@ -352,7 +506,7 @@ onMounted(() => {
 
 
           <div class="card ecommerce-card-min-width mb-3">
-            <div class="card-header pb-2 bg-secondary bg-opacity-10">
+            <div class="card-header pb-2 bg-info bg-opacity-10">
               <h5 class="mb-0 mt-1 d-flex align-items-center fs-10">Ultima Estimación de kilos por Especie
                 <span class="ms-1 text-400" data-bs-toggle="tooltip" data-bs-placement="top" title="Kilos estimados agrupados por fruta">
                   <span class="far fa-question-circle" data-fa-transform="shrink-1"></span>
@@ -373,28 +527,85 @@ onMounted(() => {
             </div>
           </div>
 
+          <!-- Nuevo card: Costo kilo cosecha por especie -->
+          <div class="card ecommerce-card-min-width mb-3">
+            <div class="card-header pb-2 bg-info bg-opacity-10">
+              <h5 class="mb-0 mt-1 d-flex align-items-center fs-10">Costo kilo cosecha (sin admin ni gral campo)
+                <span class="ms-1 text-400" data-bs-toggle="tooltip" data-bs-placement="top" title="Costo de cosecha por kilo, por especie (total cosecha / kilos estimados)">
+                  <span class="far fa-question-circle" data-fa-transform="shrink-1"></span>
+                </span>
+              </h5>
+            </div>
+            <div class="card-body d-flex flex-column justify-content-end py-1 align-items-center">
+              <div v-if="kilosByFruit && Object.keys(kilosByFruit).length && totalByFruit && Object.keys(totalByFruit).length" class="d-flex flex-wrap gap-1 align-items-center">
+                <div v-for="(kilos, fruitId, idx) in kilosByFruit" :key="'costo-kilo-' + fruitId" class="d-flex align-items-center">
+                  <span class="fs-8 text-secondary me-1">{{ fruitNames && fruitNames[fruitId] ? fruitNames[fruitId] : ('Fruta ' + fruitId) }}:</span>
+                  <span class="lh-1 fs-8 text-primary">{{ (() => {
+                    // Usar el totalHarvest por especie si existe
+                    let totalHarvestByFruit = (props.totalHarvestByFruit && props.totalHarvestByFruit[fruitId]) ? Number(props.totalHarvestByFruit[fruitId]) : null;
+                    if (totalHarvestByFruit === null) return 'No data';
+                    let total = totalHarvestByFruit;
+                    const kilosNum = Number(kilos);
+                    if (dividir && divisor && !isNaN(Number(divisor))) {
+                      total = total / Number(divisor);
+                    }
+                    if (!kilosNum || isNaN(total) || kilosNum === 0) return 'No data';
+                    const costoKilo = total / kilosNum;
+                    return costoKilo.toLocaleString('es-CL', { maximumFractionDigits: 2 });
+                  })() }} <span class="text-secondary">{{ dividir ? 'USD/Kg' : 'CLP/Kg' }}</span></span>
+                  <span v-if="idx < Object.keys(kilosByFruit).length - 1" class="mx-1" style="border-left:1px solid #bbb;height:60px;"></span>
+                </div>
+              </div>
+              <div v-else>
+                <span class="text-muted">No hay datos de costo kilo cosecha.</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Nuevo card: Costo kilo total (incluye admin+gral campo) -->
+          <div class="card ecommerce-card-min-width mb-3">
+            <div class="card-header pb-2 bg-info bg-opacity-10">
+              <h5 class="mb-0 mt-1 d-flex align-items-center fs-10">Costo kilo total (incluye admin+gral campo)
+                <span class="ms-1 text-400" data-bs-toggle="tooltip" data-bs-placement="top" title="Costo total por kilo, por especie (total especie + admin+gral campo / kilos estimados)">
+                  <span class="far fa-question-circle" data-fa-transform="shrink-1"></span>
+                </span>
+              </h5>
+            </div>
+            <div class="card-body d-flex flex-column justify-content-end py-1 align-items-center">
+              <div v-if="kilosByFruit && Object.keys(kilosByFruit).length && totalByFruit && Object.keys(totalByFruit).length && adminFieldsByFruit && Object.keys(adminFieldsByFruit).length" class="d-flex flex-wrap gap-1 align-items-center">
+                <div v-for="(kilos, fruitId, idx) in kilosByFruit" :key="'costo-kilo-total-' + fruitId" class="d-flex align-items-center">
+                  <span class="fs-8 text-secondary me-1">{{ fruitNames && fruitNames[fruitId] ? fruitNames[fruitId] : ('Fruta ' + fruitId) }}:</span>
+                  <span class="lh-1 fs-8 text-primary">{{ (() => {
+                    let total = 0;
+                    if (totalByFruit[fruitId] !== undefined) {
+                      total += Number(totalByFruit[fruitId]);
+                    }
+                    if (adminFieldsByFruit[fruitId] && adminFieldsByFruit[fruitId].admin_fields_total !== undefined) {
+                      total += Number(adminFieldsByFruit[fruitId].admin_fields_total);
+                    }
+                    const kilosNum = Number(kilos);
+                    if (dividir && divisor && !isNaN(Number(divisor))) {
+                      total = total / Number(divisor);
+                    }
+                    if (!kilosNum || isNaN(total) || kilosNum === 0) return 'No data';
+                    const costoKilo = total / kilosNum;
+                    return costoKilo.toLocaleString('es-CL', { maximumFractionDigits: 2 });
+                  })() }} <span class="text-secondary">{{ dividir ? 'USD/Kg' : 'CLP/Kg' }}</span></span>
+                  <span v-if="idx < Object.keys(kilosByFruit).length - 1" class="mx-1" style="border-left:1px solid #bbb;height:60px;"></span>
+                </div>
+              </div>
+              <div v-else>
+                <span class="text-muted">No hay datos de costo kilo total.</span>
+              </div>
+            </div>
+          </div>
+
 
           <!-- Superficie -->
           <div class="alert alert-info mb-3">
             <strong>Total superficie:</strong> {{ totalSurface }} <strong> hectareas</strong>
           </div>
-          <!-- Total Presupuestos -->
-          <div class="card ecommerce-card-min-width mb-3">
-            <div class="card-header pb-3">
-              <h6 class="mb-0 mt-1 d-flex align-items-center fs-10">Total Presupuestos
-                <span class="ms-1 text-300" data-bs-toggle="tooltip" data-bs-placement="top" title="Calculated according to last week's sales">
-                  <span class="far fa-question-circle" data-fa-transform="shrink-1"></span>
-                </span>
-              </h6>
-            </div>
-            <div class="card-body d-flex flex-column justify-content-end py-2">
-              <div class="row">
-                <div class="col">
-                  <p class="font-sans-serif lh-1 mb-1 fs-6">{{totalSeason}}</p>
-                </div>
-              </div>
-            </div>
-          </div>
+         
           <!-- Tabla Falcon de conteos de entidades -->
           <div class="card shadow-sm h-100 mb-3">
             <div class="card-header pb-2 pt-2">
@@ -443,7 +654,7 @@ onMounted(() => {
           <div class="card shadow-sm mb-3 border-0 bg-white">
             <div class="card-header bg-white border-0 pb-2 pt-3 d-flex align-items-center">
               <span class="me-2"><span class="fas fa-chart-bar text-primary"></span></span>
-              <h6 class="mb-0">Gráfico de barras: Totales por Nivel 1</h6>
+              <h6 class="mb-0">Gráfico: Totales agrupados por Nivel 1</h6>
             </div>
             <div class="card-body pt-3 pb-3 px-4">
               <div class="falcon-bar-chart-container" style="height:320px;">

@@ -214,24 +214,25 @@ class TechnicalPanelController extends Controller
         $totalAdministration = $this->getAdministrationTotalsByLevel12($user->team_id)->sum('total_amount');
         $totalFields = $this->getFieldTotalsByLevel12($user->team_id)->sum('total_amount');
         $totalSeason = number_format(($this->totalAgrochemical + $this->totalFertilizer + $this->totalManPower + $this->totalServices + $this->totalSupplies + $totalAdministration + $totalFields), 0, ',', '.');
-        $totalAgrochemical = number_format($this->totalAgrochemical, 0, ',', '.');
-        $totalFertilizer = number_format($this->totalFertilizer, 0, ',', '.');
-        $totalManPower = number_format($this->totalManPower, 0, ',', '.');
-        $totalServices = number_format($this->totalServices, 0, ',', '.');
-        $totalSupplies = number_format($this->totalSupplies, 0, ',', '.');
-        $totalHarvests = number_format($this->totalHarvests, 0, ',', '.');
+        // Enviar los totales como números puros para el frontend (para Totales Mensuales)
+        $totalAgrochemical = $this->totalAgrochemical;
+        $totalFertilizer = $this->totalFertilizer;
+        $totalManPower = $this->totalManPower;
+        $totalServices = $this->totalServices;
+        $totalSupplies = $this->totalSupplies;
+        $totalHarvests = $this->totalHarvests;
 
         // NUEVO: Calcular y formatear los meses de administración y fields
         $monthsAdministrationRaw = $this->getMonthsAdministration($user->team_id);
         $monthsFieldsRaw = $this->getMonthsFields($user->team_id);
         $monthsAdministration = [];
         foreach($monthsAdministrationRaw as $key => $value){
-            $monthsAdministration[$key] = number_format($value, 0, ',', '.');
+            $monthsAdministration[$key] = (float)$value;
         }
         $monthsFields = [];
 
         foreach($monthsFieldsRaw as $key => $value){
-            $monthsFields[$key] = number_format($value, 0, ',', '.');
+            $monthsFields[$key] = (float)$value;
         }
 
         // Asegurar que monthsAdministration y monthsFields tengan SIEMPRE los 12 meses (1-12) como claves
@@ -239,36 +240,78 @@ class TechnicalPanelController extends Controller
         $allMonthsFields = [];
         for ($i = 1; $i <= 12; $i++) {
             $key = (string)$i;
-            $allMonthsAdministration[$key] = isset($monthsAdministration[$key]) ? $monthsAdministration[$key] : '0';
-            $allMonthsFields[$key] = isset($monthsFields[$key]) ? $monthsFields[$key] : '0';
+            $allMonthsAdministration[$key] = isset($monthsAdministration[$key]) ? $monthsAdministration[$key] : 0;
+            $allMonthsFields[$key] = isset($monthsFields[$key]) ? $monthsFields[$key] : 0;
         }
         $monthsAdministration = $allMonthsAdministration;
         $monthsFields = $allMonthsFields;
 
+        // Normalizar todos los arrays de meses para que tengan SIEMPRE los 12 meses (1-12) como claves
         $monthsAgrochemical = [];
         foreach($this->monthsAgrochemical as $key => $value){
-            $monthsAgrochemical[$key] = number_format($value, 0, ',','.');
+            $monthsAgrochemical[$key] = (float)$value;
         }
+        $allMonthsAgrochemical = [];
+        for ($i = 1; $i <= 12; $i++) {
+            $key = (string)$i;
+            $allMonthsAgrochemical[$key] = isset($monthsAgrochemical[$key]) ? $monthsAgrochemical[$key] : 0;
+        }
+        $monthsAgrochemical = $allMonthsAgrochemical;
+
         $monthsFertilizer = [];
         foreach($this->monthsFertilizer as $key => $value){
-            $monthsFertilizer[$key] = number_format($value, 0, ',','.');
+            $monthsFertilizer[$key] = (float)$value;
         }
+        $allMonthsFertilizer = [];
+        for ($i = 1; $i <= 12; $i++) {
+            $key = (string)$i;
+            $allMonthsFertilizer[$key] = isset($monthsFertilizer[$key]) ? $monthsFertilizer[$key] : 0;
+        }
+        $monthsFertilizer = $allMonthsFertilizer;
+
         $monthsManPower = [];
         foreach($this->monthsManPower as $key => $value){
-            $monthsManPower[$key] = number_format($value, 0, ',','.');
+            $monthsManPower[$key] = (float)$value;
         }
+        $allMonthsManPower = [];
+        for ($i = 1; $i <= 12; $i++) {
+            $key = (string)$i;
+            $allMonthsManPower[$key] = isset($monthsManPower[$key]) ? $monthsManPower[$key] : 0;
+        }
+        $monthsManPower = $allMonthsManPower;
+
         $monthsServices = [];
         foreach($this->monthsServices as $key => $value){
-            $monthsServices[$key] = number_format($value, 0, ',','.');
+            $monthsServices[$key] = (float)$value;
         }
+        $allMonthsServices = [];
+        for ($i = 1; $i <= 12; $i++) {
+            $key = (string)$i;
+            $allMonthsServices[$key] = isset($monthsServices[$key]) ? $monthsServices[$key] : 0;
+        }
+        $monthsServices = $allMonthsServices;
+
         $monthsSupplies = [];
         foreach($this->monthsSupplies as $key => $value){
-            $monthsSupplies[$key] = number_format($value, 0, ',','.');
+            $monthsSupplies[$key] = (float)$value;
         }
+        $allMonthsSupplies = [];
+        for ($i = 1; $i <= 12; $i++) {
+            $key = (string)$i;
+            $allMonthsSupplies[$key] = isset($monthsSupplies[$key]) ? $monthsSupplies[$key] : 0;
+        }
+        $monthsSupplies = $allMonthsSupplies;
+
         $monthsHarvests = [];
         foreach($this->monthsHarvests as $key => $value){
-            $monthsHarvests[$key] = number_format($value, 0, ',','.');
+            $monthsHarvests[$key] = (float)$value;
         }
+        $allMonthsHarvests = [];
+        for ($i = 1; $i <= 12; $i++) {
+            $key = (string)$i;
+            $allMonthsHarvests[$key] = isset($monthsHarvests[$key]) ? $monthsHarvests[$key] : 0;
+        }
+        $monthsHarvests = $allMonthsHarvests;
         // Weather integration
         $city = $request->input('city') ?? $request->input('weatherCity') ?? 'Curico, Chile'; // Usa la ciudad enviada por el frontend o la default
         $weather = $weatherService->getCurrentWeather($city);
@@ -941,6 +984,7 @@ private function getHarvestsProducts($costCentersId)
             ->whereIn('h.id', $items->pluck('harvest_id')->unique())
             ->get();
 
+     
         // Traer superficies de los cost centers de una vez
         $surfaces = \App\Models\CostCenter::whereIn('id', $costCentersId)->pluck('surface', 'id');
 
@@ -954,6 +998,7 @@ private function getHarvestsProducts($costCentersId)
         foreach ($products as $value) {
             $this->getHarvestsResultOptimized($value, $costCentersId, $months, $itemIndex, $surfaces);
         }
+      
         return $products;
     }
 
@@ -981,6 +1026,7 @@ private function getHarvestsProducts($costCentersId)
             }
         }
         $this->totalHarvests += $totalAmount;
+       
     }
 
 
@@ -1853,6 +1899,7 @@ private function getHarvestsProducts($costCentersId)
                 $totals[$key]['total_amount'] += $amount;
             }
         }
+  
         return collect(array_values($totals));
     }
 
@@ -1939,21 +1986,31 @@ private function getHarvestsProducts($costCentersId)
                 $query->where('team_id', $team_id);
             });
         }
-        $costCenters = $costCenters->pluck('id');
+        $costCenters = $costCenters->get(['id','fruit_id']);
+        $fruitIds = $costCenters->pluck('fruit_id')->unique()->filter()->values();
+        $fruitNames = $fruitIds->isNotEmpty() ? \App\Models\Fruit::whereIn('id', $fruitIds->toArray())->pluck('name','id') : collect();
+        $costCenterFruitMap = $costCenters->pluck('fruit_id','id');
         $totals = [];
-        $addTotal = function($level1_id, $level1_name, $level2_id, $level2_name, $amount) use (&$totals) {
-            $key = $level1_id.'-'.$level2_id;
+        $addTotal = function($level1_id, $level1_name, $level2_id, $level2_name, $fruit_id, $amount, $surface = null) use (&$totals, $fruitNames) {
+            $key = $level1_id.'-'.$level2_id.'-'.$fruit_id;
             if (!isset($totals[$key])) {
                 $totals[$key] = [
                     'level1_id' => $level1_id,
                     'level1_name' => $level1_name,
                     'level2_id' => $level2_id,
                     'level2_name' => $level2_name,
-                    'total_amount' => 0
+                    'fruit_id' => $fruit_id,
+                    'fruit_name' => $fruit_id && isset($fruitNames[$fruit_id]) ? $fruitNames[$fruit_id] : null,
+                    'total_amount' => 0,
+                    'surface' => $surface
                 ];
+            } else if ($surface !== null) {
+                // Si ya existe, suma la superficie
+                $totals[$key]['surface'] = ($totals[$key]['surface'] ?? 0) + $surface;
             }
             $totals[$key]['total_amount'] += $amount;
         };
+        $costCentersIds = $costCenters->pluck('id')->flatten()->toArray();
         // AGROCHEMICALS
         $agrochemicals = \App\Models\Agrochemical::from('agrochemicals as a')
             ->join('agrochemical_items as ai', 'a.id', 'ai.agrochemical_id')
@@ -1961,12 +2018,13 @@ private function getHarvestsProducts($costCentersId)
             ->join('level2s as l2', 'l3.level2_id', 'l2.id')
             ->join('level1s as l1', 'l2.level1_id', 'l1.id')
             ->select('a.*', 'l1.id as level1_id', 'l1.name as level1_name', 'l2.id as level2_id', 'l2.name as level2_name', 'ai.cost_center_id')
-            ->whereIn('ai.cost_center_id', $costCenters)
+            ->whereIn('ai.cost_center_id', $costCentersIds)
             ->groupBy('a.id', 'l1.id', 'l1.name', 'l2.id', 'l2.name', 'ai.cost_center_id')
             ->get();
         foreach ($agrochemicals as $a) {
             $amount = 0;
-            $first = \App\Models\CostCenter::select('surface')->where('id', $a->cost_center_id)->first();
+            $first = \App\Models\CostCenter::select('surface','fruit_id')->where('id', $a->cost_center_id)->first();
+            $fruit_id = $first ? $first->fruit_id : null;
             $dose = (($a->unit_id == 4 && $a->unit_id_price == 3) || ($a->unit_id == 2 && $a->unit_id_price == 1)) ? ($a->dose / 1000) : $a->dose;
             $surface = $first ? $first->surface : 0;
             if ($a->dose_type_id == 1) {
@@ -1985,7 +2043,7 @@ private function getHarvestsProducts($costCentersId)
                     ->count();
                 $amount += ($count > 0 ? $amountFirst : 0);
             }
-            $addTotal($a->level1_id, $a->level1_name, $a->level2_id, $a->level2_name, $amount);
+            $addTotal($a->level1_id, $a->level1_name, $a->level2_id, $a->level2_name, $fruit_id, $amount, $surface);
         }
         // FERTILIZERS
         $fertilizers = \App\Models\Fertilizer::from('fertilizers as f')
@@ -1994,12 +2052,13 @@ private function getHarvestsProducts($costCentersId)
             ->join('level2s as l2', 'l3.level2_id', 'l2.id')
             ->join('level1s as l1', 'l2.level1_id', 'l1.id')
             ->select('f.*', 'l1.id as level1_id', 'l1.name as level1_name', 'l2.id as level2_id', 'l2.name as level2_name', 'fi.cost_center_id')
-            ->whereIn('fi.cost_center_id', $costCenters)
+            ->whereIn('fi.cost_center_id', $costCentersIds)
             ->groupBy('f.id', 'l1.id', 'l1.name', 'l2.id', 'l2.name', 'fi.cost_center_id')
             ->get();
         foreach ($fertilizers as $f) {
             $amount = 0;
-            $first = \App\Models\CostCenter::select('surface')->where('id', $f->cost_center_id)->first();
+            $first = \App\Models\CostCenter::select('surface','fruit_id')->where('id', $f->cost_center_id)->first();
+            $fruit_id = $first ? $first->fruit_id : null;
             $surface = $first ? $first->surface : 0;
             $dose = (($f->unit_id == 4 && $f->unit_id_price == 3) || ($f->unit_id == 2 && $f->unit_id_price == 1)) ? ($f->dose / 1000) : $f->dose;
             $quantityFirst = round($dose * $surface, 2);
@@ -2012,7 +2071,7 @@ private function getHarvestsProducts($costCentersId)
                     ->count();
                 $amount += ($count > 0 ? $amountFirst : 0);
             }
-            $addTotal($f->level1_id, $f->level1_name, $f->level2_id, $f->level2_name, $amount);
+            $addTotal($f->level1_id, $f->level1_name, $f->level2_id, $f->level2_name, $fruit_id, $amount, $surface);
         }
         // MANPOWER
         $manpowers = \App\Models\ManPower::from('man_powers as mp')
@@ -2021,12 +2080,13 @@ private function getHarvestsProducts($costCentersId)
             ->join('level2s as l2', 'l3.level2_id', 'l2.id')
             ->join('level1s as l1', 'l2.level1_id', 'l1.id')
             ->select('mp.*', 'l1.id as level1_id', 'l1.name as level1_name', 'l2.id as level2_id', 'l2.name as level2_name', 'mpi.cost_center_id')
-            ->whereIn('mpi.cost_center_id', $costCenters)
+            ->whereIn('mpi.cost_center_id', $costCentersIds)
             ->groupBy('mp.id', 'l1.id', 'l1.name', 'l2.id', 'l2.name', 'mpi.cost_center_id')
             ->get();
         foreach ($manpowers as $mp) {
             $amount = 0;
-            $first = \App\Models\CostCenter::select('surface')->where('id', $mp->cost_center_id)->first();
+            $first = \App\Models\CostCenter::select('surface','fruit_id')->where('id', $mp->cost_center_id)->first();
+            $fruit_id = $first ? $first->fruit_id : null;
             $surface = $first ? $first->surface : 0;
             $quantityFirst = round($mp->workday * $surface, 2);
             $amountFirst = round($mp->price * $quantityFirst, 2);
@@ -2038,7 +2098,7 @@ private function getHarvestsProducts($costCentersId)
                     ->count();
                 $amount += ($count > 0 ? $amountFirst : 0);
             }
-            $addTotal($mp->level1_id, $mp->level1_name, $mp->level2_id, $mp->level2_name, $amount);
+            $addTotal($mp->level1_id, $mp->level1_name, $mp->level2_id, $mp->level2_name, $fruit_id, $amount, $surface);
         }
         // SERVICES
         $services = \App\Models\Service::from('services as s')
@@ -2047,12 +2107,13 @@ private function getHarvestsProducts($costCentersId)
             ->join('level2s as l2', 'l3.level2_id', 'l2.id')
             ->join('level1s as l1', 'l2.level1_id', 'l1.id')
             ->select('s.*', 'l1.id as level1_id', 'l1.name as level1_name', 'l2.id as level2_id', 'l2.name as level2_name', 'si.cost_center_id')
-            ->whereIn('si.cost_center_id', $costCenters)
+            ->whereIn('si.cost_center_id', $costCentersIds)
             ->groupBy('s.id', 'l1.id', 'l1.name', 'l2.id', 'l2.name', 'si.cost_center_id')
             ->get();
         foreach ($services as $s) {
             $amount = 0;
-            $first = \App\Models\CostCenter::select('surface')->where('id', $s->cost_center_id)->first();
+            $first = \App\Models\CostCenter::select('surface','fruit_id')->where('id', $s->cost_center_id)->first();
+            $fruit_id = $first ? $first->fruit_id : null;
             $surface = $first ? $first->surface : 0;
             $quantity = (($s->unit_id == 4 && $s->unit_id_price == 3) || ($s->unit_id == 2 && $s->unit_id_price == 1)) ? ($s->quantity / 1000) : $s->quantity;
             $quantityFirst = round($quantity * $surface, 2);
@@ -2065,7 +2126,7 @@ private function getHarvestsProducts($costCentersId)
                     ->count();
                 $amount += ($count > 0 ? $amountFirst : 0);
             }
-            $addTotal($s->level1_id, $s->level1_name, $s->level2_id, $s->level2_name, $amount);
+            $addTotal($s->level1_id, $s->level1_name, $s->level2_id, $s->level2_name, $fruit_id, $amount, $surface);
         }
 
 
@@ -2077,12 +2138,13 @@ private function getHarvestsProducts($costCentersId)
             ->join('level2s as l2', 'l3.level2_id', 'l2.id')
             ->join('level1s as l1', 'l2.level1_id', 'l1.id')
             ->select('s.*', 'l1.id as level1_id', 'l1.name as level1_name', 'l2.id as level2_id', 'l2.name as level2_name', 'si.cost_center_id')
-            ->whereIn('si.cost_center_id', $costCenters)
+            ->whereIn('si.cost_center_id', $costCentersIds)
             ->groupBy('s.id', 'l1.id', 'l1.name', 'l2.id', 'l2.name', 'si.cost_center_id')
             ->get();
         foreach ($harvests as $s) {
             $amount = 0;
-            $first = \App\Models\CostCenter::select('surface')->where('id', $s->cost_center_id)->first();
+            $first = \App\Models\CostCenter::select('surface','fruit_id')->where('id', $s->cost_center_id)->first();
+            $fruit_id = $first ? $first->fruit_id : null;
             $surface = $first ? $first->surface : 0;
             $quantity = (($s->unit_id == 4 && $s->unit_id_price == 3) || ($s->unit_id == 2 && $s->unit_id_price == 1)) ? ($s->quantity / 1000) : $s->quantity;
             $quantityFirst = round($quantity * $surface, 2);
@@ -2095,7 +2157,7 @@ private function getHarvestsProducts($costCentersId)
                     ->count();
                 $amount += ($count > 0 ? $amountFirst : 0);
             }
-            $addTotal($s->level1_id, $s->level1_name, $s->level2_id, $s->level2_name, $amount);
+            $addTotal($s->level1_id, $s->level1_name, $s->level2_id, $s->level2_name, $fruit_id, $amount, $surface);
         }
 
 
@@ -2108,12 +2170,13 @@ private function getHarvestsProducts($costCentersId)
             ->join('level2s as l2', 'l3.level2_id', 'l2.id')
             ->join('level1s as l1', 'l2.level1_id', 'l1.id')
             ->select('s.*', 'l1.id as level1_id', 'l1.name as level1_name', 'l2.id as level2_id', 'l2.name as level2_name', 'si.cost_center_id')
-            ->whereIn('si.cost_center_id', $costCenters)
+            ->whereIn('si.cost_center_id', $costCentersIds)
             ->groupBy('s.id', 'l1.id', 'l1.name', 'l2.id', 'l2.name', 'si.cost_center_id')
             ->get();
         foreach ($supplies as $s) {
             $amount = 0;
-            $first = \App\Models\CostCenter::select('surface')->where('id', $s->cost_center_id)->first();
+            $first = \App\Models\CostCenter::select('surface','fruit_id')->where('id', $s->cost_center_id)->first();
+            $fruit_id = $first ? $first->fruit_id : null;
             $surface = $first ? $first->surface : 0;
             $quantity = (($s->unit_id == 4 && $s->unit_id_price == 3) || ($s->unit_id == 2 && $s->unit_id_price == 1)) ? ($s->quantity / 1000) : $s->quantity;
             $quantityFirst = round($quantity * $surface, 2);
@@ -2126,7 +2189,7 @@ private function getHarvestsProducts($costCentersId)
                     ->count();
                 $amount += ($count > 0 ? $amountFirst : 0);
             }
-            $addTotal($s->level1_id, $s->level1_name, $s->level2_id, $s->level2_name, $amount);
+            $addTotal($s->level1_id, $s->level1_name, $s->level2_id, $s->level2_name, $fruit_id, $amount, $surface);
         }
         return collect(array_values($totals));
     }
@@ -2198,9 +2261,15 @@ private function getHarvestsProducts($costCentersId)
                 }
             }
         }
+
+
+   
+
+
         return $result;
     }
 
+       
 
 
 }

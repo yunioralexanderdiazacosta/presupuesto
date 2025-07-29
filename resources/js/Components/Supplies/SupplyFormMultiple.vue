@@ -43,13 +43,13 @@ const selectAllMonths = (index, months) => {
     <div class="row">
         <div class="col-lg-4">
             <div class="fv-row">
-                <label for="families" class="col-form-label">Familia</label>
+                <label for="families" class="col-form-label">Nivel 3</label>
                 <div class="input-group">
                     <span class="input-group-text"
                         ><i class="fas fa-layer-group"></i
                     ></span>
                     <Multiselect
-                        :placeholder="'Seleccione familia'"
+                        :placeholder="'Seleccione nivel 3'"
                         v-model="form.subfamily_id"
                         :close-on-select="true"
                         :options="$page.props.subfamilies"
@@ -255,6 +255,7 @@ const selectAllMonths = (index, months) => {
 
 
             <div class="col-lg-5">
+                <div class="row align-items-start"></div>
                 <div class="d-flex align-items-center mb-1">
                     <label for="months" class="col-form-label mb-1">Meses</label>
                     <button
@@ -262,15 +263,14 @@ const selectAllMonths = (index, months) => {
                         class="btn btn-outline-primary btn-sm ms-2"
                         @click="selectAllMonths(index, $page.props.months)"
                     >
+                        <i class="fas fa-tasks me-1"></i>
                         {{
                             product.months &&
-                            product.months.length ===
-                                $page.props.months.length &&
-                            $page.props.months.every((m) =>
-                                product.months.includes(m.value)
+                            product.months.length ===$page.props.months.length &&
+                            $page.props.months.every((m) => product.months.includes(m.value)
                             )
-                                ? "Deseleccionar todos"
-                                : "Seleccionar todos"
+                                ? "Quitar todos"
+                                : "Todos"
                         }}
                     </button>
                 </div>
@@ -296,10 +296,9 @@ const selectAllMonths = (index, months) => {
                     </template>
                 </div>
                 <small
-                    class="text-danger"
+                    class="text-danger  ms-2 align-self-start"
                     v-if="form.errors['products.' + index + '.months']"
-                >
-                    <br />{{ form.errors["products." + index + ".months"] }}
+                ><br />{{ form.errors["products." + index + ".months"] }}
                 </small>
             </div>
 

@@ -11,6 +11,9 @@ const props = defineProps({
     form: Object,
 });
 
+
+
+
 // Preparar acceso a productos para sugerencias (cuando estén disponibles)
 const { appContext } = getCurrentInstance();
 const page = appContext.config.globalProperties.$page || { props: {} };
@@ -23,14 +26,16 @@ const productsList = computed(() => {
     return [];
 });
 
-// Filtrar productos según la familia seleccionada (level3)
+// Filtrar productos según la familia seleccionada (level3) y ordenar alfabéticamente por nombre
 const filteredProductsByFamily = computed(() => {
     if (!props.form.subfamily_id) return [];
     // Buscar el label de la familia seleccionada
     const selectedFamily = page.props.subfamilies.find(f => f.value === props.form.subfamily_id);
     if (!selectedFamily) return [];
-    // Filtrar productos cuyo level3 coincida con el label de la familia
-    return productsList.value.filter(p => p.level3 === selectedFamily.label);
+    // Filtrar productos cuyo level3 coincida con el label de la familia y ordenar por nombre
+    return productsList.value
+        .filter(p => p.level3 === selectedFamily.label)
+        .sort((a, b) => a.name.localeCompare(b.name));
 });
 
 // Controlar sugerencias por producto
@@ -216,13 +221,13 @@ watch(
 <template>
     <div class="row gy-1">
         <div class="col-sm-4">
-            <label for="families" class="col-form-label">Familia</label>
+            <label for="families" class="col-form-label">Nivel 3</label>
             <div class="input-group mb-2">
                 <span class="input-group-text"
                     ><i class="fas fa-layer-group"></i
                 ></span>
                 <Multiselect
-                    :placeholder="'Seleccione familia'"
+                    :placeholder="'Seleccione nivel 3'"
                     v-model="form.subfamily_id"
                     :close-on-select="true"
                     :options="$page.props.subfamilies"
@@ -464,7 +469,11 @@ watch(
                                 ? "Deseleccionar todos"
                                 : "Seleccionar todos"
                         }}
-                    </button>
+                    </button><span
+                    style="cursor: pointer;"
+                    title="Por cada mes que selecciones, el producto se incluirá en el presupuesto para ese mes.">
+                    <i class="fas fa-question-circle text-info ms-1"></i>
+                  </span>
                 </div>
                 <div class="d-flex flex-wrap gap-1">
                     <template v-for="value in $page.props.months">

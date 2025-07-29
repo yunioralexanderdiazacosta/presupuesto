@@ -169,7 +169,7 @@ watch(
     <div class="row">
         <div class="col-lg-4">
             <div class="fv-row">
-                <label for="families" class="col-form-label">Familia</label>
+                <label for="families" class="col-form-label">Nivel 3</label>
                 <div class="input-group mb-2">
                     <span class="input-group-text"
                         ><i class="fas fa-layer-group"></i
@@ -349,22 +349,25 @@ watch(
                     />
                 </div>
             </div>
+
+
             <div class="col-lg-6">
                 <div class="row align-items-start">
-                    
                         <div class="d-flex align-items-center mb-1">
                             <label for="months" class="col-form-label mb-1">Meses</label>
                             <button
                                 type="button"
                                 class="btn btn-outline-primary btn-sm ms-2"
                                 @click="selectAllMonths(index, $page.props.months)"
+                                
                             >
+                                <i class="fas fa-tasks me-1"></i>
                                 {{
                                     product.months &&
                                     product.months.length === $page.props.months.length &&
                                     $page.props.months.every((m) => product.months.includes(m.value))
-                                        ? "Deseleccionar todos"
-                                        : "Seleccionar todos"
+                                        ? "Quitar todos"
+                                        : "Todos"
                                 }}
                             </button>
                         </div>
@@ -397,6 +400,10 @@ watch(
                     
                 </div>
             </div>
+
+
+
+            
             <div class="col-lg-3 align-self-start ps-0">
                 <label for="observations" class="col-form-label">Observaciones</label>
                 <textarea

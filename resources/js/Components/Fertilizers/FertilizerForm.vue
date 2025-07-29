@@ -37,9 +37,9 @@
         </div>
         <div class="col-lg-6">
             <div class="fv-row">
-                <label for="families" class="col-form-label">Familia</label>
+                <label for="families" class="col-form-label">Nivel 3</label>
                 <Multiselect
-                    :placeholder="'Seleccione familia'"
+                    :placeholder="'Seleccione nivel 3'"
                     v-model="form.subfamily_id"
                     :close-on-select="true"
                     :options="$page.props.subfamilies"
