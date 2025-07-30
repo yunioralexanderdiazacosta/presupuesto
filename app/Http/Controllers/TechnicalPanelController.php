@@ -344,21 +344,22 @@ class TechnicalPanelController extends Controller
             }
         }
         // Calcular gasto por hectárea de agroquímicos por estado de desarrollo
+        // Obtener superficie total por fruit y development_state
+        $surfaceData = CostCenter::whereIn('id', $costCentersId)
+            ->select('fruit_id', 'development_state_id', DB::raw('SUM(surface) as total_surface'))
+            ->groupBy('fruit_id', 'development_state_id')
+            ->get()
+            ->groupBy('fruit_id')
+            ->map(function ($group) {
+                return $group->keyBy('development_state_id')->map->total_surface;
+            })
+            ->toArray();
+
         $agrochemicalExpensePerHectare = [];
-        foreach ($agrochemicals as $agrochemical) {
-            $byDev = $this->getAgrochemicalExpensePerHectareByDevelopmentState($agrochemical, $costCentersId);
-            foreach ($byDev as $fruitId => $devStates) {
-                foreach ($devStates as $devStateId => $amount) {
-                    $fruitIdStr = (string)$fruitId;
-                    $devStateIdStr = (string)$devStateId;
-                    if (!isset($agrochemicalExpensePerHectare[$fruitIdStr])) {
-                        $agrochemicalExpensePerHectare[$fruitIdStr] = [];
-                    }
-                    if (!isset($agrochemicalExpensePerHectare[$fruitIdStr][$devStateIdStr])) {
-                        $agrochemicalExpensePerHectare[$fruitIdStr][$devStateIdStr] = 0;
-                    }
-                    $agrochemicalExpensePerHectare[$fruitIdStr][$devStateIdStr] += $amount;
-                }
+        foreach ($agrochemicalByDevState as $fruitIdStr => $devStates) {
+            foreach ($devStates as $devStateIdStr => $amount) {
+                $surface = $surfaceData[$fruitIdStr][$devStateIdStr] ?? 0;
+                $agrochemicalExpensePerHectare[$fruitIdStr][$devStateIdStr] = $surface > 0 ? $amount / $surface : 0;
             }
         }
 
@@ -395,21 +396,22 @@ class TechnicalPanelController extends Controller
             }
         }
         // Calcular gasto por hectárea de fertilizantes por estado de desarrollo
+        // Obtener superficie total por fruit y development_state
+        $surfaceData = CostCenter::whereIn('id', $costCentersId)
+            ->select('fruit_id', 'development_state_id', DB::raw('SUM(surface) as total_surface'))
+            ->groupBy('fruit_id', 'development_state_id')
+            ->get()
+            ->groupBy('fruit_id')
+            ->map(function ($group) {
+                return $group->keyBy('development_state_id')->map->total_surface;
+            })
+            ->toArray();
+
         $fertilizerExpensePerHectare = [];
-        foreach ($fertilizers as $fertilizer) {
-            $byDev = $this->getFertilizerExpensePerHectareByDevelopmentState($fertilizer, $costCentersId);
-            foreach ($byDev as $fruitId => $devStates) {
-                foreach ($devStates as $devStateId => $amount) {
-                    $fruitIdStr = (string)$fruitId;
-                    $devStateIdStr = (string)$devStateId;
-                    if (!isset($fertilizerExpensePerHectare[$fruitIdStr])) {
-                        $fertilizerExpensePerHectare[$fruitIdStr] = [];
-                    }
-                    if (!isset($fertilizerExpensePerHectare[$fruitIdStr][$devStateIdStr])) {
-                        $fertilizerExpensePerHectare[$fruitIdStr][$devStateIdStr] = 0;
-                    }
-                    $fertilizerExpensePerHectare[$fruitIdStr][$devStateIdStr] += $amount;
-                }
+        foreach ($fertilizerByDevState as $fruitIdStr => $devStates) {
+            foreach ($devStates as $devStateIdStr => $amount) {
+                $surface = $surfaceData[$fruitIdStr][$devStateIdStr] ?? 0;
+                $fertilizerExpensePerHectare[$fruitIdStr][$devStateIdStr] = $surface > 0 ? $amount / $surface : 0;
             }
         }
 
@@ -443,21 +445,22 @@ class TechnicalPanelController extends Controller
             }
         }
         // Calcular gasto por hectárea de mano de obra por estado de desarrollo
+        // Obtener superficie total por fruit y development_state
+        $surfaceData = CostCenter::whereIn('id', $costCentersId)
+            ->select('fruit_id', 'development_state_id', DB::raw('SUM(surface) as total_surface'))
+            ->groupBy('fruit_id', 'development_state_id')
+            ->get()
+            ->groupBy('fruit_id')
+            ->map(function ($group) {
+                return $group->keyBy('development_state_id')->map->total_surface;
+            })
+            ->toArray();
+
         $manPowerExpensePerHectare = [];
-        foreach ($manPowers as $manPower) {
-            $byDev = $this->getManPowerExpensePerHectareByDevelopmentState($manPower, $costCentersId);
-            foreach ($byDev as $fruitId => $devStates) {
-                foreach ($devStates as $devStateId => $amount) {
-                    $fruitIdStr = (string)$fruitId;
-                    $devStateIdStr = (string)$devStateId;
-                    if (!isset($manPowerExpensePerHectare[$fruitIdStr])) {
-                        $manPowerExpensePerHectare[$fruitIdStr] = [];
-                    }
-                    if (!isset($manPowerExpensePerHectare[$fruitIdStr][$devStateIdStr])) {
-                        $manPowerExpensePerHectare[$fruitIdStr][$devStateIdStr] = 0;
-                    }
-                    $manPowerExpensePerHectare[$fruitIdStr][$devStateIdStr] += $amount;
-                }
+        foreach ($manPowerByDevState as $fruitIdStr => $devStates) {
+            foreach ($devStates as $devStateIdStr => $amount) {
+                $surface = $surfaceData[$fruitIdStr][$devStateIdStr] ?? 0;
+                $manPowerExpensePerHectare[$fruitIdStr][$devStateIdStr] = $surface > 0 ? $amount / $surface : 0;
             }
         }
 
@@ -493,21 +496,22 @@ class TechnicalPanelController extends Controller
             }
         }
         // Calcular gasto por hectárea de servicios por estado de desarrollo
+        // Obtener superficie total por fruit y development_state
+        $surfaceData = CostCenter::whereIn('id', $costCentersId)
+            ->select('fruit_id', 'development_state_id', DB::raw('SUM(surface) as total_surface'))
+            ->groupBy('fruit_id', 'development_state_id')
+            ->get()
+            ->groupBy('fruit_id')
+            ->map(function ($group) {
+                return $group->keyBy('development_state_id')->map->total_surface;
+            })
+            ->toArray();
+
         $servicesExpensePerHectare = [];
-        foreach ($services as $service) {
-            $byDev = $this->getServiceExpensePerHectareByDevelopmentState($service, $costCentersId);
-            foreach ($byDev as $fruitId => $devStates) {
-                foreach ($devStates as $devStateId => $amount) {
-                    $fruitIdStr = (string)$fruitId;
-                    $devStateIdStr = (string)$devStateId;
-                    if (!isset($servicesExpensePerHectare[$fruitIdStr])) {
-                        $servicesExpensePerHectare[$fruitIdStr] = [];
-                    }
-                    if (!isset($servicesExpensePerHectare[$fruitIdStr][$devStateIdStr])) {
-                        $servicesExpensePerHectare[$fruitIdStr][$devStateIdStr] = 0;
-                    }
-                    $servicesExpensePerHectare[$fruitIdStr][$devStateIdStr] += $amount;
-                }
+        foreach ($servicesByDevState as $fruitIdStr => $devStates) {
+            foreach ($devStates as $devStateIdStr => $amount) {
+                $surface = $surfaceData[$fruitIdStr][$devStateIdStr] ?? 0;
+                $servicesExpensePerHectare[$fruitIdStr][$devStateIdStr] = $surface > 0 ? $amount / $surface : 0;
             }
         }
 
@@ -540,22 +544,23 @@ class TechnicalPanelController extends Controller
                 }
             }
         }
-        // Calcular gasto por hectárea de servicios por estado de desarrollo
+        // Calcular gasto por hectárea de cosecha por estado de desarrollo
+        // Obtener superficie total por fruit y development_state
+        $surfaceData = CostCenter::whereIn('id', $costCentersId)
+            ->select('fruit_id', 'development_state_id', DB::raw('SUM(surface) as total_surface'))
+            ->groupBy('fruit_id', 'development_state_id')
+            ->get()
+            ->groupBy('fruit_id')
+            ->map(function ($group) {
+                return $group->keyBy('development_state_id')->map->total_surface;
+            })
+            ->toArray();
+
         $harvestsExpensePerHectare = [];
-        foreach ($harvests as $harvest) {
-            $byDev = $this->getHarvestExpensePerHectareByDevelopmentState($harvest, $costCentersId);
-            foreach ($byDev as $fruitId => $devStates) {
-                foreach ($devStates as $devStateId => $amount) {
-                    $fruitIdStr = (string)$fruitId;
-                    $devStateIdStr = (string)$devStateId;
-                    if (!isset($harvestsExpensePerHectare[$fruitIdStr])) {
-                        $harvestsExpensePerHectare[$fruitIdStr] = [];
-                    }
-                    if (!isset($harvestsExpensePerHectare[$fruitIdStr][$devStateIdStr])) {
-                        $harvestsExpensePerHectare[$fruitIdStr][$devStateIdStr] = 0;
-                    }
-                    $harvestsExpensePerHectare[$fruitIdStr][$devStateIdStr] += $amount;
-                }
+        foreach ($harvestsByDevState as $fruitIdStr => $devStates) {
+            foreach ($devStates as $devStateIdStr => $amount) {
+                $surface = $surfaceData[$fruitIdStr][$devStateIdStr] ?? 0;
+                $harvestsExpensePerHectare[$fruitIdStr][$devStateIdStr] = $surface > 0 ? $amount / $surface : 0;
             }
         }
 
@@ -590,21 +595,22 @@ class TechnicalPanelController extends Controller
             }
         }
         // Calcular gasto por hectárea de insumos por estado de desarrollo
+        // Obtener superficie total por fruit y development_state
+        $surfaceData = CostCenter::whereIn('id', $costCentersId)
+            ->select('fruit_id', 'development_state_id', DB::raw('SUM(surface) as total_surface'))
+            ->groupBy('fruit_id', 'development_state_id')
+            ->get()
+            ->groupBy('fruit_id')
+            ->map(function ($group) {
+                return $group->keyBy('development_state_id')->map->total_surface;
+            })
+            ->toArray();
+
         $suppliesExpensePerHectare = [];
-        foreach ($supplies as $supply) {
-            $byDev = $this->getSupplyExpensePerHectareByDevelopmentState($supply, $costCentersId);
-            foreach ($byDev as $fruitId => $devStates) {
-                foreach ($devStates as $devStateId => $amount) {
-                    $fruitIdStr = (string)$fruitId;
-                    $devStateIdStr = (string)$devStateId;
-                    if (!isset($suppliesExpensePerHectare[$fruitIdStr])) {
-                        $suppliesExpensePerHectare[$fruitIdStr] = [];
-                    }
-                    if (!isset($suppliesExpensePerHectare[$fruitIdStr][$devStateIdStr])) {
-                        $suppliesExpensePerHectare[$fruitIdStr][$devStateIdStr] = 0;
-                    }
-                    $suppliesExpensePerHectare[$fruitIdStr][$devStateIdStr] += $amount;
-                }
+        foreach ($suppliesByDevState as $fruitIdStr => $devStates) {
+            foreach ($devStates as $devStateIdStr => $amount) {
+                $surface = $surfaceData[$fruitIdStr][$devStateIdStr] ?? 0;
+                $suppliesExpensePerHectare[$fruitIdStr][$devStateIdStr] = $surface > 0 ? $amount / $surface : 0;
             }
         }
         // Obtener nombres de estados de desarrollo
