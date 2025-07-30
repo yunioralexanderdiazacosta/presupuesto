@@ -166,14 +166,7 @@ function groupTotalsByLevelAndFruit() {
 
 
 
-import { onMounted } from 'vue';
-onMounted(() => {
-  // Debug: log fruitsMap and agrochemicalByDevState
-  // eslint-disable-next-line no-console
-  console.log('fruitsMap:', props.fruitsMap);
-  // eslint-disable-next-line no-console
-  console.log('agrochemicalByDevState:', props.agrochemicalByDevState);
-});
+ 
 </script>
 
 <template>

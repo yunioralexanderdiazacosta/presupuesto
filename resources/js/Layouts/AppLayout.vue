@@ -1,105 +1,14 @@
-
 <script setup>
-import { router, Link } from '@inertiajs/vue3';
-import { ref, onMounted } from 'vue';
+import { router, Link, usePage } from '@inertiajs/vue3';
 import JetDropdownLink from '@/Components/DropdownLink.vue';
 
-const hasCostCenter = ref(null); // null: loading, true/false: resultado
-const hasVariety = ref(null);
-const hasFruit = ref(null);
-const hasCompanyReason = ref(null);
-const hasSeason = ref(null);
-const hasParcel = ref(null);
-const hasLevel3 = ref(null);
+
+// Flags compartidos via Inertia
+const { hasCostCenter, hasVariety, hasFruit, hasCompanyReason, hasSeason, hasParcel, hasLevel3 } = usePage().props;
 
 const logout = () => {
     router.post(route('logout'));
 };
-
-onMounted(async () => {
-    try {
-        const [costCenterRes, varietyRes, fruitRes, companyReasonRes, seasonRes, parcelRes, level3Res] = await Promise.all([
-            fetch('/sidebar/has-costcenter-for-season', {
-                method: 'POST',
-                headers: {
-                    'X-Requested-With': 'XMLHttpRequest',
-                    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content'),
-                    'Content-Type': 'application/json',
-                },
-            }),
-            fetch('/sidebar/has-variety-for-season', {
-                method: 'POST',
-                headers: {
-                    'X-Requested-With': 'XMLHttpRequest',
-                    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content'),
-                    'Content-Type': 'application/json',
-                },
-            }),
-            fetch('/sidebar/has-fruit-for-season', {
-                method: 'POST',
-                headers: {
-                    'X-Requested-With': 'XMLHttpRequest',
-                    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content'),
-                    'Content-Type': 'application/json',
-                },
-            }),
-            fetch('/sidebar/has-companyreason-for-team', {
-                method: 'POST',
-                headers: {
-                    'X-Requested-With': 'XMLHttpRequest',
-                    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content'),
-                    'Content-Type': 'application/json',
-                },
-            }),
-            fetch('/sidebar/has-season-for-team', {
-                method: 'POST',
-                headers: {
-                    'X-Requested-With': 'XMLHttpRequest',
-                    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content'),
-                    'Content-Type': 'application/json',
-                },
-            }),
-            fetch('/sidebar/has-parcel-for-team', {
-                method: 'POST',
-                headers: {
-                    'X-Requested-With': 'XMLHttpRequest',
-                    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content'),
-                    'Content-Type': 'application/json',
-                },
-            }),
-            fetch('/sidebar/has-level3-for-level2', {
-                method: 'POST',
-                headers: {
-                    'X-Requested-With': 'XMLHttpRequest',
-                    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content'),
-                    'Content-Type': 'application/json',
-                },
-            })
-        ]);
-        const costCenterData = await costCenterRes.json();
-        const varietyData = await varietyRes.json();
-        const fruitData = await fruitRes.json();
-        const companyReasonData = await companyReasonRes.json();
-        const seasonData = await seasonRes.json();
-        const parcelData = await parcelRes.json();
-        const level3Data = await level3Res.json();
-        hasCostCenter.value = !!costCenterData.exists;
-        hasVariety.value = !!varietyData.exists;
-        hasFruit.value = !!fruitData.exists;
-        hasCompanyReason.value = !!companyReasonData.exists;
-        hasSeason.value = !!seasonData.exists;
-        hasParcel.value = !!parcelData.exists;
-        hasLevel3.value = !!level3Data.exists;
-    } catch (e) {
-        hasCostCenter.value = false;
-        hasVariety.value = false;
-        hasFruit.value = false;
-        hasCompanyReason.value = false;
-        hasSeason.value = false;
-        hasParcel.value = false;
-        hasLevel3.value = false;
-    }
-});
 </script>
 
 <template>

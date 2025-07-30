@@ -448,6 +448,28 @@ onMounted(() => {
           </div>
 
         </div>
+
+
+         <!-- Superficie -->
+          <div class="col-md-3">
+            <div class="card ecommerce-card-min-width mb-2">
+              <div class="card-header pb-2 bg-info bg-opacity-10 d-flex align-items-center justify-content-between">
+                <h6 class="mb-0 mt-1 d-flex align-items-center fs-10">
+                  Total Superficie
+                </h6>
+              </div>
+              <div class="card-body d-flex flex-column justify-content-end py-2">
+                <div class="row">
+                  <div class="col">
+                    <p class="font-sans-serif lh-1 mb-1 fs-6">
+                    <span class="fs-6">{{ totalSurface }}</span>
+                    <span class="fs-8"> Hectáreas</span>
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
       </div>
 
 
@@ -601,10 +623,6 @@ onMounted(() => {
           </div>
 
 
-          <!-- Superficie -->
-          <div class="alert alert-info mb-3">
-            <strong>Total superficie:</strong> {{ totalSurface }} <strong> hectareas</strong>
-          </div>
          
           <!-- Tabla Falcon de conteos de entidades -->
           <div class="card shadow-sm h-100 mb-3">
