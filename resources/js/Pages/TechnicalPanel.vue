@@ -166,14 +166,7 @@ function groupTotalsByLevelAndFruit() {
 
 
 
-import { onMounted } from 'vue';
-onMounted(() => {
-  // Debug: log fruitsMap and agrochemicalByDevState
-  // eslint-disable-next-line no-console
-  console.log('fruitsMap:', props.fruitsMap);
-  // eslint-disable-next-line no-console
-  console.log('agrochemicalByDevState:', props.agrochemicalByDevState);
-});
+ 
 </script>
 
 <template>
@@ -336,9 +329,9 @@ onMounted(() => {
                       <th class="text-center text-uppercase text-secondary small fw-bold small">Mano de Obra</th>
                       <th class="text-center text-uppercase text-secondary small fw-bold small">Servicios</th>
                       <th class="text-center text-uppercase text-secondary small fw-bold small">Insumos</th>
+                      <th class="text-center text-uppercase text-secondary small fw-bold small">Cosecha</th>
                       <th class="text-center text-uppercase text-secondary small fw-bold small">Gral campo</th>
                       <th class="text-center text-uppercase text-secondary small fw-bold small">Administración</th>
-                      <th class="text-center text-uppercase text-secondary small fw-bold small">Cosecha</th>
                       <th class="text-center text-uppercase text-secondary small fw-bold small">Total</th>
                     </tr>
                   </thead>
@@ -350,7 +343,7 @@ onMounted(() => {
                         </td>
                         <td class="text-start fw-semibold small">{{ devStates[devStateId]?.name || 'Sin estado' }}</td>
                         <td class="text-center text-small text-warning fw-bold small">{{ formatNumber(dividir && divisor ? (Number(amount || 0) / divisor) : Number(amount || 0)) }}</td>
-                        <td class="text-center text-small text-warning fw-bold small">{{ formatNumber(dividir && divisor ? (Number(agrochemicalExpensePerHectare?.[String(fruitId)]?.[String(devStateId)] ?? 0) / divisor) : Number(agrochemicalExpensePerHectare?.[String(fruitId)]?.[String(devStateId)] ?? 0)) }}</td>
+                       
                         <td class="text-center text-small text-warning fw-bold small">{{ formatNumber(dividir && divisor ? (Number(fertilizerExpensePerHectare?.[String(fruitId)]?.[String(devStateId)] ?? 0) / divisor) : Number(fertilizerExpensePerHectare?.[String(fruitId)]?.[String(devStateId)] ?? 0)) }}</td>
                         <td class="text-center text-small text-warning fw-bold small">{{ formatNumber(dividir && divisor ? (Number(manPowerExpensePerHectare?.[String(fruitId)]?.[String(devStateId)] ?? 0) / divisor) : Number(manPowerExpensePerHectare?.[String(fruitId)]?.[String(devStateId)] ?? 0)) }}</td>
                         <td class="text-center text-small text-warning fw-bold small">{{ formatNumber(dividir && divisor ? (Number(servicesExpensePerHectare?.[String(fruitId)]?.[String(devStateId)] ?? 0) / divisor) : Number(servicesExpensePerHectare?.[String(fruitId)]?.[String(devStateId)] ?? 0)) }}</td>

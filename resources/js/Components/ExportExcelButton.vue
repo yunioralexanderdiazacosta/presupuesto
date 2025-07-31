@@ -36,18 +36,30 @@ function exportExcel() {
     const exportData = props.data.map(row => {
       const obj = {};
       props.headers.forEach(h => {
-        let value = getValueByPath(row, h.key);
-        if (h.type === 'number') {
-          // Asegurarse de que value es un número entero, sin decimales ni redondeos
-          let num = String(value).replace(/\./g, '').replace(/,/g, '');
-          num = parseInt(num, 10);
-          if (isNaN(num)) {
-            obj[h.label] = '';
-          } else {
-            obj[h.label] = num.toLocaleString('es-CL', { minimumFractionDigits: 0, maximumFractionDigits: 0 });
+        const rawValue = getValueByPath(row, h.key);
+        const text = stripHtml(rawValue);
+        const isNumeric = /^-?[0-9.,]+$/.test(text);
+        if (h.type === 'number' || isNumeric) {
+          // Parsing de separadores de miles y decimales
+          let tmp = text;
+          if (tmp.includes(',') && tmp.includes('.')) {
+            // miles con punto y decimal con coma
+            tmp = tmp.replace(/\./g, '').replace(/,/g, '.');
+          } else if (tmp.includes(',')) {
+            // solo coma decimal
+            tmp = tmp.replace(/,/g, '.');
+          } else if (tmp.includes('.') && !tmp.match(/\.\d{2,}$/)) {
+            // punto como separador de miles (último grupo de 3 dígitos)
+            const parts = tmp.split('.');
+            const last = parts[parts.length - 1];
+            if (last.length === 3) {
+              tmp = parts.join('');
+            }
           }
+          const num = parseFloat(tmp);
+          obj[h.label] = !isNaN(num) ? num : text;
         } else {
-          obj[h.label] = stripHtml(value);
+          obj[h.label] = text;
         }
       });
       return obj;
