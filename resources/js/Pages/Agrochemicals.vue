@@ -322,11 +322,11 @@ const onFilter = () => {
                               :headers="[
                                 { label: 'Nombre', key: 'product_name' },
                                 { label: 'SubFamilia', key: 'subfamily.name' },
-                                { label: 'Dosis', key: 'dose' },
+                                { label: 'Dosis', key: 'dose', type: 'number' },
                                 { label: 'Unidad', key: 'unit.name' },
                                 { label: 'Tipo Dosis', key: 'dosetype.name' },
                                 { label: 'Mojamiento', key: 'mojamiento' },
-                                { label: 'Precio', key: 'price' }
+                                { label: 'Precio', key: 'price', type: 'number' }
                               ]"
                               class="btn btn-success btn-md d-flex align-items-center p-0"
                               filename="Agroquimicos.xlsx"
@@ -336,11 +336,11 @@ const onFilter = () => {
                               :headers="[
                                 { label: 'Nombre', key: 'product_name' },
                                 { label: 'SubFamilia', key: 'subfamily.name' },
-                                { label: 'Dosis', key: 'dose' },
+                                { label: 'Dosis', key: 'dose', type: 'number' },
                                 { label: 'Unidad', key: 'unit.name' },
                                 { label: 'Tipo Dosis', key: 'dosetype.name' },
                                 { label: 'Mojamiento', key: 'mojamiento' },
-                                { label: 'Precio', key: 'price' }
+                                { label: 'Precio', key: 'price', type: 'number' }
                               ]"
                               class="btn btn-danger btn-md d-flex align-items-center p-0"
                               filename="Agroquimicos.pdf"
