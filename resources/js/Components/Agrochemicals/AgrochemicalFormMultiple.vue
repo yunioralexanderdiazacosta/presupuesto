@@ -6,6 +6,8 @@ import { ref, computed, getCurrentInstance, watch } from "vue";
 import Multiselect from "@vueform/multiselect";
 import TextInput from "@/Components/TextInput.vue";
 import InputError from "@/Components/InputError.vue";
+import Products2Modal from '@/Components/Products2/Products2Modal.vue';
+import axios from 'axios';
 
 const props = defineProps({
     form: Object,
@@ -215,6 +217,55 @@ watch(
   { deep: true }
 );
 
+// Estado para modal de productos2
+const products2Data = ref({ data: [], links: [] });
+const searchProducts2 = ref('');
+const currentProductIndex = ref(null);
+
+// Label nivel 3 para filtrar
+const selectedLevel3Label = computed(() => {
+  const sel = page.props.subfamilies.find(f => f.value === props.form.subfamily_id);
+  return sel ? sel.label : '';
+});
+
+// Abrir modal: cargar datos iniciales y mostrar
+const openProducts2Modal = (index) => {
+  currentProductIndex.value = index;
+  // Limpiar campo de producto actual antes de abrir modal
+  props.form.products[index].product_name = '';
+  productSearch.value[index] = '';
+  // Reiniciar búsqueda en el modal
+  searchProducts2.value = '';
+  fetchProducts2();
+  $('#products2Modal').modal('show');
+};
+
+// Petición AJAX JSON para modal
+const fetchProducts2 = () => {
+  axios.get(route('products2.index'), {
+    params: { term: searchProducts2.value, level3: selectedLevel3Label.value },
+    headers: { Accept: 'application/json' }
+  }).then(res => {
+    products2Data.value = res.data;
+  });
+};
+
+// Manejar evento de filtro desde modal
+const onFilterProducts2 = (term) => {
+  searchProducts2.value = term;
+  fetchProducts2();
+};
+
+// Selección de producto desde modal
+const onProduct2Select = (item) => {
+  props.form.products[currentProductIndex.value].product_name = item.name;
+  // Asigna datos adicionales: price, unit_id_price, active_ingredient
+  props.form.products[currentProductIndex.value].price = item.price || '';
+  props.form.products[currentProductIndex.value].unit_id_price = item.unit_price_id || '';
+  props.form.products[currentProductIndex.value].active_ingredient = item.active_ingredient || '';
+  $('#products2Modal').modal('hide');
+};
+
 
 </script>
 <script setup></script>
@@ -272,15 +323,11 @@ watch(
                         :id="'product_name_' + index"
                         v-model="product.product_name"
                         class="form-control"
-                        :list="'products-list-' + index"
                         :class="{ 'is-invalid': form.errors['products.' + index + '.product_name'] }"
                         placeholder="Escriba o seleccione un producto..."
+                        @focus="openProducts2Modal(index)"
+                        autocomplete="off"
                     />
-                    <datalist :id="'products-list-' + index">
-                        <option v-for="option in filteredProductsByFamily" :key="option.name" :value="option.name">
-                            {{ option.name }}
-                        </option>
-                    </datalist>
                 </div>
                 <InputError class="mt-2" :message="form.errors['products.' + index + '.product_name']" />
             </div>
@@ -540,7 +587,107 @@ watch(
                 </button>
             </div>
         </div>
+    <!-- Componente modal para selección de Product2 -->
+    <Products2Modal
+      :products2="products2Data"
+      :term="searchProducts2"
+      :level3="selectedLevel3Label"
+      @filter="onFilterProducts2"
+      @select="onProduct2Select"
+    />
     </template>
+
+    <!-- Modal para selección de productos2 -->
+    <div
+      class="modal fade"
+      id="products2Modal"
+      tabindex="-1"
+      aria-labelledby="products2ModalLabel"
+      aria-hidden="true"
+    >
+      <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h5 class="modal-title" id="products2ModalLabel">
+              Seleccionar Producto
+            </h5>
+            <button
+              type="button"
+              class="btn-close"
+              data-bs-dismiss="modal"
+              aria-label="Close"
+            ></button>
+          </div>
+          <div class="modal-body">
+            <!-- Buscador -->
+            <div class="mb-3">
+              <label for="searchProducts2" class="form-label"
+                >Buscar producto:</label
+              >
+              <div class="input-group">
+                <span class="input-group-text"
+                  ><i class="fas fa-search"></i
+                ></span>
+                <input
+                  type="text"
+                  id="searchProducts2"
+                  v-model="searchProducts2"
+                  @input="fetchProducts2"
+                  class="form-control"
+                  placeholder="Escriba para buscar..."
+                />
+              </div>
+            </div>
+
+            <!-- Tabla de resultados -->
+            <div v-if="products2Data.data.length" class="table-responsive">
+              <table class="table table-hover">
+                <thead>
+                  <tr>
+                    <th>Nombre</th>
+                    <th>Precio</th>
+                    <th>Unidad</th>
+                    <th>Acciones</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr
+                    v-for="(item, idx) in products2Data.data"
+                    :key="item.id"
+                    @click="onProduct2Select(item)"
+                    style="cursor: pointer;"
+                  >
+                    <td>{{ item.name }}</td>
+                    <td>{{ item.price }}</td>
+                    <td>{{ item.unit_price_id }}</td>
+                    <td>
+                      <button
+                        class="btn btn-sm btn-primary"
+                        @click.stop="onProduct2Select(item)"
+                      >
+                        <i class="fas fa-check"></i> Seleccionar
+                      </button>
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+            <div v-else class="text-center text-muted py-3">
+              No se encontraron productos que coincidan con la búsqueda.
+            </div>
+          </div>
+          <div class="modal-footer">
+            <button
+              type="button"
+              class="btn btn-secondary"
+              data-bs-dismiss="modal"
+            >
+              Cerrar
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
 </template>
 <!-- <style src="@vueform/multiselect/themes/default.css"></style>-->
 <style>

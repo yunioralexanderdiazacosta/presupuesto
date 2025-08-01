@@ -159,6 +159,7 @@ use App\Http\Controllers\Harvests\StoreHarvestController;
 use App\Http\Controllers\Harvests\DeleteHarvestController;
 use App\Http\Controllers\Harvests\UpdateHarvestController;
 use App\Http\Controllers\HarvestsController;
+use App\Http\Controllers\Product2Controller;
 
 use Inertia\Inertia;
 
@@ -194,6 +195,11 @@ Route::middleware([
         return Inertia::render('FaqPage');
     })->name('faq');
 
+
+
+
+
+    Route::get('/products2', [Product2Controller::class,'index'])->name('products2.index');
 
       Route::post('/sidebar/has-variety-for-season', [SidebarController::class, 'hasVarietyForSeason'])->name('sidebar.hasVarietyForSeason');
     Route::post('/sidebar/has-fruit-for-season', [SidebarController::class, 'hasFruitForSeason'])->name('sidebar.hasFruitForSeason');
