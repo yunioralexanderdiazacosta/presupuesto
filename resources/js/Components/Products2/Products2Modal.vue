@@ -1,6 +1,6 @@
 <script setup>
 import Table from '@/Components/Table.vue';
-import { ref, watch } from 'vue';
+import { ref, watch, onMounted } from 'vue';
 
 const props = defineProps({
   products2: Object,
@@ -10,8 +10,16 @@ const props = defineProps({
 const emit = defineEmits(['filter', 'select']);
 
 const search = ref(props.term || '');
+const searchInput = ref(null);
 watch(() => props.term, (val) => (search.value = val));
 watch(search, (val) => emit('filter', val));
+// Enfocar el input cuando el modal se muestre
+onMounted(() => {
+  const modal = document.getElementById('products2Modal');
+  modal.addEventListener('shown.bs.modal', () => {
+    searchInput.value && searchInput.value.focus();
+  });
+});
 </script>
 
 <template>
@@ -23,7 +31,8 @@ watch(search, (val) => emit('filter', val));
         </div>
         <div class="modal-body">
           <div class="input-group sticky-top bg-white mb-3">
-            <input
+              <input
+              ref="searchInput"
               v-model="search"
               @keyup.enter="emit('filter', search)"
               type="text"

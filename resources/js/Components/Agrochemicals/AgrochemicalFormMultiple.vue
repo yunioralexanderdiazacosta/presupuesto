@@ -324,10 +324,16 @@ const onProduct2Select = (item) => {
                         v-model="product.product_name"
                         class="form-control"
                         :class="{ 'is-invalid': form.errors['products.' + index + '.product_name'] }"
-                        placeholder="Escriba o seleccione un producto..."
-                        @focus="openProducts2Modal(index)"
+                        placeholder="Escriba producto o use la lupa"
                         autocomplete="off"
                     />
+                    <span
+                      class="input-group-text btn btn-sm btn-outline-secondary p-1"
+                      style="cursor: pointer;"
+                      @click="openProducts2Modal(index)"
+                    >
+                      <i class="fas fa-search"></i>
+                    </span>
                 </div>
                 <InputError class="mt-2" :message="form.errors['products.' + index + '.product_name']" />
             </div>
