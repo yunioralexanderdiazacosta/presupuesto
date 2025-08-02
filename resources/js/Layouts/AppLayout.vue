@@ -161,6 +161,19 @@ const logout = () => {
                   </Link>
                   <!-- more inner pages-->
                 </li>
+                  
+                 <li class="nav-item">
+                  <Link class="nav-link" :href="route('groupings.index')">
+                    <div class="d-flex align-items-center">
+                      <span class="nav-link-text ps-3">Agrupaciones de Cc</span>
+                      
+                    </div>
+                  </Link>
+                  <!-- more inner pages-->
+                </li>
+
+
+
                 <li class="nav-item">
                   <a class="nav-link dropdown-indicator" href="#niveles" data-bs-toggle="collapse" aria-expanded="false" aria-controls="niveles">
                     <div class="d-flex align-items-center"><span class="nav-link-text ps-3">Niveles</span>

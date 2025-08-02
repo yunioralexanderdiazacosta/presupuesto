@@ -47,6 +47,8 @@ class CostCenter extends Model
     {
         return $this->belongsTo(CompanyReason::class);
     }
-
-
+public function grouping()
+{
+    return $this->belongsTo(Grouping::class);
+}
 }

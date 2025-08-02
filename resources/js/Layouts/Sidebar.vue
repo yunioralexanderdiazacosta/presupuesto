@@ -125,6 +125,12 @@ const items = [
                 link: 'cost.centers.index',
                 subitems: []
             },
+            {
+                title: 'Agrupacion de Cc',
+                icon: `<i class="bi bi-card-checklist"></i>`,
+                link: 'groupings.index',
+                subitems: []
+            },
 
             {
                 title: 'Niveles',

@@ -70,19 +70,19 @@ use App\Http\Controllers\Level2s\GetLevel2Controller;
 use App\Http\Controllers\Level3s\GetLevel3Controller;
 use App\Http\Controllers\Level4s\GetLevel4Controller;
 use App\Http\Controllers\Levels\StoreLevelController;
-use App\Http\Controllers\Levels\UpdateLevelController; 
+use App\Http\Controllers\Levels\UpdateLevelController;
 use App\Http\Controllers\Levels\DeleteLevelController;
 use App\Http\Controllers\Levels\Level2Controller;
-use App\Http\Controllers\Levels\Level3Controller; 
+use App\Http\Controllers\Levels\Level3Controller;
 use App\Http\Controllers\Levels\Level4Controller;
 use App\Http\Controllers\Level2s\StoreLevel2Controller;
-use App\Http\Controllers\Level2s\UpdateLevel2Controller; 
+use App\Http\Controllers\Level2s\UpdateLevel2Controller;
 use App\Http\Controllers\Level2s\DeleteLevel2Controller;
 use App\Http\Controllers\Level3s\StoreLevel3Controller;
-use App\Http\Controllers\Level3s\UpdateLevel3Controller; 
+use App\Http\Controllers\Level3s\UpdateLevel3Controller;
 use App\Http\Controllers\Level3s\DeleteLevel3Controller;
 use App\Http\Controllers\Level4s\StoreLevel4Controller;
-use App\Http\Controllers\Level4s\UpdateLevel4Controller; 
+use App\Http\Controllers\Level4s\UpdateLevel4Controller;
 use App\Http\Controllers\Level4s\DeleteLevel4Controller;
 use App\Http\Controllers\Fruits\StoreFruitController;
 use App\Http\Controllers\Fruits\UpdateFruitController;
@@ -160,6 +160,12 @@ use App\Http\Controllers\Harvests\DeleteHarvestController;
 use App\Http\Controllers\Harvests\UpdateHarvestController;
 use App\Http\Controllers\HarvestsController;
 use App\Http\Controllers\Product2Controller;
+use App\Http\Controllers\Groupings\StoreGroupingController;
+use App\Http\Controllers\Groupings\UpdateGroupingController;
+use App\Http\Controllers\Groupings\DeleteGroupingController;
+use App\Http\Controllers\GroupingsController;
+
+
 
 use Inertia\Inertia;
 
@@ -188,7 +194,7 @@ Route::middleware([
     config('jetstream.auth_session'),
     'verified',
 ])->group(function () {
-  
+
 
     // Página de Preguntas Frecuentes (FAQ)
     Route::get('/faq', function () {
@@ -199,15 +205,15 @@ Route::middleware([
 
 
 
-    Route::get('/products2', [Product2Controller::class,'index'])->name('products2.index');
+    Route::get('/products2', [Product2Controller::class, 'index'])->name('products2.index');
 
-      Route::post('/sidebar/has-variety-for-season', [SidebarController::class, 'hasVarietyForSeason'])->name('sidebar.hasVarietyForSeason');
+    Route::post('/sidebar/has-variety-for-season', [SidebarController::class, 'hasVarietyForSeason'])->name('sidebar.hasVarietyForSeason');
     Route::post('/sidebar/has-fruit-for-season', [SidebarController::class, 'hasFruitForSeason'])->name('sidebar.hasFruitForSeason');
     Route::post('/sidebar/has-costcenter-for-season', [SidebarController::class, 'hasCostCenterForSeason'])->name('sidebar.hasCostCenterForSeason');
     Route::post('/sidebar/has-companyreason-for-team', [SidebarController::class, 'hasCompanyReasonForTeam'])->name('sidebar.hasCompanyReasonForTeam');
     Route::post('/sidebar/has-season-for-team', [SidebarController::class, 'hasSeasonForTeam'])->name('sidebar.hasSeasonForTeam');
     Route::post('/sidebar/has-parcel-for-team', [SidebarController::class, 'hasParcelForTeam'])->name('sidebar.hasParcelForTeam');
-      Route::post('/sidebar/has-level3-for-level2', [SidebarController::class, 'hasLevel3ForLevel2'])->name('sidebar.hasLevel3ForLevel2');
+    Route::post('/sidebar/has-level3-for-level2', [SidebarController::class, 'hasLevel3ForLevel2'])->name('sidebar.hasLevel3ForLevel2');
 
 
     Route::get('/teams', TeamsController::class)->name('teams.index');
@@ -262,8 +268,8 @@ Route::middleware([
     Route::get('/invoices/{invoice}/show', ShowInvoiceController::class)->name('invoices.show');
     Route::get('/invoices/create', CreateInvoiceController::class)->name('invoices.create');
     Route::post('/invoices/store', StoreInvoiceController::class)->name('invoices.store');
-    Route::get('/invoices/{invoice}/edit', EditInvoiceController::class)->name('invoices.edit'); 
-    Route::post('/invoices/{invoice}/update', UpdateInvoiceController::class)->name('invoices.update'); 
+    Route::get('/invoices/{invoice}/edit', EditInvoiceController::class)->name('invoices.edit');
+    Route::post('/invoices/{invoice}/update', UpdateInvoiceController::class)->name('invoices.update');
     Route::delete('/invoices/{invoice}/delete', DeleteInvoiceController::class)->name('invoices.delete');
 
     Route::get('/levels2/{level1}/get', GetLevel2Controller::class)->name('levels2.get');
@@ -274,28 +280,28 @@ Route::middleware([
     Route::get('/levels/pdf', LevelsPdfController::class)->name('levels.pdf');
     Route::get('/levels/excel', LevelsExcelController::class)->name('levels.excel');
     Route::post('/levels/store', StoreLevelController::class)->name('levels.store');
-    Route::post('/levels/{level}/update', UpdateLevelController::class)->name('levels.update'); 
+    Route::post('/levels/{level}/update', UpdateLevelController::class)->name('levels.update');
     Route::delete('/levels/{level}/delete', DeleteLevelController::class)->name('levels.delete');
 
     Route::get('/level2/{level1}/index', Level2Controller::class)->name('level2.index');
     Route::get('/level2/{level1}/pdf', Levels2PdfController::class)->name('levels2.pdf');
     Route::get('/level2/{level1}/excel', Levels2ExcelController::class)->name('levels2.excel');
     Route::post('/level2/store', StoreLevel2Controller::class)->name('level2.store');
-    Route::post('/level2/{level2}/update', UpdateLevel2Controller::class)->name('level2.update'); 
+    Route::post('/level2/{level2}/update', UpdateLevel2Controller::class)->name('level2.update');
     Route::delete('/level2/{level2}/delete', DeleteLevel2Controller::class)->name('level2.delete');
 
     Route::get('/level3/{level2}/index', Level3Controller::class)->name('level3.index');
     Route::get('/level3/{level2}/pdf', Levels3PdfController::class)->name('levels3.pdf');
     Route::get('/level3/{level2}/excel', Levels3ExcelController::class)->name('levels3.excel');
     Route::post('/level3/store', StoreLevel3Controller::class)->name('level3.store');
-    Route::post('/level3/{level3}/update', UpdateLevel3Controller::class)->name('level3.update'); 
+    Route::post('/level3/{level3}/update', UpdateLevel3Controller::class)->name('level3.update');
     Route::delete('/level3/{level3}/delete', DeleteLevel3Controller::class)->name('level3.delete');
 
     Route::get('/level4/{level3}/index', Level4Controller::class)->name('level4.index');
     Route::get('/level4/{level3}/pdf', Levels4PdfController::class)->name('levels4.pdf');
     Route::get('/level4/{level3}/excel', Levels4ExcelController::class)->name('levels4.excel');
     Route::post('/level4/store', StoreLevel4Controller::class)->name('level4.store');
-    Route::post('/level4/{level4}/update', UpdateLevel4Controller::class)->name('level4.update'); 
+    Route::post('/level4/{level4}/update', UpdateLevel4Controller::class)->name('level4.update');
     Route::delete('/level4/{level4}/delete', DeleteLevel4Controller::class)->name('level4.delete');
 
     Route::get('/fruits/pdf', FruitsPdfController::class)->name('fruits.pdf');
@@ -314,21 +320,21 @@ Route::middleware([
     Route::delete('/varieties/{variety}/delete', DeleteVarietyController::class)->name('varieties.delete');
 
     Route::get('/parcels/pdf', ParcelsPdfController::class)->name('parcels.pdf');
-    Route::get('/parcels/excel', ParcelsExcelController::class)->name('parcels.excel'); 
+    Route::get('/parcels/excel', ParcelsExcelController::class)->name('parcels.excel');
     Route::get('/parcels', ParcelsController::class)->name('parcels.index');
     Route::post('/parcels/store', StoreParcelController::class)->name('parcels.store');
     Route::post('/parcels/{parcel}/update', UpdateParcelController::class)->name('parcels.update');
     Route::delete('/parcels/{parcel}/delete', DeleteParcelController::class)->name('parcels.delete');
 
     Route::get('/seasons/pdf', SeasonsPdfController::class)->name('seasons.pdf');
-    Route::get('/seasons/excel', SeasonsExcelController::class)->name('seasons.excel');  
+    Route::get('/seasons/excel', SeasonsExcelController::class)->name('seasons.excel');
     Route::post('/seasons/store', StoreSeasonController::class)->name('seasons.store');
     Route::post('/seasons/{season}/update', UpdateSeasonController::class)->name('seasons.update');
     Route::delete('/seasons/{season}/delete', DeleteSeasonController::class)->name('seasons.delete');
 
     Route::middleware(['check.selected.budget'])->group(function () {
         Route::get('/dashboard', DashboardController::class)->name('dashboard');
-         Route::get('/technicalpanel', TechnicalPanelController::class)->name('technicalpanel');
+        Route::get('/technicalpanel', TechnicalPanelController::class)->name('technicalpanel');
 
         Route::get('/agrochemicals', AgrochemicalsController::class)->name('agrochemicals.index');
         Route::get('/fertilizers', FertilizersController::class)->name('fertilizers.index');
@@ -340,6 +346,7 @@ Route::middleware([
         Route::get('/fields', FieldsController::class)->name('fields.index');
         Route::get('/harvests', HarvestsController::class)->name('harvests.index');
         Route::get('/estimates', EstimatesController::class)->name('estimates.index');
+        Route::get('/groupings', GroupingsController::class)->name('groupings.index');
 
         Route::get('/cost-centers/pdf', CostCentersPdfController::class)->name('cost.centers.pdf');
         Route::get('/cost-centers/excel', CostCentersExcelController::class)->name('cost.centers.excel');
@@ -350,7 +357,8 @@ Route::middleware([
         Route::post('/agrochemicals/store', StoreAgrochemicalController::class)->name('agrochemicals.store');
         Route::post('/agrochemicals/{agrochemical}/update', UpdateAgrochemicalController::class)->name('agrochemicals.update');
         Route::delete('/agrochemicals/{agrochemical}/delete', DeleteAgrochemicalController::class)->name('agrochemicals.delete');
-        
+
+
         Route::post('/fertilizers/store', StoreFertilizerController::class)->name('fertilizers.store');
         Route::post('/fertilizers/{fertilizer}/update', UpdateFertilizerController::class)->name('fertilizers.update');
         Route::delete('/fertilizers/{fertilizer}/delete', DeleteFertilizerController::class)->name('fertilizers.delete');
@@ -361,6 +369,10 @@ Route::middleware([
         Route::delete('/harvests/{harvest}/delete', DeleteHarvestController::class)->name('harvests.delete');
 
 
+
+        Route::post('/groupings/store', StoreGroupingController::class)->name('groupings.store');
+        Route::post('/groupings/{grouping}/update', UpdateGroupingController::class)->name('groupings.update');
+        Route::delete('/groupings/{grouping}/delete', DeleteGroupingController::class)->name('groupings.delete');
 
 
 
@@ -403,10 +415,8 @@ Route::middleware([
     Route::get('/select-budge', SelectBudgetController::class)->name('select.budget');
     Route::post('/select-season/save', SaveSeasonController::class)->name('select.seasons.save');
 
-Route::get('/weather', [WeatherController::class, 'show'])->name('weather');
+    Route::get('/weather', [WeatherController::class, 'show'])->name('weather');
 
-// Summary de niveles anidados
+    // Summary de niveles anidados
     Route::get('/levels/summary', [LevelsController::class, 'summary'])->name('levels.summary');
-
-
 });

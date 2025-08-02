@@ -89,11 +89,11 @@
         </div>
 
          <div class="col-lg-4">
-            <label class="col-form-label">Tipo de dosis</label><br>
+            <label class="col-form-label text-right">Tipo de dosis</label><br>
             <template v-for="value in $page.props.doseTypes">
-                <div class="form-check form-check-solid form-check-inline mb-3 mt-3">
+                <div class="form-check form-check-solid form-check-inline mb-0 mt-0">
                     <input class="form-check-input" type="radio" v-model="form.dose_type_id" :id="'kt_unit_'+value.id" :value="value.value">
-                    <label class="form-check-label ps-1" :for="'kt_unit_'+value.id">{{value.label}}</label>
+                    <label class="form-check-label ms-0" :for="'kt_unit_'+value.id">{{value.label}}</label>
                 </div>
             </template>
             <small class="text-danger mt-2" :v-if="form.errors.dose_type_id">{{form.errors.dose_type_id}}</small>
@@ -178,17 +178,23 @@
        
     </div>
 
-    <div class="mb-3">
+   <div class="fv-row">
         <label for="months" class="col-form-label">Meses</label><br>
-        <div class="d-flex flex-wrap gap-2">
-            <template v-for="value in $page.props.months">
-                <div class="form-check form-check-solid form-check-inline">
-                    <input class="form-check-input" type="checkbox" v-model="form.months" :id="'kt_month_'+value.id" :value="value.value">
-                    <label class="form-check-label ps-2" :for="'kt_month_'+value.id">{{value.label}}</label>
-                </div>
-            </template>
-        </div>
-        <small class="text-danger">{{form.errors.months}}</small> 
+        <template v-for="value in $page.props.months">
+            <div class="form-check form-check-solid form-check-inline mb-1">
+                <input
+                    class="form-check-input"
+                    type="checkbox"
+                    v-model="form.months"
+                    :id="'kt_month_' + value.id"
+                    :value="value.value"
+                />
+                <label class="form-check-label ms-0" :for="'kt_month_' + value.id">
+                    {{ value.label }}
+                </label>
+            </div>
+        </template>
+        <small class="text-danger">{{ form.errors.months }}</small>
     </div>
 
     <div class="fv-row">
@@ -206,21 +212,23 @@
 .form-check-input[type="checkbox"] {
   width: 1.1em;
   height: 1.1em;
-}
-
-.multiselect-blue {
-    --ms-bg: var(--kt-input-solid-bg) !important;
-    --ms-border-color: var(--kt-input-solid-bg);
-    --ms-py: 3px !important;
-    --ms-tag-bg: #2c7be5;
-    --ms-tag-color: var(--kt-primary);
-    --ms-option-bg-selected: var(--kt-primary);
-    --ms-option-bg-selected-pointed: var(--kt-primary);
+  /* Quitar márgenes predeterminados del checkbox */
+  margin-right: 0 !important;
+  margin-left: 0.2 !important;
 }
 
 .multiselect-tags-search, .multiselect-search{
     background: var(--kt-input-solid-bg) !important;
 }
 
+/* Ajustar espaciado de checkboxes y radios */
+.form-check-inline {
+  margin-right: 0.1rem !important;
+}
+.form-check-label {
+  margin-left: 0 !important;
+  margin-right: 1rem !important;
+  padding-left: 0 !important;
+}
  
 </style>
