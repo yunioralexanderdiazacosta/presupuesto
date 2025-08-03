@@ -22,7 +22,11 @@ class StoreGroupingRequest extends FormRequest
     public function rules(): array
     {
         return [
-            
+            'name' => ['required','string','max:255'],
+            'season_id' => ['required','exists:seasons,id'],
+            'team_id' => ['nullable','exists:teams,id'],
+            'cost_center_ids' => ['nullable','array'],
+            'cost_center_ids.*' => ['exists:cost_centers,id'],
         ];
     }
 }

@@ -2,12 +2,12 @@
 import Multiselect from "@vueform/multiselect";
 import TextInput from "@/Components/TextInput.vue";
 import InputError from "@/Components/InputError.vue";
-import { usePage } from '@inertiajs/vue3';
+// ...existing imports...
 import axios from 'axios';
-const page = usePage();
 
 const props = defineProps({
     form: Object,
+    costCenters: Array,
 });
 
 // Inicializar el array de subfamilias dinámicas
@@ -61,274 +61,62 @@ const selectAllMonths = (index, months) => {
 </script>
 <script setup></script>
 <template>
-    <div class="row">
-        <div class="col-lg-4">
-            <label for="level2" class="col-form-label">Nivel 2</label>
-            <div class="input-group">
-                <span class="input-group-text"><i class="fas fa-layer-group"></i></span>
-                <Multiselect
-                    :placeholder="'Seleccione nivel 2'"
-                    v-model="form.level2_id"
-                    :close-on-select="true"
-                    :options="$page.props.level2s"
-                    class="multiselect-blue form-control"
-                    :class="{ 'is-invalid': form.errors.level2_id }"
-                    :searchable="true"
-                    :hide-selected="false"
-                    @select="getLevel3s($event)"
-                />
-            </div>
-            <InputError class="mt-2" :message="form.errors.level2_id" />
-        </div>
-        <div class="col-lg-4">
-            <label for="families" class="col-form-label">Nivel 3</label>
-            <div class="input-group">
-                <span class="input-group-text"><i class="fas fa-layer-group"></i></span>
-                <Multiselect
-                    :placeholder="'Seleccione familia'"
-                    v-model="form.subfamily_id"
-                    :close-on-select="true"
-                    :options="form.level3s"
-                    class="multiselect-blue form-control"
-                    :class="{ 'is-invalid': form.errors.subfamily_id }"
-                    :searchable="true"
-                    :hide-selected="false"
-                />
-            </div>
-            <InputError class="mt-2" :message="form.errors.subfamily_id" />
-        </div>
-        <div class="col-lg-4">
-            <label for="cc" class="col-form-label">CC</label>
-            <div class="input-group">
-                <span class="input-group-text"><i class="fas fa-sitemap"></i></span>
-                <Multiselect
-                    mode="tags"
-                    :placeholder="'Seleccione CC'"
-                    v-model="form.cc"
-                    :close-on-select="false"
-                    :options="$page.props.costCenters"
-                    class="multiselect-blue form-control"
-                    :class="{ 'is-invalid': form.errors.cc }"
-                    :searchable="true"
-                    :hide-selected="false"
-                />
-            </div>
-            <InputError class="mt-2" :message="form.errors.cc" />
-        </div>
+  <div class="row mb-3">
+    <div class="col-lg-6">
+      <label for="grouping_name" class="col-form-label">Nombre del grupo</label>
+      <input
+        id="grouping_name"
+        v-model="form.name"
+        type="text"
+        class="form-control"
+        :class="{ 'is-invalid': form.errors.name }"
+        placeholder="Ingrese el nombre del grupo"
+      />
+      <InputError class="mt-2" :message="form.errors.name" />
     </div>
+  </div>
 
-    <template v-for="(product, index) in form.products">
-        <hr />
-        <div class="row">
-            <div class="col-lg-4">
-                <label class="col-form-label">Nombre del producto</label>
-                <div class="input-group">
-                    <span class="input-group-text"><i class="fas fa-flask"></i></span>
-                    <TextInput
-                        id="product_name"
-                        v-model="product.product_name"
-                        class="form-control"
-                        type="text"
-                        :class="{
-                            'is-invalid':
-                                form.errors['products.' + index + '.product_name'],
-                        }"
-                    />
-                </div>
-                <InputError
-                    class="mt-2"
-                    :message="
-                        form.errors['products.' + index + '.product_name']
-                    "
+  <div class="row">
+    <div class="col-12">
+      <label class="col-form-label">Seleccione los centros de costo que pertenecerán al grupo</label>
+      <div class="table-responsive">
+        <table class="table table-bordered table-sm align-middle">
+          <thead>
+            <tr>
+              <th style="width:40px"></th>
+              <th>Nombre</th>
+              <th>Superficie</th>
+              <th>Fruta</th>
+              <th>Variedad</th>
+              <th>Parcela</th>
+              <th>Año</th>
+              <th>Estado desarrollo</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr v-for="cc in props.costCenters.filter(cc => String(cc.season_id) === String(form.season_id))" :key="cc.id">
+              <td>
+                <input
+                  type="checkbox"
+                  :value="cc.id"
+                  v-model="form.cost_center_ids"
                 />
-            </div>
-            <div class="col-lg-3">
-                <label for="unit" class="col-form-label">Unidad</label>
-                <div class="input-group">
-                    <span class="input-group-text"><i class="fas fa-ruler-combined"></i></span>
-                    <Multiselect
-                        :placeholder="''"
-                        v-model="product.unit_id"
-                         @update:modelValue="val => product.unit_id_price = val"
-                        :close-on-select="true"
-                        :options="$page.props.units"
-                        class="multiselect-blue form-control"
-                        :class="{
-                            'is-invalid':
-                                form.errors['products.' + index + '.unit_id'],
-                        }"
-                        :searchable="false"
-                        :hide-selected="false"
-                    />
-                </div>
-                <InputError
-                    class="mt-2"
-                    :message="form.errors['products.' + index + '.unit_id']"
-                />
-            </div>
+              </td>
+              <td>{{ cc.name }}</td>
+              <td>{{ cc.surface }}</td>
+              <td>{{ cc.fruit?.name }}</td>
+              <td>{{ cc.variety?.name }}</td>
+              <td>{{ cc.parcel?.name }}</td>
+              <td>{{ cc.year_plantation }}</td>
+              <td>{{ cc.development_state?.name }}</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+      <InputError class="mt-2" :message="form.errors.cost_center_ids" />
+    </div>
+  </div>
 
-            <div class="col-lg-2">
-                <label class="col-form-label">Cantidad</label>
-                <div class="input-group">
-                    <span class="input-group-text"><i class="fas fa-sort-numeric-up"></i></span>
-                    <TextInput
-                        id="quantity"
-                        v-model="product.quantity"
-                        class="form-control"
-                        type="number"
-                        step="0.00"
-                        :class="{
-                            'is-invalid':
-                                form.errors['products.' + index + '.quantity'],
-                        }"
-                    />
-                </div>
-                <InputError
-                    class="mt-2"
-                    :message="form.errors['products.' + index + '.quantity']"
-                />
-            </div>
-
-            <div class="col-lg-2">
-                <div class="fv-row">
-                    <label class="col-form-label">Precio</label>
-                    <div class="input-group">
-                        <span class="input-group-text"><i class="fas fa-dollar-sign"></i></span>
-                        <TextInput
-                            id="price"
-                            v-model="product.price"
-                            class="form-control"
-                            type="number"
-                            :class="{
-                                'is-invalid':
-                                    form.errors['products.' + index + '.price'],
-                            }"
-                        />
-                    </div>
-                    <InputError
-                        class="mt-2"
-                        :message="form.errors['products.' + index + '.price']"
-                    />
-                </div>
-            </div>
-           
-        </div>
-
-        <div class="row">
-
-             <div class="col-lg-3">
-                <div class="fv-row">
-                    <label for="unit" class="col-form-label">Unidad</label>
-                    <div class="input-group">
-                        <span class="input-group-text"><i class="fas fa-ruler-combined"></i></span>
-                        <Multiselect
-                            :placeholder="''"
-                            v-model="product.unit_id_price"
-                             @update:modelValue="val => product.unit_id = val"
-                            :close-on-select="true"
-                            :options="$page.props.units"
-                            class="multiselect-blue form-control"
-                            :class="{
-                                'is-invalid':
-                                    form.errors[
-                                        'products.' + index + '.unit_id_price'
-                                    ],
-                            }"
-                            :searchable="false"
-                            :hide-selected="false"
-                        />
-                    </div>
-                    <InputError
-                        class="mt-2"
-                        :message="
-                            form.errors['products.' + index + '.unit_id_price']
-                        "
-                    />
-                </div>
-            </div>
-            <div class="col-lg-6">
-                <div class="d-flex align-items-center mb-1">
-                    <label for="months" class="col-form-label mb-1">Meses</label>
-                    <button
-                        type="button"
-                        class="btn btn-outline-primary btn-sm ms-2"
-                        @click="selectAllMonths(index, $page.props.months)"
-                    >
-                        {{
-                            product.months &&
-                            product.months.length === $page.props.months.length &&
-                            $page.props.months.every((m) => product.months.includes(m.value))
-                                ? "Deseleccionar todos"
-                                : "Seleccionar todos"
-                        }}
-                    </button>
-                </div>
-                <div class="d-flex flex-wrap gap-1">
-                    <template v-for="value in $page.props.months">
-                        <div
-                            style="margin-right: 0.5rem"
-                            class="form-check form-check-solid form-check-inline mb-1"
-                        >
-                            <input
-                                class="form-check-input"
-                                type="checkbox"
-                                v-model="product.months"
-                                :id="'kt_month_' + value.id"
-                                :value="value.value"
-                            />
-                            <label
-                                class="form-check-label ps-1"
-                                :for="'kt_month_' + value.id"
-                                >{{ value.label }}</label
-                            >
-                        </div>
-                    </template>
-                </div>
-                <small
-                    class="text-danger"
-                    v-if="form.errors['products.' + index + '.months']"
-                >
-                    <br />{{ form.errors["products." + index + ".months"] }}
-                </small>
-            </div>
-
-
-            
-            <div class="col-lg-3 align-self-start ps-0">
-                <label for="observations" class="col-form-label">Observaciones</label>
-                    <textarea
-                        v-model="product.observations"
-                        rows="10"
-                         class="form-control mb-3 mb-lg-0"
-                        :class="{ 'is-invalid': form.errors.observations }"
-                        style="resize: vertical; min-height: 80px;"
-                    ></textarea>
-            
-                <InputError class="mt-2" :message="form.errors.observations" />
-            </div>
-        </div>
-
-        <div class="row">
-            <div class="col-lg-12 text-end">
-                <button
-                    type="button"
-                    v-if="form.products.length == index + 1"
-                    @click="addItem()"
-                    class="btn btn-sm btn-primary me-1"
-                >
-                    <i class="fas fa-plus"></i>
-                </button>
-                <button
-                    type="button"
-                    @click="removeItem(index)"
-                    class="btn btn-sm btn-danger"
-                    v-if="form.products.length > 1"
-                >
-                    <i class="fas fa-minus"></i>
-                </button>
-            </div>
-        </div>
-    </template>
 </template>
 <!-- <style src="@vueform/multiselect/themes/default.css"></style>-->
 <style>

@@ -17,7 +17,19 @@ class Grouping extends Model
      * Relación: un agrupamiento tiene muchos centros de costo
      */
     public function costCenters()
+{
+    return $this->belongsToMany(CostCenter::class, 'cost_center_grouping');
+}
+
+
+    public function season()
+{
+    return $this->belongsTo(Season::class);
+}
+
+    public function team()
     {
-        return $this->hasMany(CostCenter::class, 'grouping_id');
+        return $this->belongsTo(Team::class);
+
     }
 }

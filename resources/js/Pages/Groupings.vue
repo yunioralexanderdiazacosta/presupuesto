@@ -12,6 +12,7 @@ import EditGroupingModal from '@/Components/Groupings/EditGroupingModal.vue';
 const props = defineProps({
     groupings: Object,
     term: String,
+    costCenters: Array,
 });
 
 const form = useForm({
@@ -27,6 +28,10 @@ const term = ref(props.term);
 
 const openAdd = () => {
   form.reset();
+  // Forzar el valor de season_id con la temporada activa
+  form.season_id = (props.groupings.data.length > 0)
+    ? props.groupings.data[0].season_id
+    : 1;
   $('#createGroupingModal').modal('show');
 };
 
@@ -36,7 +41,7 @@ const openEdit = (grouping) => {
   form.name = grouping.name;
   form.season_id = grouping.season_id;
   form.team_id = grouping.team_id;
-  form.cost_center_ids = grouping.costCenters.map(c => c.id);
+  form.cost_center_ids = grouping.cost_centers.map(c => c.id);
   $('#editGroupingModal').modal('show');
 };
 
@@ -136,7 +141,7 @@ const onFilter = () => {
             <th width="min-w-150px">Nombre</th>
             <th width="min-w-150px">Temporada</th>
             <th width="min-w-150px">Equipo</th>
-            <th width="min-w-150px"># Centros</th>
+            <th width="min-w-150px">IDs Centros</th>
             <th class="text-end">Acciones</th>
           </template>
           <template #body>
@@ -146,9 +151,14 @@ const onFilter = () => {
             <template v-else>
               <tr v-for="(grouping, i) in groupings.data" :key="i">
                 <td>{{ grouping.name }}</td>
-                <td>{{ grouping.season.name }}</td>
-                <td>{{ grouping.team.name }}</td>
-                <td>{{ grouping.costCenters.length }}</td>
+                <td>{{ grouping.season?.name }}</td>
+                <td>{{ grouping.team?.name }}</td>
+                <td>
+                  <span v-if="grouping.cost_centers && grouping.cost_centers.length">
+                    {{ grouping.cost_centers.map(cc => cc.name).join(', ') }}
+                  </span>
+                  <span v-else>-</span>
+                </td>
                 <td class="text-end">
                   <button
                     type="button"
@@ -177,7 +187,15 @@ const onFilter = () => {
         </Table>
       </div>
     </div>
-    <CreateGroupingModal :form="form" />
-    <EditGroupingModal :form="form" />
+    <CreateGroupingModal
+      :form="form"
+      :cost-centers="props.costCenters"
+      @store="storeGrouping"
+    />
+    <EditGroupingModal
+      :form="form"
+      :cost-centers="props.costCenters"
+      @update="updateGrouping"
+    />
   </AppLayout>
 </template>

@@ -3,7 +3,11 @@ import GroupingForm from './GroupingFormMultiple.vue';
 import Modal from '@/Components/Modal.vue';
 
 const props = defineProps({
-    form: Object
+    form: Object,
+    costCenters: {
+        type: Array,
+        default: () => [],
+    },
 });
 
 defineEmits(['store']);
@@ -16,14 +20,14 @@ defineEmits(['store']);
                     <i class="fas fa-apple-alt"></i>
                 </span>
                 <span>
-                    <span class="fw-bold" style="font-size: 1.2rem; color: #2d3748; letter-spacing: 0.5px;">Agregar Datos Cosecha</span>
+                    <span class="fw-bold" style="font-size: 1.2rem; color: #2d3748; letter-spacing: 0.5px;">Crea una agrupación</span>
                     <br>
-                    <span class="text-muted" style="font-size: 0.85rem;">Completa los datos del producto a registrar</span>
+                    <span class="text-muted" style="font-size: 0.85rem;">Selecciona Los centros de costos a agrupar</span>
                 </span>
             </div>
         </template>
         <template #body>
-            <GroupingForm :form="form" />
+            <GroupingForm :form="form" :cost-centers="props.costCenters" />
         </template>
         <template #footer>
             <button type="button" id="kt_modal_add_grouping_cancel" data-bs-dismiss="modal" class="btn btn-light me-3">Cerrar</button>
