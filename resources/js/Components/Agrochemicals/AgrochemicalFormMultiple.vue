@@ -1,4 +1,20 @@
 <script setup>
+// Estado para agrupación seleccionada
+// (Importación única ya presente arriba)
+const selectedGrouping = ref("");
+
+// Watch para autocompletar cost centers al seleccionar agrupación
+watch(selectedGrouping, (newGroupingId) => {
+  if (!newGroupingId) return;
+  // Buscar la agrupación seleccionada en los datos del backend
+  const grouping = page.props.groupings?.find(g => g.id == newGroupingId);
+  if (grouping && Array.isArray(grouping.cost_centers)) {
+    // IDs de los cost centers de la agrupación
+    const groupCCs = grouping.cost_centers.map(cc => cc.id);
+    // Siempre seleccionar todos los de la agrupación
+    props.form.cc = groupCCs;
+  }
+});
 
 
 
@@ -290,7 +306,8 @@ const onProduct2Select = (item) => {
             </div>
             <InputError class="mt-2" :message="form.errors.subfamily_id" />
         </div>
-        <div class="col-sm-8">
+        <div class="col-sm-7">
+        
             <label for="cc" class="col-form-label">CC</label>
             <div class="input-group mb-2">
                 <span class="input-group-text"
@@ -309,6 +326,33 @@ const onProduct2Select = (item) => {
                 />
             </div>
             <InputError class="mt-2" :message="form.errors.cc" />
+        </div>
+
+
+
+
+
+
+        <!-- Selector de agrupación -->
+        <div class="col-sm-4">
+            <div class="input-group mb-2">
+                <span class="input-group-text"><i class="fas fa-object-group"></i></span>
+                <select
+                    id="grouping"
+                    v-model="selectedGrouping"
+                    class="form-select"
+                    aria-label="Agrupación"
+                >
+                    <option value="" disabled>Seleccione agrupación</option>
+                    <option
+                        v-for="g in page.props.groupings"
+                        :key="g.id"
+                        :value="g.id"
+                    >
+                        {{ g.name }}
+                    </option>
+                </select>
+            </div>
         </div>
     </div>
     <template v-for="(product, index) in form.products">
@@ -819,5 +863,6 @@ label {
 .input-group .form-control {
     border-radius: 0.25rem !important;
 }
+
 
 </style>

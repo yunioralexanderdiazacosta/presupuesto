@@ -85,6 +85,9 @@ class AgrochemicalsController extends Controller
         });
         */
 
+
+        
+
         $units = Unit::get()->transform(function($unit){
             return [
                 'label' => $unit->name,
@@ -259,17 +262,76 @@ class AgrochemicalsController extends Controller
         ->orderBy('name')
         ->get();
 
+
+
+
+
+    
         // Obtener frutas asociadas a las variedades filtradas
         $fruits = \App\Models\Fruit::whereIn('id', $varieties->pluck('fruit_id')->unique()->filter())->orderBy('name')->get(['id', 'name']);
 
+        // Obtener agrupaciones con sus cost centers relacionados
+        $groupings = \App\Models\Grouping::with(['costCenters' => function($q) use ($season_id, $user) {
+            $q->select('cost_centers.id', 'cost_centers.name')->where('season_id', $season_id);
+        }])
+        ->where('season_id', $season_id)
+        ->whereHas('season.team', fn($q) => $q->where('team_id', $user->team_id))
+        ->get()
+        ->map(fn($g) => [
+            'id' => $g->id,
+            'name' => $g->name,
+            'cost_centers' => $g->costCenters->map(fn($cc) => [
+                'id' => $cc->id,
+                'name' => $cc->name
+            ])->values(),
+        ]);
+
         return Inertia::render('Agrochemicals', compact(
-            'units', 'subfamilies', 'months', 'costCenters', 'agrochemicals', 'data', 'data2', 'data3', 'doseTypes', 'season',
+            'units', 'subfamilies', 'months', 'costCenters', 'groupings', 'agrochemicals', 'data', 'data2', 'data3', 'doseTypes', 'season',
             'totalData1', 'totalData2',
             'totalAgrochemical', 'totalFertilizer', 'totalManPower', 'totalSupplies', 'totalServices', 'totalAdministration', 'totalField', 'totalHarvest', 'totalAbsolute',
             'percentageAgrochemical',
             'varieties', 'fruits','products'
         ));
     }
+
+
+
+
+
+
+     /**
+     * Devuelve agrupaciones con sus cost centers relacionados (id, name, cost_centers: [{id, name}])
+     */
+    public function groupingsWithCostCenters()
+    {
+        $season_id = session('season_id');
+        $user = auth()->user();
+        $groupings = \App\Models\Grouping::with(['costCenters' => function($q) use ($season_id, $user) {
+            $q->select('id', 'name')->where('season_id', $season_id);
+        }])
+        ->where('season_id', $season_id)
+        ->whereHas('season.team', fn($q) => $q->where('team_id', $user->team_id))
+        ->get()
+        ->map(fn($g) => [
+            'id' => $g->id,
+            'name' => $g->name,
+            'cost_centers' => $g->costCenters->map(fn($cc) => [
+                'id' => $cc->id,
+                'name' => $cc->name
+            ])->values(),
+        ]);
+        return response()->json($groupings);
+    }
+
+
+
+
+
+
+
+
+
 
     private function getSubfamilies($costCenterId, $surface = null, $bills = false)
     {
