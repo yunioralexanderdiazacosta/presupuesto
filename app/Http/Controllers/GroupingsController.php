@@ -24,7 +24,7 @@ class GroupingsController extends Controller
             ->paginate(10);
 
         // Obtener todos los cost centers con sus relaciones para fruta, variedad, parcela y estado de desarrollo
-        $costCenters = CostCenter::with(['fruit','variety','parcel','development_state'])->get();
+        $costCenters = CostCenter::with(['fruit','variety','parcel','developmentState'])->get();
         Log::info('CostCenters enviados:', ['count' => $costCenters->count(), 'ids' => $costCenters->pluck('id')]);
         // Temporada activa desde sesión
         $currentSeasonId = session('season_id');
