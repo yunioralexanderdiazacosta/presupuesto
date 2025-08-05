@@ -227,6 +227,25 @@ public $totalHarvest = 0;
         ->get();
 
         $fruits = \App\Models\Fruit::whereIn('id', $varieties->pluck('fruit_id')->unique()->filter())->orderBy('name')->get(['id', 'name']);
+  
+  
+        $groupings = \App\Models\Grouping::with(['costCenters' => function($q) use ($season_id, $user) {
+            $q->select('cost_centers.id', 'cost_centers.name')->where('season_id', $season_id);
+        }])
+        ->where('season_id', $season_id)
+        ->whereHas('season.team', fn($q) => $q->where('team_id', $user->team_id))
+        ->get()
+        ->map(fn($g) => [
+            'id' => $g->id,
+            'name' => $g->name,
+            'cost_centers' => $g->costCenters->map(fn($cc) => [
+                'id' => $cc->id,
+                'name' => $cc->name
+            ])->values(),
+        ]);
+
+
+
 
         $costCentersId = $costCenters->pluck('value');
 
@@ -295,7 +314,7 @@ public $totalHarvest = 0;
 
 
 
-        return Inertia::render('ManPowers', compact('subfamilies', 'months', 'costCenters', 'manPowers', 'season', 'data', 'data2', 'data3', 'totalData1', 'totalData2',
+        return Inertia::render('ManPowers', compact('subfamilies', 'months', 'costCenters', 'groupings', 'manPowers', 'season', 'data', 'data2', 'data3', 'totalData1', 'totalData2',
         'totalAgrochemical', 'totalFertilizer', 'totalManPower', 'totalSupplies', 'totalServices', 'totalHarvest', 'totalAdministration', 'totalField', 'totalAbsolute',
             'percentageManPower',
             'varieties', 'fruits'));

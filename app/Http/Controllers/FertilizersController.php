@@ -248,6 +248,30 @@ class FertilizersController extends Controller
 
         $costCentersId = $costCenters->pluck('value');
 
+
+  $groupings = \App\Models\Grouping::with(['costCenters' => function($q) use ($season_id, $user) {
+            $q->select('cost_centers.id', 'cost_centers.name')->where('season_id', $season_id);
+        }])
+        ->where('season_id', $season_id)
+        ->whereHas('season.team', fn($q) => $q->where('team_id', $user->team_id))
+        ->get()
+        ->map(fn($g) => [
+            'id' => $g->id,
+            'name' => $g->name,
+            'cost_centers' => $g->costCenters->map(fn($cc) => [
+                'id' => $cc->id,
+                'name' => $cc->name
+            ])->values(),
+        ]);
+
+
+
+
+
+
+
+
+
         $data2 = Fertilizer::from('fertilizers as f')
             ->join('fertilizer_items as fi', 'f.id', 'fi.fertilizer_id')
             ->join('level3s as s', 'f.subfamily_id', 's.id')
@@ -279,7 +303,7 @@ class FertilizersController extends Controller
         $totalData1 = number_format($this->totalData1, 0, ',', '.');
         $totalData2 = number_format($totalFertilizer, 0, ',', '.');
 
-        return Inertia::render('Fertilizers', compact('units', 'subfamilies', 'months', 'costCenters', 'fertilizers', 'season', 'data', 'data2', 'data3', 'totalData1', 'totalData2', 'percentage', 'varieties', 'fruits', 'products'));
+        return Inertia::render('Fertilizers', compact('units', 'subfamilies', 'months', 'costCenters', 'groupings', 'fertilizers', 'season', 'data', 'data2', 'data3', 'totalData1', 'totalData2', 'percentage', 'varieties', 'fruits', 'products'));
     }
 
     private function getSubfamilies($costCenterId, $surface = null, $bills = false)

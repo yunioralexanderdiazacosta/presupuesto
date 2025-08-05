@@ -336,6 +336,9 @@ class HarvestsController extends Controller
         ];
     });
 
+
+    
+
          // Obtener variedades asociadas a los cost centers de este equipo y temporada
         $varieties = \App\Models\Variety::whereIn('id',
             \App\Models\CostCenter::where('season_id', $season_id)
@@ -353,6 +356,21 @@ class HarvestsController extends Controller
         // Obtener frutas asociadas a las variedades filtradas
         $fruits = \App\Models\Fruit::whereIn('id', $varieties->pluck('fruit_id')->unique()->filter())->orderBy('name')->get(['id', 'name']);
 
+
+          $groupings = \App\Models\Grouping::with(['costCenters' => function($q) use ($season_id, $user) {
+            $q->select('cost_centers.id', 'cost_centers.name')->where('season_id', $season_id);
+        }])
+        ->where('season_id', $season_id)
+        ->whereHas('season.team', fn($q) => $q->where('team_id', $user->team_id))
+        ->get()
+        ->map(fn($g) => [
+            'id' => $g->id,
+            'name' => $g->name,
+            'cost_centers' => $g->costCenters->map(fn($cc) => [
+                'id' => $cc->id,
+                'name' => $cc->name
+            ])->values(),
+        ]);
 
         $costCentersId = $costCenters->pluck('value');
 
@@ -409,7 +427,7 @@ class HarvestsController extends Controller
         $totalData1 = number_format($this->totalData1, 0, ',', '.');
         $totalData2 = number_format($this->totalData2, 0, ',', '.');
 
-        return Inertia::render('Harvests', compact('units', 'subfamilies', 'months', 'costCenters', 'harvests', 'data', 'data2', 'data3', 'season', 'totalData1', 'totalData2', 'percentage', 'varieties', 'fruits', 'level2s'));
+        return Inertia::render('Harvests', compact('units', 'subfamilies', 'months', 'costCenters', 'groupings', 'harvests', 'data', 'data2', 'data3', 'season', 'totalData1', 'totalData2', 'percentage', 'varieties', 'fruits', 'level2s'));
     }
 
     private function getSubfamilies($costCenterId, $surface = null, $bills = false)

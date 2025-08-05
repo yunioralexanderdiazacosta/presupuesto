@@ -258,6 +258,7 @@ const filteredDataGastos = computed(() => {
 });
 
 // Monto total dinámico para la pestaña Gastos por Hectarea (de filteredDataGastos)
+
 const totalFilteredDataGastos = computed(() => {
   let total = 0;
   filteredDataGastos.value.forEach(cc => {
@@ -266,6 +267,18 @@ const totalFilteredDataGastos = computed(() => {
         let amount = typeof product.totalAmount === 'string' ? Number(product.totalAmount.replace(/\./g, '').replace(/,/g, '.')) : Number(product.totalAmount);
         if (!isNaN(amount)) total += amount;
       });
+    });
+  });
+  return total.toLocaleString('es-ES', { maximumFractionDigits: 0 });
+});
+
+// Monto total dinámico para la pestaña Detalle de compra (de data2)
+const totalDetalleCompra = computed(() => {
+  let total = 0;
+  (props.data2 || []).forEach(subfamily => {
+    (subfamily.products || []).forEach(product => {
+      let amount = typeof product.totalAmount === 'string' ? Number(product.totalAmount.replace(/\./g, '').replace(/,/g, '.')) : Number(product.totalAmount);
+      if (!isNaN(amount)) total += amount;
     });
   });
   return total.toLocaleString('es-ES', { maximumFractionDigits: 0 });
@@ -755,7 +768,7 @@ const onFilter = () => {
                                 <div class="card-body d-flex flex-column justify-content-end py-1 px-2">
                                   <div class="row">
                                     <div class="col">
-                                      <p class="font-sans-serif lh-1 mb-1 fs-8 small-card-number">{{totalData2}}</p>
+                                      <p class="font-sans-serif lh-1 mb-1 fs-8 small-card-number">{{ totalDetalleCompra }}</p>
                                     </div>
                                   </div>
                                 </div>

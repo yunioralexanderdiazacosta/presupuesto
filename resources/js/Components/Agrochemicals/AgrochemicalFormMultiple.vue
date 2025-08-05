@@ -288,7 +288,7 @@ const onProduct2Select = (item) => {
 <template>
     <div class="row gy-1">
         <div class="col-sm-4">
-            <label for="families" class="col-form-label">Nivel 3</label>
+            <label for="families" class="col-form-label mb-0">Nivel 3</label>
             <div class="input-group mb-2">
                 <span class="input-group-text"
                     ><i class="fas fa-layer-group"></i
@@ -306,20 +306,21 @@ const onProduct2Select = (item) => {
             </div>
             <InputError class="mt-2" :message="form.errors.subfamily_id" />
         </div>
-        <div class="col-sm-7">
-        
-            <label for="cc" class="col-form-label">CC</label>
+        <div class="col-sm-8">
+
+            <label for="cc" class="col-form-label mb-0">CC</label>
             <div class="input-group mb-2">
                 <span class="input-group-text"
                     ><i class="fas fa-sitemap"></i
                 ></span>
                 <Multiselect
                     mode="tags"
+                    tagClass="small-tag"
                     :placeholder="'Seleccione CC'"
                     v-model="form.cc"
                     :close-on-select="false"
                     :options="$page.props.costCenters"
-                    class="form-control"
+                    class="form-control" style="height:52px;"
                     :class="{ 'is-invalid': form.errors.cc }"
                     :searchable="true"
                     :hide-selected="false"
@@ -333,25 +334,21 @@ const onProduct2Select = (item) => {
 
 
 
-        <!-- Selector de agrupación -->
+        <!-- Selector de agrupación con Multiselect -->
         <div class="col-sm-4">
-            <div class="input-group mb-2">
+            <label for="grouping" class="col-form-label mb-0">Agrupación</label>
+            <div class="input-group mb-2 ">
                 <span class="input-group-text"><i class="fas fa-object-group"></i></span>
-                <select
+                <Multiselect
                     id="grouping"
                     v-model="selectedGrouping"
-                    class="form-select"
-                    aria-label="Agrupación"
-                >
-                    <option value="" disabled>Seleccione agrupación</option>
-                    <option
-                        v-for="g in page.props.groupings"
-                        :key="g.id"
-                        :value="g.id"
-                    >
-                        {{ g.name }}
-                    </option>
-                </select>
+                    :options="page.props.groupings.map(g => ({ value: g.id, label: g.name }))"
+                    :placeholder="'Seleccione agrupación'"
+                    :searchable="true"
+                    :close-on-select="true"
+                    :hide-selected="false"
+                    class="form-control"
+                />
             </div>
         </div>
     </div>
@@ -865,4 +862,7 @@ label {
 }
 
 
+
+
 </style>
+

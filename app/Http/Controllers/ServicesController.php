@@ -332,9 +332,7 @@ public $totalHarvest = 0;
         ->orderBy('name')
         ->get();
 
-        // Obtener frutas asociadas a las variedades filtradas
-        $fruits = \App\Models\Fruit::whereIn('id', $varieties->pluck('fruit_id')->unique()->filter())->orderBy('name')->get(['id', 'name']);
-
+       
 
         $costCentersId = $costCenters->pluck('value');
 
@@ -372,7 +370,20 @@ public $totalHarvest = 0;
         // Obtener frutas asociadas a las variedades filtradas
         $fruits = \App\Models\Fruit::whereIn('id', $varieties->pluck('fruit_id')->unique()->filter())->orderBy('name')->get(['id', 'name']);
 
-       
+         $groupings = \App\Models\Grouping::with(['costCenters' => function($q) use ($season_id, $user) {
+            $q->select('cost_centers.id', 'cost_centers.name')->where('season_id', $season_id);
+        }])
+        ->where('season_id', $season_id)
+        ->whereHas('season.team', fn($q) => $q->where('team_id', $user->team_id))
+        ->get()
+        ->map(fn($g) => [
+            'id' => $g->id,
+            'name' => $g->name,
+            'cost_centers' => $g->costCenters->map(fn($cc) => [
+                'id' => $cc->id,
+                'name' => $cc->name
+            ])->values(),
+        ]);
 
       // Calcular totales usando el trait
         $totalSupplies = $this->getTotalSupplies($season_id, $user->team_id);
@@ -390,7 +401,7 @@ public $totalHarvest = 0;
         $totalData1 = number_format($this->totalData1, 0, ',', '.');
         $totalData2 = number_format($this->totalData2, 0, ',', '.');
 
-        return Inertia::render('Services', compact('units', 'subfamilies', 'months', 'costCenters', 'services', 'data', 'data2', 'data3', 'season', 'totalData1', 'totalData2', 'percentage', 'varieties', 'fruits'));
+        return Inertia::render('Services', compact('units', 'subfamilies', 'months', 'costCenters', 'groupings', 'services', 'data', 'data2', 'data3', 'season', 'totalData1', 'totalData2', 'percentage', 'varieties', 'fruits'));
     }
 
     private function getSubfamilies($costCenterId, $surface = null, $bills = false)

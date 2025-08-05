@@ -238,6 +238,24 @@ class SuppliesController extends Controller
         // Obtener frutas asociadas a las variedades filtradas
         $fruits = \App\Models\Fruit::whereIn('id', $varieties->pluck('fruit_id')->unique()->filter())->orderBy('name')->get(['id', 'name']);
 
+
+  $groupings = \App\Models\Grouping::with(['costCenters' => function($q) use ($season_id, $user) {
+            $q->select('cost_centers.id', 'cost_centers.name')->where('season_id', $season_id);
+        }])
+        ->where('season_id', $season_id)
+        ->whereHas('season.team', fn($q) => $q->where('team_id', $user->team_id))
+        ->get()
+        ->map(fn($g) => [
+            'id' => $g->id,
+            'name' => $g->name,
+            'cost_centers' => $g->costCenters->map(fn($cc) => [
+                'id' => $cc->id,
+                'name' => $cc->name
+            ])->values(),
+        ]);
+
+
+        
         $data2 = Supply::from('supplies as s')
             ->join('supply_items as si', 's.id', 'si.supply_id')
             ->join('level3s as l3', 's.subfamily_id', 'l3.id')
@@ -286,6 +304,7 @@ class SuppliesController extends Controller
             'percentage' => $percentage,
             'varieties' => $varieties,
             'fruits' => $fruits,
+            'groupings' => $groupings,
         ]);
     }
 

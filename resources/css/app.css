@@ -15,3 +15,25 @@ input{
     text-transform: uppercase;
 }
 
+/* Regla global para achicar los tags de Vue Multiselect */
+
+.multiselect .multiselect-tags .multiselect-tag .multiselect-tag-wrapper {
+  padding: 0 !important;  font-size: 0.6rem !important;
+  line-height: 1 !important;
+  display: inline-flex;
+  align-items: center;
+  padding: 1px 3px !important;
+  height: 16px !important;
+  max-height: 16px !important;
+  margin-right: 2px !important;
+  border-radius: 1px !important;
+}
+.multiselect .multiselect-tags .multiselect-tag .multiselect-tag-remove {
+  width: 12px !important;
+  height: 12px !important;
+  margin-left: 0px !important;
+ padding: 0 !important;
+  font-size: 0.6rem !important;
+  line-height: 1 !important;
+  
+}

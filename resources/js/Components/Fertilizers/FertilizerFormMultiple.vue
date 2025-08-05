@@ -1,10 +1,6 @@
 <script setup>
 
-import { onMounted } from "vue";
-onMounted(() => {
-    console.log('page.props.products:', page.props.products);
-    console.log('productsList.value:', productsList.value);
-});
+
 
 import { ref, computed, getCurrentInstance, watch } from "vue";
 import Multiselect from "@vueform/multiselect";
@@ -14,6 +10,26 @@ import InputError from "@/Components/InputError.vue";
 const props = defineProps({
     form: Object,
 });
+
+
+// Estado para agrupación seleccionada
+// (Importación única ya presente arriba)
+const selectedGrouping = ref("");
+
+// Watch para autocompletar cost centers al seleccionar agrupación
+watch(selectedGrouping, (newGroupingId) => {
+  if (!newGroupingId) return;
+  // Buscar la agrupación seleccionada en los datos del backend
+  const grouping = page.props.groupings?.find(g => g.id == newGroupingId);
+  if (grouping && Array.isArray(grouping.cost_centers)) {
+    // IDs de los cost centers de la agrupación
+    const groupCCs = grouping.cost_centers.map(cc => cc.id);
+    // Siempre seleccionar todos los de la agrupación
+    props.form.cc = groupCCs;
+  }
+});
+
+
 
 // Preparar acceso a productos para sugerencias (cuando estén disponibles)
 const { appContext } = getCurrentInstance();
@@ -208,6 +224,25 @@ watch(
                     />
                 </div>
                 <InputError class="mt-2" :message="form.errors.cc" />
+            </div>
+        </div>
+
+
+          <!-- Selector de agrupación con Multiselect -->
+        <div class="col-sm-4">
+            <label for="grouping" class="col-form-label mb-0">Agrupación</label>
+            <div class="input-group mb-2 ">
+                <span class="input-group-text"><i class="fas fa-object-group"></i></span>
+                <Multiselect
+                    id="grouping"
+                    v-model="selectedGrouping"
+                    :options="page.props.groupings.map(g => ({ value: g.id, label: g.name }))"
+                    :placeholder="'Seleccione agrupación'"
+                    :searchable="true"
+                    :close-on-select="true"
+                    :hide-selected="false"
+                    class="form-control"
+                />
             </div>
         </div>
     </div>
