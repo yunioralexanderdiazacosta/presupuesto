@@ -26,8 +26,10 @@ class Level3Controller extends Controller
             $query->where('season_id', 1);
         })->where('name', $level2->name)->count();
 
+        $total = $levels->total(); 
+
         $importado = $count > 0 ? Importlevel::where('user_id', $user->id)->where('level2_id', $level2->id)->first() : null;     
 
-        return Inertia::render('Levels/Level3', compact('level2', 'levels', 'term', 'importado'));
+        return Inertia::render('Levels/Level3', compact('level2', 'levels', 'term', 'importado', 'total'));
     }
 }

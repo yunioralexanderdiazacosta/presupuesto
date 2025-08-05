@@ -5,6 +5,7 @@ namespace App\Http\Middleware;
 use Illuminate\Http\Request;
 use Inertia\Middleware;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Http;
 use App\Models\Season;
 
 class HandleInertiaRequests extends Middleware
@@ -38,8 +39,12 @@ class HandleInertiaRequests extends Middleware
      */
     public function share(Request $request): array
     {
+        $prices = Http::get("https://mindicador.cl/api") ?? '';
+        $price  = $prices ? $prices['dolar']['valor'] : '';
+
         return array_merge(parent::share($request), [
             'public_path' => env('APP_URL'),
+            'price'       => $price,
             'temporada' => session('season_id') ? strtoupper(Season::select('name')->where('id', session('season_id'))->first()->name) : '',
             'gates' => function() {
                 $user = Auth::user();
