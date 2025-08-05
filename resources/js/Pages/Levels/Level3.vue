@@ -13,7 +13,8 @@ import Title from '@/Components/SubLevels/Title.vue';
 const props = defineProps({
     levels: Object,
     level2: Object,
-    term: String
+    term: String,
+    importado: Object
 });
 
 const form = useForm({
@@ -96,6 +97,27 @@ const onDeleted = (id) => {
 const onFilter = () => {
   router.get(route('level3.index', {level2: props.level2.id, term: term.value}), { preserveState: true});  
 }
+
+const importLevel = () => {
+    Swal.fire({
+        title: '¿Estás seguro de que desea importar?',
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonColor: 'rgb(0, 158, 247)',
+        cancelButtonColor: '#6e6e6e',
+        cancelButtonText: 'Cancelar',
+        confirmButtonText: 'Confirmar',
+    }).then((result) => {
+        if (result.isConfirmed) {
+            router.get(route('levels3.import', props.level2.id), {
+                preserveScroll: true,
+                onSuccess: () => {
+                    msgSuccess('Importado correctamente');
+                }
+            });
+        }
+    });
+}
 </script>
 <template>
     <Head :title="title" />
@@ -112,6 +134,16 @@ const onFilter = () => {
                     </div>
                     <div class="col-auto ms-auto">
                         <div class="d-flex justify-content-end" data-kt-customer-table-toolbar="base">
+                            <!--begin::Import-->
+                            <button type="button" v-if="!importado" @click="importLevel()" class="btn btn-light-primary me-3">
+                            <!--begin::Svg Icon | path: icons/duotune/arrows/arr078.svg-->
+                            <span class="svg-icon svg-icon-2 me-1">
+                                <i class="fas fa-file-import"></i>
+                            </span> 
+                            <!--end::Svg Icon-->Importar Data
+                            </button>
+                            <!--end::Import-->
+
                             <!--begin::Export-->
                             <a :href="route('levels3.pdf', {level2: $page.props.level2.id, term: term})" target="_blank" class="btn btn-light-primary me-3">
                             <!--begin::Svg Icon | path: icons/duotune/arrows/arr078.svg-->

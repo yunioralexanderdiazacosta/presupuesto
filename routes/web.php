@@ -81,6 +81,7 @@ use App\Http\Controllers\Level2s\DeleteLevel2Controller;
 use App\Http\Controllers\Level3s\StoreLevel3Controller;
 use App\Http\Controllers\Level3s\UpdateLevel3Controller;
 use App\Http\Controllers\Level3s\DeleteLevel3Controller;
+use App\Http\Controllers\Level3s\ImportLevel3Controller;
 use App\Http\Controllers\Level4s\StoreLevel4Controller;
 use App\Http\Controllers\Level4s\UpdateLevel4Controller;
 use App\Http\Controllers\Level4s\DeleteLevel4Controller;
@@ -164,7 +165,6 @@ use App\Http\Controllers\Groupings\StoreGroupingController;
 use App\Http\Controllers\Groupings\UpdateGroupingController;
 use App\Http\Controllers\Groupings\DeleteGroupingController;
 use App\Http\Controllers\GroupingsController;
-
 
 
 use Inertia\Inertia;
@@ -293,6 +293,7 @@ Route::middleware([
     Route::get('/level3/{level2}/index', Level3Controller::class)->name('level3.index');
     Route::get('/level3/{level2}/pdf', Levels3PdfController::class)->name('levels3.pdf');
     Route::get('/level3/{level2}/excel', Levels3ExcelController::class)->name('levels3.excel');
+    Route::get('/level3/{level2}/import', ImportLevel3Controller::class)->name('levels3.import');
     Route::post('/level3/store', StoreLevel3Controller::class)->name('level3.store');
     Route::post('/level3/{level3}/update', UpdateLevel3Controller::class)->name('level3.update');
     Route::delete('/level3/{level3}/delete', DeleteLevel3Controller::class)->name('level3.delete');
