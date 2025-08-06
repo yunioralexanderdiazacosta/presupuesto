@@ -150,26 +150,31 @@ const logout = () => {
               </a>
               <ul class="nav collapse show" id="user">
                 <li class="nav-item">
-                  <Link class="nav-link" :href="route('cost.centers.index')">
+                  <a class="nav-link dropdown-indicator" href="#costcenters" data-bs-toggle="collapse" aria-expanded="false" aria-controls="costcenters">
                     <div class="d-flex align-items-center">
                       <span class="nav-link-text ps-3">Centros de costos</span>
-                      <span v-if="hasCostCenter !== null" class="ms-2">
-                        <span v-if="hasCostCenter" class="text-success"><i class="fas fa-check-circle"></i></span>
-                        <span v-else class="text-danger"><i class="fas fa-times-circle"></i></span>
-                      </span>
                     </div>
-                  </Link>
-                  <!-- more inner pages-->
-                </li>
-                  
-                 <li class="nav-item">
-                  <Link class="nav-link" :href="route('groupings.index')">
-                    <div class="d-flex align-items-center">
-                      <span class="nav-link-text ps-3">Agrupaciones de Cc</span>
-                      
-                    </div>
-                  </Link>
-                  <!-- more inner pages-->
+                  </a>
+                  <ul class="nav collapse" id="costcenters">
+                    <li class="nav-item">
+                      <Link class="nav-link" :href="route('cost.centers.index')">
+                        <div class="d-flex align-items-center">
+                          <span class="nav-link-text ps-4">Crear Cc</span>
+                          <span v-if="hasCostCenter !== null" class="ms-2">
+                            <span v-if="hasCostCenter" class="text-success"><i class="fas fa-check-circle"></i></span>
+                            <span v-else class="text-danger"><i class="fas fa-times-circle"></i></span>
+                          </span>
+                        </div>
+                      </Link>
+                    </li>
+                    <li class="nav-item">
+                      <Link class="nav-link" :href="route('groupings.index')">
+                        <div class="d-flex align-items-center">
+                          <span class="nav-link-text ps-4"> Crear Grupos Cc</span>
+                        </div>
+                      </Link>
+                    </li>
+                  </ul>
                 </li>
 
 

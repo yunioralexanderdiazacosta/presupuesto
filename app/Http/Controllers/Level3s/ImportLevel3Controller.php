@@ -14,6 +14,11 @@ class ImportLevel3Controller extends Controller
     {
         $user = Auth::user();
 
+        // Validar si ya existen registros de Level3 para el Level2 destino
+        if (Level3::where('level2_id', $level2->id)->exists()) {
+            return response()->json(['error' => 'Ya existen registros de Nivel 3 para este Nivel 2.'], 409);
+        }
+
         $level = Level2::select('id')->whereHas('level1', function($query) use ($user){
             $query->where('season_id', 1);
         })->where('name', $level2->name)->first();

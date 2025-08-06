@@ -18,6 +18,7 @@ class GroupingsController extends Controller
         $term = $request->term ?? '';
 
         $groupings = Grouping::with(['season', 'costCenters'])
+        ->where('team_id', auth()->user()->team_id)
             ->when($term, function ($query, $search) {
                 $query->where('name', 'like', '%'.$search.'%');
             })

@@ -114,6 +114,19 @@ const importLevel = () => {
                 preserveScroll: true,
                 onSuccess: () => {
                     msgSuccess('Importado correctamente');
+                },
+                onError: (errors) => {
+                    let msg = 'No se pudo importar.';
+                    if (errors && errors.error) {
+                        msg = errors.error;
+                    }
+                    Swal.fire({
+                        position: 'top-end',
+                        icon: 'error',
+                        title: msg,
+                        showConfirmButton: false,
+                        timer: 2000
+                    });
                 }
             });
         }

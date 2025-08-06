@@ -39,8 +39,8 @@ class HandleInertiaRequests extends Middleware
      */
     public function share(Request $request): array
     {
-        $prices = Http::get("https://mindicador.cl/api") ?? '';
-        $price  = $prices ? $prices['dolar']['valor'] : '';
+        // API desactivada temporalmente para desarrollo
+        $price = '';
 
         return array_merge(parent::share($request), [
             'public_path' => env('APP_URL'),
