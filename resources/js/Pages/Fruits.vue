@@ -127,7 +127,7 @@ const onFilter = () => {
                             <ExportExcelButton
                               :data="fruits.data"
                               :headers="[{ label: 'Nombre', key: 'name' }]"
-                              class="btn btn-success btn-md d-flex align-items-center p-0"
+                             
                               filename="Frutales.xlsx"
                             />
                             <ExportPdfButton

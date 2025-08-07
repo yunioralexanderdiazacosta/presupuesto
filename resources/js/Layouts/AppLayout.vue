@@ -437,7 +437,7 @@ const logout = () => {
         </ul>
         <ul class="navbar-nav navbar-nav-icons ms-auto flex-row align-items-center">
           <li class="nav-item">
-            <span class="fs-6">$: {{$page.props.price ?? ''}}</span>
+<span class="fs-9 fw-normal">Dolar: {{$page.props.price ?? ''}}</span>
           </li>
           <li class="nav-item">
             <button @click="toggleDarkMode" class="btn btn-sm btn-secondary ms-2" title="Alternar modo oscuro">

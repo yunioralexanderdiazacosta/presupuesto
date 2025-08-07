@@ -28,7 +28,7 @@ class CheckBanned
         }
 
         if(auth()->check() && !$request->session()->has('price')){
-            $prices = Http::get("https://mindicador.cl/api") ?? '';
+            $prices = Http::withOptions(["verify"=>false])->get("https://mindicador.cl/api") ?? '';
             $price  = $prices ? $prices['dolar']['valor'] : '';
             session(['price' => $price]);
         }

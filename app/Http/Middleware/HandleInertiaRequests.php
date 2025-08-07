@@ -41,6 +41,9 @@ class HandleInertiaRequests extends Middleware
     {
         // API desactivada temporalmente para desarrollo
         $price = session('price');
+          if ($price !== null && $price !== '') {
+            $price = number_format((float)$price, 1, '.', '');
+        }
 
         return array_merge(parent::share($request), [
             'public_path' => env('APP_URL'),
