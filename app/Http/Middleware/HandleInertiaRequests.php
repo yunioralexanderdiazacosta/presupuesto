@@ -40,7 +40,7 @@ class HandleInertiaRequests extends Middleware
     public function share(Request $request): array
     {
         // API desactivada temporalmente para desarrollo
-        $price = '';
+        $price = session('price');
 
         return array_merge(parent::share($request), [
             'public_path' => env('APP_URL'),
