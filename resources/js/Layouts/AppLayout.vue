@@ -436,6 +436,9 @@ const logout = () => {
           </li>
         </ul>
         <ul class="navbar-nav navbar-nav-icons ms-auto flex-row align-items-center">
+          <li class="nav-item me-3" v-if="$page.props.auth.user.team">
+            <span class="fs-9 fw-bold">{{$page.props.auth.user.team.name}}</span>
+          </li>
           <li class="nav-item">
 <span class="fs-9 fw-normal">Dolar: {{$page.props.price ?? ''}}</span>
           </li>
