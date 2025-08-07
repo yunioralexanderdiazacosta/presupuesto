@@ -14,10 +14,8 @@
         season_id: Number,
         enableEdit: Boolean
     });
-    // Igual que Estimates.vue: frutaOptions solo mapea id y name
 
     const fruitOptions = computed(() => props.fruits?.map(f => ({ id: f.id, name: f.name })) || []);
-
 
     // Estado local para selects
     const selectedFruitId = ref('');
@@ -26,6 +24,11 @@
         return props.estimate_statuses.filter(s => s.fruit_id == selectedFruitId.value).map(s => ({ id: s.id, name: s.name }));
     });
     const selectedEstimateStatusId = ref('');
+
+    // Modal y campos para nuevo estado de estimación
+    const showModal = ref(false);
+    const nuevoNombre = ref('');
+    const nuevoFruitId = ref('');
 
     // Inicializar fruta al primero disponible
     watch(() => props.fruits, (fruits) => {
@@ -43,6 +46,34 @@
         const opts = props.estimate_statuses.filter(s => s.fruit_id == newId);
         selectedEstimateStatusId.value = opts.length ? opts[0].id : '';
     });
+
+    // Guardar nuevo estado de estimación
+    function guardarEstimateStatus() {
+        if (!nuevoNombre.value || !nuevoFruitId.value) return;
+        // Usar fetch para evitar recargar toda la página
+        fetch(route('estimate-status.store'), {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content'),
+                'Accept': 'application/json',
+            },
+            body: JSON.stringify({ name: nuevoNombre.value, fruit_id: nuevoFruitId.value })
+        })
+        .then(res => res.json())
+        .then(data => {
+            if (data && data.id) {
+                showModal.value = false;
+                nuevoNombre.value = '';
+                nuevoFruitId.value = '';
+                // Recargar solo los datos del componente padre (emitir evento o recargar Inertia)
+                window.location.reload();
+            } else {
+                alert(data.error || 'Error al guardar');
+            }
+        })
+        .catch(() => alert('Error al guardar'));
+    }
 
     const kilosInputs = ref([]);
     const observationsInputs = ref([]);
@@ -109,6 +140,46 @@
     }
 </script>
 <template>
+    <!-- Botón para crear nombre de estimación (siempre visible, alineado a la izquierda) -->
+    <div class="mb-2 d-flex justify-content-end">
+        <button v-if="true" class="btn btn-primary btn-sm" @click="() => { showModal = true; nuevoFruitId = selectedFruitId }">
+            Crear nombre de estimación
+        </button>
+    </div>
+
+    <!-- Modal para crear nuevo estado de estimación (estilo Bootstrap mejorado) -->
+    <div v-if="showModal" class="modal fade show" tabindex="-1" style="display:block; background:rgba(0,0,0,0.3); z-index: 1050; position: fixed; top:0; left:0; width:100vw; height:100vh;">
+      <div class="modal-dialog modal-lg mt-6 d-flex align-items-center justify-content-center" style="min-height:100vh;">
+        <div class="modal-content border-0 shadow rounded-3 position-relative" style="min-width:350px;">
+          <!-- Botón de cierre arriba a la derecha -->
+          <div class="position-absolute top-0 end-0 mt-3 me-3 z-1">
+            <button class="btn-close btn btn-sm btn-circle d-flex flex-right transition-base" type="button" aria-label="Close" @click="showModal = false"></button>
+          </div>
+          <div class="modal-body p-0">
+            <div class="rounded-top-3 bg-body-tertiary py-3 ps-4 pe-6">
+              <h5 class="mb-1" id="staticBackdropLabel">Nuevo nombre de estimación</h5>
+              <p class="fs-11 mb-0">Asocia un nombre a una fruta</p>
+            </div>
+            <div class="p-4">
+              <div class="mb-3">
+                <label class="form-label">Nombre estimación</label>
+                <input v-model="nuevoNombre" class="form-control" placeholder="Nombre estimación" />
+              </div>
+              <div class="mb-3">
+                <label class="form-label">Fruta</label>
+                <select v-model="nuevoFruitId" class="form-select">
+                  <option v-for="f in fruitOptions" :key="f.id" :value="f.id">{{ f.name }}</option>
+                </select>
+              </div>
+              <div class="d-flex justify-content-end gap-2">
+                <button class="btn btn-success btn-sm" @click="guardarEstimateStatus">Guardar</button>
+                <button class="btn btn-secondary btn-sm" @click="showModal = false">Cancelar</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
     <div class="row mb-3 align-items-end">
         <div class="col-md-6">
             <label class="form-label mb-1">Fruta</label>

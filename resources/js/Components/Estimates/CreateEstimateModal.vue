@@ -150,7 +150,7 @@ const handleDelete = (id) => {
 <template>
     <Modal :maxWidth="'xl'" :id="'createEstimateModal'">
         <template #header>
-            <div class="d-flex align-items-center gap-2 mb-3">
+            <div class="d-flex align-items-center gap-2 mb-3 text-start">
                 <span class="bg-primary text-white rounded-circle d-flex align-items-center justify-content-center" style="width: 38px; height: 38px; font-size: 1.4rem;">
                     <i class="fas fa-chess"></i>
                 </span>

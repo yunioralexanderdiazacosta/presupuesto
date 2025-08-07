@@ -30,43 +30,29 @@ const maxWidthClass = computed(() => {
         <!--begin::Modal dialog-->
         <div class="modal-dialog modal-dialog-centered modal-xl">
             <!--begin::Modal content-->
-            <div class="modal-content rounded bg-modal-custom">
+            <div class="modal-content position-relative rounded bg-modal-custom">
                 <!--begin::Modal header-->
-                <div class="modal-header pb-0 border-0 justify-content-end">
-                    <!--begin::Close-->
-                    <div class="btn btn-sm btn-icon btn-active-color-primary" data-bs-dismiss="modal">
-                        <!--begin::Svg Icon | path: icons/duotune/arrows/arr061.svg-->
-                        <span class="svg-icon svg-icon-1">
-                            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                                <rect opacity="0.5" x="6" y="17.3137" width="16" height="2" rx="1" transform="rotate(-45 6 17.3137)" fill="currentColor" />
-                                <rect x="7.41422" y="6" width="16" height="2" rx="1" transform="rotate(45 7.41422 6)" fill="currentColor" />
-                            </svg>
-                        </span>
-                        <!--end::Svg Icon-->
-                    </div>
-                    <!--end::Close-->
+                <div class="rounded-top-3 bg-white pt-3 pb-0 ps-4 d-flex align-items-center justify-content-between fs-10">
+                    <slot name="header"></slot>
                 </div>
-                <!--begin::Modal header-->
+                <!--end::Modal header-->
+                <!--begin::Close button-->
+                <div class="position-absolute top-0 end-0 mt-2 me-2 z-1">
+                    <button type="button" class="btn-close btn btn-sm btn-circle d-flex flex-center transition-base" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <!--end::Close button-->
                 <!--begin::Modal body-->
                 <div class="modal-body scroll-y px-3 px-lg-5 pt-0 pb-15">
-                    <!--begin:Form-->
-                        <!--begin::Heading-->
-                        <div class="mb-13 text-center">
-                            <slot name="header"></slot>
-                        </div>
-                        <!--end::Heading-->
-                        <!--begin::Body-->
-                        <slot name="body"></slot>
-                        <!--end::Body-->
-                        <div class="separator separator-dashed my-6"></div>
-                        <!--begin::Actions-->
-                        <div class="text-center">
-                            <slot name="footer"></slot>
-                        </div>
-                        <!--end::Actions-->
-                    <!--end:Form-->
+                    <!--begin::Body-->
+                    <slot name="body"></slot>
+                    <!--end::Body-->
                 </div>
                 <!--end::Modal body-->
+                <!--begin::Modal footer-->
+                <div class="modal-footer">
+                    <slot name="footer"></slot>
+                </div>
+                <!--end::Modal footer-->
             </div>
             <!--end::Modal content-->
         </div>

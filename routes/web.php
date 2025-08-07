@@ -1,3 +1,4 @@
+
 <?php
 
 use Illuminate\Foundation\Application;
@@ -202,7 +203,8 @@ Route::middleware([
     })->name('faq');
 
 
-
+// Ruta para crear un nuevo estado de estimación desde el frontend
+  Route::post('/estimate-status', [\App\Http\Controllers\EstimatesController::class, 'storeEstimateStatus'])->name('estimate-status.store');
 
 
     Route::get('/products2', [Product2Controller::class, 'index'])->name('products2.index');
