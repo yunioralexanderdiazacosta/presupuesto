@@ -334,7 +334,12 @@ const logout = () => {
         <ul class="navbar-nav align-items-center d-none d-lg-block">
           <li class="nav-item">
             <div class="search-box" data-list='{"valueNames":["title"]}'>
-              <h1 class="fs-6">{{$page.props.temporada ?? ''}}</h1>
+              <!-- v2: degradado azul suave (igual que v3) -->
+              <span class="d-inline-flex align-items-center px-4 py-2 mb-1 rounded-pill shadow-lg me-3" style="background: linear-gradient(90deg, #6ea8fe 0%, #1e40af 100%); color: #fff;">
+                <span class="fas fa-calendar-alt me-2 fs-8"></span>
+                <span class="fw-bold fs-8">{{$page.props.temporada ?? ''}}</span>
+              </span>
+             
               <div class="dropdown-menu border font-base start-0 mt-2 py-0 overflow-hidden w-100">
                 <div class="scrollbar list py-3" style="max-height: 24rem;">
                   <h6 class="dropdown-header fw-medium text-uppercase px-x1 fs-11 pt-0 pb-2">Recently Browsed</h6><a class="dropdown-item fs-10 px-x1 py-1 hover-primary" href="../../app/events/event-detail.html">
