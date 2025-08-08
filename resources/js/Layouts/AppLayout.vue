@@ -436,37 +436,43 @@ const logout = () => {
           </li>
         </ul>
         <ul class="navbar-nav navbar-nav-icons ms-auto flex-row align-items-center">
-          <li class="nav-item me-3" v-if="$page.props.auth.user.team">
-            <span class="fs-9 fw-bold">{{$page.props.auth.user.team.name}}</span>
+           <li class="nav-item me-2">
+            <span class="d-inline-flex align-items-center bg-white shadow-sm border rounded-pill px-3 py-1 mb-1 text-secondary fw-semibold fs-10 bg-opacity-15">
+              <span class="fas fa-dollar-sign me-2"></span>
+              Dólar: {{$page.props.price ?? ''}}
+            </span>
           </li>
-          <li class="nav-item">
-<span class="fs-9 fw-normal">Dolar: {{$page.props.price ?? ''}}</span>
+          <li class="nav-item me-0" v-if="$page.props.auth.user.team">
+            <span class="d-inline-flex align-items-center bg-white shadow-sm border rounded-pill px-3 py-1 mb-1 text-primary fw-semibold fs-10 bg-opacity-15">
+              <span class="fas fa-users me-2"></span>
+              {{$page.props.auth.user.team.name}}
+            </span>
           </li>
-          <li class="nav-item">
-            <button @click="toggleDarkMode" class="btn btn-sm btn-secondary ms-2" title="Alternar modo oscuro">
-              <span class="fas fa-moon"></span>
-            </button>
-          </li>
+         
+         
           <li class="nav-item dropdown"><a class="nav-link pe-0 ps-2" id="navbarDropdownUser" role="button" data-bs-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
-              <div class="avatar avatar-xl">
+              <div class="avatar avatar-xl bg-primary bg-opacity-25 p-1 rounded-circle">
                 <img class="rounded-circle" :src="$page.props.auth.user.profile_photo_url" alt="photo" />
-
               </div>
             </a>
-            <div class="dropdown-menu dropdown-caret dropdown-caret dropdown-menu-end py-0" aria-labelledby="navbarDropdownUser">
-              <div class="bg-white dark__bg-1000 rounded-2 py-2">
-                <a class="dropdown-item fw-bold text-warning" href="#!"><span class="fas fa-crown me-1"></span><span>{{$page.props.auth.user.name}}</span></a>
-
-                <div class="dropdown-divider"></div>
-                    <a class="dropdown-item" href="#!">Perfil</a>
-                    <div class="dropdown-divider"></div>
-                    <form @submit.prevent="logout">
-                        <JetDropdownLink as="button" class="dropdown-item">
-                            Cerrar Sesión
-                        </JetDropdownLink>
-                    </form>
+            <li class="nav-item dropdown">
+            <div class="dropdown-menu dropdown-caret dropdown-caret dropdown-menu-end ps-2 " aria-labelledby="navbarDropdownUser">
+                <div class="d-flex align-items-center mb-2">
+              <div class="bg-white dark__bg-1000 rounded-2 py-2 px-2 mt-2">
+                  <span class="fas fa-crown text-warning me-2 fs-5"></span>
+                  <span class="fw-normal text-dark">{{$page.props.auth.user.name}}</span>
+                </div>
+                <div class="dropdown-divider my-1"></div>
+                <a class="dropdown-item py-2" href="#!"><span class="fas fa-user me-2 text-primary"></span>Perfil</a>
+                <div class="dropdown-divider my-1"></div>
+                <form @submit.prevent="logout" class="mb-0">
+                  <JetDropdownLink as="button" class="dropdown-item py-2">
+                    <span class="fas fa-sign-out-alt me-2 text-danger"></span>Cerrar Sesión
+                  </JetDropdownLink>
+                </form>
               </div>
             </div>
+            </li>
           </li>
         </ul>
         </nav>
