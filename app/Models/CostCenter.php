@@ -30,7 +30,7 @@ class CostCenter extends Model
     
     public function fruit()
     {
-        return $this->belongsTo(fruit::class);
+        return $this->belongsTo(Fruit::class);
     }
 
     public function variety()
