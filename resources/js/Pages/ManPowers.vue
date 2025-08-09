@@ -343,6 +343,7 @@ const filteredManPowers = computed(() => {
                                 <th width="min-w-100px">SubFamilia</th>
                                 <th width="min-w-100px">Jornadas</th>
                                 <th width="min-w-100px">Precio</th>
+                                <th width="min-w-100px">Digitado por</th>
                                 <th width="min-w-150px" class="text-end text-center">Acciones</th>
                                 <!--end::Table row-->
                             </template>
@@ -360,6 +361,7 @@ const filteredManPowers = computed(() => {
                                         <td>{{ manPower.subfamily?.name || '' }}</td>
                                         <td>{{manPower.workday}}</td>
                                         <td>{{manPower.price}}</td>
+                                        <td>{{ manPower.user ? manPower.user.name : '—' }}</td>
                                         <td class="text-end text-center">
                                             <!--begin::Update-->
                                             <button type="button" @click="openEdit(manPower)" v-tooltip="'Editar'" class="btn btn-link me-3 p-0">

@@ -24,6 +24,7 @@ class StoreHarvestController extends Controller
                 'unit_id'       => $product['unit_id'],
                 'subfamily_id'  => $request->subfamily_id, 
                 'team_id'       => $user->team_id,
+                'user_id'       => $user->id, // Asignar el ID del usuario autenticado 'user_id'
                 'season_id' => $season_id // la temporada activa o seleccionada
             ]);
 

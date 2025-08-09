@@ -27,6 +27,7 @@ class StoreAgrochemicalController extends Controller
                 'dose_type_id'  => $product['dose_type_id'],
                 'subfamily_id'  => $request->subfamily_id, 
                 'team_id'       => $user->team_id,
+                'user_id'       => $user->id, // Asignar el ID del usuario autenticado
                 'season_id' => $season_id // la temporada activa o seleccionada
             ]);
 

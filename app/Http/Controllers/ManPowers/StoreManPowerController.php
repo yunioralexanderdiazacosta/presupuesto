@@ -29,7 +29,9 @@ class StoreManPowerController extends Controller
                 'subfamily_id'  => $request->subfamily_id,
                 'team_id'       => $user->team_id,
                  'season_id' => $season_id, // la temporada activa o seleccionada
-                'unit_id'       => $unit->id
+                'unit_id'       => $unit->id,
+                 'user_id'       => $user->id, // Asignar el ID del usuario autenticado 'user_id'
+
             ]);
 
             foreach($request->get('cc') as $cc){

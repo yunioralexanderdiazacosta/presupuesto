@@ -382,6 +382,7 @@ const onFilter = () => {
                             <th width="min-w-100px">Unidad</th>
                             <th width="min-w-100px">Precio</th>
                             <th width="min-w-100px">Unidad de $</th>
+                            <th width="min-w-100px">Digitado por</th>
                             <th width="min-w-150px" class="text-end text-center">Acciones</th>
                             <!--end::Table row-->
                         </template>
@@ -401,6 +402,7 @@ const onFilter = () => {
                                     <td>{{service.unit.name}}</td>
                                     <td>{{service.price}}</td>
                                     <td>{{service.unit2.name}}</td>
+                                    <td>{{ service.user ? service.user.name : '—' }}</td>
                                     <td class="text-end text-center">
                                         <!--begin::Update-->
                                         <button type="button" @click="openEdit(service)" v-tooltip="'Editar'" class="btn btn-icon btn-active-light-primary w-30px h-30px me-3">

@@ -168,7 +168,7 @@ class FertilizersController extends Controller
             ];
         });
 
-        $fertilizers = Fertilizer::with('subfamily:id,name', 'unit:id,name', 'items:id', 'unit2:id,name')->whereHas('items', function($query) use ($costCenters){
+        $fertilizers = Fertilizer::with('subfamily:id,name', 'unit:id,name', 'items:id', 'unit2:id,name', 'user:id,name')->whereHas('items', function($query) use ($costCenters){
             $query->whereIn('cost_center_id', $costCenters->pluck('value'));
         })->paginate(10)->through(function($fertilizer){
             $items = $fertilizer->items->pluck('pivot');
@@ -187,7 +187,8 @@ class FertilizersController extends Controller
                 'unit'          => $fertilizer->unit,
                 'unit2'     => $fertilizer->unit2,
                 'months'        => array_unique($months),
-                'cc'            => array_values(array_unique($cc))
+                'cc'            => array_values(array_unique($cc)),
+                'user'          => $fertilizer->user ? ['name' => $fertilizer->user->name] : null
             ];
         });
 

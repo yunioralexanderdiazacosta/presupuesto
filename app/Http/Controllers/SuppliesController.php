@@ -159,7 +159,7 @@ class SuppliesController extends Controller
             ];
         });
 
-        $supplies = Supply::with('subfamily:id,name', 'unit:id,name', 'unit2:id,name', 'items:id')
+        $supplies = Supply::with('subfamily:id,name', 'unit:id,name', 'unit2:id,name', 'items:id', 'user:id,name')
             ->whereHas('items', function($query) use ($costCenters){
                 $query->whereIn('cost_center_id', $costCenters->pluck('value'));
             })
@@ -181,7 +181,8 @@ class SuppliesController extends Controller
                     'unit2'         => $supply->unit2,
                     'price'         => $supply->price,
                     'months'        => array_unique($months),
-                    'cc'            => array_values(array_unique($cc))
+                    'cc'            => array_values(array_unique($cc)),
+                    'user'          => $supply->user ? ['name' => $supply->user->name] : null
                 ];
             });
 

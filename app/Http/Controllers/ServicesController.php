@@ -166,7 +166,7 @@ public $totalHarvest = 0;
             ];
         });
 
-        $services = Service::with('subfamily:id,name', 'unit:id,name', 'unit2:id,name', 'items:id')->whereHas('items', function($query) use ($costCenters){
+        $services = Service::with('subfamily:id,name', 'unit:id,name', 'unit2:id,name', 'items:id', 'user:id,name')->whereHas('items', function($query) use ($costCenters){
             $query->whereIn('cost_center_id', $costCenters->pluck('value'));
         })->paginate(10)->through(function($service){
             $items = $service->items->pluck('pivot');
@@ -185,7 +185,8 @@ public $totalHarvest = 0;
                 'unit2'         => $service->unit2,
                 'price'         => $service->price,
                 'months'        => array_unique($months),
-                'cc'            => array_values(array_unique($cc))
+                'cc'            => array_values(array_unique($cc)),
+                'user'          => $service->user ? ['name' => $service->user->name] : null
             ];
         });
 

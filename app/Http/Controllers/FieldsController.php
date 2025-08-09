@@ -241,7 +241,7 @@ class FieldsController extends Controller
 
 
 
-        $fields = Field::with(['subfamily:id,name', 'unit:id,name', 'items'])
+        $fields = Field::with(['subfamily:id,name', 'unit:id,name', 'items', 'user:id,name'])
             ->where('team_id', $team_id)
             ->where('season_id', $season_id)
             ->paginate(10)
@@ -256,6 +256,7 @@ class FieldsController extends Controller
                     'observations'  => $field->observations,
                     'subfamily'     => $field->subfamily,
                     'unit'          => $field->unit,
+                    'user'          => $field->user ? ['name' => $field->user->name] : null,
                     'months'        => $field->items->pluck('month_id')->map(fn($m) => (string)$m)->unique()->values()->toArray(),
                 ];
             });

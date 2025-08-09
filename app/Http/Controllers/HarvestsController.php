@@ -183,7 +183,7 @@ class HarvestsController extends Controller
             ];
         });
 
-        $harvests = Harvest::with('subfamily:id,name', 'unit:id,name', 'unit2:id,name', 'items:id')->whereHas('items', function($query) use ($costCenters){
+        $harvests = Harvest::with('subfamily:id,name', 'unit:id,name', 'unit2:id,name', 'items:id', 'user:id,name')->whereHas('items', function($query) use ($costCenters){
             $query->whereIn('cost_center_id', $costCenters->pluck('value'));
         })->paginate(10)->through(function($harvest){
             $items = $harvest->items->pluck('pivot');
@@ -202,6 +202,7 @@ class HarvestsController extends Controller
                 'unit2'         => $harvest->unit2,
                 'price'         => $harvest->price,
                 'months'        => array_unique($months),
+                'user'          => $harvest->user ? ['name' => $harvest->user->name] : null,
                 'cc'            => array_values(array_unique($cc))
             ];
         });

@@ -102,7 +102,7 @@ const logout = () => {
                       <!-- more inner pages-->
                     </li>
                      <li class="nav-item"><Link class="nav-link" :href="route('harvests.index')">
-                        <div class="d-flex align-items-center"><span class="nav-link-text ps-4 mt-1 mb-1 text-primary">Cosecha</span>
+                        <div class="d-flex align-items-center"><span class="nav-link-text ps-4 mb-1 text-primary">Cosecha</span>
                         </div>
                       </Link>
                       <!-- more inner pages-->

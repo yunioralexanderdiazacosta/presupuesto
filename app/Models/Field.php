@@ -9,7 +9,7 @@ class Field extends Model
 {
     use HasFactory;
 
-    protected $fillable = ['product_name', 'price', 'quantity', 'subfamily_id', 'level2_id', 'unit_id', 'observations', 'team_id','season_id'];
+    protected $fillable = ['product_name', 'price', 'quantity', 'subfamily_id', 'level2_id', 'unit_id', 'observations', 'team_id','season_id', 'user_id'];
 
       public function items()
     {
@@ -42,5 +42,9 @@ class Field extends Model
         return $this->belongsTo(Team::class);
     }       
    
+    public function user()
+    {
+        return $this->belongsTo(User::class);
+    }
 
 }

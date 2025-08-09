@@ -247,6 +247,7 @@ const acum_products = (quantity) => {
                                 <th scope="col" width="min-w-100px">Cantidad</th>
                                 <th scope="col" width="min-w-100px">Unidad</th>
                                 <th scope="col" width="min-w-100px">Precio</th>
+                                <th scope="col" width="min-w-100px">Digitado por</th>
                                 <th scope="col" width="min-w-150px" class="text-end text-center">Acciones</th>
                                 <!--end::Table row-->
                             </template>
@@ -265,6 +266,7 @@ const acum_products = (quantity) => {
                                         <td>{{field.quantity}}</td>
                                         <td>{{field.unit.name}}</td>
                                         <td>{{field.price}}</td>
+                                        <td>{{ field.user ? field.user.name : '—' }}</td>
                                         <td class="text-end text-center">
                                             <!--begin::Update-->
                                             <button type="button" @click="openEdit(field)" v-tooltip="'Editar'" class="btn btn-link me-3 p-0">

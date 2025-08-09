@@ -160,7 +160,7 @@ public $totalHarvest = 0;
             ];
         });
 
-        $manPowers = ManPower::with('subfamily:id,name', 'items:id')->whereHas('items', function($query) use ($costCenters){
+        $manPowers = ManPower::with('subfamily:id,name', 'items:id', 'user:id,name')->whereHas('items', function($query) use ($costCenters){
             $query->whereIn('cost_center_id', $costCenters->pluck('value'));
         })->paginate(10)->through(function($manPower){
             $items = $manPower->items->pluck('pivot');
@@ -176,7 +176,9 @@ public $totalHarvest = 0;
                 'subfamily'     => $manPower->subfamily,
                 'price'         => $manPower->price,
                 'months'        => array_unique($months),
-                'cc'            => array_values(array_unique($cc))
+                'cc'            => array_values(array_unique($cc)),
+                'user'          => $manPower->user ? ['name' => $manPower->user->name] : null
+
             ];
         });
 

@@ -9,7 +9,7 @@ class Service extends Model
 {
     use HasFactory;
 
-    protected $fillable = ['product_name', 'price', 'observations', 'quantity', 'unit_id', 'unit_id_price', 'subfamily_id','team_id', 'season_id'];
+    protected $fillable = ['product_name', 'price', 'observations', 'quantity', 'unit_id', 'unit_id_price', 'subfamily_id','team_id', 'season_id', 'user_id'];
 
     public function items()
     {
@@ -41,6 +41,10 @@ class Service extends Model
         return $this->belongsTo(Season::class);
     }   
 
+    public function user()
+    {
+        return $this->belongsTo(User::class);
+    }
     
 
 }

@@ -372,6 +372,7 @@ const onFilter = () => {
                                 <th scope="col" width="min-w-100px">Tipo Dosis</th>
                                 <th scope="col" width="min-w-100px">Mojamiento</th>
                                 <th scope="col" width="min-w-100px">Precio</th>
+                                <th scope="col" width="min-w-100px">Digitado por</th>
                                 <th scope="col" width="min-w-150px" class="text-end text-center">Acciones</th>
                                 <!--end::Table row-->
                             </template>
@@ -379,7 +380,7 @@ const onFilter = () => {
                             <!--begin::Table body-->
                             <template #body>
                                 <template v-if="filteredAgrochemicals.length == 0">
-                                    <Empty colspan="7" />
+                                    <Empty colspan="8" />
                                 </template>
                                 <template v-else>
                                     <tr v-for="(agrochemical, index) in filteredAgrochemicals" :key="index">
@@ -392,6 +393,7 @@ const onFilter = () => {
                                         <td>{{agrochemical.dosetype.name}}</td>
                                         <td>{{agrochemical.mojamiento}}</td>
                                         <td>{{agrochemical.price}}</td>
+                                        <td>{{ agrochemical.user ? agrochemical.user.name : '—' }}</td>
                                         <td class="text-end text-center">
                                             <!--begin::Update-->
                                             <button type="button" @click="openEdit(agrochemical)" v-tooltip="'Editar'" class="btn btn-link me-3 p-0">

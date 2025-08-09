@@ -140,7 +140,7 @@ class AdministrationsController extends Controller
         }
 
         // Nueva consulta para administrations, sin relación a cost centers
-        $administrations = Administration::with(['subfamily:id,name', 'unit:id,name', 'items'])
+        $administrations = Administration::with(['subfamily:id,name', 'unit:id,name', 'items', 'user:id,name'])
             ->where('team_id', $team_id)
             ->where('season_id', $season_id)
             ->paginate(10)
@@ -155,6 +155,7 @@ class AdministrationsController extends Controller
                     'observations'  => $admin->observations,
                     'subfamily'     => $admin->subfamily,
                     'unit'          => $admin->unit,
+                    'user'          => $admin->user ? ['name' => $admin->user->name] : null,
                     'months'        => $admin->items->pluck('month_id')->map(fn($m) => (string)$m)->unique()->values()->toArray(),
                 ];
             });
