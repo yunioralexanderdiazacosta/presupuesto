@@ -323,7 +323,7 @@ const logout = () => {
         </div>
         </div>
     </nav>
-    <div class="content flex-grow-1">
+  <div class="content flex-grow-1 w-100 px-0" style="margin-left: 150px; margin-right: 24px;">
       <nav class="navbar navbar-light navbar-glass navbar-top navbar-expand">
 
         <button class="btn navbar-toggler-humburger-icon navbar-toggler me-1 me-sm-3" type="button" data-bs-toggle="collapse" data-bs-target="#navbarVerticalCollapse" aria-controls="navbarVerticalCollapse" aria-expanded="false" aria-label="Toggle Navigation"><span class="navbar-toggle-icon"><span class="toggle-line"></span></span></button>
@@ -335,7 +335,7 @@ const logout = () => {
           <li class="nav-item">
             <div class="search-box" data-list='{"valueNames":["title"]}'>
               <!-- v2: degradado azul suave (igual que v3) -->
-              <span class="d-inline-flex align-items-center px-4 py-2 mb-1 rounded-pill shadow-lg me-3" style="background: linear-gradient(90deg, #6ea8fe 0%, #1e40af 100%); color: #fff;">
+              <span class="d-inline-flex align-items-center px-4 py-2 mb-0 mt-1 rounded-pill shadow-lg me-3" style="background: linear-gradient(90deg, #6ea8fe 0%, #1e40af 100%); color: #fff; white-space: nowrap;">
                 <span class="fas fa-calendar-alt me-2 fs-8"></span>
                 <span class="fw-bold fs-8">{{$page.props.temporada ?? ''}}</span>
               </span>
@@ -461,17 +461,17 @@ const logout = () => {
               </div>
             </a>
             <li class="nav-item dropdown">
-            <div class="dropdown-menu dropdown-caret dropdown-caret dropdown-menu-end ps-2 " aria-labelledby="navbarDropdownUser">
-                <div class="d-flex align-items-center mb-2">
-              <div class="bg-white dark__bg-1000 rounded-2 py-2 px-2 mt-2">
+            <div class="dropdown-menu dropdown-caret dropdown-caret dropdown-menu-end ps-2" aria-labelledby="navbarDropdownUser">
+              <div class="d-flex flex-column align-items-start mb-2">
+                <div class="bg-white dark__bg-1000 rounded-2 py-2 px-2 mt-2 w-100">
                   <span class="fas fa-crown text-warning me-2 fs-5"></span>
                   <span class="fw-normal text-dark">{{$page.props.auth.user.name}}</span>
                 </div>
-                <div class="dropdown-divider my-1"></div>
-                <a class="dropdown-item py-2" href="#!"><span class="fas fa-user me-2 text-primary"></span>Perfil</a>
-                <div class="dropdown-divider my-1"></div>
-                <form @submit.prevent="logout" class="mb-0">
-                  <JetDropdownLink as="button" class="dropdown-item py-2">
+                <div class="dropdown-divider my-1 w-100"></div>
+                <a class="dropdown-item py-2 w-100" href="#!"><span class="fas fa-user me-2 text-primary"></span>Perfil</a>
+                <div class="dropdown-divider my-1 w-100"></div>
+                <form @submit.prevent="logout" class="mb-0 w-100">
+                  <JetDropdownLink as="button" class="dropdown-item py-2 w-100">
                     <span class="fas fa-sign-out-alt me-2 text-danger"></span>Cerrar Sesión
                   </JetDropdownLink>
                 </form>

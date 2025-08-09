@@ -527,7 +527,7 @@ onMounted(() => {
           -->
 
 
-          <div class="card ecommerce-card-min-width mb-3">
+          <div class="card ecommerce-card-min-width mb-3 mt-2">
             <div class="card-header pb-2 bg-info bg-opacity-10">
               <h5 class="mb-0 mt-1 d-flex align-items-center fs-10">Ultima Estimación de kilos por Especie
                 <span class="ms-1 text-400" data-bs-toggle="tooltip" data-bs-placement="top" title="Kilos estimados agrupados por fruta">
@@ -669,7 +669,7 @@ onMounted(() => {
         <!-- Columna derecha: Pie chart y gráfico de barras -->
         <div class="col-xl-7 col-lg-6 d-flex flex-column">
           <!-- Gráfico de barras Falcon modernizado -->
-          <div class="card shadow-sm mb-3 border-0 bg-white">
+          <div class="card shadow-sm mb-3 mt-2 border-0 bg-white">
             <div class="card-header bg-white border-0 pb-2 pt-3 d-flex align-items-center">
               <span class="me-2"><span class="fas fa-chart-bar text-primary"></span></span>
               <h6 class="mb-0">Gráfico: Totales agrupados por Nivel 1</h6>
