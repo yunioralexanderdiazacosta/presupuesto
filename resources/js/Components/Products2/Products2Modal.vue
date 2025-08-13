@@ -57,7 +57,7 @@ onMounted(() => {
               >
                 <td>{{ item.name }}</td>
                 <td>{{ item.active_ingredient }}</td>
-                <td>{{ item.price | currency }}</td>
+                <td>{{ item.price !== undefined && item.price !== null ? Number(item.price).toFixed(2) : '' }}</td>
                 <td>{{ item.unit }}</td>
               </tr>
             </template>

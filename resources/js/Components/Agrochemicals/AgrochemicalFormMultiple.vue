@@ -19,6 +19,7 @@ watch(selectedGrouping, (newGroupingId) => {
 
 
 import { ref, computed, getCurrentInstance, watch } from "vue";
+import { usePage } from '@inertiajs/vue3';
 import Multiselect from "@vueform/multiselect";
 import TextInput from "@/Components/TextInput.vue";
 import InputError from "@/Components/InputError.vue";
@@ -35,6 +36,7 @@ const props = defineProps({
 // Preparar acceso a productos para sugerencias (cuando estén disponibles)
 const { appContext } = getCurrentInstance();
 const page = appContext.config.globalProperties.$page || { props: {} };
+const sessionPrice = usePage().props.price ?? 1;
 
 
 // Normalizar productsList para que siempre sea [{name, level3}]
@@ -89,7 +91,8 @@ const selectSuggestion = (index, product) => {
     showSuggestions.value[index] = false;
     // Asignar el precio automáticamente si existe
     if (typeof product.price !== 'undefined') {
-        props.form.products[index].price = product.price;
+        // Multiplica por el dólar de sesión y guarda como entero
+        props.form.products[index].price = parseInt(Number(product.price) * Number(sessionPrice));
     } else {
         props.form.products[index].price = '';
     }
@@ -108,7 +111,7 @@ watch(
         newNames.forEach((name, idx) => {
             const found = productsList.value.find(p => p.name === name);
             if (found && typeof found.price !== 'undefined') {
-                props.form.products[idx].price = found.price;
+                props.form.products[idx].price = parseInt(Number(found.price) * Number(sessionPrice));
             } else {
                 props.form.products[idx].price = '';
             }
@@ -129,7 +132,7 @@ const onInput = (index) => {
     const name = props.form.products[index].product_name;
     const found = productsList.value.find(p => p.name === name);
     if (found && typeof found.price !== 'undefined') {
-        props.form.products[index].price = found.price;
+        props.form.products[index].price = parseInt(Number(found.price) * Number(sessionPrice));
     }
 };
 
@@ -258,12 +261,16 @@ const openProducts2Modal = (index) => {
 
 // Petición AJAX JSON para modal
 const fetchProducts2 = () => {
-  axios.get(route('products2.index'), {
-    params: { term: searchProducts2.value, level3: selectedLevel3Label.value },
-    headers: { Accept: 'application/json' }
-  }).then(res => {
-    products2Data.value = res.data;
-  });
+    axios.get(route('products2.index'), {
+        params: { 
+            term: searchProducts2.value, 
+            level3: selectedLevel3Label.value,
+            form: 'agrochemicals' // Indica el origen del formulario
+        },
+        headers: { Accept: 'application/json' }
+    }).then(res => {
+        products2Data.value = res.data;
+    });
 };
 
 // Manejar evento de filtro desde modal

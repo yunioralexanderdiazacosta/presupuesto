@@ -13,22 +13,30 @@ class Product2Controller extends Controller
      */
     public function index(Request $request)
     {
-        // Obtener término de búsqueda (si existe)
-        $term = $request->term ?? '';
-        // Filtrar por nivel 3 previo si se pasa
-        $level3 = $request->level3 ?? '';
+    // Obtener término de búsqueda (si existe)
+    $term = $request->term ?? '';
+    // Filtrar por nivel 3 previo si se pasa
+    $level3 = $request->level3 ?? '';
+    // Filtrar por formulario de origen si se pasa
+    $form = $request->form ?? '';
 
         // Búsqueda y paginación similar a ProductsController
         $products2 = Product2::with('priceUnit')
             ->when($term, function ($query, $search) {
                 $query->where('name', 'like', '%'.$search.'%');
-            })->when($level3, function ($query, $l3) {
+            })
+            ->when($level3, function ($query, $l3) {
                 $query->where('level3', $l3);
             })
-        // Ordenar alfabéticamente por nombre
-        ->orderBy('name')
-        ->paginate(1000)
-        ->withQueryString();
+            ->when($form, function ($query, $f) {
+                $query->where(function($q) use ($f) {
+                    $q->whereNull('form')->orWhere('form', $f);
+                });
+            })
+            // Ordenar alfabéticamente por nombre
+            ->orderBy('name')
+            ->paginate(1000)
+            ->withQueryString();
 
         // Si la petición es AJAX/JSON, devolver JSON para el modal
         if ($request->wantsJson()) {
