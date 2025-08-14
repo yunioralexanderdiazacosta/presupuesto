@@ -13,6 +13,7 @@ import EditCostCenterModal from '@/Components/CostCenters/EditCostCenterModal.vu
 import SearchInput from '@/Components/SearchInput.vue';
 import ExportExcelButton from '@/Components/ExportExcelButton.vue';
 import ExportPdfButton from '@/Components/ExportPdfButton.vue';
+import axios from 'axios';
 
 const props = defineProps({
     costCenters: Object,
@@ -129,6 +130,38 @@ const onDeleted = (id) => {
 const onFilter = () => {
   router.get(route('cost.centers.index', {term: term.value}), { preserveState: true});  
 }
+
+const importFile = ref(null);
+const fileName = ref('');
+
+const onFileSelected = () => {
+  fileName.value = importFile.value.files[0]?.name || '';
+};
+
+const importExcel = async () => {
+  if (!importFile.value || !importFile.value.files.length) {
+    Swal.fire('Selecciona un archivo Excel primero', '', 'warning');
+    return;
+  }
+  const formData = new FormData();
+  formData.append('file', importFile.value.files[0]);
+  try {
+    await axios.post(route('cost.centers.import'), formData, {
+      headers: { 'Content-Type': 'multipart/form-data' }
+    });
+    Swal.fire('Importación exitosa', '', 'success');
+    window.location.reload();
+  } catch (e) {
+    if (e.response?.status === 422 && e.response.data.failures) {
+      const detalles = e.response.data.failures
+        .map(f => `Fila ${f.row}: ${f.errors.join(', ')}`)
+        .join('\n');
+      Swal.fire('Errores en el archivo', detalles, 'error');
+    } else {
+      Swal.fire('Error al importar', e.response?.data?.message || 'Revisa el archivo', 'error');
+    }
+  }
+};
 </script>
 <template>
     <Head :title="title" />
@@ -138,12 +171,31 @@ const onFilter = () => {
                 <div class="row flex-between-center">
                     <div class="col-12 d-flex align-items-center justify-content-between pe-0 gap-2">
                       <h5 class="fs-9 mb-0 text-nowrap py-2 py-xl-0">
-                        <i class="fas fa-flask text-primary me-2"></i>
+                        <i class="fas fa-list text-primary me-2"></i>
                         Centros de costo
                       </h5>
                        <div class="col-6 col-sm-auto ms-auto text-end ps-0">
                       <div id="table-purchases-replace-element">
-                        <button class="btn btn-falcon-default btn-sm ms-auto" type="button" @click="openAdd()" style="margin-right: 0.8rem;"><span class="fas fa-plus" data-fa-transform="shrink-3 down-2"></span><span class="d-none d-sm-inline-block ms-1">Nuevo</span></button>
+                        
+                        <!-- Input y botones de importación y plantilla -->
+                        <!-- Selección de archivo personalizada -->
+<label for="import-file" class="btn btn-falcon-default btn-sm mb-0 ms-2">
+  <span class="fas fa-file-upload me-1"></span>
+  Seleccionar archivo
+</label>
+<input id="import-file" type="file" ref="importFile" accept=".xlsx,.xls,.csv" class="d-none" @change="onFileSelected" />
+<span v-if="fileName" class="ms-2 text-truncate" style="max-width:150px;display:inline-block;vertical-align:middle;">
+  {{ fileName }}
+</span>
+<button class="btn btn-falcon-default btn-sm ms-1" @click="importExcel">
+  <span class="fas fa-file-import me-1"></span>
+  Importar Excel
+</button>
+<a :href="route('cost.centers.template')" class="btn btn-falcon-default btn-sm ms-1 me-1">
+  <span class="fas fa-file-download me-1"></span>
+  Ejemplo plantilla
+</a>
+<button class="btn btn-falcon-default btn-sm ms-auto" type="button" @click="openAdd()" style="margin-right: 0.8rem;"><span class="fas fa-plus" data-fa-transform="shrink-3 down-2"></span><span class="d-none d-sm-inline-block ms-1">Nuevo</span></button>
                       </div>
                     </div>
                     </div>
@@ -174,6 +226,7 @@ const onFilter = () => {
                               class="btn btn-success btn-md d-flex align-items-center p-0"
                               filename="CentrosDeCosto.xlsx"
                             />
+                           
                             <ExportPdfButton
                               :data="costCenters.data"
                               :headers="[
@@ -198,6 +251,8 @@ const onFilter = () => {
 
 
 
+                <!-- Contenedor con scroll vertical para tabla -->
+                <div class="table-responsive" style="max-height:600px; overflow-y:auto;">
                 <Table :id="'costCenters'" :total="costCenters.data.length" :links="costCenters.links">
                     <!--begin::Table head-->
                     <template #header>
@@ -257,6 +312,7 @@ const onFilter = () => {
                     </template>
                     <!--end::Table body-->
                 </Table>
+                </div>
             </div>
                 </div>
         </div>

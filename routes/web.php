@@ -1,4 +1,3 @@
-
 <?php
 
 use Illuminate\Foundation\Application;
@@ -356,6 +355,8 @@ Route::middleware([
         Route::post('/cost-centers/store', StoreCostCenterController::class)->name('cost.centers.store');
         Route::post('/cost-centers/{costCenter}/update', UpdateCostCenterController::class)->name('cost.centers.update');
         Route::delete('/cost-centers/{costCenter}/delete', DeleteCostCenterController::class)->name('cost.centers.delete');
+        Route::post('/cost-centers/import', [CostCentersController::class, 'import'])->name('cost.centers.import');
+        Route::get('/cost-centers/template', [CostCentersController::class, 'template'])->name('cost.centers.template');
 
         Route::post('/agrochemicals/store', StoreAgrochemicalController::class)->name('agrochemicals.store');
         Route::post('/agrochemicals/{agrochemical}/update', UpdateAgrochemicalController::class)->name('agrochemicals.update');
