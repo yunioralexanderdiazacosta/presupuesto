@@ -19,36 +19,38 @@ const props = defineProps({
     </div>
 
 
-    <div class="fv-row">
-        <label class="col-form-label">Correo electronico</label>
-        <TextInput
-            id="email"
-            v-model="form.email"
-            class="form-control form-control-solid"
-            type="email"
-        />
-        <InputError class="mt-2" :message="form.errors.email" />
-    </div>
+    <div class="row">
+        <div class="col-6">
+            <label class="col-form-label">Correo electronico</label>
+            <TextInput
+                id="email"
+                v-model="form.email"
+                class="form-control form-control-solid"
+                type="email"
+            />
+            <InputError class="mt-2" :message="form.errors.email" />
 
-     <div class="fv-row">
-        <label class="col-form-label">Contraseña</label>
-        <TextInput
-            id="email"
-            v-model="form.password"
-            class="form-control form-control-solid"
-            type="password"
-        />
-        <InputError class="mt-2" :message="form.errors.password" />
-    </div>
+        </div>
 
+        <div class="col-6">
+            <label class="col-form-label">Contraseña</label>
+            <TextInput
+                id="password"
+                v-model="form.password"
+                class="form-control form-control-solid"
+                type="password"
+            />
+            <InputError class="mt-2" :message="form.errors.password" />
+        </div>
+</div>
      <div class="fv-row">
         <label for="role" class="col-form-label">Rol</label><br>
         
-        <div class="form-check form-check-solid form-check-inline mb-3 mt-3">
+    <div class="form-check form-check-solid form-check-inline mb-1">
             <input class="form-check-input" type="radio" v-model="form.role" id="admin" value="Admin">
             <label class="form-check-label ps-1" for="admin">Administrador</label>
         </div>
-         <div class="form-check form-check-solid form-check-inline mb-3 mt-3">
+         <div class="form-check form-check-solid form-check-inline mb-1">
             <input class="form-check-input" type="radio" v-model="form.role" id="admin" value="Normal">
             <label class="form-check-label ps-1" for="admin">Digitador</label>
         </div>

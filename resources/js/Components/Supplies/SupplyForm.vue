@@ -1,11 +1,33 @@
 <script setup>
+ import { ref, getCurrentInstance, watch } from 'vue';
     import Multiselect from '@vueform/multiselect';
     import TextInput from '@/Components/TextInput.vue';
     import InputError from '@/Components/InputError.vue';
 
-    defineProps({
+
+
+    const { appContext } = getCurrentInstance();
+    const page = appContext.config.globalProperties.$page;
+
+
+
+
+
+// Props de formulario
+    const { form } = defineProps({
         form: Object
     });
+    // Agrupación para autocompletar CC
+    const selectedGrouping = ref('');
+    // Watch para llenar form.cc según agrupación
+    watch(selectedGrouping, (newId) => {
+        if (!newId) return;
+        const grouping = page.props.groupings?.find(g => g.id == newId);
+        if (grouping && Array.isArray(grouping.cost_centers)) {
+            form.cc = grouping.cost_centers.map(cc => cc.id);
+        }
+    });
+
 </script>
 <script setup></script>
 <template>
@@ -44,6 +66,27 @@
             </div>
         </div>
     </div>
+
+
+
+
+    <!-- Selector de agrupación con Multiselect -->
+        <div class="row">
+            <label for="grouping" class="col-form-label mb-0">Agrupación</label>
+            <div class="input-group mb-2 ">
+                <span class="input-group-text"><i class="fas fa-object-group"></i></span>
+                <Multiselect
+                    id="grouping"
+                    v-model="selectedGrouping"
+                    :options="page.props.groupings.map(g => ({ value: g.id, label: g.name }))"
+                    :placeholder="'Seleccione agrupación'"
+                    :searchable="true"
+                    :close-on-select="true"
+                    :hide-selected="false"
+                    class="form-control"
+                />
+            </div>
+        </div>
 
     <div class="row">
         <div class="col-lg-6">

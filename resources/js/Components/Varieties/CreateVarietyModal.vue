@@ -11,7 +11,16 @@ defineEmits(['store']);
 <template>
     <Modal :maxWidth="'lg'" :id="'createVarietyModal'">
         <template #header>
-            <h1 class="mb-3">Agregar Variedad</h1>
+            <div class="d-flex align-items-center gap-2 mb-3 text-start">
+                <span class="bg-secondary text-white rounded-circle d-flex align-items-center justify-content-center" style="width: 38px; height: 38px; font-size: 1.4rem;">
+                    <i class="fas fa-seedling"></i>
+                </span>
+                <span>
+                    <span class="fw-bold" style="font-size: 1.2rem; color: #2d3748; letter-spacing: 0.5px;">Agregar Variedad</span>
+                    <br>
+                    <span class="text-muted" style="font-size: 0.85rem;">Completa los datos de la variedad</span>
+                </span>
+            </div>
         </template>
         <template #body>
             <VarietyForm :form="form" />

@@ -11,7 +11,16 @@ defineEmits(['update']);
 <template>
     <Modal :maxWidth="'lg'" :id="'editParcelModal'">
         <template #header>
-            <h1 class="mb-3">Editar Parcela</h1>
+            <div class="d-flex align-items-center gap-2 mb-3 text-start">
+                <span class="bg-secondary text-white rounded-circle d-flex align-items-center justify-content-center" style="width: 38px; height: 38px; font-size: 1.4rem;">
+                    <i class="fas fa-map-marker-alt"></i>
+                </span>
+                <span>
+                    <span class="fw-bold" style="font-size: 1.2rem; color: #2d3748; letter-spacing: 0.5px;">Editar Parcela</span>
+                    <br>
+                    <span class="text-muted" style="font-size: 0.85rem;">Modificar los datos de la parcela</span>
+                </span>
+            </div>
         </template>
         <template #body>
             <ParcelForm :form="form" />

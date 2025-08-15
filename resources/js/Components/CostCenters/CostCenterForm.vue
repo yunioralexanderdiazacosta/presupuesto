@@ -196,11 +196,15 @@ const getVarieties = (event) => {
     min-height: 26px !important;
     height: 26px !important;
     max-height: 26px !important;
-    font-size: 0.8
+    font-size: 0.7
     rem !important;
     padding-top: 2px !important;
     padding-bottom: 2px !important;
     line-height: 22px !important;
+    placeholder {
+        font-size: 0.1rem !important;
+        opacity: 0.7 !important;
+    }
 }
 /* Ajustes para inputs nativos */
 input.form-control:not([role="combobox"]),
