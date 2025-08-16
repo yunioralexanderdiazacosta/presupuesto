@@ -6,6 +6,9 @@ use App\Http\Controllers\Controller;
 use Illuminate\Support\Facades\Auth;
 use App\Http\Requests\FormInvoiceRequest;
 use App\Models\Invoice;
+use App\Models\Product;
+use App\Models\Unit;
+use Illuminate\Support\Facades\DB;
 
 class StoreInvoiceController extends Controller
 {
@@ -15,7 +18,8 @@ class StoreInvoiceController extends Controller
 
         $season_id = session('season_id');
 
-        $invoice = Invoice::create([
+        DB::transaction(function() use ($request, $user, $season_id) {
+            $invoice = Invoice::create([
             'payment_term'      => $request->payment_term,
             'payment_type'      => $request->payment_type,
             'petty_cash'        => $request->petty_cash,
@@ -29,17 +33,34 @@ class StoreInvoiceController extends Controller
             'season_id'         => $season_id
         ]);
 
-        $invoice->products()->sync($this->products($request->products));
+            $invoice->products()->sync($this->products($request->products));
+        });
     }
 
     public function products($products)
     {
-        $data = array();
-        foreach($products as $product){
-            $data[$product['product_id']] = [
-                'unit_price' => $product['unit_price'], 
-                'amount' => $product['amount'], 
-                'observations' => $product['observations']
+        $data = [];
+        foreach ($products as $item) {
+            // Gestionar unidad: buscar o crear
+            $unitId = $item['unit_id'] ?? null;
+            if (!is_numeric($unitId) || !Unit::find($unitId)) {
+                $u = Unit::firstOrCreate(['name' => $unitId]);
+                $unitId = $u->id;
+            }
+            // Gestionar producto: buscar o crear
+            $prodId = $item['product_id'];
+            if (!is_numeric($prodId) || !Product::find($prodId)) {
+                $newProduct = Product::create([
+                    'name'    => $prodId,
+                    'team_id' => Auth::user()->team_id,
+                    'unit_id' => $unitId,
+                ]);
+                $prodId = $newProduct->id;
+            }
+            $data[$prodId] = [
+                'unit_price'   => $item['unit_price'],
+                'amount'       => $item['amount'],
+                'observations' => $item['observations'],
             ];
         }
         return $data;

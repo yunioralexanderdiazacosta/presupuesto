@@ -38,22 +38,39 @@ class EditInvoiceController extends Controller
             ];
          });
 
-         $products = Product::where('team_id', $user->team_id)->get()->transform(function($product){
+    $products = Product::where('team_id', $user->team_id)->get()->transform(function($product){
             return [
-                'label' => $product->name,
-                'value' => $product->id
+                'label'   => $product->name,
+                'value'   => $product->id,
+                'unit_id' => $product->unit_id,
             ];
          });
 
-        $invoiceProducts = $invoice->products()->get()->transform(function($product){
+    $invoiceProducts = $invoice->products()->get()->transform(function($product){
             return [
                 'product_id'    => $product->id,
+                 'unit_id'       => $product->unit_id, 
                 'unit_price'    => $product->pivot->unit_price,
                 'amount'        => $product->pivot->amount,
                 'observations'  => $product->pivot->observations
             ];  
         });
 
-        return Inertia::render('Invoices/Edit', compact('invoice','invoiceProducts', 'products', 'typeDocuments', 'suppliers', 'companyReasons'));
+        // Listado de unidades para llenar el select
+        $units = \App\Models\Unit::get()->transform(function($unit){
+            return [
+                'label' => $unit->name,
+                'value' => $unit->id
+            ];
+        });
+        return Inertia::render('Invoices/Edit', compact(
+            'invoice',
+            'invoiceProducts',
+            'products',
+            'units',
+            'typeDocuments',
+            'suppliers',
+            'companyReasons'
+        ));
     }
 }

@@ -30,7 +30,11 @@ class FormInvoiceRequest extends FormRequest
             'number_document'   => 'required',
             'date'              => 'required',
             'due_date'          => 'required',
-            'products'          => "required|array|min:1"  
+            'products' => ['required', 'array'],
+            'products.*.product_id' => ['required'],
+            'products.*.unit_price' => ['required', 'numeric'],
+            'products.*.amount' => ['required', 'integer'],
+            'products.*.observations' => ['nullable', 'string'],
         ];
     }
 }

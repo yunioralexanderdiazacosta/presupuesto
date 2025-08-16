@@ -9,6 +9,7 @@ use App\Models\TypeDocument;
 use App\Models\Supplier;
 use App\Models\CompanyReason;
 use App\Models\Product;
+use App\Models\Unit;
 use Inertia\Inertia;
 
 class CreateInvoiceController extends Controller
@@ -40,11 +41,19 @@ class CreateInvoiceController extends Controller
 
         $products = Product::where('team_id', $user->team_id)->get()->transform(function($product){
             return [
-                'label' => $product->name,
-                'value' => $product->id
+                'label'   => $product->name,
+                'value'   => $product->id,
+                'unit_id' => $product->unit_id,
             ];
-         });
+        });
+        // Unidades disponibles para productos
+        $units = Unit::get()->transform(function($unit){
+            return [
+                'label' => $unit->name,
+                'value' => $unit->id
+            ];
+        });
 
-        return Inertia::render('Invoices/Create', compact('typeDocuments', 'suppliers', 'companyReasons', 'products'));
+    return Inertia::render('Invoices/Create', compact('typeDocuments', 'suppliers', 'companyReasons', 'products', 'units'));
     }
 }

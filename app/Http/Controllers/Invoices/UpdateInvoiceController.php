@@ -26,12 +26,28 @@ class UpdateInvoiceController extends Controller
 
     public function products($products)
     {
-        $data = array();
-        foreach($products as $product){
-            $data[$product['product_id']] = [
-                'unit_price' => $product['unit_price'], 
-                'amount' => $product['amount'], 
-                'observations' => $product['observations']
+        $data = [];
+        foreach ($products as $item) {
+            // Gestionar unidad: buscar o crear
+            $unitId = $item['unit_id'] ?? null;
+            if (!is_numeric($unitId) || !\App\Models\Unit::find($unitId)) {
+                $u = \App\Models\Unit::firstOrCreate(['name' => $unitId]);
+                $unitId = $u->id;
+            }
+            // Gestionar producto: buscar o crear
+            $prodId = $item['product_id'];
+            if (!is_numeric($prodId) || !\App\Models\Product::find($prodId)) {
+                $newProduct = \App\Models\Product::create([
+                    'name'    => $prodId,
+                    'team_id' => auth()->user()->team_id,
+                    'unit_id' => $unitId,
+                ]);
+                $prodId = $newProduct->id;
+            }
+            $data[$prodId] = [
+                'unit_price'   => $item['unit_price'],
+                'amount'       => $item['amount'],
+                'observations' => $item['observations'],
             ];
         }
         return $data;

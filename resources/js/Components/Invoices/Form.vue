@@ -22,7 +22,7 @@
 <!--begin::Wrapper-->
 <div class="mb-0">
 	<div class="row">
-		<div class="col-lg-6">
+		<div class="col-lg-3">
 			<div class="fv-row">
                 <label class="col-form-label">Fecha</label>
                 <TextInput
@@ -35,7 +35,7 @@
                 <InputError class="mt-2" :message="form.errors.date" />
             </div>
 		</div>
-		<div class="col-lg-6">
+		<div class="col-lg-3">
 			<div class="fv-row">
                 <label class="col-form-label">Fecha de vencimiento</label>
                 <TextInput
@@ -48,11 +48,8 @@
                 <InputError class="mt-2" :message="form.errors.due_date" />
             </div>
 		</div>
-	</div>
-	<!--begin::Row-->
-	<div class="row">
-		<!--begin::Col-->
-		<div class="col-lg-6">
+
+        <div class="col-lg-6">
 			<div class="fv-row">
                 <label for="" class="col-form-label">Proveedor</label>
                 <Multiselect
@@ -68,8 +65,9 @@
                 <InputError class="mt-2" :message="form.errors.supplier_id" />
             </div>
 		</div>
-		<!--end::Col-->
-		<!--begin::Col-->
+	</div>
+	<!--begin::Row-->
+	<div class="row">
 		<div class="col-lg-6">
 			<div class="fv-row">
                 <label for="" class="col-form-label">Razón social</label>
@@ -86,14 +84,7 @@
                 <InputError class="mt-2" :message="form.errors.company_reason_id" />
             </div>
 		</div>
-		<!--end::Col-->
-	</div>
-	<!--end::Row-->
-	<!--begin::Row-->
-	<div class="row">
-		<div class="col-lg-6">
-            <div class="row">
-                <div class="col-lg-6">
+         <div class="col-lg-3">
                     <div class="fv-row">
                         <label for="typeDocument" class="col-form-label">Tipo de documento</label>
                         <Multiselect
@@ -109,7 +100,7 @@
                         <InputError class="mt-2" :message="form.errors.type_document_id" />
                     </div>
                 </div>
-                <div class="col-lg-6">
+                  <div class="col-lg-3">
                     <div class="fv-row">
                         <label class="col-form-label">Número de documento</label>
                         <TextInput
@@ -122,6 +113,15 @@
                         <InputError class="mt-2" :message="form.errors.number_document" />
                     </div>
                 </div>
+		<!--end::Col-->
+	</div>
+	<!--end::Row-->
+	<!--begin::Row-->
+	<div class="row">
+		<div class="col-lg-6">
+            <div class="row">
+               
+              
             </div>
 		</div>
 		  <div class="col-lg-3">
