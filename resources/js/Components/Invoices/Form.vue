@@ -1,169 +1,226 @@
-<script setup>
-	import Multiselect from '@vueform/multiselect';
-	import TextInput from '@/Components/TextInput.vue';
-	import InputError from '@/Components/InputError.vue';
-	import FormProducts from './FormProducts.vue';
-	const props = defineProps({
-		form: Object
-	});
 
-	const paymentTypes = [{id: 1, label: 'Credito'}, {id: 2, label: 'Contado'}];
+
+<script setup>
+import { watch } from 'vue';
+import Multiselect from "@vueform/multiselect";
+import TextInput from "@/Components/TextInput.vue";
+import InputError from "@/Components/InputError.vue";
+import FormProducts from "./FormProducts.vue";
+const props = defineProps({
+    form: Object,
+});
+
+const paymentTypes = [
+    { id: 1, label: "Credito" },
+    { id: 2, label: "Contado" },
+];
+
+
+// Si plazo de pago es 0, tipo de pago debe ser 'Contado' (id=2)
+watch(
+    () => props.form.payment_term,
+    (newVal) => {
+        if (newVal === 0 || newVal === '0') {
+            props.form.payment_type = 2; // Contado
+        } else {
+            props.form.payment_type = 1; // Crédito
+        }
+    }
+);
+
+
 </script>
 <template>
-	
-<!--begin::Wrapper
+    <!--begin::Wrapper
 <div class="d-flex flex-column align-items-start flex-xxl-row">
 	<div class="d-flex flex-center flex-equal fw-row text-nowrap order-1 order-xxl-2 me-4" data-bs-toggle="tooltip" data-bs-trigger="hover" title="Enter invoice number">
 		<span class="fs-2x fw-bold text-gray-800">Factura #</span>
 		<input type="text" v-model="form.number" class="form-control form-control-solid fw-bold fs-3 w-200px" placehoder="" />
 	</div>
 </div>-->
-<!--end::Top-->
-<!--begin::Wrapper-->
-<div class="mb-0">
-	<div class="row">
-		<div class="col-lg-3">
-			<div class="fv-row">
-                <label class="col-form-label">Fecha</label>
-                <TextInput
-                    id="date"
-                    v-model="form.date"
-                    class="form-control form-control-solid"
-                    type="date"
-                    :class="{'is-invalid': form.errors.date}"
-                />
-                <InputError class="mt-2" :message="form.errors.date" />
+    <!--end::Top-->
+    <!--begin::Wrapper-->
+    <div class="mb-0">
+        <div class="row">
+            <div class="col-lg-3">
+                <div class="fv-row">
+                    <label class="col-form-label">Fecha</label>
+                    <TextInput
+                        id="date"
+                        v-model="form.date"
+                        class="form-control form-control-solid"
+                        type="date"
+                        :class="{ 'is-invalid': form.errors.date }"
+                    />
+                    <InputError class="mt-2" :message="form.errors.date" />
+                </div>
             </div>
-		</div>
-		<div class="col-lg-3">
-			<div class="fv-row">
-                <label class="col-form-label">Fecha de vencimiento</label>
-                <TextInput
-                    id="due_date"
-                    v-model="form.due_date"
-                    class="form-control form-control-solid"
-                    type="date"
-                    :class="{'is-invalid': form.errors.due_date}"
-                />
-                <InputError class="mt-2" :message="form.errors.due_date" />
+            <div class="col-lg-3">
+                <div class="fv-row">
+                    <label class="col-form-label">Fecha de vencimiento</label>
+                    <TextInput
+                        id="due_date"
+                        v-model="form.due_date"
+                        class="form-control form-control-solid"
+                        type="date"
+                        :class="{ 'is-invalid': form.errors.due_date }"
+                    />
+                    <InputError class="mt-2" :message="form.errors.due_date" />
+                </div>
             </div>
-		</div>
 
-        <div class="col-lg-6">
-			<div class="fv-row">
-                <label for="" class="col-form-label">Proveedor</label>
-                <Multiselect
-                    :placeholder="'Seleccione proveedor'"
-                    v-model="form.supplier_id"
-                    :close-on-select="true"
-                    :options="$page.props.suppliers"
-                    class="multiselect-blue form-control"
-                    :class="{'is-invalid': form.errors.supplier_id}"
-                    :searchable="true"
-                    :hide-selected="false"
-                />
-                <InputError class="mt-2" :message="form.errors.supplier_id" />
-            </div>
-		</div>
-	</div>
-	<!--begin::Row-->
-	<div class="row">
-		<div class="col-lg-6">
-			<div class="fv-row">
-                <label for="" class="col-form-label">Razón social</label>
-                <Multiselect
-                    :placeholder="'Seleccione razón social'"
-                    v-model="form.company_reason_id"
-                    :close-on-select="true"
-                    :options="$page.props.companyReasons"
-                    class="multiselect-blue form-control"
-                    :class="{'is-invalid': form.errors.company_reason_id}"
-                    :searchable="true"
-                    :hide-selected="false"
-                />
-                <InputError class="mt-2" :message="form.errors.company_reason_id" />
-            </div>
-		</div>
-         <div class="col-lg-3">
-                    <div class="fv-row">
-                        <label for="typeDocument" class="col-form-label">Tipo de documento</label>
-                        <Multiselect
-                            :placeholder="'Tipo de documento'"
-                            v-model="form.type_document_id"
-                            :close-on-select="true"
-                            :options="$page.props.typeDocuments"
-                            class="multiselect-blue form-control"
-                            :class="{'is-invalid': form.errors.type_document_id}"
-                            :searchable="true"
-                            :hide-selected="false"
-                        />
-                        <InputError class="mt-2" :message="form.errors.type_document_id" />
-                    </div>
+            <div class="col-lg-6">
+                <div class="fv-row">
+                    <label for="" class="col-form-label">Proveedor</label>
+                    <Multiselect
+                        :placeholder="'Seleccione proveedor'"
+                        v-model="form.supplier_id"
+                        :close-on-select="true"
+                        :options="$page.props.suppliers"
+                        class="multiselect-blue form-control"
+                        :class="{ 'is-invalid': form.errors.supplier_id }"
+                        :searchable="true"
+                        :hide-selected="false"
+                    />
+                    <InputError
+                        class="mt-2"
+                        :message="form.errors.supplier_id"
+                    />
                 </div>
-                  <div class="col-lg-3">
-                    <div class="fv-row">
-                        <label class="col-form-label">Número de documento</label>
-                        <TextInput
-                            id="number_document"
-                            v-model="form.number_document"
-                            class="form-control form-control-solid"
-                            type="text"
-                            :class="{'is-invalid': form.errors.number_document}"
-                        />
-                        <InputError class="mt-2" :message="form.errors.number_document" />
-                    </div>
-                </div>
-		<!--end::Col-->
-	</div>
-	<!--end::Row-->
-	<!--begin::Row-->
-	<div class="row">
-		<div class="col-lg-6">
-            <div class="row">
-               
-              
             </div>
-		</div>
-		  <div class="col-lg-3">
-            	<label for="paymentTerm" class="col-form-label">Plazo de pago</label>
+        </div>
+        <!--begin::Row-->
+        <div class="row">
+            <div class="col-lg-6">
+                <div class="fv-row">
+                    <label for="" class="col-form-label">Razón social</label>
+                    <Multiselect
+                        :placeholder="'Seleccione razón social'"
+                        v-model="form.company_reason_id"
+                        :close-on-select="true"
+                        :options="$page.props.companyReasons"
+                        class="multiselect-blue form-control"
+                        :class="{ 'is-invalid': form.errors.company_reason_id }"
+                        :searchable="true"
+                        :hide-selected="false"
+                    />
+                    <InputError
+                        class="mt-2"
+                        :message="form.errors.company_reason_id"
+                    />
+                </div>
+            </div>
+            <div class="col-lg-3">
+                <div class="fv-row">
+                    <label for="typeDocument" class="col-form-label"
+                        >Tipo de documento</label
+                    >
+                    <Multiselect
+                        :placeholder="'Tipo de documento'"
+                        v-model="form.type_document_id"
+                        :close-on-select="true"
+                        :options="$page.props.typeDocuments"
+                        class="multiselect-blue form-control"
+                        :class="{ 'is-invalid': form.errors.type_document_id }"
+                        :searchable="true"
+                        :hide-selected="false"
+                    />
+                    <InputError
+                        class="mt-2"
+                        :message="form.errors.type_document_id"
+                    />
+                </div>
+            </div>
+            <div class="col-lg-3">
+                <div class="fv-row">
+                    <label class="col-form-label">Número de documento</label>
+                    <TextInput
+                        id="number_document"
+                        v-model="form.number_document"
+                        class="form-control form-control-solid"
+                        type="text"
+                        :class="{ 'is-invalid': form.errors.number_document }"
+                    />
+                    <InputError
+                        class="mt-2"
+                        :message="form.errors.number_document"
+                    />
+                </div>
+            </div>
+            <!--end::Col-->
+        </div>
+        <!--end::Row-->
+        <!--begin::Row-->
+        <div class="row">
+            <div class="col-lg-3">
+                <label for="paymentTerm" class="col-form-label"
+                    >Plazo de pago</label
+                >
                 <Multiselect
                     :placeholder="'Plazo de pago'"
                     v-model="form.payment_term"
                     :close-on-select="true"
                     :options="[0, 30, 60, 90, 120]"
                     class="multiselect-blue form-control"
-                    :class="{'is-invalid': form.errors.payment_term}"
+                    :class="{ 'is-invalid': form.errors.payment_term }"
                     :searchable="true"
                     :hide-selected="false"
                 />
                 <InputError class="mt-2" :message="form.errors.payment_term" />
             </div>
             <div class="col-lg-3">
-            	 <div class="fv-row">
-	                <label for="unit" class="col-form-label">Tipo de pago</label><br>
-	                <template v-for="value in paymentTypes">
-	                    <div class="form-check form-check-solid form-check-inline mb-3 mt-3">
-	                        <input class="form-check-input" type="radio" v-model="form.payment_type" :id="'payment_type_'+value.id" :value="value.id">
-	                        <label class="form-check-label ps-1" :for="'payment_type_'+value.id">{{value.label}}</label>
-	                    </div>
-	                </template>
-	                <small class="text-danger mt-2" :v-if="form.errors.unit_id">{{form.errors.unit_id}}</small>
-	            </div>
-            </div>
-	</div>
-	<!--end::Row-->
+                <div class="fv-row">
+                    <label for="unit" class="col-form-label">Tipo de pago</label
+                    ><br />
+                    <div class="d-flex align-items-center gap-3">
+                        <template v-for="value in paymentTypes">
+                            <div class="form-check form-check-solid form-check-inline d-flex align-items-center gap-2 mb-1">
+                                <input
+                                    class="form-check-input"
+                                    type="radio"
+                                    v-model="form.payment_type"
+                                    :id="'payment_type_' + value.id"
+                                    :value="value.id"
+                                    :disabled="value.id === 1 && form.payment_term == 0"
+                                />
+                                <label
+                                    class="form-check-label mb-0"
+                                    :for="'payment_type_' + value.id"
+                                    >{{ value.label }}</label>
+                            </div>
+                        </template>
+                    </div>
+                    <small
+                        class="text-danger mt-2"
+                        :v-if="form.errors.unit_id"
+                        >{{ form.errors.unit_id }}</small
+                    >
+                </div>
+                </div>
 
-	<div class="row">
-		<div class="col-lg-12">
-            <div class="form-check form-check-solid form-check-inline mb-3">
-                <input class="form-check-input" type="checkbox" v-model="form.petty_cash" id="petty" value=true>
-                <label class="form-check-label fw-bold ps-2">Caja chica</label>
-            </div>
+                <div class="col-lg-3">
+                    <div
+                        class="form-check form-check-solid form-check-inline mb-3 mt-3"
+                    >
+                        <input
+                            class="form-check-input"
+                            type="checkbox"
+                            v-model="form.petty_cash"
+                            id="petty"
+                            value="true"
+                        />
+                        <label class="form-check-label fw-bold ps-1"
+                            >Caja chica</label
+                        >
+                    </div>
+                </div>
+            
         </div>
-	</div>
-	<FormProducts :form="form" />
-</div>
-<!--end::Wrapper-->
+        <!--end::Row-->
+
+        <FormProducts :form="form" />
+    </div>
+    <!--end::Wrapper-->
 </template>
 <style src="@vueform/multiselect/themes/default.css"></style>
 <style>
@@ -177,7 +234,8 @@
     --ms-option-bg-selected-pointed: var(--kt-primary);
 }
 
-.multiselect-tags-search, .multiselect-search{
+.multiselect-tags-search,
+.multiselect-search {
     background: var(--kt-input-solid-bg) !important;
 }
 </style>

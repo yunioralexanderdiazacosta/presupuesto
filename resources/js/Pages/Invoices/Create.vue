@@ -5,7 +5,7 @@ import AppLayout from '@/Layouts/AppLayout.vue';
 import FormInvoice from '@/Components/Invoices/Form.vue';
 import Breadcrumb from '@/Components/Breadcrumb.vue';
 
-const title = 'Crear Factura';
+const title = 'Ingresar Factura';
 
 const links = [{ title: 'Tablero', link: 'dashboard' }, { title: 'Facturas', link: 'invoices.index' }, { title: title, active: true }];
 
@@ -58,11 +58,14 @@ const msgSuccess = (msg) => {
         <Breadcrumb :links="links" />
         <!--end::Breadcrumb-->  
 
-        <div class="card my-3">
+	<div class="card my-1 mx-1 px-1">
             <div class="card-header">
               <div class="row flex-between-end">
                 <div class="col-auto align-self-center">
-                  <h5 class="mb-0" data-anchor="data-anchor" :id="title">{{title}}</h5>
+									<h5 class="mb-0 d-flex align-items-center gap-2" data-anchor="data-anchor" :id="title">
+										<i class="fas fa-file-invoice text-primary"></i>
+										{{title}}
+									</h5>
                 </div>
             
               </div>
@@ -73,7 +76,7 @@ const msgSuccess = (msg) => {
 					<FormInvoice :form="form" />
 					<!--end::Form-->
 					<div class="mb-0 text-end">
-						<button type="submit" class="btn btn-primary" id="kt_invoice_submit_button">
+						<button type="submit" class="btn btn-primary mt-3" id="kt_invoice_submit_button">
 						<!--begin::Svg Icon | path: icons/duotune/general/gen016.svg-->
 						<span class="svg-icon svg-icon-3">
 							<svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">

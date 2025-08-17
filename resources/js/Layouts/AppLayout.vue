@@ -323,7 +323,7 @@ const logout = () => {
         </div>
         </div>
     </nav>
-  <div class="content flex-grow-1 w-100 px-0" style="margin-left: 150px; margin-right: 24px;">
+  <div class="content flex-grow-1 w-100 px-0" style="margin-left: 150px; margin-right: 20px;">
       <nav class="navbar navbar-light navbar-glass navbar-top navbar-expand">
 
         <button class="btn navbar-toggler-humburger-icon navbar-toggler me-1 me-sm-3" type="button" data-bs-toggle="collapse" data-bs-target="#navbarVerticalCollapse" aria-controls="navbarVerticalCollapse" aria-expanded="false" aria-label="Toggle Navigation"><span class="navbar-toggle-icon"><span class="toggle-line"></span></span></button>
