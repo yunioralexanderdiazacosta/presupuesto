@@ -304,6 +304,11 @@ const logout = () => {
                   </Link>
                   <!-- more inner pages-->
                 </li>
+                <li class="nav-item"><Link class="nav-link" :href="route('credit_debit_notes.index')">
+                    <div class="d-flex align-items-center"><span class="nav-link-text ps-3">Notas de Crédito/Débito</span>
+                    </div>
+                  </Link>
+                </li>
                 <li class="nav-item"><Link class="nav-link" :href="route('machineries.index')">
                     <div class="d-flex align-items-center"><span class="nav-link-text ps-3">Maquinarias</span>
                     </div>

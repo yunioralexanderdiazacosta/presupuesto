@@ -1,4 +1,16 @@
+
+   
 <?php
+
+
+    // Rutas para Notas de Crédito/Débito
+    use App\Http\Controllers\CreditDebitNotes\CreateCreditDebitNoteController;
+    use App\Http\Controllers\CreditDebitNotes\StoreCreditDebitNoteController;
+    use App\Http\Controllers\CreditDebitNotes\ShowCreditDebitNoteController;
+    use App\Http\Controllers\CreditDebitNotes\EditCreditDebitNoteController;
+    use App\Http\Controllers\CreditDebitNotes\UpdateCreditDebitNoteController;
+    use App\Http\Controllers\CreditDebitNotes\DeleteCreditDebitNoteController;
+    use App\Http\Controllers\CreditDebitNotesController;
 
 use Illuminate\Foundation\Application;
 use Illuminate\Support\Facades\Route;
@@ -272,6 +284,18 @@ Route::middleware([
     Route::get('/invoices/{invoice}/edit', EditInvoiceController::class)->name('invoices.edit');
     Route::post('/invoices/{invoice}/update', UpdateInvoiceController::class)->name('invoices.update');
     Route::delete('/invoices/{invoice}/delete', DeleteInvoiceController::class)->name('invoices.delete');
+
+
+    Route::get('/credit-debit-notes', CreditDebitNotesController::class)->name('credit_debit_notes.index');
+    Route::get('/credit-debit-notes/{note}/show', ShowCreditDebitNoteController::class)->name('credit_debit_notes.show');
+    Route::get('/credit-debit-notes/create', CreateCreditDebitNoteController::class)->name('credit_debit_notes.create');
+    Route::post('/credit-debit-notes/store', StoreCreditDebitNoteController::class)->name('credit_debit_notes.store');
+    Route::get('/credit-debit-notes/{note}/edit', EditCreditDebitNoteController::class)->name('credit_debit_notes.edit');
+    Route::post('/credit-debit-notes/{note}/update', UpdateCreditDebitNoteController::class)->name('credit_debit_notes.update');
+    Route::delete('/credit-debit-notes/{note}/delete', DeleteCreditDebitNoteController::class)->name('credit_debit_notes.delete');
+
+
+
 
     Route::get('/levels2/{level1}/get', GetLevel2Controller::class)->name('levels2.get');
     Route::get('/levels3/{level2}/get', GetLevel3Controller::class)->name('levels3.get');

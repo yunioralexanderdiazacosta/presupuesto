@@ -10,7 +10,7 @@ const presupuestos = ['/dashboard','/technicalpanel','/budgets', '/agrochemicals
 
 const parametros = ['/cost-centers', '/levels', '/users', '/company-reasons', '/fruits', '/varieties', '/parcels', '/seasons'];
 
-const gestion = ['/suppliers','/estimates', '/products', '/invoices', '/machineries', '/type-machineries'];
+const gestion = ['/suppliers','/estimates', '/products', '/invoices', '/credit_debit_notes', '/machineries', '/type-machineries'];
 
 var active = ref(0);
 var active2 = ref('');
@@ -214,10 +214,17 @@ const items = [
                 subitems: []
             },
 
+
             {
                 title: 'Facturas',
                 icon: `<i class="bi bi-card-checklist"></i>`,
                 link: 'invoices.index',
+                subitems: []
+            },
+            {
+                title: 'Notas de Crédito/Débito',
+                icon: `<i class="bi bi-card-checklist"></i>`,
+                link: 'credit_debit_notes.index',
                 subitems: []
             },
 
