@@ -46,7 +46,7 @@
 </script>
 <template>
     <div class="row">
-        <div class="col-lg-6">
+    <div class="col-lg-6">
             <div class="fv-row">
                 <label class="col-form-label">Nombre</label>
                 <TextInput
@@ -59,7 +59,7 @@
                 <InputError class="mt-2" :message="form.errors.name" />
             </div>
         </div>
-        <div class="col-lg-6">
+    <div class="col-lg-6">
             <div class="fv-row">
                 <label for="unit" class="col-form-label">Unidad</label>
                 <Multiselect
@@ -76,7 +76,7 @@
         </div>
     </div>
     <div class="row mb-3">
-        <div class="col-lg-6">
+    <div class="col-lg-6">
             <div class="fv-row">
                 <label for="level1" class="col-form-label">Nivel 1</label>
                 <Multiselect
@@ -92,7 +92,7 @@
                 <InputError class="mt-2" :message="form.errors.level1_id" />
             </div>
         </div>
-        <div class="col-lg-6">
+    <div class="col-lg-6">
             <div class="fv-row">
                 <label for="level2" class="col-form-label">Nivel 2</label>
                 <Multiselect
@@ -110,7 +110,7 @@
         </div>
     </div>
     <div class="row">
-        <div class="col-lg-6">
+    <div class="col-lg-6">
             <div class="fv-row">
                 <label for="level3" class="col-form-label">Nivel 3</label>
                 <Multiselect
@@ -126,7 +126,7 @@
                 <InputError class="mt-2" :message="form.errors.level3_id" />
             </div>
         </div>
-        <div class="col-lg-6">
+    <div class="col-lg-6">
             <div class="fv-row">
                 <label for="level4" class="col-form-label">Level 4</label>
                 <Multiselect
@@ -145,6 +145,22 @@
 </template>
 <style src="@vueform/multiselect/themes/default.css"></style>
 <style>
+.multiselect,
+.multiselect__input,
+.multiselect__single {
+    min-height: 32px !important;
+    height: 32px !important;
+    padding-top: 0.375rem !important;
+    padding-bottom: 0.375rem !important;
+    font-size: 1rem;
+}
+
+/* Agrandar la casilla de verificación (checkbox) */
+.form-check-input[type="checkbox"] {
+    width: 1.1em;
+    height: 1.1em;
+}
+
 .multiselect-blue {
     --ms-bg: var(--kt-input-solid-bg) !important;
     --ms-border-color: var(--kt-input-solid-bg);
@@ -155,7 +171,8 @@
     --ms-option-bg-selected-pointed: var(--kt-primary);
 }
 
-.multiselect-tags-search, .multiselect-search{
+.multiselect-tags-search,
+.multiselect-search {
     background: var(--kt-input-solid-bg) !important;
 }
 </style>

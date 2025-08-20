@@ -193,7 +193,8 @@ const onFilter = () => {
                         </div>
                     </div>
                 </div>
-                <Table :id="'products'" :total="products.data.length" :links="products.links">
+                                <div class="table-responsive mt-1" style="max-height: 450px; overflow-y: auto;">
+                                    <Table :id="'products'" :total="products.data.length" :links="products.links">
                     <!--begin::Table head-->
                     <template #header>
                         <!--begin::Table row-->
@@ -212,10 +213,10 @@ const onFilter = () => {
                         </template>
                         <template v-else>
                             <tr v-for="(product, index) in products.data" :key="index">
-                                <td>{{product.name}}</td>
-                                <td>{{product.unit.name}}</td>
-                                <td>{{product.level2.name}}</td>
-                                <td>{{product.level3.name}}</td>
+                                <td>{{ product.name }}</td>
+                                <td>{{ product.unit ? product.unit.name : '—' }}</td>
+                                <td>{{ product.level2 ? product.level2.name : '—' }}</td>
+                                <td>{{ product.level3 ? product.level3.name : '—' }}</td>
 
                                 <td class="text-end">
                                     <!--begin::Update-->
@@ -244,7 +245,8 @@ const onFilter = () => {
                         </template>
                     </template>
                     <!--end::Table body-->
-                </Table> 
+                                    </Table>
+                                </div>
             </div>
         </div>               
      
@@ -252,3 +254,4 @@ const onFilter = () => {
         <EditProductModal @update="updateProduct" :form="form" />
     </AppLayout>
 </template>
+<style src="@vueform/multiselect/themes/default.css"></style>

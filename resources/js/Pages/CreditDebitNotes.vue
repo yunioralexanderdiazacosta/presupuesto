@@ -53,39 +53,52 @@ const onFilter = () => {
 </script>
 
 <template>
+   <Head :title="title" />
   <AppLayout title="Notas de Crédito/Débito">
+     <!--begin::Breadcrumb-->
+        <Breadcrumb :links="links" />
+        <!--end::Breadcrumb-->
     <!-- Aquí irá el listado de notas -->
+     <div class="card my-3">
+            <div class="card-header">
     <div class="mb-4 d-flex justify-content-between align-items-center">
-      <h2>Notas de Crédito/Débito</h2>
+      <h5 class="fs-9 mb-0 text-nowrap py-2 py-xl-0"><i class="fas fa-chess text-primary me-2"></i>Notas de Credito/Debito</h5>
       <Link class="btn btn-primary" :href="route('credit_debit_notes.create')">Nueva Nota</Link>
     </div>
-    <table class="table">
-      <thead>
-        <tr>
-          <th>#</th>
-          <th>Tipo</th>
-          <th>Proveedor</th>
-          <th>Factura</th>
-          <th>Fecha</th>
-          <th>Acciones</th>
-        </tr>
-      </thead>
-      <tbody>
-        <tr v-for="note in notes.data" :key="note.id">
-          
-          <td>{{ note.number }}</td>
-          <td>{{ note.type }}</td>
-          <td>{{ note.supplier?.name }}</td>
-          <td>{{ note.invoice?.number_document }}</td>
-          <td>{{ note.date }}</td>
-          <td>
-            <Link :href="route('credit_debit_notes.show', note.id)" class="btn btn-sm btn-info me-1">Ver</Link>
-            <Link :href="route('credit_debit_notes.edit', note.id)" class="btn btn-sm btn-warning me-1">Editar</Link>
-            <!-- Botón de eliminar aquí -->
-          </td>
-        </tr>
-      </tbody>
-    </table>
+    <div class="card-body bg-body-tertiary">
+      <div class="tab-content border p-3 mt-3" id="pill-myTabContent">
+    <div class="table-responsive mt-1" style="max-height: 450px; overflow-y: auto;">
+      <table class="table table-bordered table-hover table-sm custom-striped fs-10 mb-0">
+        <thead>
+          <tr>
+            <th>#</th>
+            <th>Tipo</th>
+            <th>Proveedor</th>
+            <th>Factura</th>
+            <th>Fecha</th>
+            <th>Acciones</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr v-for="note in notes.data" :key="note.id">
+            <td>{{ note.number }}</td>
+            <td>{{ note.type }}</td>
+            <td>{{ note.supplier?.name }}</td>
+            <td>{{ note.invoice?.number_document }}</td>
+            <td>{{ note.date }}</td>
+            <td>
+              <Link :href="route('credit_debit_notes.show', note.id)" class="btn btn-sm btn-info me-1">Ver</Link>
+              <Link :href="route('credit_debit_notes.edit', note.id)" class="btn btn-sm btn-warning me-1">Editar</Link>
+              <!-- Botón de eliminar aquí -->
+            </td>
+          </tr>
+        </tbody>
+      </table>
+      </div>
+    </div>
+     </div>
+      </div>
+      </div>
   </AppLayout>
 </template>
 

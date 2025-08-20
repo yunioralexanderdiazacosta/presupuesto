@@ -926,16 +926,3 @@ const onFilter = () => {
 }
 </style>
 
-.small-card {
-  max-width: 170px;
-  min-width: 110px;
-  font-size: 0.85rem;
-}
-.small-card-title {
-  font-size: 0.85rem !important;
-  line-height: 1.1;
-}
-.small-card-number {
-  font-size: 0.95rem !important;
-  line-height: 1.1;
-}
