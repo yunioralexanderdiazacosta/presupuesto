@@ -51,6 +51,9 @@ class ConsumptionController extends Controller
             'machineries' => $machineries,
             'projects' => $projects,
             'invoiceLinesByProduct' => $invoiceLines,
+            'userId' => $user->id,
+            'teamId' => $user->team_id,
+            'seasonId' => $season_id,
         ]);
     }
 
@@ -75,7 +78,8 @@ class ConsumptionController extends Controller
 
         return Inertia::render('Consumptions', [
             'consumptions' => $consumptions,
-            'term' => $term
+            'term' => $term,
+            'success' => session('success')
         ]);
     }
 }

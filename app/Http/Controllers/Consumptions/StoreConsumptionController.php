@@ -21,6 +21,7 @@ class StoreConsumptionController extends Controller
             }
         });
 
-        return response()->noContent();
+        return redirect()->route('consumptions.index')
+            ->with('success', 'Consumo registrado correctamente.');
     }
 }

@@ -1,5 +1,5 @@
 <script setup>
-import { computed, ref } from 'vue';
+import { computed, ref, onMounted } from 'vue';
 import { Link, router, Head, usePage, useForm } from '@inertiajs/vue3';
 import Swal from 'sweetalert2';
 import AppLayout from '@/Layouts/AppLayout.vue';
@@ -15,8 +15,22 @@ const props = defineProps({
 
 const title = 'Consumos Grles';
 const term  = ref(props.term);
-const consumptions = props.consumptions;
+const consumptions = computed(() => page.props.consumptions);
 const links = [{ title: 'Tablero', link: 'dashboard' }, { title: title, active: true }];
+
+const page = usePage();
+
+onMounted(() => {
+  if (page.props.success) {
+    Swal.fire({
+      position: 'center',
+      icon: 'success',
+      title: page.props.success,
+      showConfirmButton: false,
+      timer: 1500
+    });
+  }
+});
 
 const msgSuccess = (msg) => {
   Swal.fire({
@@ -39,10 +53,16 @@ const onDeleted = (id) => {
     confirmButtonText: 'Confirmar',
   }).then((result) => {
     if (result.isConfirmed) {
-      router.delete(route('credit_debit_notes.delete', id), {
+      router.delete(route('consumptions.delete', id), {
         preserveScroll: true,
         onSuccess: () => {
-          msgSuccess('Registro eliminado correctamente');
+          Swal.fire({
+            position: 'center',
+            icon: 'success',
+            title: 'Registro eliminado correctamente',
+            showConfirmButton: false,
+            timer: 1000
+          });
         }
       });
     }
@@ -76,7 +96,7 @@ const onFilter = () => {
                     <th>Centro de costo</th>
                     <th>Fecha</th>
                     <th>Usuario</th>
-                    <th>Acciones</th>
+                    <th class="text-center">Acciones</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -91,9 +111,24 @@ const onFilter = () => {
                     <td>{{ consumption.cost_center ? consumption.cost_center.name : '' }}</td>
                     <td>{{ consumption.date }}</td>
                     <td>{{ consumption.user ? consumption.user.name : '' }}</td>
-                    <td>
-                      <Link :href="route('consumptions.show', consumption.id)" class="btn btn-sm btn-info me-1">Ver</Link>
-                      <Link :href="route('consumptions.edit', consumption.id)" class="btn btn-sm btn-warning me-1">Editar</Link>
+                    <td class="text-end">
+                      <div class="btn-group">
+                        <Link :href="route('consumptions.show', consumption.id)" v-tooltip="'Ver'" class="btn btn-icon btn-active-light-primary w-30px h-30px me-2">
+                          <span class="svg-icon svg-icon-3">
+                            <i class="fas fa-eye" style="color:#1976d2"></i>
+                          </span>
+                        </Link>
+                          <Link :href="route('consumptions.edit', consumption.id)" v-tooltip="'Editar'" class="btn btn-icon btn-active-light-success w-30px h-30px me-2">
+                            <span class="svg-icon svg-icon-3">
+                              <i class="fas fa-pen" style="color:#00695c"></i>
+                            </span>
+                          </Link>
+                          <button type="button" v-tooltip="'Eliminar'" @click="onDeleted(consumption.id)" class="btn btn-icon btn-active-light-danger w-30px h-30px">
+                            <span class="svg-icon svg-icon-3">
+                              <i class="fas fa-trash" style="color:#858585"></i>
+                            </span>
+                          </button>
+                      </div>
                     </td>
                   </tr>
                 </tbody>

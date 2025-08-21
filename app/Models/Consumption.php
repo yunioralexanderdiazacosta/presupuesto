@@ -16,7 +16,7 @@ class Consumption extends Model
         'team_id',
         'season_id',
         'operation_id',
-        'machinary_id',
+        'machinery_id',
         'project_id',
         'observations',
     ];

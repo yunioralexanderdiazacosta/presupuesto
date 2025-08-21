@@ -9,7 +9,7 @@ class DeleteConsumptionController extends Controller
 {
     public function __invoke(Consumption $consumption)
     {
-    $consumption->delete();
-    return response()->noContent();
+        $consumption->delete();
+        return redirect()->route('consumptions.index')->with('success', 'Registro eliminado correctamente');
     }
 }

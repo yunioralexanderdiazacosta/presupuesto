@@ -1,9 +1,11 @@
 <script setup>
 
+
 import Multiselect from "@vueform/multiselect";
 import TextInput from "@/Components/TextInput.vue";
 import InputError from "@/Components/InputError.vue";
 import FormItems from "./FormItems.vue";
+
 const props = defineProps({
     form: Object,
     costCenters: Array,
@@ -13,6 +15,8 @@ const props = defineProps({
     products: Array,
     invoiceLinesByProduct: Object
 });
+
+const emit = defineEmits(['submit']);
 
 
 
@@ -141,12 +145,22 @@ const props = defineProps({
         </div>
         <!--end::Row-->
 
-        <FormItems
-          :items="form.items"
-          :products="products"
-          :invoice-lines-by-product="invoiceLinesByProduct"
-          @update:items="form.items = $event"
-        />
+                <FormItems
+                    :items="form.items"
+                    :products="products"
+                    :invoice-lines-by-product="invoiceLinesByProduct"
+                    @update:items="form.items = $event"
+                />
+
+                <div class="mt-4 text-end">
+                    <button
+                        type="button"
+                        class="btn btn-primary"
+                        @click="$emit('submit')"
+                    >
+                        Guardar
+                    </button>
+                </div>
     </div>
     <!--end::Wrapper-->
 </template>
