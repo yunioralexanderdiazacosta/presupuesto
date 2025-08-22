@@ -55,4 +55,8 @@ public function parcel()
 {
     return $this->belongsTo(Parcel::class);
 }
+public function consumptions()
+    {
+        return $this->belongsToMany(Consumption::class, 'consumption_cost_center');
+    }
 }
