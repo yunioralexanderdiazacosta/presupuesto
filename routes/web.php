@@ -12,10 +12,7 @@
     use App\Http\Controllers\CreditDebitNotes\DeleteCreditDebitNoteController;
     use App\Http\Controllers\CreditDebitNotesController;
 
-use App\Http\Controllers\ConsumptionController;
-use App\Http\Controllers\Consumptions\StoreConsumptionController;
-use App\Http\Controllers\Consumptions\UpdateConsumptionController;
-use App\Http\Controllers\Consumptions\DeleteConsumptionController;
+
 
 use Illuminate\Foundation\Application;
 use Illuminate\Support\Facades\Route;
@@ -302,15 +299,7 @@ Route::middleware([
 
 
 
-    // Dentro del grupo de rutas con middleware (donde están las demás entidades)
-Route::get('/consumptions', [ConsumptionController::class, 'index'])->name('consumptions.index');
-Route::get('/consumptions/create', [ConsumptionController::class, 'create'])->name('consumptions.create');
-Route::get('/consumptions/{consumption}/edit', [ConsumptionController::class, 'edit'])->name('consumptions.edit');
-Route::get('/consumptions/{consumption}/show', [ConsumptionController::class, 'show'])->name('consumptions.show');
-
-Route::post('/consumptions/store', StoreConsumptionController::class)->name('consumptions.store');
-Route::post('/consumptions/{consumption}/update', UpdateConsumptionController::class)->name('consumptions.update');
-Route::delete('/consumptions/{consumption}/delete', DeleteConsumptionController::class)->name('consumptions.delete');
+    
 
 
     Route::get('/levels2/{level1}/get', GetLevel2Controller::class)->name('levels2.get');
