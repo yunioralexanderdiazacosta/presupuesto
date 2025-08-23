@@ -1,5 +1,3 @@
-
-   
 <?php
 
 
@@ -179,6 +177,13 @@ use App\Http\Controllers\Groupings\StoreGroupingController;
 use App\Http\Controllers\Groupings\UpdateGroupingController;
 use App\Http\Controllers\Groupings\DeleteGroupingController;
 use App\Http\Controllers\GroupingsController;
+use App\Http\Controllers\OutflowsController;
+use App\Http\Controllers\Outflows\CreateOutflowController;
+use App\Http\Controllers\Outflows\StoreOutflowController;
+use App\Http\Controllers\Outflows\ShowOutflowController;
+use App\Http\Controllers\Outflows\EditOutflowController;
+use App\Http\Controllers\Outflows\UpdateOutflowController;
+use App\Http\Controllers\Outflows\DeleteOutflowController;
 
 
 use Inertia\Inertia;
@@ -452,4 +457,13 @@ Route::middleware([
 
     // Summary de niveles anidados
     Route::get('/levels/summary', [LevelsController::class, 'summary'])->name('levels.summary');
+
+    // Rutas para Outflows
+    Route::get('/outflows', OutflowsController::class)->name('outflows.index');
+    Route::get('/outflows/create', CreateOutflowController::class)->name('outflows.create');
+    Route::post('/outflows', StoreOutflowController::class)->name('outflows.store');
+    Route::get('/outflows/{outflow}', ShowOutflowController::class)->name('outflows.show');
+    Route::get('/outflows/{outflow}/edit', EditOutflowController::class)->name('outflows.edit');
+    Route::put('/outflows/{outflow}', UpdateOutflowController::class)->name('outflows.update');
+    Route::delete('/outflows/{outflow}', DeleteOutflowController::class)->name('outflows.delete');
 });
