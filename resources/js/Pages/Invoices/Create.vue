@@ -58,7 +58,7 @@ const msgSuccess = (msg) => {
         <Breadcrumb :links="links" />
         <!--end::Breadcrumb-->  
 
-	<div class="card my-1 mx-1 px-1">
+	    <div class="card my-1 mx-1 px-1">
             <div class="card-header">
               <div class="row flex-between-end">
                 <div class="col-auto align-self-center">

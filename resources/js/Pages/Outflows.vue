@@ -1,20 +1,37 @@
+<script setup>
+import { ref } from 'vue';
+import { Link, router, Head } from '@inertiajs/vue3';
+import AppLayout from '@/Layouts/AppLayout.vue';
+import Breadcrumb from '@/Components/Breadcrumb.vue';
+import Table from '@/Components/Table.vue';
+import Empty from '@/Components/Empty.vue';
+
+const props = defineProps({
+    outflows: Object,
+    term: String
+});
+
+const title = 'Salidas de productos';
+const term  = ref(props.term);
+
+const onFilter = () => {
+  router.get(route('outflows.index', {term: term.value}), { preserveState: true });  
+}
+</script>
+
+
+
 <template>
   <div>
-    <h1 class="text-2xl font-bold mb-4">Salidas de productos</h1>
-    <!-- Aquí irá el listado de outflows -->
+   
     <Head :title="title" />
     <AppLayout>
+         <Breadcrumb :links="links" />
         <div class="card mb-3">
             <div class="card-header">
                 <div class="row flex-between-end">
                     <div class="col-auto align-self-center">
                         <h5 class="mb-0">Salidas de productos</h5>
-                    </div>
-                    <div class="col-auto ms-auto">
-                        <Link class="btn btn-falcon-default btn-sm" :href="route('outflows.create')">
-                            <span class="fas fa-plus" data-fa-transform="shrink-3 down-2"></span>
-                            <span class="d-none d-sm-inline-block ms-1">Nuevo</span>
-                        </Link>
                     </div>
                 </div>
             </div>
@@ -33,18 +50,20 @@
                         <th>Proveedor</th>
                         <th>Producto</th>
                         <th>Cantidad</th>
-                        <th class="text-end">Acciones</th>
+                         <th>Unidad</th>
+                        <th class="text-center">Acciones</th>
                     </template>
                     <template #body>
-                        <tr v-for="outflow in outflows.data" :key="outflow.id">
-                            <td>{{ outflow.invoice?.number_document || '-' }}</td>
-                            <td>{{ outflow.invoice?.supplier?.name || '-' }}</td>
-                            <td>{{ outflow.product?.name || '-' }}</td>
+                        <tr v-for="outflow in outflows.data" :key="outflow.invoice_product_id">
+                            <td>{{ outflow.number_document }}</td>
+                            <td>{{ outflow.supplier }}</td>
+                            <td>{{ outflow.product }}</td>
                             <td>{{ outflow.quantity }}</td>
-                            <td class="text-end">
-                                <Link :href="route('outflows.show', outflow.id)" class="btn btn-sm btn-info me-1">Ver</Link>
-                                <Link :href="route('outflows.edit', outflow.id)" class="btn btn-sm btn-warning me-1">Editar</Link>
-                                <!-- Aquí podrías agregar botón de eliminar si lo deseas -->
+                            <td>{{ outflow.unit }}</td>
+                            <td class="text-center">
+                                <Link :href="route('outflows.create', { invoice_product_id: outflow.invoice_product_id })" class="btn btn-sm btn-white me-1">
+                                  <span class="fas fa-paper-plane text-secondary"></span>
+                                </Link>
                             </td>
                         </tr>
                         <tr v-if="outflows.data.length === 0">
@@ -58,30 +77,4 @@
   </div>
 </template>
 
-<script setup>
-import { ref } from 'vue';
-import { Link, router, Head } from '@inertiajs/vue3';
-import AppLayout from '@/Layouts/AppLayout.vue';
-import Table from '@/Components/Table.vue';
-import Empty from '@/Components/Empty.vue';
-import Breadcrumb from '@/Components/Breadcrumb.vue';
 
-const props = defineProps({
-    outflows: Object,
-    term: String
-});
-
-const title = 'Salidas de productos';
-const term  = ref(props.term);
-const links = [
-    { title: 'Tablero', link: 'dashboard' },
-    { title: title, active: true }
-];
-
-const onFilter = () => {
-  router.get(route('outflows.index', {term: term.value}), { preserveState: true });  
-}
-</script>
-
-<style scoped>
-</style>

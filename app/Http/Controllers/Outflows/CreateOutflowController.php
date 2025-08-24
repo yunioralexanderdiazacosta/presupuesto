@@ -16,20 +16,29 @@ use Inertia\Inertia;
 
 class CreateOutflowController extends Controller
 {
-    public function __invoke()
+    public function __invoke(Request $request)
     {
         $user = Auth::user();
+        $invoiceProductId = $request->input('invoice_product_id');
+        $invoiceProduct = null;
+        if ($invoiceProductId) {
+            // Cargar producto y su unidad para mostrar de manera estática
+            $invoiceProduct = InvoiceProduct::with(['invoice', 'product.unit'])->find($invoiceProductId);
+        }
 
         return Inertia::render('Outflows/Create', [
-            'invoiceProducts' => InvoiceProduct::with('invoice', 'product')
-                ->whereHas('invoice', fn($q) => $q->where('team_id', $user->team_id)->where('season_id', session('season_id')))
-                ->get(),
-            'projects' => Project::where('team_id', $user->team_id)->get(),
-            'operations' => Operation::all(),
-            'machineries' => Machinery::all(),
+            'invoiceProduct' => $invoiceProduct,
+            'projects' => Project::where('team_id', $user->team_id)
+                ->get()
+                ->map(fn($p) => ['value' => $p->id, 'label' => $p->name]),
+            'operations' => Operation::all()
+                ->map(fn($o) => ['value' => $o->id, 'label' => $o->name]),
+            'machineries' => Machinery::all()->map(fn($m) => ['value' => $m->id, 'label' => $m->name ?? ($m->cod_machinery ?? 'Maquinaria #' . $m->id)]),
             'teams' => Team::where('id', $user->team_id)->get(),
             'seasons' => Season::where('id', session('season_id'))->get(),
-            'costCenters' => CostCenter::where('team_id', $user->team_id)->get(),
+            'costCenters' => CostCenter::whereHas('season', function($q) use ($user) {
+                $q->where('team_id', $user->team_id);
+            })->get(),
         ]);
     }
 }

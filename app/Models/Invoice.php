@@ -34,4 +34,9 @@ class Invoice extends Model
     {
         return $this->belongsTo(TypeDocument::class);
     }
+
+    public function invoiceProducts()
+    {
+        return $this->hasMany(\App\Models\InvoiceProduct::class);
+    }
 }

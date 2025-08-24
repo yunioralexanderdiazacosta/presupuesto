@@ -28,4 +28,9 @@ class InvoiceProduct extends Model
     {
         return $this->belongsTo(Product::class);
     }
+    // Relación a unidad
+    public function unit()
+    {
+        return $this->belongsTo(Unit::class);
+    }
 }
