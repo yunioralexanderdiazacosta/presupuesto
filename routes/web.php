@@ -466,4 +466,7 @@ Route::middleware([
     Route::get('/outflows/{outflow}/edit', EditOutflowController::class)->name('outflows.edit');
     Route::put('/outflows/{outflow}', UpdateOutflowController::class)->name('outflows.update');
     Route::delete('/outflows/{outflow}', DeleteOutflowController::class)->name('outflows.delete');
+
+    // Inventario
+    Route::get('/inventory', [\App\Http\Controllers\InventoryController::class, 'index'])->name('inventory');
 });

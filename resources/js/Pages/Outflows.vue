@@ -133,36 +133,27 @@ watch(selectedGroupings, (newVals) => {
     <Head :title="title" />
     <AppLayout>
          <Breadcrumb :links="links" />
-        <div class="card mb-3">
-            <div class="card-header">
-                <div class="row flex-between-end">
-                    <div class="col-auto align-self-center">
-                        <h5 class="mb-0">Salidas de productos</h5>
-                    </div>
+        <div class="card my-3">
+        <div class="card-header">
+            <div class="row flex-between-center">
+                <div class="col-6 col-sm-auto d-flex align-items-center pe-0">
+                  <h5 class="fs-9 mb-0 text-nowrap py-2 py-xl-0"><i class="fas fa-dolly text-primary me-2"></i>Informacion de Salidas</h5>
                 </div>
             </div>
-            <div class="card-body pt-0">
+        </div>
+            <div class="card-body bg-body-tertiary">
                   <ul class="nav nav-pills" id="pill-myTab" role="tablist">
                 <li class="nav-item"><a class="nav-link active" id="pill-edicion" data-bs-toggle="tab" href="#pill-tab-edicion" role="tab" aria-controls="pill-tab-edicion" aria-selected="true">Edición</a></li>
                 <li class="nav-item"><a class="nav-link" id="pill-salidas" data-bs-toggle="tab" href="#pill-tab-salidas" role="tab" aria-controls="pill-tab-salidas" aria-selected="false">Salidas</a></li>
                 <li class="nav-item"><a class="nav-link" id="pill-gastos" data-bs-toggle="tab" href="#pill-tab-gastos" role="tab" aria-controls="pill-tab-gastos" aria-selected="false">kjhyuass</a></li>
                  <li class="nav-item"><a class="nav-link" id="pill-detalles-compra" data-bs-toggle="tab" href="#pill-tab-detalles-compra" role="tab" aria-controls="pill-tab-detalles-compra" aria-selected="false">kjuh</a></li>
             </ul>
-                <div class="row justify-content-end g-0">
-                    <div class="col-auto col-sm-5 mb-3">
-                        <div class="input-group">
-                            <input class="form-control form-control-sm shadow-none search" type="text" placeholder="Buscar..." @keyup.enter="onFilter()" v-model="term" />
-                            <div class="input-group-text bg-transparent"><span class="fa fa-search fs-10 text-600"></span></div>
-                        </div>
-                    </div>
-                </div>
-
-
-                <div class="tab-content">
+            <div class="tab-content border p-3 mt-3" id="pill-myTabContent">
+               
                   <div class="tab-pane fade show active" id="pill-tab-edicion" role="tabpanel" aria-labelledby="pill-edicion">
                     <div class="table-responsive mb-4" style="max-height:340px;overflow-y:auto;">
-                      <table class="table table-bordered table-hover table-sm custom-striped fs-10 mb-0">
-                        <thead class="table-light">
+                      <table class="table table-bordered table-striped table-hover table-sm fs-10 mb-0">
+                        <thead class="table-primary">
                           <tr>
                             <th>Fecha</th>
                             <th>Proyecto</th>
@@ -172,6 +163,7 @@ watch(selectedGroupings, (newVals) => {
                             <th>Notas</th>
                             <th>Centros de Costo</th>
                             <th>Usuario</th>
+                            <th class="text-center">Acciones</th>
                           </tr>
                         </thead>
                         <tbody>
@@ -199,9 +191,17 @@ watch(selectedGroupings, (newVals) => {
                               </ul>
                             </td>
                             <td>{{ outflow.user }}</td>
+                            <td class="text-center">
+                              <button type="button" class="btn btn-icon btn-active-light-primary w-30px h-30px me-2" @click="editOutflow(outflow)">
+                                <span class="fas fa-pen"></span>
+                              </button>
+                              <button type="button" class="btn btn-icon btn-active-light-danger w-30px h-30px" @click="deleteOutflow(outflow)">
+                                <span class="fas fa-trash"></span>
+                              </button>
+                            </td>
                           </tr>
                           <tr v-if="!props.outflowDetails || !props.outflowDetails.length">
-                            <td colspan="8" class="text-center text-muted">No hay salidas registradas.</td>
+                            <td colspan="9" class="text-center text-muted">No hay salidas registradas.</td>
                           </tr>
                         </tbody>
                       </table>
@@ -353,11 +353,10 @@ watch(selectedGroupings, (newVals) => {
                     <!-- Fin cards -->
                   </div>
               
-              
+              </div>
             </div>
         </div>
-      </div>
-    </AppLayout>
+       </AppLayout>
   
 
 </template>

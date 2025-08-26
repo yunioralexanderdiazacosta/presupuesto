@@ -292,12 +292,22 @@ const logout = () => {
                   </Link>
                   <!-- more inner pages-->
                 </li>
+                <li class="nav-item"><Link class="nav-link" :href="route('inventory')">
+                    <div class="d-flex align-items-center"><span class="nav-link-text ps-3">Inventario</span>
+                    </div>
+                  </Link>
+                </li>
                 <li class="nav-item"><Link class="nav-link" :href="route('products.index')">
                     <div class="d-flex align-items-center"><span class="nav-link-text ps-3">Productos</span>
                     </div>
                   </Link>
                   <!-- more inner pages-->
                 </li>
+                 <li class="nav-item">
+                      <Link class="nav-link" :href="route('outflows.index')">
+                        <div class="d-flex align-items-center"><span class="nav-link-text ps-3">Consumos</span></div>
+                      </Link>
+                    </li>
                 
                 <li class="nav-item">
                   <a class="nav-link dropdown-indicator" href="#documents" data-bs-toggle="collapse" aria-expanded="false" aria-controls="documents">
@@ -316,11 +326,7 @@ const logout = () => {
                         <div class="d-flex align-items-center"><span class="nav-link-text ps-4">Notas de Crédito/Débito</span></div>
                       </Link>
                     </li>
-                    <li class="nav-item">
-                      <Link class="nav-link" :href="route('outflows.index')">
-                        <div class="d-flex align-items-center"><span class="nav-link-text ps-4">Salidas de productos</span></div>
-                      </Link>
-                    </li>
+                   
                   </ul>
                 </li>
                 <li class="nav-item"><Link class="nav-link" :href="route('machineries.index')">
