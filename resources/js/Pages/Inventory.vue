@@ -1,9 +1,9 @@
 <script setup>
 import { computed, ref } from 'vue';
 import AppLayout from '@/Layouts/AppLayout.vue';
-import Table from '@/Components/Table.vue';
 import Empty from '@/Components/Empty.vue';
 import Breadcrumb from '@/Components/Breadcrumb.vue';
+import CardHeader from '@/Components/CardHeader.vue';
 
 
 
@@ -20,13 +20,7 @@ const props = defineProps({
     <!--end::Breadcrumb-->
 
     <div class="card my-3">
-        <div class="card-header">
-            <div class="row flex-between-center">
-                <div class="col-6 col-sm-auto d-flex align-items-center pe-0">
-                  <h3 class="fs-9 mb-0 text-nowrap py-2 py-xl-0"><i class="fas fa-people-carry text-primary me-2"></i>Inventario </h3>
-                </div>
-            </div>
-        </div>
+     <CardHeader title="Inventario" />
 
          <div class="card-body bg-body-tertiary">
             <ul class="nav nav-pills" id="pill-myTab" role="tablist">
@@ -38,26 +32,29 @@ const props = defineProps({
             <div class="tab-content border p-3 mt-3" id="pill-myTabContent">
        
   <div class="container py-4">
-    
-    <Table>
-      <template #header>
-        <th>Nivel 2</th>
-        <th>Nivel 3</th>
-        <th>Producto</th>
-        <th>Stock</th>
-      </template>
-      <template #body>
-        <tr v-for="item in props.inventory" :key="item.level2_name + '-' + item.level3_name + '-' + item.product_name">
-          <td>{{ item.level2_name }}</td>
-          <td>{{ item.level3_name }}</td>
-          <td>{{ item.product_name }}</td>
-          <td>{{ item.cantidad }}</td>
-        </tr>
-        <tr v-if="!props.inventory || !props.inventory.length">
-          <td colspan="4" class="text-center text-muted">No hay datos de inventario.</td>
-        </tr>
-      </template>
-    </Table>
+    <div class="table-responsive">
+      <table class="table table-bordered table-striped table-sm small">
+        <thead class="table-primary text-white">
+          <tr>
+            <th>Nivel 2</th>
+            <th>Nivel 3</th>
+            <th>Producto</th>
+            <th>Stock</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr v-for="item in props.inventory" :key="item.level2_name + '-' + item.level3_name + '-' + item.product_name">
+            <td>{{ item.level2_name }}</td>
+            <td>{{ item.level3_name }}</td>
+            <td>{{ item.product_name }}</td>
+            <td>{{ item.cantidad }}</td>
+          </tr>
+          <tr v-if="!props.inventory || !props.inventory.length">
+            <td colspan="4" class="text-center text-muted">No hay datos de inventario.</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
      </div>
   </div>
    </div>
