@@ -1,5 +1,5 @@
-
 <script setup>
+import { computed, ref, watch } from 'vue';
 import FormItems from './FormItems.vue';
 import Multiselect from "@vueform/multiselect";
 import TextInput from "@/Components/TextInput.vue";
@@ -7,8 +7,40 @@ const props = defineProps({
   form: Object,
   suppliers: Array,
   invoices: Array,
-  products: Array,
+  products: Array, // todos los productos del catálogo
   units: Array
+});
+
+// Limpiar factura y productos al cambiar proveedor
+watch(() => props.form.supplier_id, (nuevoProveedor) => {
+  if (props.form.invoice_id) props.form.invoice_id = '';
+  props.form.items = [];
+});
+// Limpiar productos al cambiar factura
+watch(() => props.form.invoice_id, (nuevaFactura) => {
+  props.form.items = [];
+});
+
+// Computed para productos filtrados según tipo y factura
+const filteredProducts = computed(() => {
+  if (props.form.type === 'debito' && props.form.invoice_id) {
+    // Buscar la factura seleccionada
+    const factura = props.invoices.find(inv => inv.value === props.form.invoice_id);
+    // Si la factura tiene productos asociados, devolver solo esos
+    if (factura && factura.products) {
+      return factura.products;
+    }
+    // Si no hay productos asociados, devolver array vacío
+    return [];
+  }
+  // Si es crédito, devolver todos los productos del catálogo
+  return props.products;
+});
+
+// Computed para facturas filtradas por proveedor
+const filteredInvoices = computed(() => {
+  if (!props.form.supplier_id) return [];
+  return props.invoices.filter(inv => inv.supplier_id === props.form.supplier_id);
 });
 </script>
 
@@ -67,7 +99,7 @@ const props = defineProps({
                     <label for="" class="col-form-label">Factura Numero</label>
           <Multiselect
             v-model="form.invoice_id"
-            :options="invoices"
+            :options="filteredInvoices"
             placeholder="Factura"
             :searchable="true"
             :close-on-select="true"
@@ -116,7 +148,7 @@ const props = defineProps({
      
       <FormItems
         v-model:items="form.items"
-        :products="products"
+        :products="filteredProducts"
         :units="units"
       />
   </div>
