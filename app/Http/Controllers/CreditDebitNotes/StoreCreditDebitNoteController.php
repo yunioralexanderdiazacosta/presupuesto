@@ -32,6 +32,7 @@ class StoreCreditDebitNoteController extends Controller
                 'reason'            => $request->reason,
                 'affects_inventory' => $request->affects_inventory ?? false,
                 'user_id'           => $user->id,
+                'is_annulment'      => $request->is_annulment ?? false,
             ]);
 
             foreach ($request->items as $item) {

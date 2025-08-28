@@ -29,6 +29,7 @@ class FormCreditDebitNoteRequest extends FormRequest
             'date'              => 'required|date',
             'reason'            => 'nullable|string',
             'affects_inventory' => 'boolean',
+            'is_annulment'      => 'boolean',
             'items'             => ['required', 'array'],
             'items.*.product_id'=> ['required', 'exists:products,id'],
             'items.*.unit_id'   => ['required', 'exists:units,id'],

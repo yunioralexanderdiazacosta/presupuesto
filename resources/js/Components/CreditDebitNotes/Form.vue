@@ -42,6 +42,26 @@ const filteredInvoices = computed(() => {
   if (!props.form.supplier_id) return [];
   return props.invoices.filter(inv => inv.supplier_id === props.form.supplier_id);
 });
+
+// Autollenar items si es anulación total y hay factura seleccionada
+watch([
+  () => props.form.is_annulment,
+  () => props.form.invoice_id
+], ([isAnnulment, invoiceId]) => {
+  if (isAnnulment && invoiceId) {
+    // Buscar la factura seleccionada
+    const factura = props.invoices.find(inv => inv.value === invoiceId);
+    if (factura && factura.products) {
+      // Crear los items con los datos de la factura
+      props.form.items = factura.products.map(prod => ({
+        product_id: prod.value,
+        unit_id: prod.unit_id,
+        quantity: prod.amount ?? 1, // usa amount si está disponible, si no 1
+        unit_price: prod.unit_price ?? 0 // usa unit_price si está disponible, si no 0
+      }));
+    }
+  }
+});
 </script>
 
 
@@ -141,6 +161,17 @@ const filteredInvoices = computed(() => {
         </div>
     </div>
 
+      <div class="row">
+    <div class="col-12 mb-2 mt-4  ms-2">
+      <div class="form-check">
+        <input class="form-check-input" type="checkbox" v-model="form.is_annulment" id="is_annulment" :disabled="form.type !== 'credito'">
+        <label class="form-check-label" for="is_annulment">
+          Anula factura completa
+        </label>
+      </div>
+    </div>
+  </div>
+
   <div class="mb-3 mt-4">
         <label>Motivo</label>
         <textarea v-model="form.reason" class="form-control"></textarea>
@@ -150,8 +181,11 @@ const filteredInvoices = computed(() => {
         v-model:items="form.items"
         :products="filteredProducts"
         :units="units"
+        :is_annulment="form.is_annulment"
+        :type="form.type"
       />
   </div>
+
 </template>
 <style src="@vueform/multiselect/themes/default.css"></style>
 <style>
@@ -185,6 +219,11 @@ const filteredInvoices = computed(() => {
   max-height: 450px !important; /* o el valor que desees */
   min-height: 100px !important; /* opcional, para forzar altura mínima */
   overflow-y: auto !important;
+}
+
+.form-check-input {
+  transform: scale(1.3); /* Cambia el valor para hacerlo más grande o más pequeño */
+  margin-right: 8px;     /* Opcional: separa el checkbox del label */
 }
 </style>
 

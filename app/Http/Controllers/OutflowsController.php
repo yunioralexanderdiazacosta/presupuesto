@@ -16,8 +16,9 @@ class OutflowsController extends Controller
         $season_id = session('season_id');
         $term = $request->term ?? '';
 
-        // Traer facturas del equipo y temporada actual, con sus productos y proveedor
-    $invoices = Invoice::with(['supplier', 'invoiceProducts.product.unit'])
+
+        // Traer productos de facturas
+        $invoices = Invoice::with(['supplier', 'invoiceProducts.product.unit'])
             ->where('team_id', $user->team_id)
             ->where('season_id', $season_id)
             ->get();
@@ -25,18 +26,43 @@ class OutflowsController extends Controller
         $rows = [];
         foreach ($invoices as $invoice) {
             foreach ($invoice->invoiceProducts as $invoiceProduct) {
-                // Filtro por término de búsqueda
                 if ($term && stripos($invoice->number_document, $term) === false) {
                     continue;
                 }
                 $rows[] = [
-                    'invoice_id'        => $invoice->id,
+                    'origen'            => 'factura',
+                    'document_id'       => $invoice->id,
                     'number_document'   => $invoice->number_document,
                     'supplier'          => $invoice->supplier->name ?? '-',
                     'product'           => $invoiceProduct->product->name ?? '-',
                     'unit'              => $invoiceProduct->product->unit->name ?? '-',
                     'quantity'          => $invoiceProduct->quantity ?? $invoiceProduct->amount ?? '-',
                     'invoice_product_id'=> $invoiceProduct->id,
+                ];
+            }
+        }
+
+        // Traer productos de notas de débito (tipo = debito)
+        $debitNotes = \App\Models\CreditDebitNote::with(['supplier', 'items.product.unit'])
+            ->where('team_id', $user->team_id)
+            ->where('season_id', $season_id)
+            ->where('type', 'debito')
+            ->get();
+
+        foreach ($debitNotes as $note) {
+            foreach ($note->items as $item) {
+                if ($term && stripos($note->number, $term) === false) {
+                    continue;
+                }
+                $rows[] = [
+                    'origen'            => 'nota_debito',
+                    'document_id'       => $note->id,
+                    'number_document'   => $note->number,
+                    'supplier'          => $note->supplier->name ?? '-',
+                    'product'           => $item->product->name ?? '-',
+                    'unit'              => $item->unit->name ?? '-',
+                    'quantity'          => $item->quantity ?? '-',
+                    'invoice_product_id'=> null,
                 ];
             }
         }

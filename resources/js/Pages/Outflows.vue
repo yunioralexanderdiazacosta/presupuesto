@@ -211,15 +211,20 @@ watch(selectedGroupings, (newVals) => {
                     <div style="max-height: 340px; overflow-y: auto;">
                       <Table :id="'outflows'" :total="outflows.data.length" :links="outflows.links">
                           <template #header>
-                              <th>Factura</th>
+                              <th>Origen</th>
+                              <th>Factura / N° Nota</th>
                               <th>Proveedor</th>
                               <th>Producto</th>
                               <th>Cantidad</th>
-                               <th>Unidad</th>
+                              <th>Unidad</th>
                               <th class="text-center">Acciones</th>
                           </template>
                           <template #body>
-                              <tr v-for="outflow in outflows.data" :key="outflow.invoice_product_id">
+                              <tr v-for="outflow in outflows.data" :key="outflow.document_id + '-' + outflow.product">
+                                  <td>
+                                    <span v-if="outflow.origen === 'factura'" class="badge bg-success">Factura</span>
+                                    <span v-else class="badge bg-info text-dark">Nota Débito</span>
+                                  </td>
                                   <td>{{ outflow.number_document }}</td>
                                   <td>{{ outflow.supplier }}</td>
                                   <td>{{ outflow.product }}</td>

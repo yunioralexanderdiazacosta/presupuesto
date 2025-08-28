@@ -1,8 +1,11 @@
 <script setup>
+import { computed, watch } from 'vue';
 const props = defineProps({
   items: Array,
   products: Array,
-  units: Array
+  units: Array,
+  is_annulment: Boolean,
+  type: String // se recibe desde el padre para saber si es crédito o débito
 });
 const emit = defineEmits(['update:items']);
 
@@ -16,6 +19,38 @@ function remove(idx) {
   newItems.splice(idx, 1);
   emit('update:items', newItems);
 }
+
+// Diccionario de productos para acceso rápido por id
+const productDict = {};
+props.products.forEach(p => {
+  productDict[p.value ?? p.id] = p;
+});
+
+// Watch para autocompletar unidad al seleccionar producto
+watch(
+  () => props.items.map(i => i.product_id),
+  (newProductIds, oldProductIds) => {
+    newProductIds.forEach((productId, idx) => {
+      if (productId && productId !== oldProductIds[idx]) {
+        const producto = productDict[productId];
+        if (producto && producto.unit_id) {
+          props.items[idx].unit_id = producto.unit_id;
+        }
+      }
+    });
+  },
+  { deep: true }
+);
+
+const total = computed(() => {
+  let t = 0;
+  if (!props.items) return 0;
+  props.items.forEach(item => {
+    t += (parseFloat(item.unit_price) || 0) * (parseFloat(item.quantity) || 0);
+  });
+  // Si es nota de crédito, mostrar negativo
+  return props.type === 'credito' ? -1 * t : t;
+});
 </script>
 
 <template>
@@ -39,7 +74,7 @@ function remove(idx) {
             </select>
           </td>
           <td>
-            <select v-model="item.unit_id" class="form-control">
+            <select v-model="item.unit_id" class="form-control" :disabled="!!item.product_id">
               <option v-for="u in units" :key="u.value" :value="u.value">{{ u.label }}</option>
             </select>
           </td>
@@ -51,7 +86,14 @@ function remove(idx) {
         </tr>
       </tbody>
     </table>
-    <button class="btn btn-success btn-sm" @click.prevent="add">Agregar línea</button>
+    <button class="btn btn-success btn-sm" @click.prevent="add" :disabled="is_annulment">Agregar línea</button>
+    <div class="text-end mt-2 me-4">
+      <strong>Total de la nota:
+        <span :class="type === 'credito' ? 'text-danger' : 'text-success'">
+          {{ total.toLocaleString('es-CL', { style: 'currency', currency: 'CLP', minimumFractionDigits: 0 }) }}
+        </span>
+      </strong>
+    </div>
   </div>
 </template>
 <style src="@vueform/multiselect/themes/default.css"></style>

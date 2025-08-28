@@ -20,10 +20,12 @@ class CreditDebitNote extends Model
         'reason',
         'affects_inventory',
         'user_id',
+        'is_annulment',
     ];
 
     protected $casts = [
         'affects_inventory' => 'boolean',
+        'is_annulment' => 'boolean',
         'date' => 'date',
     ];
 

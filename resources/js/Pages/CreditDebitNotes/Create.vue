@@ -22,7 +22,8 @@ const form = useForm({
   date: '',
   number: '',
   reason: '',
-  items: []
+  items: [],
+  is_annulment: false
 });
 
 const save = () => {

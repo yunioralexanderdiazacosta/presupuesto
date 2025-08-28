@@ -184,6 +184,7 @@ use App\Http\Controllers\Outflows\ShowOutflowController;
 use App\Http\Controllers\Outflows\EditOutflowController;
 use App\Http\Controllers\Outflows\UpdateOutflowController;
 use App\Http\Controllers\Outflows\DeleteOutflowController;
+use App\Http\Controllers\KardexController;
 
 
 use Inertia\Inertia;
@@ -469,4 +470,6 @@ Route::middleware([
 
     // Inventario
     Route::get('/inventory', [\App\Http\Controllers\InventoryController::class, 'index'])->name('inventory');
+
+    Route::get('/kardex/{product}', [KardexController::class, 'show'])->name('kardex.show');
 });

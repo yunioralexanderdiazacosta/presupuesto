@@ -27,9 +27,11 @@ class CreateCreditDebitNoteController extends Controller
             // Obtener productos de la factura
             $productosFactura = $invoice->products()->get()->map(function($product) {
                 return [
-                    'label'   => $product->name,
-                    'value'   => $product->id,
-                    'unit_id' => $product->unit_id,
+                    'label'      => $product->name,
+                    'value'      => $product->id,
+                    'unit_id'    => $product->unit_id,
+                    'unit_price' => $product->pivot->unit_price,
+                    'amount'     => $product->pivot->amount,
                 ];
             })->values()->all();
             return [
