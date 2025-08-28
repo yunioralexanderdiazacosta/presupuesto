@@ -108,6 +108,17 @@ class KardexController extends Controller
             ];
         }
 
+        // Si la petición es AJAX (fetch desde el frontend), devolver JSON
+        if ($request->ajax() || $request->wantsJson()) {
+            return response()->json([
+                'product' => [
+                    'id' => $product->id,
+                    'name' => $product->name,
+                ],
+                'kardex' => $kardex,
+            ]);
+        }
+        // Si no, renderizar la vista Inertia normal
         return Inertia::render('Kardex/Show', [
             'product' => $product,
             'kardex' => $kardex,

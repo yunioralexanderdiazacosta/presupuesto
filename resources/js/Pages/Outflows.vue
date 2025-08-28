@@ -134,13 +134,13 @@ watch(selectedGroupings, (newVals) => {
     <AppLayout>
          <Breadcrumb :links="links" />
         <div class="card my-3">
-        <div class="card-header">
+         <div class="card-header">
             <div class="row flex-between-center">
                 <div class="col-6 col-sm-auto d-flex align-items-center pe-0">
                   <h5 class="fs-9 mb-0 text-nowrap py-2 py-xl-0"><i class="fas fa-dolly text-primary me-2"></i>Informacion de Salidas</h5>
                 </div>
             </div>
-        </div>
+         </div>
             <div class="card-body bg-body-tertiary">
                   <ul class="nav nav-pills" id="pill-myTab" role="tablist">
                 <li class="nav-item"><a class="nav-link active" id="pill-edicion" data-bs-toggle="tab" href="#pill-tab-edicion" role="tab" aria-controls="pill-tab-edicion" aria-selected="true">Edición</a></li>
@@ -301,21 +301,21 @@ watch(selectedGroupings, (newVals) => {
                             />
                           </div>
                           <!-- Selector de agrupación con Multiselect -->
-        <div class="col-sm-4">
-            <label for="grouping" class="col-form-label mb-0">Agrupación</label>
-           
-                <Multiselect
-                    id="grouping"
-                    v-model="selectedGroupings[selected.id]"
-                    :options="(page.props.groupings || []).map(g => ({ value: g.id, label: g.name }))"
-                    :placeholder="'Seleccione agrupación'"
-                    :searchable="true"
-                    :close-on-select="true"
-                    :hide-selected="false"
-                    class="multiselect-blue form-control-sm"
-                />
-          
-        </div>
+                        <div class="col-sm-4">
+                            <label for="grouping" class="col-form-label mb-0">Agrupación</label>
+                          
+                                <Multiselect
+                                    id="grouping"
+                                    v-model="selectedGroupings[selected.id]"
+                                    :options="(page.props.groupings || []).map(g => ({ value: g.id, label: g.name }))"
+                                    :placeholder="'Seleccione agrupación'"
+                                    :searchable="true"
+                                    :close-on-select="true"
+                                    :hide-selected="false"
+                                    class="multiselect-blue form-control-sm"
+                                />
+                          
+                        </div>
 
 
 
