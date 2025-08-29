@@ -35,6 +35,7 @@ class FormCreditDebitNoteRequest extends FormRequest
             'items.*.unit_id'   => ['required', 'exists:units,id'],
             'items.*.quantity'  => ['required', 'numeric'],
             'items.*.unit_price'=> ['required', 'numeric'],
+            'items.*.invoice_product_id' => ['nullable', 'exists:invoice_product,id'],
         ];
     }
 }

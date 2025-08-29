@@ -41,6 +41,7 @@ class StoreCreditDebitNoteController extends Controller
                     'unit_id'    => $item['unit_id'],
                     'quantity'   => $item['quantity'],
                     'unit_price' => $item['unit_price'],
+                    'invoice_product_id' => $item['invoice_product_id'] ?? null,
                 ]);
             }
         });

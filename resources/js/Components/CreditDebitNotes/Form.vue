@@ -21,20 +21,13 @@ watch(() => props.form.invoice_id, (nuevaFactura) => {
   props.form.items = [];
 });
 
-// Computed para productos filtrados según tipo y factura
-const filteredProducts = computed(() => {
-  if (props.form.type === 'debito' && props.form.invoice_id) {
-    // Buscar la factura seleccionada
+// Computed para líneas de factura (para nota de crédito)
+const filteredInvoiceLines = computed(() => {
+  if (props.form.invoice_id) {
     const factura = props.invoices.find(inv => inv.value === props.form.invoice_id);
-    // Si la factura tiene productos asociados, devolver solo esos
-    if (factura && factura.products) {
-      return factura.products;
-    }
-    // Si no hay productos asociados, devolver array vacío
-    return [];
+    return factura && factura.products ? factura.products : [];
   }
-  // Si es crédito, devolver todos los productos del catálogo
-  return props.products;
+  return [];
 });
 
 // Computed para facturas filtradas por proveedor
@@ -52,13 +45,16 @@ watch([
     // Buscar la factura seleccionada
     const factura = props.invoices.find(inv => inv.value === invoiceId);
     if (factura && factura.products) {
-      // Crear los items con los datos de la factura
-      props.form.items = factura.products.map(prod => ({
-        product_id: prod.value,
-        unit_id: prod.unit_id,
-        quantity: prod.amount ?? 1, // usa amount si está disponible, si no 1
-        unit_price: prod.unit_price ?? 0 // usa unit_price si está disponible, si no 0
-      }));
+      // Crear los items con los datos de la factura, incluyendo invoice_product_id
+      props.form.items = factura.products
+        .filter(prod => prod.value !== undefined && prod.value !== null)
+        .map(prod => ({
+          invoice_product_id: prod.value, // id de la línea, nunca null
+          product_id: prod.product_id ?? prod.value, // para backend y watcher
+          unit_id: prod.unit_id,
+          quantity: prod.amount ?? 1,
+          unit_price: prod.unit_price ?? 0,
+        }));
     }
   }
 });
@@ -179,7 +175,7 @@ watch([
      
       <FormItems
         v-model:items="form.items"
-        :products="filteredProducts"
+        :products="form.type === 'credito' ? filteredInvoiceLines : products"
         :units="units"
         :is_annulment="form.is_annulment"
         :type="form.type"

@@ -51,11 +51,24 @@ function onDeleted(index) {
 }
 
 function openCard(outflow) {
-  // Evitar duplicados
-  if (!showCards.value.includes(outflow.invoice_product_id)) {
-    showCards.value.push(outflow.invoice_product_id);
+  // Determinar el id y el tipo de origen
+  let id = null;
+  let tipo = null;
+  if (outflow.origen === 'factura' && outflow.invoice_product_id) {
+    id = 'factura-' + outflow.invoice_product_id;
+    tipo = 'factura';
+  } else if (outflow.origen === 'nota_debito' && outflow.credit_debit_note_item_id) {
+    id = 'nota_debito-' + outflow.credit_debit_note_item_id;
+    tipo = 'nota_debito';
+  }
+  if (!id) return;
+  if (!showCards.value.includes(id)) {
+    showCards.value.push(id);
     selectedOutflows.value.push({
-      id: outflow.invoice_product_id,
+      id,
+      tipo,
+      invoice_product_id: outflow.invoice_product_id || null,
+      credit_debit_note_item_id: outflow.credit_debit_note_item_id || null,
       project_id: '',
       operation_id: '',
       machinery_id: '',
@@ -78,7 +91,23 @@ function closeCard(id) {
 function handleSave() {
   // Filtrar solo las cards con datos obligatorios (ejemplo: cantidad y al menos un centro de costo)
   const registros = selectedOutflows.value.filter(sel => {
-    return sel.quantity && sel.cost_center_ids && sel.cost_center_ids.length > 0;
+    return sel.quantity && sel.cost_center_ids && sel.cost_center_ids.length > 0 && (sel.invoice_product_id || sel.credit_debit_note_item_id);
+  }).map(sel => {
+    // Enviar ambos campos, el backend decidirá cuál usar
+    return {
+      id: sel.id,
+      tipo: sel.tipo,
+      invoice_product_id: sel.invoice_product_id,
+      credit_debit_note_item_id: sel.credit_debit_note_item_id,
+      project_id: sel.project_id,
+      operation_id: sel.operation_id,
+      machinery_id: sel.machinery_id,
+      product_name: sel.product_name,
+      unit_name: sel.unit_name,
+      quantity: sel.quantity,
+      cost_center_ids: sel.cost_center_ids,
+      observations: sel.observations
+    };
   });
   if (registros.length === 0) {
     Swal.fire({ icon: 'warning', title: 'Atención', text: 'No hay registros completos para guardar.' });
@@ -211,39 +240,41 @@ watch(selectedGroupings, (newVals) => {
                     <div style="max-height: 340px; overflow-y: auto;">
                       <Table :id="'outflows'" :total="outflows.data.length" :links="outflows.links">
                           <template #header>
-                              <th>Origen</th>
-                              <th>Factura / N° Nota</th>
-                              <th>Proveedor</th>
-                              <th>Producto</th>
-                              <th>Cantidad</th>
-                              <th>Unidad</th>
-                              <th class="text-center">Acciones</th>
+                            <th>Origen</th>
+                            <th>Factura / N° Nota</th>
+                            <th>Proveedor</th>
+                            <th>Producto</th>
+                            <th>Cantidad</th>
+                            <th>Stock</th>
+                            <th>Unidad</th>
+                            <th class="text-center">Acciones</th>
                           </template>
                           <template #body>
-                              <tr v-for="outflow in outflows.data" :key="outflow.document_id + '-' + outflow.product">
-                                  <td>
-                                    <span v-if="outflow.origen === 'factura'" class="badge bg-success">Factura</span>
-                                    <span v-else class="badge bg-info text-dark">Nota Débito</span>
-                                  </td>
-                                  <td>{{ outflow.number_document }}</td>
-                                  <td>{{ outflow.supplier }}</td>
-                                  <td>{{ outflow.product }}</td>
-                                  <td>{{ outflow.quantity }}</td>
-                                  <td>{{ outflow.unit }}</td>
-                                  <td class="text-center">
-                                    <button @click="openCard(outflow)"
-                                      class="btn btn-sm me-1"
-                                      :class="showCards.map(String).includes(String(outflow.invoice_product_id)) ? 'btn-primary btn-active' : 'btn-white'">
-                                      <span 
-                                        class="fas fa-paper-plane"
-                                        :class="showCards.map(String).includes(String(outflow.invoice_product_id)) ? 'text-white' : 'text-secondary'"
-                                      ></span>
-                                    </button>
-                                  </td>
-                              </tr>
-                              <tr v-if="outflows.data.length === 0">
-                                  <td colspan="5"><Empty /></td>
-                              </tr>
+                            <tr v-for="outflow in outflows.data" :key="outflow.document_id + '-' + outflow.product">
+                                <td>
+                                  <span v-if="outflow.origen === 'factura'" class="badge bg-success">Factura</span>
+                                  <span v-else class="badge bg-info text-dark">Nota Débito</span>
+                                </td>
+                                <td>{{ outflow.number_document }}</td>
+                                <td>{{ outflow.supplier }}</td>
+                                <td>{{ outflow.product }}</td>
+                                <td>{{ outflow.quantity }}</td>
+                                <td>{{ outflow.stock }}</td>
+                                <td>{{ outflow.unit }}</td>
+                                <td class="text-center">
+                                  <button @click="openCard(outflow)"
+                                    class="btn btn-sm me-1"
+                                    :class="showCards.map(String).includes(String(outflow.invoice_product_id)) ? 'btn-primary btn-active' : 'btn-white'">
+                                    <span 
+                                      class="fas fa-paper-plane"
+                                      :class="showCards.map(String).includes(String(outflow.invoice_product_id)) ? 'text-white' : 'text-secondary'"
+                                    ></span>
+                                  </button>
+                                </td>
+                            </tr>
+                            <tr v-if="outflows.data.length === 0">
+                                <td colspan="8"><Empty /></td>
+                            </tr>
                           </template>
                       </Table>
                     </div>

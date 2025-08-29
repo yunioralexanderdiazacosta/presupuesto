@@ -16,6 +16,7 @@ trait HasInventory
     $entradas = DB::table('invoice_product')
             ->join('invoices', 'invoice_product.invoice_id', '=', 'invoices.id')
             ->join('products', 'invoice_product.product_id', '=', 'products.id')
+            ->leftJoin('units', 'products.unit_id', '=', 'units.id')
             ->leftJoin('level2s', 'products.level2_id', '=', 'level2s.id')
             ->leftJoin('level3s', 'products.level3_id', '=', 'level3s.id')
             ->where('invoices.team_id', $team_id)
@@ -27,14 +28,16 @@ trait HasInventory
                 'level3s.name as level3_name',
                 'products.id as product_id',
                 'products.name as product_name',
+                'units.name as unit_name',
                 DB::raw('SUM(invoice_product.amount) as cantidad')
             )
-            ->groupBy('products.level2_id', 'level2s.name', 'products.level3_id', 'level3s.name', 'products.id', 'products.name');
+            ->groupBy('products.level2_id', 'level2s.name', 'products.level3_id', 'level3s.name', 'products.id', 'products.name', 'units.name');
 
         // Notas de débito (tipo = "debito")
         $debitNotes = DB::table('credit_debit_note_items')
             ->join('credit_debit_notes', 'credit_debit_note_items.credit_debit_note_id', '=', 'credit_debit_notes.id')
             ->join('products', 'credit_debit_note_items.product_id', '=', 'products.id')
+            ->leftJoin('units', 'products.unit_id', '=', 'units.id')
             ->leftJoin('level2s', 'products.level2_id', '=', 'level2s.id')
             ->leftJoin('level3s', 'products.level3_id', '=', 'level3s.id')
             ->where('credit_debit_notes.team_id', $team_id)
@@ -47,18 +50,22 @@ trait HasInventory
                 'level3s.name as level3_name',
                 'products.id as product_id',
                 'products.name as product_name',
+                'units.name as unit_name',
                 DB::raw('SUM(credit_debit_note_items.quantity) as cantidad')
             )
-            ->groupBy('products.level2_id', 'level2s.name', 'products.level3_id', 'level3s.name', 'products.id', 'products.name');
+            ->groupBy('products.level2_id', 'level2s.name', 'products.level3_id', 'level3s.name', 'products.id', 'products.name', 'units.name');
 
-    // Salidas: Outflows (relación correcta con producto) + Notas de crédito
-        $salidas = DB::table('outflows')
+    // Salidas: Outflows (factura y nota de débito) + Notas de crédito
+        // Salidas asociadas a factura
+        $salidasFactura = DB::table('outflows')
             ->join('invoice_product', 'outflows.invoice_product_id', '=', 'invoice_product.id')
             ->join('products', 'invoice_product.product_id', '=', 'products.id')
+            ->leftJoin('units', 'products.unit_id', '=', 'units.id')
             ->leftJoin('level2s', 'products.level2_id', '=', 'level2s.id')
             ->leftJoin('level3s', 'products.level3_id', '=', 'level3s.id')
             ->where('outflows.team_id', $team_id)
             ->where('outflows.season_id', $season_id)
+            ->whereNotNull('outflows.invoice_product_id')
             ->select(
                 'products.level2_id',
                 'level2s.name as level2_name',
@@ -66,14 +73,38 @@ trait HasInventory
                 'level3s.name as level3_name',
                 'products.id as product_id',
                 'products.name as product_name',
+                'units.name as unit_name',
                 DB::raw('SUM(outflows.quantity) as cantidad')
             )
-            ->groupBy('products.level2_id', 'level2s.name', 'products.level3_id', 'level3s.name', 'products.id', 'products.name');
+            ->groupBy('products.level2_id', 'level2s.name', 'products.level3_id', 'level3s.name', 'products.id', 'products.name', 'units.name');
+
+        // Salidas asociadas a nota de débito
+        $salidasND = DB::table('outflows')
+            ->join('credit_debit_note_items', 'outflows.credit_debit_note_item_id', '=', 'credit_debit_note_items.id')
+            ->join('products', 'credit_debit_note_items.product_id', '=', 'products.id')
+            ->leftJoin('units', 'products.unit_id', '=', 'units.id')
+            ->leftJoin('level2s', 'products.level2_id', '=', 'level2s.id')
+            ->leftJoin('level3s', 'products.level3_id', '=', 'level3s.id')
+            ->where('outflows.team_id', $team_id)
+            ->where('outflows.season_id', $season_id)
+            ->whereNotNull('outflows.credit_debit_note_item_id')
+            ->select(
+                'products.level2_id',
+                'level2s.name as level2_name',
+                'products.level3_id',
+                'level3s.name as level3_name',
+                'products.id as product_id',
+                'products.name as product_name',
+                'units.name as unit_name',
+                DB::raw('SUM(outflows.quantity) as cantidad')
+            )
+            ->groupBy('products.level2_id', 'level2s.name', 'products.level3_id', 'level3s.name', 'products.id', 'products.name', 'units.name');
 
         // Notas de crédito (tipo = "credito")
         $creditNotes = DB::table('credit_debit_note_items')
             ->join('credit_debit_notes', 'credit_debit_note_items.credit_debit_note_id', '=', 'credit_debit_notes.id')
             ->join('products', 'credit_debit_note_items.product_id', '=', 'products.id')
+            ->leftJoin('units', 'products.unit_id', '=', 'units.id')
             ->leftJoin('level2s', 'products.level2_id', '=', 'level2s.id')
             ->leftJoin('level3s', 'products.level3_id', '=', 'level3s.id')
             ->where('credit_debit_notes.team_id', $team_id)
@@ -86,14 +117,15 @@ trait HasInventory
                 'level3s.name as level3_name',
                 'products.id as product_id',
                 'products.name as product_name',
+                'units.name as unit_name',
                 DB::raw('SUM(credit_debit_note_items.quantity) as cantidad')
             )
-            ->groupBy('products.level2_id', 'level2s.name', 'products.level3_id', 'level3s.name', 'products.id', 'products.name');
+            ->groupBy('products.level2_id', 'level2s.name', 'products.level3_id', 'level3s.name', 'products.id', 'products.name', 'units.name');
 
         // Unir y calcular inventario
     $entradasArr = $entradas->get()->toArray();
     $debitArr = $debitNotes->get()->toArray();
-    $salidasArr = $salidas->get()->toArray();
+    $salidasArr = array_merge($salidasFactura->get()->toArray(), $salidasND->get()->toArray());
     $creditArr = $creditNotes->get()->toArray();
 
         // Agrupar por nivel2, nivel3, producto
@@ -109,6 +141,7 @@ trait HasInventory
                         'level3_name' => property_exists($row, 'level3_name') ? $row->level3_name : null,
                         'product_id' => $row->product_id,
                         'product_name' => $row->product_name,
+                        'unit_name' => property_exists($row, 'unit_name') ? $row->unit_name : null,
                         'cantidad' => 0
                     ];
                 }

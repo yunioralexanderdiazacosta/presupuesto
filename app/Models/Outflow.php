@@ -11,6 +11,7 @@ class Outflow extends Model
 
     protected $fillable = [
         'invoice_product_id',
+        'credit_debit_note_item_id',
         'user_id',
         'project_id',
         'operation_id',
@@ -21,6 +22,10 @@ class Outflow extends Model
         'team_id',
         'season_id',
     ];
+    public function creditDebitNoteItem()
+    {
+        return $this->belongsTo(CreditDebitNoteItem::class);
+    }
 
     // Relaciones
     public function invoiceProduct()

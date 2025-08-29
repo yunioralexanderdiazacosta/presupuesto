@@ -17,8 +17,10 @@ class StoreOutflowController extends Controller
         $teamId = Auth::user()->team_id ?? null;
         $seasonId = session('season_id');
         foreach ($outflows as $outflowData) {
+            // Determinar si es factura o nota de débito
             $data = [
-                'invoice_product_id' => $outflowData['id'] ?? null,
+                'invoice_product_id' => $outflowData['tipo'] === 'factura' ? ($outflowData['invoice_product_id'] ?? null) : null,
+                'credit_debit_note_item_id' => $outflowData['tipo'] === 'nota_debito' ? ($outflowData['credit_debit_note_item_id'] ?? null) : null,
                 'user_id' => $userId,
                 'team_id' => $teamId,
                 'season_id' => $seasonId,
@@ -28,7 +30,6 @@ class StoreOutflowController extends Controller
                 'quantity' => $outflowData['quantity'] ?? null,
                 'notes' => $outflowData['observations'] ?? null,
                 'date' => now(),
-                // Puedes agregar más campos si es necesario
             ];
             $outflow = \App\Models\Outflow::create($data);
             if (isset($outflowData['cost_center_ids']) && is_array($outflowData['cost_center_ids'])) {

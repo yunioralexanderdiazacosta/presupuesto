@@ -6,16 +6,35 @@ use Illuminate\Http\Request;
 use App\Models\Outflow;
 use App\Models\Invoice;
 use Inertia\Inertia;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Auth;
+use \App\Traits\HasInventory;
 
 class OutflowsController extends Controller
 {
+    use HasInventory;
+
     public function __invoke(Request $request)
     {
+        // Obtener usuario y temporada
         $user = Auth::user();
         $season_id = session('season_id');
         $term = $request->term ?? '';
 
+        // Precalcular devoluciones por invoice_product_id en notas de crédito
+        $creditNotesReturns = DB::table('credit_debit_note_items')
+            ->join('credit_debit_notes', 'credit_debit_note_items.credit_debit_note_id', '=', 'credit_debit_notes.id')
+            ->where('credit_debit_notes.team_id', $user->team_id)
+            ->where('credit_debit_notes.season_id', $season_id)
+            ->where('credit_debit_notes.type', 'credito')
+            ->whereNotNull('credit_debit_note_items.invoice_product_id')
+            ->select('credit_debit_note_items.invoice_product_id', DB::raw('SUM(credit_debit_note_items.quantity) as total_devuelto'))
+            ->groupBy('credit_debit_note_items.invoice_product_id')
+            ->pluck('total_devuelto', 'credit_debit_note_items.invoice_product_id');
+
+
+        // Obtener inventario actual
+        $inventario = collect($this->getInventory($user->team_id, $season_id));
 
         // Traer productos de facturas
         $invoices = Invoice::with(['supplier', 'invoiceProducts.product.unit'])
@@ -23,12 +42,34 @@ class OutflowsController extends Controller
             ->where('season_id', $season_id)
             ->get();
 
+        // Precalcular salidas por invoice_product_id
+        $outflowsByInvoiceProduct = DB::table('outflows')
+            ->select('invoice_product_id', DB::raw('SUM(quantity) as total_consumido'))
+            ->where('team_id', $user->team_id)
+            ->where('season_id', $season_id)
+            ->whereNotNull('invoice_product_id')
+            ->groupBy('invoice_product_id')
+            ->pluck('total_consumido', 'invoice_product_id');
+
+        // Precalcular salidas por credit_debit_note_item_id
+        $outflowsByDebitNoteItem = DB::table('outflows')
+            ->select('credit_debit_note_item_id', DB::raw('SUM(quantity) as total_consumido'))
+            ->where('team_id', $user->team_id)
+            ->where('season_id', $season_id)
+            ->whereNotNull('credit_debit_note_item_id')
+            ->groupBy('credit_debit_note_item_id')
+            ->pluck('total_consumido', 'credit_debit_note_item_id');
+
         $rows = [];
         foreach ($invoices as $invoice) {
             foreach ($invoice->invoiceProducts as $invoiceProduct) {
                 if ($term && stripos($invoice->number_document, $term) === false) {
                     continue;
                 }
+                $consumido = $outflowsByInvoiceProduct[$invoiceProduct->id] ?? 0;
+                $devuelto = $creditNotesReturns[$invoiceProduct->id] ?? 0;
+                $cantidadOriginal = $invoiceProduct->quantity ?? $invoiceProduct->amount ?? 0;
+                $stockLinea = $cantidadOriginal - $consumido - $devuelto;
                 $rows[] = [
                     'origen'            => 'factura',
                     'document_id'       => $invoice->id,
@@ -36,8 +77,9 @@ class OutflowsController extends Controller
                     'supplier'          => $invoice->supplier->name ?? '-',
                     'product'           => $invoiceProduct->product->name ?? '-',
                     'unit'              => $invoiceProduct->product->unit->name ?? '-',
-                    'quantity'          => $invoiceProduct->quantity ?? $invoiceProduct->amount ?? '-',
+                    'quantity'          => $cantidadOriginal,
                     'invoice_product_id'=> $invoiceProduct->id,
+                    'stock'             => $stockLinea,
                 ];
             }
         }
@@ -54,15 +96,19 @@ class OutflowsController extends Controller
                 if ($term && stripos($note->number, $term) === false) {
                     continue;
                 }
+                $consumido = $outflowsByDebitNoteItem[$item->id] ?? 0;
+                $cantidadOriginal = $item->quantity ?? 0;
+                $stockLinea = $cantidadOriginal - $consumido;
                 $rows[] = [
-                    'origen'            => 'nota_debito',
-                    'document_id'       => $note->id,
-                    'number_document'   => $note->number,
-                    'supplier'          => $note->supplier->name ?? '-',
-                    'product'           => $item->product->name ?? '-',
-                    'unit'              => $item->unit->name ?? '-',
-                    'quantity'          => $item->quantity ?? '-',
-                    'invoice_product_id'=> null,
+                    'origen'                  => 'nota_debito',
+                    'document_id'             => $note->id,
+                    'number_document'         => $note->number,
+                    'supplier'                => $note->supplier->name ?? '-',
+                    'product'                 => $item->product->name ?? '-',
+                    'unit'                    => $item->unit->name ?? '-',
+                    'quantity'                => $cantidadOriginal,
+                    'credit_debit_note_item_id'=> $item->id,
+                    'stock'                   => $stockLinea,
                 ];
             }
         }

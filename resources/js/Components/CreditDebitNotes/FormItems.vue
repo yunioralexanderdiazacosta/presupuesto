@@ -2,16 +2,27 @@
 import { computed, watch } from 'vue';
 const props = defineProps({
   items: Array,
-  products: Array,
+  products: Array,  // líneas de factura (crédito) o productos (débito)
   units: Array,
   is_annulment: Boolean,
-  type: String // se recibe desde el padre para saber si es crédito o débito
+  type: String // 'credito' o 'debito'
 });
 const emit = defineEmits(['update:items']);
+// Diccionario de productos o líneas para autocompletar
+const itemDict = {};
+props.products.forEach(p => {
+  itemDict[p.value] = p;
+});
 
 function add() {
   const newItems = props.items ? [...props.items] : [];
-  newItems.push({ product_id: '', unit_id: '', quantity: 0, unit_price: 0 });
+  newItems.push({
+    invoice_product_id: '',
+    product_id: '',
+    unit_id: '',
+    quantity: 0,
+    unit_price: 0,
+  });
   emit('update:items', newItems);
 }
 function remove(idx) {
@@ -20,26 +31,37 @@ function remove(idx) {
   emit('update:items', newItems);
 }
 
-// Diccionario de productos para acceso rápido por id
-const productDict = {};
-props.products.forEach(p => {
-  productDict[p.value ?? p.id] = p;
-});
-
-// Watch para autocompletar unidad al seleccionar producto
+// Watch para crédito: al cambiar invoice_product_id, auto-rellenar datos
 watch(
-  () => props.items.map(i => i.product_id),
-  (newProductIds, oldProductIds) => {
-    newProductIds.forEach((productId, idx) => {
-      if (productId && productId !== oldProductIds[idx]) {
-        const producto = productDict[productId];
-        if (producto && producto.unit_id) {
-          props.items[idx].unit_id = producto.unit_id;
+  () => props.items.map(i => i.invoice_product_id),
+  (newIds, oldIds) => {
+    if (props.type !== 'credito') return;
+    newIds.forEach((id, idx) => {
+      if (id && id !== oldIds[idx]) {
+        const line = props.products.find(p => p.value === id);
+        if (line) {
+          props.items[idx].product_id = line.product_id;
+          props.items[idx].unit_id = line.unit_id;
+          props.items[idx].unit_price = line.unit_price;
         }
       }
     });
-  },
-  { deep: true }
+  }, { deep: true }
+);
+// Watch para débito: al cambiar product_id, auto-rellenar unidad
+watch(
+  () => props.items.map(i => i.product_id),
+  (newIds, oldIds) => {
+    if (props.type !== 'debito') return;
+    newIds.forEach((id, idx) => {
+      if (id && id !== oldIds[idx]) {
+        const prod = props.products.find(p => p.value === id);
+        if (prod && prod.unit_id) {
+          props.items[idx].unit_id = prod.unit_id;
+        }
+      }
+    });
+  }, { deep: true }
 );
 
 const total = computed(() => {
@@ -69,18 +91,25 @@ const total = computed(() => {
       <tbody>
         <tr v-for="(item, idx) in items" :key="idx">
           <td>
-            <select v-model="item.product_id" class="form-control">
+            <select v-if="type === 'credito'" v-model="item.invoice_product_id" class="form-control">
+              <option value="" disabled>Seleccione línea</option>
+              <option v-for="p in products" :key="p.value" :value="p.value">{{ p.label }}</option>
+            </select>
+            <select v-else v-model="item.product_id" class="form-control">
+              <option value="" disabled>Seleccione producto</option>
               <option v-for="p in products" :key="p.value" :value="p.value">{{ p.label }}</option>
             </select>
           </td>
           <td>
-            <select v-model="item.unit_id" class="form-control" :disabled="!!item.product_id">
+            <select v-model="item.unit_id" class="form-control">
+              <option value="" disabled>Unidad</option>
               <option v-for="u in units" :key="u.value" :value="u.value">{{ u.label }}</option>
             </select>
           </td>
           <td><input type="number" v-model="item.quantity" class="form-control" min="0" step="0.01" /></td>
           <td><input type="number" v-model="item.unit_price" class="form-control" min="0" step="0.01" /></td>
           <td>
+            <input v-if="type === 'credito' && products.length && products.find(p => p.value === item.product_id) && products.find(p => p.value === item.product_id).id" type="hidden" v-model="item.invoice_product_id" />
             <button class="btn btn-danger btn-sm" @click.prevent="remove(idx)">-</button>
           </td>
         </tr>

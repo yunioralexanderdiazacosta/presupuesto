@@ -14,7 +14,7 @@ class KardexController extends Controller
     {
         $user = Auth::user();
         $season_id = session('season_id');
-        $product = Product::findOrFail($product_id);
+    $product = Product::with('unit')->findOrFail($product_id);
 
         // Movimientos de facturas (entradas)
         $facturas = DB::table('invoice_product')
@@ -66,13 +66,14 @@ class KardexController extends Controller
                 DB::raw('NULL as observaciones')
             ]);
 
-        // Movimientos de consumos/outflows (salidas)
-        $outflows = DB::table('outflows')
+        // Movimientos de consumos/outflows (salidas) asociados a factura
+        $outflowsFactura = DB::table('outflows')
             ->join('invoice_product', 'outflows.invoice_product_id', '=', 'invoice_product.id')
             ->join('invoices', 'invoice_product.invoice_id', '=', 'invoices.id')
             ->where('invoice_product.product_id', $product_id)
             ->where('outflows.team_id', $user->team_id)
             ->where('outflows.season_id', $season_id)
+            ->whereNotNull('outflows.invoice_product_id')
             ->select([
                 'outflows.date as fecha',
                 DB::raw("'Consumo' as tipo"),
@@ -83,11 +84,30 @@ class KardexController extends Controller
                 'outflows.notes as observaciones'
             ]);
 
+        // Movimientos de consumos/outflows (salidas) asociados a nota de débito
+        $outflowsND = DB::table('outflows')
+            ->join('credit_debit_note_items', 'outflows.credit_debit_note_item_id', '=', 'credit_debit_note_items.id')
+            ->join('credit_debit_notes', 'credit_debit_note_items.credit_debit_note_id', '=', 'credit_debit_notes.id')
+            ->where('credit_debit_note_items.product_id', $product_id)
+            ->where('outflows.team_id', $user->team_id)
+            ->where('outflows.season_id', $season_id)
+            ->whereNotNull('outflows.credit_debit_note_item_id')
+            ->select([
+                'outflows.date as fecha',
+                DB::raw("'Consumo ND' as tipo"),
+                'credit_debit_notes.number as documento',
+                DB::raw('0 as entrada'),
+                'outflows.quantity as salida',
+                DB::raw('NULL as precio'),
+                'outflows.notes as observaciones'
+            ]);
+
         // Unir todos los movimientos y ordenarlos por fecha
         $movimientos = $facturas
             ->unionAll($notasDebito)
             ->unionAll($notasCredito)
-            ->unionAll($outflows)
+            ->unionAll($outflowsFactura)
+            ->unionAll($outflowsND)
             ->orderBy('fecha')
             ->get();
 
@@ -114,6 +134,7 @@ class KardexController extends Controller
                 'product' => [
                     'id' => $product->id,
                     'name' => $product->name,
+                    'unit' => $product->unit ? $product->unit->name : '',
                 ],
                 'kardex' => $kardex,
             ]);

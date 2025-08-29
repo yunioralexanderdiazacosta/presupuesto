@@ -11,11 +11,21 @@ class CreditDebitNoteItem extends Model
 
     protected $fillable = [
         'credit_debit_note_id',
+        'invoice_product_id',
         'product_id',
         'unit_id',
         'quantity',
         'unit_price',
     ];
+    public function invoiceProduct()
+    {
+        return $this->belongsTo(InvoiceProduct::class);
+    }
+
+    public function outflows()
+    {
+        return $this->hasMany(Outflow::class);
+    }
 
     public function creditDebitNote()
     {

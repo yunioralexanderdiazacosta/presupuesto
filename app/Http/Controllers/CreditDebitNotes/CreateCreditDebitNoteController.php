@@ -24,21 +24,22 @@ class CreateCreditDebitNoteController extends Controller
         });
 
         $invoices = Invoice::where('team_id', $user->team_id)->get()->transform(function($invoice){
-            // Obtener productos de la factura
-            $productosFactura = $invoice->products()->get()->map(function($product) {
+            // Obtener líneas de factura para asociar cred/deb
+            $productosFactura = $invoice->invoiceProducts()->with('product')->get()->map(function($line) {
                 return [
-                    'label'      => $product->name,
-                    'value'      => $product->id,
-                    'unit_id'    => $product->unit_id,
-                    'unit_price' => $product->pivot->unit_price,
-                    'amount'     => $product->pivot->amount,
+                    'label'             => $line->product->name,
+                    'value'             => $line->id,            // id de invoice_product
+                    'product_id'        => $line->product_id,
+                    'unit_id'           => $line->unit_id ?? $line->product->unit_id,
+                    'unit_price'        => $line->unit_price,
+                    'amount'            => $line->amount,
                 ];
             })->values()->all();
             return [
-                'label' => $invoice->number_document,
-                'value' => $invoice->id,
+                'label'       => $invoice->number_document,
+                'value'       => $invoice->id,
                 'supplier_id' => $invoice->supplier_id,
-                'products' => $productosFactura
+                'products'    => $productosFactura
             ];
         });
 

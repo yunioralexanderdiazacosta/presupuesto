@@ -18,6 +18,7 @@ const props = defineProps({
 const inventoryEdit = ref(props.inventory ? JSON.parse(JSON.stringify(props.inventory)) : []);
 // El kardexView ahora será un diccionario: { [product_id]: movimientos[] }
 const kardexView = ref({});
+const kardexUnits = ref({});
 
 // Estado para expandir/cerrar detalles por producto
 const expandedRows = ref([]); // array de product_id
@@ -43,8 +44,10 @@ async function loadKardex(productId) {
     if (!response.ok) throw new Error('Error al cargar el kardex');
     const data = await response.json();
     kardexView.value[productId] = data.kardex || [];
+    kardexUnits.value[productId] = data.product.unit || '';
   } catch (e) {
     kardexView.value[productId] = [];
+    kardexUnits.value[productId] = '';
   }
 }
 
@@ -95,6 +98,7 @@ function printKardex(productId) {
                       <th>Nivel 3</th>
                       <th>Producto</th>
                       <th>Stock</th>
+                      <th>Unidad</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -103,6 +107,7 @@ function printKardex(productId) {
                       <td>{{ item.level3_name }}</td>
                       <td>{{ item.product_name }}</td>
                       <td>{{ item.cantidad }}</td>
+                      <td>{{ item.unit_name || '' }}</td>
                     </tr>
                     <tr v-if="!inventoryEdit.length">
                       <td colspan="4" class="text-center text-muted">No hay datos de inventario.</td>
@@ -135,12 +140,14 @@ function printKardex(productId) {
                             <td>{{ item.cantidad }}</td>
                             <td>
                               <button
-                                class="btn btn-sm border-0 bg-transparent p-0"
+                                class="btn btn-sm p-1"
+                                :class="expandedRows.includes(item.product_id) ? 'btn-success' : 'btn-info'"
                                 @click="toggleRow(item.product_id)"
-                                style="display: flex; align-items: center; gap: 0.25rem; box-shadow: none;"
-                                :aria-label="expandedRows.includes(item.product_id) ? 'Ocultar detalles' : 'Ver detalles'"
+                                style="display:flex; align-items:center; justify-content:center; padding:0.25rem; font-size:0.75rem; width:1.5rem; height:1.3rem;"
                               >
-                                <i :class="expandedRows.includes(item.product_id) ? 'fa fa-eye-slash' : 'fa fa-eye'" style="font-size: 1.2em;"></i>
+                                <span>
+                                  <i :class="expandedRows.includes(item.product_id) ? 'fa fa-eye-slash' : 'fa fa-eye'"></i>
+                                </span>
                               </button>
                             </td>
                           </tr>
@@ -150,7 +157,7 @@ function printKardex(productId) {
                                 <div class="d-flex justify-content-between align-items-center mb-2">
                                   <strong>Kardex de {{ item.product_name }}</strong>
                                   <button class="btn btn-outline-secondary btn-sm" @click="printKardex(item.product_id)">
-                                    <svg xmlns='http://www.w3.org/2000/svg' width='16' height='16' fill='currentColor' viewBox='0 0 16 16'>
+                                    <svg xmlns='http://www.w3.org/2000/svg' width='14' height='14' fill='currentColor' viewBox='0 0 16 16'>
                                       <path d='M2 2a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v2H2V2zm12 3v2a2 2 0 0 1 2 2v3a2 2 0 0 1-2 2v2a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2v-2a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2V5h12zm-2 7v2H4v-2h8z'/>
                                     </svg>
                                   </button>
@@ -177,9 +184,9 @@ function printKardex(productId) {
                                       <td>{{ mov.fecha }}</td>
                                       <td>{{ mov.tipo }}</td>
                                       <td>{{ mov.documento }}</td>
-                                      <td>{{ mov.entrada || '' }}</td>
-                                      <td>{{ mov.salida || '' }}</td>
-                                      <td>{{ mov.saldo }}</td>
+                                      <td>{{ mov.entrada !== undefined && mov.entrada !== null ? Number(mov.entrada).toFixed(2) : '' }}</td>
+                                      <td>{{ mov.salida !== undefined && mov.salida !== null ? Number(mov.salida).toFixed(2) : '' }}</td>
+                                      <td>{{ mov.saldo !== undefined && mov.saldo !== null ? Number(mov.saldo).toFixed(2) : '' }}</td>
                                       <td>{{ mov.precio ?? '' }}</td>
                                       <td>{{ mov.observaciones || '' }}</td>
                                     </tr>
@@ -191,7 +198,12 @@ function printKardex(productId) {
                                     </tr>
                                     <tr v-if="kardexView[item.product_id] && kardexView[item.product_id].length">
                                       <td colspan="5" class="text-end fw-bold">Total stock actual:</td>
-                                      <td class="fw-bold">{{ kardexView[item.product_id][kardexView[item.product_id].length-1].saldo }}</td>
+                                      <td class="fw-bold">
+                                        {{ kardexView[item.product_id][kardexView[item.product_id].length-1].saldo }}
+                                        <span v-if="kardexUnits[item.product_id]">
+                                          {{ kardexUnits[item.product_id] }}
+                                        </span>
+                                      </td>
                                       <td colspan="2"></td>
                                     </tr>
                                   </tbody>
