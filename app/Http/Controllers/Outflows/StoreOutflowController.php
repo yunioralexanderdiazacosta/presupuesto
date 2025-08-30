@@ -28,7 +28,7 @@ class StoreOutflowController extends Controller
                 'operation_id' => $outflowData['operation_id'] ?? null,
                 'machinery_id' => $outflowData['machinery_id'] ?? null,
                 'quantity' => $outflowData['quantity'] ?? null,
-                'notes' => $outflowData['observations'] ?? null,
+                'notes' => $outflowData['notes'] ?? null,
                 'date' => now(),
             ];
             $outflow = \App\Models\Outflow::create($data);
@@ -36,7 +36,7 @@ class StoreOutflowController extends Controller
                 foreach ($outflowData['cost_center_ids'] as $costCenterId) {
                     $outflow->costCenters()->create([
                         'cost_center_id' => $costCenterId,
-                        'observations' => $outflowData['observations'] ?? null,
+                        'observations' => $outflowData['notes'] ?? null,
                     ]);
                 }
             }

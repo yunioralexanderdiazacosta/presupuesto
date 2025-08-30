@@ -141,7 +141,16 @@ class OutflowsController extends Controller
         })->get()->map(fn($c) => ['value' => $c->id, 'label' => $c->name]);
 
         // Traer detalles de salidas ya registradas con sus centros de costo
-        $outflowDetails = Outflow::with(['costCenters.costCenter', 'project', 'operation', 'machinery', 'user'])
+        // Detalles de salidas ya registradas
+        $outflowDetails = Outflow::with([
+            'costCenters.costCenter',
+            'project',
+            'operation',
+            'machinery',
+            'user',
+            'invoiceProduct.product',
+            'creditDebitNoteItem.product'
+        ])
             ->where('team_id', $user->team_id)
             ->where('season_id', $season_id)
             ->orderByDesc('date')
@@ -154,7 +163,12 @@ class OutflowsController extends Controller
                     'project' => $outflow->project->name ?? '',
                     'operation' => $outflow->operation->name ?? '',
                     'machinery' => $outflow->machinery ? trim($outflow->machinery->cod_machinery . ' - ' . $outflow->machinery->brand) : '',
-                    'user' => $outflow->user->name ?? '',
+                    // Nombre del producto según origen
+                    'product' => $outflow->invoiceProduct
+                        ? ($outflow->invoiceProduct->product->name ?? '')
+                        : ($outflow->creditDebitNoteItem
+                            ? ($outflow->creditDebitNoteItem->product->name ?? '')
+                            : ''),
                     'quantity' => $outflow->quantity,
                     'notes' => $outflow->notes,
                     'cost_centers' => $outflow->costCenters->map(function($cc) {
@@ -163,6 +177,7 @@ class OutflowsController extends Controller
                             'observations' => $cc->observations
                         ];
                     })->toArray(),
+                    'user' => $outflow->user->name ?? '',
                 ];
             });
 
@@ -189,6 +204,7 @@ class OutflowsController extends Controller
             'operations' => $operations,
             'machineries' => $machineries,
             'cost_centers' => $cost_centers,
+            // Detalles de salidas ya mapeados incluyendo 'product'
             'outflowDetails' => $outflowDetails,
             'groupings' => $groupings,
         ]);

@@ -1,11 +1,13 @@
 <script setup>
 import { ref, watch, getCurrentInstance } from 'vue';
-import { Link, router, Head } from '@inertiajs/vue3';
+import { Link, Head, router } from '@inertiajs/vue3';
+import axios from 'axios';
 import Swal from 'sweetalert2';
 import AppLayout from '@/Layouts/AppLayout.vue';
 import Breadcrumb from '@/Components/Breadcrumb.vue';
 import Table from '@/Components/Table.vue';
 import Empty from '@/Components/Empty.vue';
+import OutflowEditModal from '@/Components/Outflows/OutflowEditModal.vue';
 import Multiselect from '@vueform/multiselect';
 
 const { appContext } = getCurrentInstance();
@@ -23,10 +25,34 @@ const props = defineProps({
 
 const title = 'Salidas de productos';
 const term  = ref(props.term);
+// Breadcrumb links
+const links = [
+  { title: 'Inicio', link: 'dashboard' },
+  { title: title, active: true }
+];
 
 const form = ref({ outflows: [] });
 const showCards = ref([]);
 const selectedOutflows = ref([]);
+const showEditModal = ref(false);
+const editForm = ref({
+  id: '',
+  project_id: '',
+  operation_id: '',
+  machinery_id: '',
+  cost_center_ids: [],
+  notes: '',
+  quantity: '',
+  invoice_product_id: null,
+  credit_debit_note_item_id: null,
+  product_name: '',
+  unit_name: ''
+});
+const editStockAvailable = ref(0);
+const editProjects = ref([]);
+const editOperations = ref([]);
+const editMachineries = ref([]);
+const editCostCenters = ref([]);
 
 const onFilter = () => {
   router.get(route('outflows.index', {term: term.value}), { preserveState: true });  
@@ -106,9 +132,10 @@ function handleSave() {
       unit_name: sel.unit_name,
       quantity: sel.quantity,
       cost_center_ids: sel.cost_center_ids,
-      observations: sel.observations
+      notes: sel.observations // Usar notes para el backend
     };
   });
+  console.log('Registros enviados:', registros);
   if (registros.length === 0) {
     Swal.fire({ icon: 'warning', title: 'Atención', text: 'No hay registros completos para guardar.' });
     return;
@@ -119,7 +146,8 @@ function handleSave() {
       showCards.value = [];
       Swal.fire({ icon: 'success', title: '¡Guardado!', text: 'Las salidas fueron registradas correctamente.' });
     },
-    onError: () => {
+    onError: (error) => {
+      console.log(error?.response?.data || error);
       Swal.fire({ icon: 'error', title: 'Error', text: 'Ocurrió un error al guardar las salidas.' });
     }
   });
@@ -137,6 +165,81 @@ const showMoreCenters = (centers) => {
     confirmButtonText: 'Cerrar'
   });
 };
+// Eliminar una salida existente con confirmación
+function deleteOutflow(outflow) {
+  Swal.fire({
+    title: '¿Estás seguro de eliminar esta salida?',
+    icon: 'warning',
+    showCancelButton: true,
+    confirmButtonText: 'Sí, eliminar',
+    cancelButtonText: 'Cancelar',
+    confirmButtonColor: 'rgb(220,53,69)'  
+  }).then((result) => {
+    if (result.isConfirmed) {
+      router.delete(route('outflows.delete', outflow.id), {
+        onSuccess: () => {
+          Swal.fire({
+            position: 'center',
+            icon: 'success',
+            title: 'Salida eliminada',
+            showConfirmButton: false,
+            timer: 1000
+          });
+          // Recargar datos con Inertia sin refrescar toda la página
+          router.reload({ preserveScroll: true });
+        }
+      });
+    }
+  });
+}
+// Abrir modal de edición cargando datos vía AJAX
+function editOutflow(outflow) {
+  axios.get(route('outflows.edit', outflow.id))
+    .then(({ data }) => {
+  // Asignar campo por campo para mantener la reactividad
+  editForm.value.id = data.outflow.id;
+  editForm.value.project_id = data.outflow.project_id ? Number(data.outflow.project_id) : '';
+  editForm.value.operation_id = data.outflow.operation_id ? Number(data.outflow.operation_id) : '';
+  editForm.value.machinery_id = data.outflow.machinery_id ? Number(data.outflow.machinery_id) : '';
+  // Refuerzo: asegurar array de IDs numéricos
+  editForm.value.cost_center_ids = Array.isArray(data.outflow.cost_centers)
+    ? data.outflow.cost_centers.map(cc => Number(cc.id)).filter(id => !!id)
+    : [];
+  editForm.value.notes = data.outflow.notes ?? '';
+  editForm.value.quantity = data.outflow.quantity ?? '';
+  editForm.value.invoice_product_id = data.outflow.invoice_product_id ?? null;
+  editForm.value.credit_debit_note_item_id = data.outflow.credit_debit_note_item_id ?? null;
+  editForm.value.product_name = data.outflow.invoice_product?.product?.name || data.outflow.credit_debit_note_item?.product?.name || '';
+  editForm.value.unit_name = data.outflow.invoice_product?.product?.unit?.name || data.outflow.credit_debit_note_item?.product?.unit?.name || '';
+      editStockAvailable.value = data.stockAvailable;
+      editProjects.value = (data.projects || []).map(p => ({
+        value: Number(p.id),
+        label: p.name
+      }));
+      editOperations.value = (data.operations || []).map(o => ({
+        value: Number(o.id),
+        label: o.name
+      }));
+      editMachineries.value = (data.machineries || []).map(m => ({
+        value: Number(m.id),
+        label: m.brand ? m.brand + ' (' + m.cod_machinery + ')' : m.cod_machinery
+      }));
+      editCostCenters.value = (data.costCenters || []).map(c => ({
+        value: Number(c.id),
+        label: c.name
+      }));
+      showEditModal.value = true;
+    })
+    .catch((error) => {
+      console.error('Error al cargar datos de edición:', error);
+      Swal.fire('Error', 'No se pudo cargar los datos de edición', 'error');
+    });
+}
+
+function handleEditModalUpdated() {
+  showEditModal.value = false;
+  router.reload({ preserveScroll: true });
+}
 
 // Estado para agrupación seleccionada por cada card
 const selectedGroupings = ref({});
@@ -185,9 +288,11 @@ watch(selectedGroupings, (newVals) => {
                         <thead class="table-primary">
                           <tr>
                             <th>Fecha</th>
+                            <th>Producto</th> <!-- Nueva columna -->
                             <th>Proyecto</th>
                             <th>Operación</th>
                             <th>Maquinaria</th>
+                            
                             <th>Cantidad</th>
                             <th>Notas</th>
                             <th>Centros de Costo</th>
@@ -198,18 +303,26 @@ watch(selectedGroupings, (newVals) => {
                         <tbody>
                           <tr v-for="outflow in props.outflowDetails" :key="outflow.id">
                             <td>{{ outflow.date }}</td>
+                             <td>{{ outflow.product_name || outflow.product || '-' }}</td> <!-- Mostrar producto -->
                             <td>{{ outflow.project }}</td>
                             <td>{{ outflow.operation }}</td>
                             <td>{{ outflow.machinery }}</td>
-                            <td>{{ outflow.quantity }}</td>
+                         
+                            <td>{{ (+outflow.quantity).toFixed(2) }}</td>
                             <td>{{ outflow.notes }}</td>
                             <td>
                               <ul class="mb-0 ps-3">
-                                <li v-for="cc in outflow.cost_centers.slice(0, 2)" :key="cc.name">
+                                <!-- Mostrar hasta 2 centros por defecto -->
+                                <li v-for="cc in (outflow.cost_centers || []).slice(0,2)" :key="cc.name">
                                   <span class="fw-bold">{{ cc.name }}</span>
-                                 
+                                  <span v-if="cc.observations"> - {{ cc.observations }}</span>
                                 </li>
-                                <li v-if="outflow.cost_centers.length > 2">
+                                <!-- Si no hay centros, mostrar guión -->
+                                <li v-if="(outflow.cost_centers || []).length === 0">
+                                  <span class="text-muted">-</span>
+                                </li>
+                                <!-- Indicador de más centros -->
+                                <li v-if="(outflow.cost_centers || []).length > 2">
                                   <a
                                     href="#"
                                     class="text-primary small text-decoration-underline"
@@ -230,7 +343,7 @@ watch(selectedGroupings, (newVals) => {
                             </td>
                           </tr>
                           <tr v-if="!props.outflowDetails || !props.outflowDetails.length">
-                            <td colspan="9" class="text-center text-muted">No hay salidas registradas.</td>
+                            <td colspan="10" class="text-center text-muted">No hay salidas registradas.</td>
                           </tr>
                         </tbody>
                       </table>
@@ -258,7 +371,7 @@ watch(selectedGroupings, (newVals) => {
                                 <td>{{ outflow.number_document }}</td>
                                 <td>{{ outflow.supplier }}</td>
                                 <td>{{ outflow.product }}</td>
-                                <td>{{ outflow.quantity }}</td>
+                                <td>{{ (+outflow.quantity).toFixed(2) }}</td>
                                 <td>{{ outflow.stock }}</td>
                                 <td>{{ outflow.unit }}</td>
                                 <td class="text-center">
@@ -393,6 +506,17 @@ watch(selectedGroupings, (newVals) => {
             </div>
         </div>
        </AppLayout>
+       <OutflowEditModal
+        :show="showEditModal"
+        :form="{ ...editForm }"
+        :projects="editProjects"
+        :operations="editOperations"
+        :machineries="editMachineries"
+        :costCenters="editCostCenters"
+        :stockAvailable="editStockAvailable"
+        @close="showEditModal = false"
+        @updated="handleEditModalUpdated"
+      />
   
 
 </template>
