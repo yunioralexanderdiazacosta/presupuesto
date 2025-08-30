@@ -171,3 +171,86 @@ function submit() {
   </Teleport>
 </template>
 <style src="@vueform/multiselect/themes/default.css"></style>
+<style>
+.multiselect-blue {
+    min-height: 26px !important;
+    height: 26px !important;
+    max-height: 26px !important;
+    font-size: 0.75rem !important;
+    padding-top: 2px !important;
+    padding-bottom: 2px !important;
+    line-height: 22px !important;
+}
+
+/* Ajuste de placeholder dentro de multiselect-blue */
+.multiselect-blue .multiselect__placeholder {
+    font-size: 0.85rem !important;
+    opacity: 0.7 !important;
+	 white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Ajustes para inputs nativos */
+input.form-control:not([role="combobox"]),
+select.form-control {
+    height: 26px;
+    min-height: 26px;
+    font-size: 0.75rem;
+    padding-top: 2px;
+    padding-bottom: 2px;
+}
+
+/* Ajuste de tamaño de placeholder en inputs nativos */
+input.form-control::placeholder {
+    font-size: 0.75rem !important;
+    opacity: 0.7 !important;
+}
+
+/* Checkboxes */
+.form-check-input[type="checkbox"] {
+    width: 0.8em;
+    height: 0.8em;
+    vertical-align: middle;
+}
+/* Group icon alignment */
+.input-group-text {
+    font-size: 0.8rem;
+    display: flex;
+    align-items: center;
+}
+/* Labels */
+.col-form-label,
+label {
+    font-size: 0.8rem;
+}
+/* Opciones del multiselect */
+.multiselect__option {
+    font-size: 0.7rem;
+}
+/* Asegura z-index adecuado para dropdown */
+.multiselect__content {
+    z-index: 2050;
+}
+
+
+input::placeholder,
+textarea::placeholder {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+textarea::placeholder {
+  text-transform: none !important;
+}
+
+
+.elegant-divider {
+	width: 100%;
+	height: 3px;
+	border: none;
+	border-radius: 2px;
+	background: linear-gradient(90deg, rgba(44,123,229,0.18) 0%, rgba(44,123,229,0.45) 50%, rgba(44,123,229,0.18) 100%);
+	box-shadow: 0 2px 8px 0 rgba(44,123,229,0.10);
+}
+</style>

@@ -5,6 +5,7 @@ import AppLayout from '@/Layouts/AppLayout.vue';
 import Empty from '@/Components/Empty.vue';
 import Breadcrumb from '@/Components/Breadcrumb.vue';
 import CardHeader from '@/Components/CardHeader.vue';
+import SearchInput from '@/Components/SearchInput.vue';
 
 
 
@@ -16,6 +17,24 @@ const props = defineProps({
 
 // Estado local independiente para cada tabla
 const inventoryEdit = ref(props.inventory ? JSON.parse(JSON.stringify(props.inventory)) : []);
+
+// Filtro local
+const term = ref('');
+const filteredInventory = computed(() => {
+  if (!inventoryEdit.value.length) return [];
+  if (!term.value) return inventoryEdit.value;
+  const search = term.value.toLowerCase();
+  return inventoryEdit.value.filter(item => {
+    const level2 = item.level2_name ? item.level2_name.toLowerCase() : '';
+    const level3 = item.level3_name ? item.level3_name.toLowerCase() : '';
+    const product = item.product_name ? item.product_name.toLowerCase() : '';
+    return (
+      level2.includes(search) ||
+      level3.includes(search) ||
+      product.includes(search)
+    );
+  });
+});
 // El kardexView ahora será un diccionario: { [product_id]: movimientos[] }
 const kardexView = ref({});
 const kardexUnits = ref({});
@@ -80,6 +99,8 @@ function printKardex(productId) {
   <div class="card my-3 h-100" style="min-height:100vh;">
      <CardHeader title="Inventario" />
 
+     
+
          <div class="card-body bg-body-tertiary">
             <ul class="nav nav-pills" id="pill-myTab" role="tablist">
                 <li class="nav-item"><a class="nav-link active" id="pill-edicion" data-bs-toggle="tab" href="#pill-tab-edicion" role="tab" aria-controls="pill-tab-edicion" aria-selected="true">Edición</a></li>
@@ -88,6 +109,49 @@ function printKardex(productId) {
                  <li class="nav-item"><a class="nav-link" id="pill-detalles-compra" data-bs-toggle="tab" href="#pill-tab-detalles-compra" role="tab" aria-controls="pill-tab-detalles-compra" aria-selected="false">Detalle de compra</a></li>
             </ul>
            <div class="tab-content border p-3 mt-3" id="pill-myTabContent">
+          
+                    <div
+                        class="tab-pane fade show active"
+                        id="pill-tab-resumen"
+                        role="tabpanel"
+                        aria-labelledby="resumen-tab"
+                    >
+            <div class="row align-items-center mb-3">
+              <div class="col-md-6 col-12 mb-2 mb-md-0">
+                <SearchInput
+                  v-model="term"
+                  placeholder="Buscar por producto, nivel 2 o nivel 3..."
+                />
+              </div>
+                            <div class="col-md-6 col-12 text-md-end text-start">
+                                <a
+                                    :href="
+                                        route('invoices.pdf', { term: term })
+                                    "
+                                    target="_blank"
+                                    class="btn btn-light-primary me-3"
+                                >
+                                    <span class="svg-icon svg-icon-2">
+                                        <!-- ...SVG... -->
+                                    </span>
+                                    Exportar PDF
+                                </a>
+                                <a
+                                    :href="
+                                        route('invoices.excel', { term: term })
+                                    "
+                                    target="_blank"
+                                    class="btn btn-light-primary me-3"
+                                >
+                                    <span class="svg-icon svg-icon-2">
+                                        <!-- ...SVG... -->
+                                    </span>
+                                    Exportar Excel
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+
        
               <div class="tab-pane fade show active" id="pill-tab-edicion" role="tabpanel" aria-labelledby="pill-edicion">
                 <div class="table-responsive mb-4" style="max-height:340px;overflow-y:auto;">
@@ -102,15 +166,15 @@ function printKardex(productId) {
                     </tr>
                   </thead>
                   <tbody>
-                    <tr v-for="item in inventoryEdit" :key="item.level2_name + '-' + item.level3_name + '-' + item.product_name">
+                    <tr v-for="item in filteredInventory" :key="item.level2_name + '-' + item.level3_name + '-' + item.product_name">
                       <td>{{ item.level2_name }}</td>
                       <td>{{ item.level3_name }}</td>
                       <td>{{ item.product_name }}</td>
                       <td>{{ item.cantidad }}</td>
                       <td>{{ item.unit_name || '' }}</td>
                     </tr>
-                    <tr v-if="!inventoryEdit.length">
-                      <td colspan="4" class="text-center text-muted">No hay datos de inventario.</td>
+                    <tr v-if="!filteredInventory.length">
+                      <td colspan="5" class="text-center text-muted">No hay datos de inventario.</td>
                     </tr>
                   </tbody>
                 </table>
@@ -223,7 +287,6 @@ function printKardex(productId) {
           </div>
     </div>
   </div>
-
   </AppLayout>
 </template>
 

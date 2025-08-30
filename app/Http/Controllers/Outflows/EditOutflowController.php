@@ -13,6 +13,7 @@ use App\Models\Season;
 use App\Models\CostCenter;
 use Inertia\Inertia;
 
+
 class EditOutflowController extends Controller
 {
     public function __invoke(\Illuminate\Http\Request $request, Outflow $outflow)
@@ -24,17 +25,22 @@ class EditOutflowController extends Controller
         if ($outflow->invoice_product_id) {
             $ip = $outflow->invoiceProduct;
             $original = $ip->quantity ?? $ip->amount ?? 0;
-            // Consumido por otras salidas (excluyendo esta)
             $consumed = \App\Models\Outflow::where('invoice_product_id', $ip->id)
                 ->where('id', '<>', $outflow->id)
                 ->sum('quantity');
-            // Devuelto por notas de crédito
             $returned = \Illuminate\Support\Facades\DB::table('credit_debit_note_items')
                 ->join('credit_debit_notes', 'credit_debit_note_items.credit_debit_note_id', '=', 'credit_debit_notes.id')
                 ->where('credit_debit_note_items.invoice_product_id', $ip->id)
                 ->where('credit_debit_notes.type', 'credito')
                 ->sum('credit_debit_note_items.quantity');
             $stockAvailable = $original - $consumed - $returned;
+        } else if ($outflow->credit_debit_note_item_id) {
+            $item = $outflow->creditDebitNoteItem;
+            $original = $item->quantity ?? 0;
+            $consumed = \App\Models\Outflow::where('credit_debit_note_item_id', $item->id)
+                ->where('id', '<>', $outflow->id)
+                ->sum('quantity');
+            $stockAvailable = $original - $consumed;
         }
         $data = [
             'outflow' => array_merge(
