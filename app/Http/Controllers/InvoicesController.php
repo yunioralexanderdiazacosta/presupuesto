@@ -17,7 +17,7 @@ class InvoicesController extends Controller
 
         $term = $request->term ?? '';
 
-        $invoices = Invoice::with('supplier', 'companyReason')->when($request->term, function ($query, $search) {
+    $invoices = Invoice::with('supplier', 'companyReason', 'products')->when($request->term, function ($query, $search) {
             $query->where('number_document', 'like', '%'.$search.'%');
         })
         ->OrWhereHas('supplier', function($query) use ($term){
@@ -37,7 +37,13 @@ class InvoicesController extends Controller
                 'supplier'          => $invoice->supplier,
                 'companyReason'     => $invoice->companyReason,
                 'number_document'   => $invoice->number_document,
-                'total'         => $this->get_total($invoice)
+                'products'          => $invoice->products->map(function($p){
+                                            return [
+                                                'id' => $p->id,
+                                                'product_name' => $p->name
+                                            ];
+                                        }),
+                'total'             => $this->get_total($invoice)
             ];
         }); 
 
