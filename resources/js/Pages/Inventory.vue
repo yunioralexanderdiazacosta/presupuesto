@@ -154,7 +154,7 @@ function printKardex(productId) {
 
        
               <div class="tab-pane fade show active" id="pill-tab-edicion" role="tabpanel" aria-labelledby="pill-edicion">
-                <div class="table-responsive mb-4" style="max-height:340px;overflow-y:auto;">
+                <div class="table-responsive mb-4">
                 <table class="table table-bordered table-striped table-sm small">
                   <thead class="table-primary text-white">
                     <tr>
@@ -167,8 +167,8 @@ function printKardex(productId) {
                   </thead>
                   <tbody>
                     <tr v-for="item in filteredInventory" :key="item.level2_name + '-' + item.level3_name + '-' + item.product_name">
-                      <td>{{ item.level2_name }}</td>
-                      <td>{{ item.level3_name }}</td>
+                      <td>{{ item.level2_name || '--' }}</td>
+                      <td>{{ item.level3_name || '--' }}</td>
                       <td>{{ item.product_name }}</td>
                       <td>{{ item.cantidad }}</td>
                       <td>{{ item.unit_name || '' }}</td>
@@ -184,7 +184,7 @@ function printKardex(productId) {
 
 
                <div class="tab-pane fade" id="pill-tab-kardex" role="tabpanel" aria-labelledby="pill-kardex">
-                  <div class="table-responsive mb-4" style="max-height:340px;overflow-y:auto;">
+                  <div class="table-responsive mb-4">
                     <table class="table table-bordered table-striped table-sm small">
                       <thead class="table-primary text-white">
                         <tr>
@@ -198,8 +198,8 @@ function printKardex(productId) {
                       <tbody>
                         <template v-for="item in inventoryEdit" :key="'kardex-' + item.level2_name + '-' + item.level3_name + '-' + item.product_name">
                           <tr>
-                            <td>{{ item.level2_name }}</td>
-                            <td>{{ item.level3_name }}</td>
+                            <td>{{ item.level2_name || '--' }}</td>
+                            <td>{{ item.level3_name || '--' }}</td>
                             <td>{{ item.product_name }}</td>
                             <td>{{ item.cantidad }}</td>
                             <td>

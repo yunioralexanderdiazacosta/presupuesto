@@ -304,9 +304,9 @@ watch(selectedGroupings, (newVals) => {
                           <tr v-for="outflow in props.outflowDetails" :key="outflow.id">
                             <td>{{ outflow.date }}</td>
                              <td>{{ outflow.product_name || outflow.product || '-' }}</td> <!-- Mostrar producto -->
-                            <td>{{ outflow.project }}</td>
+                            <td>{{ outflow.project || '-' }}</td>
                             <td>{{ outflow.operation }}</td>
-                            <td>{{ outflow.machinery }}</td>
+                            <td>{{ outflow.machinery || '-' }}</td>
                          
                             <td>{{ (+outflow.quantity).toFixed(2) }}</td>
                             <td>{{ outflow.notes }}</td>
@@ -406,7 +406,19 @@ watch(selectedGroupings, (newVals) => {
                           </div>
                           <div class="col-6 col-md-2">
                             <label class="form-label">Cantidad</label>
-                            <input v-model="selected.quantity" class="form-control form-control-sm w-100" type="number" min="1" />
+                            <input
+                              v-model="selected.quantity"
+                              class="form-control form-control-sm w-100"
+                              type="number"
+                              min="1"
+                              :max="outflows.data.find(o => (o.invoice_product_id === selected.invoice_product_id || o.credit_debit_note_item_id === selected.credit_debit_note_item_id))?.stock || 1"
+                              step="0.01"
+                              @input="
+                                const stock = outflows.data.find(o => (o.invoice_product_id === selected.invoice_product_id || o.credit_debit_note_item_id === selected.credit_debit_note_item_id))?.stock || 1;
+                                if (Number(selected.quantity) > stock) selected.quantity = stock;
+                              "
+                            />
+                            <small v-if="Number(selected.quantity) > ((outflows.data.find(o => (o.invoice_product_id === selected.invoice_product_id || o.credit_debit_note_item_id === selected.credit_debit_note_item_id))?.stock) || 1)" class="text-danger">No puede exceder el stock disponible</small>
                           </div>
                           <div class="col-12 col-md-2">
                             <label class="form-label">Proyecto</label>
