@@ -279,12 +279,28 @@ const logout = () => {
               </a>
               <ul class="nav collapse show" id="pricing">
 
+                    <li class="nav-item">
+                      <a class="nav-link dropdown-indicator" href="#outflows" data-bs-toggle="collapse" aria-expanded="false" aria-controls="outflows">
+                        <div class="d-flex align-items-center">
+                          <span class="nav-link-text ps-3">Salidas</span>
+                        </div>
+                      </a>
+                      <ul class="nav collapse" id="outflows">
+                        <li class="nav-item">
+                          <Link class="nav-link" :href="route('outflows.index')">
+                            <div class="d-flex align-items-center">
+                              <span class="nav-link-text ps-4">Consumos Gral.</span>
+                            </div>
+                          </Link>
+                        </li>
+                      </ul>
+                    </li>
                     <li class="nav-item"><Link class="nav-link" :href="route('estimates.index')">
-                    <div class="d-flex align-items-center"><span class="nav-link-text ps-3">Estimaciones</span>
-                    </div>
-                  </Link>
-                  <!-- more inner pages-->
-                </li>
+                        <div class="d-flex align-items-center"><span class="nav-link-text ps-3">Estimaciones</span>
+                        </div>
+                      </Link>
+                      <!-- more inner pages-->
+                    </li>
 
                 <li class="nav-item"><Link class="nav-link" :href="route('suppliers.index')">
                     <div class="d-flex align-items-center"><span class="nav-link-text ps-3">Proveedores</span>
@@ -303,11 +319,7 @@ const logout = () => {
                   </Link>
                   <!-- more inner pages-->
                 </li>
-                 <li class="nav-item">
-                      <Link class="nav-link" :href="route('outflows.index')">
-                        <div class="d-flex align-items-center"><span class="nav-link-text ps-3">Consumos</span></div>
-                      </Link>
-                    </li>
+                 
                 
                 <li class="nav-item">
                   <a class="nav-link dropdown-indicator" href="#documents" data-bs-toggle="collapse" aria-expanded="false" aria-controls="documents">
