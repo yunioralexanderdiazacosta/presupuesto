@@ -24,7 +24,8 @@ class StoreTeamController extends Controller
         $user->team_id = $team->id;
         $user->save();
 
-        $team->user_id = $user->id;
+    $team->user_id = $user->id;
+    $team->save();
 
         $user->assignRole('Admin');
     }
