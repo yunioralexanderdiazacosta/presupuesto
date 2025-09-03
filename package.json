@@ -35,6 +35,7 @@
         "vue-gates": "^2.1.2",
         "vue-good-table-next": "^0.2.2",
         "vue-sweetalert2": "^5.0.5",
-        "xlsx": "^0.18.5"
+        "xlsx": "^0.18.5",
+        "ziggy-js": "^2.5.3"
     }
 }

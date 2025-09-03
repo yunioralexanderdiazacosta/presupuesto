@@ -17,7 +17,11 @@ class SuppliersController extends Controller
 
         $suppliers = Supplier::when($request->term, function ($query, $search) {
             $query->where('name', 'like', '%'.$search.'%')->orWhere('rut', 'like', '%'.$search.'%');
-        })->where('team_id', $user->team_id)->paginate(10)->withQueryString();
+        })
+        ->where('team_id', $user->team_id)
+        ->orderBy('name', 'asc')
+        ->paginate(2000)
+        ->withQueryString();
 
         return Inertia::render('Suppliers', compact('suppliers', 'term'));
     }

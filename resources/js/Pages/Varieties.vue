@@ -123,7 +123,7 @@ const onFilter = () => {
                       </div>
              </div>
             <div class="card-body bg-body-tertiary pt-2">
-                <div class="tab-content border p-3 mt-3" id="pill-myTabContent">
+                <div class="tab-content border p-1 mt-1" id="pill-myTabContent">
                     <div class="d-flex justify-content-between align-items-center gap-1 mb-1">
                         <SearchInput v-model="term" placeholder="Buscar..." />
                         <div class="d-flex align-items-center gap-1">
@@ -141,6 +141,9 @@ const onFilter = () => {
                             />
                         </div>
                     </div>
+
+
+
                     <Table :id="'varieties'" :total="varieties.data.length" :links="varieties.links">
                     <!--begin::Table head-->
                     <template #header>
