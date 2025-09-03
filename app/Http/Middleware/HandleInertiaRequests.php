@@ -45,15 +45,21 @@ class HandleInertiaRequests extends Middleware
             $price = number_format((float)$price, 1, '.', '');
         }
 
+        // Validar y limpiar season_id inválido
+        $season = \App\Models\Season::find(session('season_id'));
+        if (!session('season_id') || !$season) {
+            session()->forget('season_id');
+        }
+
         return array_merge(parent::share($request), [
             'public_path' => env('APP_URL'),
             'price'       => $price,
-            'temporada' => session('season_id') ? strtoupper(Season::select('name')->where('id', session('season_id'))->first()->name) : '',
+            'temporada'   => $season ? strtoupper($season->name) : '',
             'gates' => function() {
                 $user = Auth::user();
-                    return $user ? [
-                        'roles' => $user->getRoleNames(),
-                        'permissions' => $user->getAllPermissions()->pluck('name')
+                return $user ? [
+                    'roles' => $user->getRoleNames(),
+                    'permissions' => $user->getAllPermissions()->pluck('name')
                 ] : null;
             },
         ]);
