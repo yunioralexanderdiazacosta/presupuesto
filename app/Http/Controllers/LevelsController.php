@@ -29,7 +29,8 @@ class LevelsController extends Controller
     public function summary()
     {
         $user = Auth::user();
-        $season_id = session('season_id');
+    // Obtener el season_id de sesión o usar la última temporada del equipo
+    $season_id = session('season_id') ?: \App\Models\Season::where('team_id', $user->team_id)->latest('id')->value('id');
         $levels1 = Level1::with(['levels2.level3s.level4s'])
             ->where('team_id', $user->team_id)
             ->where('season_id', $season_id)

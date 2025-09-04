@@ -18,6 +18,7 @@ class EventServiceProvider extends ServiceProvider
         Registered::class => [
             SendEmailVerificationNotification::class,
         ],
+    // Eliminado: Al iniciar sesión, el usuario debe elegir la temporada
     ];
 
     /**

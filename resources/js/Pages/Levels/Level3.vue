@@ -14,7 +14,7 @@ const props = defineProps({
     levels: Object,
     level2: Object,
     term: String,
-    importado: Object,
+    importado: Boolean,
     total: Number
 });
 
@@ -149,7 +149,7 @@ const importLevel = () => {
                     <div class="col-auto ms-auto">
                         <div class="d-flex justify-content-end" data-kt-customer-table-toolbar="base">
                             <!--begin::Import-->
-                            <button type="button" v-if="!importado && total == 0" @click="importLevel()" class="btn btn-light-primary me-3">
+                            <button type="button" v-if="total == 0" @click="importLevel()" class="btn btn-light-primary me-3">
                             <!--begin::Svg Icon | path: icons/duotune/arrows/arr078.svg-->
                             <span class="svg-icon svg-icon-2 me-1">
                                 <i class="fas fa-file-import"></i>
