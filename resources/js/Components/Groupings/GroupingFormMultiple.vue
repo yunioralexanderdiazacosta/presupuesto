@@ -10,6 +10,8 @@ const props = defineProps({
     costCenters: Array,
 });
 
+
+
 // Inicializar el array de subfamilias dinámicas
 if (!props.form.level3s) {
     props.form.level3s = [];

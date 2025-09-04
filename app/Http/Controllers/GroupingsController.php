@@ -18,17 +18,20 @@ class GroupingsController extends Controller
         $term = $request->term ?? '';
 
         $groupings = Grouping::with(['season', 'costCenters'])
-        ->where('team_id', auth()->user()->team_id)
+            ->where('team_id', auth()->user()->team_id)
             ->when($term, function ($query, $search) {
                 $query->where('name', 'like', '%'.$search.'%');
             })
             ->paginate(10);
 
-        // Obtener todos los cost centers con sus relaciones para fruta, variedad, parcela y estado de desarrollo
-        $costCenters = CostCenter::with(['fruit','variety','parcel','developmentState'])->get();
-        Log::info('CostCenters enviados:', ['count' => $costCenters->count(), 'ids' => $costCenters->pluck('id')]);
         // Temporada activa desde sesión
         $currentSeasonId = session('season_id');
+
+        // Filtrar los cost centers por temporada activa
+        $costCenters = CostCenter::with(['fruit','variety','parcel','developmentState'])
+            ->where('season_id', $currentSeasonId)
+            ->get();
+        Log::info('CostCenters enviados:', ['count' => $costCenters->count(), 'ids' => $costCenters->pluck('id'), 'season_id' => $currentSeasonId]);
 
         // Siempre enviar costCenters, aunque esté vacío
         return Inertia::render('Groupings', [
