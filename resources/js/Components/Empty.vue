@@ -15,7 +15,7 @@ defineProps({
     <tr class="odd">
         <td valign="top" :colspan="colspan" class="dataTables_empty">
             <div class="d-flex flex-column flex-center">
-                <img :src=" path + '/assets/media/illustrations/sketchy-1/5.png'" class="mw-400px">
+                <img :src=" path + '/assets/media/illustrations/sketchy-1/5.png'" style="max-width: 200px">
                 <div class="fs-1 fw-bolder text-dark mb-4">No se encontraron registros.</div>
             </div>
         </td>
