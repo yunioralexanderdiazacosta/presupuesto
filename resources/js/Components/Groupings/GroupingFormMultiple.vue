@@ -2,7 +2,6 @@
 import Multiselect from "@vueform/multiselect";
 import TextInput from "@/Components/TextInput.vue";
 import InputError from "@/Components/InputError.vue";
-// ...existing imports...
 import axios from 'axios';
 
 const props = defineProps({
@@ -61,7 +60,7 @@ const selectAllMonths = (index, months) => {
     }
 };
 </script>
-<script setup></script>
+
 <template>
   <div class="row mb-3">
     <div class="col-lg-6">
@@ -82,7 +81,10 @@ const selectAllMonths = (index, months) => {
     <div class="col-12">
       <label class="col-form-label">Seleccione los centros de costo que pertenecerán al grupo</label>
       <div class="table-responsive">
-        <table class="table table-bordered table-sm align-middle">
+        <div v-if="!props.costCenters.length" class="alert alert-info">
+          No hay centros de costo para la temporada seleccionada.
+        </div>
+        <table v-else class="table table-bordered table-sm align-middle">
           <thead>
             <tr>
               <th style="width:40px"></th>
@@ -96,7 +98,7 @@ const selectAllMonths = (index, months) => {
             </tr>
           </thead>
           <tbody>
-            <tr v-for="cc in props.costCenters.filter(cc => String(cc.season_id) === String(form.season_id))" :key="cc.id">
+            <tr v-for="cc in props.costCenters" :key="cc.id">
               <td>
                 <input
                   type="checkbox"
