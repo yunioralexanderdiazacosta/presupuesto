@@ -10,9 +10,10 @@ import CreateGroupingModal from '@/Components/Groupings/CreateGroupingModal.vue'
 import EditGroupingModal from '@/Components/Groupings/EditGroupingModal.vue';
 
 const props = defineProps({
-    groupings: Object,
-    term: String,
-    costCenters: Array,
+  groupings: Object,
+  term: String,
+  costCenters: Array,
+  currentSeasonId: Number,
 });
 
 const form = useForm({
@@ -28,10 +29,8 @@ const term = ref(props.term);
 
 const openAdd = () => {
   form.reset();
-  // Forzar el valor de season_id con la temporada activa
-  form.season_id = (props.groupings.data.length > 0)
-    ? props.groupings.data[0].season_id
-    : 1;
+  // Asignar season_id usando el valor de la temporada activa pasada desde el servidor
+  form.season_id = props.currentSeasonId;
   $('#createGroupingModal').modal('show');
 };
 
@@ -46,13 +45,21 @@ const openEdit = (grouping) => {
 };
 
 const storeGrouping = () => {
+  console.log('storeGrouping invoked, form data:', form);
+  console.log('POST URL:', route('groupings.store'));
   form.post(route('groupings.store'), {
     preserveScroll: true,
+    onStart: () => console.log('Inertia: start sending grouping'),
     onSuccess: () => {
+      console.log('Inertia: success');
       form.reset();
       $('#createGroupingModal').modal('hide');
       msgSuccess('Guardado correctamente');
     },
+    onError: (errors) => {
+      console.error('Inertia: error', errors);
+    },
+    onFinish: () => console.log('Inertia: finish'),
   });
 };
 

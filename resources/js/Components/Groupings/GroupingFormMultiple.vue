@@ -63,6 +63,19 @@ const selectAllMonths = (index, months) => {
 
 <template>
   <div class="row mb-3">
+  <!-- Card de depuración para ver los datos que se enviarán al backend -->
+  <div class="row mb-3">
+    <div class="col-12">
+      <div class="card border-info mb-3">
+        <div class="card-header bg-info text-white">Datos listos para guardar (debug)</div>
+        <div class="card-body">
+          <pre style="font-size: 0.85em; max-height: 250px; overflow:auto; background: #f8f9fa; border-radius: 4px; padding: 8px;">
+            {{ JSON.stringify(form, null, 2) }}
+          </pre>
+        </div>
+      </div>
+    </div>
+  </div>
     <div class="col-lg-6">
       <label for="grouping_name" class="col-form-label">Nombre del grupo</label>
       <input
@@ -79,7 +92,7 @@ const selectAllMonths = (index, months) => {
 
   <div class="row">
     <div class="col-12">
-      <label class="col-form-label">Seleccione los centros de costo que pertenecerán al grupo</label>
+      <label for="cost_center_ids" class="col-form-label">Seleccione los centros de costo que pertenecerán al grupo</label>
       <div class="table-responsive">
         <div v-if="!props.costCenters.length" class="alert alert-info">
           No hay centros de costo para la temporada seleccionada.
@@ -102,8 +115,10 @@ const selectAllMonths = (index, months) => {
               <td>
                 <input
                   type="checkbox"
+                  :id="'cost_center_ids_' + cc.id"
                   :value="cc.id"
                   v-model="form.cost_center_ids"
+                  name="cost_center_ids[]"
                 />
               </td>
               <td>{{ cc.name }}</td>
