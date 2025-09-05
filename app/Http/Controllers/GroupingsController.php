@@ -38,6 +38,7 @@ class GroupingsController extends Controller
             'groupings' => $groupings,
             'term' => $term,
             'costCenters' => $costCenters ?? [],
+            'season_id' => $currentSeasonId
         ]);
     }
 }

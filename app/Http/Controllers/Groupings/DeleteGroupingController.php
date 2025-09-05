@@ -9,7 +9,7 @@ class DeleteGroupingController extends Controller
 {
     public function __invoke(Grouping $grouping)
     {
-        $grouping->costCenters()->delete();
+        $grouping->costCenters()->detach();
         $grouping->delete();
     }
 }

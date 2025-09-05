@@ -13,6 +13,7 @@ const props = defineProps({
     groupings: Object,
     term: String,
     costCenters: Array,
+    season_id: Number
 });
 
 const form = useForm({
@@ -31,8 +32,9 @@ const openAdd = () => {
   // Forzar el valor de season_id con la temporada activa
   form.season_id = (props.groupings.data.length > 0)
     ? props.groupings.data[0].season_id
-    : 1;
+    : props.season_id;
   $('#createGroupingModal').modal('show');
+  console.log(form.season_id);
 };
 
 const openEdit = (grouping) => {
