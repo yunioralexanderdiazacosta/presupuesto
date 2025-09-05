@@ -9,6 +9,7 @@ use App\Models\Grouping;
 use App\Models\CostCenter;
 use App\Models\Season;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Log;
 
 class StoreGroupingController extends Controller
 {
@@ -17,13 +18,16 @@ class StoreGroupingController extends Controller
      */
     public function __invoke(StoreGroupingRequest $request)
     {
-        // Obtener el team_id a partir de la temporada seleccionada
-        $season = Season::findOrFail($request->season_id);
-        // Crear grouping con datos validados y asignar team_id de la season
+       
+
+    // Log para depuración: registrar datos de petición
+    Log::info('StoreGroupingController invoke', $request->all());
+    // Obtener el team_id del usuario autenticado
+    $user = Auth::user();
         $grouping = Grouping::create([
             'name' => $request->name,
             'season_id' => $request->season_id,
-            'team_id' => $season->team_id,
+            'team_id' => $user->team_id,
         ]);
         // Sincronizar relación muchos-a-muchos en la tabla pivote cost_center_grouping
         $grouping->costCenters()->sync($request->input('cost_center_ids', []));
