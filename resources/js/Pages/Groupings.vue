@@ -32,6 +32,7 @@ const openAdd = () => {
   // Asignar season_id usando el valor de la temporada activa pasada desde el servidor
   form.season_id = props.currentSeasonId;
   $('#createGroupingModal').modal('show');
+  console.log(form.season_id);
 };
 
 const openEdit = (grouping) => {
