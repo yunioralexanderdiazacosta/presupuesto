@@ -217,8 +217,13 @@ const selectAllMonths = (index, months) => {
                 />
             </div>
 
-            <div class="col-lg-2">
-                <label class="col-form-label">Cantidad</label>
+            <div class="col-lg-3">
+                <label class="col-form-label">Cantidad por hectarea</label>
+                <span
+                    style="cursor: pointer;"
+                    title="Recuerda que debes colocar la cantidad por hectarea.">
+                    <i class="fas fa-question-circle text-info ms-1"></i>
+                  </span>
                 <div class="input-group">
                     <span class="input-group-text"><i class="fas fa-sort-numeric-up"></i></span>
                     <TextInput

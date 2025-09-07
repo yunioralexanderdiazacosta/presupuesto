@@ -414,7 +414,7 @@ class AgrochemicalsController extends Controller
                 'name'          => $value->product_name,
                 'unit'          => $value->name ?? '',
                 'totalQuantity' => number_format($totalQuantity, 2, ',', '.'),
-                'totalAmount'   => number_format($totalAmount, 0, ',', '.'),
+                'totalAmount'   => round($totalAmount, 3), // enviar como float con 3 decimales
                 'months'        => $months
             ];
         });

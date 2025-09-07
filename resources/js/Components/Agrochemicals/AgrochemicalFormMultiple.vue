@@ -108,18 +108,17 @@ const selectSuggestion = (index, product) => {
 watch(
     () => props.form.products.map(p => p.product_name),
     (newNames, oldNames) => {
+        // Solo actualiza la fila cuyo nombre cambió
         newNames.forEach((name, idx) => {
-            const found = productsList.value.find(p => p.name === name);
-            if (found && typeof found.price !== 'undefined') {
-                props.form.products[idx].price = parseInt(Number(found.price) * Number(sessionPrice));
-            } else {
-                props.form.products[idx].price = '';
-            }
-            // Asignar unidad del precio automáticamente si existe
-            if (found && typeof found.unit_price_id !== 'undefined') {
-                props.form.products[idx].unit_id_price = found.unit_price_id;
-            } else {
-                props.form.products[idx].unit_id_price = '';
+            if (name !== oldNames[idx]) {
+                const found = productsList.value.find(p => p.name === name);
+                if (found && typeof found.price !== 'undefined') {
+                    props.form.products[idx].price = parseInt(Number(found.price) * Number(sessionPrice));
+                } // Si no se encuentra, NO limpiar el precio anterior
+                // Asignar unidad del precio automáticamente si existe
+                if (found && typeof found.unit_price_id !== 'undefined') {
+                    props.form.products[idx].unit_id_price = found.unit_price_id;
+                } // Si no se encuentra, NO limpiar la unidad anterior
             }
         });
     },

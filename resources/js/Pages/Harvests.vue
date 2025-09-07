@@ -516,24 +516,24 @@ const onFilter = () => {
                             <tbody>
                                 <template v-for="cc in filteredData">
                                     <template v-for="(subfamily, index2) in cc.subfamilies">
-                                        <tr>
-                                            <td v-if="index2 == 0" :rowspan="cc.total" style="vertical-align:top">{{cc.name}}</td>
-                                            <td style="vertical-align:top;" :rowspan="subfamily.products.length">{{subfamily.name}}</td>
-                                            <td>{{subfamily.products[0].name}}</td>
-                                            <td>{{subfamily.products[0].totalQuantity}}</td>
-                                            <td>{{subfamily.products[0].unit}}</td>
-                                            <td>{{subfamily.products[0].totalAmount}}</td>
-                                            <td class="bg-opacity-5 table-primary" v-for="value in subfamily.products[0].months">{{value}}</td>
-                                        </tr>
-                                        <template v-for="(product, index3) in subfamily.products">
-                                            <tr v-if="index3 > 0">
-                                                <td>{{product.name}}</td>
-                                                <td>{{product.totalQuantity}}</td>
-                                                <td>{{product.unit}}</td>
-                                                <td>{{product.totalAmount}}</td>
-                                                <td class="bg-opacity-5 table-primary" v-for="value in product.months">{{value}}</td>
-                                            </tr>
-                                        </template>
+                    <tr v-for="(product, index3) in subfamily.products" :key="product.id">
+                      <template v-if="index3 === 0">
+                        <td v-if="index2 == 0" :rowspan="cc.total" style="vertical-align:top">{{cc.name}}</td>
+                        <td style="vertical-align:top;" :rowspan="subfamily.products.length">{{subfamily.name}}</td>
+                        <td>{{product.name}}</td>
+                        <td>{{product.totalQuantity}}</td>
+                        <td>{{product.unit}}</td>
+                        <td>{{product.totalAmount}}</td>
+                        <td class="bg-opacity-5 table-primary" v-for="value in product.months">{{value}}</td>
+                      </template>
+                      <template v-else>
+                        <td>{{product.name}}</td>
+                        <td>{{product.totalQuantity}}</td>
+                        <td>{{product.unit}}</td>
+                        <td>{{product.totalAmount}}</td>
+                        <td class="bg-opacity-5 table-primary" v-for="value in product.months">{{value}}</td>
+                      </template>
+                    </tr>
                                     </template>
                                 </template>
                             </tbody>
