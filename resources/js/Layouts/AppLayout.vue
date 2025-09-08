@@ -280,6 +280,13 @@ const logout = () => {
               <ul class="nav collapse show" id="pricing">
 
                     <li class="nav-item">
+                      <Link class="nav-link" :href="route('investments.index')">
+                        <div class="d-flex align-items-center">
+                          <span class="nav-link-text ps-3">Inversiones</span>
+                        </div>
+                      </Link>
+                    </li>
+                    <li class="nav-item">
                       <a class="nav-link dropdown-indicator" href="#outflows" data-bs-toggle="collapse" aria-expanded="false" aria-controls="outflows">
                         <div class="d-flex align-items-center">
                           <span class="nav-link-text ps-3">Salidas</span>

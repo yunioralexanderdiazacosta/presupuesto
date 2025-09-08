@@ -284,7 +284,7 @@ const onDeleted = (id) => {
         confirmButtonText: 'Confirmar',
     }).then((result) => {
         if (result.isConfirmed) {
-            router.delete(route('serervice.delete', id), {
+            router.delete(route('services.delete', id), {
                 preserveScroll: true,
                 onSuccess: () => {
                     msgSuccess('Registro eliminado correctamente');
