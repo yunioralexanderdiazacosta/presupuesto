@@ -52,11 +52,12 @@ const selectedInvestment = ref(null);
 // Formulario reactivo para crear inversión
 const createForm = useForm({
   name: '',
-  month: '',
+  month_execute: '',
   amount: '',
   cost_centers: [],
   season_id: '',
-  responsable: ''
+  responsable: '',
+  estado: 'planificada'
 });
 const editForm = useForm({
   name: '',
