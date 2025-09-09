@@ -29,7 +29,7 @@ const props = defineProps({
   users: { type: Array, default: () => [] }
 });
 
-console.log('Investments props:', props.investments);
+
 
 const search = ref('');
 const filteredInvestments = computed(() => {

@@ -19,10 +19,10 @@ const formatNumber = (value) => {
 }
 
 
-const divisor = ref(1000)
+const divisor = ref(970)
 const divisorMin = 800
 const divisorMax = 1100
-const dividir = ref(false) // Por defecto, no dividir
+const dividir = ref(true) // Por defecto, mostrar en dólares
 
 
 
@@ -94,7 +94,7 @@ const props = defineProps({
   totalHarvestByFruit: Object, // <-- nuevo prop para total de cosecha por especie
   totalInvestments: Number
 });
-  console.log('Total inversiones:', props.totalInvestments, typeof props.totalInvestments);
+ 
 
 // Calcular el total por fruta usando totalsByLevel12 (sin dividir aquí, solo suma cruda)
 const totalByFruit = computed(() => {
