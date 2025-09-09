@@ -16,11 +16,12 @@ class UpdateInvestmentController extends Controller
             'amount' => 'nullable|numeric',
             'estado' => 'required|string',
             'responsable' => 'nullable|string|max:255',
-            'season_id' => 'nullable|exists:seasons,id',
             'observations' => 'nullable|string',
             'cost_centers' => 'required|array|min:1',
             'cost_centers.*' => 'exists:cost_centers,id',
         ]);
+        // Mantener season_id existente (de sesión)
+        $data['season_id'] = session('season_id');
         $investment->update($data);
         $investment->costCenters()->sync($data['cost_centers']);
         return redirect()->back()->with('success', 'Inversión actualizada correctamente');

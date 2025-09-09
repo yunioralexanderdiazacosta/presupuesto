@@ -1,5 +1,13 @@
 <script setup>
-import { computed, ref } from 'vue';
+// Card de monto total (estilo Services)
+const totalAmount = computed(() => {
+  if (!filteredInvestments.value.length) return 0;
+  return filteredInvestments.value.reduce((sum, item) => sum + (Number(item.amount) || 0), 0);
+});
+const totalAmountCLP = computed(() => {
+  return totalAmount.value.toLocaleString('es-CL', { style: 'currency', currency: 'CLP', maximumFractionDigits: 0 });
+});
+import { computed, ref, nextTick } from 'vue';
 import { Link, router, Head, usePage, useForm } from '@inertiajs/vue3';
 import Swal from 'sweetalert2';
 import AppLayout from '@/Layouts/AppLayout.vue';
@@ -39,7 +47,6 @@ const filteredInvestments = computed(() => {
 });
 
 import { onMounted } from 'vue';
-const showEditModal = ref(false);
 const selectedInvestment = ref(null);
 
 // Formulario reactivo para crear inversión
@@ -50,6 +57,16 @@ const createForm = useForm({
   cost_centers: [],
   season_id: '',
   responsable: ''
+});
+const editForm = useForm({
+  name: '',
+  month_execute: '',
+  amount: '',
+  cost_centers: [],
+  season_id: '',
+  responsable: '',
+  estado: '',
+  observations: ''
 });
 
 function openCreateModal() {
@@ -65,17 +82,54 @@ function storeInvestment() {
     onSuccess: () => {
       $('#createInvestmentModal').modal('hide');
       createForm.reset();
+      Swal.fire({
+        icon: 'success',
+        title: '¡Inversión creada!',
+        text: 'La inversión se registró correctamente.',
+        timer: 1800,
+        showConfirmButton: false
+      });
     }
   });
 }
 
 function openEditModal(investment) {
   selectedInvestment.value = investment;
-  showEditModal.value = true;
+  // Cargar datos en formulario de edición
+  editForm.reset();
+  editForm.name = investment.name;
+  editForm.month_execute = Number(investment.month_execute);
+  editForm.amount = investment.amount;
+  editForm.cost_centers = investment.cost_centers.map(cc => cc.id);
+  editForm.season_id = investment.season?.id || '';
+  editForm.responsable = investment.responsable;
+  editForm.observations = investment.observations || '';
+  editForm.estado = investment.estado || 'pendiente';
+  nextTick(() => {
+    $('#editInvestmentModal').modal('show');
+  });
 }
 function closeEditModal() {
+  $('#editInvestmentModal').modal('hide');
   selectedInvestment.value = null;
-  showEditModal.value = false;
+  editForm.reset();
+}
+// Enviar edición al servidor
+function updateInvestment() {
+  editForm.post(route('investments.update', selectedInvestment.value.id), {
+    onSuccess: () => {
+      $('#editInvestmentModal').modal('hide');
+      selectedInvestment.value = null;
+      editForm.reset();
+      Swal.fire({
+        icon: 'success',
+        title: '¡Inversión actualizada!',
+        text: 'Los cambios se guardaron correctamente.',
+        timer: 1800,
+        showConfirmButton: false
+      });
+    }
+  });
 }
 </script>
 
@@ -83,6 +137,7 @@ function closeEditModal() {
   <Head :title="title" />
   <AppLayout >
     <Breadcrumb />
+   
     <div class="card my-3">
       <div class="card-header">
         <div class="row flex-between-center">
@@ -107,26 +162,59 @@ function closeEditModal() {
           <!-- Puedes agregar más tabs aquí si lo necesitas -->
         </ul>
         <div class="tab-content border p-3 mt-3" id="pill-myTabContent">
+
+
+ <div class="row mb-3">
+      <div class="col-md-4 col-lg-2 col-xl-2 col-xxl-2">
+        <div class="card h-100 p-1 small-card">
+          <div class="card-header pb-0 pt-1 px-2">
+            <h6 class="mb-0 mt-1 fs-8 d-flex align-items-center small-card-title">Monto Total</h6>
+          </div>
+          <div class="card-body d-flex flex-column justify-content-end py-1 px-2">
+            <div class="row">
+              <div class="col">
+                <p class="font-sans-serif lh-1 mb-1 fs-8 small-card-number">{{ totalAmountCLP }}</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+
+
+
+
+
           <div class="tab-pane fade show active" id="pill-tab-edicion" role="tabpanel" aria-labelledby="edicion-tab">
             <div class="d-flex justify-content-between align-items-center gap-1 mb-1">
               <SearchInput v-model="search" placeholder="Buscar inversión..." class="me-2" />
             </div>
-            <Table :items="filteredInvestments" :fields="['name', 'month', 'amount', 'cost_centers', 'actions']">
-              <template #cell(name)="{ item }">
-                {{ item.name }}
+            <Table :items="filteredInvestments" :fields="['name', 'month', 'amount', 'cost_centers', 'responsable', 'observations', 'actions']">
+              <template #header>
+                <th>Nombre</th>
+                <th>Mes</th>
+                <th>Monto</th>
+                <th>Centros de Costo</th>
+                <th>Responsable</th>
+                <th>Observaciones</th>
+                <th>Acciones</th>
               </template>
-              <template #cell(month)="{ item }">
-                {{ item.month }}
-              </template>
-              <template #cell(amount)="{ item }">
-                {{ item.amount != null ? Number(item.amount).toLocaleString('es-ES', { maximumFractionDigits: 0 }) : '' }}
-              </template>
-              <template #cell(cost_centers)="{ item }">
-                <span v-for="cc in item.cost_centers" :key="cc.id" class="badge bg-info me-1">{{ cc.name }}</span>
-              </template>
-              <template #cell(actions)="{ item }">
-                <button class="btn btn-sm btn-outline-primary me-1" @click="openEditModal(item)"><i class="fas fa-edit"></i></button>
-                <button class="btn btn-sm btn-outline-danger" @click="$emit('delete', item)"><i class="fas fa-trash"></i></button>
+              <template #body>
+                <tr v-for="item in filteredInvestments" :key="item.id">
+                  <td>{{ item.name }}</td>
+                  <td>{{ item.month }}</td>
+                  <td>{{ item.amount != null ? Number(item.amount).toLocaleString('es-ES', { maximumFractionDigits: 0 }) : '' }}</td>
+                  <td>
+                    <span v-for="cc in item.cost_centers" :key="cc.id" class="badge bg-info me-1">{{ cc.name }}</span>
+                  </td>
+                  <td>{{ item.responsable }}</td>
+                  <td><span class="text-muted small">{{ item.observations }}</span></td>
+                  <td>
+                    <button class="btn btn-sm btn-outline-primary me-1" @click="openEditModal(item)"><i class="fas fa-edit"></i></button>
+                    <button class="btn btn-sm btn-outline-danger" @click="$emit('delete', item)"><i class="fas fa-trash"></i></button>
+                  </td>
+                </tr>
               </template>
             </Table>
             <Empty v-if="filteredInvestments.length === 0" message="No hay inversiones registradas." />
@@ -143,7 +231,16 @@ function closeEditModal() {
       @store="storeInvestment"
       @update:form="f => Object.assign(createForm, f)"
     />
-    <EditInvestmentModal v-if="showEditModal" :investment="selectedInvestment" @close="closeEditModal" :cost-centers="props.costCenters" :months="props.months" :seasons="props.seasons" :users="props.users" />
+    <EditInvestmentModal
+      v-if="selectedInvestment"
+      :form="editForm"
+      :cost-centers="props.costCenters"
+      :months="props.months"
+      :seasons="props.seasons"
+      @update="updateInvestment"
+      @update:form="f => Object.assign(editForm, f)"
+      @close="closeEditModal"
+    />
   </AppLayout>
 </template>
 

@@ -16,6 +16,8 @@ Este proyecto es un sistema de gestión presupuestaria agrícola desarrollado en
 - El usuario solo puede ver y operar sobre los datos de su equipo y temporada activa (eliegida siemprea al incio de la sesion en el mal llamado "select-budget").
 - Los módulos deben ser escalables y seguir el patrón de "servicios o invoices" para facilitar el mantenimiento.
 - Los componentes compartidos deben ser robustos ante props faltantes.
+- Todos los selects en formularios deben implementarse usando el componente Multiselect de Vue (`@vueform/multiselect`), nunca el nativo ni otros plugins.
+- Al guardar o editar cualquier entidad mediante formularios, siempre se debe mostrar un mensaje de confirmación usando SweetAlert (Swal.fire), siguiendo el estándar visual del sistema.
 
 ## Flujo típico de usuario
 1. El usuario inicia sesión y selecciona una temporada activa.

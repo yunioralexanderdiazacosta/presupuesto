@@ -1,93 +1,57 @@
 <template>
-  <div class="modal-backdrop" v-if="show">
-    <div class="modal-dialog modal-lg">
-      <div class="modal-content">
-        <div class="modal-header">
-          <h5 class="modal-title">Editar Inversión</h5>
-          <button type="button" class="btn-close" @click="$emit('close')"></button>
-        </div>
-        <form @submit.prevent="submit">
-          <div class="modal-body">
-            <div class="mb-3">
-              <label class="form-label">Nombre</label>
-              <input v-model="form.name" type="text" class="form-control" required />
-            </div>
-            <div class="mb-3">
-              <label class="form-label">Mes</label>
-              <select v-model="form.month" class="form-select" required>
-                <option v-for="m in months" :key="m" :value="m">{{ m }}</option>
-              </select>
-            </div>
-            <div class="mb-3">
-              <label class="form-label">Monto</label>
-              <input v-model="form.amount" type="number" class="form-control" required min="0" step="0.01" />
-            </div>
-            <div class="mb-3">
-              <label class="form-label">Centros de Costo</label>
-              <select v-model="form.cost_centers" class="form-select" multiple required>
-                <option v-for="cc in costCenters" :key="cc.id" :value="cc.id">{{ cc.name }}</option>
-              </select>
-            </div>
-            <div class="mb-3">
-              <label class="form-label">Temporada</label>
-              <select v-model="form.season_id" class="form-select" required>
-                <option v-for="s in seasons" :key="s.id" :value="s.id">{{ s.name }}</option>
-              </select>
-            </div>
-            <div class="mb-3">
-              <label class="form-label">Responsable</label>
-              <select v-model="form.user_id" class="form-select" required>
-                <option v-for="u in users" :key="u.id" :value="u.id">{{ u.name }}</option>
-              </select>
-            </div>
-          </div>
-          <div class="modal-footer">
-            <button type="button" class="btn btn-secondary" @click="$emit('close')">Cancelar</button>
-            <button type="submit" class="btn btn-primary" :disabled="form.processing">Actualizar</button>
-          </div>
-        </form>
+  <Modal :id="'editInvestmentModal'" :maxWidth="'xl'">
+    <template #header>
+      <!-- Mismo header que CreateInvestmentModal -->
+      <div class="d-flex align-items-center gap-2 mb-3 text-start">
+        <span class="bg-primary text-white rounded-circle d-flex align-items-center justify-content-center" style="width:38px;height:38px;font-size:1.4rem;">
+          <i class="fas fa-piggy-bank"></i>
+        </span>
+        <span>
+          <span class="fw-bold" style="font-size:1.2rem;color:#2d3748;letter-spacing:0.5px;">Editar Inversión</span><br>
+          <span class="text-muted" style="font-size:0.85rem;">Modifica los datos de la inversión</span>
+        </span>
       </div>
-    </div>
-  </div>
+    </template>
+    <template #body>
+      <InvestmentForm
+        :form="form"
+        :costCenters="costCenters"
+        :months="months"
+        :seasons="seasons"
+        @update:form="$emit('update:form', $event)"
+      />
+    </template>
+    <template #footer>
+      <button type="button" data-bs-dismiss="modal" class="btn btn-light me-3" @click="$emit('close')">
+        Cerrar
+      </button>
+      <button type="button" class="btn btn-primary" @click="$emit('update')" :disabled="form.processing">
+        Actualizar
+      </button>
+    </template>
+  </Modal>
 </template>
 
 <script setup>
-import { ref, watch, computed } from 'vue';
-import { useForm } from '@inertiajs/vue3';
+import Modal from '@/Components/Modal.vue';
+import InvestmentForm from './InvestmentForm.vue';
+import { onMounted } from 'vue';
+
 const props = defineProps({
-  show: { type: Boolean, default: true },
-  investment: { type: Object, required: true },
+  form: { type: Object, required: true },
   costCenters: { type: Array, default: () => [] },
   months: { type: Array, default: () => [] },
   seasons: { type: Array, default: () => [] },
-  users: { type: Array, default: () => [] }
 });
-const emit = defineEmits(['close']);
-const form = useForm({
-  name: '',
-  month: '',
-  amount: '',
-  cost_centers: [],
-  season_id: '',
-  user_id: ''
-});
-watch(() => props.investment, (val) => {
-  if (val) {
-    form.name = val.name;
-    form.month = val.month;
-    form.amount = val.amount;
-    form.cost_centers = val.cost_centers ? val.cost_centers.map(cc => cc.id) : [];
-    form.season_id = val.season_id;
-    form.user_id = val.user_id;
+const emit = defineEmits(['close', 'update', 'update:form']);
+
+// Al cerrar modal con Bootstrap, emitir evento close
+onMounted(() => {
+  const el = document.getElementById('editInvestmentModal');
+  if (el) {
+    el.addEventListener('hidden.bs.modal', () => emit('close'));
   }
-}, { immediate: true });
-function submit() {
-  form.post(route('investments.update', props.investment.id), {
-    onSuccess: () => {
-      emit('close');
-    }
-  });
-}
+});
 </script>
 
 <style scoped>

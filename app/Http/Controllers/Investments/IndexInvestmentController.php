@@ -21,11 +21,7 @@ class IndexInvestmentController extends Controller
             ->where('season_id', $season_id)
             ->latest()
             ->paginate(20);
-        \Log::info('IndexInvestmentController', [
-            'season_id' => $season_id,
-            'total' => $investments->total(),
-            'ids' => collect($investments->items())->pluck('id')->toArray(),
-        ]);
+       
 
         // Obtener los nombres de los meses
         $monthsArr = Month::orderBy('id')->pluck('name', 'id')->toArray();
@@ -37,6 +33,7 @@ class IndexInvestmentController extends Controller
                 'id' => $item->id,
                 'name' => $item->name,
                 'month' => isset($monthsArr[$item->month_execute]) ? $monthsArr[$item->month_execute] : $item->month_execute,
+                'month_execute' => $item->month_execute,
                 'amount' => $item->amount ?? null,
                 'cost_centers' => $item->costCenters->map(function($cc) {
                     return [

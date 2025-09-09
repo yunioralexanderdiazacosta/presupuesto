@@ -225,6 +225,20 @@ class TechnicalPanelController extends Controller
         // NUEVO: Calcular y formatear los meses de administración y fields
         $monthsAdministrationRaw = $this->getMonthsAdministration($user->team_id);
         $monthsFieldsRaw = $this->getMonthsFields($user->team_id);
+        // Inversiones: obtener totales mensuales y total general
+        $monthsInvestmentsRaw = $this->getInvestmentsTotalByMonth($season_id, $user->team_id);
+        $monthsInvestments = [];
+        foreach($monthsInvestmentsRaw as $key => $value){
+            $monthsInvestments[$key] = (float)$value;
+        }
+        // Normalizar a 12 meses (1-12)
+        $allMonthsInvestments = [];
+        for ($i = 1; $i <= 12; $i++) {
+            $key = (string)$i;
+            $allMonthsInvestments[$key] = isset($monthsInvestments[$key]) ? $monthsInvestments[$key] : 0;
+        }
+        $monthsInvestments = $allMonthsInvestments;
+        $totalInvestments = array_sum($monthsInvestments);
         $monthsAdministration = [];
         foreach($monthsAdministrationRaw as $key => $value){
             $monthsAdministration[$key] = (float)$value;
@@ -637,6 +651,7 @@ class TechnicalPanelController extends Controller
             'totalHarvests', 'monthsHarvests',
             'totalSupplies', 'monthsSupplies',
             'monthsAdministration', 'monthsFields',
+            'monthsInvestments', 'totalInvestments',
             'months', 'weather', 'city',
             'agrochemicalByDevState',
             'fertilizerByDevState',

@@ -65,7 +65,9 @@ const props = defineProps({
   totalSurface: Number, // <-- AGREGADO para mostrar superficie total
   entityCounts: Object, // <-- para la tabla de conteos
   totalAdministration: Number, // <-- AGREGADO para mostrar administración total
-  mainTotalsAndPercents: Array // <-- nuevo prop para los gauges
+  mainTotalsAndPercents: Array, // <-- nuevo prop para los gauges
+  monthsInvestments: Object, // <-- inversiones mensuales
+  totalInvestments: Number // <-- total inversiones
 });
 
 
@@ -509,6 +511,7 @@ function groupTotalsByLevelAndFruit() {
                         {{ formatNumber(dividir && divisor ? (monthsFields && monthsFields[value.value] ? monthsFields[value.value] / divisor : 0) : (monthsFields && monthsFields[value.value] ? monthsFields[value.value] : 0)) }}
                       </td>
                     </tr>
+                   
                     <tr>
                       <td class="fw-semibold small">Agroquimicos</td>
                       <td class="text-end text-primary fw-bold small">
@@ -564,11 +567,8 @@ function groupTotalsByLevelAndFruit() {
                       </td>
                     </tr>
 
-                    <!-- ...existing code... -->
-                  </tbody>
-                  <tfoot>
-                    <tr class="table-secondary">
-                      <td class="fw-bold text-end small">Total mes</td>
+                      <tr class="table-warning">
+                      <td class="fw-bold text-end small">Subtotal Presupuesto</td>
                       <td class="fw-bold text-end small text-primary">
                         {{ formatNumber(
                           dividir && divisor
@@ -588,6 +588,59 @@ function groupTotalsByLevelAndFruit() {
                         ) }}
                       </td>
                     </tr>
+
+                     <tr>
+                      <td class="fw-semibold small">Inversiones</td>
+                      <td class="text-end text-primary fw-bold small">
+                        {{ formatNumber(dividir && divisor ? Object.values(monthsInvestments || {}).reduce((sum, v) => sum + (v || 0), 0) / divisor : Object.values(monthsInvestments || {}).reduce((sum, v) => sum + (v || 0), 0)) }}
+                      </td>
+                      <td class="bg-opacity-5 table-primary text-end small" v-for="value in months">
+                        {{ formatNumber(dividir && divisor ? (monthsInvestments && monthsInvestments[value.value] ? monthsInvestments[value.value] / divisor : 0) : (monthsInvestments && monthsInvestments[value.value] ? monthsInvestments[value.value] : 0)) }}
+                      </td>
+                    </tr>
+
+                    <!-- Subtotal inversiones -->
+                    <tr class="table-warning">
+                      <td class="fw-bold text-end small">Subtotal Inversiones</td>
+                      <td class="fw-bold text-end small text-primary">
+                        {{ formatNumber(dividir && divisor ? Object.values(monthsInvestments || {}).reduce((sum, v) => sum + (v || 0), 0) / divisor : Object.values(monthsInvestments || {}).reduce((sum, v) => sum + (v || 0), 0)) }}
+                      </td>
+                      <td class="fw-bold text-end small" v-for="value in months">
+                        {{ formatNumber(dividir && divisor ? (monthsInvestments && monthsInvestments[value.value] ? monthsInvestments[value.value] / divisor : 0) : (monthsInvestments && monthsInvestments[value.value] ? monthsInvestments[value.value] : 0)) }}
+                      </td>
+                    </tr>
+
+
+                      
+
+                    <!-- Subtotal resto (ya existe, solo renombrar si se desea) -->
+                    <!-- Gran total (inversiones + resto) -->
+                    <tr class="table-success">
+                      <td class="fw-bold text-end small">Total General</td>
+                      <td class="fw-bold text-end small text-primary">
+                        {{ formatNumber(
+                          dividir && divisor
+                            ? ([monthsAdministration, monthsFields, monthsAgrochemical, monthsFertilizer, monthsManPower, monthsSupplies, monthsServices, monthsHarvests, monthsInvestments]
+                                .reduce((sum, obj) => sum + Object.values(obj || {}).reduce((s, v) => s + (v || 0), 0), 0) / divisor)
+                            : ([monthsAdministration, monthsFields, monthsAgrochemical, monthsFertilizer, monthsManPower, monthsSupplies, monthsServices, monthsHarvests, monthsInvestments]
+                                .reduce((sum, obj) => sum + Object.values(obj || {}).reduce((s, v) => s + (v || 0), 0), 0))
+                        ) }}
+                      </td>
+                      <td class="fw-bold text-end small" v-for="value in months">
+                        {{ formatNumber(
+                          dividir && divisor
+                            ? ([monthsAdministration, monthsFields, monthsAgrochemical, monthsFertilizer, monthsManPower, monthsSupplies, monthsServices, monthsHarvests, monthsInvestments]
+                                .reduce((sum, obj) => sum + (obj && obj[value.value] ? obj[value.value] : 0), 0) / divisor)
+                            : ([monthsAdministration, monthsFields, monthsAgrochemical, monthsFertilizer, monthsManPower, monthsSupplies, monthsServices, monthsHarvests, monthsInvestments]
+                                .reduce((sum, obj) => sum + (obj && obj[value.value] ? obj[value.value] : 0), 0))
+                        ) }}
+                      </td>
+                    </tr>
+
+                    <!-- ...existing code... -->
+                  </tbody>
+                  <tfoot>
+                 
                   </tfoot>
                 </table>
               </div>

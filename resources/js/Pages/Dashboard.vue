@@ -39,7 +39,7 @@ onMounted(async () => {
       const data = await res.json();
       if (data && data.city) {
         userCity.value = data.city + (data.country_name ? ', ' + data.country_name : '');
-        // Redirige al dashboard con la ciudad detectada
+        // Redirige al dashboard with la ciudad detectada
         router.get('/dashboard', { city: userCity.value }, { preserveState: true, replace: true });
       }
     } catch (e) {
@@ -50,6 +50,7 @@ onMounted(async () => {
 
 
 const props = defineProps({
+
   totalSeason: String,
   pieLabels: Array,
   pieDatasets: Array,
@@ -90,8 +91,10 @@ const props = defineProps({
   kilosByFruit: Object, // <-- nuevo prop para kilos por fruta
   fruitNames: Object, // <-- nuevo prop para nombres de fruta
   adminFieldsByFruit: Object, // <-- nuevo prop para admin+fields prorrateado por especie
-  totalHarvestByFruit: Object // <-- nuevo prop para total de cosecha por especie
+  totalHarvestByFruit: Object, // <-- nuevo prop para total de cosecha por especie
+  totalInvestments: Number
 });
+  console.log('Total inversiones:', props.totalInvestments, typeof props.totalInvestments);
 
 // Calcular el total por fruta usando totalsByLevel12 (sin dividir aquí, solo suma cruda)
 const totalByFruit = computed(() => {
@@ -400,6 +403,42 @@ onMounted(() => {
             </div>
           </div>
         </div>
+
+
+
+  <div class="col-md-3">
+          <div class="card ecommerce-card-min-width mb-2">
+            <div class="card-header pb-2 bg-info bg-opacity-10 d-flex align-items-center justify-content-between">
+              <h6 class="mb-0 mt-1 d-flex align-items-center fs-10">
+                Total Inversiones
+                <span class="ms-1 text-300" data-bs-toggle="tooltip" data-bs-placement="top" title="Calculated according to last week's sales">
+                  <span class="far fa-question-circle" data-fa-transform="shrink-1"></span>
+                </span>
+              </h6>
+            </div>
+ <div class="card-body d-flex flex-column justify-content-end py-2">
+              <div class="row">
+                <div class="col">
+                  <p class="font-sans-serif lh-1 mb-1 fs-6">
+        {{
+          (props.totalInvestments === undefined || props.totalInvestments === null || props.totalInvestments === '' || isNaN(Number(props.totalInvestments)))
+            ? 'Nodata'
+            : Number(
+                dividir && divisor
+                  ? (Number(props.totalInvestments) / divisor)
+                  : Number(props.totalInvestments)
+              ).toLocaleString('es-CL', { maximumFractionDigits: 0 })
+        }}
+        </p>
+      </div>
+     
+    </div>
+  </div>
+</div>
+  </div>
+
+
+
         <!-- Card por cada fruta -->
         <div class="col-md-3" v-for="(total, fruitId) in totalByFruit" :key="'fruit-card-' + fruitId">
           <div class="card ecommerce-card-min-width mb-2">

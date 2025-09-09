@@ -1,34 +1,21 @@
 <script setup>
-import { useForm } from '@inertiajs/vue3';
-import { computed, watch } from 'vue';
+import { watch, defineProps, defineEmits } from 'vue';
 import Multiselect from '@vueform/multiselect';
 import TextInput from '@/Components/TextInput.vue';
 import InputError from '@/Components/InputError.vue';
-
-
+// Emitimos cuando el form cambie para sincronizar con el padre
 const props = defineProps({
+  form: { type: Object, required: true },
   costCenters: { type: Array, default: () => [] },
   months: { type: Array, default: () => [] },
   seasons: { type: Array, default: () => [] },
-  users: { type: Array, default: () => [] }
+  users: { type: Array, default: () => [] },
 });
-
-const form = useForm({
-  name: '',
-  month_execute: '', // debe ser int (1-12)
-  amount: '',
-  estado: 'pendiente',
-  responsable: '',
-  season_id: '',
-  observations: '',
-  cost_centers: []
-});
-
+const form = props.form;
 const emit = defineEmits(['update:form']);
-
-// Emitimos el form reactivo para que el modal padre lo use
+// Emitimos cuando el form cambie para sincronizar con el padre
 watch(form, () => emit('update:form', form), { deep: true });
-</script>
+ </script>
 
 <template>
   <form @submit.prevent>
@@ -38,7 +25,7 @@ watch(form, () => emit('update:form', form), { deep: true });
         <input v-model="form.name" type="text" class="form-control" required />
       </div>
       <div class="col-md-6">
-  <label class="form-label">Mes</label>
+        <label class="form-label">Mes</label>
         <Multiselect
           v-model="form.month_execute"
           :options="months.map((m, idx) => ({ value: idx+1, label: m }))"
@@ -74,13 +61,6 @@ watch(form, () => emit('update:form', form), { deep: true });
           class="multiselect-blue form-control"
           :class="{'is-invalid': form.errors?.cost_centers}"
         />
-      </div>
-      <div class="col-md-6">
-        <label class="form-label">Temporada</label>
-        <select v-model="form.season_id" class="form-select" required>
-          <option value="">Seleccione temporada</option>
-          <option v-for="s in seasons" :key="s.id" :value="s.id">{{ s.name }}</option>
-        </select>
       </div>
       <div class="col-md-6">
         <label class="form-label">Responsable</label>

@@ -55,7 +55,8 @@ const storeVariety = () => {
     });
 }
 
-const updateLevel = () => {
+
+const updateVariety = () => {
     form.post(route('varieties.update', form.id), {
         preserveScroll: true,
         onSuccess: () => {

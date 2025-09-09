@@ -17,6 +17,7 @@ use App\Models\Service;
 use Inertia\Inertia;
 //use App\Services\WeatherService;
 use Spatie\Permission\Traits\HasRoles;
+use Illuminate\Support\Facades\Log;
 
 /**
  * Controlador principal del Dashboard.
@@ -387,6 +388,28 @@ class DashboardController extends Controller
 
 
 
+// Justo antes de calcular el total de inversiones
+Log::info('DashboardController', [
+    'season_id' => $season_id,
+    'team_id' => $user->team_id,
+    'season_exists' => \App\Models\Season::where('id', $season_id)->where('team_id', $user->team_id)->exists(),
+    'investments_count' => \App\Models\Investment::where('season_id', $season_id)->count()
+]);
+
+
+
+
+
+            
+
+// Calcular el total de inversiones para el equipo y temporada actual
+$totalInvestments = \App\Models\Investment::where('season_id', $season_id)
+    ->whereHas('season', function($q) use ($user) {
+        $q->where('team_id', $user->team_id);
+    })
+    ->sum('amount');
+
+
             // Calcular totales de servicios por estado de desarrollo
             $servicesByDevState = [];
             $services = Service::from('services as s')
@@ -548,7 +571,8 @@ class DashboardController extends Controller
                 'kilosByFruit',
                 'fruitNames',
                 'adminFieldsByFruit',
-                'totalHarvestByFruit'
+                'totalHarvestByFruit',
+                'totalInvestments'
             ));
         }
     }

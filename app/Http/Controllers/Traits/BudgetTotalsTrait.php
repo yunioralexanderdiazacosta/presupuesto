@@ -3,9 +3,41 @@
 namespace App\Http\Controllers\Traits;
 
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 
 trait BudgetTotalsTrait
 {
+    /**
+     * Obtiene el total de inversiones agrupado por mes para una season y team dados.
+     * Devuelve un array asociativo: [mes (int 1-12) => total (float)]
+     */
+    public function getInvestmentsTotalByMonth($season_id, $team_id)
+    {
+        // Filtrar inversiones por season y team (a través de la relación con season)
+        $investments = \App\Models\Investment::where('season_id', $season_id)
+            ->whereHas('season', function($q) use ($team_id) {
+                $q->where('team_id', $team_id);
+            })
+            ->get(['amount', 'month_execute']);
+
+
+        // Agrupar y sumar por mes
+        $totals = [];
+        foreach ($investments as $inv) {
+            $mes = (int) $inv->month_execute;
+            if (!isset($totals[$mes])) $totals[$mes] = 0;
+            $totals[$mes] += (float) $inv->amount;
+        }
+        // Normalizar a claves string '1'-'12'
+        $allMonths = [];
+        for ($i = 1; $i <= 12; $i++) {
+            $key = (string)$i;
+            $allMonths[$key] = isset($totals[$i]) ? $totals[$i] : 0;
+        }
+    // Log eliminado
+        return $allMonths;
+    }
+
     // Debes asignar $this->month_id antes de usar estos métodos
 
     // Calcula el total global de fields (Generales campo)
