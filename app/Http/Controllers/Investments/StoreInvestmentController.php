@@ -14,8 +14,9 @@ class StoreInvestmentController extends Controller
         $data = $request->validate([
             'name' => 'required|string|max:255',
             'month_execute' => 'required|integer|min:1|max:12',
+            'amount' => 'nullable|numeric',
             'estado' => 'required|string',
-            'responsable_id' => 'nullable|exists:users,id',
+            'responsable' => 'nullable|string|max:255',
             'season_id' => 'nullable|exists:seasons,id',
             'observations' => 'nullable|string',
             'cost_centers' => 'required|array|min:1',

@@ -22,11 +22,13 @@ Este proyecto es un sistema de gestión presupuestaria agrícola desarrollado en
 2. Navega por el menú lateral para acceder a módulos como Inversiones, Presupuestos, etc.
 3. Puede crear, editar y eliminar recursos, siempre dentro del contexto de su equipo y temporada.
 
+
 ## Convenciones y patrones
 - Controladores de acción única para endpoints principales.
 - Uso de Inertia.js para comunicación backend/frontend.
 - Componentes Vue modulares y reutilizables.
 - Migraciones claras y reversibles.
+- **Patrón de modales y formularios:** Para formularios complejos, el componente del modal (`CreateXModal.vue`, `EditXModal.vue`, etc.) debe encargarse únicamente del header, footer y slots, mientras que el formulario real (inputs, selects, lógica de negocio) debe estar en un componente aparte (por ejemplo, `XForm.vue`). El modal siempre debe estar montado y abrirse/cerrarse usando Bootstrap JS (`$('#modalId').modal('show')`). Esto permite máxima escalabilidad, reutilización y consistencia entre módulos.
 
 ## Expectativas y buenas prácticas
 - Todo nuevo módulo debe respetar el filtrado por season y team.

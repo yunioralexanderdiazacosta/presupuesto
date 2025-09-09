@@ -14,11 +14,11 @@ import ExportPdfButton from '@/Components/ExportPdfButton.vue';
 import SearchInput from '@/Components/SearchInput.vue';
 
 const props = defineProps({
-    investments: Object,
-    costCenters: { type: Array, default: () => [] },
-    months: { type: Array, default: () => [] },
-    seasons: { type: Array, default: () => [] },
-    users: { type: Array, default: () => [] }
+  investments: Object,
+  costCenters: { type: Array, default: () => [] },
+  months: { type: Array, default: () => [] },
+  seasons: { type: Array, default: () => [] },
+  users: { type: Array, default: () => [] }
 });
 
 const search = ref('');
@@ -54,39 +54,75 @@ function closeCreateModal() {
 </script>
 
 <template>
-   <Head :title="title" />
-    <AppLayout>
-        <Breadcrumb :links="links" />
-   
-    <div class="mb-3 d-flex justify-content-between align-items-center">
-      <SearchInput v-model="search" placeholder="Buscar inversión..." class="me-2" />
-      <button class="btn btn-primary" @click="showCreateModal = true">
-        <i class="fas fa-plus me-1"></i> Nueva Inversión
-      </button>
+
+  <Head :title="title" />
+  <AppLayout>
+    <Breadcrumb :links="links" />
+
+    <div class="card my-3">
+      <div class="card-header">
+        <div class="row flex-between-center">
+          <div class="col-6 col-sm-auto d-flex align-items-center pe-0">
+            <h5 class="fs-9 mb-0 text-nowrap py-2 py-xl-0">
+              <i class="fas fa-piggy-bank text-success me-2"></i>Inversiones
+            </h5>
+          </div>
+
+
+          <div class="col-6 col-sm-auto ms-auto text-end ps-0">
+            <div id="table-investments-replace-element">
+              <button class="btn btn-falcon-default btn-sm" type="button" @click="showCreateModal = true">
+                <span class="fas fa-plus" data-fa-transform="shrink-3 down-2"></span>
+                <span class="d-none d-sm-inline-block ms-1">Nueva</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="card-body bg-body-tertiary">
+        <ul class="nav nav-pills" id="pill-myTab" role="tablist">
+          <li class="nav-item"><a class="nav-link active" id="pill-edicion" data-bs-toggle="tab"
+              href="#pill-tab-edicion" role="tab" aria-controls="pill-tab-edicion" aria-selected="true">Edición</a></li>
+          <li class="nav-item"><a class="nav-link" id="pill-salidas" data-bs-toggle="tab" href="#pill-tab-salidas"
+              role="tab" aria-controls="pill-tab-salidas" aria-selected="false">Salidas</a></li>
+          <li class="nav-item"><a class="nav-link" id="pill-gastos" data-bs-toggle="tab" href="#pill-tab-gastos"
+              role="tab" aria-controls="pill-tab-gastos" aria-selected="false">kjhyuass</a></li>
+          <li class="nav-item"><a class="nav-link" id="pill-detalles-compra" data-bs-toggle="tab"
+              href="#pill-tab-detalles-compra" role="tab" aria-controls="pill-tab-detalles-compra"
+              aria-selected="false">kjuh</a></li>
+        </ul>
+        <div class="tab-content border p-3 mt-3" id="pill-myTabContent">
+
+
+          <Table :items="filteredInvestments" :fields="['name', 'month', 'amount', 'cost_centers', 'actions']">
+            <template #cell(name)="{ item }">
+              {{ item.name }}
+            </template>
+            <template #cell(month)="{ item }">
+              {{ item.month }}
+            </template>
+            <template #cell(amount)="{ item }">
+              {{ item.amount | currency }}
+            </template>
+            <template #cell(cost_centers)="{ item }">
+              <span v-for="cc in item.cost_centers" :key="cc.id" class="badge bg-info me-1">{{ cc.name }}</span>
+            </template>
+            <template #cell(actions)="{ item }">
+              <button class="btn btn-sm btn-outline-primary me-1" @click="openEditModal(item)"><i
+                  class="fas fa-edit"></i></button>
+              <button class="btn btn-sm btn-outline-danger" @click="$emit('delete', item)"><i
+                  class="fas fa-trash"></i></button>
+            </template>
+          </Table>
+        </div>
+      </div>
     </div>
-    <Table :items="filteredInvestments" :fields="['name', 'month', 'amount', 'cost_centers', 'actions']">
-      <template #cell(name)="{ item }">
-        {{ item.name }}
-      </template>
-      <template #cell(month)="{ item }">
-        {{ item.month }}
-      </template>
-      <template #cell(amount)="{ item }">
-        {{ item.amount | currency }}
-      </template>
-      <template #cell(cost_centers)="{ item }">
-        <span v-for="cc in item.cost_centers" :key="cc.id" class="badge bg-info me-1">{{ cc.name }}</span>
-      </template>
-      <template #cell(actions)="{ item }">
-        <button class="btn btn-sm btn-outline-primary me-1" @click="openEditModal(item)"><i class="fas fa-edit"></i></button>
-        <button class="btn btn-sm btn-outline-danger" @click="$emit('delete', item)"><i class="fas fa-trash"></i></button>
-      </template>
-    </Table>
-    <Empty v-if="filteredInvestments.length === 0" message="No hay inversiones registradas." />
-    <CreateInvestmentModal v-if="showCreateModal" @close="closeCreateModal" :cost-centers="props.costCenters" :months="props.months" :seasons="props.seasons" :users="props.users" />
-    <EditInvestmentModal v-if="showEditModal" :investment="selectedInvestment" @close="closeEditModal" :cost-centers="props.costCenters" :months="props.months" :seasons="props.seasons" :users="props.users" />
+    <CreateInvestmentModal v-if="showCreateModal" @close="closeCreateModal" :cost-centers="props.costCenters"
+      :months="props.months" :seasons="props.seasons" :users="props.users" />
+    <EditInvestmentModal v-if="showEditModal" :investment="selectedInvestment" @close="closeEditModal"
+      :cost-centers="props.costCenters" :months="props.months" :seasons="props.seasons" :users="props.users" />
   </AppLayout>
 </template>
 
-<style scoped>
-</style>
+<style src="@vueform/multiselect/themes/default.css"></style>

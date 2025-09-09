@@ -13,7 +13,11 @@ class InvestmentsController extends Controller
 {
     public function index()
     {
-        $investments = Investment::with(['costCenters', 'responsable', 'season'])->latest()->paginate(20);
+        $investments = Investment::with(['costCenters', 'season'])->latest()->paginate(20);
+        \Log::info('InvestmentsController@index', [
+            'total' => $investments->total(),
+            'ids' => collect($investments->items())->pluck('id')->toArray(),
+        ]);
         $costCenters = CostCenter::all(['id', 'name']);
         $seasons = Season::all(['id', 'name']);
         $users = User::all(['id', 'name']);

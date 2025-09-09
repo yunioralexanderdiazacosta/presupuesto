@@ -326,6 +326,8 @@ const onFilter = () => {
             </div>
         </div>
 
+
+        
         <div class="card-body bg-body-tertiary">
             <ul class="nav nav-pills" id="pill-myTab" role="tablist">
                 <li class="nav-item"><a class="nav-link active" id="pill-edicion" data-bs-toggle="tab" href="#pill-tab-edicion" role="tab" aria-controls="pill-tab-edicion" aria-selected="true">Edición</a></li>

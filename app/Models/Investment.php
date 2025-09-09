@@ -10,12 +10,13 @@ class Investment extends Model
     use HasFactory;
 
     protected $fillable = [
-        'name',
-        'month_execute',
-        'estado',
-        'responsable',
-        'season_id',
-        'observations',
+    'name',
+    'month_execute',
+    'amount',
+    'estado',
+    'responsable',
+    'season_id',
+    'observations',
     ];
 
     // Relación muchos a muchos con cost centers
