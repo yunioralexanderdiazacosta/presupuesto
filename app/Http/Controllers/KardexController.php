@@ -19,12 +19,14 @@ class KardexController extends Controller
         // Movimientos de facturas (entradas)
         $facturas = DB::table('invoice_product')
             ->join('invoices', 'invoice_product.invoice_id', '=', 'invoices.id')
+            ->join('suppliers', 'invoices.supplier_id', '=', 'suppliers.id')
             ->where('invoice_product.product_id', $product_id)
             ->where('invoices.team_id', $user->team_id)
             ->where('invoices.season_id', $season_id)
             ->select([
                 'invoices.date as fecha',
                 DB::raw("'Factura' as tipo"),
+                'suppliers.name as proveedor',
                 'invoices.number_document as documento',
                 'invoice_product.amount as entrada',
                 DB::raw('0 as salida'),
@@ -35,6 +37,7 @@ class KardexController extends Controller
         // Movimientos de notas de débito (entradas)
         $notasDebito = DB::table('credit_debit_note_items')
             ->join('credit_debit_notes', 'credit_debit_note_items.credit_debit_note_id', '=', 'credit_debit_notes.id')
+            ->join('suppliers', 'credit_debit_notes.supplier_id', '=', 'suppliers.id')
             ->where('credit_debit_note_items.product_id', $product_id)
             ->where('credit_debit_notes.team_id', $user->team_id)
             ->where('credit_debit_notes.season_id', $season_id)
@@ -42,6 +45,7 @@ class KardexController extends Controller
             ->select([
                 'credit_debit_notes.date as fecha',
                 DB::raw("'Nota Débito' as tipo"),
+                'suppliers.name as proveedor',
                 'credit_debit_notes.number as documento',
                 'credit_debit_note_items.quantity as entrada',
                 DB::raw('0 as salida'),
@@ -52,6 +56,7 @@ class KardexController extends Controller
         // Movimientos de notas de crédito (salidas)
         $notasCredito = DB::table('credit_debit_note_items')
             ->join('credit_debit_notes', 'credit_debit_note_items.credit_debit_note_id', '=', 'credit_debit_notes.id')
+            ->join('suppliers', 'credit_debit_notes.supplier_id', '=', 'suppliers.id')
             ->where('credit_debit_note_items.product_id', $product_id)
             ->where('credit_debit_notes.team_id', $user->team_id)
             ->where('credit_debit_notes.season_id', $season_id)
@@ -59,6 +64,7 @@ class KardexController extends Controller
             ->select([
                 'credit_debit_notes.date as fecha',
                 DB::raw("'Nota Crédito' as tipo"),
+                'suppliers.name as proveedor',
                 'credit_debit_notes.number as documento',
                 DB::raw('0 as entrada'),
                 'credit_debit_note_items.quantity as salida',
@@ -70,6 +76,7 @@ class KardexController extends Controller
         $outflowsFactura = DB::table('outflows')
             ->join('invoice_product', 'outflows.invoice_product_id', '=', 'invoice_product.id')
             ->join('invoices', 'invoice_product.invoice_id', '=', 'invoices.id')
+            ->join('suppliers', 'invoices.supplier_id', '=', 'suppliers.id')
             ->where('invoice_product.product_id', $product_id)
             ->where('outflows.team_id', $user->team_id)
             ->where('outflows.season_id', $season_id)
@@ -77,6 +84,7 @@ class KardexController extends Controller
             ->select([
                 'outflows.date as fecha',
                 DB::raw("'Consumo' as tipo"),
+                'suppliers.name as proveedor',
                 'invoices.number_document as documento',
                 DB::raw('0 as entrada'),
                 'outflows.quantity as salida',
@@ -88,6 +96,7 @@ class KardexController extends Controller
         $outflowsND = DB::table('outflows')
             ->join('credit_debit_note_items', 'outflows.credit_debit_note_item_id', '=', 'credit_debit_note_items.id')
             ->join('credit_debit_notes', 'credit_debit_note_items.credit_debit_note_id', '=', 'credit_debit_notes.id')
+            ->join('suppliers', 'credit_debit_notes.supplier_id', '=', 'suppliers.id')
             ->where('credit_debit_note_items.product_id', $product_id)
             ->where('outflows.team_id', $user->team_id)
             ->where('outflows.season_id', $season_id)
@@ -95,6 +104,7 @@ class KardexController extends Controller
             ->select([
                 'outflows.date as fecha',
                 DB::raw("'Consumo ND' as tipo"),
+                'suppliers.name as proveedor',
                 'credit_debit_notes.number as documento',
                 DB::raw('0 as entrada'),
                 'outflows.quantity as salida',
@@ -119,6 +129,8 @@ class KardexController extends Controller
             $kardex[] = [
                 'fecha' => $mov->fecha,
                 'tipo' => $mov->tipo,
+                // Incluir nombre de proveedor
+                'proveedor' => $mov->proveedor ?? null,
                 'documento' => $mov->documento,
                 'entrada' => $mov->entrada,
                 'salida' => $mov->salida,

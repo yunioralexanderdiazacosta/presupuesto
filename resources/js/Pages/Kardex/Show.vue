@@ -30,6 +30,7 @@ const links = [
               <tr>
                 <th>Fecha</th>
                 <th>Tipo</th>
+                <th>Proveedor</th>
                 <th>Documento</th>
                 <th>Entrada</th>
                 <th>Salida</th>
@@ -42,6 +43,7 @@ const links = [
               <tr v-for="(item, idx) in props.kardex" :key="idx">
                 <td>{{ item.fecha }}</td>
                 <td>{{ item.tipo }}</td>
+                <td>{{ item.proveedor || '' }}</td>
                 <td>{{ item.documento }}</td>
                 <td>{{ item.entrada || '' }}</td>
                 <td>{{ item.salida || '' }}</td>
@@ -50,7 +52,7 @@ const links = [
                 <td>{{ item.observaciones || '' }}</td>
               </tr>
               <tr v-if="!props.kardex || !props.kardex.length">
-                <td colspan="8" class="text-center text-muted">No hay movimientos de Kardex.</td>
+                <td colspan="9" class="text-center text-muted">No hay movimientos de Kardex.</td>
               </tr>
             </tbody>
           </table>

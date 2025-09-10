@@ -1,6 +1,8 @@
 
 <script setup>
-import { watch } from 'vue';
+import { watch, ref } from 'vue';
+// Controla si se muestran opciones en el Multiselect de productos por cada línea
+const showProductOptions = ref([]);
 import Multiselect from '@vueform/multiselect';
 import InputError from '@/Components/InputError.vue';
 import { usePage } from '@inertiajs/vue3';
@@ -14,17 +16,19 @@ const props = defineProps({
 const newTag = (input) => ({ id: input, name: input });
 
 const add = () => {
-    props.form.products.push({
-        product_id: '',
-        unit_id: '',                // Unidad seleccionada o nueva
-        unit_price: 0.00,
-        amount: 1,
-        observations: ''
-    });
+	props.form.products.push({
+		product_id: '',
+		unit_id: '',                // Unidad seleccionada o nueva
+		unit_price: 0.00,
+		amount: 1,
+		observations: ''
+	});
+	showProductOptions.value.push(true);
 }
 
 const onDeleted = (index) => {
 	props.form.products.splice(index, 1);
+	showProductOptions.value.splice(index, 1);
 }
 
 
@@ -95,19 +99,24 @@ watch(
 				   <tr class="border-bottom border-bottom-dashed align-top" v-for="(product, index) in form.products" :key="index" data-kt-element="item" style="vertical-align: top;">
 						<td class="ps-0 text-start pe-0" style="width:250px; min-width:250px; max-width:250px;">
 								<Multiselect
-									:taggable="true"
-									:create-tag="newTag"
-									placeholder="Seleccione o escriba producto"
-									v-model="product.product_id"
-									:options="$page.products"
-									option-label="label"
-									option-value="value"
-							:searchable="true"
-							:close-on-select="true"
-							:hide-selected="false"
-							class="multiselect-blue form-control"
-							:class="{'is-invalid': form.errors['products.'+index+'.product_id']}"
-						/>
+										:taggable="true"
+										:create-tag="newTag"
+										placeholder="Seleccione o escriba producto"
+										v-model="product.product_id"
+										:options="$page.products"
+										option-label="label"
+										option-value="value"
+										:searchable="true"
+										:close-on-select="true"
+										:hide-selected="false"
+										:showOptions="showProductOptions[index] !== false"
+										@search-change="(query) => {
+											const matches = ($page.products || []).filter(p => (p.label || '').toLowerCase().includes((query || '').toLowerCase()));
+											showProductOptions[index] = matches.length > 0;
+										}"
+										class="multiselect-blue form-control"
+										:class="{'is-invalid': form.errors['products.'+index+'.product_id']}"
+								/>
 					   </td>
                      
 					   <!-- Columna Unidad -->

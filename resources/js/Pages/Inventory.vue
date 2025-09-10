@@ -235,6 +235,7 @@ function printKardex(productId) {
                                     <tr>
                                       <th>Fecha</th>
                                       <th>Tipo</th>
+                                      <th>Proveedor</th>
                                       <th>Documento</th>
                                       <th>Entrada</th>
                                       <th>Salida</th>
@@ -247,6 +248,7 @@ function printKardex(productId) {
                                     <tr v-for="(mov, idx) in kardexView[item.product_id] || []" :key="'mov-' + idx">
                                       <td>{{ mov.fecha }}</td>
                                       <td>{{ mov.tipo }}</td>
+                                      <td>{{ mov.proveedor || '' }}</td>
                                       <td>{{ mov.documento }}</td>
                                       <td>{{ mov.entrada !== undefined && mov.entrada !== null ? Number(mov.entrada).toFixed(2) : '' }}</td>
                                       <td>{{ mov.salida !== undefined && mov.salida !== null ? Number(mov.salida).toFixed(2) : '' }}</td>
@@ -255,10 +257,10 @@ function printKardex(productId) {
                                       <td>{{ mov.observaciones || '' }}</td>
                                     </tr>
                                     <tr v-if="kardexView[item.product_id] && !kardexView[item.product_id].length">
-                                      <td colspan="8" class="text-center text-muted">No hay movimientos de Kardex.</td>
+                                      <td colspan="9" class="text-center text-muted">No hay movimientos de Kardex.</td>
                                     </tr>
                                     <tr v-if="!kardexView[item.product_id]">
-                                      <td colspan="8" class="text-center text-muted">Cargando...</td>
+                                      <td colspan="9" class="text-center text-muted">Cargando...</td>
                                     </tr>
                                     <tr v-if="kardexView[item.product_id] && kardexView[item.product_id].length">
                                       <td colspan="5" class="text-end fw-bold">Total stock actual:</td>
