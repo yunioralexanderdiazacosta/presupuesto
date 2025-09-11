@@ -1,6 +1,7 @@
 
 <script setup>
 import Swal from 'sweetalert2';
+import { computed } from 'vue';
 import { Head, useForm, router } from '@inertiajs/vue3';
 import AppLayout from '@/Layouts/AppLayout.vue';
 import FormCreditDebitNote from '@/Components/CreditDebitNotes/Form.vue';
@@ -23,10 +24,26 @@ const form = useForm({
   number: '',
   reason: '',
   items: [],
-  is_annulment: false
+  is_annulment: false,
+  affects_inventory: true
+});
+
+
+const hasInvalidDebitQty = computed(() => {
+  // Solo validar si es débito y NO afecta inventario (robusto para cualquier valor truthy)
+  if (form.type !== 'debito' || !!form.affects_inventory) return false;
+  return form.items.some(item => !item.quantity || Number(item.quantity) <= 0);
 });
 
 const save = () => {
+  if (hasInvalidDebitQty.value) {
+    Swal.fire({
+      icon: 'error',
+      title: 'Cantidad requerida',
+      text: 'En débito sin afectar inventario, la cantidad debe ser mayor a cero.',
+    });
+    return;
+  }
   form.post(route('credit_debit_notes.store'), {
     preserveScroll: true,
     onSuccess: () => {
@@ -66,7 +83,7 @@ const msgSuccess = (msg) => {
         <form @submit.prevent="save()">
           <FormCreditDebitNote :form="form" :suppliers="suppliers" :invoices="invoices" :products="products" :units="units" />
           <div class="mb-0 text-end">
-            <button type="submit" class="btn btn-primary mt-3">
+            <button type="submit" class="btn btn-primary mt-3" :disabled="hasInvalidDebitQty">
               <span class="fas fa-save"></span> Guardar
             </button>
           </div>

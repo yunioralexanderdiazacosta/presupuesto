@@ -42,6 +42,7 @@ class KardexController extends Controller
             ->where('credit_debit_notes.team_id', $user->team_id)
             ->where('credit_debit_notes.season_id', $season_id)
             ->where('credit_debit_notes.type', 'debito')
+            ->where('credit_debit_notes.affects_inventory', true)
             ->select([
                 'credit_debit_notes.date as fecha',
                 DB::raw("'Nota Débito' as tipo"),
@@ -61,6 +62,7 @@ class KardexController extends Controller
             ->where('credit_debit_notes.team_id', $user->team_id)
             ->where('credit_debit_notes.season_id', $season_id)
             ->where('credit_debit_notes.type', 'credito')
+            ->where('credit_debit_notes.affects_inventory', true)
             ->select([
                 'credit_debit_notes.date as fecha',
                 DB::raw("'Nota Crédito' as tipo"),

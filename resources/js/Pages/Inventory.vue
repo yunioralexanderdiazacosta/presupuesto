@@ -251,7 +251,7 @@ function printKardex(productId) {
                                       <td>{{ mov.proveedor || '' }}</td>
                                       <td>{{ mov.documento }}</td>
                                       <td>{{ mov.entrada !== undefined && mov.entrada !== null ? Number(mov.entrada).toFixed(2) : '' }}</td>
-                                      <td>{{ mov.salida !== undefined && mov.salida !== null ? Number(mov.salida).toFixed(2) : '' }}</td>
+                                      <td class="text-danger">{{ mov.salida !== undefined && mov.salida !== null ? (-Number(mov.salida)).toFixed(2) : '' }}</td>
                                       <td>{{ mov.saldo !== undefined && mov.saldo !== null ? Number(mov.saldo).toFixed(2) : '' }}</td>
                                       <td>{{ mov.precio ?? '' }}</td>
                                       <td>{{ mov.observaciones || '' }}</td>

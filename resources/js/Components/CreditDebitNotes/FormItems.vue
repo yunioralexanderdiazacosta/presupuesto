@@ -5,7 +5,11 @@ const props = defineProps({
   products: Array,  // líneas de factura (crédito) o productos (débito)
   units: Array,
   is_annulment: Boolean,
-  type: String // 'credito' o 'debito'
+  type: String, // 'credito' o 'debito'
+  affects_inventory: {
+    type: Boolean,
+    default: true
+  }
 });
 const emit = defineEmits(['update:items']);
 // Diccionario de productos o líneas para autocompletar
@@ -38,9 +42,11 @@ watch(
     if (props.type !== 'credito') return;
     newIds.forEach((id, idx) => {
       if (id && id !== oldIds[idx]) {
+        // Buscar la línea seleccionada
         const line = props.products.find(p => p.value === id);
         if (line) {
-          props.items[idx].product_id = line.product_id;
+          // Si la línea tiene product_id, úsalo; si no, usa value (debe ser el id real de producto)
+          props.items[idx].product_id = line.product_id ?? line.value;
           props.items[idx].unit_id = line.unit_id;
           props.items[idx].unit_price = line.unit_price;
         }
@@ -72,6 +78,16 @@ const total = computed(() => {
   });
   // Si es nota de crédito, mostrar negativo
   return props.type === 'credito' ? -1 * t : t;
+});
+
+// Calcular el total de la factura relacionada (solo para crédito)
+const invoiceTotal = computed(() => {
+  if (props.type !== 'credito' || !props.products) return 0;
+  let t = 0;
+  props.products.forEach(item => {
+    t += (parseFloat(item.unit_price) || 0) * (parseFloat(item.amount || item.quantity || 0));
+  });
+  return t;
 });
 </script>
 
@@ -106,7 +122,16 @@ const total = computed(() => {
               <option v-for="u in units" :key="u.value" :value="u.value">{{ u.label }}</option>
             </select>
           </td>
-          <td><input type="number" v-model="item.quantity" class="form-control" min="0" step="0.01" /></td>
+          <td>
+            <input
+              type="number"
+              v-model="item.quantity"
+              class="form-control"
+              :min="type === 'debito' && affects_inventory === false ? 0.01 : 0"
+              step="0.01"
+              :title="type === 'debito' && affects_inventory === false ? 'Indique la cantidad a la que aplica el nuevo precio (debe ser mayor a cero)' : ''"
+            />
+          </td>
           <td><input type="number" v-model="item.unit_price" class="form-control" min="0" step="0.01" /></td>
           <td>
             <input v-if="type === 'credito' && products.length && products.find(p => p.value === item.product_id) && products.find(p => p.value === item.product_id).id" type="hidden" v-model="item.invoice_product_id" />
@@ -115,7 +140,10 @@ const total = computed(() => {
         </tr>
       </tbody>
     </table>
-    <button class="btn btn-success btn-sm" @click.prevent="add" :disabled="is_annulment">Agregar línea</button>
+    <button class="btn btn-success btn-sm" @click.prevent="add"
+      :disabled="is_annulment || (type === 'credito' && Math.abs(total) >= invoiceTotal) || (type === 'debito' && affects_inventory === false)">
+      Agregar línea
+    </button>
     <div class="text-end mt-2 me-4">
       <strong>Total de la nota:
         <span :class="type === 'credito' ? 'text-danger' : 'text-success'">

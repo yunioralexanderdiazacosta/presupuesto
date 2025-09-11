@@ -1,8 +1,10 @@
+  
 <script setup>
 import { computed, ref, watch } from 'vue';
 import FormItems from './FormItems.vue';
 import Multiselect from "@vueform/multiselect";
 import TextInput from "@/Components/TextInput.vue";
+import InputError from '@/Components/InputError.vue';
 const props = defineProps({
   form: Object,
   suppliers: Array,
@@ -21,7 +23,7 @@ watch(() => props.form.invoice_id, (nuevaFactura) => {
   props.form.items = [];
 });
 
-// Computed para líneas de factura (para nota de crédito)
+// Computed para líneas de factura (para nota de crédito o ajuste de precio)
 const filteredInvoiceLines = computed(() => {
   if (props.form.invoice_id) {
     const factura = props.invoices.find(inv => inv.value === props.form.invoice_id);
@@ -30,32 +32,43 @@ const filteredInvoiceLines = computed(() => {
   return [];
 });
 
+// Forzar affects_inventory a true si es crédito y anulación total
+watch([
+  () => props.form.type,
+  () => props.form.is_annulment
+], ([type, isAnnulment]) => {
+  if (type === 'credito' && isAnnulment) {
+    props.form.affects_inventory = true;
+  }
+});
+
 // Computed para facturas filtradas por proveedor
 const filteredInvoices = computed(() => {
   if (!props.form.supplier_id) return [];
   return props.invoices.filter(inv => inv.supplier_id === props.form.supplier_id);
 });
 
-// Autollenar items si es anulación total y hay factura seleccionada
+// Autollenar items si es anulación total, o si se desmarca "Afecta inventario" y hay factura seleccionada
 watch([
   () => props.form.is_annulment,
-  () => props.form.invoice_id
-], ([isAnnulment, invoiceId]) => {
-  if (isAnnulment && invoiceId) {
-    // Buscar la factura seleccionada
-    const factura = props.invoices.find(inv => inv.value === invoiceId);
-    if (factura && factura.products) {
-      // Crear los items con los datos de la factura, incluyendo invoice_product_id
-      props.form.items = factura.products
-        .filter(prod => prod.value !== undefined && prod.value !== null)
-        .map(prod => ({
-          invoice_product_id: prod.value, // id de la línea, nunca null
-          product_id: prod.product_id ?? prod.value, // para backend y watcher
-          unit_id: prod.unit_id,
-          quantity: prod.amount ?? 1,
-          unit_price: prod.unit_price ?? 0,
-        }));
-    }
+  () => props.form.invoice_id,
+  () => props.form.affects_inventory,
+  () => props.form.type
+], ([isAnnulment, invoiceId, affectsInventory, type], [prevAnnulment, prevInvoiceId, prevAffectsInventory, prevType]) => {
+  const factura = props.invoices.find(inv => inv.value === invoiceId);
+  if (!factura || !factura.products) return;
+
+  // Si es anulación total (crédito) o si se desmarca "Afecta inventario" (en crédito o débito)
+  if ((type === 'credito' && isAnnulment && invoiceId) || (affectsInventory === false && invoiceId)) {
+    props.form.items = factura.products
+      .filter(prod => prod.value !== undefined && prod.value !== null)
+      .map(prod => ({
+        invoice_product_id: prod.value, // id de la línea, nunca null
+        product_id: prod.product_id ?? prod.value, // para backend y watcher
+        unit_id: prod.unit_id,
+        quantity: prod.amount ?? 1,
+        unit_price: prod.unit_price ?? 0,
+      }));
   }
 });
 </script>
@@ -64,101 +77,113 @@ watch([
 
 <template>
  
-    <!-- Campos principales de nota de crédito/débito -->
-    <div class="row">
-        <div class="col-lg-2">
-            <div class="fv-row">
-          <label for="" class="col-form-label">Tipo</label>
-          <Multiselect
-            v-model="form.type"
-            :options="[
-              { value: 'credito', label: 'Crédito' },
-              { value: 'debito', label: 'Débito' }
-            ]"
-            placeholder="Seleccione tipo"
-            :searchable="false"
-            :close-on-select="true"
-            :hide-selected="false"
-            :open="false"
-            class="multiselect-blue form-control"
-          />
-            <InputError
-                class="mt-2"
-                :message="form.errors.type"
-            />
-          </div>
-        </div>
-        <div class="col-lg-3">
-                <div class="fv-row">
-                    <label for="" class="col-form-label">Proveedor</label>
-            <Multiselect
-              v-model="form.supplier_id"
-              :options="suppliers"
-              placeholder="Proveedor"
-              :searchable="true"
-               :max-height="440" 
-              :close-on-select="true"
-              :hide-selected="false"
-              :open="false"
-              class="multiselect-blue form-control"
-            />
-                    <InputError
-                        class="mt-2"
-                        :message="form.errors.supplier_id"
-                    />
-                    
-                </div>
-        </div>
 
-        <div class="col-lg-2">
-           <div class="fv-row">
-                    <label for="" class="col-form-label">Factura Numero</label>
-          <Multiselect
-            v-model="form.invoice_id"
-            :options="filteredInvoices"
-            placeholder="Factura"
-            :searchable="true"
-            :close-on-select="true"
-            :hide-selected="false"
-            :open="false"
-            class="multiselect-blue form-control"
-          />
-           <InputError
-                        class="mt-2"
-                        :message="form.errors.invoice_id"
-                    />
-           </div>
-        </div>
-         <div class="col-lg-3">
-                <div class="fv-row">
-                    <label for="" class="col-form-label">Fecha</label>
-                    <TextInput
-                        id="date"
-                        v-model="form.date"
-                        class="form-control form-control-solid"
-                        type="date"
-                        :class="{ 'is-invalid': form.errors.date }"
-                    />
-                    <InputError class="mt-2" :message="form.errors.date" />
-                </div>
-            </div>
-        <div class="col-lg-2">
-           <div class="fv-row">
-                    <label for="" class="col-form-label">Número</label>
-          <TextInput
-            id="number"
-            v-model="form.number"
-            class="form-control form-control-solid"
-            type="text"
-           
-            :class="{ 'is-invalid': form.errors && form.errors.number }"
-          />
-          <div v-if="form.errors && form.errors.number" class="text-danger small">{{ form.errors.number }}</div>
-        </div>
+  <!-- Campos principales de nota de crédito/débito -->
+  <div class="row">
+    <div class="col-lg-2">
+      <div class="fv-row">
+        <label for="" class="col-form-label">Tipo</label>
+        <Multiselect
+          v-model="form.type"
+          :options="[
+            { value: 'credito', label: 'Crédito' },
+            { value: 'debito', label: 'Débito' }
+          ]"
+          placeholder="Seleccione tipo"
+          :searchable="false"
+          :close-on-select="true"
+          :hide-selected="false"
+          :open="false"
+          class="multiselect-blue form-control"
+        />
+        <InputError class="mt-2" :message="form.errors.type" />
+      </div>
     </div>
+    <div class="col-lg-3">
+      <div class="fv-row">
+        <label for="" class="col-form-label">Proveedor</label>
+        <Multiselect
+          v-model="form.supplier_id"
+          :options="suppliers"
+          placeholder="Proveedor"
+          :searchable="true"
+          :max-height="440"
+          :close-on-select="true"
+          :hide-selected="false"
+          :open="false"
+          class="multiselect-blue form-control"
+        />
+        <InputError class="mt-2" :message="form.errors.supplier_id" />
+      </div>
+    </div>
+    <div class="col-lg-2">
+      <div class="fv-row">
+        <label for="" class="col-form-label">Factura Numero</label>
+        <Multiselect
+          v-model="form.invoice_id"
+          :options="filteredInvoices"
+          placeholder="Factura"
+          :searchable="true"
+          :close-on-select="true"
+          :hide-selected="false"
+          :open="false"
+          class="multiselect-blue form-control"
+        />
+        <InputError class="mt-2" :message="form.errors.invoice_id" />
+      </div>
+    </div>
+    <div class="col-lg-3">
+      <div class="fv-row">
+        <label for="" class="col-form-label">Fecha</label>
+        <TextInput
+          id="date"
+          v-model="form.date"
+          class="form-control form-control-solid"
+          type="date"
+          :class="{ 'is-invalid': form.errors.date }"
+        />
+        <InputError class="mt-2" :message="form.errors.date" />
+      </div>
+    </div>
+    <div class="col-lg-2">
+      <div class="fv-row">
+        <label for="" class="col-form-label">Número</label>
+        <TextInput
+          id="number"
+          v-model="form.number"
+          class="form-control form-control-solid"
+          type="text"
+          :class="{ 'is-invalid': form.errors && form.errors.number }"
+        />
+        <div v-if="form.errors && form.errors.number" class="text-danger small">{{ form.errors.number }}</div>
+      </div>
+    </div>
+  </div>
 
-      <div class="row">
-    <div class="col-12 mb-2 mt-4  ms-2">
+  <!-- Checkbox afecta inventario -->
+  <div class="row mb-2 mt-2 ms-2">
+    <div class="col-lg-4">
+      <div class="form-check">
+        <input
+          class="form-check-input"
+          type="checkbox"
+          id="affects_inventory"
+          v-model="form.affects_inventory"
+          :disabled="form.type === 'credito' && form.is_annulment"
+        />
+        <label class="form-check-label" for="affects_inventory">
+          Afecta inventario
+        </label>
+      </div>
+      <small class="text-muted">
+        Desmarcado → solo ajusta precio sin mover stock
+      </small>
+    </div>
+  </div>
+
+  <!-- Checkbox anula factura completa -->
+  <div class="row">
+    <div class="col-12 mb-2 mt-4 ms-2">
       <div class="form-check">
         <input class="form-check-input" type="checkbox" v-model="form.is_annulment" id="is_annulment" :disabled="form.type !== 'credito'">
         <label class="form-check-label" for="is_annulment">
@@ -168,19 +193,21 @@ watch([
     </div>
   </div>
 
+  <!-- Motivo -->
   <div class="mb-3 mt-4">
-        <label>Motivo</label>
-        <textarea v-model="form.reason" class="form-control"></textarea>
-      </div>
-     
-      <FormItems
-        v-model:items="form.items"
-        :products="form.type === 'credito' ? filteredInvoiceLines : products"
-        :units="units"
-        :is_annulment="form.is_annulment"
-        :type="form.type"
-      />
+    <label>Motivo</label>
+    <textarea v-model="form.reason" class="form-control"></textarea>
   </div>
+
+  <!-- Items -->
+  <FormItems
+    v-model:items="form.items"
+    :products="form.type === 'credito' ? filteredInvoiceLines : products"
+    :units="units"
+    :is_annulment="form.is_annulment"
+    :type="form.type"
+    :affects_inventory="form.affects_inventory"
+  />
 
 </template>
 <style src="@vueform/multiselect/themes/default.css"></style>
