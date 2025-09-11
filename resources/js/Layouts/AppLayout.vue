@@ -28,24 +28,32 @@ const logout = () => {
         <div class="navbar-vertical-content scrollbar">
           <ul class="navbar-nav flex-column mb-3" id="navbarVerticalNav">
 
-            <li class="nav-item" v-role="'Super Admin'">
-                <Link class="nav-link" :href="route('dashboard')" role="button">
-                    <div class="d-flex align-items-center">
-                        <span class="nav-link-icon">
-                            <span class="fas fa-tachometer-alt"></span>
-                        </span>
-                        <span class="nav-link-text ps-1">Tablero</span>
-                    </div>
-                </Link>
-                <Link class="nav-link" :href="route('teams.index')" role="button">
-                    <div class="d-flex align-items-center">
-                        <span class="nav-link-icon">
-                            <span class="fas fa-building"></span>
-                        </span>
-                        <span class="nav-link-text ps-1">Empresas</span>
-                    </div>
-                </Link>
-            </li>
+      <li class="nav-item" v-role="'Super Admin'">
+        <Link class="nav-link" :href="route('dashboard')" role="button">
+          <div class="d-flex align-items-center">
+            <span class="nav-link-icon">
+              <span class="fas fa-tachometer-alt"></span>
+            </span>
+            <span class="nav-link-text ps-1">Tablero</span>
+          </div>
+        </Link>
+        <Link class="nav-link" :href="route('teams.index')" role="button">
+          <div class="d-flex align-items-center">
+            <span class="nav-link-icon">
+              <span class="fas fa-building"></span>
+            </span>
+            <span class="nav-link-text ps-1">Empresas</span>
+          </div>
+        </Link>
+        <Link class="nav-link" :href="route('products2.index')" role="button">
+          <div class="d-flex align-items-center">
+            <span class="nav-link-icon">
+              <span class="fas fa-flask"></span>
+            </span>
+            <span class="nav-link-text ps-1">Productos2</span>
+          </div>
+        </Link>
+      </li>
             <li class="nav-item" v-role="'Admin'">
           
               <!-- parent pages--><a class="nav-link dropdown-indicator" href="#authentication" role="button" data-bs-toggle="collapse" aria-expanded="true" aria-controls="authentication">

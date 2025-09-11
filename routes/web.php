@@ -1,4 +1,6 @@
 
+
+
 <?php
 
 
@@ -10,6 +12,10 @@
     use App\Http\Controllers\CreditDebitNotes\UpdateCreditDebitNoteController;
     use App\Http\Controllers\CreditDebitNotes\DeleteCreditDebitNoteController;
     use App\Http\Controllers\CreditDebitNotesController;
+
+use App\Http\Controllers\Products2\StoreProduct2Controller;
+use App\Http\Controllers\Products2\UpdateProduct2Controller;
+use App\Http\Controllers\Products2\DeleteProduct2Controller;
 
 
 
@@ -231,7 +237,13 @@ Route::middleware([
   Route::post('/estimate-status', [\App\Http\Controllers\EstimatesController::class, 'storeEstimateStatus'])->name('estimate-status.store');
 
 
+
+    // Products2 estilo teams: vista única y controladores separados para acciones
+
     Route::get('/products2', [Product2Controller::class, 'index'])->name('products2.index');
+    Route::post('/products2', [\App\Http\Controllers\Products2\StoreProduct2Controller::class, '__invoke'])->name('products2.store');
+    Route::post('/products2/{products2}/update', [\App\Http\Controllers\Products2\UpdateProduct2Controller::class, '__invoke'])->name('products2.update');
+    Route::post('/products2/{products2}/delete', [\App\Http\Controllers\Products2\DeleteProduct2Controller::class, '__invoke'])->name('products2.destroy');
 
     Route::post('/sidebar/has-variety-for-season', [SidebarController::class, 'hasVarietyForSeason'])->name('sidebar.hasVarietyForSeason');
     Route::post('/sidebar/has-fruit-for-season', [SidebarController::class, 'hasFruitForSeason'])->name('sidebar.hasFruitForSeason');
