@@ -144,8 +144,12 @@ const invoiceTotal = computed(() => {
       :disabled="is_annulment || (type === 'credito' && Math.abs(total) >= invoiceTotal) || (type === 'debito' && affects_inventory === false)">
       Agregar línea
     </button>
-    <div class="text-end mt-2 me-4">
-      <strong>Total de la nota:
+    <div class="text-end mt-2 mb-4 me-4">
+      <strong>
+        Total de la nota
+        <span v-if="type === 'credito'">(Crédito)</span>
+        <span v-else-if="type === 'debito'">(Débito)</span>
+        :
         <span :class="type === 'credito' ? 'text-danger' : 'text-success'">
           {{ total.toLocaleString('es-CL', { style: 'currency', currency: 'CLP', minimumFractionDigits: 0 }) }}
         </span>
