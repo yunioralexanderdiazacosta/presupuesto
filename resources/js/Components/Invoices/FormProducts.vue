@@ -12,8 +12,18 @@ const props = defineProps({
     form: Object
 })
 
-// Función para crear un nuevo producto (taggable): devuelve objeto con id y name
-const newTag = (input) => ({ id: input, name: input });
+// Opciones reactivas para productos (permite agregar dinámicamente)
+import { reactive } from 'vue';
+const productOptions = reactive([...(($page.products || []).map(p => ({ value: p.value ?? p.id, label: p.label ?? p.name })))]);
+
+// Función para crear un nuevo producto (taggable): agrega a las opciones y retorna objeto compatible
+const newTag = (input) => {
+	// Evita duplicados
+	if (!productOptions.some(p => p.label === input)) {
+		productOptions.push({ value: input, label: input });
+	}
+	return { value: input, label: input };
+};
 
 const add = () => {
 	props.form.products.push({
@@ -99,42 +109,34 @@ watch(
 				   <tr class="border-bottom border-bottom-dashed align-top" v-for="(product, index) in form.products" :key="index" data-kt-element="item" style="vertical-align: top;">
 						<td class="ps-0 text-start pe-0" style="width:250px; min-width:250px; max-width:250px;">
 								<Multiselect
-										:taggable="true"
-										:create-tag="newTag"
-										placeholder="Seleccione o escriba producto"
-										v-model="product.product_id"
-										:options="$page.products"
-										option-label="label"
-										option-value="value"
-										:searchable="true"
-										:close-on-select="true"
-										:hide-selected="false"
-										:showOptions="showProductOptions[index] !== false"
-										@search-change="(query) => {
-											const matches = ($page.products || []).filter(p => (p.label || '').toLowerCase().includes((query || '').toLowerCase()));
-											showProductOptions[index] = matches.length > 0;
-										}"
-										class="multiselect-blue form-control"
-										:class="{'is-invalid': form.errors['products.'+index+'.product_id']}"
+									:taggable="true"
+									:create-tag="newTag"
+									placeholder="Seleccione o escriba producto"
+									v-model="product.product_id"
+									:options="$page.products ? $page.products.map(p => p.label ?? p.name ?? p.value ?? p) : []"
+									:searchable="true"
+									:close-on-select="true"
+									:hide-selected="false"
+									:showOptions="showProductOptions[index] !== false"
+									class="multiselect-blue form-control"
+									:class="{'is-invalid': form.errors['products.'+index+'.product_id']}"
 								/>
 					   </td>
                      
 					   <!-- Columna Unidad -->
 					   <td class="pe-1" style="width:120px; min-width:120px; max-width:120px;">
-						   <Multiselect
-							   :taggable="true"
-							   :create-tag="newTag"
-							   placeholder="Unidad"
-							   v-model="product.unit_id"
-							   :options="$page.units"
-							   option-label="label"
-							   option-value="value"
-							   :searchable="true"
-							   :close-on-select="true"
-							   :hide-selected="false"
-							   class="multiselect-blue form-control"
-							   :class="{'is-invalid': form.errors['products.'+index+'.unit_id']}"
-						   />
+						<Multiselect
+							placeholder="Unidad"
+							v-model="product.unit_id"
+							:options="$page.units"
+							option-label="label"
+							option-value="value"
+							:searchable="false"
+							:close-on-select="true"
+							:hide-selected="false"
+							class="multiselect-blue form-control"
+							:class="{'is-invalid': form.errors['products.'+index+'.unit_id']}"
+						/>
 						   <InputError class="mt-1" :message="form.errors['products.'+index+'.unit_id']" />
 					   </td>
 					<td class="ps-0 pe-1" style="width:120px; min-width:100px; max-width:100px;">
