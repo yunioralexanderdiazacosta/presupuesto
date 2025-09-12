@@ -58,7 +58,7 @@ watch(
 const filteredInvoices = computed(() => {
     if (!props.form.supplier_id) return [];
     return props.invoices.filter(
-        (inv) => inv.supplier_id === props.form.supplier_id
+        (inv) => String(inv.supplier_id) === String(props.form.supplier_id)
     );
 });
 
