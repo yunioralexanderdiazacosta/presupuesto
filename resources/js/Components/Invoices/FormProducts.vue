@@ -1,3 +1,10 @@
+// Bandera para mostrar validación solo tras submit
+import { ref } from 'vue';
+export const showProductValidation = ref(false);
+// Permite que el padre active la validación visual tras submit
+export function triggerProductValidation() {
+	showProductValidation.value = true;
+}
 
 <script setup>
 import { watch, ref } from 'vue';
@@ -128,7 +135,7 @@ watch(
 			<tbody>
 				   <tr class="border-bottom border-bottom-dashed align-top" v-for="(product, index) in form.products" :key="index" data-kt-element="item" style="vertical-align: top;">
 						<td class="ps-0 text-start pe-0" style="width:250px; min-width:250px; max-width:250px;">
-								<Multiselect
+							<Multiselect
 									:taggable="true"
 									:create-tag="newTag"
 									placeholder="Seleccione o escriba producto"
@@ -139,13 +146,15 @@ watch(
 									:hide-selected="false"
 									:showOptions="showProductOptions[index] !== false"
 									class="multiselect-blue form-control"
-									:class="{'is-invalid': form.errors['products.'+index+'.product_id']}"
+									required
+									:class="{'is-invalid': showProductValidation && !product.product_id}"
 								/>
+								<span v-if="showProductValidation && !product.product_id" class="text-danger" style="font-size:0.7em;">Campo obligatorio</span>
 					   </td>
                      
 					   <!-- Columna Unidad -->
 					   <td class="ps-1 pe-1 " style="width:120px; min-width:120px; max-width:120px;">
-						<Multiselect
+					<Multiselect
 							placeholder="Unidad"
 							v-model="product.unit_id"
 							:options="$page.units"
@@ -155,15 +164,20 @@ watch(
 							:close-on-select="true"
 							:hide-selected="false"
 							class="multiselect-blue form-control"
-							:class="{'is-invalid': form.errors['products.'+index+'.unit_id']}"
+							required
+							:class="{'is-invalid': showProductValidation && !product.unit_id}"
 						/>
-						   <InputError class="mt-1" :message="form.errors['products.'+index+'.unit_id']" />
+						<span v-if="showProductValidation && !product.unit_id" class="text-danger" style="font-size:0.7em;">Campo obligatorio</span>
 					   </td>
 					<td class="ps-0 pe-1" style="width:120px; min-width:100px; max-width:100px;">
-						<input class="form-control form-control-solid" style="width:55px; min-width:120px; max-width:100px; font-size:0.93em;" type="number" min="1" v-model="product.amount" value="1" data-kt-element="quantity" />
+					<input class="form-control form-control-solid" style="width:55px; min-width:120px; max-width:100px; font-size:0.93em;" type="number" min="1" v-model="product.amount" value="1" data-kt-element="quantity" required
+							:class="{'is-invalid': showProductValidation && (!product.amount || product.amount < 1)}" />
+						<span v-if="showProductValidation && (!product.amount || product.amount < 1)" class="text-danger" style="font-size:0.7em;">Campo obligatorio</span>
 					</td>
 					<td class="ps-0 pe-0" style="width:120px; min-width:100px; max-width:100px;">
-						<input type="number" class="form-control form-control-solid unit_price" style="width:120px; min-width:120px; max-width:100px; font-size:0.93em;" v-model="product.unit_price" value="0" step="0.0" />
+					<input type="number" class="form-control form-control-solid unit_price" style="width:120px; min-width:120px; max-width:100px; font-size:0.93em;" v-model="product.unit_price" value="0" step="0.0" required
+							:class="{'is-invalid': showProductValidation && (!product.unit_price || product.unit_price <= 0)}" />
+						<span v-if="showProductValidation && (!product.unit_price || product.unit_price <= 0)" class="text-danger" style="font-size:0.7em;">Campo obligatorio</span>
 					</td>
 					  <td class="ps-0 pe-0" style="width:150px; min-width:150px; max-width:150px;">
                            <input type="text" class="form-control form-control-solid" v-model="product.observations" placeholder="Observaciones..." />
