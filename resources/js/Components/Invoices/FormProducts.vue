@@ -13,8 +13,28 @@ const props = defineProps({
 })
 
 // Opciones reactivas para productos (permite agregar dinámicamente)
-import { reactive } from 'vue';
+import { reactive, onMounted } from 'vue';
 const productOptions = reactive([...(($page.products || []).map(p => ({ value: p.value ?? p.id, label: p.label ?? p.name })))]);
+
+// Al montar, asegurar que todos los productos de la factura estén en las opciones
+onMounted(() => {
+	if (props.form && Array.isArray(props.form.products)) {
+		props.form.products.forEach(p => {
+			if (
+				p.product_id &&
+				!productOptions.some(opt => opt.value === p.product_id)
+			) {
+				// Buscar nombre en $page.products o usar el id como label fallback
+				let label = p.product_name || p.label;
+				if (!label) {
+					const found = ($page.products || []).find(prod => (prod.id || prod.value) === p.product_id);
+					label = found ? (found.label || found.name) : p.product_id;
+				}
+				productOptions.push({ value: p.product_id, label });
+			}
+		});
+	}
+});
 
 // Función para crear un nuevo producto (taggable): agrega a las opciones y retorna objeto compatible
 const newTag = (input) => {
@@ -113,7 +133,7 @@ watch(
 									:create-tag="newTag"
 									placeholder="Seleccione o escriba producto"
 									v-model="product.product_id"
-									:options="$page.products ? $page.products.map(p => p.label ?? p.name ?? p.value ?? p) : []"
+									:options="productOptions"
 									:searchable="true"
 									:close-on-select="true"
 									:hide-selected="false"
@@ -124,7 +144,7 @@ watch(
 					   </td>
                      
 					   <!-- Columna Unidad -->
-					   <td class="pe-1" style="width:120px; min-width:120px; max-width:120px;">
+					   <td class="ps-1 pe-1 " style="width:120px; min-width:120px; max-width:120px;">
 						<Multiselect
 							placeholder="Unidad"
 							v-model="product.unit_id"
@@ -240,6 +260,7 @@ watch(
     padding-top: 2px !important;
     padding-bottom: 2px !important;
     line-height: 22px !important;
+	   --ms-max-height: 60vh !important;
 }
 
 /* Ajuste de placeholder dentro de multiselect-blue */

@@ -30,6 +30,7 @@ class FormInvoiceRequest extends FormRequest
             'number_document'   => 'required',
             'date'              => 'required',
             'due_date'          => 'required',
+            'month_id'          => 'required|exists:months,id',
             'products' => ['required', 'array'],
             'products.*.product_id' => ['required'],
             'products.*.unit_price' => ['required', 'numeric'],

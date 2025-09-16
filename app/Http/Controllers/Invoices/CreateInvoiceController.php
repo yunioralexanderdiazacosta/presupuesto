@@ -11,6 +11,7 @@ use App\Models\CompanyReason;
 use App\Models\Product;
 use App\Models\Unit;
 use Inertia\Inertia;
+use App\Models\Month;
 
 class CreateInvoiceController extends Controller
 {
@@ -54,6 +55,13 @@ class CreateInvoiceController extends Controller
             ];
         });
 
-    return Inertia::render('Invoices/Create', compact('typeDocuments', 'suppliers', 'companyReasons', 'products', 'units'));
+        $months = Month::orderBy('id')->get()->transform(function($month){
+            return [
+                'label' => $month->name,
+                'value' => $month->id
+            ];
+        });
+
+        return Inertia::render('Invoices/Create', compact('typeDocuments', 'suppliers', 'companyReasons', 'products', 'units', 'months'));
     }
 }

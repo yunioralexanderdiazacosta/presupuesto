@@ -9,7 +9,13 @@ class Invoice extends Model
 {
     use HasFactory;
 
-    protected $fillable = ['number','payment_term','payment_type','petty_cash','team_id','supplier_id','company_reason_id','type_document_id','number_document','date','due_date', 'season_id'];
+    protected $fillable = ['number','payment_term','payment_type','petty_cash','team_id','supplier_id','company_reason_id','type_document_id','number_document','date','due_date', 'season_id', 'month_id'];
+    
+    
+    public function month()
+    {
+        return $this->belongsTo(\App\Models\Month::class);
+    }
 
     protected $cash = [
         'petty_cash' => 'boolean'

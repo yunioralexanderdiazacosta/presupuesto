@@ -8,6 +8,7 @@ use App\Models\Invoice;
 use App\Models\TypeDocument;
 use App\Models\Supplier;
 use App\Models\CompanyReason;
+use App\Models\Month;
 use App\Models\Product;
 use Inertia\Inertia;
 
@@ -63,6 +64,15 @@ class EditInvoiceController extends Controller
                 'value' => $unit->id
             ];
         });
+
+        // Listado de meses contables
+        $months = Month::orderBy('id')->get()->transform(function($month){
+            return [
+                'label' => $month->name,
+                'value' => $month->id
+            ];
+        });
+
         return Inertia::render('Invoices/Edit', compact(
             'invoice',
             'invoiceProducts',
@@ -70,7 +80,8 @@ class EditInvoiceController extends Controller
             'units',
             'typeDocuments',
             'suppliers',
-            'companyReasons'
+            'companyReasons',
+            'months'
         ));
     }
 }

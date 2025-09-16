@@ -121,6 +121,7 @@ watch(
                 <InputError class="mt-2" :message="form.errors.type" />
             </div>
         </div>
+        <!-- Select Proveedor -->
         <div class="col-lg-3">
             <div class="fv-row">
                 <label for="" class="col-form-label">Proveedor</label>
@@ -129,7 +130,6 @@ watch(
                     :options="suppliers"
                     placeholder="Proveedor"
                     :searchable="true"
-                    :max-height="440"
                     :close-on-select="true"
                     :hide-selected="false"
                     :open="false"
@@ -252,10 +252,7 @@ watch(
 <style src="@vueform/multiselect/themes/default.css"></style>
 <style>
 /* Mostrar más opciones en el dropdown de Multiselect */
-.multiselect-blue .multiselect__content-wrapper {
-    max-height: 450px !important; /* Aproximadamente 10 opciones */
-    overflow-y: auto !important;
-}
+
 
 .multiselect-blue {
     --ms-bg: var(--kt-input-solid-bg) !important;
@@ -265,6 +262,13 @@ watch(
     --ms-tag-color: var(--kt-primary);
     --ms-option-bg-selected: var(--kt-primary);
     --ms-option-bg-selected-pointed: var(--kt-primary);
+    /* Aumentar alto máximo según viewport */
+    --ms-max-height: 60vh !important;
+}
+
+/* Reducir tamaño de letra en opciones */
+.multiselect-blue .multiselect-option {
+    font-size: 0.75rem !important;
 }
 
 .multiselect-tags-search,
@@ -276,11 +280,7 @@ watch(
     font-size: 1.1em;
 }
 
-.multiselect-blue .multiselect__content-wrapper {
-    max-height: 450px !important; /* o el valor que desees */
-    min-height: 100px !important; /* opcional, para forzar altura mínima */
-    overflow-y: auto !important;
-}
+
 
 .form-check-input {
     transform: scale(

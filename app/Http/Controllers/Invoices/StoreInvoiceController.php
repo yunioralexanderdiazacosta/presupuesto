@@ -20,18 +20,19 @@ class StoreInvoiceController extends Controller
 
         DB::transaction(function() use ($request, $user, $season_id) {
             $invoice = Invoice::create([
-            'payment_term'      => $request->payment_term,
-            'payment_type'      => $request->payment_type,
-            'petty_cash'        => $request->petty_cash,
-            'team_id'           => $user->team_id,
-            'supplier_id'       => $request->supplier_id,
-            'company_reason_id' => $request->company_reason_id,
-            'type_document_id'  => $request->type_document_id,
-            'number_document'   => $request->number_document,
-            'date'              => $request->date,
-            'due_date'          => $request->due_date,
-            'season_id'         => $season_id
-        ]);
+                'payment_term'      => $request->payment_term,
+                'payment_type'      => $request->payment_type,
+                'petty_cash'        => $request->petty_cash,
+                'team_id'           => $user->team_id,
+                'supplier_id'       => $request->supplier_id,
+                'company_reason_id' => $request->company_reason_id,
+                'type_document_id'  => $request->type_document_id,
+                'number_document'   => $request->number_document,
+                'date'              => $request->date,
+                'due_date'          => $request->due_date,
+                'season_id'         => $season_id,
+                'month_id'          => $request->month_id,
+            ]);
 
             $invoice->products()->sync($this->products($request->products));
         });

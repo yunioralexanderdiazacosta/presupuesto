@@ -17,6 +17,7 @@ class UpdateInvoiceController extends Controller
         $invoice->company_reason_id = $request->company_reason_id;
         $invoice->type_document_id  = $request->type_document_id;
         $invoice->number_document   = $request->number_document;
+        $invoice->month_id          = $request->month_id;
         $invoice->date              = $request->date;
         $invoice->due_date          = $request->due_date;
         $invoice->save();

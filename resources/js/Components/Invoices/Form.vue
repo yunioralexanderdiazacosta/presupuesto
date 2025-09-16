@@ -42,7 +42,7 @@ watch(
     <!--begin::Wrapper-->
     <div class="mb-0">
         <div class="row">
-            <div class="col-lg-3">
+            <div class="col-lg-2">
                 <div class="fv-row">
                     <label class="col-form-label">Fecha</label>
                     <TextInput
@@ -55,7 +55,25 @@ watch(
                     <InputError class="mt-2" :message="form.errors.date" />
                 </div>
             </div>
-            <div class="col-lg-3">
+            <div class="col-lg-2">
+                <div class="fv-row">
+                    <label class="col-form-label">Mes contable</label>
+                    <Multiselect
+                        :placeholder="'Sel. mes'"
+                        v-model="form.month_id"
+                        :options="$page.props.months"
+                        value-prop="value"
+                        track-by="value"
+                        class="multiselect-blue form-control"
+                        :class="{ 'is-invalid': form.errors.month_id }"
+                        :searchable="true"
+                        :close-on-select="true"
+                        :hide-selected="false"
+                    />
+                    <InputError class="mt-2" :message="form.errors.month_id" />
+                </div>
+            </div>
+            <div class="col-lg-2">
                 <div class="fv-row">
                     <label class="col-form-label">Fecha de vencimiento</label>
                     <TextInput
@@ -68,7 +86,6 @@ watch(
                     <InputError class="mt-2" :message="form.errors.due_date" />
                 </div>
             </div>
-
             <div class="col-lg-6">
                 <div class="fv-row">
                     <label for="" class="col-form-label">Proveedor</label>
@@ -232,6 +249,11 @@ watch(
     --ms-tag-color: var(--kt-primary);
     --ms-option-bg-selected: var(--kt-primary);
     --ms-option-bg-selected-pointed: var(--kt-primary);
+}
+
+/* Reducir tamaño de letra en opciones */
+.multiselect-blue .multiselect-option {
+    font-size: 0.75rem !important;
 }
 
 .multiselect-tags-search,

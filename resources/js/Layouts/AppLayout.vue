@@ -339,13 +339,13 @@ const logout = () => {
                 <li class="nav-item">
                   <a class="nav-link dropdown-indicator" href="#documents" data-bs-toggle="collapse" aria-expanded="false" aria-controls="documents">
                     <div class="d-flex align-items-center">
-                      <span class="nav-link-text ps-3">Documentos</span>
+                      <span class="nav-link-text ps-3">Registro de Gastos</span>
                     </div>
                   </a>
                   <ul class="nav collapse" id="documents">
                     <li class="nav-item">
                       <Link class="nav-link" :href="route('invoices.index')">
-                        <div class="d-flex align-items-center"><span class="nav-link-text ps-4">Facturas</span></div>
+                        <div class="d-flex align-items-center"><span class="nav-link-text ps-4">Facturas y otros</span></div>
                       </Link>
                     </li>
                     <li class="nav-item">

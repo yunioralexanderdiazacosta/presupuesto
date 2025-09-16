@@ -21,6 +21,7 @@ const form = useForm({
 	payment_type: props.invoice.payment_type,
 	petty_cash: props.invoice.petty_cash,
 	supplier_id: props.invoice.supplier_id,
+	month_id: props.invoice.month_id,
 	company_reason_id: props.invoice.company_reason_id,
 	type_document_id: props.invoice.type_document_id,
 	number_document: props.invoice.number_document,

@@ -17,7 +17,7 @@ class InvoicesController extends Controller
 
         $term = $request->term ?? '';
 
-    $invoices = Invoice::with('supplier', 'companyReason', 'products')->when($request->term, function ($query, $search) {
+    $invoices = Invoice::with('supplier', 'companyReason', 'products', 'typeDocument', 'month')->when($request->term, function ($query, $search) {
             $query->where('number_document', 'like', '%'.$search.'%');
         })
         ->OrWhereHas('supplier', function($query) use ($term){
@@ -27,7 +27,7 @@ class InvoicesController extends Controller
             $query->where('name', 'like', '%'.$term.'%');
         })
         ->where('team_id', $user->team_id)->where('season_id', $season_id)
-        ->paginate(10)
+        ->paginate(500)
         ->withQueryString()
         ->through(function($invoice){
             return [
@@ -36,6 +36,8 @@ class InvoicesController extends Controller
                 'due_date'          => $invoice->due_date,
                 'supplier'          => $invoice->supplier,
                 'companyReason'     => $invoice->companyReason,
+                'type_document'     => $invoice->typeDocument ? $invoice->typeDocument->name : null,
+                'month'             => $invoice->month ? $invoice->month->name : null,
                 'number_document'   => $invoice->number_document,
                 'products'          => $invoice->products->map(function($p){
                                             return [

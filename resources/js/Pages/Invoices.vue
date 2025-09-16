@@ -156,19 +156,21 @@ const onFilter = () => {
                         </div>
                     </div>
 
-                    <div class="card-body pt-0">
-                        <Table :id="'invoices'" :total="filteredInvoices.length" :links="invoices.links">
+                    <div class="card-body pt-0" style="overflow-x: auto;">
+                        <Table :id="'invoices'" :total="filteredInvoices.length" :links="invoices.links" class="min-w-full">
                             <!--begin::Table head-->
                             <template #header>
                                 <!--begin::Table row-->
-                                <th width="min-w-150px">Proveedor</th>
-                                <th width="min-w-150px">N° Doc</th>
-                                <th width="min-w-150px">Razón Social</th>
-                                <th width="min-w-150px">Fecha</th>
-                                <th width="min-w-150px">Fecha de Vencimiento</th>
-                                <th width="min-w-200px">Productos</th>
-                                <th width="min-w-150px" class="text-end">Total</th>
-                                <th width="min-w-150px" class="text-end">Acciones</th>
+                                <th width="min-w-150px" style="white-space:nowrap;">Tipo documento</th>
+                                <th width="min-w-150px" style="white-space:nowrap;">Mes contable</th>
+                                <th width="min-w-150px" style="white-space:nowrap;">Proveedor</th>
+                                <th width="min-w-150px" style="white-space:nowrap;">N° Doc</th>
+                                <th width="min-w-150px" style="white-space:nowrap;">Razón Social</th>
+                                <th width="min-w-150px" style="white-space:nowrap;">Fecha</th>
+                                <th width="min-w-150px" style="white-space:nowrap;">Fecha de Vencimiento</th>
+                                <th width="min-w-200px" style="white-space:nowrap;">Productos</th>
+                                <th width="min-w-150px" class="text-end" style="white-space:nowrap;">Total</th>
+                                <th width="80px" class="text-end" style="white-space:nowrap;">Acciones</th>
                                 <!--end::Table row-->
                             </template>
                             <!--end::Table head-->
@@ -181,12 +183,14 @@ const onFilter = () => {
                                     <tr v-for="(
 invoice, index
                                         ) in filteredInvoices" :key="index">
-                                        <td>{{ invoice.supplier.name }}</td>
-                                        <td>{{ invoice.number_document }}</td>
-                                        <td>{{ invoice.companyReason.name }}</td>
-                                        <td>{{ invoice.date }}</td>
-                                        <td>{{ invoice.due_date }}</td>
-                                        <td>
+                                        <td style="white-space:nowrap;">{{ invoice.type_document }}</td>
+                                        <td style="white-space:nowrap;">{{ invoice.month }}</td>
+                                        <td style="white-space:nowrap;">{{ invoice.supplier.name }}</td>
+                                        <td style="white-space:nowrap;">{{ invoice.number_document }}</td>
+                                        <td style="white-space:nowrap;">{{ invoice.companyReason.name }}</td>
+                                        <td style="white-space:nowrap;">{{ invoice.date }}</td>
+                                        <td style="white-space:nowrap;">{{ invoice.due_date }}</td>
+                                        <td style="white-space:nowrap;">
                                             <span v-if="invoice.products && invoice.products.length">
                                                 <span v-if="invoice.products.length <= 2">
                                                     <span v-for="(prod, idx) in invoice.products" :key="prod.id || idx">
@@ -212,21 +216,21 @@ invoice, index
                                                     invoice.id
                                                 )
                                                     " v-tooltip="'Ver'"
-                                                    class="btn btn-icon btn-active-light-primary w-30px h-30px me-3">
-                                                <span class="svg-icon svg-icon-3">
+                                                    class="btn btn-icon btn-active-light-primary w-20px h-20px me-1 p-2">
+                                                <span class="svg-icon svg-icon-2">
                                                     <i class="fas fa-eye"></i>
                                                 </span>
                                                 </Link>
                                                 <!--end::View-->
                                                 <!--begin::Update-->
                                                 <Link v-tooltip="'Editar'"
-                                                    class="btn btn-icon btn-active-light-primary w-30px h-30px me-3"
+                                                    class="btn btn-icon btn-active-light-primary w-20px h-20px me-1 p-2"
                                                     :href="route(
                                                         'invoices.edit',
                                                         invoice.id
                                                     )
                                                         ">
-                                                <span class="svg-icon svg-icon-3">
+                                                <span class="svg-icon svg-icon-1">
                                                     <svg width="24" height="24" viewBox="0 0 24 24" fill="none"
                                                         xmlns="http://www.w3.org/2000/svg">
                                                         <path opacity="0.3"
@@ -242,8 +246,8 @@ invoice, index
                                                 <!--begin::Delete-->
                                                 <button type="button" v-tooltip="'Eliminar'" @click="
                                                     onDeleted(invoice.id)
-                                                    " class="btn btn-icon btn-active-light-primary w-30px h-30px">
-                                                    <span class="svg-icon svg-icon-3">
+                                                    " class="btn btn-icon btn-active-light-primary w-20px h-20px p-2">
+                                                    <span class="svg-icon svg-icon-2">
                                                         <svg width="24" height="24" viewBox="0 0 24 24" fill="none"
                                                             xmlns="http://www.w3.org/2000/svg">
                                                             <path

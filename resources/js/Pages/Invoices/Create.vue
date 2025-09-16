@@ -12,6 +12,7 @@ const links = [{ title: 'Tablero', link: 'dashboard' }, { title: 'Facturas', lin
 const form = useForm({
 	date: '',
 	due_date: '',
+	month_id: null,
 	payment_term: '',
 	payment_type: '',
 	petty_cash: false,
