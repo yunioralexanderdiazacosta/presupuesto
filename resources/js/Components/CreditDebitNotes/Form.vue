@@ -200,12 +200,13 @@ watch(
                 v-model="form.affects_inventory"
                 :disabled="form.type === 'credito' && form.is_annulment"
               />
-              <label
-                class="form-check-label mt-1 mb-1"
-                for="affects_inventory"
-              >
-                Afecta inventario
-              </label>
+                            <label
+                                class="form-check-label mt-1 mb-1"
+                                for="affects_inventory"
+                                title="Al estar la casilla desmarcada, solo afectará el precio, no el stock"
+                            >
+                                Afecta inventario
+                            </label>
             </div>
             <small class="text-muted mb-0 mt-0">
               Desmarcado → solo ajusta precio sin mover stock

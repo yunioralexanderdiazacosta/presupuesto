@@ -42,6 +42,23 @@ const filteredInvoices = computed(() => {
     });
 });
 
+
+// Suma simple de la columna total
+const totalFacturas = computed(() => {
+    if (!filteredInvoices.value.length) return 0;
+    return filteredInvoices.value.reduce((sum, factura) => {
+        let val = factura.total;
+        if (typeof val === 'string') {
+            val = val.replace(/\./g, '').replace(',', '.');
+        }
+        return sum + (parseFloat(val) || 0);
+    }, 0);
+});
+// Formatea total con separador de miles y decimales
+const totalFacturasFormatted = computed(() => {
+    return new Intl.NumberFormat('es-ES', { style: 'decimal', minimumFractionDigits: 0 }).format(totalFacturas.value);
+});
+
 const links = [
     { title: "Tablero", link: "dashboard" },
     { title: title, active: true },
@@ -99,7 +116,7 @@ const onFilter = () => {
                         <h5 class="fs-9 mb-0 text-nowrap py-2 py-xl-0">
                             <i class="fas fa-people-carry text-primary me-2"></i>Facturas
                         </h5>
-                    </div>
+                        </div>
                     <div class="col-6 col-sm-auto ms-auto text-end ps-0">
                         <Link class="btn btn-falcon-default btn-sm" :href="route('invoices.create')">
                         <span class="fas fa-plus" data-fa-transform="shrink-3 down-2"></span>
@@ -110,25 +127,41 @@ const onFilter = () => {
             </div>
 
             <div class="card-body bg-body-tertiary">
-                <ul class="nav nav-pills" id="pill-myTab" role="tablist">
-                    <li class="nav-item">
-                        <a class="nav-link active" id="pill-resumen" data-bs-toggle="tab" href="#pill-tab-resumen"
-                            role="tab" aria-controls="pill-tab-resumen" aria-selected="true">Resumen</a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link" id="pill-detalles" data-bs-toggle="tab" href="#pill-tab-detalles" role="tab"
-                            aria-controls="pill-tab-detalles" aria-selected="false">Detalles</a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link" id="pill-gastos" data-bs-toggle="tab" href="#pill-tab-gastos" role="tab"
-                            aria-controls="pill-tab-gastos" aria-selected="false">Gastos por Hectarea</a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link" id="pill-detalles-compra" data-bs-toggle="tab"
-                            href="#pill-tab-detalles-compra" role="tab" aria-controls="pill-tab-detalles-compra"
-                            aria-selected="false">Detalle de compra</a>
-                    </li>
-                </ul>
+                <div class="d-flex align-items-center justify-content-between mb-3">
+                    <ul class="nav nav-pills" id="pill-myTab" role="tablist">
+                        <li class="nav-item">
+                            <a class="nav-link active" id="pill-resumen" data-bs-toggle="tab" href="#pill-tab-resumen"
+                                role="tab" aria-controls="pill-tab-resumen" aria-selected="true">Resumen</a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" id="pill-detalles" data-bs-toggle="tab" href="#pill-tab-detalles" role="tab"
+                                aria-controls="pill-tab-detalles" aria-selected="false">Detalles</a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" id="pill-gastos" data-bs-toggle="tab" href="#pill-tab-gastos" role="tab"
+                                aria-controls="pill-tab-gastos" aria-selected="false">Gastos por Hectarea</a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" id="pill-detalles-compra" data-bs-toggle="tab"
+                                href="#pill-tab-detalles-compra" role="tab" aria-controls="pill-tab-detalles-compra"
+                                aria-selected="false">Detalle de compra</a>
+                        </li>
+                    </ul>
+                    <!-- Card de total de facturas alineado a la derecha -->
+                    <div>
+                        <div class="card h-100 p-1 small-card">
+                            <div class="card-header pb-0 pt-1 px-2">
+                                <h6 class="mb-0 mt-1 fs-10 d-flex align-items-center small-card-title">Total Neto Facturas</h6>
+                            </div>
+                            <div class="card-body d-flex flex-column justify-content-end py-1 px-2">
+                                <p class="font-sans-serif lh-1 mb-1 fs-10 small-card-number">
+                                    {{ totalFacturasFormatted }}
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
                 <div class="tab-content border p-3 mt-3" id="pill-myTabContent">
                     <div class="tab-pane fade show active" id="pill-tab-resumen" role="tabpanel"
                         aria-labelledby="resumen-tab">
@@ -156,7 +189,8 @@ const onFilter = () => {
                         </div>
                     </div>
 
-                    <div class="card-body pt-0" style="overflow-x: auto;">
+                    
+                        <div class="card-body pt-0" style="overflow-x: auto;">
                         <Table :id="'invoices'" :total="filteredInvoices.length" :links="invoices.links" class="min-w-full">
                             <!--begin::Table head-->
                             <template #header>

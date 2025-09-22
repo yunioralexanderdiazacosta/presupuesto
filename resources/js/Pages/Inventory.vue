@@ -245,7 +245,7 @@ function printKardex(productId) {
                                     </tr>
                                   </thead>
                                   <tbody>
-                                    <tr v-for="(mov, idx) in kardexView[item.product_id] || []" :key="'mov-' + idx">
+                                    <tr v-for="(mov, idx) in (kardexView[item.product_id] ? [...kardexView[item.product_id]].sort((a, b) => new Date(a.fecha) - new Date(b.fecha)) : [])" :key="'mov-' + idx">
                                       <td>{{ mov.fecha }}</td>
                                       <td>{{ mov.tipo }}</td>
                                       <td>{{ mov.proveedor || '' }}</td>

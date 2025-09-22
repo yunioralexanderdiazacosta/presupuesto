@@ -1,6 +1,3 @@
-
-
-
 <?php
 
 
@@ -196,6 +193,7 @@ use App\Http\Controllers\Investments\IndexInvestmentController;
 use App\Http\Controllers\Investments\StoreInvestmentController;
 use App\Http\Controllers\Investments\UpdateInvestmentController;
 use App\Http\Controllers\Investments\DeleteInvestmentController;
+use App\Http\Controllers\ProductStockLinesController;
 
 
 use Inertia\Inertia;
@@ -495,4 +493,6 @@ Route::middleware([
     Route::get('/inventory', [\App\Http\Controllers\InventoryController::class, 'index'])->name('inventory');
 
     Route::get('/kardex/{product}', [KardexController::class, 'show'])->name('kardex.show');
+
+    Route::get('/product-stock-lines', [ProductStockLinesController::class, 'index'])->name('product-stock-lines.index');
 });

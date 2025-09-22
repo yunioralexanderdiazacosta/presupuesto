@@ -70,6 +70,31 @@ class OutflowsController extends Controller
                 $devuelto = $creditNotesReturns[$invoiceProduct->id] ?? 0;
                 $cantidadOriginal = $invoiceProduct->quantity ?? $invoiceProduct->amount ?? 0;
                 $stockLinea = $cantidadOriginal - $consumido - $devuelto;
+                // Buscar info de nota(s) de crédito asociada(s)
+                $creditNoteInfo = null;
+                if ($devuelto > 0) {
+                    $creditNotes = \App\Models\CreditDebitNote::where('type', 'credito')
+                        ->whereHas('items', function($q) use ($invoiceProduct) {
+                            $q->where('invoice_product_id', $invoiceProduct->id);
+                        })
+                        ->with(['supplier', 'items' => function($q) use ($invoiceProduct) {
+                            $q->where('invoice_product_id', $invoiceProduct->id);
+                        }, 'items.product'])
+                        ->get();
+                    $creditNoteInfo = $creditNotes->map(function($note) {
+                        return [
+                            'number' => $note->number,
+                            'supplier' => $note->supplier->name ?? '',
+                            'date' => $note->date?->format('Y-m-d'),
+                            'items' => $note->items->map(function($item) {
+                                return [
+                                    'product' => $item->product->name ?? '',
+                                    'quantity' => $item->quantity,
+                                ];
+                            })->toArray(),
+                        ];
+                    })->values();
+                }
                 $rows[] = [
                     'origen'            => 'factura',
                     'document_id'       => $invoice->id,
@@ -80,6 +105,8 @@ class OutflowsController extends Controller
                     'quantity'          => $cantidadOriginal,
                     'invoice_product_id'=> $invoiceProduct->id,
                     'stock'             => $stockLinea,
+                    'has_credit_note'   => ($devuelto > 0),
+                    'credit_note_info'  => $creditNoteInfo,
                 ];
             }
         }
@@ -115,7 +142,7 @@ class OutflowsController extends Controller
 
         // Paginación manual
         $page = $request->input('page', 1);
-        $perPage = 10;
+        $perPage = 100;
         $paginated = new \Illuminate\Pagination\LengthAwarePaginator(
             array_slice($rows, ($page - 1) * $perPage, $perPage),
             count($rows),

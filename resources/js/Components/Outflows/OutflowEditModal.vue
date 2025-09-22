@@ -1,8 +1,10 @@
+
 <script setup>
-import { reactive, computed, watch } from 'vue';
+import { reactive, computed, watch, ref, onMounted, onUpdated, nextTick } from 'vue';
 import axios from 'axios';
 import Swal from 'sweetalert2';
 import Multiselect from '@vueform/multiselect';
+
 
 const props = defineProps({
   show: Boolean,
@@ -12,7 +14,84 @@ const props = defineProps({
   machineries: Array,
   costCenters: Array,
   stockAvailable: Number,
+  stockLineData: Object // Nuevo: datos de la línea asociada (factura/nota)
 });
+
+// Tooltip HTML para popover de Bootstrap
+const creditNotePopover = computed(() => {
+  if (!props.form || !props.form.has_credit_note || !props.form.credit_note_info) return '';
+  let html = '';
+  props.form.credit_note_info.forEach(note => {
+    html += `<div><b>N°:</b> ${note.number} <b>Proveedor:</b> ${note.supplier} <b>Fecha:</b> ${note.date}</div>`;
+    note.items.forEach(item => {
+      html += `<div style='margin-left:1em;'>• <b>${item.product}</b>: ${item.quantity}</div>`;
+    });
+  });
+  return html.trim();
+});
+
+// Inicializar popover de Bootstrap al montar y actualizar
+onMounted(() => {
+  nextTick(() => {
+    if (window.bootstrap) {
+      document.querySelectorAll('[data-bs-toggle="popover"]').forEach(el => {
+        if (!el._popover) {
+          el._popover = new window.bootstrap.Popover(el);
+        }
+      });
+    }
+  });
+});
+onUpdated(() => {
+  nextTick(() => {
+    if (window.bootstrap) {
+      document.querySelectorAll('[data-bs-toggle="popover"]').forEach(el => {
+        if (!el._popover) {
+          el._popover = new window.bootstrap.Popover(el);
+        }
+      });
+    }
+  });
+});
+
+
+// Inicializar popover de Bootstrap al montar y actualizar
+onMounted(() => {
+  nextTick(() => {
+    if (window.bootstrap) {
+      document.querySelectorAll('[data-bs-toggle="popover"]').forEach(el => {
+        if (!el._popover) {
+          el._popover = new window.bootstrap.Popover(el);
+        }
+      });
+    }
+  });
+});
+onUpdated(() => {
+  nextTick(() => {
+    if (window.bootstrap) {
+      document.querySelectorAll('[data-bs-toggle="popover"]').forEach(el => {
+        if (!el._popover) {
+          el._popover = new window.bootstrap.Popover(el);
+        }
+      });
+    }
+  });
+});
+
+// Computed para mostrar badge si hay nota de crédito
+const showCreditNoteBadge = computed(() => {
+  return props.form && props.form.has_credit_note;
+});
+// Datos de la línea asociada (factura/nota)
+const stockLine = computed(() => props.stockLineData || null);
+
+// Stock disponible y cantidad original de la línea asociada
+const stockAvailable = computed(() => Number(stockLine.value?.stock_disponible) || 0);
+const originalQuantity = computed(() => Number(stockLine.value?.cantidad_original) || 0);
+
+// Máximo permitido: cantidad original + stock disponible
+const maxQuantity = computed(() => originalQuantity.value + stockAvailable.value);
 
 const emit = defineEmits(['close','updated']);
 
@@ -56,9 +135,11 @@ watch(() => props.form, (val) => {
   localForm.unit_name = val.unit_name;
 }, { immediate: true });
 
+
+
 function submit() {
-  if (localForm.quantity > props.stockAvailable) {
-    return Swal.fire('Error', 'La cantidad no puede exceder el stock disponible', 'error');
+  if (Number(localForm.quantity) > maxQuantity.value) {
+    return Swal.fire('Error', `La cantidad no puede exceder el máximo permitido (${maxQuantity.value})`, 'error');
   }
   // Guardar con axios
   axios.put(`/outflows/${localForm.id}`, localForm)
@@ -71,6 +152,8 @@ function submit() {
       Swal.fire('Error', 'No se pudo actualizar la salida', 'error');
     });
 }
+
+
 </script>
 
 
@@ -98,13 +181,32 @@ function submit() {
                 <label class="form-label">Unidad</label>
                 <input class="form-control" :value="unitName" disabled />
               </div>
-              <div class="col-12 col-md-3">
-                <label class="form-label">Stock disponible</label>
-                <input class="form-control" :value="stockAvailable.toFixed(2)" disabled />
+              <div class="col-12 col-md-3 d-flex align-items-end">
+                <div class="w-100">
+                  <div class="d-flex align-items-center gap-2">
+                    <label class="form-label mb-0">Stock disponible</label>
+                    <span
+                      v-if="showCreditNoteBadge"
+                      class="badge bg-warning text-dark ms-2 mb-1 small"
+                      tabindex="0"
+                      data-bs-toggle="popover"
+                      data-bs-html="true"
+                      :data-bs-content="creditNotePopover"
+                      data-bs-trigger="focus hover"
+                      style="cursor:pointer;"
+                    >+NC</span>
+                  </div>
+                  <input class="form-control mb-1" :value="stockAvailable.toFixed(2)" disabled />
+                </div>
+
+
               </div>
+
+
               <div class="col-12 col-md-4">
                 <label class="form-label">Cantidad</label>
-                <input type="number" class="form-control" v-model.number="localForm.quantity" :max="stockAvailable" step="0.01" required />
+                <input type="number" class="form-control" v-model.number="localForm.quantity" :max="maxQuantity" :min="0" step="0.01" required />
+                <div class="form-text">Máximo permitido: {{ maxQuantity }}</div>
               </div>
               <div class="col-12 col-md-4">
                 <label class="form-label">Proyecto</label>
@@ -114,18 +216,6 @@ function submit() {
                   option-label="label"
                   option-value="value"
                   placeholder="Seleccione proyecto"
-                  :searchable="true"
-                  class="multiselect-blue"
-                />
-              </div>
-              <div class="col-12 col-md-4">
-                <label class="form-label">Operación</label>
-                <Multiselect
-                  v-model="localForm.operation_id"
-                  :options="operations"
-                  option-label="label"
-                  option-value="value"
-                  placeholder="Seleccione operación"
                   :searchable="true"
                   class="multiselect-blue"
                 />
@@ -167,6 +257,12 @@ function submit() {
           </form>
         </div>
       </div>
+      <StockLineSelectorModal
+        :show="showStockLineModal"
+        :productId="localForm.product_id || props.form.product_id"
+        @close="showStockLineModal = false"
+        @selected="handleStockLineSelected"
+      />
   </div>
   </Teleport>
 </template>

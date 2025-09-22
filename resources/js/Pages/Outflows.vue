@@ -49,10 +49,12 @@ const editForm = ref({
   unit_name: ''
 });
 const editStockAvailable = ref(0);
+
 const editProjects = ref([]);
 const editOperations = ref([]);
 const editMachineries = ref([]);
 const editCostCenters = ref([]);
+const editStockLineData = ref(null);
 
 const onFilter = () => {
   router.get(route('outflows.index', {term: term.value}), { preserveState: true });  
@@ -153,6 +155,44 @@ function handleSave() {
   });
 }
 
+
+// --- POPUP DETALLADO PARA BADGE +NC EN TABLA ---
+function formatCreditNotePopover(creditNoteInfo) {
+  if (!creditNoteInfo || !Array.isArray(creditNoteInfo)) return '';
+  let html = '';
+  creditNoteInfo.forEach(note => {
+    html += `<div><b>N°:</b> ${note.number} <b>Proveedor:</b> ${note.supplier} <b>Fecha:</b> ${note.date}</div>`;
+    (note.items || []).forEach(item => {
+      html += `<div style='margin-left:1em;'>• <b>${item.product}</b>: ${item.quantity}</div>`;
+    });
+  });
+  return html.trim();
+}
+
+import { onMounted, onUpdated, nextTick } from 'vue';
+onMounted(() => {
+  nextTick(() => {
+    if (window.bootstrap) {
+      document.querySelectorAll('[data-bs-toggle="popover"]').forEach(el => {
+        if (!el._popover) {
+          el._popover = new window.bootstrap.Popover(el);
+        }
+      });
+    }
+  });
+});
+onUpdated(() => {
+  nextTick(() => {
+    if (window.bootstrap) {
+      document.querySelectorAll('[data-bs-toggle="popover"]').forEach(el => {
+        if (!el._popover) {
+          el._popover = new window.bootstrap.Popover(el);
+        }
+      });
+    }
+  });
+});
+
 // Función para mostrar detalles de centros de costo adicionales
 const showMoreCenters = (centers) => {
   const items = centers.slice(2).map(cc => {
@@ -196,21 +236,25 @@ function deleteOutflow(outflow) {
 function editOutflow(outflow) {
   axios.get(route('outflows.edit', outflow.id))
     .then(({ data }) => {
-  // Asignar campo por campo para mantener la reactividad
-  editForm.value.id = data.outflow.id;
-  editForm.value.project_id = data.outflow.project_id ? Number(data.outflow.project_id) : '';
-  editForm.value.operation_id = data.outflow.operation_id ? Number(data.outflow.operation_id) : '';
-  editForm.value.machinery_id = data.outflow.machinery_id ? Number(data.outflow.machinery_id) : '';
-  // Refuerzo: asegurar array de IDs numéricos
-  editForm.value.cost_center_ids = Array.isArray(data.outflow.cost_centers)
-    ? data.outflow.cost_centers.map(cc => Number(cc.id)).filter(id => !!id)
-    : [];
-  editForm.value.notes = data.outflow.notes ?? '';
-  editForm.value.quantity = data.outflow.quantity ?? '';
-  editForm.value.invoice_product_id = data.outflow.invoice_product_id ?? null;
-  editForm.value.credit_debit_note_item_id = data.outflow.credit_debit_note_item_id ?? null;
-  editForm.value.product_name = data.outflow.invoice_product?.product?.name || data.outflow.credit_debit_note_item?.product?.name || '';
-  editForm.value.unit_name = data.outflow.invoice_product?.product?.unit?.name || data.outflow.credit_debit_note_item?.product?.unit?.name || '';
+      console.log('Datos recibidos en edición de salida:', data);
+      // Asignar campo por campo para mantener la reactividad
+      editForm.value.id = data.outflow.id;
+      editForm.value.project_id = data.outflow.project_id ? Number(data.outflow.project_id) : '';
+      editForm.value.operation_id = data.outflow.operation_id ? Number(data.outflow.operation_id) : '';
+      editForm.value.machinery_id = data.outflow.machinery_id ? Number(data.outflow.machinery_id) : '';
+      editForm.value.cost_center_ids = Array.isArray(data.outflow.cost_centers)
+        ? data.outflow.cost_centers.map(cc => Number(cc.id)).filter(id => !!id)
+        : [];
+      editForm.value.notes = data.outflow.notes ?? '';
+      editForm.value.quantity = data.outflow.quantity ?? '';
+      editForm.value.invoice_product_id = data.outflow.invoice_product_id ?? null;
+      editForm.value.credit_debit_note_item_id = data.outflow.credit_debit_note_item_id ?? null;
+      editForm.value.product_name = data.outflow.invoice_product?.product?.name || data.outflow.credit_debit_note_item?.product?.name || '';
+      editForm.value.unit_name = data.outflow.invoice_product?.product?.unit?.name || data.outflow.credit_debit_note_item?.product?.unit?.name || '';
+      editForm.value.product_id = data.outflow.invoice_product?.product_id || data.outflow.credit_debit_note_item?.product_id || null;
+  // Pasar la propiedad has_credit_note y credit_note_info si existen
+  editForm.value.has_credit_note = data.outflow.has_credit_note ?? false;
+  editForm.value.credit_note_info = data.outflow.credit_note_info ?? null;
       editStockAvailable.value = data.stockAvailable;
       editProjects.value = (data.projects || []).map(p => ({
         value: Number(p.id),
@@ -228,6 +272,27 @@ function editOutflow(outflow) {
         value: Number(c.id),
         label: c.name
       }));
+
+      // Construir el objeto de línea de stock asociada para el modal
+      let stockLine = null;
+      if (data.outflow.invoice_product) {
+        stockLine = {
+          tipo: 'factura',
+          documento: data.outflow.invoice_product.invoice?.number || data.outflow.invoice_product.invoice_id || '',
+          proveedor: data.outflow.invoice_product.invoice?.supplier?.name || '',
+          cantidad_original: data.outflow.invoice_product.quantity || data.outflow.invoice_product.amount || 0,
+          stock_disponible: data.stockAvailable
+        };
+      } else if (data.outflow.credit_debit_note_item) {
+        stockLine = {
+          tipo: 'nota',
+          documento: data.outflow.credit_debit_note_item.credit_debit_note?.number || data.outflow.credit_debit_note_item.credit_debit_note_id || '',
+          proveedor: data.outflow.credit_debit_note_item.credit_debit_note?.supplier?.name || '',
+          cantidad_original: data.outflow.credit_debit_note_item.quantity || 0,
+          stock_disponible: data.stockAvailable
+        };
+      }
+      editStockLineData.value = stockLine;
       showEditModal.value = true;
     })
     .catch((error) => {
@@ -368,7 +433,20 @@ watch(selectedGroupings, (newVals) => {
                                   <span v-if="outflow.origen === 'factura'" class="badge bg-success">Factura</span>
                                   <span v-else class="badge bg-info text-dark">Nota Débito</span>
                                 </td>
-                                <td>{{ outflow.number_document }}</td>
+                                <td>
+                                  {{ outflow.number_document }}
+                                  <span
+                                    v-if="outflow.has_credit_note"
+                                    class="badge bg-warning text-dark ms-1"
+                                    tabindex="0"
+                                    data-bs-toggle="popover"
+                                    data-bs-html="true"
+                                    :data-bs-content="formatCreditNotePopover(outflow.credit_note_info)"
+                                    data-bs-trigger="focus hover"
+                                    style="cursor:pointer;"
+                                  >+NC</span>
+
+                                </td>
                                 <td>{{ outflow.supplier }}</td>
                                 <td>{{ outflow.product }}</td>
                                 <td>{{ (+outflow.quantity).toFixed(2) }}</td>
@@ -526,6 +604,7 @@ watch(selectedGroupings, (newVals) => {
         :machineries="editMachineries"
         :costCenters="editCostCenters"
         :stockAvailable="editStockAvailable"
+        :stockLineData="editStockLineData"
         @close="showEditModal = false"
         @updated="handleEditModalUpdated"
       />
