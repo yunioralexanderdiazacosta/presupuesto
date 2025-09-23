@@ -7,6 +7,7 @@ import Table from '@/Components/Table.vue';
 import Empty from '@/Components/Empty.vue';
 import Breadcrumb from '@/Components/Breadcrumb.vue';
 
+
 const props = defineProps({
   notes: Object,
   term: String
@@ -75,6 +76,8 @@ const onFilter = () => {
             <th>Tipo</th>
             <th>Proveedor</th>
             <th>Factura</th>
+            <th>Productos</th>
+            <th>Afecta inventario</th>
             <th>Fecha</th>
             <th>Acciones</th>
           </tr>
@@ -85,6 +88,11 @@ const onFilter = () => {
             <td>{{ note.type }}</td>
             <td>{{ note.supplier?.name }}</td>
             <td>{{ note.invoice?.number_document }}</td>
+            <td>{{ note.products }}</td>
+            <td class="text-center align-middle">
+              <span v-if="note.affects_inventory" class="badge bg-success">Sí</span>
+              <span v-else class="badge bg-secondary">No</span>
+            </td>
             <td>{{ note.date }}</td>
             <td>
               <div class="btn-group">
@@ -129,4 +137,6 @@ const onFilter = () => {
       </div>
   </AppLayout>
 </template>
+
+
 

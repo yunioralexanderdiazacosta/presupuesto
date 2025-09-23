@@ -15,7 +15,7 @@ class CreditDebitNotesController extends Controller
         $season_id = session('season_id');
         $term = $request->term ?? '';
 
-        $notes = CreditDebitNote::with('supplier', 'invoice')
+        $notes = CreditDebitNote::with(['supplier', 'invoice', 'items.product'])
             ->when($request->term, function ($query, $search) {
                 $query->where('number', 'like', '%'.$search.'%');
             })
@@ -24,20 +24,24 @@ class CreditDebitNotesController extends Controller
             })
             ->where('team_id', $user->team_id)
             ->where('season_id', $season_id)
-            ->paginate(10);
-
-        $notes->getCollection()->transform(function($note){
-            return [
-                'id'          => $note->id,
-                'date'        => $note->date,
-                'type'        => $note->type,
-                'supplier'    => $note->supplier,
-                'invoice'     => $note->invoice,
-                'number'      => $note->number,
-                'reason'      => $note->reason,
-                'affects_inventory' => $note->affects_inventory,
-            ];
-        });
+            ->paginate(10)
+            ->through(function($note){
+                $productNames = $note->items->map(function($item) {
+                    // Solo productos asociados directamente a la ND/NC
+                    return $item->product ? $item->product->name : null;
+                })->filter()->unique()->values()->all();
+                return [
+                    'id'          => $note->id,
+                    'date'        => $note->date ? $note->date->format('d-m-Y') : null,
+                    'type'        => $note->type,
+                    'supplier'    => $note->supplier,
+                    'invoice'     => $note->invoice,
+                    'number'      => $note->number,
+                    'reason'      => $note->reason,
+                    'affects_inventory' => $note->affects_inventory,
+                    'products'    => implode(', ', $productNames),
+                ];
+            });
 
         return Inertia::render('CreditDebitNotes', compact('notes', 'term'));
     }

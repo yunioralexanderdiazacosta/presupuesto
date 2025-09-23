@@ -43,6 +43,7 @@ trait HasInventory
             ->where('credit_debit_notes.team_id', $team_id)
             ->where('credit_debit_notes.season_id', $season_id)
             ->where('credit_debit_notes.type', 'debito')
+            ->where('credit_debit_notes.affects_inventory', 1)
             ->select(
                 'products.level2_id',
                 'level2s.name as level2_name',
@@ -110,6 +111,7 @@ trait HasInventory
             ->where('credit_debit_notes.team_id', $team_id)
             ->where('credit_debit_notes.season_id', $season_id)
             ->where('credit_debit_notes.type', 'credito')
+            ->where('credit_debit_notes.affects_inventory', 1)
             ->select(
                 'products.level2_id',
                 'level2s.name as level2_name',

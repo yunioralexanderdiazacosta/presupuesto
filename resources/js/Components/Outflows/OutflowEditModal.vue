@@ -1,4 +1,3 @@
-
 <script setup>
 import { reactive, computed, watch, ref, onMounted, onUpdated, nextTick } from 'vue';
 import axios from 'axios';
@@ -138,8 +137,8 @@ watch(() => props.form, (val) => {
 
 
 function submit() {
-  if (Number(localForm.quantity) > maxQuantity.value) {
-    return Swal.fire('Error', `La cantidad no puede exceder el máximo permitido (${maxQuantity.value})`, 'error');
+  if (Number(localForm.quantity) > stockAvailable.value) {
+    return Swal.fire('Error', `La cantidad no puede exceder el stock disponible (${stockAvailable.value})`, 'error');
   }
   // Guardar con axios
   axios.put(`/outflows/${localForm.id}`, localForm)
@@ -205,8 +204,16 @@ function submit() {
 
               <div class="col-12 col-md-4">
                 <label class="form-label">Cantidad</label>
-                <input type="number" class="form-control" v-model.number="localForm.quantity" :max="maxQuantity" :min="0" step="0.01" required />
-                <div class="form-text">Máximo permitido: {{ maxQuantity }}</div>
+                <input
+                  type="number"
+                  class="form-control"
+                  v-model.number="localForm.quantity"
+                  :max="stockAvailable"
+                  :min="0"
+                  step="0.01"
+                  required
+                />
+                <div class="form-text">Máximo permitido: {{ stockAvailable.toFixed(2) }}</div>
               </div>
               <div class="col-12 col-md-4">
                 <label class="form-label">Proyecto</label>
@@ -282,11 +289,8 @@ function submit() {
 .multiselect-blue .multiselect__placeholder {
     font-size: 0.85rem !important;
     opacity: 0.7 !important;
-	 white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
+    white-space: nowrap;
 }
-
 /* Ajustes para inputs nativos */
 input.form-control:not([role="combobox"]),
 select.form-control {
