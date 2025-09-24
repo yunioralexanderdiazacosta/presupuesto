@@ -725,3 +725,16 @@ const onFilter = () => {
         <EditSupplyModal @update="updateSupply" :form="form" />
     </AppLayout>
 </template>
+
+<style>
+.table-responsive thead th {
+  position: sticky;
+  top: 0;
+  background: #f8fafc;
+  z-index: 2;
+}
+.table-responsive {
+  max-height: 450px;
+  overflow-y: auto;
+}
+</style>

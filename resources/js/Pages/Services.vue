@@ -741,6 +741,17 @@ const onFilter = () => {
 </template>
 
 <style>
+
+.table-responsive thead th {
+  position: sticky;
+  top: 0;
+  background: #f8fafc;
+  z-index: 2;
+}
+.table-responsive {
+  max-height: 450px;
+  overflow-y: auto;
+}
 .table.agrochem-details > thead > tr {
   background-color: #e7ebee !important;
 }
