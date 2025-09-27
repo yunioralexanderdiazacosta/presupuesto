@@ -308,6 +308,13 @@ const logout = () => {
                             </div>
                           </Link>
                         </li>
+                        <li class="nav-item">
+                          <Link class="nav-link" :href="route('fuel-outflows.index')">
+                            <div class="d-flex align-items-center">
+                              <span class="nav-link-text ps-4">Combustible Maquinaria</span>
+                            </div>
+                          </Link>
+                        </li>
                       </ul>
                     </li>
                     <li class="nav-item"><Link class="nav-link" :href="route('estimates.index')">

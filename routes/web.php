@@ -14,7 +14,13 @@ use App\Http\Controllers\Products2\StoreProduct2Controller;
 use App\Http\Controllers\Products2\UpdateProduct2Controller;
 use App\Http\Controllers\Products2\DeleteProduct2Controller;
 
-
+ // Rutas para Fuel Outflows
+    use App\Http\Controllers\FuelOutflowController;
+    use App\Http\Controllers\FuelOutflows\StoreFuelOutflowController;
+    use App\Http\Controllers\FuelOutflows\ShowFuelOutflowController;
+    use App\Http\Controllers\FuelOutflows\EditFuelOutflowController;
+    use App\Http\Controllers\FuelOutflows\UpdateFuelOutflowController;
+    use App\Http\Controllers\FuelOutflows\DeleteFuelOutflowController;
 
 use Illuminate\Foundation\Application;
 use Illuminate\Support\Facades\Route;
@@ -495,4 +501,13 @@ Route::middleware([
     Route::get('/kardex/{product}', [KardexController::class, 'show'])->name('kardex.show');
 
     Route::get('/product-stock-lines', [ProductStockLinesController::class, 'index'])->name('product-stock-lines.index');
+
+   
+
+    Route::get('/fuel-outflows', FuelOutflowController::class.'@index')->name('fuel-outflows.index');
+    Route::post('/fuel-outflows', StoreFuelOutflowController::class)->name('fuel-outflows.store');
+    Route::get('/fuel-outflows/{fuelOutflow}', ShowFuelOutflowController::class)->name('fuel-outflows.show');
+    Route::get('/fuel-outflows/{fuelOutflow}/edit', EditFuelOutflowController::class)->name('fuel-outflows.edit');
+    Route::put('/fuel-outflows/{fuelOutflow}', UpdateFuelOutflowController::class)->name('fuel-outflows.update');
+    Route::delete('/fuel-outflows/{fuelOutflow}', DeleteFuelOutflowController::class)->name('fuel-outflows.delete');
 });

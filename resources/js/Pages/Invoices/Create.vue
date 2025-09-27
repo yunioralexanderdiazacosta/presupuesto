@@ -31,13 +31,24 @@ const form = useForm({
 });
 
 const save = () => {
-	 form.post(route('invoices.store'), {
-        preserveScroll: true,
-        onSuccess: () => {
-            msgSuccess('Guardado correctamente');
-            router.get(route('invoices.index'));
-        }
-    });
+	// Validación previa: todos los precios deben ser mayores a cero
+	const invalid = form.products.some(p => !p.unit_price || p.unit_price <= 0);
+	if (invalid) {
+		Swal.fire({
+			icon: 'error',
+			title: 'Precio inválido',
+			text: 'El precio de cada producto debe ser mayor a cero.',
+			confirmButtonColor: '#3085d6',
+		});
+		return;
+	}
+	form.post(route('invoices.store'), {
+		preserveScroll: true,
+		onSuccess: () => {
+			msgSuccess('Guardado correctamente');
+			router.get(route('invoices.index'));
+		}
+	});
 }
 
 const msgSuccess = (msg) => {

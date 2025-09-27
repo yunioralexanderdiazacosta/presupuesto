@@ -26,7 +26,16 @@ Este proyecto es un sistema de gestión presupuestaria agrícola desarrollado en
 
 
 ## Convenciones y patrones
+	- Para cada flujo principal, debe existir un FormRequest dedicado (por ejemplo, `FormFuelOutflowRequest.php`) para centralizar y reutilizar las validaciones de entrada.
 - Controladores de acción única para endpoints principales.
+	- Cada entidad principal debe tener su carpeta con controladores de acción única para CRUD.
+	- Además, puede existir un controlador principal (por ejemplo, `InvestmentsController`, `FuelOutflowController`) para orquestación, carga de vistas principales, endpoints agregados, reportes o lógica especial.
+		- Ejemplo: `FuelOutflowController@index` carga la tabla principal y catálogos, mientras que las acciones CRUD están en `FuelOutflows/`.
+		- Este patrón es descriptivo: define la arquitectura recomendada, no implica copiar código entre controladores, sino separar responsabilidades y mantener la lógica organizada y escalable.
+	- Cada entidad principal (por ejemplo, Invoices, Outflows, FuelOutflows) debe tener su propia carpeta en `app/Http/Controllers/Entidad/`.
+	- Dentro de esa carpeta, cada acción (crear, editar, eliminar, mostrar, almacenar, actualizar) debe tener su propio archivo controlador, siguiendo el patrón:
+		- `CreateEntidadController.php`, `StoreEntidadController.php`, `EditEntidadController.php`, `UpdateEntidadController.php`, `DeleteEntidadController.php`, `ShowEntidadController.php`.
+	- Ejemplo: para FuelOutflows, los controladores estarán en `app/Http/Controllers/FuelOutflows/` y cada acción en su archivo correspondiente.
 - Uso de Inertia.js para comunicación backend/frontend.
 - Componentes Vue modulares y reutilizables.
 - Migraciones claras y reversibles.
