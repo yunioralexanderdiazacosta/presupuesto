@@ -1,3 +1,4 @@
+
 <script setup>
 import { computed, ref } from 'vue';
 import { Link, router, Head, usePage, useForm } from '@inertiajs/vue3';
@@ -26,6 +27,25 @@ const msgSuccess = (msg) => {
     timer: 1000
   });
 };
+
+// --- Totales de notas de débito y crédito ---
+const totalDebito = computed(() => {
+  if (!props.notes.data.length) return 0;
+  return props.notes.data.filter(n => n.type === 'debito').reduce((sum, n) => sum + (parseFloat(n.total) || 0), 0);
+});
+const totalCredito = computed(() => {
+  if (!props.notes.data.length) return 0;
+  // Se muestra como negativo
+  return props.notes.data.filter(n => n.type === 'credito').reduce((sum, n) => sum + (parseFloat(n.total) || 0), 0) * -1;
+});
+const totalDebitoFormatted = computed(() => {
+  return new Intl.NumberFormat('es-ES', { style: 'decimal', minimumFractionDigits: 0, maximumFractionDigits: 2 }).format(totalDebito.value);
+});
+const totalCreditoFormatted = computed(() => {
+  // Siempre mostrar el signo negativo
+  const val = totalCredito.value;
+  return val === 0 ? '0' : '-' + new Intl.NumberFormat('es-ES', { style: 'decimal', minimumFractionDigits: 0, maximumFractionDigits: 2 }).format(Math.abs(val));
+});
 
 const onDeleted = (id) => {
   Swal.fire({
@@ -58,6 +78,7 @@ const onFilter = () => {
   <AppLayout title="Notas de Crédito/Débito">
      <!--begin::Breadcrumb-->
         <Breadcrumb :links="links" />
+        
         <!--end::Breadcrumb-->
     <!-- Aquí irá el listado de notas -->
      <div class="card my-3">
@@ -67,6 +88,37 @@ const onFilter = () => {
       <Link class="btn btn-primary" :href="route('credit_debit_notes.create')">Nueva Nota</Link>
     </div>
     <div class="card-body bg-body-tertiary">
+
+<div class="row mb-3">
+          <div class="col-md-2 col-12 ms-auto">
+            <div class="card h-100 p-1 small-card">
+              <div class="card-header pb-0 pt-1 px-2">
+                <h6 class="mb-0 mt-1 fs-10 d-flex align-items-center small-card-title">Total Notas de Débito</h6>
+              </div>
+              <div class="card-body d-flex flex-column justify-content-end py-1 px-2">
+                <p class="font-sans-serif lh-1 mb-1 fs-10 small-card-number">
+                  {{ totalDebitoFormatted }}
+                </p>
+              </div>
+            </div>
+          </div>
+          <div class="col-md-2 col-12">
+            <div class="card h-100 p-1 small-card">
+              <div class="card-header pb-0 pt-1 px-2">
+                <h6 class="mb-0 mt-1 fs-10 d-flex align-items-center small-card-title">Total Notas de Crédito</h6>
+              </div>
+              <div class="card-body d-flex flex-column justify-content-end py-1 px-2">
+                <p class="font-sans-serif lh-1 mb-1 fs-10 small-card-number">
+                  {{ totalCreditoFormatted }}
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
+
+
+
+
       <div class="tab-content border p-3 mt-3" id="pill-myTabContent">
     <div class="table-responsive mt-1" style="max-height: 450px; overflow-y: auto;">
       <table class="table table-bordered table-hover table-sm custom-striped fs-10 mb-0">

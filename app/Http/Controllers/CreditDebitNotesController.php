@@ -27,9 +27,12 @@ class CreditDebitNotesController extends Controller
             ->paginate(10)
             ->through(function($note){
                 $productNames = $note->items->map(function($item) {
-                    // Solo productos asociados directamente a la ND/NC
                     return $item->product ? $item->product->name : null;
                 })->filter()->unique()->values()->all();
+                $total = 0;
+                foreach ($note->items as $item) {
+                    $total += ($item->quantity * $item->unit_price);
+                }
                 return [
                     'id'          => $note->id,
                     'date'        => $note->date ? $note->date->format('d-m-Y') : null,
@@ -40,6 +43,7 @@ class CreditDebitNotesController extends Controller
                     'reason'      => $note->reason,
                     'affects_inventory' => $note->affects_inventory,
                     'products'    => implode(', ', $productNames),
+                    'total'       => $total,
                 ];
             });
 

@@ -1,5 +1,18 @@
 <script setup>
 import { ref, computed } from 'vue';
+import Swal from 'sweetalert2';
+// Función para mostrar detalles de centros de costo adicionales
+function showMoreCenters(centers) {
+    const items = centers.slice(2).map(cc => {
+        return `<li><strong>${cc.name}</strong>${cc.observations ? ' - ' + cc.observations : ''}</li>`;
+    }).join('');
+    Swal.fire({
+        title: 'Centros de Costo adicionales',
+        html: `<ul style=\"text-align:left;margin:0;padding:0 1rem;list-style:none;\">${items}</ul>`,
+        width: 400,
+        confirmButtonText: 'Cerrar'
+    });
+}
 import { Link, router, Head } from '@inertiajs/vue3';
 import AppLayout from '@/Layouts/AppLayout.vue';
 import Breadcrumb from '@/Components/Breadcrumb.vue';
@@ -10,6 +23,7 @@ const props = defineProps({
     machineries: Array,
     operators: Array,
     costCenters: Array,
+    level1s: Array,
 });
 
 const title = 'Consumos de Combustible';
@@ -71,6 +85,7 @@ function reloadAfterSave() {
                         <th>Fecha</th>
                         <th>Código Maquinaria</th>
                         <th>Operario</th>
+                        <th>Nivel 1</th>
                         <th>Centro de Costo</th>
                         <th>Tipo Combustible</th>
                         <th>Litros</th>
@@ -84,7 +99,23 @@ function reloadAfterSave() {
                         <td>{{ item.date }}</td>
                         <td>{{ item.machinery?.cod_machinery || '-' }}</td>
                         <td>{{ item.operator?.name || '-' }}</td>
-                        <td>{{ item.cost_center?.name || '-' }}</td>
+                        <td>{{ item.level1?.name || '-' }}</td>
+                                                <td>
+                                                    <ul class="mb-0 ps-3">
+                                                        <li v-for="cc in (item.costCenters || []).slice(0,2)" :key="cc.name">
+                                                            <span class="fw-bold">{{ cc.name }}</span>
+                                                            <span v-if="cc.observations"> - {{ cc.observations }}</span>
+                                                        </li>
+                                                        <li v-if="!item.costCenters || !item.costCenters.length">
+                                                            <span class="text-muted">-</span>
+                                                        </li>
+                                                        <li v-if="(item.costCenters || []).length > 2">
+                                                            <a href="#" class="text-primary small text-decoration-underline" @click.prevent="showMoreCenters(item.costCenters)">
+                                                                +{{ item.costCenters.length - 2 }} más
+                                                            </a>
+                                                        </li>
+                                                    </ul>
+                                                </td>
                         <td>{{ item.fuel_type }}</td>
                         <td>{{ item.liters }}</td>
                         <td>{{ item.horometer }}</td>
@@ -92,7 +123,7 @@ function reloadAfterSave() {
                         <td>{{ item.observations }}</td>
                       </tr>
                       <tr v-if="filteredRows.length === 0">
-                        <td colspan="9" class="text-center text-muted">No hay consumos registrados.</td>
+                        <td colspan="10" class="text-center text-muted">No hay consumos registrados.</td>
                       </tr>
                     </tbody>
                   </table>
@@ -118,6 +149,7 @@ function reloadAfterSave() {
             :machineries="props.machineries"
             :operators="props.operators"
             :costCenters="props.costCenters"
+            :level1s="props.level1s"
             @close="closeCreateModal"
             @saved="reloadAfterSave"
         />

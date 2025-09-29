@@ -10,6 +10,7 @@ use App\Models\FuelOutflow;
 use App\Models\Machinery;
 use App\Models\Operator;
 use App\Models\CostCenter;
+use App\Models\Level1;
 
 class FuelOutflowController extends Controller
 {
@@ -21,23 +22,37 @@ class FuelOutflowController extends Controller
             return redirect()->route('dashboard')->with('error', 'Debe seleccionar una campaña activa.');
         }
 
-        $fuelOutflows = FuelOutflow::with(['machinery', 'operator', 'costCenter'])
+
+        $fuelOutflows = FuelOutflow::with(['machinery', 'operator', 'costCenters.costCenter', 'level1'])
             ->where('team_id', $user->team_id)
             ->where('season_id', $season_id)
             ->latest('date')
-            ->paginate(20);
+            ->paginate(20)
+            ->through(function ($item) {
+                $item->costCenters = $item->costCenters->map(function($cc) {
+                    return [
+                        'name' => $cc->costCenter->name ?? '',
+                        'observations' => $cc->observations ?? null,
+                    ];
+                });
+                return $item;
+            });
 
         $machineries = Machinery::all(['id', 'cod_machinery']);
         $operators = \App\Models\Operator::where('team_id', $user->team_id)
             ->where('season_id', $season_id)
             ->get(['id', 'name', 'team_id', 'season_id']);
         $costCenters = CostCenter::all(['id', 'name']);
+        $level1s = Level1::where('team_id', $user->team_id)
+            ->where('season_id', $season_id)
+            ->get(['id', 'name']);
 
         return Inertia::render('FuelOutflows/Index', [
             'fuelOutflows' => $fuelOutflows,
             'machineries' => $machineries,
             'operators' => $operators,
             'costCenters' => $costCenters,
+            'level1s' => $level1s,
         ]);
     }
     // Aquí puedes agregar métodos agregados, reportes, exportaciones, etc.

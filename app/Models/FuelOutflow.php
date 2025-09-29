@@ -15,6 +15,7 @@ class FuelOutflow extends Model
         'machinery_id',
         'operator_id',
         'cost_center_id',
+        'level1_id',
         'fuel_type',
         'liters',
         'horometer',
@@ -22,6 +23,10 @@ class FuelOutflow extends Model
         'date',
         'observations',
     ];
+    public function level1()
+    {
+        return $this->belongsTo(Level1::class);
+    }
 
     // Relaciones
     public function team()
@@ -47,5 +52,11 @@ class FuelOutflow extends Model
     public function costCenter()
     {
         return $this->belongsTo(CostCenter::class);
+    }
+
+    // Relación igual que en Outflow: obtener los pivotes
+    public function costCenters()
+    {
+        return $this->hasMany(FuelOutflowCostCenter::class);
     }
 }
