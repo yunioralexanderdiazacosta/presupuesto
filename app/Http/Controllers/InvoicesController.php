@@ -49,7 +49,16 @@ class InvoicesController extends Controller
             ];
         }); 
 
-        return Inertia::render('Invoices', compact('invoices', 'term'));
+            // Pasar también la lista de meses al frontend para la tabla pivot
+            $months = \App\Models\Month::orderBy('id')
+                ->get()
+                ->transform(function($month) {
+                    return [
+                        'label' => $month->name,
+                        'value' => $month->id,
+                    ];
+                });
+            return Inertia::render('Invoices', compact('invoices', 'term', 'months'));
     }
 
     private function get_total($invoice)
