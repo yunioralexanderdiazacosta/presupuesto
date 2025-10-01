@@ -10,7 +10,7 @@ use App\Models\FuelOutflow;
 use App\Models\Machinery;
 use App\Models\Operator;
 use App\Models\CostCenter;
-use App\Models\Level1;
+// ...existing code...
 
 class FuelOutflowController extends Controller
 {
@@ -23,7 +23,7 @@ class FuelOutflowController extends Controller
         }
 
 
-        $fuelOutflows = FuelOutflow::with(['machinery', 'operator', 'costCenters.costCenter', 'level1'])
+    $fuelOutflows = FuelOutflow::with(['machinery', 'operator', 'costCenters.costCenter'])
             ->where('team_id', $user->team_id)
             ->where('season_id', $season_id)
             ->latest('date')
@@ -43,16 +43,14 @@ class FuelOutflowController extends Controller
             ->where('season_id', $season_id)
             ->get(['id', 'name', 'team_id', 'season_id']);
         $costCenters = CostCenter::all(['id', 'name']);
-        $level1s = Level1::where('team_id', $user->team_id)
-            ->where('season_id', $season_id)
-            ->get(['id', 'name']);
+        // ...existing code...
 
         return Inertia::render('FuelOutflows/Index', [
             'fuelOutflows' => $fuelOutflows,
             'machineries' => $machineries,
             'operators' => $operators,
             'costCenters' => $costCenters,
-            'level1s' => $level1s,
+            // ...existing code...
         ]);
     }
     // Aquí puedes agregar métodos agregados, reportes, exportaciones, etc.

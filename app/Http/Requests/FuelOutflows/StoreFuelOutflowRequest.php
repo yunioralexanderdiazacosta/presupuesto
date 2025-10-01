@@ -17,7 +17,7 @@ class StoreFuelOutflowRequest extends FormRequest
             'machinery_id' => 'required|exists:machineries,id',
             'operator_id' => 'required|exists:operators,id',
             'cost_center_id' => 'nullable|exists:cost_centers,id',
-            'level1_id' => 'nullable|exists:level1s,id',
+            // ...existing code...
             'fuel_type' => 'required|string|max:50',
             'liters' => 'required|numeric|min:0.01',
             'horometer' => 'nullable|numeric|min:0',

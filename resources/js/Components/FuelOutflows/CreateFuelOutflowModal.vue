@@ -9,7 +9,7 @@ const props = defineProps({
     machineries: Array,
     operators: Array,
     costCenters: Array,
-    level1s: Array,
+  // ...existing code...
 });
 
 const emit = defineEmits(['close', 'saved']);
@@ -19,7 +19,7 @@ const form = useForm({
     machinery_id: '',
     operator_id: '',
     cost_center_id: [], // Debe ser array para Multiselect tags
-    level1_id: '',
+  // ...existing code...
     fuel_type: '',
     liters: '',
     horometer: '',
@@ -49,17 +49,7 @@ function save() {
     });
 }
 
-//determina si se muestra el campo de centro de costo según el nivel 1 seleccionado
-const selectedLevel1 = computed(() => {
-  return props.level1s?.find(l => l.id === form.level1_id) || null;
-});
-const showCostCenter = computed(() => {
-  if (!selectedLevel1.value) return false;
-  const label = selectedLevel1.value.name?.toLowerCase() || '';
-  return label === 'costos directos' || label === 'cosecha';
-});
-
-console.log('level1s:', props.level1s);
+// ...existing code...
 </script>
 <template>
   <div class="modal fade show" tabindex="-1" style="display:block; background:rgba(0,0,0,0.2);" v-if="show">
@@ -91,18 +81,7 @@ console.log('level1s:', props.level1s);
                   <option v-for="o in operators" :key="o.id" :value="o.id">{{ o.name }}</option>
                 </select>
               </div>
-               <div class="col-md-4">
-                <label class="form-label">Nivel 1</label>
-                <Multiselect
-                  v-model="form.level1_id"
-                  :options="props.level1s ? props.level1s.map(l => ({ value: l.id, label: l.name })) : []"
-                  placeholder="Seleccione"
-                  :searchable="true"
-                  :clearable="true"
-                  required
-                />
-              </div>
-              <div class="col-md-4" v-if="showCostCenter">
+              <div class="col-md-4">
                 <label class="form-label">Centro de Costo</label>
                 <Multiselect
                   mode="tags"

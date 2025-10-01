@@ -9,16 +9,14 @@ return new class extends Migration
     public function up()
     {
         Schema::table('fuel_outflows', function (Blueprint $table) {
-            $table->unsignedBigInteger('level1_id')->nullable()->after('cost_center_id');
-            $table->foreign('level1_id')->references('id')->on('level1s')->onDelete('set null');
+            // ...eliminado level1_id...
         });
     }
 
     public function down()
     {
         Schema::table('fuel_outflows', function (Blueprint $table) {
-            $table->dropForeign(['level1_id']);
-            $table->dropColumn('level1_id');
+            // ...eliminado level1_id...
         });
     }
 };

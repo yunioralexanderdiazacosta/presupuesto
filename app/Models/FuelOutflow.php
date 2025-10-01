@@ -15,7 +15,7 @@ class FuelOutflow extends Model
         'machinery_id',
         'operator_id',
         'cost_center_id',
-        'level1_id',
+    // ...existing code...
         'fuel_type',
         'liters',
         'horometer',
@@ -23,10 +23,7 @@ class FuelOutflow extends Model
         'date',
         'observations',
     ];
-    public function level1()
-    {
-        return $this->belongsTo(Level1::class);
-    }
+    // ...existing code...
 
     // Relaciones
     public function team()

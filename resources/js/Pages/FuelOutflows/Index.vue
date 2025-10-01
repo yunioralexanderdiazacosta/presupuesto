@@ -23,7 +23,7 @@ const props = defineProps({
     machineries: Array,
     operators: Array,
     costCenters: Array,
-    level1s: Array,
+    // ...existing code...
 });
 
 const title = 'Consumos de Combustible';
@@ -85,7 +85,7 @@ function reloadAfterSave() {
                         <th>Fecha</th>
                         <th>Código Maquinaria</th>
                         <th>Operario</th>
-                        <th>Nivel 1</th>
+                        <!-- ...existing code... -->
                         <th>Centro de Costo</th>
                         <th>Tipo Combustible</th>
                         <th>Litros</th>
@@ -99,7 +99,7 @@ function reloadAfterSave() {
                         <td>{{ item.date }}</td>
                         <td>{{ item.machinery?.cod_machinery || '-' }}</td>
                         <td>{{ item.operator?.name || '-' }}</td>
-                        <td>{{ item.level1?.name || '-' }}</td>
+                        <!-- ...existing code... -->
                                                 <td>
                                                     <ul class="mb-0 ps-3">
                                                         <li v-for="cc in (item.costCenters || []).slice(0,2)" :key="cc.name">
@@ -149,7 +149,7 @@ function reloadAfterSave() {
             :machineries="props.machineries"
             :operators="props.operators"
             :costCenters="props.costCenters"
-            :level1s="props.level1s"
+           
             @close="closeCreateModal"
             @saved="reloadAfterSave"
         />

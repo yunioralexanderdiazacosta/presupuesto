@@ -197,7 +197,7 @@ const onFilter = () => {
                                 <!--begin::Table row-->
                                 <th width="min-w-150px" style="white-space:nowrap;">Tipo documento</th>
                                 <th width="min-w-150px" style="white-space:nowrap;">Mes contable</th>
-                                <th width="min-w-150px" style="white-space:nowrap;">Proveedor</th>
+                                <th width="300px" style="white-space:nowrap; max-width:300px; overflow:hidden; text-overflow:ellipsis;">Proveedor</th>
                                 <th width="min-w-150px" style="white-space:nowrap;">N° Doc</th>
                                 <th width="min-w-150px" style="white-space:nowrap;">Razón Social</th>
                                 <th width="min-w-150px" style="white-space:nowrap;">Fecha</th>
@@ -219,7 +219,7 @@ invoice, index
                                         ) in filteredInvoices" :key="index">
                                         <td style="white-space:nowrap;">{{ invoice.type_document }}</td>
                                         <td style="white-space:nowrap;">{{ invoice.month }}</td>
-                                        <td style="white-space:nowrap;">{{ invoice.supplier.name }}</td>
+                                        <td style="white-space:nowrap; max-width:300px; overflow:hidden; text-overflow:ellipsis;">{{ invoice.supplier.name }}</td>
                                         <td style="white-space:nowrap;">{{ invoice.number_document }}</td>
                                         <td style="white-space:nowrap;">{{ invoice.companyReason.name }}</td>
                                         <td style="white-space:nowrap;">{{ invoice.date }}</td>
