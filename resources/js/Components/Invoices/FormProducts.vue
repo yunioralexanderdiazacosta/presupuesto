@@ -1,13 +1,5 @@
-// Bandera para mostrar validación solo tras submit
-import { ref } from 'vue';
-export const showProductValidation = ref(false);
-// Permite que el padre active la validación visual tras submit
-export function triggerProductValidation() {
-	showProductValidation.value = true;
-}
-
 <script setup>
-import { watch, ref } from 'vue';
+import { watch, ref, computed } from 'vue';
 // Controla si se muestran opciones en el Multiselect de productos por cada línea
 const showProductOptions = ref([]);
 import Multiselect from '@vueform/multiselect';
@@ -18,6 +10,13 @@ const $page = usePage().props;
 const props = defineProps({
     form: Object
 })
+// Opciones de tipo documento desde Inertia (label, value)
+const typeDocuments = $page.typeDocuments || [];
+// Mostrar IVA solo si el documento es 'factura'
+const showIVA = computed(() => {
+  const doc = typeDocuments.find(td => td.value === props.form.type_document_id);
+  return doc && doc.label.toLowerCase() === 'factura';
+});
 
 // Opciones reactivas para productos (permite agregar dinámicamente)
 import { reactive, onMounted } from 'vue';
@@ -42,6 +41,16 @@ onMounted(() => {
 		});
 	}
 });
+
+// Bandera para mostrar validación solo tras submit
+const showProductValidation = ref(false);
+// Permite que el padre active la validación visual tras submit
+function triggerProductValidation() {
+	showProductValidation.value = true;
+}
+// Exponer variables/métodos al componente padre si es necesario
+defineExpose({ showProductValidation, triggerProductValidation });
+
 
 // Función para crear un nuevo producto (taggable): agrega a las opciones y retorna objeto compatible
 const newTag = (input) => {
@@ -218,7 +227,16 @@ watch(
 					<th colspan="4"></th>
 					<th class="fs-6 ps-0 text-end">Total</th>
 					<th class="text-end fs-6 text-nowrap">$
-						<span data-kt-element="grand-total" style="font-size:0.75em;">{{ calculateTotal().toLocaleString('es-ES') }}</span>
+						<span data-kt-element="grand-total" style="font-size:0.75em;">{{ calculateTotal().toLocaleString('es-ES', { maximumFractionDigits: 0 }) }}</span>
+					</th>
+					<th></th>
+				</tr>
+				<!-- Fila de Total con IVA -->
+				<tr v-if="showIVA" class="align-top fw-bold text-gray-700">
+					<th colspan="4"></th>
+					<th class="fs-8 ps-0 text-end">Total con IVA</th>
+					<th class="text-end fs-8 text-nowrap">
+						$<span style="font-size:0.75em;">{{ (calculateTotal() * 1.19).toLocaleString('es-ES', { maximumFractionDigits: 0 }) }}</span>
 					</th>
 					<th></th>
 				</tr>
