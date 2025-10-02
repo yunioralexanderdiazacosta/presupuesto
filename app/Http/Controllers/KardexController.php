@@ -32,7 +32,8 @@ class KardexController extends Controller
                 'invoice_product.amount as entrada',
                 DB::raw('0 as salida'),
                 'invoice_product.unit_price as precio',
-                DB::raw('NULL as observaciones')
+                DB::raw('NULL as observaciones'),
+                DB::raw('1 as affects_inventory')
             ]);
 
         // Movimientos de notas de débito (entradas)
@@ -43,7 +44,7 @@ class KardexController extends Controller
             ->where('credit_debit_notes.team_id', $user->team_id)
             ->where('credit_debit_notes.season_id', $season_id)
             ->where('credit_debit_notes.type', 'debito')
-            ->where('credit_debit_notes.affects_inventory', true)
+            // Incluir notas de débito con affects_inventory true o false
             ->select([
                 'credit_debit_notes.date as fecha',
                 DB::raw("'Nota Débito' as tipo"),
@@ -52,7 +53,8 @@ class KardexController extends Controller
                 'credit_debit_note_items.quantity as entrada',
                 DB::raw('0 as salida'),
                 'credit_debit_note_items.unit_price as precio',
-                DB::raw('NULL as observaciones')
+                DB::raw('NULL as observaciones'),
+                'credit_debit_notes.affects_inventory as affects_inventory'
             ]);
 
         // Movimientos de notas de crédito (salidas)
@@ -63,7 +65,7 @@ class KardexController extends Controller
             ->where('credit_debit_notes.team_id', $user->team_id)
             ->where('credit_debit_notes.season_id', $season_id)
             ->where('credit_debit_notes.type', 'credito')
-            ->where('credit_debit_notes.affects_inventory', true)
+            // Incluir notas de crédito con affects_inventory true o false
             ->select([
                 'credit_debit_notes.date as fecha',
                 DB::raw("'Nota Crédito' as tipo"),
@@ -72,7 +74,8 @@ class KardexController extends Controller
                 DB::raw('0 as entrada'),
                 'credit_debit_note_items.quantity as salida',
                 'credit_debit_note_items.unit_price as precio',
-                DB::raw('NULL as observaciones')
+                DB::raw('NULL as observaciones'),
+                'credit_debit_notes.affects_inventory as affects_inventory'
             ]);
 
         // Movimientos de consumos/outflows (salidas) asociados a factura
@@ -92,7 +95,8 @@ class KardexController extends Controller
                 DB::raw('0 as entrada'),
                 'outflows.quantity as salida',
                 DB::raw('NULL as precio'),
-                'outflows.notes as observaciones'
+                'outflows.notes as observaciones',
+                DB::raw('1 as affects_inventory')
             ]);
 
         // Movimientos de consumos/outflows (salidas) asociados a nota de débito
@@ -112,7 +116,8 @@ class KardexController extends Controller
                 DB::raw('0 as entrada'),
                 'outflows.quantity as salida',
                 DB::raw('NULL as precio'),
-                'outflows.notes as observaciones'
+                'outflows.notes as observaciones',
+                'credit_debit_notes.affects_inventory as affects_inventory'
             ]);
 
         // Unir todos los movimientos y ordenarlos por fecha
@@ -127,7 +132,7 @@ class KardexController extends Controller
         // Calcular saldo acumulado
         $saldo = 0;
         $kardex = [];
-        foreach ($movimientos as $mov) {
+    foreach ($movimientos as $mov) {
             $saldo += ($mov->entrada - $mov->salida);
             $kardex[] = [
                 'fecha' => $mov->fecha,
@@ -140,6 +145,7 @@ class KardexController extends Controller
                 'saldo' => $saldo,
                 'precio' => $mov->precio,
                 'observaciones' => $mov->observaciones,
+                'affects_inventory' => $mov->affects_inventory,
             ];
         }
 

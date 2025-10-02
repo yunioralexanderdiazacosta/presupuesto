@@ -35,8 +35,9 @@ const links = [
                 <th>Entrada</th>
                 <th>Salida</th>
                 <th>Saldo</th>
-                <th>Precio</th>
-                <th>Observaciones</th>
+                  <th>Precio</th>
+                  <th>Observaciones</th>
+                  <th>Afecta Inventario</th>
               </tr>
             </thead>
             <tbody>
@@ -50,9 +51,13 @@ const links = [
                 <td>{{ item.saldo }}</td>
                 <td>{{ item.precio ?? '' }}</td>
                 <td>{{ item.observaciones || '' }}</td>
+                  <td>
+                    <span v-if="item.affects_inventory === 0 || item.affects_inventory === '0'" class="text-danger">No afecta</span>
+                    <span v-else class="text-success">Afecta</span>
+                  </td>
               </tr>
               <tr v-if="!props.kardex || !props.kardex.length">
-                <td colspan="9" class="text-center text-muted">No hay movimientos de Kardex.</td>
+                  <td colspan="10" class="text-center text-muted">No hay movimientos de Kardex.</td>
               </tr>
             </tbody>
           </table>

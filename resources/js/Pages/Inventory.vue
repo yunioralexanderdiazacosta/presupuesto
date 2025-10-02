@@ -242,6 +242,7 @@ function printKardex(productId) {
                                       <th>Saldo</th>
                                       <th>Precio</th>
                                       <th>Observaciones</th>
+                                      <th>Afecta inventario</th>
                                     </tr>
                                   </thead>
                                   <tbody>
@@ -255,12 +256,16 @@ function printKardex(productId) {
                                       <td>{{ mov.saldo !== undefined && mov.saldo !== null ? Number(mov.saldo).toFixed(2) : '' }}</td>
                                       <td>{{ mov.precio ?? '' }}</td>
                                       <td>{{ mov.observaciones || '' }}</td>
+                                      <td>
+                                        <span v-if="mov.affects_inventory === 0 || mov.affects_inventory === '0'" class="text-danger">No afecta</span>
+                                        <span v-else class="text-success">Afecta</span>
+                                      </td>
                                     </tr>
                                     <tr v-if="kardexView[item.product_id] && !kardexView[item.product_id].length">
-                                      <td colspan="9" class="text-center text-muted">No hay movimientos de Kardex.</td>
+                                      <td colspan="10" class="text-center text-muted">No hay movimientos de Kardex.</td>
                                     </tr>
                                     <tr v-if="!kardexView[item.product_id]">
-                                      <td colspan="9" class="text-center text-muted">Cargando...</td>
+                                      <td colspan="10" class="text-center text-muted">Cargando...</td>
                                     </tr>
                                     <tr v-if="kardexView[item.product_id] && kardexView[item.product_id].length">
                                       <td colspan="5" class="text-end fw-bold">Total stock actual:</td>
@@ -270,7 +275,7 @@ function printKardex(productId) {
                                           {{ kardexUnits[item.product_id] }}
                                         </span>
                                       </td>
-                                      <td colspan="2"></td>
+                                      <td colspan="3"></td>
                                     </tr>
                                   </tbody>
                                 </table>
