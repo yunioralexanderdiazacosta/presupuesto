@@ -1,10 +1,43 @@
 <script setup>
+import { computed } from 'vue';
 import { router, Link, usePage } from '@inertiajs/vue3';
 import JetDropdownLink from '@/Components/DropdownLink.vue';
-
+import { onMounted, onUnmounted } from 'vue';
 
 // Flags compartidos via Inertia
 const { hasCostCenter, hasVariety, hasFruit, hasCompanyReason, hasSeason, hasParcel, hasLevel3 } = usePage().props;
+
+const lifetime = computed(() =>usePage().props.lifetime);
+
+ let timeoutId;
+  const inactivityTime = lifetime.value * 60 * 1000; // 30 minutos en milisegundos
+
+   
+
+  const resetTimer = () => {
+    clearTimeout(timeoutId);
+    timeoutId = setTimeout(logout, inactivityTime);
+  };
+
+
+ onMounted(() => {
+    // Detección de actividad
+	window.addEventListener('mousemove', resetTimer);
+	window.addEventListener('keypress', resetTimer);
+	window.addEventListener('click', resetTimer);
+
+	// Inicia el temporizador
+	resetTimer();
+});
+
+ onUnmounted(() => {
+	// Limpia los event listeners cuando el componente se desmonta
+	window.removeEventListener('mousemove', resetTimer);
+	window.removeEventListener('keypress', resetTimer);
+	window.removeEventListener('click', resetTimer);
+	clearTimeout(timeoutId);
+});
+
 
 const logout = () => {
     router.post(route('logout'));

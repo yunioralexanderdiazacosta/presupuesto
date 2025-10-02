@@ -65,6 +65,7 @@ class HandleInertiaRequests extends Middleware
                     'permissions' => $user->getAllPermissions()->pluck('name')
                 ] : null;
             },
+            'lifetime' => env('SESSION_LIFETIME')
         ]);
     }
 }
