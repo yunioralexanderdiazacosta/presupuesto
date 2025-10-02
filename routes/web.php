@@ -200,6 +200,7 @@ use App\Http\Controllers\Investments\StoreInvestmentController;
 use App\Http\Controllers\Investments\UpdateInvestmentController;
 use App\Http\Controllers\Investments\DeleteInvestmentController;
 use App\Http\Controllers\ProductStockLinesController;
+use App\Http\Controllers\ConsolidatedDocumentsController;
 
 
 use Inertia\Inertia;
@@ -506,8 +507,10 @@ Route::middleware([
 
     Route::get('/fuel-outflows', FuelOutflowController::class.'@index')->name('fuel-outflows.index');
     Route::post('/fuel-outflows', StoreFuelOutflowController::class)->name('fuel-outflows.store');
-    Route::get('/fuel-outflows/{fuelOutflow}', ShowFuelOutflowController::class)->name('fuel-outflows.show');
-    Route::get('/fuel-outflows/{fuelOutflow}/edit', EditFuelOutflowController::class)->name('fuel-outflows.edit');
-    Route::put('/fuel-outflows/{fuelOutflow}', UpdateFuelOutflowController::class)->name('fuel-outflows.update');
-    Route::delete('/fuel-outflows/{fuelOutflow}', DeleteFuelOutflowController::class)->name('fuel-outflows.delete');
+    Route::get('/fuel-outflows/{fuelOutFlow}', ShowFuelOutflowController::class)->name('fuel-outflows.show');
+    Route::get('/fuel-outflows/{fuelOutFlow}/edit', EditFuelOutflowController::class)->name('fuel-outflows.edit');
+    Route::put('/fuel-outflows/{fuelOutFlow}', UpdateFuelOutflowController::class)->name('fuel-outflows.update');
+    Route::delete('/fuel-outflows/{fuelOutFlow}', DeleteFuelOutflowController::class)->name('fuel-outflows.delete');
+
+    Route::get('/consolidated-documents', [ConsolidatedDocumentsController::class, 'index'])->name('consolidated-documents.index');
 });

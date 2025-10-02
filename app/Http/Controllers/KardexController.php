@@ -20,12 +20,13 @@ class KardexController extends Controller
         $facturas = DB::table('invoice_product')
             ->join('invoices', 'invoice_product.invoice_id', '=', 'invoices.id')
             ->join('suppliers', 'invoices.supplier_id', '=', 'suppliers.id')
+            ->leftJoin('type_documents', 'invoices.type_document_id', '=', 'type_documents.id')
             ->where('invoice_product.product_id', $product_id)
             ->where('invoices.team_id', $user->team_id)
             ->where('invoices.season_id', $season_id)
             ->select([
                 'invoices.date as fecha',
-                DB::raw("'Factura' as tipo"),
+                DB::raw("COALESCE(type_documents.name, 'Factura') as tipo"),
                 'suppliers.name as proveedor',
                 'invoices.number_document as documento',
                 'invoice_product.amount as entrada',

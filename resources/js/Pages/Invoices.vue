@@ -138,6 +138,16 @@ const monthlyTotals = computed(() => {
         return filteredInvoices.value.reduce((sum, invoice) => sum + totalForMonth(invoice, month.value), 0);
     });
 });
+
+// Función para formatear fechas al estilo dd-mm-yyyy
+function formatDate(date) {
+  if (!date) return '';
+  const d = new Date(date);
+  const day = String(d.getDate()).padStart(2, '0');
+  const month = String(d.getMonth() + 1).padStart(2, '0');
+  const year = d.getFullYear();
+  return `${day}-${month}-${year}`;
+}
 </script>
 <template>
 
@@ -264,8 +274,8 @@ const monthlyTotals = computed(() => {
                                             <td style="white-space:nowrap; max-width:300px; overflow:hidden; text-overflow:ellipsis;">{{ invoice.supplier.name }}</td>
                                             <td style="white-space:nowrap;">{{ invoice.number_document }}</td>
                                             <td style="white-space:nowrap;">{{ invoice.companyReason.name }}</td>
-                                            <td style="white-space:nowrap;">{{ invoice.date }}</td>
-                                            <td style="white-space:nowrap;">{{ invoice.due_date }}</td>
+                                            <td style="white-space:nowrap;">{{ formatDate(invoice.date) }}</td>
+                                            <td style="white-space:nowrap;">{{ formatDate(invoice.due_date) }}</td>
                                             <td style="white-space:nowrap;">
                                                 <span v-if="invoice.products && invoice.products.length">
                                                     <span v-if="invoice.products.length <= 2">
@@ -357,7 +367,7 @@ const monthlyTotals = computed(() => {
                                         {{ invoice.supplier.name }}
                                       </td>
                                       <td>{{ invoice.number_document }}</td>
-                                      <td>{{ invoice.date }}</td>
+                                      <td>{{ formatDate(invoice.date) }}</td>
                                       <td v-for="month in page.props.months" :key="month.value" class="text-end">
                                           {{ new Intl.NumberFormat('es-ES', { style: 'decimal', minimumFractionDigits: 0 }).format(totalForMonth(invoice, month.value)) }}
                                       </td>

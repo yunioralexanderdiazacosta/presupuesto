@@ -37,7 +37,7 @@ class OutflowsController extends Controller
         $inventario = collect($this->getInventory($user->team_id, $season_id));
 
         // Traer productos de facturas
-        $invoices = Invoice::with(['supplier', 'invoiceProducts.product.unit'])
+        $invoices = Invoice::with(['supplier', 'typeDocument', 'invoiceProducts.product.unit'])
             ->where('team_id', $user->team_id)
             ->where('season_id', $season_id)
             ->get();
@@ -95,19 +95,19 @@ class OutflowsController extends Controller
                         ];
                     })->values();
                 }
-                $rows[] = [
-                    'origen'            => 'factura',
-                    'document_id'       => $invoice->id,
-                    'number_document'   => $invoice->number_document,
-                    'supplier'          => $invoice->supplier->name ?? '-',
-                    'product'           => $invoiceProduct->product->name ?? '-',
-                    'unit'              => $invoiceProduct->product->unit->name ?? '-',
-                    'quantity'          => $cantidadOriginal,
-                    'invoice_product_id'=> $invoiceProduct->id,
-                    'stock'             => $stockLinea,
-                    'has_credit_note'   => ($devuelto > 0),
-                    'credit_note_info'  => $creditNoteInfo,
-                ];
+                    $rows[] = [
+                        'origen'            => $invoice->typeDocument?->name ?? 'factura',
+                        'document_id'       => $invoice->id,
+                        'number_document'   => $invoice->number_document,
+                        'supplier'          => $invoice->supplier->name ?? '-',
+                        'product'           => $invoiceProduct->product->name ?? '-',
+                        'unit'              => $invoiceProduct->product->unit->name ?? '-',
+                        'quantity'          => $cantidadOriginal,
+                        'invoice_product_id'=> $invoiceProduct->id,
+                        'stock'             => $stockLinea,
+                        'has_credit_note'   => ($devuelto > 0),
+                        'credit_note_info'  => $creditNoteInfo,
+                    ];
             }
         }
 

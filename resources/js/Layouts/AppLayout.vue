@@ -287,6 +287,32 @@ const logout = () => {
               </a>
               <ul class="nav collapse show" id="pricing">
 
+                  <li class="nav-item">
+                  <a class="nav-link dropdown-indicator" href="#documents" data-bs-toggle="collapse" aria-expanded="false" aria-controls="documents">
+                    <div class="d-flex align-items-center">
+                      <span class="nav-link-text ps-3">Registro de Gastos</span>
+                    </div>
+                  </a>
+                  <ul class="nav collapse" id="documents">
+                    <li class="nav-item">
+                      <Link class="nav-link" :href="route('invoices.index')">
+                        <div class="d-flex align-items-center"><span class="nav-link-text ps-4">Facturas y otros</span></div>
+                      </Link>
+                    </li>
+                    <li class="nav-item">
+                      <Link class="nav-link" :href="route('consolidated-documents.index')">
+                        <div class="d-flex align-items-center"><span class="nav-link-text ps-4">Consolidado de Documentos</span></div>
+                      </Link>
+                    </li>
+                    <li class="nav-item">
+                      <Link class="nav-link" :href="route('credit_debit_notes.index')">
+                        <div class="d-flex align-items-center"><span class="nav-link-text ps-4">Notas de Crédito/Débito</span></div>
+                      </Link>
+                    </li>
+                   
+                  </ul>
+                </li>
+
                     <li class="nav-item">
                       <Link class="nav-link" :href="route('investments.index')">
                         <div class="d-flex align-items-center">
@@ -343,26 +369,7 @@ const logout = () => {
                 </li>
                  
                 
-                <li class="nav-item">
-                  <a class="nav-link dropdown-indicator" href="#documents" data-bs-toggle="collapse" aria-expanded="false" aria-controls="documents">
-                    <div class="d-flex align-items-center">
-                      <span class="nav-link-text ps-3">Registro de Gastos</span>
-                    </div>
-                  </a>
-                  <ul class="nav collapse" id="documents">
-                    <li class="nav-item">
-                      <Link class="nav-link" :href="route('invoices.index')">
-                        <div class="d-flex align-items-center"><span class="nav-link-text ps-4">Facturas y otros</span></div>
-                      </Link>
-                    </li>
-                    <li class="nav-item">
-                      <Link class="nav-link" :href="route('credit_debit_notes.index')">
-                        <div class="d-flex align-items-center"><span class="nav-link-text ps-4">Notas de Crédito/Débito</span></div>
-                      </Link>
-                    </li>
-                   
-                  </ul>
-                </li>
+              
                 <li class="nav-item"><Link class="nav-link" :href="route('machineries.index')">
                     <div class="d-flex align-items-center"><span class="nav-link-text ps-3">Maquinarias</span>
                     </div>

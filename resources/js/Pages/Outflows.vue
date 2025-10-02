@@ -79,17 +79,19 @@ function onDeleted(index) {
 }
 
 function openCard(outflow) {
-  // Determinar el id y el tipo de origen
+  // Permitir registrar salida para cualquier tipo de documento
   let id = null;
   let tipo = null;
-  if (outflow.origen === 'factura' && outflow.invoice_product_id) {
-    id = 'factura-' + outflow.invoice_product_id;
-    tipo = 'factura';
-  } else if (outflow.origen === 'nota_debito' && outflow.credit_debit_note_item_id) {
+  if (outflow.credit_debit_note_item_id) {
     id = 'nota_debito-' + outflow.credit_debit_note_item_id;
     tipo = 'nota_debito';
+  } else if (outflow.invoice_product_id) {
+    id = 'factura-' + outflow.invoice_product_id;
+    tipo = 'factura';
+  } else {
+    // Si no tiene ninguno, no se puede registrar salida
+    return;
   }
-  if (!id) return;
   if (!showCards.value.includes(id)) {
     showCards.value.push(id);
     selectedOutflows.value.push({
@@ -430,8 +432,8 @@ watch(selectedGroupings, (newVals) => {
                           <template #body>
                             <tr v-for="outflow in outflows.data" :key="outflow.document_id + '-' + outflow.product">
                                 <td>
-                                  <span v-if="outflow.origen === 'factura'" class="badge bg-success">Factura</span>
-                                  <span v-else class="badge bg-info text-dark">Nota Débito</span>
+                                  <span v-if="outflow.origen && outflow.origen.toLowerCase().includes('factura')" class="badge bg-success">{{ outflow.origen }}</span>
+                                  <span v-else class="badge bg-info text-dark">{{ outflow.origen }}</span>
                                 </td>
                                 <td>
                                   {{ outflow.number_document }}
