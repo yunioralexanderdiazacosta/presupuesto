@@ -180,6 +180,7 @@ watch(
 					   </td>
 					<td class="ps-0 pe-1" style="width:120px; min-width:100px; max-width:100px;">
 					<input class="form-control form-control-solid" style="width:55px; min-width:120px; max-width:100px; font-size:0.93em;" type="number" min="1" v-model="product.amount" value="1" data-kt-element="quantity" required
+							step="0.01"
 							:class="{'is-invalid': showProductValidation && (!product.amount || product.amount < 1)}" />
 						<span v-if="showProductValidation && (!product.amount || product.amount < 1)" class="text-danger" style="font-size:0.7em;">Campo obligatorio</span>
 					</td>

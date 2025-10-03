@@ -34,7 +34,7 @@ class FormInvoiceRequest extends FormRequest
             'products' => ['required', 'array'],
             'products.*.product_id' => ['required'],
             'products.*.unit_price' => ['required', 'numeric', 'gt:0'],
-            'products.*.amount' => ['required', 'integer'],
+            'products.*.amount' => ['required', 'numeric'],
             'products.*.observations' => ['nullable', 'string'],
         ];
     }
