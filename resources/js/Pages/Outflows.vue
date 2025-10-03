@@ -431,7 +431,7 @@ watch(selectedGroupings, (newVals) => {
                     </div>
                   </div>
                   <div class="tab-pane fade" id="pill-tab-salidas" role="tabpanel" aria-labelledby="salidas-tab">
-                    <div style="overflow-x: auto; overflow-y: auto;">
+                    <div style="max-height: 400px; overflow-y: auto; overflow-x: auto;">
                       <div class="mb-2">
                         <SearchInput v-model="term" placeholder="Buscar por producto, proveedor, documento..." />
                       </div>
