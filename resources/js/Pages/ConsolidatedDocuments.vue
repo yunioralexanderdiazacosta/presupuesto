@@ -151,7 +151,7 @@ const formatSimple = val => new Intl.NumberFormat('es-ES', { style: 'decimal', m
                 <td>
                   <span v-if="doc.tipo === 'debito' || doc.tipo === 'Débito'" class="badge bg-secondary">Débito</span>
                   <span v-else-if="doc.tipo === 'credito' || doc.tipo === 'Crédito'" class="badge bg-success">Crédito</span>
-                  <span v-else class="badge bg-primary">Factura</span>
+                  <span v-else class="badge bg-primary">{{ doc.tipo }}</span>
                 </td>
                 <td class="text-lowercase">{{ doc.razon_social }}</td>
                 <td>{{ doc.mes_contable }}</td>

@@ -9,6 +9,7 @@ use App\Models\CreditDebitNote;
 use Illuminate\Support\Facades\DB;
 use Inertia\Inertia;
 
+
 class ConsolidatedDocumentsController extends Controller
 {
     public function index(Request $request)
@@ -44,8 +45,12 @@ class ConsolidatedDocumentsController extends Controller
                     ->where('credit_debit_note_id', $note->id)
                     ->select(DB::raw('SUM(quantity * unit_price) as total'))
                     ->value('total');
+                // Normalizar tipo para visualización
+                $tipo = $note->type;
+                if ($tipo === 'ND') $tipo = 'Débito';
+                else if ($tipo === 'NC') $tipo = 'Crédito';
                 return [
-                    'tipo' => $note->type,
+                    'tipo' => $tipo,
                     'razon_social' => $note->invoice->companyReason->name ?? '',
                     'mes_contable' => date('Y-m', strtotime($note->date)),
                     'fecha' => date('d-m-Y', strtotime($note->date)),
@@ -57,6 +62,8 @@ class ConsolidatedDocumentsController extends Controller
 
         // Unir ambos
         $consolidated = $invoices->concat($notes)->values();
+
+       
 
         return Inertia::render('ConsolidatedDocuments', [
             'documents' => $consolidated,
