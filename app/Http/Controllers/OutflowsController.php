@@ -107,6 +107,7 @@ class OutflowsController extends Controller
                         'stock'             => $stockLinea,
                         'has_credit_note'   => ($devuelto > 0),
                         'credit_note_info'  => $creditNoteInfo,
+                            'mes_contable'      => $invoice->month?->name ?? '',
                     ];
             }
         }

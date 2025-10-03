@@ -185,8 +185,8 @@ watch(
 						<span v-if="showProductValidation && (!product.amount || product.amount < 1)" class="text-danger" style="font-size:0.7em;">Campo obligatorio</span>
 					</td>
 					<td class="ps-0 pe-0" style="width:120px; min-width:100px; max-width:100px;">
-					<input type="number" class="form-control form-control-solid unit_price" style="width:120px; min-width:120px; max-width:100px; font-size:0.93em;" v-model="product.unit_price" value="0" step="0.0" required
-							:class="{'is-invalid': showProductValidation && (!product.unit_price || product.unit_price <= 0)}" />
+					<input type="number" class="form-control form-control-solid unit_price" style="width:120px; min-width:120px; max-width:100px; font-size:0.93em;" v-model="product.unit_price" value="0" step="0.01" required
+						:class="{'is-invalid': showProductValidation && (!product.unit_price || product.unit_price <= 0)}" />
 						<span v-if="showProductValidation && (!product.unit_price || product.unit_price <= 0)" class="text-danger" style="font-size:0.7em;">Campo obligatorio</span>
 					</td>
 					  <td class="ps-0 pe-0" style="width:150px; min-width:150px; max-width:150px;">

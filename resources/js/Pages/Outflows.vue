@@ -1,11 +1,12 @@
 <script setup>
-import { ref, watch, getCurrentInstance } from 'vue';
+import { ref, watch, getCurrentInstance, computed } from 'vue';
 import { Link, Head, router } from '@inertiajs/vue3';
 import axios from 'axios';
 import Swal from 'sweetalert2';
 import AppLayout from '@/Layouts/AppLayout.vue';
 import Breadcrumb from '@/Components/Breadcrumb.vue';
 import Table from '@/Components/Table.vue';
+import SearchInput from '@/Components/SearchInput.vue';
 import Empty from '@/Components/Empty.vue';
 import OutflowEditModal from '@/Components/Outflows/OutflowEditModal.vue';
 import Multiselect from '@vueform/multiselect';
@@ -24,7 +25,20 @@ const props = defineProps({
 });
 
 const title = 'Salidas de productos';
-const term  = ref(props.term);
+const term  = ref("");
+const filteredOutflows = computed(() => {
+  if (!term.value) return props.outflows.data;
+  const search = term.value.toLowerCase();
+  return props.outflows.data.filter(outflow => {
+    return (
+      (outflow.product && outflow.product.toLowerCase().includes(search)) ||
+      (outflow.supplier && outflow.supplier.toLowerCase().includes(search)) ||
+      (outflow.number_document && outflow.number_document.toLowerCase().includes(search)) ||
+      (outflow.origen && outflow.origen.toLowerCase().includes(search)) ||
+      (outflow.mes_contable && outflow.mes_contable.toLowerCase().includes(search))
+    );
+  });
+});
 // Breadcrumb links
 const links = [
   { title: 'Inicio', link: 'dashboard' },
@@ -417,11 +431,15 @@ watch(selectedGroupings, (newVals) => {
                     </div>
                   </div>
                   <div class="tab-pane fade" id="pill-tab-salidas" role="tabpanel" aria-labelledby="salidas-tab">
-                    <div style="max-height: 340px; overflow-y: auto;">
-                      <Table :id="'outflows'" :total="outflows.data.length" :links="outflows.links">
+                    <div style="overflow-x: auto; overflow-y: auto;">
+                      <div class="mb-2">
+                        <SearchInput v-model="term" placeholder="Buscar por producto, proveedor, documento..." />
+                      </div>
+                      <Table :id="'outflows'" :total="filteredOutflows.length" :links="outflows.links">
                           <template #header>
                             <th>Origen</th>
                             <th>Factura / N° Nota</th>
+                            <th>Mes contable</th>
                             <th>Proveedor</th>
                             <th>Producto</th>
                             <th>Cantidad</th>
@@ -430,7 +448,7 @@ watch(selectedGroupings, (newVals) => {
                             <th class="text-center">Acciones</th>
                           </template>
                           <template #body>
-                            <tr v-for="outflow in outflows.data" :key="outflow.document_id + '-' + outflow.product">
+                            <tr v-for="outflow in filteredOutflows" :key="outflow.document_id + '-' + outflow.product">
                                 <td>
                                   <span v-if="outflow.origen && outflow.origen.toLowerCase().includes('factura')" class="badge bg-success">{{ outflow.origen }}</span>
                                   <span v-else class="badge bg-info text-dark">{{ outflow.origen }}</span>
@@ -447,8 +465,8 @@ watch(selectedGroupings, (newVals) => {
                                     data-bs-trigger="focus hover"
                                     style="cursor:pointer;"
                                   >+NC</span>
-
                                 </td>
+                                <td>{{ outflow.mes_contable || '-' }}</td>
                                 <td>{{ outflow.supplier }}</td>
                                 <td>{{ outflow.product }}</td>
                                 <td>{{ (+outflow.quantity).toFixed(2) }}</td>
