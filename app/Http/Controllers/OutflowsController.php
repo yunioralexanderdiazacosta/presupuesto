@@ -149,9 +149,10 @@ class OutflowsController extends Controller
             }
         }
 
-        // Paginación manual
-        $page = $request->input('page', 1);
-        $perPage = 100;
+    // Paginación manual (mostrar todas las filas sin límite)
+    $page = $request->input('page', 1);
+    // Ajustar perPage al total de filas para no limitar los resultados
+    $perPage = count($rows);
         $paginated = new \Illuminate\Pagination\LengthAwarePaginator(
             array_slice($rows, ($page - 1) * $perPage, $perPage),
             count($rows),
