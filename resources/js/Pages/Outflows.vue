@@ -27,9 +27,16 @@ const props = defineProps({
 const title = 'Salidas de productos';
 const term  = ref("");
 const filteredOutflows = computed(() => {
-  if (!term.value) return props.outflows.data;
+  // Primero filtrar solo los outflows con stock numérico > 0
+  const stockFiltered = props.outflows.data.filter(outflow => {
+    const stockNum = Number(outflow.stock);
+    return isFinite(stockNum) && stockNum > 0;
+  });
+  // Si no hay término de búsqueda, retornar solo stockFiltered
+  if (!term.value) return stockFiltered;
+  // Si hay búsqueda, aplicar filtro de texto sobre stockFiltered
   const search = term.value.toLowerCase();
-  return props.outflows.data.filter(outflow => {
+  return stockFiltered.filter(outflow => {
     return (
       (outflow.product && outflow.product.toLowerCase().includes(search)) ||
       (outflow.supplier && outflow.supplier.toLowerCase().includes(search)) ||
@@ -431,7 +438,7 @@ watch(selectedGroupings, (newVals) => {
                     </div>
                   </div>
                   <div class="tab-pane fade" id="pill-tab-salidas" role="tabpanel" aria-labelledby="salidas-tab">
-                    <div style="max-height: 400px; overflow-y: auto; overflow-x: auto;">
+                    <div style="max-height: 450px; overflow-y: auto; overflow-x: auto;">
                       <div class="mb-2">
                         <SearchInput v-model="term" placeholder="Buscar por producto, proveedor, documento..." />
                       </div>
@@ -536,10 +543,12 @@ watch(selectedGroupings, (newVals) => {
                               placeholder="Operación"
                               v-model="selected.operation_id"
                               :options="props.operations"
+                               class="multiselect-blue form-control"
                               option-label="label"
                               option-value="value"
                               :searchable="true"
-                              class="multiselect-blue form-control"
+                             
+                              
                             />
                           </div>
                           <div class="col-12 col-md-2">
@@ -551,12 +560,12 @@ watch(selectedGroupings, (newVals) => {
                               option-label="label"
                               option-value="value"
                               :searchable="true"
-                              class="multiselect-blue form-control"
+                              class="multiselect-blue form-control-sm"
                             />
                           </div>
                           <!-- Selector de agrupación con Multiselect -->
                         <div class="col-sm-4">
-                            <label for="grouping" class="col-form-label mb-0">Agrupación</label>
+                            <label class="col-form-label mb-0">Agrupación</label>
                           
                                 <Multiselect
                                     id="grouping"

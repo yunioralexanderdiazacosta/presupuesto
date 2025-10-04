@@ -70,6 +70,10 @@ class OutflowsController extends Controller
                 $devuelto = $creditNotesReturns[$invoiceProduct->id] ?? 0;
                 $cantidadOriginal = $invoiceProduct->quantity ?? $invoiceProduct->amount ?? 0;
                 $stockLinea = $cantidadOriginal - $consumido - $devuelto;
+                // Excluir líneas con stock cero o negativo
+                if ($stockLinea <= 0) {
+                    continue;
+                }
                 // Buscar info de nota(s) de crédito asociada(s)
                 $creditNoteInfo = null;
                 if ($devuelto > 0) {
@@ -127,6 +131,10 @@ class OutflowsController extends Controller
                 $consumido = $outflowsByDebitNoteItem[$item->id] ?? 0;
                 $cantidadOriginal = $item->quantity ?? 0;
                 $stockLinea = $cantidadOriginal - $consumido;
+                // Excluir líneas con stock cero o negativo
+                if ($stockLinea <= 0) {
+                    continue;
+                }
                 $rows[] = [
                     'origen'                  => 'nota_debito',
                     'document_id'             => $note->id,
