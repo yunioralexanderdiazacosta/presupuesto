@@ -52,6 +52,7 @@ const page = usePage();
                     <Multiselect
                         :placeholder="'Seleccione operación'"
                         v-model="form.operation_id"
+                        required
                         :close-on-select="true"
                         :options="page.props.operations"
                         class="multiselect-blue form-control"

@@ -26,7 +26,7 @@ class OutflowRequest extends FormRequest
             return [
                 'outflows' => 'required|array|min:1',
                 'outflows.*.project_id' => 'nullable|exists:projects,id',
-                'outflows.*.operation_id' => 'nullable|exists:operations,id',
+                'outflows.*.operation_id' => 'required|exists:operations,id',
                 'outflows.*.machinery_id' => 'nullable|exists:machineries,id',
                 'outflows.*.quantity' => 'required|numeric|min:0.01',
                 'outflows.*.notes' => 'nullable|string|max:255',
@@ -37,7 +37,7 @@ class OutflowRequest extends FormRequest
         // Si no, es edición individual
         return [
             'project_id' => 'nullable|exists:projects,id',
-            'operation_id' => 'nullable|exists:operations,id',
+            'operation_id' => 'required|exists:operations,id',
             'machinery_id' => 'nullable|exists:machineries,id',
             'quantity' => 'required|numeric|min:0.01',
             'notes' => 'nullable|string|max:255',

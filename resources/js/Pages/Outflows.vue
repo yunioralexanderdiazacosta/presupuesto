@@ -139,6 +139,16 @@ function closeCard(id) {
   }
 }
 
+// Determina si el card está abierto para el outflow
+function isCardOpen(outflow) {
+  if (outflow.credit_debit_note_item_id) {
+    return showCards.value.includes('nota_debito-' + outflow.credit_debit_note_item_id);
+  } else if (outflow.invoice_product_id) {
+    return showCards.value.includes('factura-' + outflow.invoice_product_id);
+  }
+  return false;
+}
+
 function handleSave() {
   // Filtrar solo las cards con datos obligatorios (ejemplo: cantidad y al menos un centro de costo)
   const registros = selectedOutflows.value.filter(sel => {
@@ -482,13 +492,14 @@ watch(selectedGroupings, (newVals) => {
                                 <td class="text-center">
                                   <button @click="openCard(outflow)"
                                     class="btn btn-sm me-1"
-                                    :class="showCards.map(String).includes(String(outflow.invoice_product_id)) ? 'btn-primary btn-active' : 'btn-white'">
+                                    :class="isCardOpen(outflow) ? 'btn-success btn-active' : 'btn-white'">
                                     <span 
                                       class="fas fa-paper-plane"
-                                      :class="showCards.map(String).includes(String(outflow.invoice_product_id)) ? 'text-white' : 'text-secondary'"
+                                      :class="isCardOpen(outflow) ? 'text-success' : 'text-secondary'"
                                     ></span>
                                   </button>
                                 </td>
+
                             </tr>
                             <tr v-if="outflows.data.length === 0">
                                 <td colspan="8"><Empty /></td>
