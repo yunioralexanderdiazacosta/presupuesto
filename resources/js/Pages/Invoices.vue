@@ -30,11 +30,13 @@ const filteredInvoices = computed(() => {
         const products = Array.isArray(item.products)
             ? item.products.map(p => (p.product_name || "").toLowerCase()).join(", ")
             : "";
+        const mesContable = item.month ? item.month.toLowerCase() : "";
         return (
             supplier.includes(search) ||
             number.includes(search) ||
             company.includes(search) ||
-            products.includes(search)
+            products.includes(search) ||
+            mesContable.includes(search)
         );
     });
 });
@@ -202,9 +204,7 @@ const onFilter = () => {
                                     <Empty colspan="3" />
                                 </template>
                                 <template v-else>
-                                    <tr v-for="(
-invoice, index
-                                        ) in filteredInvoices" :key="index">
+                                    <tr v-for="invoice in filteredInvoices" :key="invoice.id">
                                         <td style="white-space:nowrap; max-width:120px; overflow:hidden; text-overflow:ellipsis;">{{ invoice.type_document }}</td>
                                         <td style="white-space:nowrap;">{{ invoice.month }}</td>
                                         <td style="max-width:180px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">{{ invoice.supplier.name }}</td>
