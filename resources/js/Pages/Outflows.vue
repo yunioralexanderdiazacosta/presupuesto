@@ -125,7 +125,7 @@ function openCard(outflow) {
       machinery_id: '',
       product_name: outflow.product,
       unit_name: outflow.unit,
-      quantity: '',
+      quantity: outflow.stock, // Inicializa cantidad con el stock
       cost_center_ids: [],
       observations: ''
     });
@@ -534,7 +534,7 @@ watch(selectedGroupings, (newVals) => {
                                 if (Number(selected.quantity) > stock) selected.quantity = stock;
                               "
                             />
-                            <small v-if="Number(selected.quantity) > ((outflows.data.find(o => (o.invoice_product_id === selected.invoice_product_id || o.credit_debit_note_item_id === selected.credit_debit_note_item_id))?.stock) || 1)" class="text-danger">No puede exceder el stock disponible</small>
+                            <small v-if="Number(selected.quantity) > ((outflows.data.find(o => (o.invoice_product_id === selected.invoice_product_id || o.credit_debit_note_itemId === selected.credit_debit_note_item_id))?.stock) || 1)" class="text-danger">No puede exceder el stock disponible</small>
                           </div>
                           <div class="col-12 col-md-2">
                             <label class="form-label">Proyecto</label>
