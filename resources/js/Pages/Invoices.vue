@@ -152,8 +152,7 @@ const onFilter = () => {
                 </div>
 
                 <div class="tab-content border p-3 mt-3" id="pill-myTabContent">
-                    <div class="tab-pane fade show active" id="pill-tab-resumen" role="tabpanel"
-                        aria-labelledby="resumen-tab">
+                        <div class="tab-pane fade show active" id="pill-tab-resumen" role="tabpanel" aria-labelledby="resumen-tab">
                         <div class="row align-items-center mb-3">
                             <div class="col-md-6 col-12 mb-2 mb-md-0">
                                 <SearchInput v-model="term" placeholder="Buscar por proveedor, número, razón social..."

@@ -92,7 +92,11 @@ const totalPorMes = computed(() => {
   filteredDocuments.value.forEach(doc => {
     const mes = getMes(doc.mes_contable);
     if (mes && totales.hasOwnProperty(mes)) {
-      totales[mes] += Number(doc.monto_total);
+      if (doc.tipo === 'credito' || doc.tipo === 'Crédito') {
+        totales[mes] -= Number(doc.monto_total);
+      } else {
+        totales[mes] += Number(doc.monto_total);
+      }
     }
   });
   return totales;
@@ -185,28 +189,30 @@ function formatFecha(fecha) {
               <table class="table table-bordered table-striped table-hover table-sm fs-10 mb-0">
                 <thead class="table-primary">
                   <tr>
-                    <th>Tipo</th>
-                    <th>Razón Social</th>
-                    <th>Mes Contable</th>
-                    <th>Fecha</th>
-                    <th>N° Doc</th>
-                    <th style="max-width:180px; min-width:120px; width:160px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">Proveedor</th>
+                    <th style="max-width:100px; min-width:100px; width:0px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">Tipo</th>
+                    <th style="max-width:100px; min-width:100px; width:100px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">Razón Social</th>
+                    <th style="max-width:100px; min-width:100px; width:100px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">Mes Contable</th>
+                    <th style="max-width:100px; min-width:100px; width:100px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">Fecha</th>
+                    <th style="max-width:100px; min-width:100px; width:100px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">N° Doc</th>
+                    <th style="max-width:200px; min-width:200px; width:200px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">Proveedor</th>
                     <th class="text-end">Monto Total</th>
                   </tr>
                 </thead>
                 <tbody>
                   <tr v-for="(doc, idx) in filteredDocuments" :key="idx">
-                    <td>
+                    <td style="max-width:70px; min-width:50px; width:60px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">
                       <span v-if="doc.tipo === 'debito' || doc.tipo === 'Débito'" class="badge bg-secondary">Débito</span>
                       <span v-else-if="doc.tipo === 'credito' || doc.tipo === 'Crédito'" class="badge bg-success">Crédito</span>
                       <span v-else class="badge bg-primary">{{ doc.tipo }}</span>
                     </td>
-                    <td class="text-lowercase">{{ doc.razon_social }}</td>
-                    <td>{{ doc.mes_contable }}</td>
-                    <td>{{ doc.fecha }}</td>
-                    <td>{{ doc.n_doc }}</td>
-                    <td style="max-width:180px; min-width:120px; width:160px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">{{ doc.proveedor }}</td>
-                    <td class="text-end">{{ formatNumber(doc.monto_total, 0) }}</td>
+                    <td class="text-lowercase" style="max-width:100px; min-width:100px; width:100px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">{{ doc.razon_social }}</td>
+                    <td style="max-width:100px; min-width:100px; width:100px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">{{ doc.mes_contable }}</td>
+                    <td style="max-width:100px; min-width:100px; width:100px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">{{ doc.fecha }}</td>
+                    <td style="max-width:100px; min-width:100px; width:100px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">{{ doc.n_doc }}</td>
+                    <td style="max-width:200px; min-width:200px; width:200px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">{{ doc.proveedor }}</td>
+                    <td class="text-end" :class="(doc.tipo === 'credito' || doc.tipo === 'Crédito') ? 'text-danger' : ''">
+                      {{ (doc.tipo === 'credito' || doc.tipo === 'Crédito') ? '-' + formatNumber(doc.monto_total, 0) : formatNumber(doc.monto_total, 0) }}
+                    </td>
                   </tr>
                 </tbody>
                 <tfoot>
@@ -241,8 +247,10 @@ function formatFecha(fecha) {
                     <td>{{ formatFecha(doc.fecha) }}</td>
                     <td>{{ doc.n_doc }}</td>
                     <td style="max-width:180px; min-width:120px; width:160px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">{{ doc.proveedor }}</td>
-                    <td v-for="mes in mesesPivot" :key="'pivot-cell-' + mes + '-' + idx" class="text-end">
-                      <span v-if="getMes(doc.mes_contable) === mes">{{ formatNumber(doc.monto_total, 0) }}</span>
+                    <td v-for="mes in mesesPivot" :key="'pivot-cell-' + mes + '-' + idx" :class="(doc.tipo === 'credito' || doc.tipo === 'Crédito') ? 'text-danger text-end' : 'text-end'">
+                      <span v-if="getMes(doc.mes_contable) === mes">
+                        {{ (doc.tipo === 'credito' || doc.tipo === 'Crédito') ? '-' + formatNumber(doc.monto_total, 0) : formatNumber(doc.monto_total, 0) }}
+                      </span>
                     </td>
                   </tr>
                 </tbody>

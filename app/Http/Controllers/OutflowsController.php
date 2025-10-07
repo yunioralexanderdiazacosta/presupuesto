@@ -99,20 +99,21 @@ class OutflowsController extends Controller
                         ];
                     })->values();
                 }
-                    $rows[] = [
-                        'origen'            => $invoice->typeDocument?->name ?? 'factura',
-                        'document_id'       => $invoice->id,
-                        'number_document'   => $invoice->number_document,
-                        'supplier'          => $invoice->supplier->name ?? '-',
-                        'product'           => $invoiceProduct->product->name ?? '-',
-                        'unit'              => $invoiceProduct->product->unit->name ?? '-',
-                        'quantity'          => $cantidadOriginal,
-                        'invoice_product_id'=> $invoiceProduct->id,
-                        'stock'             => $stockLinea,
-                        'has_credit_note'   => ($devuelto > 0),
-                        'credit_note_info'  => $creditNoteInfo,
+                        $rows[] = [
+                            'origen'            => $invoice->typeDocument?->name ?? 'factura',
+                            'document_id'       => $invoice->id,
+                            'number_document'   => $invoice->number_document,
+                            'supplier'          => $invoice->supplier->name ?? '-',
+                            'product'           => $invoiceProduct->product->name ?? '-',
+                            'unit'              => $invoiceProduct->product->unit->name ?? '-',
+                            'quantity'          => $cantidadOriginal,
+                            'invoice_product_id'=> $invoiceProduct->id,
+                            'unit_price'        => $invoiceProduct->unit_price ?? null,
+                            'stock'             => $stockLinea,
+                            'has_credit_note'   => ($devuelto > 0),
+                            'credit_note_info'  => $creditNoteInfo,
                             'mes_contable'      => $invoice->month?->name ?? '',
-                    ];
+                        ];
             }
         }
 
@@ -190,13 +191,24 @@ class OutflowsController extends Controller
         ])
             ->where('team_id', $user->team_id)
             ->where('season_id', $season_id)
-            ->orderByDesc('date')
-            ->take(100)
+            ->orderByDesc('id')
+            ->take(1000)
             ->get()
             ->map(function($outflow) {
                 return [
                     'id' => $outflow->id,
-                    'date' => $outflow->date,
+                    'date' => $outflow->date ? 
+                        \Carbon\Carbon::parse($outflow->date)->format('d-m-Y') : '',
+                    'number_document' => $outflow->invoiceProduct
+                        ? ($outflow->invoiceProduct->invoice->number_document ?? '')
+                        : ($outflow->creditDebitNoteItem
+                            ? ($outflow->creditDebitNoteItem->creditDebitNote->number_document ?? '')
+                            : ''),
+                    'supplier' => $outflow->invoiceProduct
+                        ? ($outflow->invoiceProduct->invoice->supplier->name ?? '')
+                        : ($outflow->creditDebitNoteItem
+                            ? ($outflow->creditDebitNoteItem->creditDebitNote->supplier->name ?? '')
+                            : ''),
                     'project' => $outflow->project->name ?? '',
                     'operation' => $outflow->operation->name ?? '',
                     'machinery' => $outflow->machinery ? trim($outflow->machinery->cod_machinery . ' - ' . $outflow->machinery->brand) : '',
@@ -207,6 +219,9 @@ class OutflowsController extends Controller
                             ? ($outflow->creditDebitNoteItem->product->name ?? '')
                             : ''),
                     'quantity' => $outflow->quantity,
+                    'unit_price' => $outflow->invoiceProduct
+                        ? ($outflow->invoiceProduct->unit_price ?? null)
+                        : null,
                     'notes' => $outflow->notes,
                     'cost_centers' => $outflow->costCenters->map(function($cc) {
                         return [

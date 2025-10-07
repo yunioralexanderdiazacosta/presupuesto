@@ -1,4 +1,72 @@
 <script setup>
+// Suma el total de la columna 'Total' en la tabla de edición
+const totalEdicion = computed(() => {
+  if (!filteredOutflowDetails.value.length) return 0;
+  return filteredOutflowDetails.value.reduce((sum, outflow) => {
+    let val = outflow.unit_price * outflow.quantity;
+    return sum + (isNaN(val) ? 0 : val);
+  }, 0);
+});
+
+const totalEdicionFormatted = computed(() => {
+  return new Intl.NumberFormat('es-ES', { style: 'decimal', minimumFractionDigits: 0, maximumFractionDigits: 2 }).format(totalEdicion.value);
+});
+const termEdicion = ref("");
+
+const filteredOutflowDetails = computed(() => {
+  if (!props.outflowDetails || !props.outflowDetails.length) return [];
+  if (!termEdicion.value) return props.outflowDetails;
+  const search = termEdicion.value.toLowerCase();
+  return props.outflowDetails.filter((item) => {
+    const proveedor = item.supplier ? item.supplier.toLowerCase() : "";
+    const numero = item.number_document ? String(item.number_document).toLowerCase() : "";
+    const producto = item.product_name ? item.product_name.toLowerCase() : (item.product ? item.product.toLowerCase() : "");
+    const proyecto = item.project ? item.project.toLowerCase() : "";
+    const operacion = item.operation ? item.operation.toLowerCase() : "";
+    const maquinaria = item.machinery ? item.machinery.toLowerCase() : "";
+    return (
+      proveedor.includes(search) ||
+      numero.includes(search) ||
+      producto.includes(search) ||
+      proyecto.includes(search) ||
+      operacion.includes(search) ||
+      maquinaria.includes(search)
+    );
+  });
+});
+// Convierte los centros de costo en string para exportar a Excel
+const outflowsExcelData = computed(() => {
+  const formatPrecio = (val) => {
+    if (val === undefined || val === null || val === '') return '';
+    const num = Number(val);
+    if (isNaN(num)) return '';
+    const sinDecimales = num % 1 === 0;
+    return sinDecimales
+      ? num.toLocaleString('es-ES')
+      : num.toLocaleString('es-ES', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  };
+  return props.outflowDetails.map(outflow => {
+    const precioUnit = formatPrecio(outflow.unit_price);
+    const cantidad = Number(outflow.quantity);
+    const precioNum = Number(outflow.unit_price);
+    let total = '';
+    if (!isNaN(precioNum) && !isNaN(cantidad)) {
+      const t = precioNum * cantidad;
+      total = t % 1 === 0
+        ? t.toLocaleString('es-ES')
+        : t.toLocaleString('es-ES', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    }
+    return {
+      ...outflow,
+      centros_costo: Array.isArray(outflow.cost_centers)
+        ? outflow.cost_centers.map(cc => cc.name + (cc.observations ? ' (' + cc.observations + ')' : '')).join(', ')
+        : '',
+      precio_unitario: precioUnit,
+      total: total
+    };
+  });
+});
+import ExportExcelButton from '@/Components/ExportExcelButton.vue';
 import { ref, watch, getCurrentInstance, computed } from 'vue';
 import { Link, Head, router } from '@inertiajs/vue3';
 import axios from 'axios';
@@ -369,29 +437,83 @@ watch(selectedGroupings, (newVals) => {
                 <div class="col-6 col-sm-auto d-flex align-items-center pe-0">
                   <h5 class="fs-9 mb-0 text-nowrap py-2 py-xl-0"><i class="fas fa-dolly text-primary me-2"></i>Informacion de Salidas</h5>
                 </div>
+               
             </div>
          </div>
             <div class="card-body bg-body-tertiary">
-                  <ul class="nav nav-pills" id="pill-myTab" role="tablist">
-                <li class="nav-item"><a class="nav-link active" id="pill-edicion" data-bs-toggle="tab" href="#pill-tab-edicion" role="tab" aria-controls="pill-tab-edicion" aria-selected="true">Edición</a></li>
-                <li class="nav-item"><a class="nav-link" id="pill-salidas" data-bs-toggle="tab" href="#pill-tab-salidas" role="tab" aria-controls="pill-tab-salidas" aria-selected="false">Salidas</a></li>
-                <li class="nav-item"><a class="nav-link" id="pill-gastos" data-bs-toggle="tab" href="#pill-tab-gastos" role="tab" aria-controls="pill-tab-gastos" aria-selected="false">kjhyuass</a></li>
-                 <li class="nav-item"><a class="nav-link" id="pill-detalles-compra" data-bs-toggle="tab" href="#pill-tab-detalles-compra" role="tab" aria-controls="pill-tab-detalles-compra" aria-selected="false">kjuh</a></li>
-            </ul>
+                  <div class="row align-items-center mb-2">
+                    <div class="col">
+                      <ul class="nav nav-pills" id="pill-myTab" role="tablist">
+                        <li class="nav-item"><a class="nav-link active" id="pill-edicion" data-bs-toggle="tab" href="#pill-tab-edicion" role="tab" aria-controls="pill-tab-edicion" aria-selected="true">Edición</a></li>
+                        <li class="nav-item"><a class="nav-link" id="pill-salidas" data-bs-toggle="tab" href="#pill-tab-salidas" role="tab" aria-controls="pill-tab-salidas" aria-selected="false">Disponible para Salida</a></li>
+                        <li class="nav-item"><a class="nav-link" id="pill-gastos" data-bs-toggle="tab" href="#pill-tab-gastos" role="tab" aria-controls="pill-tab-gastos" aria-selected="false">kjhyuass</a></li>
+                        <li class="nav-item"><a class="nav-link" id="pill-detalles-compra" data-bs-toggle="tab" href="#pill-tab-detalles-compra" role="tab" aria-controls="pill-tab-detalles-compra" aria-selected="false">kjuh</a></li>
+                      </ul>
+                    </div>
+                    <div class="col-auto text-end">
+                      <div class="card h-100 p-1 small-card">
+                        <div class="card-header pb-0 pt-1 px-2">
+                          <h6 class="mb-0 mt-1 fs-10 d-flex align-items-center small-card-title">Total Neto Salidas</h6>
+                        </div>
+                        <div class="card-body d-flex flex-column justify-content-end py-1 px-2">
+                          <p class="font-sans-serif lh-1 mb-1 fs-10 small-card-number">
+                            {{ totalEdicionFormatted }}
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+             
             <div class="tab-content border p-3 mt-3" id="pill-myTabContent">
                
                   <div class="tab-pane fade show active" id="pill-tab-edicion" role="tabpanel" aria-labelledby="pill-edicion">
-                    <div class="table-responsive mb-4" style="max-height:340px;overflow-y:auto;">
-                      <table class="table table-bordered table-striped table-hover table-sm fs-10 mb-0">
+                    <div class="row align-items-center mb-2">
+                      <div class="col">
+                        <SearchInput v-model="termEdicion" placeholder="Buscar por proveedor, producto, documento..." />
+                      </div>
+                      <div class="col-auto text-end">
+                        <ExportExcelButton
+                          :data="outflowsExcelData"
+                          :headers="[
+                            { label: 'Fecha', key: 'date' },
+                            { label: 'N° Doc', key: 'number_document' },
+                            { label: 'Proveedor', key: 'supplier' },
+                            { label: 'Producto', key: 'product' },
+                            { label: 'Precio Unitario', key: 'precio_unitario' },
+                            { label: 'Total', key: 'total' },
+                            { label: 'Proyecto', key: 'project' },
+                            { label: 'Operación', key: 'operation' },
+                            { label: 'Maquinaria', key: 'machinery' },
+                            { label: 'Cantidad', key: 'quantity', type: 'number' },
+                            { label: 'Notas', key: 'notes' },
+                            { label: 'Usuario', key: 'user' },
+                            { label: 'Centros de Costo', key: 'centros_costo' }
+                          ]"
+                          filename="salidas.xlsx"
+                          class="btn btn-light-primary me-3"
+                        >
+                          <span class="svg-icon svg-icon-2"></span>
+                          Exportar Excel
+                        </ExportExcelButton>
+                      </div>
+                    </div>
+           
+                    <div class="table-responsive mb-4" style="max-height:450px;overflow-y:auto; overflow-x:auto; width:100%;">
+                      <table class="table table-bordered table-striped table-hover table-sm mb-0 tabla-edicion-small">
+
                         <thead class="table-primary">
                           <tr>
+                            <th>ID</th>
                             <th>Fecha</th>
-                            <th>Producto</th> <!-- Nueva columna -->
+                            <th>N° Doc</th>
+                            <th style="max-width:140px; min-width:100px; width:140px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">Proveedor</th>
+                            <th>Producto</th>
+                            <th>Precio Unitario</th>
                             <th>Proyecto</th>
                             <th>Operación</th>
                             <th>Maquinaria</th>
-                            
                             <th>Cantidad</th>
+                            <th>Total</th>
                             <th>Notas</th>
                             <th>Centros de Costo</th>
                             <th>Usuario</th>
@@ -399,14 +521,48 @@ watch(selectedGroupings, (newVals) => {
                           </tr>
                         </thead>
                         <tbody>
-                          <tr v-for="outflow in props.outflowDetails" :key="outflow.id">
+                          <tr v-for="outflow in filteredOutflowDetails" :key="outflow.id">
+                            <td>{{ outflow.id }}</td>
                             <td>{{ outflow.date }}</td>
-                             <td>{{ outflow.product_name || outflow.product || '-' }}</td> <!-- Mostrar producto -->
+                            <td>{{ outflow.number_document || '-' }}</td>
+                            <td style="max-width:140px; min-width:100px; width:140px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">{{ outflow.supplier || '-' }}</td>
+                            <td>{{ outflow.product_name || outflow.product || '-' }}</td>
+                            <td>
+                              <span v-if="outflow.unit_price !== undefined && outflow.unit_price !== null">
+                                {{
+                                  (() => {
+                                    const num = Number(outflow.unit_price);
+                                    if (isNaN(num)) return '-';
+                                    const sinDecimales = num % 1 === 0;
+                                    return sinDecimales
+                                      ? num.toLocaleString('es-ES')
+                                      : num.toLocaleString('es-ES', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+                                  })()
+                                }}
+                              </span>
+                              <span v-else>-</span>
+                            </td>
                             <td>{{ outflow.project || '-' }}</td>
                             <td>{{ outflow.operation }}</td>
                             <td>{{ outflow.machinery || '-' }}</td>
-                         
                             <td>{{ (+outflow.quantity).toFixed(2) }}</td>
+                            <td>
+                              <span v-if="outflow.unit_price !== undefined && outflow.unit_price !== null && outflow.quantity !== undefined && outflow.quantity !== null">
+                                {{
+                                  (() => {
+                                    const precio = Number(outflow.unit_price);
+                                    const cantidad = Number(outflow.quantity);
+                                    if (isNaN(precio) || isNaN(cantidad)) return '-';
+                                    const total = precio * cantidad;
+                                    const sinDecimales = total % 1 === 0;
+                                    return sinDecimales
+                                      ? total.toLocaleString('es-ES')
+                                      : total.toLocaleString('es-ES', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+                                  })()
+                                }}
+                              </span>
+                              <span v-else>-</span>
+                            </td>
                             <td>{{ outflow.notes }}</td>
                             <td>
                               <ul class="mb-0 ps-3">
@@ -631,10 +787,10 @@ watch(selectedGroupings, (newVals) => {
                 </div>
                     <!-- Fin cards -->
                   </div>
-              
+               </div>
               </div>
             </div>
-        </div>
+       
        </AppLayout>
        <OutflowEditModal
         :show="showEditModal"
@@ -740,6 +896,8 @@ textarea::placeholder {
 
 /* Fuente más pequeña para la tabla de edición */
 #pill-tab-edicion .table {
-  font-size: 0.72rem !important;
+  font-size: 0.62rem !important;
 }
+
+
 </style>
