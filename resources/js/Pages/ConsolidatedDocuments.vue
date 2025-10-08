@@ -1,4 +1,7 @@
 <script setup>
+const totalConsolidado = computed(() => {
+  return totalNetoFacturas.value + totalNetoND.value - totalNetoNC.value;
+});
 import AppLayout from '@/Layouts/AppLayout.vue';
 import CardHeader from '@/Components/CardHeader.vue';
 import SearchInput from '@/Components/SearchInput.vue';
@@ -154,7 +157,7 @@ function formatFecha(fecha) {
               </div>
             </div>
             <div class="row mb-3">
-              <div class="col-md-4 col-12 mb-2">
+              <div class="col-md-3 col-12 mb-2">
                 <div class="card h-100 p-1 small-card">
                   <div class="card-header pb-0 pt-1 px-2">
                     <h6 class="mb-0 mt-1 fs-10 d-flex align-items-center small-card-title">Total Neto Facturas</h6>
@@ -164,7 +167,7 @@ function formatFecha(fecha) {
                   </div>
                 </div>
               </div>
-              <div class="col-md-4 col-12 mb-2">
+              <div class="col-md-3 col-12 mb-2">
                 <div class="card h-100 p-1 small-card">
                   <div class="card-header pb-0 pt-1 px-2">
                     <h6 class="mb-0 mt-1 fs-10 d-flex align-items-center small-card-title">Total Neto ND</h6>
@@ -174,13 +177,23 @@ function formatFecha(fecha) {
                   </div>
                 </div>
               </div>
-              <div class="col-md-4 col-12 mb-2">
+              <div class="col-md-3 col-12 mb-2">
                 <div class="card h-100 p-1 small-card">
                   <div class="card-header pb-0 pt-1 px-2">
                     <h6 class="mb-0 mt-1 fs-10 d-flex align-items-center small-card-title">Total Neto NC</h6>
                   </div>
                   <div class="card-body d-flex flex-column justify-content-end py-1 px-2">
                     <p class="font-sans-serif lh-1 mb-1 fs-10 small-card-number">{{ formatSimple(totalNetoNC) }}</p>
+                  </div>
+                </div>
+              </div>
+              <div class="col-md-3 col-12 mb-2">
+                <div class="card h-100 p-1 small-card">
+                  <div class="card-header pb-0 pt-1 px-2">
+                    <h6 class="mb-0 mt-1 fs-10 d-flex align-items-center small-card-title">Total Consolidado</h6>
+                  </div>
+                  <div class="card-body d-flex flex-column justify-content-end py-1 px-2">
+                    <p class="font-sans-serif lh-1 mb-1 fs-10 small-card-number">{{ formatSimple(totalConsolidado) }}</p>
                   </div>
                 </div>
               </div>

@@ -63,6 +63,15 @@ class OutflowsController extends Controller
         $rows = [];
         foreach ($invoices as $invoice) {
             foreach ($invoice->invoiceProducts as $invoiceProduct) {
+                // Omitir si está asociada a una nota de crédito
+                $hasCreditNote = DB::table('credit_debit_note_items')
+                    ->join('credit_debit_notes', 'credit_debit_note_items.credit_debit_note_id', '=', 'credit_debit_notes.id')
+                    ->where('credit_debit_notes.type', 'credito')
+                    ->where('credit_debit_note_items.invoice_product_id', $invoiceProduct->id)
+                    ->exists();
+                if ($hasCreditNote) {
+                    continue;
+                }
                 if ($term && stripos($invoice->number_document, $term) === false) {
                     continue;
                 }
@@ -99,21 +108,21 @@ class OutflowsController extends Controller
                         ];
                     })->values();
                 }
-                        $rows[] = [
-                            'origen'            => $invoice->typeDocument?->name ?? 'factura',
-                            'document_id'       => $invoice->id,
-                            'number_document'   => $invoice->number_document,
-                            'supplier'          => $invoice->supplier->name ?? '-',
-                            'product'           => $invoiceProduct->product->name ?? '-',
-                            'unit'              => $invoiceProduct->product->unit->name ?? '-',
-                            'quantity'          => $cantidadOriginal,
-                            'invoice_product_id'=> $invoiceProduct->id,
-                            'unit_price'        => $invoiceProduct->unit_price ?? null,
-                            'stock'             => $stockLinea,
-                            'has_credit_note'   => ($devuelto > 0),
-                            'credit_note_info'  => $creditNoteInfo,
-                            'mes_contable'      => $invoice->month?->name ?? '',
-                        ];
+                $rows[] = [
+                    'origen'            => $invoice->typeDocument?->name ?? 'factura',
+                    'document_id'       => $invoice->id,
+                    'number_document'   => $invoice->number_document,
+                    'supplier'          => $invoice->supplier->name ?? '-',
+                    'product'           => $invoiceProduct->product->name ?? '-',
+                    'unit'              => $invoiceProduct->product->unit->name ?? '-',
+                    'quantity'          => $cantidadOriginal,
+                    'invoice_product_id'=> $invoiceProduct->id,
+                    'unit_price'        => $invoiceProduct->unit_price ?? null,
+                    'stock'             => $stockLinea,
+                    'has_credit_note'   => ($devuelto > 0),
+                    'credit_note_info'  => $creditNoteInfo,
+                    'mes_contable'      => $invoice->month?->name ?? '',
+                ];
             }
         }
 
@@ -153,7 +162,7 @@ class OutflowsController extends Controller
     // Paginación manual (mostrar todas las filas sin límite)
     $page = $request->input('page', 1);
     // Ajustar perPage al total de filas para no limitar los resultados
-    $perPage = count($rows);
+    $perPage = max(1, count($rows));
         $paginated = new \Illuminate\Pagination\LengthAwarePaginator(
             array_slice($rows, ($page - 1) * $perPage, $perPage),
             count($rows),
