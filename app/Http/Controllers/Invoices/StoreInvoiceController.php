@@ -34,7 +34,13 @@ class StoreInvoiceController extends Controller
                 'month_id'          => $request->month_id,
             ]);
 
-            $invoice->products()->sync($this->products($request->products));
+            foreach ($this->products($request->products) as $productAttach) {
+                $invoice->products()->attach($productAttach['product_id'], [
+                    'unit_price'   => $productAttach['unit_price'],
+                    'amount'       => $productAttach['amount'],
+                    'observations' => $productAttach['observations'],
+                ]);
+            }
         });
     }
 
@@ -58,7 +64,8 @@ class StoreInvoiceController extends Controller
                 ]);
                 $prodId = $newProduct->id;
             }
-            $data[$prodId] = [
+            $data[] = [
+                'product_id'   => $prodId,
                 'unit_price'   => $item['unit_price'],
                 'amount'       => $item['amount'],
                 'observations' => $item['observations'],

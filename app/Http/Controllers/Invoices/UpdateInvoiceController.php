@@ -22,7 +22,16 @@ class UpdateInvoiceController extends Controller
         $invoice->due_date          = $request->due_date;
         $invoice->save();
 
-        $invoice->products()->sync($this->products($request->products));
+        // Eliminar productos actuales
+        $invoice->products()->detach();
+        // Agregar cada línea de producto
+        foreach ($this->products($request->products) as $productAttach) {
+            $invoice->products()->attach($productAttach['product_id'], [
+                'unit_price'   => $productAttach['unit_price'],
+                'amount'       => $productAttach['amount'],
+                'observations' => $productAttach['observations'],
+            ]);
+        }
     }
 
     public function products($products)
@@ -45,7 +54,8 @@ class UpdateInvoiceController extends Controller
                 ]);
                 $prodId = $newProduct->id;
             }
-            $data[$prodId] = [
+            $data[] = [
+                'product_id'   => $prodId,
                 'unit_price'   => $item['unit_price'],
                 'amount'       => $item['amount'],
                 'observations' => $item['observations'],

@@ -39,10 +39,14 @@ class InvoicesController extends Controller
                 'type_document'     => $invoice->typeDocument ? $invoice->typeDocument->name : null,
                 'month'             => $invoice->month ? $invoice->month->name : null,
                 'number_document'   => $invoice->number_document,
-                'products'          => $invoice->products->map(function($p){
+                'products'          => $invoice->invoiceProducts->map(function($ip){
                                             return [
-                                                'id' => $p->id,
-                                                'product_name' => $p->name
+                                                'id'           => $ip->id,
+                                                'product_id'   => $ip->product_id,
+                                                'product_name' => $ip->product ? $ip->product->name : null,
+                                                'unit_price'   => $ip->unit_price,
+                                                'amount'       => $ip->amount,
+                                                'observations' => $ip->observations,
                                             ];
                                         }),
                 'total'             => $this->get_total($invoice)

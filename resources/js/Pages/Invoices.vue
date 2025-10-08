@@ -215,16 +215,10 @@ const onFilter = () => {
                                         <td style="white-space:nowrap;">
                                             <span v-if="invoice.products && invoice.products.length">
                                                 <span v-if="invoice.products.length <= 2">
-                                                    <span v-for="(prod, idx) in invoice.products" :key="prod.id || idx">
-                                                        {{ prod.product_name }}<span v-if="idx < invoice.products.length - 1">, </span>
-                                                    </span>
+                                                    {{ invoice.products.map(p => p.product_name).join(', ') }}
                                                 </span>
                                                 <span v-else>
-                                                    <span
-                                                        v-tooltip="invoice.products.map(p => p.product_name).join(', ')"
-                                                    >
-                                                        {{ invoice.products[0].product_name }}, {{ invoice.products[1].product_name }} y {{ invoice.products.length - 2 }} más
-                                                    </span>
+                                                    {{ invoice.products[0].product_name }}, {{ invoice.products[1].product_name }} y {{ invoice.products.length - 2 }} más
                                                 </span>
                                             </span>
                                             <span v-else class="text-muted">—</span>
