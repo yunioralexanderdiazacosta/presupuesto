@@ -206,8 +206,17 @@ class OutflowsController extends Controller
             ->map(function($outflow) {
                 return [
                     'id' => $outflow->id,
-                    'date' => $outflow->date ? 
-                        \Carbon\Carbon::parse($outflow->date)->format('d-m-Y') : '',
+                    'date' => $outflow->date ? \Carbon\Carbon::parse($outflow->date)->format('d-m-Y') : '',
+                    'fecha_factura' => $outflow->invoiceProduct
+                        ? ($outflow->invoiceProduct->invoice->date ? \Carbon\Carbon::parse($outflow->invoiceProduct->invoice->date)->format('d-m-Y') : '')
+                        : ($outflow->creditDebitNoteItem
+                            ? ($outflow->creditDebitNoteItem->creditDebitNote->date ? \Carbon\Carbon::parse($outflow->creditDebitNoteItem->creditDebitNote->date)->format('d-m-Y') : '')
+                            : ''),
+                    'mes_contable' => $outflow->invoiceProduct
+                        ? ($outflow->invoiceProduct->invoice->month?->name ?? '')
+                        : ($outflow->creditDebitNoteItem
+                            ? ($outflow->creditDebitNoteItem->creditDebitNote->month?->name ?? '')
+                            : ''),
                     'number_document' => $outflow->invoiceProduct
                         ? ($outflow->invoiceProduct->invoice->number_document ?? '')
                         : ($outflow->creditDebitNoteItem

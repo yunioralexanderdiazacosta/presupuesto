@@ -512,5 +512,7 @@ Route::middleware([
     Route::put('/fuel-outflows/{fuelOutFlow}', UpdateFuelOutflowController::class)->name('fuel-outflows.update');
     Route::delete('/fuel-outflows/{fuelOutFlow}', DeleteFuelOutflowController::class)->name('fuel-outflows.delete');
 
-    Route::get('/consolidated-documents', [ConsolidatedDocumentsController::class, 'index'])->name('consolidated-documents.index');
+    // Consolidated Documents
+    Route::get('/consolidated-documents', [ConsolidatedDocumentsController::class, 'index'])
+    ->name('consolidated-documents.index');
 });

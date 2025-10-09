@@ -32,7 +32,7 @@ class InvoicesController extends Controller
         ->through(function($invoice){
             return [
                 'id'                => $invoice->id,
-                'date'              => $invoice->date,
+                'date'              => $invoice->date ? \Carbon\Carbon::parse($invoice->date)->format('d-m-Y') : null,
                 'due_date'          => $invoice->due_date,
                 'supplier'          => $invoice->supplier,
                 'companyReason'     => $invoice->companyReason,

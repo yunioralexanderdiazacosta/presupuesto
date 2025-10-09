@@ -498,15 +498,17 @@ watch(selectedGroupings, (newVals) => {
                       </div>
                     </div>
            
-                    <div class="table-responsive mb-4" style="max-height:450px;overflow-y:auto; overflow-x:auto; width:100%;">
-                      <table class="table table-bordered table-striped table-hover table-sm mb-0 tabla-edicion-small">
+                    <div class="table-responsive mb-4" style="max-height:450px; overflow-y:auto; overflow-x:auto; width:100%;">
+                      <table class="table table-bordered table-striped table-hover table-sm mb-0 tabla-edicion-small" style="min-width:1600px;">
 
                         <thead class="table-primary">
                           <tr>
                             <th>ID</th>
-                            <th>Fecha</th>
+                            <th>Fecha dig.</th>
                             <th>N° Doc</th>
                             <th style="max-width:140px; min-width:100px; width:140px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">Proveedor</th>
+                            <th>Fecha factura</th>
+                            <th>Mes contable</th>
                             <th>Producto</th>
                             <th>Precio Unitario</th>
                             <th>Proyecto</th>
@@ -523,9 +525,11 @@ watch(selectedGroupings, (newVals) => {
                         <tbody>
                           <tr v-for="outflow in filteredOutflowDetails" :key="outflow.id">
                             <td>{{ outflow.id }}</td>
-                            <td>{{ outflow.date }}</td>
+                            <td>{{ outflow.date || '-' }}</td>
                             <td>{{ outflow.number_document || '-' }}</td>
                             <td style="max-width:140px; min-width:100px; width:140px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">{{ outflow.supplier || '-' }}</td>
+                            <td>{{ outflow.fecha_factura || '-' }}</td>
+                            <td>{{ outflow.mes_contable || '-' }}</td>
                             <td>{{ outflow.product_name || outflow.product || '-' }}</td>
                             <td>
                               <span v-if="outflow.unit_price !== undefined && outflow.unit_price !== null">

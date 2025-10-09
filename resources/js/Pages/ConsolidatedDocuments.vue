@@ -82,10 +82,8 @@ const mesesPivot = [
   'Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'
 ];
 function getMes(mesContable) {
-  // mesContable en formato 'YYYY-MM', devuelve nombre del mes
-  if (!mesContable) return '';
-  const mesNum = Number(mesContable.split('-')[1]);
-  return mesesPivot[mesNum - 1] || '';
+  // mesContable ya es el nombre del mes
+  return mesContable || '';
 }
 
 // Calcular total por mes para el pivot
@@ -105,18 +103,8 @@ const totalPorMes = computed(() => {
   return totales;
 });
 function formatFecha(fecha) {
-  // fecha en formato 'DD-MM-YYYY' o 'YYYY-MM-DD'
-  if (!fecha) return '';
-  let parts = fecha.split('-');
-  if (parts.length === 3) {
-    // Si viene como 'DD-MM-YYYY', usar MM-YYYY
-    return parts[1] + '-' + parts[2];
-  }
-  if (parts.length === 2) {
-    // Si viene como 'YYYY-MM', usar MM-YYYY
-    return parts[1] + '-' + parts[0];
-  }
-  return fecha;
+  // Mostrar la fecha tal como viene del backend
+  return fecha || '';
 }
 </script>
 
@@ -163,7 +151,7 @@ function formatFecha(fecha) {
                     <h6 class="mb-0 mt-1 fs-10 d-flex align-items-center small-card-title">Total Neto Facturas</h6>
                   </div>
                   <div class="card-body d-flex flex-column justify-content-end py-1 px-2">
-                    <p class="font-sans-serif lh-1 mb-1 fs-10 small-card-number">{{ formatSimple(totalNetoFacturas) }}</p>
+                    <p class="font-sans-serif lh-1 mb-1 fs-10 small-card-number">{{ formatNumber(totalNetoFacturas, 0) }}</p>
                   </div>
                 </div>
               </div>
@@ -173,7 +161,7 @@ function formatFecha(fecha) {
                     <h6 class="mb-0 mt-1 fs-10 d-flex align-items-center small-card-title">Total Neto ND</h6>
                   </div>
                   <div class="card-body d-flex flex-column justify-content-end py-1 px-2">
-                    <p class="font-sans-serif lh-1 mb-1 fs-10 small-card-number">{{ formatSimple(totalNetoND) }}</p>
+                    <p class="font-sans-serif lh-1 mb-1 fs-10 small-card-number">{{ formatNumber(totalNetoND, 0) }}</p>
                   </div>
                 </div>
               </div>
@@ -183,7 +171,7 @@ function formatFecha(fecha) {
                     <h6 class="mb-0 mt-1 fs-10 d-flex align-items-center small-card-title">Total Neto NC</h6>
                   </div>
                   <div class="card-body d-flex flex-column justify-content-end py-1 px-2">
-                    <p class="font-sans-serif lh-1 mb-1 fs-10 small-card-number">{{ formatSimple(totalNetoNC) }}</p>
+                    <p class="font-sans-serif lh-1 mb-1 fs-10 small-card-number">{{ formatNumber(totalNetoNC, 0) }}</p>
                   </div>
                 </div>
               </div>
@@ -193,7 +181,7 @@ function formatFecha(fecha) {
                     <h6 class="mb-0 mt-1 fs-10 d-flex align-items-center small-card-title">Total Consolidado</h6>
                   </div>
                   <div class="card-body d-flex flex-column justify-content-end py-1 px-2">
-                    <p class="font-sans-serif lh-1 mb-1 fs-10 small-card-number">{{ formatSimple(totalConsolidado) }}</p>
+                    <p class="font-sans-serif lh-1 mb-1 fs-10 small-card-number">{{ formatNumber(totalConsolidado, 0) }}</p>
                   </div>
                 </div>
               </div>
