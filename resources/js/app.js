@@ -4,6 +4,8 @@ import '../css/app.css';
 import 'sweetalert2/dist/sweetalert2.min.css';
 
 
+
+
 import { createApp, h } from 'vue';
 import { createInertiaApp } from '@inertiajs/vue3';
 import { resolvePageComponent } from 'laravel-vite-plugin/inertia-helpers';
@@ -13,6 +15,7 @@ import rolesAndPermissions from './plugin';
 import FloatingVue from 'floating-vue';
 import 'floating-vue/dist/style.css';
 import PrimeVue from 'primevue/config'
+
 // import InputText from 'primevue/inputtext'
 // import Slider from 'primevue/slider'
 // import de tema global eliminado para PrimeVue 4.x modular

@@ -1,4 +1,45 @@
 <script setup>
+// Estado para ordenamiento con flechas CSS
+const sortBy = ref('id');
+const sortDesc = ref(false);
+function setSort(field) {
+  if (sortBy.value === field) {
+    sortDesc.value = !sortDesc.value;
+  } else {
+    sortBy.value = field;
+    sortDesc.value = false;
+  }
+}
+const sortedOutflowDetails = computed(() => {
+  const arr = [...filteredOutflowDetails.value];
+  arr.sort((a, b) => {
+    let aVal = a[sortBy.value];
+    let bVal = b[sortBy.value];
+    // Ordenar correctamente por producto
+    if (sortBy.value === 'product_name') {
+      aVal = (a.product_name || a.product || '').toLowerCase();
+      bVal = (b.product_name || b.product || '').toLowerCase();
+    }
+    if (sortBy.value === 'unit_price' || sortBy.value === 'quantity') {
+      aVal = Number(aVal);
+      bVal = Number(bVal);
+    }
+    if (sortBy.value === 'total') {
+      aVal = Number(a.unit_price) * Number(a.quantity);
+      bVal = Number(b.unit_price) * Number(b.quantity);
+    }
+    if (sortDesc.value) {
+      return aVal < bVal ? 1 : aVal > bVal ? -1 : 0;
+    }
+    return aVal > bVal ? 1 : aVal < bVal ? -1 : 0;
+  });
+  return arr;
+});
+const sortClass = (field) => ({
+  sortable: true,
+  'sorted-asc': sortBy.value === field && !sortDesc.value,
+  'sorted-desc': sortBy.value === field && sortDesc.value,
+});
 // Suma el total de la columna 'Total' en la tabla de edición
 const totalEdicion = computed(() => {
   if (!filteredOutflowDetails.value.length) return 0;
@@ -36,33 +77,18 @@ const filteredOutflowDetails = computed(() => {
 });
 // Convierte los centros de costo en string para exportar a Excel
 const outflowsExcelData = computed(() => {
-  const formatPrecio = (val) => {
-    if (val === undefined || val === null || val === '') return '';
-    const num = Number(val);
-    if (isNaN(num)) return '';
-    const sinDecimales = num % 1 === 0;
-    return sinDecimales
-      ? num.toLocaleString('es-ES')
-      : num.toLocaleString('es-ES', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-  };
   return props.outflowDetails.map(outflow => {
-    const precioUnit = formatPrecio(outflow.unit_price);
-    const cantidad = Number(outflow.quantity);
     const precioNum = Number(outflow.unit_price);
-    let total = '';
-    if (!isNaN(precioNum) && !isNaN(cantidad)) {
-      const t = precioNum * cantidad;
-      total = t % 1 === 0
-        ? t.toLocaleString('es-ES')
-        : t.toLocaleString('es-ES', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-    }
+    const cantidad = Number(outflow.quantity);
+    const totalNum = (!isNaN(precioNum) && !isNaN(cantidad)) ? precioNum * cantidad : '';
+    
     return {
       ...outflow,
       centros_costo: Array.isArray(outflow.cost_centers)
         ? outflow.cost_centers.map(cc => cc.name + (cc.observations ? ' (' + cc.observations + ')' : '')).join(', ')
         : '',
-      precio_unitario: precioUnit,
-      total: total
+      precio_unitario: isNaN(precioNum) ? '' : precioNum,
+      total: totalNum
     };
   });
 });
@@ -503,31 +529,31 @@ watch(selectedGroupings, (newVals) => {
 
                         <thead class="table-primary">
                           <tr>
-                            <th>ID</th>
-                            <th>Fecha dig.</th>
-                            <th>N° Doc</th>
-                            <th style="max-width:140px; min-width:100px; width:140px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">Proveedor</th>
-                            <th>Fecha factura</th>
-                            <th>Mes contable</th>
-                            <th>Producto</th>
-                            <th>Precio Unitario</th>
-                            <th>Proyecto</th>
-                            <th>Operación</th>
-                            <th>Maquinaria</th>
-                            <th>Cantidad</th>
-                            <th>Total</th>
-                            <th>Notas</th>
-                            <th>Centros de Costo</th>
-                            <th>Usuario</th>
+                            <th @click="setSort('id')" :class="sortClass('id')">ID</th>
+                            <th @click="setSort('date')" :class="sortClass('date')">Fecha dig.</th>
+                            <th @click="setSort('number_document')" :class="sortClass('number_document')">N° Doc</th>
+                            <th @click="setSort('supplier')" :class="sortClass('supplier')">Proveedor</th>
+                            <th @click="setSort('fecha_factura')" :class="sortClass('fecha_factura')">Fecha factura</th>
+                            <th @click="setSort('mes_contable')" :class="sortClass('mes_contable')">Mes contable</th>
+                            <th @click="setSort('product_name')" :class="sortClass('product_name')">Producto</th>
+                            <th @click="setSort('unit_price')" :class="sortClass('unit_price')">Precio Unitario</th>
+                            <th @click="setSort('project')" :class="sortClass('project')">Proyecto</th>
+                            <th @click="setSort('operation')" :class="sortClass('operation')">Operación</th>
+                            <th @click="setSort('machinery')" :class="sortClass('machinery')">Maquinaria</th>
+                            <th @click="setSort('quantity')" :class="sortClass('quantity')">Cantidad</th>
+                            <th @click="setSort('total')" :class="sortClass('total')">Total</th>
+                            <th @click="setSort('notes')" :class="sortClass('notes')">Notas</th>
+                            <th @click="setSort('centros_costo')" :class="sortClass('centros_costo')">Centros de Costo</th>
+                            <th @click="setSort('user')" :class="sortClass('user')">Usuario</th>
                             <th class="text-center">Acciones</th>
                           </tr>
                         </thead>
                         <tbody>
-                          <tr v-for="outflow in filteredOutflowDetails" :key="outflow.id">
+                          <tr v-for="outflow in sortedOutflowDetails" :key="outflow.id">
                             <td>{{ outflow.id }}</td>
                             <td>{{ outflow.date || '-' }}</td>
                             <td>{{ outflow.number_document || '-' }}</td>
-                            <td style="max-width:140px; min-width:100px; width:140px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">{{ outflow.supplier || '-' }}</td>
+                            <td class="td-supplier">{{ outflow.supplier || '-' }}</td>
                             <td>{{ outflow.fecha_factura || '-' }}</td>
                             <td>{{ outflow.mes_contable || '-' }}</td>
                             <td>{{ outflow.product_name || outflow.product || '-' }}</td>
@@ -898,9 +924,65 @@ textarea::placeholder {
 	box-shadow: 0 2px 8px 0 rgba(44,123,229,0.10);
 }
 
+
 /* Fuente más pequeña para la tabla de edición */
 #pill-tab-edicion .table {
   font-size: 0.62rem !important;
+}
+/* Header fijo para todas las tablas de Outflows */
+.table-responsive, .outflows-table-scroll {
+  max-height: 450px;
+  overflow-y: auto;
+  overflow-x: auto;
+  width: 100%;
+}
+th {
+  position: sticky;
+  top: 0;
+  background: #f8f9fa;
+  z-index: 2;
+  white-space: nowrap;
+}
+.td-supplier {
+  max-width:140px;
+  min-width:100px;
+  width:140px;
+  white-space:nowrap;
+  overflow:hidden;
+  text-overflow:ellipsis;
+}
+/* Header fijo para todas las tablas de Outflows */
+.table-responsive, .outflows-table-scroll {
+  max-height: 450px;
+  overflow-y: auto;
+  overflow-x: auto;
+  width: 100%;
+}
+th {
+  position: sticky;
+  top: 0;
+  background: #f8f9fa;
+  z-index: 2;
+}
+/* Estilos para columnas ordenables */
+.sortable {
+  position: relative;
+  cursor: pointer;
+}
+.sortable:after {
+  content: '\25B2'; /* triángulo hacia arriba por defecto */
+  position: absolute;
+  right: 8px;
+  font-size: 0.6rem;
+  opacity: 0.3;
+}
+.sorted-asc:after {
+  content: '\25B2'; /* triángulo hacia arriba */
+  opacity: 1;
+}
+.sorted-desc:after {
+  content: '\25BC'; /* triángulo hacia abajo */
+  opacity: 1;
 }
 
 

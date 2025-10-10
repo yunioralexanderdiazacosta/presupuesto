@@ -54,8 +54,23 @@ class ProductsController extends Controller
         $term = $request->term ?? '';
 
         $products = Product::when($request->term, function ($query, $search) {
-            $query->where('name', 'like', '%'.$search.'%');
-        })->with('unit','level2','level3' )->where('team_id', $user->team_id)->paginate(10000)->withQueryString();
+            $query->where(function($q) use ($search) {
+                $q->where('name', 'like', '%'.$search.'%')
+                  ->orWhereHas('unit', function($q) use ($search) {
+                      $q->where('name', 'like', '%'.$search.'%');
+                  })
+                  ->orWhereHas('level2', function($q) use ($search) {
+                      $q->where('name', 'like', '%'.$search.'%');
+                  })
+                  ->orWhereHas('level3', function($q) use ($search) {
+                      $q->where('name', 'like', '%'.$search.'%');
+                  });
+            });
+        })
+        ->with('unit','level2','level3')
+        ->where('team_id', $user->team_id)
+        ->paginate(5000)
+        ->withQueryString();
 
         return Inertia::render('Products', compact('units', 'level1s', 'level2s','level3s', 'products', 'term'));
     }

@@ -1,5 +1,6 @@
 <script setup>
 import { computed, ref } from "vue";
+import { onMounted } from "vue";
 import { Link, router, Head, usePage, useForm } from "@inertiajs/vue3";
 import Swal from "sweetalert2";
 import AppLayout from "@/Layouts/AppLayout.vue";
@@ -7,6 +8,8 @@ import Table from "@/Components/Table.vue";
 import Empty from "@/Components/Empty.vue";
 import Breadcrumb from "@/Components/Breadcrumb.vue";
 import SearchInput from "@/Components/SearchInput.vue";
+
+import ExportExcelButton from '@/Components/ExportExcelButton.vue';
 
 const props = defineProps({
     invoices: Object,
@@ -16,6 +19,10 @@ const props = defineProps({
 const title = "Facturas";
 
 const term = ref(props.term || "");
+
+// Estado para ordenamiento
+const sortBy = ref('number_document');
+const sortDesc = ref(false);
 
 // Filtrado local de facturas
 const filteredInvoices = computed(() => {
@@ -41,6 +48,53 @@ const filteredInvoices = computed(() => {
     });
 });
 
+// Ordena las facturas filtradas
+const sortedInvoices = computed(() => {
+    const arr = [...filteredInvoices.value];
+    arr.sort((a, b) => {
+        let aVal = a[sortBy.value];
+        let bVal = b[sortBy.value];
+        // Si es proveedor o razón social, accede al nombre
+        if (sortBy.value === 'supplier') {
+            aVal = a.supplier?.name || '';
+            bVal = b.supplier?.name || '';
+        }
+        if (sortBy.value === 'companyReason') {
+            aVal = a.companyReason?.name || '';
+            bVal = b.companyReason?.name || '';
+        }
+        if (sortBy.value === 'products') {
+            // Usar el primer producto, o concatenar todos para comparar
+            aVal = Array.isArray(a.products) && a.products.length ? a.products.map(p => p.product_name).join(', ').toLowerCase() : '';
+            bVal = Array.isArray(b.products) && b.products.length ? b.products.map(p => p.product_name).join(', ').toLowerCase() : '';
+        }
+        if (sortBy.value === 'total') {
+            aVal = parseFloat(typeof aVal === 'string' ? aVal.replace(/\./g, '').replace(',', '.') : aVal);
+            bVal = parseFloat(typeof bVal === 'string' ? bVal.replace(/\./g, '').replace(',', '.') : bVal);
+        }
+        if (sortDesc.value) {
+            return aVal < bVal ? 1 : aVal > bVal ? -1 : 0;
+        }
+        return aVal > bVal ? 1 : aVal < bVal ? -1 : 0;
+    });
+    return arr;
+});
+
+function setSort(field) {
+    if (sortBy.value === field) {
+        sortDesc.value = !sortDesc.value;
+    } else {
+        sortBy.value = field;
+        sortDesc.value = false;
+    }
+}
+// Genera clases para encabezados ordenables
+const sortClass = (field) => ({
+    sortable: true,
+    'sorted-asc': sortBy.value === field && !sortDesc.value,
+    'sorted-desc': sortBy.value === field && sortDesc.value,
+});
+
 
 // Suma simple de la columna total
 const totalFacturas = computed(() => {
@@ -58,6 +112,25 @@ const totalFacturasFormatted = computed(() => {
     return new Intl.NumberFormat('es-ES', { style: 'decimal', minimumFractionDigits: 0 }).format(totalFacturas.value);
 });
 
+const invoicesExcelData = computed(() => {
+    return filteredInvoices.value.map(invoice => {
+        // Parsear total igual que en la tabla
+        const t = typeof invoice.total === 'string'
+            ? parseFloat(invoice.total.replace(/\./g, '').replace(',', '.'))
+            : Number(invoice.total);
+        const totalNum = isNaN(t) ? '' : t;
+        
+        return {
+            date: invoice.date,
+            number_document: invoice.number_document,
+            supplier: invoice.supplier?.name || '',
+            companyReason: invoice.companyReason?.name || '',
+            productos: Array.isArray(invoice.products) ? invoice.products.map(p => p.product_name).join(', ') : '',
+            total: totalNum,
+            month: invoice.month
+        };
+    });
+});
 const links = [
     { title: "Tablero", link: "dashboard" },
     { title: title, active: true },
@@ -156,26 +229,29 @@ const onFilter = () => {
                 <div class="tab-content border p-3 mt-3" id="pill-myTabContent">
                         <div class="tab-pane fade show active" id="pill-tab-resumen" role="tabpanel" aria-labelledby="resumen-tab">
                         <div class="row align-items-center mb-3">
-                            <div class="col-md-6 col-12 mb-2 mb-md-0">
+                            <div class="col">
                                 <SearchInput v-model="term" placeholder="Buscar por proveedor, número, razón social..."
                                     @keyup.enter="onFilter()" @change="onFilter()" />
                             </div>
-                            <div class="col-md-6 col-12 text-md-end text-start">
-                                <a :href="route('invoices.pdf', { term: term })
-                                    " target="_blank" class="btn btn-light-primary me-3">
-                                    <span class="svg-icon svg-icon-2">
-                                        <!-- ...SVG... -->
-                                    </span>
-                                    Exportar PDF
-                                </a>
-                                <a :href="route('invoices.excel', { term: term })
-                                    " target="_blank" class="btn btn-light-primary me-3">
-                                    <span class="svg-icon svg-icon-2">
-                                        <!-- ...SVG... -->
-                                    </span>
-                                    Exportar Excel
-                                </a>
-                            </div>
+                                                                                     <div class="col-auto text-end">
+                                                                                         <ExportExcelButton
+                                                                                             :data="invoicesExcelData"
+                                                                                             :headers="[
+                                                                                                 { label: 'Fecha', key: 'date' },
+                                                                                                 { label: 'N° Doc', key: 'number_document' },
+                                                                                                 { label: 'Proveedor', key: 'supplier' },
+                                                                                                 { label: 'Razón Social', key: 'companyReason' },
+                                                                                                 { label: 'Producto', key: 'productos' },
+                                                                                                 { label: 'Total', key: 'total' },
+                                                                                                 { label: 'Mes', key: 'month' }
+                                                                                             ]"
+                                                                                             filename="facturas.xlsx"
+                                                                                             class="btn btn-light-primary me-3"
+                                                                                         >
+                                                                                             <span class="svg-icon svg-icon-2"></span>
+                                                                                             Exportar Excel
+                                                                                         </ExportExcelButton>
+                                                                                     </div>
                         </div>
                     </div>
 
@@ -185,26 +261,40 @@ const onFilter = () => {
                             <!--begin::Table head-->
                             <template #header>
                                 <!--begin::Table row-->
-                                <th width="120px" style="white-space:nowrap; max-width:120px; overflow:hidden; text-overflow:ellipsis;">Tipo documento</th>
-                                <th width="min-w-150px" style="white-space:nowrap;">Mes contable</th>
-                                <th width="180px" style="white-space:nowrap;">Proveedor</th>
-                                <th width="min-w-150px" style="white-space:nowrap;">N° Doc</th>
-                                <th width="min-w-150px" style="white-space:nowrap;">Razón Social</th>
-                                <th width="min-w-150px" style="white-space:nowrap;">Fecha</th>
+                                <th width="120px" style="white-space:nowrap; max-width:120px; overflow:hidden; text-overflow:ellipsis" @click="setSort('type_document')" :class="sortClass('type_document')">
+                                    Tipo documento
+                                </th>
+                                <th width="min-w-150px" style="white-space:nowrap" @click="setSort('month')" :class="sortClass('month')">
+                                    Mes contable
+                                </th>
+                                <th width="180px" style="white-space:nowrap" @click="setSort('supplier')" :class="sortClass('supplier')">
+                                    Proveedor
+                                </th>
+                                <th width="min-w-150px" style="white-space:nowrap" @click="setSort('number_document')" :class="sortClass('number_document')">
+                                    N° Doc
+                                </th>
+                                <th width="min-w-150px" style="white-space:nowrap" @click="setSort('companyReason')" :class="sortClass('companyReason')">
+                                    Razón Social
+                                </th>
+                                <th width="min-w-150px" style="white-space:nowrap" @click="setSort('date')" :class="sortClass('date')">
+                                    Fecha
+                                </th>
                                 <th hidden width="min-w-150px" style="white-space:nowrap;">Fecha de Vencimiento</th>
-                                <th width="min-w-200px" style="white-space:nowrap;">Productos</th>
-                                <th width="min-w-150px" class="text-end" style="white-space:nowrap;">Total</th>
+                                <th width="min-w-200px" style="white-space:nowrap;" @click="setSort('products')" :class="sortClass('products')">Productos</th>
+                                <th width="min-w-150px" class="text-end" style="white-space:nowrap" @click="setSort('total')" :class="sortClass('total')">
+                                    Total
+                                </th>
                                 <th width="80px" class="text-end" style="white-space:nowrap;">Acciones</th>
                                 <!--end::Table row-->
                             </template>
                             <!--end::Table head-->
                             <!--begin::Table body-->
                             <template #body>
-                                <template v-if="filteredInvoices.length == 0">
+                                <template v-if="sortedInvoices.length == 0">
                                     <Empty colspan="3" />
                                 </template>
                                 <template v-else>
-                                    <tr v-for="invoice in filteredInvoices" :key="invoice.id">
+                                    <tr v-for="invoice in sortedInvoices" :key="invoice.id">
                                         <td style="white-space:nowrap; max-width:120px; overflow:hidden; text-overflow:ellipsis;">{{ invoice.type_document }}</td>
                                         <td style="white-space:nowrap;">{{ invoice.month }}</td>
                                         <td style="max-width:180px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">{{ invoice.supplier.name }}</td>
@@ -224,10 +314,16 @@ const onFilter = () => {
                                             <span v-else class="text-muted">—</span>
                                         </td>
                                                                                 <td class="text-end">
-                                                                                    {{ typeof invoice.total === 'string'
-                                                                                        ? new Intl.NumberFormat('es-ES', { minimumFractionDigits: 0, maximumFractionDigits: 0 }).format(parseFloat(invoice.total.replace(/\./g, '').replace(',', '.')))
-                                                                                        : new Intl.NumberFormat('es-ES', { minimumFractionDigits: 0, maximumFractionDigits: 0 }).format(invoice.total)
-                                                                                    }}
+                                                                                    {{ (() => {
+                                                                                        const t = typeof invoice.total === 'string'
+                                                                                            ? parseFloat(invoice.total.replace(/\./g, '').replace(',', '.'))
+                                                                                            : Number(invoice.total);
+                                                                                        if (isNaN(t)) return '-';
+                                                                                        const sinDecimales = t % 1 === 0;
+                                                                                        return sinDecimales
+                                                                                            ? t.toLocaleString('es-ES')
+                                                                                            : t.toLocaleString('es-ES', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+                                                                                    })() }}
                                                                                 </td>
                                         <td class="text-end">
                                             <div class="btn-group">
@@ -293,5 +389,25 @@ const onFilter = () => {
 <style>
 .table, .table th, .table td {
   font-size: 0.78rem !important;
+}
+/* Estilos para columnas ordenables */
+.sortable {
+    position: relative;
+    cursor: pointer;
+}
+.sortable:after {
+    content: '\25B2'; /* triángulo hacia arriba por defecto */
+    position: absolute;
+    right: 8px;
+    font-size: 0.6rem;
+    opacity: 0.3;
+}
+.sorted-asc:after {
+    content: '\25B2'; /* triángulo hacia arriba */
+    opacity: 1;
+}
+.sorted-desc:after {
+    content: '\25BC'; /* triángulo hacia abajo */
+    opacity: 1;
 }
 </style>

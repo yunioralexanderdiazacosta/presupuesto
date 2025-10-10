@@ -47,6 +47,24 @@ Este proyecto es un sistema de gestión presupuestaria agrícola desarrollado en
 - El código debe ser limpio, comentado y fácil de mantener.
 - Documentar cualquier lógica especial o excepción en este archivo.
 
+### Exportación a Excel
+- **Formato de datos numéricos**: Al exportar datos a Excel usando el componente `ExportExcelButton`, los valores numéricos (como totales, precios, cantidades) deben exportarse como números puros (sin formatear con `toLocaleString`).
+- **Razón**: Si se exportan como strings formateados, el componente ExportExcelButton los reconvierte y elimina el separador de miles. Al enviar números puros, Excel los formatea automáticamente con separador de miles (coma) según su configuración regional.
+- **Ejemplo correcto**:
+  ```javascript
+  const excelData = computed(() => {
+    return items.value.map(item => {
+      const totalNum = Number(item.total);
+      return {
+        ...item,
+        total: isNaN(totalNum) ? '' : totalNum // Número puro, no formateado
+      };
+    });
+  });
+  ```
+- **En la tabla HTML**: Usar `toLocaleString('es-ES')` para mostrar con punto de miles y coma decimal.
+- **En Excel**: Exportar números puros para que Excel aplique su formato numérico automáticamente.
+
 ## Notas adicionales
 - Si tienes dudas sobre la lógica o reglas, consulta este archivo antes de implementar cambios.
 - Actualiza este archivo si agregas reglas o flujos nuevos.

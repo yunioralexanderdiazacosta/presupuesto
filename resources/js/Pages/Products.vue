@@ -1,5 +1,5 @@
 <script setup>
-import { computed, ref } from 'vue';
+import { computed, ref, watch } from 'vue';
 import SearchInput from '@/Components/SearchInput.vue';
 import ExportExcelButton from '@/Components/ExportExcelButton.vue';
 import ExportPdfButton from '@/Components/ExportPdfButton.vue';
@@ -35,6 +35,15 @@ const title = 'Productos';
 
 // Buscador global para la tabla de productos
 const search = ref("");
+
+// Función para ejecutar la búsqueda cuando se presiona el botón o Enter
+const executeSearch = () => {
+    router.get(route('products.index', { term: search.value || '' }), {
+        preserveState: true,
+        preserveScroll: true,
+        only: ['products']
+    });
+};
 
 const links = [{ title: 'Tablero', link: 'dashboard' }, { title: title, active: true }];
 
@@ -139,23 +148,9 @@ const getLevel4s = (event) => {
 }
 
 
-// Computed para filtrar los productos según el texto de búsqueda
+// Lista de productos directamente desde props (ya filtrados en el backend)
 const filteredProducts = computed(() => {
-    if (!props.products || !props.products.data) return [];
-    if (!search.value) return props.products.data;
-    const term = search.value.toLowerCase();
-    return props.products.data.filter(item => {
-        const name = item.name ? item.name.toLowerCase() : "";
-        const unit = item.unit && item.unit.name ? item.unit.name.toLowerCase() : "";
-        const level2 = item.level2 && item.level2.name ? item.level2.name.toLowerCase() : "";
-        const level3 = item.level3 && item.level3.name ? item.level3.name.toLowerCase() : "";
-        return (
-            name.includes(term) ||
-            unit.includes(term) ||
-            level2.includes(term) ||
-            level3.includes(term)
-        );
-    });
+    return props.products && props.products.data ? props.products.data : [];
 });
 </script>
 <template>
@@ -186,8 +181,22 @@ const filteredProducts = computed(() => {
 
               <div class="card-body bg-body-tertiary pt-2">
                 <div class="tab-content border p-3 mt-3" id="pill-myTabContent">
-                    <div class="d-flex justify-content-between align-items-center gap-1 mb-1">
-                        <SearchInput v-model="search" placeholder="Buscar por nombre, unidad, nivel 2, nivel 3..." />
+                    <div class="d-flex justify-content-between align-items-center gap-2 mb-1">
+                        <div class="d-flex align-items-center gap-2 flex-grow-1">
+                            <SearchInput 
+                                v-model="search" 
+                                placeholder="Buscar por nombre, unidad, nivel 2, nivel 3..." 
+                                @keyup.enter="executeSearch"
+                            />
+                            <button 
+                                @click="executeSearch" 
+                                class="btn btn-falcon-default btn-sm d-flex align-items-center justify-content-center mb-2"
+                                type="button"
+                                style="height: 30px; min-width: 30px;"
+                            >
+                                <i class="fas fa-search"></i>
+                            </button>
+                        </div>
                   
 
                         <div class="d-flex align-items-center gap-1">

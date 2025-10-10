@@ -1,13 +1,48 @@
+
 <script setup>
-const totalConsolidado = computed(() => {
-  return totalNetoFacturas.value + totalNetoND.value - totalNetoNC.value;
-});
 import AppLayout from '@/Layouts/AppLayout.vue';
 import CardHeader from '@/Components/CardHeader.vue';
 import SearchInput from '@/Components/SearchInput.vue';
 import ExportExcelButton from '@/Components/ExportExcelButton.vue';
 import { Head } from '@inertiajs/vue3';
 import { defineProps, ref, computed } from 'vue';
+
+
+// Estado para ordenamiento con flechas CSS
+const sortBy = ref('tipo');
+const sortDesc = ref(false);
+function setSort(field) {
+  if (sortBy.value === field) {
+    sortDesc.value = !sortDesc.value;
+  } else {
+    sortBy.value = field;
+    sortDesc.value = false;
+  }
+}
+const sortedDocuments = computed(() => {
+  const arr = [...filteredDocuments.value];
+  arr.sort((a, b) => {
+    let aVal = a[sortBy.value];
+    let bVal = b[sortBy.value];
+    if (sortBy.value === 'monto_total') {
+      aVal = Number(aVal);
+      bVal = Number(bVal);
+    }
+    if (sortDesc.value) {
+      return aVal < bVal ? 1 : aVal > bVal ? -1 : 0;
+    }
+    return aVal > bVal ? 1 : aVal < bVal ? -1 : 0;
+  });
+  return arr;
+});
+const sortClass = (field) => ({
+  sortable: true,
+  'sorted-asc': sortBy.value === field && !sortDesc.value,
+  'sorted-desc': sortBy.value === field && sortDesc.value,
+});
+const totalConsolidado = computed(() => {
+  return totalNetoFacturas.value + totalNetoND.value - totalNetoNC.value;
+});
 
 
 
@@ -190,17 +225,17 @@ function formatFecha(fecha) {
               <table class="table table-bordered table-striped table-hover table-sm fs-10 mb-0">
                 <thead class="table-primary">
                   <tr>
-                    <th style="max-width:100px; min-width:100px; width:0px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">Tipo</th>
-                    <th style="max-width:100px; min-width:100px; width:100px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">Razón Social</th>
-                    <th style="max-width:100px; min-width:100px; width:100px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">Mes Contable</th>
-                    <th style="max-width:100px; min-width:100px; width:100px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">Fecha</th>
-                    <th style="max-width:100px; min-width:100px; width:100px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">N° Doc</th>
-                    <th style="max-width:200px; min-width:200px; width:200px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">Proveedor</th>
-                    <th class="text-end">Monto Total</th>
+                    <th style="max-width:100px; min-width:100px; width:0px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis" @click="setSort('tipo')" :class="sortClass('tipo')">Tipo</th>
+                    <th style="max-width:100px; min-width:100px; width:100px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis" @click="setSort('razon_social')" :class="sortClass('razon_social')">Razón Social</th>
+                    <th style="max-width:100px; min-width:100px; width:100px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis" @click="setSort('mes_contable')" :class="sortClass('mes_contable')">Mes Contable</th>
+                    <th style="max-width:100px; min-width:100px; width:100px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis" @click="setSort('fecha')" :class="sortClass('fecha')">Fecha</th>
+                    <th style="max-width:100px; min-width:100px; width:100px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis" @click="setSort('n_doc')" :class="sortClass('n_doc')">N° Doc</th>
+                    <th style="max-width:200px; min-width:200px; width:200px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis" @click="setSort('proveedor')" :class="sortClass('proveedor')">Proveedor</th>
+                    <th class="text-end" @click="setSort('monto_total')" :class="sortClass('monto_total')">Monto Total</th>
                   </tr>
                 </thead>
                 <tbody>
-                  <tr v-for="(doc, idx) in filteredDocuments" :key="idx">
+                  <tr v-for="(doc, idx) in sortedDocuments" :key="idx">
                     <td style="max-width:70px; min-width:50px; width:60px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">
                       <span v-if="doc.tipo === 'debito' || doc.tipo === 'Débito'" class="badge bg-secondary">Débito</span>
                       <span v-else-if="doc.tipo === 'credito' || doc.tipo === 'Crédito'" class="badge bg-success">Crédito</span>
@@ -277,6 +312,26 @@ function formatFecha(fecha) {
 }
 .table, .table th, .table td {
   font-size: 0.68rem !important;
+}
+/* Estilos para columnas ordenables */
+.sortable {
+  position: relative;
+  cursor: pointer;
+}
+.sortable:after {
+  content: '\25B2'; /* triángulo hacia arriba por defecto */
+  position: absolute;
+  right: 8px;
+  font-size: 0.6rem;
+  opacity: 0.3;
+}
+.sorted-asc:after {
+  content: '\25B2'; /* triángulo hacia arriba */
+  opacity: 1;
+}
+.sorted-desc:after {
+  content: '\25BC'; /* triángulo hacia abajo */
+  opacity: 1;
 }
 </style>
 
