@@ -12,6 +12,20 @@ const props = defineProps({
             total_count: 0,
             avg_per_outflow: 0
         })
+    },
+    investments: {
+        type: Object,
+        default: () => ({
+            total: 0,
+            count: 0
+        })
+    },
+    expenses: {
+        type: Object,
+        default: () => ({
+            total: 0,
+            count: 0
+        })
     }
 });
 
@@ -82,44 +96,44 @@ const formatCurrency = (amount) => {
                         </div>
                     </div>
 
-                    <!-- Promedio por Outflow Card -->
+                    <!-- Total Inversiones Card -->
                     <div class="col-md-4">
                         <div class="card h-100 border-start border-success border-4">
                             <div class="card-body">
                                 <div class="d-flex align-items-center justify-content-between">
                                     <div>
-                                        <h6 class="text-muted text-uppercase mb-2">Promedio por Registro</h6>
+                                        <h6 class="text-muted text-uppercase mb-2">Total Inversiones</h6>
                                         <h2 class="mb-0 text-success fw-bold">
-                                            {{ formatCurrency(summary?.avg_per_outflow || 0) }}
+                                            {{ formatCurrency(investments?.total || 0) }}
                                         </h2>
                                         <small class="text-muted">
-                                            Por consumo
+                                            {{ formatNumber(investments?.count || 0) }} registros
                                         </small>
                                     </div>
                                     <div class="text-success">
-                                        <i class="fas fa-calculator fa-3x opacity-50"></i>
+                                        <i class="fas fa-hand-holding-usd fa-3x opacity-50"></i>
                                     </div>
                                 </div>
                             </div>
                         </div>
                     </div>
 
-                    <!-- Placeholder para futuras métricas -->
+                    <!-- Total Gastos Card -->
                     <div class="col-md-4">
-                        <div class="card h-100 border-start border-info border-4">
+                        <div class="card h-100 border-start border-warning border-4">
                             <div class="card-body">
                                 <div class="d-flex align-items-center justify-content-between">
                                     <div>
-                                        <h6 class="text-muted text-uppercase mb-2">Próximamente</h6>
-                                        <h2 class="mb-0 text-info fw-bold">
-                                            --
+                                        <h6 class="text-muted text-uppercase mb-2">Total Gastos</h6>
+                                        <h2 class="mb-0 text-warning fw-bold">
+                                            {{ formatCurrency(expenses?.total || 0) }}
                                         </h2>
                                         <small class="text-muted">
-                                            Más métricas próximamente
+                                            {{ formatNumber(expenses?.count || 0) }} registros
                                         </small>
                                     </div>
-                                    <div class="text-info">
-                                        <i class="fas fa-chart-bar fa-3x opacity-50"></i>
+                                    <div class="text-warning">
+                                        <i class="fas fa-receipt fa-3x opacity-50"></i>
                                     </div>
                                 </div>
                             </div>

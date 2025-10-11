@@ -6,6 +6,7 @@ use App\Models\Outflow;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 use Inertia\Inertia;
 
 class OutflowsDashboardController extends Controller
@@ -24,6 +25,8 @@ class OutflowsDashboardController extends Controller
 
         return Inertia::render('OutflowsDashboard', [
             'summary' => $this->getSummary($season_id, $team_id),
+            'investments' => $this->getInvestmentsTotal($season_id, $team_id),
+            'expenses' => $this->getExpensesTotal($season_id, $team_id),
         ]);
     }
 
@@ -58,11 +61,87 @@ class OutflowsDashboardController extends Controller
             ];
         } catch (\Exception $e) {
             // En caso de error, retornar valores por defecto
-            \Log::error('Error en OutflowsDashboard getSummary: ' . $e->getMessage());
+            Log::error('Error en OutflowsDashboard getSummary: ' . $e->getMessage());
             return [
                 'total_amount' => 0,
                 'total_count' => 0,
                 'avg_per_outflow' => 0,
+            ];
+        }
+    }
+
+    private function getInvestmentsTotal($season_id, $team_id)
+    {
+        try {
+            // Obtener outflows que tienen operación "inversion" (case-insensitive)
+            $outflows = Outflow::where('season_id', $season_id)
+                ->where('team_id', $team_id)
+                ->whereHas('operation', function($query) {
+                    $query->whereRaw('LOWER(name) LIKE ?', ['%inversion%']);
+                })
+                ->with(['invoiceProduct', 'creditDebitNoteItem', 'operation'])
+                ->get();
+
+            $totalCount = $outflows->count();
+
+            // Calcular el total sumando quantity × unit_price
+            $totalAmount = $outflows->sum(function($outflow) {
+                if ($outflow->invoice_product_id && $outflow->invoiceProduct) {
+                    return $outflow->quantity * $outflow->invoiceProduct->unit_price;
+                }
+                if ($outflow->credit_debit_note_item_id && $outflow->creditDebitNoteItem) {
+                    return $outflow->quantity * $outflow->creditDebitNoteItem->unit_price;
+                }
+                return 0;
+            });
+
+            return [
+                'total' => floatval($totalAmount ?? 0),
+                'count' => intval($totalCount ?? 0),
+            ];
+        } catch (\Exception $e) {
+            Log::error('Error en OutflowsDashboard getInvestmentsTotal: ' . $e->getMessage());
+            return [
+                'total' => 0,
+                'count' => 0,
+            ];
+        }
+    }
+
+    private function getExpensesTotal($season_id, $team_id)
+    {
+        try {
+            // Obtener outflows que tienen operación "gasto" (case-insensitive)
+            $outflows = Outflow::where('season_id', $season_id)
+                ->where('team_id', $team_id)
+                ->whereHas('operation', function($query) {
+                    $query->whereRaw('LOWER(name) LIKE ?', ['%gasto%']);
+                })
+                ->with(['invoiceProduct', 'creditDebitNoteItem', 'operation'])
+                ->get();
+
+            $totalCount = $outflows->count();
+
+            // Calcular el total sumando quantity × unit_price
+            $totalAmount = $outflows->sum(function($outflow) {
+                if ($outflow->invoice_product_id && $outflow->invoiceProduct) {
+                    return $outflow->quantity * $outflow->invoiceProduct->unit_price;
+                }
+                if ($outflow->credit_debit_note_item_id && $outflow->creditDebitNoteItem) {
+                    return $outflow->quantity * $outflow->creditDebitNoteItem->unit_price;
+                }
+                return 0;
+            });
+
+            return [
+                'total' => floatval($totalAmount ?? 0),
+                'count' => intval($totalCount ?? 0),
+            ];
+        } catch (\Exception $e) {
+            Log::error('Error en OutflowsDashboard getExpensesTotal: ' . $e->getMessage());
+            return [
+                'total' => 0,
+                'count' => 0,
             ];
         }
     }
