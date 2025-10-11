@@ -21,7 +21,7 @@ const onSubmit = () => {
         onSuccess: () => {
             form.reset();
             $('#selectBudgetModal').modal('hide');
-            router.get('dashboard');
+            router.get(route('home'));
         }
     });
 }

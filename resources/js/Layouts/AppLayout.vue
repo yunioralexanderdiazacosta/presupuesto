@@ -61,6 +61,18 @@ const logout = () => {
         <div class="navbar-vertical-content scrollbar">
           <ul class="navbar-nav flex-column mb-3" id="navbarVerticalNav">
 
+      <!-- Inicio para todos los roles -->
+      <li class="nav-item">
+        <Link class="nav-link" :href="route('home')" role="button">
+          <div class="d-flex align-items-center">
+            <span class="nav-link-icon">
+              <span class="fas fa-home"></span>
+            </span>
+            <span class="nav-link-text ps-1">Inicio</span>
+          </div>
+        </Link>
+      </li>
+
       <li class="nav-item" v-role="'Super Admin'">
         <Link class="nav-link" :href="route('dashboard')" role="button">
           <div class="d-flex align-items-center">
@@ -185,11 +197,120 @@ const logout = () => {
                   <!-- more inner pages-->
                 </li>
               </ul>
-              <!-- parent pages--><a class="nav-link dropdown-indicator" href="#user" role="button" data-bs-toggle="collapse" aria-expanded="true" aria-controls="user">
+              <!-- parent pages--><a class="nav-link dropdown-indicator" href="#pricing" role="button" data-bs-toggle="collapse" aria-expanded="true" aria-controls="pricing">
+                <div class="d-flex align-items-center"><span class="nav-link-icon"><span class="fas fa-tags"></span></span><span class="nav-link-text text-dark ps-1">Gestión</span>
+                </div>
+              </a>
+              <ul class="nav collapse show" id="pricing">
+
+                  <li class="nav-item">
+                  <a class="nav-link dropdown-indicator" href="#documents" data-bs-toggle="collapse" aria-expanded="false" aria-controls="documents">
+                    <div class="d-flex align-items-center">
+                      <span class="nav-link-text ps-3">Registro de Gastos</span>
+                    </div>
+                  </a>
+                  <ul class="nav collapse" id="documents">
+                    <li class="nav-item">
+                      <Link class="nav-link" :href="route('invoices.index')">
+                        <div class="d-flex align-items-center"><span class="nav-link-text ps-4">Facturas y otros</span></div>
+                      </Link>
+                    </li>
+                    <li class="nav-item">
+                      <Link class="nav-link" :href="route('consolidated-documents.index')">
+                        <div class="d-flex align-items-center"><span class="nav-link-text ps-4">Consolidado de Documentos</span></div>
+                      </Link>
+                    </li>
+                    <li class="nav-item">
+                      <Link class="nav-link" :href="route('credit_debit_notes.index')">
+                        <div class="d-flex align-items-center"><span class="nav-link-text ps-4">Notas de Crédito/Débito</span></div>
+                      </Link>
+                    </li>
+                   
+                  </ul>
+                </li>
+
+                    <li class="nav-item">
+                      <Link class="nav-link" :href="route('investments.index')">
+                        <div class="d-flex align-items-center">
+                          <span class="nav-link-text ps-3">Inversiones</span>
+                        </div>
+                      </Link>
+                    </li>
+                    <li class="nav-item">
+                      <a class="nav-link dropdown-indicator" href="#outflows" data-bs-toggle="collapse" aria-expanded="false" aria-controls="outflows">
+                        <div class="d-flex align-items-center">
+                          <span class="nav-link-text ps-3">Salidas</span>
+                        </div>
+                      </a>
+                      <ul class="nav collapse" id="outflows">
+                        <li class="nav-item">
+                          <Link class="nav-link" :href="route('outflows.index')">
+                            <div class="d-flex align-items-center">
+                              <span class="nav-link-text ps-4">Consumos Gral.</span>
+                            </div>
+                          </Link>
+                        </li>
+                        <li class="nav-item">
+                          <Link class="nav-link" :href="route('fuel-outflows.index')">
+                            <div class="d-flex align-items-center">
+                              <span class="nav-link-text ps-4">Combustible Maquinaria</span>
+                            </div>
+                          </Link>
+                        </li>
+                      </ul>
+                    </li>
+                    <li class="nav-item">
+                      <Link class="nav-link" :href="route('outflows.dashboard')">
+                        <div class="d-flex align-items-center">
+                          <span class="nav-link-text ps-3">Dashboard Outflows</span>
+                        </div>
+                      </Link>
+                    </li>
+                    <li class="nav-item"><Link class="nav-link" :href="route('estimates.index')">
+                        <div class="d-flex align-items-center"><span class="nav-link-text ps-3">Estimaciones</span>
+                        </div>
+                      </Link>
+                      <!-- more inner pages-->
+                    </li>
+
+                <li class="nav-item"><Link class="nav-link" :href="route('suppliers.index')">
+                    <div class="d-flex align-items-center"><span class="nav-link-text ps-3">Proveedores</span>
+                    </div>
+                  </Link>
+                  <!-- more inner pages-->
+                </li>
+                <li class="nav-item"><Link class="nav-link" :href="route('inventory')">
+                    <div class="d-flex align-items-center"><span class="nav-link-text ps-3">Inventario</span>
+                    </div>
+                  </Link>
+                </li>
+                <li class="nav-item"><Link class="nav-link" :href="route('products.index')">
+                    <div class="d-flex align-items-center"><span class="nav-link-text ps-3">Productos</span>
+                    </div>
+                  </Link>
+                  <!-- more inner pages-->
+                </li>
+                 
+                
+              
+                <li class="nav-item"><Link class="nav-link" :href="route('machineries.index')">
+                    <div class="d-flex align-items-center"><span class="nav-link-text ps-3">Maquinarias</span>
+                    </div>
+                  </Link>
+                  <!-- more inner pages-->
+                </li>
+                <li class="nav-item"><Link class="nav-link" :href="route('type.machineries.index')">
+                    <div class="d-flex align-items-center"><span class="nav-link-text ps-3">Tipo de Maquinarias</span>
+                    </div>
+                  </Link>
+                  <!-- more inner pages-->
+                </li>
+              </ul>
+              <!-- parent pages--><a class="nav-link dropdown-indicator" href="#user" role="button" data-bs-toggle="collapse" aria-expanded="false" aria-controls="user">
                 <div class="d-flex align-items-center"><span class="nav-link-icon"><span class="fas fa-user"></span></span><span class="nav-link-text text-dark ps-1">Parametros</span>
                 </div>
               </a>
-              <ul class="nav collapse show" id="user">
+              <ul class="nav collapse" id="user">
                 <li class="nav-item">
                   <a class="nav-link dropdown-indicator" href="#costcenters" data-bs-toggle="collapse" aria-expanded="false" aria-controls="costcenters">
                     <div class="d-flex align-items-center">
@@ -309,108 +430,6 @@ const logout = () => {
                 </li>
                 <li class="nav-item"><Link class="nav-link" :href="route('faq')">
                     <div class="d-flex align-items-center"><span class="nav-link-text ps-3">FAQ</span>
-                    </div>
-                  </Link>
-                  <!-- more inner pages-->
-                </li>
-              </ul>
-              <!-- parent pages--><a class="nav-link dropdown-indicator" href="#pricing" role="button" data-bs-toggle="collapse" aria-expanded="true" aria-controls="pricing">
-                <div class="d-flex align-items-center"><span class="nav-link-icon"><span class="fas fa-tags"></span></span><span class="nav-link-text text-dark ps-1">Gestión</span>
-                </div>
-              </a>
-              <ul class="nav collapse show" id="pricing">
-
-                  <li class="nav-item">
-                  <a class="nav-link dropdown-indicator" href="#documents" data-bs-toggle="collapse" aria-expanded="false" aria-controls="documents">
-                    <div class="d-flex align-items-center">
-                      <span class="nav-link-text ps-3">Registro de Gastos</span>
-                    </div>
-                  </a>
-                  <ul class="nav collapse" id="documents">
-                    <li class="nav-item">
-                      <Link class="nav-link" :href="route('invoices.index')">
-                        <div class="d-flex align-items-center"><span class="nav-link-text ps-4">Facturas y otros</span></div>
-                      </Link>
-                    </li>
-                    <li class="nav-item">
-                      <Link class="nav-link" :href="route('consolidated-documents.index')">
-                        <div class="d-flex align-items-center"><span class="nav-link-text ps-4">Consolidado de Documentos</span></div>
-                      </Link>
-                    </li>
-                    <li class="nav-item">
-                      <Link class="nav-link" :href="route('credit_debit_notes.index')">
-                        <div class="d-flex align-items-center"><span class="nav-link-text ps-4">Notas de Crédito/Débito</span></div>
-                      </Link>
-                    </li>
-                   
-                  </ul>
-                </li>
-
-                    <li class="nav-item">
-                      <Link class="nav-link" :href="route('investments.index')">
-                        <div class="d-flex align-items-center">
-                          <span class="nav-link-text ps-3">Inversiones</span>
-                        </div>
-                      </Link>
-                    </li>
-                    <li class="nav-item">
-                      <a class="nav-link dropdown-indicator" href="#outflows" data-bs-toggle="collapse" aria-expanded="false" aria-controls="outflows">
-                        <div class="d-flex align-items-center">
-                          <span class="nav-link-text ps-3">Salidas</span>
-                        </div>
-                      </a>
-                      <ul class="nav collapse" id="outflows">
-                        <li class="nav-item">
-                          <Link class="nav-link" :href="route('outflows.index')">
-                            <div class="d-flex align-items-center">
-                              <span class="nav-link-text ps-4">Consumos Gral.</span>
-                            </div>
-                          </Link>
-                        </li>
-                        <li class="nav-item">
-                          <Link class="nav-link" :href="route('fuel-outflows.index')">
-                            <div class="d-flex align-items-center">
-                              <span class="nav-link-text ps-4">Combustible Maquinaria</span>
-                            </div>
-                          </Link>
-                        </li>
-                      </ul>
-                    </li>
-                    <li class="nav-item"><Link class="nav-link" :href="route('estimates.index')">
-                        <div class="d-flex align-items-center"><span class="nav-link-text ps-3">Estimaciones</span>
-                        </div>
-                      </Link>
-                      <!-- more inner pages-->
-                    </li>
-
-                <li class="nav-item"><Link class="nav-link" :href="route('suppliers.index')">
-                    <div class="d-flex align-items-center"><span class="nav-link-text ps-3">Proveedores</span>
-                    </div>
-                  </Link>
-                  <!-- more inner pages-->
-                </li>
-                <li class="nav-item"><Link class="nav-link" :href="route('inventory')">
-                    <div class="d-flex align-items-center"><span class="nav-link-text ps-3">Inventario</span>
-                    </div>
-                  </Link>
-                </li>
-                <li class="nav-item"><Link class="nav-link" :href="route('products.index')">
-                    <div class="d-flex align-items-center"><span class="nav-link-text ps-3">Productos</span>
-                    </div>
-                  </Link>
-                  <!-- more inner pages-->
-                </li>
-                 
-                
-              
-                <li class="nav-item"><Link class="nav-link" :href="route('machineries.index')">
-                    <div class="d-flex align-items-center"><span class="nav-link-text ps-3">Maquinarias</span>
-                    </div>
-                  </Link>
-                  <!-- more inner pages-->
-                </li>
-                <li class="nav-item"><Link class="nav-link" :href="route('type.machineries.index')">
-                    <div class="d-flex align-items-center"><span class="nav-link-text ps-3">Tipo de Maquinarias</span>
                     </div>
                   </Link>
                   <!-- more inner pages-->

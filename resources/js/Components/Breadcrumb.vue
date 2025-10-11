@@ -10,8 +10,8 @@ defineProps({
             <template v-for="(value, index) in links" :key="index">
                 <!--begin::Item-->
                 <li class="breadcrumb-item" :class="{'active': value.active}">
-                    <span v-if="value.active">{{value.title}}</span>
-                    <Link v-else :href="route(value.link, value.params)">{{value.title}}</Link>
+                    <span v-if="value.active || !value.link">{{value.title}}</span>
+                    <Link v-else :href="route(value.link, value.params || {})">{{value.title}}</Link>
                 </li>
                 <!--end::Item-->
             </template>

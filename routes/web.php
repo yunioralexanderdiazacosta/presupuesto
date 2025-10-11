@@ -24,6 +24,7 @@ use App\Http\Controllers\Products2\DeleteProduct2Controller;
 
 use Illuminate\Foundation\Application;
 use Illuminate\Support\Facades\Route;
+use App\Http\Controllers\HomeController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\TechnicalPanelController;
 use App\Http\Controllers\AgrochemicalsController;
@@ -188,6 +189,7 @@ use App\Http\Controllers\Groupings\UpdateGroupingController;
 use App\Http\Controllers\Groupings\DeleteGroupingController;
 use App\Http\Controllers\GroupingsController;
 use App\Http\Controllers\OutflowsController;
+use App\Http\Controllers\OutflowsDashboardController;
 use App\Http\Controllers\Outflows\CreateOutflowController;
 use App\Http\Controllers\Outflows\StoreOutflowController;
 use App\Http\Controllers\Outflows\ShowOutflowController;
@@ -392,6 +394,8 @@ Route::middleware([
     Route::delete('/seasons/{season}/delete', DeleteSeasonController::class)->name('seasons.delete');
 
     Route::middleware(['check.selected.budget'])->group(function () {
+        Route::get('/', HomeController::class)->name('home');
+        Route::get('/home', HomeController::class)->name('home.index');
         Route::get('/dashboard', DashboardController::class)->name('dashboard');
         Route::get('/technicalpanel', TechnicalPanelController::class)->name('technicalpanel');
 
@@ -495,6 +499,9 @@ Route::middleware([
     Route::get('/outflows/{outflow}/edit', EditOutflowController::class)->name('outflows.edit');
     Route::put('/outflows/{outflow}', UpdateOutflowController::class)->name('outflows.update');
     Route::delete('/outflows/{outflow}', DeleteOutflowController::class)->name('outflows.delete');
+
+    // Dashboard de Outflows
+    Route::get('/outflows-dashboard', [OutflowsDashboardController::class, 'index'])->name('outflows.dashboard');
 
     // Inventario
     Route::get('/inventory', [\App\Http\Controllers\InventoryController::class, 'index'])->name('inventory');
