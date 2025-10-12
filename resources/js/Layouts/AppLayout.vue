@@ -262,7 +262,7 @@ const logout = () => {
                     <li class="nav-item">
                       <Link class="nav-link" :href="route('outflows.dashboard')">
                         <div class="d-flex align-items-center">
-                          <span class="nav-link-text ps-3">Dashboard Outflows</span>
+                          <span class="nav-link-text ps-3">Dashboard Gestión</span>
                         </div>
                       </Link>
                     </li>

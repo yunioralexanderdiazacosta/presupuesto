@@ -2,6 +2,8 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\CreditDebitNote;
+use App\Models\Invoice;
 use App\Models\Outflow;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -27,6 +29,9 @@ class OutflowsDashboardController extends Controller
             'summary' => $this->getSummary($season_id, $team_id),
             'investments' => $this->getInvestmentsTotal($season_id, $team_id),
             'expenses' => $this->getExpensesTotal($season_id, $team_id),
+            'invoices' => $this->getInvoicesTotal($season_id, $team_id),
+            'creditNotes' => $this->getCreditNotesTotal($season_id, $team_id),
+            'debitNotes' => $this->getDebitNotesTotal($season_id, $team_id),
         ]);
     }
 
@@ -139,6 +144,101 @@ class OutflowsDashboardController extends Controller
             ];
         } catch (\Exception $e) {
             Log::error('Error en OutflowsDashboard getExpensesTotal: ' . $e->getMessage());
+            return [
+                'total' => 0,
+                'count' => 0,
+            ];
+        }
+    }
+
+    private function getInvoicesTotal($season_id, $team_id)
+    {
+        try {
+            // Obtener todas las facturas con sus productos
+            $invoices = Invoice::where('season_id', $season_id)
+                ->where('team_id', $team_id)
+                ->with('invoiceProducts')
+                ->get();
+
+            $totalCount = $invoices->count();
+
+            // Calcular el total sumando unit_price × amount de cada producto
+            $totalAmount = $invoices->sum(function($invoice) {
+                return $invoice->invoiceProducts->sum(function($product) {
+                    return $product->unit_price * $product->amount;
+                });
+            });
+
+            return [
+                'total' => floatval($totalAmount ?? 0),
+                'count' => intval($totalCount ?? 0),
+            ];
+        } catch (\Exception $e) {
+            Log::error('Error en OutflowsDashboard getInvoicesTotal: ' . $e->getMessage());
+            return [
+                'total' => 0,
+                'count' => 0,
+            ];
+        }
+    }
+
+    private function getCreditNotesTotal($season_id, $team_id)
+    {
+        try {
+            // Obtener todas las notas de crédito con sus items
+            $notes = CreditDebitNote::where('season_id', $season_id)
+                ->where('team_id', $team_id)
+                ->where('type', 'credito')
+                ->with('items')
+                ->get();
+
+            $totalCount = $notes->count();
+
+            // Calcular el total sumando quantity × unit_price de cada item
+            $totalAmount = $notes->sum(function($note) {
+                return $note->items->sum(function($item) {
+                    return $item->quantity * $item->unit_price;
+                });
+            });
+
+            return [
+                'total' => floatval($totalAmount ?? 0),
+                'count' => intval($totalCount ?? 0),
+            ];
+        } catch (\Exception $e) {
+            Log::error('Error en OutflowsDashboard getCreditNotesTotal: ' . $e->getMessage());
+            return [
+                'total' => 0,
+                'count' => 0,
+            ];
+        }
+    }
+
+    private function getDebitNotesTotal($season_id, $team_id)
+    {
+        try {
+            // Obtener todas las notas de débito con sus items
+            $notes = CreditDebitNote::where('season_id', $season_id)
+                ->where('team_id', $team_id)
+                ->where('type', 'debito')
+                ->with('items')
+                ->get();
+
+            $totalCount = $notes->count();
+
+            // Calcular el total sumando quantity × unit_price de cada item
+            $totalAmount = $notes->sum(function($note) {
+                return $note->items->sum(function($item) {
+                    return $item->quantity * $item->unit_price;
+                });
+            });
+
+            return [
+                'total' => floatval($totalAmount ?? 0),
+                'count' => intval($totalCount ?? 0),
+            ];
+        } catch (\Exception $e) {
+            Log::error('Error en OutflowsDashboard getDebitNotesTotal: ' . $e->getMessage());
             return [
                 'total' => 0,
                 'count' => 0,

@@ -26,6 +26,27 @@ const props = defineProps({
             total: 0,
             count: 0
         })
+    },
+    invoices: {
+        type: Object,
+        default: () => ({
+            total: 0,
+            count: 0
+        })
+    },
+    creditNotes: {
+        type: Object,
+        default: () => ({
+            total: 0,
+            count: 0
+        })
+    },
+    debitNotes: {
+        type: Object,
+        default: () => ({
+            total: 0,
+            count: 0
+        })
     }
 });
 
@@ -52,6 +73,14 @@ const formatCurrency = (amount) => {
         maximumFractionDigits: 0
     }).format(amount);
 };
+
+// Calcular total de compras: Facturas + Crédito - Débito
+const totalCompras = computed(() => {
+    const facturas = props.invoices?.total || 0;
+    const credito = props.creditNotes?.total || 0;
+    const debito = props.debitNotes?.total || 0;
+    return facturas + debito - credito;
+});
 </script>
 
 <template>
@@ -60,36 +89,42 @@ const formatCurrency = (amount) => {
         <Breadcrumb :links="links" />
         
         <div class="card mb-3 mt-2">
-            <div class="card-header">
+            <div class="card-header py-2">
                 <div class="row flex-between-end">
                     <div class="col-auto align-self-center">
-                        <h5 class="fs-9 mb-0 text-nowrap py-2 py-xl-0">
+                        <h6 class="mb-0 text-nowrap">
                             <i class="fas fa-chart-line text-primary me-2"></i>
-                            Dashboard de Análisis de Consumos
-                        </h5>
+                            Dashboard de Análisis de Consumos y Facturación.
+                        </h6>
                     </div>
                 </div>
             </div>
 
-            <div class="card-body bg-body-tertiary">
-                <!-- KPI Cards -->
-                <div class="row g-3 mb-4">
+            <div class="card-body bg-body-tertiary py-3">
+                <!-- Título Sección Consumos -->
+                <h6 class="text-secondary mb-2 d-flex align-items-center">
+                    <i class="fas fa-chart-line me-2 fs-8"></i>
+                    <span>Análisis de Consumos</span>
+                </h6>
+
+                <!-- KPI Cards Fila 1: Consumos -->
+                <div class="row g-2 mb-2">
                     <!-- Total Outflows Card -->
                     <div class="col-md-4">
-                        <div class="card h-100 border-start border-primary border-4">
-                            <div class="card-body">
+                        <div class="card h-100 border-start border-primary border-3">
+                            <div class="card-body py-2 px-3">
                                 <div class="d-flex align-items-center justify-content-between">
                                     <div>
-                                        <h6 class="text-muted text-uppercase mb-2">Total Consumido</h6>
-                                        <h2 class="mb-0 text-primary fw-bold">
+                                        <small class="text-muted text-uppercase d-block mb-1">Total Consumido</small>
+                                        <h4 class="mb-0 text-primary fw-bold">
                                             {{ formatCurrency(summary?.total_amount || 0) }}
-                                        </h2>
-                                        <small class="text-muted">
+                                        </h4>
+                                        <small class="text-muted fs-10">
                                             {{ formatNumber(summary?.total_count || 0) }} registros
                                         </small>
                                     </div>
                                     <div class="text-primary">
-                                        <i class="fas fa-money-bill-wave fa-3x opacity-50"></i>
+                                        <i class="fas fa-money-bill-wave fa-2x opacity-50"></i>
                                     </div>
                                 </div>
                             </div>
@@ -98,20 +133,20 @@ const formatCurrency = (amount) => {
 
                     <!-- Total Inversiones Card -->
                     <div class="col-md-4">
-                        <div class="card h-100 border-start border-success border-4">
-                            <div class="card-body">
+                        <div class="card h-100 border-start border-primary border-3">
+                            <div class="card-body py-2 px-3">
                                 <div class="d-flex align-items-center justify-content-between">
                                     <div>
-                                        <h6 class="text-muted text-uppercase mb-2">Total Inversiones</h6>
-                                        <h2 class="mb-0 text-success fw-bold">
+                                        <small class="text-muted text-uppercase d-block mb-1">Total Inversiones</small>
+                                        <h4 class="mb-0 text-primary fw-bold">
                                             {{ formatCurrency(investments?.total || 0) }}
-                                        </h2>
-                                        <small class="text-muted">
+                                        </h4>
+                                        <small class="text-muted fs-10">
                                             {{ formatNumber(investments?.count || 0) }} registros
                                         </small>
                                     </div>
-                                    <div class="text-success">
-                                        <i class="fas fa-hand-holding-usd fa-3x opacity-50"></i>
+                                    <div class="text-primary">
+                                        <i class="fas fa-hand-holding-usd fa-2x opacity-50"></i>
                                     </div>
                                 </div>
                             </div>
@@ -120,20 +155,124 @@ const formatCurrency = (amount) => {
 
                     <!-- Total Gastos Card -->
                     <div class="col-md-4">
-                        <div class="card h-100 border-start border-warning border-4">
-                            <div class="card-body">
+                        <div class="card h-100 border-start border-primary border-3">
+                            <div class="card-body py-2 px-3">
                                 <div class="d-flex align-items-center justify-content-between">
                                     <div>
-                                        <h6 class="text-muted text-uppercase mb-2">Total Gastos</h6>
-                                        <h2 class="mb-0 text-warning fw-bold">
+                                        <small class="text-muted text-uppercase d-block mb-1">Total Gastos</small>
+                                        <h4 class="mb-0 text-primary fw-bold">
                                             {{ formatCurrency(expenses?.total || 0) }}
-                                        </h2>
-                                        <small class="text-muted">
+                                        </h4>
+                                        <small class="text-muted fs-10">
                                             {{ formatNumber(expenses?.count || 0) }} registros
                                         </small>
                                     </div>
-                                    <div class="text-warning">
-                                        <i class="fas fa-receipt fa-3x opacity-50"></i>
+                                    <div class="text-primary">
+                                        <i class="fas fa-receipt fa-2x opacity-50"></i>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Separador -->
+                <div class="row mb-2">
+                    <div class="col-12">
+                        <hr class="my-1 opacity-25">
+                    </div>
+                </div>
+
+                <!-- Título Sección Compras -->
+                <h6 class="text-secondary mb-2 d-flex align-items-center">
+                    <i class="fas fa-shopping-cart me-2 fs-8"></i>
+                    <span>Detalle de Compras</span>
+                </h6>
+
+                <!-- KPI Cards Fila 2: Compras -->
+                <div class="row g-2 mb-3">
+                    <!-- Total Facturas Card -->
+                    <div class="col-md-3">
+                        <div class="card h-100 border-start border-success border-3">
+                            <div class="card-body py-2 px-3">
+                                <div class="d-flex align-items-center justify-content-between">
+                                    <div>
+                                        <small class="text-muted text-uppercase d-block mb-1">Total Facturas</small>
+                                        <h4 class="mb-0 text-success fw-bold">
+                                            {{ formatCurrency(invoices?.total || 0) }}
+                                        </h4>
+                                        <small class="text-muted fs-10">
+                                            {{ formatNumber(invoices?.count || 0) }} facturas
+                                        </small>
+                                    </div>
+                                    <div class="text-success">
+                                        <i class="fas fa-file-invoice-dollar fa-2x opacity-50"></i>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Total Notas de Crédito Card -->
+                    <div class="col-md-3">
+                        <div class="card h-100 border-start border-success border-3">
+                            <div class="card-body py-2 px-3">
+                                <div class="d-flex align-items-center justify-content-between">
+                                    <div>
+                                        <small class="text-muted text-uppercase d-block mb-1">Notas de Crédito</small>
+                                        <h4 class="mb-0 text-success fw-bold">
+                                            {{ formatCurrency(creditNotes?.total || 0) }}
+                                        </h4>
+                                        <small class="text-muted fs-10">
+                                            {{ formatNumber(creditNotes?.count || 0) }} notas
+                                        </small>
+                                    </div>
+                                    <div class="text-success">
+                                        <i class="fas fa-minus-circle fa-2x opacity-50"></i>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Total Notas de Débito Card -->
+                    <div class="col-md-3">
+                        <div class="card h-100 border-start border-success border-3">
+                            <div class="card-body py-2 px-3">
+                                <div class="d-flex align-items-center justify-content-between">
+                                    <div>
+                                        <small class="text-muted text-uppercase d-block mb-1">Notas de Débito</small>
+                                        <h4 class="mb-0 text-success fw-bold">
+                                            {{ formatCurrency(debitNotes?.total || 0) }}
+                                        </h4>
+                                        <small class="text-muted fs-10">
+                                            {{ formatNumber(debitNotes?.count || 0) }} notas
+                                        </small>
+                                    </div>
+                                    <div class="text-success">
+                                        <i class="fas fa-plus-circle fa-2x opacity-50"></i>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Total Compras Card -->
+                    <div class="col-md-3">
+                        <div class="card h-100 border-start border-success border-3">
+                            <div class="card-body py-2 px-3">
+                                <div class="d-flex align-items-center justify-content-between">
+                                    <div>
+                                        <small class="text-muted text-uppercase d-block mb-1">Total Compras</small>
+                                        <h4 class="mb-0 text-success fw-bold">
+                                            {{ formatCurrency(totalCompras) }}
+                                        </h4>
+                                        <small class="text-muted fs-10">
+                                            Facturas + Crédito - Débito
+                                        </small>
+                                    </div>
+                                    <div class="text-success">
+                                        <i class="fas fa-shopping-cart fa-2x opacity-50"></i>
                                     </div>
                                 </div>
                             </div>
