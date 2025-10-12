@@ -21,6 +21,10 @@ class Product extends Model
         return $this->belongsToMany(Invoice::class);
     }
 
+    public function level1()
+    {
+        return $this->belongsTo(Level1::class);
+    }
 
     public function level2()
     {

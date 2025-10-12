@@ -8,15 +8,18 @@ defineProps({
     total: {
         type: Number,
         default: 0
+    },
+    stickyHeader: {
+        type: Boolean,
+        default: false
     }
 })
 </script>
 <template>
-    <div class="table-responsive scrollbar">
         <!--begin::Table-->
         <table class="table table-bordered table-striped table-hover table-sm custom-striped fs-10 mb-0">
             <!--begin::Table head-->
-            <thead>
+            <thead :class="{ 'sticky-header': stickyHeader }">
                 <tr>
                     <slot name="header"></slot>
                 </tr>
@@ -31,16 +34,28 @@ defineProps({
             <!--end::Table body-->
         </table>
         <!--end::Table-->
-    </div>
  
 </template>
 
-<style>
+<style scoped>
 .table-striped > tbody > tr:nth-of-type(odd) {
   background-color: #ffffff !important;
 }
 .table th, .table td {
   vertical-align: middle;
+}
+
+/* Sticky header styles */
+thead.sticky-header {
+  position: sticky;
+  top: 0;
+  z-index: 10;
+}
+
+thead.sticky-header th {
+  background-color: #f8f9fa !important;
+  border-bottom: 2px solid #dee2e6;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
 }
 
 </style>

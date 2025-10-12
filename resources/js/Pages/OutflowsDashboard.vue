@@ -2,6 +2,7 @@
 import { Head } from '@inertiajs/vue3';
 import AppLayout from '@/Layouts/AppLayout.vue';
 import Breadcrumb from '@/Components/Breadcrumb.vue';
+import FalconBarChart from '@/Components/FalconBarChart.vue';
 import { computed } from 'vue';
 
 const props = defineProps({
@@ -46,6 +47,13 @@ const props = defineProps({
         default: () => ({
             total: 0,
             count: 0
+        })
+    },
+    byLevel1: {
+        type: Object,
+        default: () => ({
+            labels: [],
+            data: []
         })
     }
 });
@@ -280,16 +288,31 @@ const totalCompras = computed(() => {
                     </div>
                 </div>
 
-                <!-- Área para futuros gráficos y tablas -->
+                <!-- Área para gráficos y análisis -->
                 <div class="row g-3">
                     <div class="col-12">
                         <div class="card">
-                            <div class="card-body text-center py-5">
-                                <i class="fas fa-chart-pie fa-4x text-muted mb-3"></i>
-                                <h5 class="text-muted">Gráficos y análisis detallados próximamente</h5>
-                                <p class="text-muted mb-0">
-                                    Aquí se mostrarán análisis por producto, niveles, operaciones, proyectos y maquinarias
-                                </p>
+                            <div class="card-header">
+                                <h6 class="mb-0">
+                                    <i class="fas fa-chart-bar text-primary me-2"></i>
+                                    Total de Salidas por Clasificación Nivel 1
+                                </h6>
+                            </div>
+                            <div class="card-body">
+                                <FalconBarChart
+                                    v-if="byLevel1.labels && byLevel1.labels.length > 0"
+                                    :barLabels="byLevel1.labels"
+                                    :barData="byLevel1.data"
+                                    :height="350"
+                                    :color="['#60a5fa', '#34d399', '#fbbf24', '#fb7185', '#a78bfa', '#2dd4bf', '#f472b6', '#818cf8']"
+                                />
+                                <div v-else class="text-center py-5">
+                                    <i class="fas fa-chart-bar fa-4x text-muted mb-3"></i>
+                                    <h5 class="text-muted">No hay datos disponibles</h5>
+                                    <p class="text-muted mb-0">
+                                        Aún no hay salidas registradas para mostrar en el gráfico
+                                    </p>
+                                </div>
                             </div>
                         </div>
                     </div>

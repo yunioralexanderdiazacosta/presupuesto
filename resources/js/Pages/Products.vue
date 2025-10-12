@@ -36,6 +36,10 @@ const title = 'Productos';
 // Buscador global para la tabla de productos
 const search = ref("");
 
+// Estado para ordenamiento
+const sortBy = ref('id');
+const sortDesc = ref(true);
+
 // Función para ejecutar la búsqueda cuando se presiona el botón o Enter
 const executeSearch = () => {
     router.get(route('products.index', { term: search.value || '' }), {
@@ -150,7 +154,55 @@ const getLevel4s = (event) => {
 
 // Lista de productos directamente desde props (ya filtrados en el backend)
 const filteredProducts = computed(() => {
-    return props.products && props.products.data ? props.products.data : [];
+    const data = props.products && props.products.data ? props.products.data : [];
+    
+    // Ordenar los productos
+    const arr = [...data];
+    arr.sort((a, b) => {
+        let aVal = a[sortBy.value];
+        let bVal = b[sortBy.value];
+        
+        // Si es unit, level2 o level3, accede al nombre
+        if (sortBy.value === 'unit') {
+            aVal = a.unit?.name || '';
+            bVal = b.unit?.name || '';
+        }
+        if (sortBy.value === 'level2') {
+            aVal = a.level2?.name || '';
+            bVal = b.level2?.name || '';
+        }
+        if (sortBy.value === 'level3') {
+            aVal = a.level3?.name || '';
+            bVal = b.level3?.name || '';
+        }
+        
+        // Convertir a string para comparación case-insensitive
+        if (typeof aVal === 'string') aVal = aVal.toLowerCase();
+        if (typeof bVal === 'string') bVal = bVal.toLowerCase();
+        
+        if (sortDesc.value) {
+            return aVal < bVal ? 1 : aVal > bVal ? -1 : 0;
+        }
+        return aVal > bVal ? 1 : aVal < bVal ? -1 : 0;
+    });
+    
+    return arr;
+});
+
+function setSort(field) {
+    if (sortBy.value === field) {
+        sortDesc.value = !sortDesc.value;
+    } else {
+        sortBy.value = field;
+        sortDesc.value = false;
+    }
+}
+
+// Genera clases para encabezados ordenables
+const sortClass = (field) => ({
+    sortable: true,
+    'sorted-asc': sortBy.value === field && !sortDesc.value,
+    'sorted-desc': sortBy.value === field && sortDesc.value,
 });
 </script>
 <template>
@@ -203,6 +255,7 @@ const filteredProducts = computed(() => {
                         <ExportExcelButton
                             :data="filteredProducts"
                             :headers="[
+                                { label: 'ID', key: 'id' },
                                 { label: 'Nombre', key: 'name' },
                                 { label: 'Unidad', key: 'unit.name' },
                                 { label: 'Nivel 2', key: 'level2.name' },
@@ -214,6 +267,7 @@ const filteredProducts = computed(() => {
                         <ExportPdfButton
                             :data="filteredProducts"
                             :headers="[
+                                { label: 'ID', key: 'id' },
                                 { label: 'Nombre', key: 'name' },
                                 { label: 'Unidad', key: 'unit.name' },
                                 { label: 'Nivel 2', key: 'level2.name' },
@@ -229,15 +283,16 @@ const filteredProducts = computed(() => {
            
 
 
-                <div class="table-responsive mt-1" style="max-height: 450px; overflow-y: auto;">
+                <div class="table-responsive mt-1 scrollbar" style="max-height: 450px; overflow-y: auto;">
                     <Table sticky-header :id="'products'" :total="filteredProducts.length" :links="products.links">
                         <!--begin::Table head-->
                         <template #header>
                             <!--begin::Table row-->
-                            <th width="min-w-150px">Nombre</th>
-                            <th width="min-w-150px">Unidad</th>
-                            <th width="min-w-150px">nivel 2</th>
-                            <th width="min-w-150px">nivel 3</th>
+                            <th width="80px" @click="setSort('id')" :class="sortClass('id')" style="cursor: pointer;">ID</th>
+                            <th width="min-w-150px" @click="setSort('name')" :class="sortClass('name')" style="cursor: pointer;">Nombre</th>
+                            <th width="min-w-150px" @click="setSort('unit')" :class="sortClass('unit')" style="cursor: pointer;">Unidad</th>
+                            <th width="min-w-150px" @click="setSort('level2')" :class="sortClass('level2')" style="cursor: pointer;">Nivel 2</th>
+                            <th width="min-w-150px" @click="setSort('level3')" :class="sortClass('level3')" style="cursor: pointer;">Nivel 3</th>
                             <th width="min-w-150px" class="text-center">Acciones</th>
                             <!--end::Table row-->
                         </template>
@@ -245,10 +300,11 @@ const filteredProducts = computed(() => {
                         <!--begin::Table body-->
                         <template #body>
                             <template v-if="filteredProducts.length === 0">
-                                <Empty colspan="5" />
+                                <Empty colspan="6" />
                             </template>
                             <template v-else>
                                 <tr v-for="(product, index) in filteredProducts" :key="index">
+                                    <td>{{ product.id }}</td>
                                     <td>{{ product.name }}</td>
                                     <td>{{ product.unit ? product.unit.name : '—' }}</td>
                                     <td>{{ product.level2 ? product.level2.name : '—' }}</td>
@@ -282,4 +338,32 @@ const filteredProducts = computed(() => {
         <EditProductModal @update="updateProduct" :form="form" />
     </AppLayout>
 </template>
+
+<style>
+/* Estilos para columnas ordenables */
+.sortable {
+    position: relative;
+    cursor: pointer;
+    user-select: none;
+}
+.sortable:hover {
+    background-color: #f1f3f5;
+}
+.sortable:after {
+    content: '\25B2'; /* triángulo hacia arriba por defecto */
+    position: absolute;
+    right: 8px;
+    font-size: 0.6rem;
+    opacity: 0.3;
+}
+.sorted-asc:after {
+    content: '\25B2'; /* triángulo hacia arriba */
+    opacity: 1;
+}
+.sorted-desc:after {
+    content: '\25BC'; /* triángulo hacia abajo */
+    opacity: 1;
+}
+</style>
+
 <style src="@vueform/multiselect/themes/default.css"></style>

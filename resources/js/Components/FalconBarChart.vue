@@ -28,7 +28,7 @@ const props = defineProps({
     default: () => ({ minHeight: '300px' })
   },
   color: {
-    type: String,
+    type: [String, Array],
     default: '#2c7be5'
   }
 });
@@ -52,8 +52,12 @@ const setChart = () => {
   if (!chartInstance) {
     chartInstance = echarts.init(chartRef.value);
   }
+  
+  // Si color es un array, usarlo; si no, crear un array con un solo color
+  const colors = Array.isArray(props.color) ? props.color : [props.color];
+  
   const option = {
-    color: [props.color],
+    color: colors,
     tooltip: {
       trigger: 'axis',
       backgroundColor: '#212529',
@@ -102,14 +106,18 @@ const setChart = () => {
         itemStyle: {
           borderRadius: [12, 12, 0, 0],
           shadowColor: 'rgba(44,123,229,0.15)',
-          shadowBlur: 8
+          shadowBlur: 8,
+          // Si hay múltiples colores, asignar cada color a cada barra
+          color: function(params) {
+            return colors[params.dataIndex % colors.length];
+          }
         },
         label: {
           show: true,
           position: 'top',
-          color: '#2c7be5',
           fontWeight: 'bold',
-          formatter: formatNumber
+          formatter: formatNumber,
+          color: '#495057'
         }
       }
     ]
