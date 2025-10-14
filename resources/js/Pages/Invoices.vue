@@ -111,6 +111,21 @@ const sortClass = (field) => ({
     'sorted-desc': sortBy.value === field && sortDesc.value,
 });
 
+// Verifica si hay productos ocultos (después del índice 1) sin level1_id
+const hasHiddenProductsWithoutLevel1 = (products) => {
+    if (products.length <= 2) return false;
+    return products.slice(2).some(product => product.level1_id === null);
+};
+
+// Obtiene los nombres de productos ocultos sin level1_id para mostrar en tooltip
+const getHiddenProductsWithoutLevel1Names = (products) => {
+    if (products.length <= 2) return '';
+    const hiddenProducts = products.slice(2).filter(product => product.level1_id === null);
+    if (hiddenProducts.length === 0) return '';
+    const names = hiddenProducts.map(p => p.product_name).join(', ');
+    return `Productos sin nivel 1: ${names}`;
+};
+
 // Funciones para editar producto
 const getLevel2s = (level1Id) => {
     if (level1Id && level1Id != "") {
@@ -429,6 +444,12 @@ const onFilter = () => {
                                                         ⚠️
                                                     </span> 
                                                     y {{ invoice.products.length - 2 }} más
+                                                    <span v-if="hasHiddenProductsWithoutLevel1(invoice.products)" 
+                                                          v-tooltip="getHiddenProductsWithoutLevel1Names(invoice.products)" 
+                                                          class="text-warning"
+                                                          style="font-size: 1em;">
+                                                        ⚠️
+                                                    </span>
                                                 </span>
                                             </span>
                                             <span v-else class="text-muted">—</span>
