@@ -33,6 +33,7 @@ class OutflowsDashboardController extends Controller
             'creditNotes' => $this->getCreditNotesTotal($season_id, $team_id),
             'debitNotes' => $this->getDebitNotesTotal($season_id, $team_id),
             'byLevel1' => $this->getOutflowsByLevel1($season_id, $team_id),
+            'byProject' => $this->getOutflowsByProject($season_id, $team_id),
         ]);
     }
 
@@ -313,6 +314,62 @@ class OutflowsDashboardController extends Controller
 
         } catch (\Exception $e) {
             Log::error('Error en OutflowsDashboard getOutflowsByLevel1: ' . $e->getMessage());
+            return [
+                'labels' => [],
+                'data' => [],
+            ];
+        }
+    }
+
+    private function getOutflowsByProject($season_id, $team_id)
+    {
+        try {
+            // Obtener todos los outflows con sus relaciones necesarias
+            $outflows = Outflow::where('season_id', $season_id)
+                ->where('team_id', $team_id)
+                ->with(['invoiceProduct', 'creditDebitNoteItem', 'project'])
+                ->get();
+
+            $groupedData = [];
+
+            foreach ($outflows as $outflow) {
+                $projectName = null;
+                $amount = 0;
+
+                // Obtener el nombre del proyecto
+                if ($outflow->project_id && $outflow->project) {
+                    $projectName = $outflow->project->name;
+                }
+
+                // Calcular el monto (cantidad × precio unitario)
+                if ($outflow->invoice_product_id && $outflow->invoiceProduct) {
+                    $amount = $outflow->quantity * $outflow->invoiceProduct->unit_price;
+                }
+                elseif ($outflow->credit_debit_note_item_id && $outflow->creditDebitNoteItem) {
+                    $amount = $outflow->quantity * $outflow->creditDebitNoteItem->unit_price;
+                }
+
+                // Si no tiene proyecto, agruparlo como "Sin Proyecto"
+                $key = $projectName ?? 'Sin Proyecto';
+
+                // Acumular el total por proyecto
+                if (!isset($groupedData[$key])) {
+                    $groupedData[$key] = 0;
+                }
+                $groupedData[$key] += $amount;
+            }
+
+            // Ordenar por total descendente
+            arsort($groupedData);
+
+            // Convertir a formato para el gráfico
+            return [
+                'labels' => array_keys($groupedData),
+                'data' => array_values($groupedData),
+            ];
+
+        } catch (\Exception $e) {
+            Log::error('Error en OutflowsDashboard getOutflowsByProject: ' . $e->getMessage());
             return [
                 'labels' => [],
                 'data' => [],

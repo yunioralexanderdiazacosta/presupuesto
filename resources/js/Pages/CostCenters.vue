@@ -56,12 +56,22 @@ const openEdit = (costCenter) => {
     form.surface = costCenter.surface; 
     form.observations = costCenter.observations; 
     form.fruit_id = costCenter.fruit_id;
-    getVarieties(form.fruit_id);
-    form.variety_id = costCenter.variety_id;
     form.parcel_id = costCenter.parcel_id;
     form.development_state_id = costCenter.development_state_id;
     form.year_plantation = costCenter.year_plantation;
-     form.company_reason_id = costCenter.company_reason_id;
+    form.company_reason_id = costCenter.company_reason_id;
+    
+    // Cargar variedades y luego asignar variety_id
+    if (form.fruit_id) {
+        axios.get(route('varieties.get', form.fruit_id))
+            .then(response => {
+                form.varieties = response.data;
+                form.variety_id = costCenter.variety_id;
+            }).catch(error => console.log(error));
+    } else {
+        form.variety_id = costCenter.variety_id;
+    }
+    
     $('#editCostCenterModal').modal('show');
 }
 

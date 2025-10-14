@@ -55,6 +55,13 @@ const props = defineProps({
             labels: [],
             data: []
         })
+    },
+    byProject: {
+        type: Object,
+        default: () => ({
+            labels: [],
+            data: []
+        })
     }
 });
 
@@ -311,6 +318,33 @@ const totalCompras = computed(() => {
                                     <h5 class="text-muted">No hay datos disponibles</h5>
                                     <p class="text-muted mb-0">
                                         Aún no hay salidas registradas para mostrar en el gráfico
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="col-12">
+                        <div class="card">
+                            <div class="card-header">
+                                <h6 class="mb-0">
+                                    <i class="fas fa-project-diagram text-success me-2"></i>
+                                    Monto Total Gastado por Proyecto
+                                </h6>
+                            </div>
+                            <div class="card-body">
+                                <FalconBarChart
+                                    v-if="byProject.labels && byProject.labels.length > 0"
+                                    :barLabels="byProject.labels"
+                                    :barData="byProject.data"
+                                    :height="350"
+                                    :color="['#10b981', '#3b82f6', '#f59e0b', '#ef4444', '#8b5cf6', '#ec4899', '#06b6d4', '#6366f1']"
+                                />
+                                <div v-else class="text-center py-5">
+                                    <i class="fas fa-project-diagram fa-4x text-muted mb-3"></i>
+                                    <h5 class="text-muted">No hay datos disponibles</h5>
+                                    <p class="text-muted mb-0">
+                                        Aún no hay gastos por proyecto registrados
                                     </p>
                                 </div>
                             </div>

@@ -63,19 +63,6 @@ const selectAllMonths = (index, months) => {
 
 <template>
   <div class="row mb-3">
-  <!-- Card de depuración para ver los datos que se enviarán al backend -->
-  <div class="row mb-3">
-    <div class="col-12">
-      <div class="card border-info mb-3">
-        <div class="card-header bg-info text-white">Datos listos para guardar (debug)</div>
-        <div class="card-body">
-          <pre style="font-size: 0.85em; max-height: 250px; overflow:auto; background: #f8f9fa; border-radius: 4px; padding: 8px;">
-            {{ JSON.stringify(form, null, 2) }}
-          </pre>
-        </div>
-      </div>
-    </div>
-  </div>
     <div class="col-lg-6">
       <label for="grouping_name" class="col-form-label">Nombre del grupo</label>
       <input
