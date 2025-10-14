@@ -276,7 +276,7 @@ const totalCompras = computed(() => {
                                             {{ formatCurrency(totalCompras) }}
                                         </h4>
                                         <small class="text-muted fs-10">
-                                            Facturas + Crédito - Débito
+                                            Facturas + Débito - Crédito
                                         </small>
                                     </div>
                                     <div class="text-success">

@@ -8,6 +8,8 @@ import Table from "@/Components/Table.vue";
 import Empty from "@/Components/Empty.vue";
 import Breadcrumb from "@/Components/Breadcrumb.vue";
 import SearchInput from "@/Components/SearchInput.vue";
+import EditProductModal from '@/Components/Products/EditProductModal.vue';
+import axios from 'axios';
 
 import ExportExcelButton from '@/Components/ExportExcelButton.vue';
 
@@ -19,6 +21,20 @@ const props = defineProps({
 const title = "Facturas";
 
 const term = ref(props.term || "");
+
+// Form para editar producto
+const productForm = useForm({
+    id: '',
+    name: '',
+    unit_id: '',
+    level1_id: '',
+    level2_id: '',
+    level3_id: '',
+    level4_id: '',
+    level2s: [],
+    level3s: [],
+    level4s: []
+});
 
 // Estado para ordenamiento
 const sortBy = ref('number_document');
@@ -95,6 +111,85 @@ const sortClass = (field) => ({
     'sorted-desc': sortBy.value === field && sortDesc.value,
 });
 
+// Funciones para editar producto
+const getLevel2s = (level1Id) => {
+    if (level1Id && level1Id != "") {
+        axios.get(route('levels2.get', level1Id))
+            .then(response => {
+                productForm.level2s = response.data;
+            }).catch(error => console.log(error));
+    }
+};
+
+const getLevel3s = (level2Id) => {
+    if (level2Id && level2Id != "") {
+        axios.get(route('levels3.get', level2Id))
+            .then(response => {
+                productForm.level3s = response.data;
+            }).catch(error => console.log(error));
+    }
+};
+
+const getLevel4s = (level3Id) => {
+    if (level3Id && level3Id != "") {
+        axios.get(route('levels4.get', level3Id))
+            .then(response => {
+                productForm.level4s = response.data;
+            }).catch(error => console.log(error));
+    }
+};
+
+const openEditProduct = async (productId) => {
+    try {
+        // Hacer petición a ruta web en lugar de API
+        const response = await axios.get(`/products/${productId}/show`);
+        const product = response.data;
+        
+        if (product) {
+            productForm.reset();
+            productForm.id = product.id;
+            productForm.name = product.name;
+            productForm.unit_id = product.unit_id;
+            productForm.level1_id = product.level1_id;
+            productForm.level2_id = product.level2_id;
+            productForm.level3_id = product.level3_id;
+            productForm.level4_id = product.level4_id;
+            
+            // Cargar niveles dependientes si existen
+            if (product.level1_id) await getLevel2s(product.level1_id);
+            if (product.level2_id) await getLevel3s(product.level2_id);
+            if (product.level3_id) await getLevel4s(product.level3_id);
+            
+            $('#editProductModal').modal('show');
+        }
+    } catch (error) {
+        console.error('Error al cargar producto:', error);
+        Swal.fire({
+            icon: 'error',
+            title: 'Error',
+            text: 'No se pudo cargar el producto',
+        });
+    }
+};
+
+const updateProduct = () => {
+    productForm.post(route('products.update', productForm.id), {
+        preserveScroll: true,
+        onSuccess: () => {
+            productForm.reset();
+            $('#editProductModal').modal('hide');
+            Swal.fire({
+                position: 'center',
+                icon: 'success',
+                title: 'Producto actualizado correctamente',
+                showConfirmButton: false,
+                timer: 1500
+            });
+            // Recargar la página para ver los cambios
+            router.reload({ only: ['invoices'] });
+        }
+    });
+};
 
 // Suma simple de la columna total
 const totalFacturas = computed(() => {
@@ -305,10 +400,35 @@ const onFilter = () => {
                                         <td style="white-space:nowrap;">
                                             <span v-if="invoice.products && invoice.products.length">
                                                 <span v-if="invoice.products.length <= 2">
-                                                    {{ invoice.products.map(p => p.product_name).join(', ') }}
+                                                    <template v-for="(product, idx) in invoice.products" :key="product.id">
+                                                        {{ product.product_name }}<template v-if="idx < invoice.products.length - 1">, </template>
+                                                        <span v-if="product.level1_id === null" 
+                                                              @click.stop="openEditProduct(product.product_id)"
+                                                              v-tooltip="'Click para editar y asignar nivel 1'" 
+                                                              class="text-warning"
+                                                              style="font-size: 1em; cursor: pointer;">
+                                                            ⚠️
+                                                        </span>
+                                                    </template>
                                                 </span>
                                                 <span v-else>
-                                                    {{ invoice.products[0].product_name }}, {{ invoice.products[1].product_name }} y {{ invoice.products.length - 2 }} más
+                                                    {{ invoice.products[0].product_name }}
+                                                    <span v-if="invoice.products[0].level1_id === null" 
+                                                          @click.stop="openEditProduct(invoice.products[0].product_id)"
+                                                          v-tooltip="'Click para editar y asignar nivel 1'" 
+                                                          class="text-warning"
+                                                          style="font-size: 1em; cursor: pointer;">
+                                                        ⚠️
+                                                    </span>, 
+                                                    {{ invoice.products[1].product_name }}
+                                                    <span v-if="invoice.products[1].level1_id === null" 
+                                                          @click.stop="openEditProduct(invoice.products[1].product_id)"
+                                                          v-tooltip="'Click para editar y asignar nivel 1'" 
+                                                          class="text-warning"
+                                                          style="font-size: 1em; cursor: pointer;">
+                                                        ⚠️
+                                                    </span> 
+                                                    y {{ invoice.products.length - 2 }} más
                                                 </span>
                                             </span>
                                             <span v-else class="text-muted">—</span>
@@ -384,6 +504,9 @@ const onFilter = () => {
             </div>
         </div>
     </AppLayout>
+    
+    <!-- Modal para editar producto -->
+    <EditProductModal @update="updateProduct" :form="productForm" />
 </template>
 
 <style>

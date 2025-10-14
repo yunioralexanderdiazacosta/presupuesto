@@ -46,6 +46,7 @@ const links = [
                                     </div>
                                 </div>
                                 <p class="card-text">
+                                    Se crea la vista Dashboard para las salidas.<br>
                                     En los formularios de salidas y de ingresos se han implementado opciones de ordenación para las tablas disponibles.<br>
                                 La pestaña parametros estara por defecto cerrada para ocupar menos espacio en pantalla.
                                 

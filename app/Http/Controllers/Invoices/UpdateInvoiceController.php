@@ -44,16 +44,42 @@ class UpdateInvoiceController extends Controller
                 $u = \App\Models\Unit::firstOrCreate(['name' => $unitId]);
                 $unitId = $u->id;
             }
+            
             // Gestionar producto: buscar o crear
             $prodId = $item['product_id'];
-            if (!is_numeric($prodId) || !\App\Models\Product::find($prodId)) {
-                $newProduct = \App\Models\Product::create([
-                    'name'    => $prodId,
-                    'team_id' => auth()->user()->team_id,
-                    'unit_id' => $unitId,
-                ]);
-                $prodId = $newProduct->id;
+            
+            // Si el product_id no es numérico, es un nombre nuevo
+            if (!is_numeric($prodId)) {
+                // Buscar producto existente por nombre (case-insensitive)
+                $existingProduct = \App\Models\Product::whereRaw('LOWER(name) = ?', [strtolower(trim($prodId))])
+                    ->where('team_id', auth()->user()->team_id)
+                    ->first();
+                
+                if ($existingProduct) {
+                    // Si existe, usar el producto existente
+                    $prodId = $existingProduct->id;
+                } else {
+                    // Si no existe, crear nuevo producto
+                    $newProduct = \App\Models\Product::create([
+                        'name'    => trim($prodId),
+                        'team_id' => auth()->user()->team_id,
+                        'unit_id' => $unitId,
+                    ]);
+                    $prodId = $newProduct->id;
+                }
+            } else {
+                // Si es numérico, verificar que exista
+                if (!\App\Models\Product::find($prodId)) {
+                    // Si no existe, crear con el ID como nombre (fallback)
+                    $newProduct = \App\Models\Product::create([
+                        'name'    => $prodId,
+                        'team_id' => auth()->user()->team_id,
+                        'unit_id' => $unitId,
+                    ]);
+                    $prodId = $newProduct->id;
+                }
             }
+            
             $data[] = [
                 'product_id'   => $prodId,
                 'unit_price'   => $item['unit_price'],

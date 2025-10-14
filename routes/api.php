@@ -2,6 +2,7 @@
 
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
+use App\Models\Product;
 
 /*
 |--------------------------------------------------------------------------
@@ -16,4 +17,13 @@ use Illuminate\Support\Facades\Route;
 
 Route::middleware('auth:sanctum')->get('/user', function (Request $request) {
     return $request->user();
+});
+
+Route::middleware('auth:sanctum')->get('/products/{id}', function ($id) {
+    $product = Product::with('level1', 'level2', 'level3', 'level4', 'unit')
+        ->where('id', $id)
+        ->where('team_id', auth()->user()->team_id)
+        ->firstOrFail();
+    
+    return response()->json($product);
 });

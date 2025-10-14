@@ -265,6 +265,12 @@ Route::middleware([
     Route::get('/budgets', BudgetsController::class)->name('budgets.index');
     Route::get('/suppliers', SuppliersController::class)->name('suppliers.index');
     Route::get('/products', ProductsController::class)->name('products.index');
+    Route::get('/products/{id}/show', function ($id) {
+        $product = \App\Models\Product::where('id', $id)
+            ->where('team_id', auth()->user()->team_id)
+            ->firstOrFail();
+        return response()->json($product);
+    })->name('products.show');
     Route::get('/company-reasons', CompanyReasonsController::class)->name('company.reasons.index');
     Route::get('/seasons', SeasonsController::class)->name('seasons.index');
     Route::get('/users', UsersController::class)->name('users.index');

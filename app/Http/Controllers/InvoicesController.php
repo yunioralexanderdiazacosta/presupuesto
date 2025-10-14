@@ -5,6 +5,8 @@ namespace App\Http\Controllers;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use App\Models\Invoice;
+use App\Models\Unit;
+use App\Models\Level1;
 use Inertia\Inertia;
 
 class InvoicesController extends Controller
@@ -17,7 +19,7 @@ class InvoicesController extends Controller
 
         $term = $request->term ?? '';
 
-    $invoices = Invoice::with('supplier', 'companyReason', 'products', 'typeDocument', 'month')->when($request->term, function ($query, $search) {
+    $invoices = Invoice::with('supplier', 'companyReason', 'products.level1', 'typeDocument', 'month')->when($request->term, function ($query, $search) {
             $query->where('number_document', 'like', '%'.$search.'%');
         })
         ->OrWhereHas('supplier', function($query) use ($term){
@@ -44,6 +46,7 @@ class InvoicesController extends Controller
                                                 'id'           => $ip->id,
                                                 'product_id'   => $ip->product_id,
                                                 'product_name' => $ip->product ? $ip->product->name : null,
+                                                'level1_id'    => $ip->product ? $ip->product->level1_id : null,
                                                 'unit_price'   => $ip->unit_price,
                                                 'amount'       => $ip->amount,
                                                 'observations' => $ip->observations,
@@ -62,7 +65,28 @@ class InvoicesController extends Controller
                         'value' => $month->id,
                     ];
                 });
-            return Inertia::render('Invoices', compact('invoices', 'term', 'months'));
+            
+            // Obtener units y level1s para el modal de edición de productos
+            $units = Unit::orderBy('name')
+                ->get()
+                ->transform(function($unit) {
+                    return [
+                        'label' => $unit->name,
+                        'value' => $unit->id,
+                    ];
+                });
+            
+            $level1s = Level1::where('season_id', $season_id)
+                ->orderBy('name')
+                ->get()
+                ->transform(function($level) {
+                    return [
+                        'label' => $level->name,
+                        'value' => $level->id,
+                    ];
+                });
+            
+            return Inertia::render('Invoices', compact('invoices', 'term', 'months', 'units', 'level1s'));
     }
 
     private function get_total($invoice)

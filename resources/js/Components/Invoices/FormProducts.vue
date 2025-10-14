@@ -1,5 +1,6 @@
 <script setup>
 import { watch, ref, computed } from 'vue';
+import Swal from 'sweetalert2';
 // Controla si se muestran opciones en el Multiselect de productos por cada línea
 const showProductOptions = ref([]);
 import Multiselect from '@vueform/multiselect';
@@ -54,11 +55,30 @@ defineExpose({ showProductValidation, triggerProductValidation });
 
 // Función para crear un nuevo producto (taggable): agrega a las opciones y retorna objeto compatible
 const newTag = (input) => {
-	// Evita duplicados
-	if (!productOptions.some(p => p.label === input)) {
-		productOptions.push({ value: input, label: input });
+	// Normalizar el input (trim y lowercase)
+	const normalizedInput = input.trim().toLowerCase();
+	
+	// Verificar si ya existe un producto con ese nombre (case-insensitive)
+	const existingProduct = productOptions.find(p => 
+		p.label.toLowerCase() === normalizedInput
+	);
+	
+	if (existingProduct) {
+		// Si existe, usar el producto existente en lugar de crear uno nuevo
+		Swal.fire({
+			icon: 'warning',
+			title: 'Producto existente',
+			text: `El producto "${existingProduct.label}" ya existe. Se seleccionará automáticamente.`,
+			timer: 3000,
+			showConfirmButton: false
+		});
+		return existingProduct;
 	}
-	return { value: input, label: input };
+	
+	// Si no existe, crear nuevo
+	const newProduct = { value: input.trim(), label: input.trim() };
+	productOptions.push(newProduct);
+	return newProduct;
 };
 
 const add = () => {
