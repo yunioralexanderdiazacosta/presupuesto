@@ -3,7 +3,11 @@ import { ref, watch, onMounted, nextTick } from 'vue';
 
 const props = defineProps({
   pieLabels: Array,
-  pieDatasets: Array
+  pieDatasets: Array,
+  showPercentage: {
+    type: Boolean,
+    default: false
+  }
 });
 
 const chartRef = ref(null);
@@ -34,8 +38,12 @@ function renderChart() {
             position: 'outside',
             alignTo: 'edge',
             formatter: function(params) {
-              // Formatea el valor con separador de miles
-              return params.name + ': ' + Number(params.value).toLocaleString('es-CL', { maximumFractionDigits: 0 });
+              // Si showPercentage es true, muestra porcentaje, sino muestra monto
+              if (props.showPercentage) {
+                return params.name + ': ' + params.percent.toFixed(1) + '%';
+              } else {
+                return params.name + ': ' + Number(params.value).toLocaleString('es-CL', { maximumFractionDigits: 0 });
+              }
             }
           },
           labelLine: {
