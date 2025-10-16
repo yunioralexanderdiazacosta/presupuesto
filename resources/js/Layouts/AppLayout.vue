@@ -53,7 +53,7 @@ const logout = () => {
             </div>
 
             <a class="navbar-brand" href="index.html">
-              <div class="d-flex align-items-center py-3"><img class="me-2" src="#" alt="" width="40" /><span class="font-sans-serif text-primary">Alisoft</span>
+              <div class="d-flex align-items-center py-3"><img class="me-0 mb-3" src="/assets/img/icons/spot-illustrations/ALISOFT.png" alt="" width="48" /><span class="font-sans-serif text-primary">Alisoft</span>
               </div>
             </a>
         </div>
@@ -446,7 +446,7 @@ const logout = () => {
 
         <button class="btn navbar-toggler-humburger-icon navbar-toggler me-1 me-sm-3" type="button" data-bs-toggle="collapse" data-bs-target="#navbarVerticalCollapse" aria-controls="navbarVerticalCollapse" aria-expanded="false" aria-label="Toggle Navigation"><span class="navbar-toggle-icon"><span class="toggle-line"></span></span></button>
         <a class="navbar-brand me-1 me-sm-3" href="../../index.html">
-          <div class="d-flex align-items-center"><img class="me-2" src="#" alt="" width="40" /><span class="font-sans-serif text-primary">ALISOFT</span>
+          <div class="d-flex align-items-center"><img class="me-0 mb-4" :src=" path + '/assets/img/icons/spot-illustrations/alisoft.png'" alt="" width="48" /><span class="font-sans-serif text-primary">ALISOFT</span>
           </div>
         </a>
         <ul class="navbar-nav align-items-center d-none d-lg-block">

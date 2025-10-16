@@ -48,7 +48,8 @@ const links = [
                                 <p class="card-text">
                                     Se crea la vista Dashboard para las salidas.<br>
                                     En los formularios de salidas y de ingresos se han implementado opciones de ordenación para las tablas disponibles.<br>
-                                La pestaña parametros estara por defecto cerrada para ocupar menos espacio en pantalla.
+                                La pestaña parametros estara por defecto cerrada para ocupar menos espacio en pantalla.<br>
+                                En facturas, la tabla se carga con icono warning cuando el producto no esta resgistrado.
                                 
                                 </p>
                             </div>
@@ -92,8 +93,9 @@ const links = [
                                     </div>
                                 </div>
                                 <p class="card-text">
-                                    Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum.
-                                    Sed ut perspiciatis unde omnis iste natus error sit voluptatem accusantium doloremque laudantium.
+                                   El sistema está organizado en dos módulos principales:
+<br><strong>Presupuesto:</strong> Permite planificar, asignar y controlar los recursos económicos de cada temporada y proyecto.
+<br><strong>Gestión:</strong> Facilita el registro, seguimiento y análisis de todas las operaciones, gastos y movimientos realizados.
                                 </p>
                             </div>
                         </div>
@@ -112,8 +114,7 @@ const links = [
                                     </div>
                                 </div>
                                 <p class="card-text">
-                                    Nemo enim ipsam voluptatem quia voluptas sit aspernatur aut odit aut fugit, sed quia consequuntur magni dolores eos qui ratione.
-                                    Neque porro quisquam est, qui dolorem ipsum quia dolor sit amet, consectetur, adipisci velit.
+                                   Toda la configuración del sistema, incluyendo la gestión de usuarios, permisos, categorías, proveedores y otros parámetros esenciales, se encuentra en el módulo de Parametros.
                                 </p>
                             </div>
                         </div>
