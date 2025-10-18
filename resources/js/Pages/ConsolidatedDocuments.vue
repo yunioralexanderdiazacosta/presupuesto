@@ -223,7 +223,7 @@ function formatFecha(fecha) {
             </div>
             <div class="table-responsive mb-4" style="max-height:440px;overflow-y:auto;">
               <table class="table table-bordered table-striped table-hover table-sm fs-10 mb-0">
-                <thead class="table-primary">
+                <thead class="table-primary" style="position: sticky; top: 0; z-index: 10;">
                   <tr>
                     <th style="max-width:100px; min-width:100px; width:0px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis" @click="setSort('tipo')" :class="sortClass('tipo')">Tipo</th>
                     <th style="max-width:100px; min-width:100px; width:100px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis" @click="setSort('razon_social')" :class="sortClass('razon_social')">Razón Social</th>
@@ -268,7 +268,7 @@ function formatFecha(fecha) {
             </div>
             <div class="table-responsive mb-4" style="max-height:700px;overflow-y:auto;">
               <table class="table table-bordered table-striped table-hover table-sm fs-10 mb-0">
-                <thead class="table-info">
+                <thead class="table-info" style="position: sticky; top: 0; z-index: 10;">
                   <tr>
                     <th>Tipo</th>
                     <th>Fecha</th>
