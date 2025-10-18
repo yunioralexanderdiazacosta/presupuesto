@@ -37,8 +37,8 @@ const productForm = useForm({
 });
 
 // Estado para ordenamiento
-const sortBy = ref('number_document');
-const sortDesc = ref(false);
+const sortBy = ref('id');
+const sortDesc = ref(true);
 
 // Filtrado local de facturas
 const filteredInvoices = computed(() => {
@@ -371,6 +371,9 @@ const onFilter = () => {
                             <!--begin::Table head-->
                             <template #header>
                                 <!--begin::Table row-->
+                                <th width="60px" style="white-space:nowrap;" @click="setSort('id')" :class="sortClass('id')">
+                                    ID
+                                </th>
                                 <th width="120px" style="white-space:nowrap; max-width:120px; overflow:hidden; text-overflow:ellipsis" @click="setSort('type_document')" :class="sortClass('type_document')">
                                     Tipo documento
                                 </th>
@@ -405,6 +408,7 @@ const onFilter = () => {
                                 </template>
                                 <template v-else>
                                     <tr v-for="invoice in sortedInvoices" :key="invoice.id">
+                                        <td style="white-space:nowrap;">{{ invoice.id }}</td>
                                         <td style="white-space:nowrap; max-width:120px; overflow:hidden; text-overflow:ellipsis;">{{ invoice.type_document }}</td>
                                         <td style="white-space:nowrap;">{{ invoice.month }}</td>
                                         <td style="max-width:180px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">{{ invoice.supplier.name }}</td>

@@ -29,7 +29,7 @@ class InvoicesController extends Controller
             $query->where('name', 'like', '%'.$term.'%');
         })
         ->where('team_id', $user->team_id)->where('season_id', $season_id)
-        ->paginate(500)
+        ->paginate(1500)
         ->withQueryString()
         ->through(function($invoice){
             return [
