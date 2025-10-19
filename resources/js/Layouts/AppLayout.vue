@@ -244,6 +244,13 @@ const logout = () => {
                       </a>
                       <ul class="nav collapse" id="outflows">
                         <li class="nav-item">
+                          <Link class="nav-link" :href="route('consolidated-outflows.index')">
+                            <div class="d-flex align-items-center">
+                              <span class="nav-link-text ps-4">Consolidado de Salidas</span>
+                            </div>
+                          </Link>
+                        </li>
+                        <li class="nav-item">
                           <Link class="nav-link" :href="route('outflows.index')">
                             <div class="d-flex align-items-center">
                               <span class="nav-link-text ps-4">Consumos Gral.</span>

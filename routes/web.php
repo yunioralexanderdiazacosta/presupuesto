@@ -203,7 +203,8 @@ use App\Http\Controllers\Investments\UpdateInvestmentController;
 use App\Http\Controllers\Investments\DeleteInvestmentController;
 use App\Http\Controllers\ProductStockLinesController;
 use App\Http\Controllers\ConsolidatedDocumentsController;
-
+use App\Http\Controllers\ConsolidatedOutflowsController;
+use App\Http\Controllers\InventoryController;
 
 use Inertia\Inertia;
 
@@ -241,16 +242,16 @@ Route::middleware([
 
 
 // Ruta para crear un nuevo estado de estimación desde el frontend
-  Route::post('/estimate-status', [\App\Http\Controllers\EstimatesController::class, 'storeEstimateStatus'])->name('estimate-status.store');
+  Route::post('/estimate-status', [EstimatesController::class, 'storeEstimateStatus'])->name('estimate-status.store');
 
 
 
     // Products2 estilo teams: vista única y controladores separados para acciones
 
     Route::get('/products2', [Product2Controller::class, 'index'])->name('products2.index');
-    Route::post('/products2', [\App\Http\Controllers\Products2\StoreProduct2Controller::class, '__invoke'])->name('products2.store');
-    Route::post('/products2/{products2}/update', [\App\Http\Controllers\Products2\UpdateProduct2Controller::class, '__invoke'])->name('products2.update');
-    Route::post('/products2/{products2}/delete', [\App\Http\Controllers\Products2\DeleteProduct2Controller::class, '__invoke'])->name('products2.destroy');
+    Route::post('/products2', StoreProduct2Controller::class)->name('products2.store');
+    Route::post('/products2/{products2}/update', UpdateProduct2Controller::class)->name('products2.update');
+    Route::post('/products2/{products2}/delete', DeleteProduct2Controller::class)->name('products2.destroy');
 
     Route::post('/sidebar/has-variety-for-season', [SidebarController::class, 'hasVarietyForSeason'])->name('sidebar.hasVarietyForSeason');
     Route::post('/sidebar/has-fruit-for-season', [SidebarController::class, 'hasFruitForSeason'])->name('sidebar.hasFruitForSeason');
@@ -508,9 +509,12 @@ Route::middleware([
 
     // Dashboard de Outflows
     Route::get('/outflows-dashboard', [OutflowsDashboardController::class, 'index'])->name('outflows.dashboard');
+    
+    // Consolidado de Outflows
+    Route::get('/consolidated-outflows', ConsolidatedOutflowsController::class)->name('consolidated-outflows.index');
 
     // Inventario
-    Route::get('/inventory', [\App\Http\Controllers\InventoryController::class, 'index'])->name('inventory');
+    Route::get('/inventory', [InventoryController::class, 'index'])->name('inventory');
 
     Route::get('/kardex/{product}', [KardexController::class, 'show'])->name('kardex.show');
 
