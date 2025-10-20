@@ -122,39 +122,31 @@ class ConsolidatedOutflowsController extends Controller
             foreach ($outflow->costCenters as $occ) {
                 $superficie = $occ->costCenter->surface ?? 0;
                 $cantidadAsignada = $superficie * $cantidadPorHa;
+                
+                // Si superficie es 0, usar 1 para el cálculo del total (evitar total = 0)
+                $superficieParaTotal = $superficie > 0 ? $superficie : 1;
+                $cantidadParaTotal = $superficieParaTotal * $cantidadPorHa;
 
                 $expandedData[] = array_merge($commonData, [
                     'cost_center_id' => $occ->costCenter->id,
                     'cost_center_name' => $occ->costCenter->name,
-                    'surface' => $superficie,
+                    'surface' => $superficie, // Mostrar el valor real (puede ser 0)
                     'cantidad_asignada' => round($cantidadAsignada, 2),
                     'development_state' => $occ->costCenter->developmentState->name ?? null,
                     'total_superficie' => $totalSuperficie,
                     'cantidad_por_ha' => round($cantidadPorHa, 4),
-                    'total' => round($cantidadAsignada * $commonData['unit_price'], 2),
+                    'total' => round($cantidadParaTotal * $commonData['unit_price'], 2), // Usar superficie=1 si es 0
                     'cc_observations' => $occ->observations,
                 ]);
             }
         }
 
-        // Paginación manual del array expandido
-        $perPage = 100;
-        $currentPage = $request->get('page', 1);
-        $offset = ($currentPage - 1) * $perPage;
-        $paginatedData = array_slice($expandedData, $offset, $perPage);
-        $total = count($expandedData);
-
-        // Crear objeto de paginación
-        $pagination = new \Illuminate\Pagination\LengthAwarePaginator(
-            $paginatedData,
-            $total,
-            $perPage,
-            $currentPage,
-            ['path' => $request->url(), 'query' => $request->query()]
-        );
-
+        // Sin paginación - mostrar todos los resultados
         return Inertia::render('ConsolidatedOutflows', [
-            'outflows' => $pagination,
+            'outflows' => [
+                'data' => $expandedData,
+                'total' => count($expandedData),
+            ],
             'term' => $term,
         ]);
     }

@@ -176,7 +176,7 @@ const excelData = computed(() => {
 
                 <!-- KPI Cards -->
                 <div class="row mb-3">
-                    <div class="col-md-3 col-12 mb-2">
+                    <div class="col-md-6 col-12 mb-2">
                         <div class="card h-100 p-1 small-card">
                             <div class="card-header pb-0 pt-1 px-2">
                                 <h6 class="mb-0 mt-1 fs-10 d-flex align-items-center small-card-title">Total Salidas</h6>
@@ -188,31 +188,7 @@ const excelData = computed(() => {
                             </div>
                         </div>
                     </div>
-                    <div class="col-md-3 col-12 mb-2">
-                        <div class="card h-100 p-1 small-card">
-                            <div class="card-header pb-0 pt-1 px-2">
-                                <h6 class="mb-0 mt-1 fs-10 d-flex align-items-center small-card-title">Total Cantidad Asignada</h6>
-                            </div>
-                            <div class="card-body d-flex flex-column justify-content-end py-1 px-2">
-                                <p class="font-sans-serif lh-1 mb-1 fs-10 small-card-number">
-                                    {{ formatNumber(totalCantidad, 2) }}
-                                </p>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="col-md-3 col-12 mb-2">
-                        <div class="card h-100 p-1 small-card">
-                            <div class="card-header pb-0 pt-1 px-2">
-                                <h6 class="mb-0 mt-1 fs-10 d-flex align-items-center small-card-title">Superficie Total</h6>
-                            </div>
-                            <div class="card-body d-flex flex-column justify-content-end py-1 px-2">
-                                <p class="font-sans-serif lh-1 mb-1 fs-10 small-card-number">
-                                    {{ formatNumber(totalSuperficie, 2) }} ha
-                                </p>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="col-md-3 col-12 mb-2">
+                    <div class="col-md-6 col-12 mb-2">
                         <div class="card h-100 p-1 small-card">
                             <div class="card-header pb-0 pt-1 px-2">
                                 <h6 class="mb-0 mt-1 fs-10 d-flex align-items-center small-card-title">Total General</h6>
@@ -267,26 +243,6 @@ const excelData = computed(() => {
                             </tr>
                         </tbody>
                     </table>
-                </div>
-
-                <!-- Paginación -->
-                <div v-if="outflows.links" class="d-flex justify-content-center">
-                    <nav>
-                        <ul class="pagination pagination-sm">
-                            <li v-for="(link, index) in outflows.links" :key="index" 
-                                class="page-item" 
-                                :class="{ active: link.active, disabled: !link.url }">
-                                <Link 
-                                    v-if="link.url" 
-                                    :href="link.url" 
-                                    class="page-link" 
-                                    v-html="link.label"
-                                    preserve-state
-                                />
-                                <span v-else class="page-link" v-html="link.label" />
-                            </li>
-                        </ul>
-                    </nav>
                 </div>
             </div>
         </div>
