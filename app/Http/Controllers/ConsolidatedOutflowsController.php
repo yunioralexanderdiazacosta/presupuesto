@@ -121,14 +121,15 @@ class ConsolidatedOutflowsController extends Controller
             // Expandir: una fila por cada centro de costo
             foreach ($outflow->costCenters as $occ) {
                 $superficie = $occ->costCenter->surface ?? 0;
-                $cantidadAsignada = $superficie * $cantidadPorHa;
                 
-                // Calcular el total: si superficie es 0, usar cantidad total de la salida
+                // Calcular cantidad asignada y total
                 if ($superficie == 0) {
-                    // Si superficie es 0, el total debe ser quantity_total * unit_price
+                    // Si no hay superficie, se asigna toda la cantidad (no hay prorrateo)
+                    $cantidadAsignada = $outflow->quantity;
                     $totalCalculado = $outflow->quantity * $commonData['unit_price'];
                 } else {
-                    // Si superficie > 0, calcular normalmente
+                    // Si hay superficie, se prorratea
+                    $cantidadAsignada = $superficie * $cantidadPorHa;
                     $totalCalculado = $cantidadAsignada * $commonData['unit_price'];
                 }
 
