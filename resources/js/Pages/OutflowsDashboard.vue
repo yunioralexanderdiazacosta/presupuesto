@@ -63,6 +63,10 @@ const props = defineProps({
             labels: [],
             data: []
         })
+    },
+    byDevelopmentState: {
+        type: Array,
+        default: () => []
     }
 });
 
@@ -368,6 +372,54 @@ const totalCompras = computed(() => {
                                     <div class="text-success">
                                         <i class="fas fa-shopping-cart fa-2x opacity-50"></i>
                                     </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Separador -->
+                <div class="row mb-2 mt-3">
+                    <div class="col-12">
+                        <hr class="my-1 opacity-25">
+                    </div>
+                </div>
+
+                <!-- Título Sección Estados de Desarrollo -->
+                <h6 class="text-secondary mb-2 d-flex align-items-center">
+                    <i class="fas fa-layer-group me-2 fs-8"></i>
+                    <span>Consumos por Estado de Desarrollo</span>
+                </h6>
+
+                <!-- Card Totales por Estado de Desarrollo -->
+                <div class="row g-2 mb-3">
+                    <div class="col-12">
+                        <div class="card border-start border-info border-3">
+                            <div class="card-header bg-transparent py-2">
+                                <h6 class="mb-0 text-info">
+                                    <i class="fas fa-seedling me-2"></i>
+                                    Resumen por Estado de Desarrollo
+                                </h6>
+                            </div>
+                            <div class="card-body p-0">
+                                <div v-if="byDevelopmentState && byDevelopmentState.length > 0" class="list-group list-group-flush">
+                                    <div 
+                                        v-for="state in byDevelopmentState" 
+                                        :key="state.id"
+                                        class="list-group-item d-flex justify-content-between align-items-center py-2 px-3"
+                                    >
+                                        <span class="fw-medium">
+                                            <i class="fas fa-circle text-info me-2" style="font-size: 8px;"></i>
+                                            {{ state.name }}
+                                        </span>
+                                        <strong class="text-info fs-6">
+                                            {{ formatNumber(dividir && divisor ? state.total / divisor : state.total) }} {{ dividir ? 'USD' : 'CLP' }}
+                                        </strong>
+                                    </div>
+                                </div>
+                                <div v-else class="text-center py-4">
+                                    <i class="fas fa-info-circle fa-2x text-muted mb-2"></i>
+                                    <p class="text-muted mb-0">No hay datos de estados de desarrollo disponibles</p>
                                 </div>
                             </div>
                         </div>

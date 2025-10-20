@@ -55,12 +55,12 @@ const visibility = () => {
 
                  <form @submit.prevent="submit">
                   <div class="mb-3">
-                    <input class="form-control" type="email" v-model="form.email" required autofocus autocomplete="username" placeholder="Correo electrónico" :class="{'is-invalid': form.errors.email}" />
+                    <input class="form-control" type="email" name="email" v-model="form.email" required autofocus autocomplete="username" placeholder="Correo electrónico" :class="{'is-invalid': form.errors.email}" />
 
                     <InputError class="mt-2" :message="form.errors.email" />
                   </div>
                   <div class="mb-3">
-                    <input class="form-control" type="password" v-model="form.password" required autocomplete="current-password" placeholder="Contraseña" :class="{'is-invalid': form.errors.password}" />
+                    <input class="form-control" type="password" name="password" v-model="form.password" required autocomplete="current-password" placeholder="Contraseña" :class="{'is-invalid': form.errors.password}" />
                     <InputError class="mt-2" :message="form.errors.password" />
                   </div>
                   <div class="row flex-between-center">

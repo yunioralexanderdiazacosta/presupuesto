@@ -34,6 +34,7 @@ class OutflowsDashboardController extends Controller
             'debitNotes' => $this->getDebitNotesTotal($season_id, $team_id),
             'byLevel1' => $this->getOutflowsByLevel1($season_id, $team_id),
             'byProject' => $this->getOutflowsByProject($season_id, $team_id),
+            'byDevelopmentState' => $this->getTotalsByDevelopmentState($season_id, $team_id),
         ]);
     }
 
@@ -374,6 +375,61 @@ class OutflowsDashboardController extends Controller
                 'labels' => [],
                 'data' => [],
             ];
+        }
+    }
+
+    private function getTotalsByDevelopmentState($season_id, $team_id)
+    {
+        try {
+            // Subconsulta para obtener superficie total por outflow
+            $surfaceTotalsSubquery = DB::table('outflow_cost_center')
+                ->join('cost_centers', 'outflow_cost_center.cost_center_id', '=', 'cost_centers.id')
+                ->select('outflow_cost_center.outflow_id', DB::raw('SUM(cost_centers.surface) as total_surface'))
+                ->groupBy('outflow_cost_center.outflow_id');
+
+            // Consulta principal para obtener totales por estado de desarrollo
+            $results = DB::table('development_states')
+                ->join('cost_centers', 'development_states.id', '=', 'cost_centers.development_state_id')
+                ->join('outflow_cost_center', 'cost_centers.id', '=', 'outflow_cost_center.cost_center_id')
+                ->join('outflows', function($join) use ($season_id, $team_id) {
+                    $join->on('outflow_cost_center.outflow_id', '=', 'outflows.id')
+                         ->where('outflows.season_id', '=', $season_id)
+                         ->where('outflows.team_id', '=', $team_id);
+                })
+                ->leftJoinSub($surfaceTotalsSubquery, 'surface_totals', function($join) {
+                    $join->on('outflows.id', '=', 'surface_totals.outflow_id');
+                })
+                ->leftJoin('invoice_product', 'outflows.invoice_product_id', '=', 'invoice_product.id')
+                ->leftJoin('credit_debit_note_items', 'outflows.credit_debit_note_item_id', '=', 'credit_debit_note_items.id')
+                ->selectRaw("
+                    development_states.id,
+                    development_states.name as state_name,
+                    COALESCE(SUM(
+                        CASE 
+                            WHEN cost_centers.surface = 0 THEN 
+                                outflows.quantity * COALESCE(invoice_product.unit_price, credit_debit_note_items.unit_price, 0)
+                            ELSE 
+                                (cost_centers.surface * (outflows.quantity / NULLIF(surface_totals.total_surface, 0))) * 
+                                COALESCE(invoice_product.unit_price, credit_debit_note_items.unit_price, 0)
+                        END
+                    ), 0) as total
+                ")
+                ->groupBy('development_states.id', 'development_states.name')
+                ->orderBy('total', 'desc')
+                ->get();
+
+            // Formatear resultados
+            return $results->map(function($item) {
+                return [
+                    'id' => $item->id,
+                    'name' => $item->state_name,
+                    'total' => floatval($item->total ?? 0),
+                ];
+            })->toArray();
+
+        } catch (\Exception $e) {
+            Log::error('Error en OutflowsDashboard getTotalsByDevelopmentState: ' . $e->getMessage());
+            return [];
         }
     }
 }
