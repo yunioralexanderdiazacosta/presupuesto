@@ -123,9 +123,14 @@ class ConsolidatedOutflowsController extends Controller
                 $superficie = $occ->costCenter->surface ?? 0;
                 $cantidadAsignada = $superficie * $cantidadPorHa;
                 
-                // Si superficie es 0, usar 1 para el cálculo del total (evitar total = 0)
-                $superficieParaTotal = $superficie > 0 ? $superficie : 1;
-                $cantidadParaTotal = $superficieParaTotal * $cantidadPorHa;
+                // Calcular el total: si superficie es 0, usar cantidad total de la salida
+                if ($superficie == 0) {
+                    // Si superficie es 0, el total debe ser quantity_total * unit_price
+                    $totalCalculado = $outflow->quantity * $commonData['unit_price'];
+                } else {
+                    // Si superficie > 0, calcular normalmente
+                    $totalCalculado = $cantidadAsignada * $commonData['unit_price'];
+                }
 
                 $expandedData[] = array_merge($commonData, [
                     'cost_center_id' => $occ->costCenter->id,
@@ -135,7 +140,7 @@ class ConsolidatedOutflowsController extends Controller
                     'development_state' => $occ->costCenter->developmentState->name ?? null,
                     'total_superficie' => $totalSuperficie,
                     'cantidad_por_ha' => round($cantidadPorHa, 4),
-                    'total' => round($cantidadParaTotal * $commonData['unit_price'], 2), // Usar superficie=1 si es 0
+                    'total' => round($totalCalculado, 2),
                     'cc_observations' => $occ->observations,
                 ]);
             }

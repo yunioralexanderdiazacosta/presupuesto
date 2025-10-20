@@ -61,7 +61,7 @@ class CostCentersController extends Controller
             ->whereHas('season.team', function($query) use ($user){
                 $query->where('team_id', $user->team_id);
             })
-            ->paginate(10);
+            ->paginate(100);
 
         $developmentStates = DevelopmentState::get()->transform(function($company){
             return [
