@@ -203,6 +203,14 @@ const logout = () => {
               </a>
               <ul class="nav collapse show" id="pricing">
 
+                    <li class="nav-item">
+                      <Link class="nav-link" :href="route('outflows.dashboard')">
+                        <div class="d-flex align-items-center">
+                          <span class="nav-link-text ps-3">Dashboard Gestión</span>
+                        </div>
+                      </Link>
+                    </li>
+
                   <li class="nav-item">
                   <a class="nav-link dropdown-indicator" href="#documents" data-bs-toggle="collapse" aria-expanded="false" aria-controls="documents">
                     <div class="d-flex align-items-center">
@@ -265,13 +273,6 @@ const logout = () => {
                           </Link>
                         </li>
                       </ul>
-                    </li>
-                    <li class="nav-item">
-                      <Link class="nav-link" :href="route('outflows.dashboard')">
-                        <div class="d-flex align-items-center">
-                          <span class="nav-link-text ps-3">Dashboard Gestión</span>
-                        </div>
-                      </Link>
                     </li>
                     <li class="nav-item"><Link class="nav-link" :href="route('estimates.index')">
                         <div class="d-flex align-items-center"><span class="nav-link-text ps-3">Estimaciones</span>

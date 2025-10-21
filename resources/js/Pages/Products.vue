@@ -167,6 +167,10 @@ const filteredProducts = computed(() => {
             aVal = a.unit?.name || '';
             bVal = b.unit?.name || '';
         }
+        if (sortBy.value === 'level1') {
+            aVal = a.level1?.name || '';
+            bVal = b.level1?.name || '';
+        }
         if (sortBy.value === 'level2') {
             aVal = a.level2?.name || '';
             bVal = b.level2?.name || '';
@@ -258,6 +262,7 @@ const sortClass = (field) => ({
                                 { label: 'ID', key: 'id' },
                                 { label: 'Nombre', key: 'name' },
                                 { label: 'Unidad', key: 'unit.name' },
+                                { label: 'Nivel 1', key: 'level1.name' },
                                 { label: 'Nivel 2', key: 'level2.name' },
                                 { label: 'Nivel 3', key: 'level3.name' }
                             ]"
@@ -270,6 +275,7 @@ const sortClass = (field) => ({
                                 { label: 'ID', key: 'id' },
                                 { label: 'Nombre', key: 'name' },
                                 { label: 'Unidad', key: 'unit.name' },
+                                { label: 'Nivel 1', key: 'level1.name' },
                                 { label: 'Nivel 2', key: 'level2.name' },
                                 { label: 'Nivel 3', key: 'level3.name' }
                             ]"
@@ -291,6 +297,7 @@ const sortClass = (field) => ({
                             <th width="80px" @click="setSort('id')" :class="sortClass('id')" style="cursor: pointer;">ID</th>
                             <th width="min-w-150px" @click="setSort('name')" :class="sortClass('name')" style="cursor: pointer;">Nombre</th>
                             <th width="min-w-150px" @click="setSort('unit')" :class="sortClass('unit')" style="cursor: pointer;">Unidad</th>
+                            <th width="min-w-150px" @click="setSort('level1')" :class="sortClass('level1')" style="cursor: pointer;">Nivel 1</th>
                             <th width="min-w-150px" @click="setSort('level2')" :class="sortClass('level2')" style="cursor: pointer;">Nivel 2</th>
                             <th width="min-w-150px" @click="setSort('level3')" :class="sortClass('level3')" style="cursor: pointer;">Nivel 3</th>
                             <th width="min-w-150px" class="text-center">Acciones</th>
@@ -300,13 +307,14 @@ const sortClass = (field) => ({
                         <!--begin::Table body-->
                         <template #body>
                             <template v-if="filteredProducts.length === 0">
-                                <Empty colspan="6" />
+                                <Empty colspan="7" />
                             </template>
                             <template v-else>
                                 <tr v-for="(product, index) in filteredProducts" :key="index">
                                     <td>{{ product.id }}</td>
                                     <td>{{ product.name }}</td>
                                     <td>{{ product.unit ? product.unit.name : '—' }}</td>
+                                    <td>{{ product.level1 ? product.level1.name : '—' }}</td>
                                     <td>{{ product.level2 ? product.level2.name : '—' }}</td>
                                     <td>{{ product.level3 ? product.level3.name : '—' }}</td>
 

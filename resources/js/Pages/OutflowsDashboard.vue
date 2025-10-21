@@ -291,19 +291,19 @@ const totalCompras = computed(() => {
                 <div class="row g-2 mb-3">
                     <!-- Total Facturas Card -->
                     <div class="col-md-3">
-                        <div class="card h-100 border-start border-success border-3">
+                        <div class="card h-100 border-start border-3" style="border-color: #6FB550 !important;">
                             <div class="card-body py-2 px-3">
                                 <div class="d-flex align-items-center justify-content-between">
                                     <div>
                                         <small class="text-muted text-uppercase d-block mb-1">Total Facturas</small>
-                                        <h4 class="mb-0 text-success fw-bold">
+                                        <h4 class="mb-0 fw-bold" style="color: #6FB550;">
                                             {{ formatNumber(dividir && divisor ? (invoices?.total || 0) / divisor : (invoices?.total || 0)) }} {{ dividir ? 'USD' : 'CLP' }}
                                         </h4>
                                         <small class="text-muted fs-10">
                                             {{ formatNumber(invoices?.count || 0) }} facturas
                                         </small>
                                     </div>
-                                    <div class="text-success">
+                                    <div style="color: #6FB550;">
                                         <i class="fas fa-file-invoice-dollar fa-2x opacity-50"></i>
                                     </div>
                                 </div>
@@ -313,19 +313,19 @@ const totalCompras = computed(() => {
 
                     <!-- Total Notas de Crédito Card -->
                     <div class="col-md-3">
-                        <div class="card h-100 border-start border-success border-3">
+                        <div class="card h-100 border-start border-3" style="border-color: #6FB550 !important;">
                             <div class="card-body py-2 px-3">
                                 <div class="d-flex align-items-center justify-content-between">
                                     <div>
                                         <small class="text-muted text-uppercase d-block mb-1">Notas de Crédito</small>
-                                        <h4 class="mb-0 text-success fw-bold">
+                                        <h4 class="mb-0 fw-bold" style="color: #6FB550;">
                                             {{ formatNumber(dividir && divisor ? (creditNotes?.total || 0) / divisor : (creditNotes?.total || 0)) }} {{ dividir ? 'USD' : 'CLP' }}
                                         </h4>
                                         <small class="text-muted fs-10">
                                             {{ formatNumber(creditNotes?.count || 0) }} notas
                                         </small>
                                     </div>
-                                    <div class="text-success">
+                                    <div style="color: #6FB550;">
                                         <i class="fas fa-minus-circle fa-2x opacity-50"></i>
                                     </div>
                                 </div>
@@ -335,19 +335,19 @@ const totalCompras = computed(() => {
 
                     <!-- Total Notas de Débito Card -->
                     <div class="col-md-3">
-                        <div class="card h-100 border-start border-success border-3">
+                        <div class="card h-100 border-start border-3" style="border-color: #6FB550 !important;">
                             <div class="card-body py-2 px-3">
                                 <div class="d-flex align-items-center justify-content-between">
                                     <div>
                                         <small class="text-muted text-uppercase d-block mb-1">Notas de Débito</small>
-                                        <h4 class="mb-0 text-success fw-bold">
+                                        <h4 class="mb-0 fw-bold" style="color: #6FB550;">
                                             {{ formatNumber(dividir && divisor ? (debitNotes?.total || 0) / divisor : (debitNotes?.total || 0)) }} {{ dividir ? 'USD' : 'CLP' }}
                                         </h4>
                                         <small class="text-muted fs-10">
                                             {{ formatNumber(debitNotes?.count || 0) }} notas
                                         </small>
                                     </div>
-                                    <div class="text-success">
+                                    <div style="color: #6FB550;">
                                         <i class="fas fa-plus-circle fa-2x opacity-50"></i>
                                     </div>
                                 </div>
@@ -357,19 +357,19 @@ const totalCompras = computed(() => {
 
                     <!-- Total Compras Card -->
                     <div class="col-md-3">
-                        <div class="card h-100 border-start border-success border-3">
+                        <div class="card h-100 border-start border-3" style="border-color: #60A145 !important;">
                             <div class="card-body py-2 px-3">
                                 <div class="d-flex align-items-center justify-content-between">
                                     <div>
                                         <small class="text-muted text-uppercase d-block mb-1">Total Compras</small>
-                                        <h4 class="mb-0 text-success fw-bold">
+                                        <h4 class="mb-0 fw-bold" style="color: #60A145;">
                                             {{ formatNumber(dividir && divisor ? totalCompras / divisor : totalCompras) }} {{ dividir ? 'USD' : 'CLP' }}
                                         </h4>
                                         <small class="text-muted fs-10">
                                             Facturas + Débito - Crédito
                                         </small>
                                     </div>
-                                    <div class="text-success">
+                                    <div style="color: #60A145;">
                                         <i class="fas fa-shopping-cart fa-2x opacity-50"></i>
                                     </div>
                                 </div>

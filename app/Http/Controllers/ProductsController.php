@@ -59,6 +59,9 @@ class ProductsController extends Controller
                   ->orWhereHas('unit', function($q) use ($search) {
                       $q->where('name', 'like', '%'.$search.'%');
                   })
+                  ->orWhereHas('level1', function($q) use ($search) {
+                      $q->where('name', 'like', '%'.$search.'%');
+                  })
                   ->orWhereHas('level2', function($q) use ($search) {
                       $q->where('name', 'like', '%'.$search.'%');
                   })
@@ -67,7 +70,7 @@ class ProductsController extends Controller
                   });
             });
         })
-        ->with('unit','level2','level3')
+        ->with('unit','level1','level2','level3')
         ->where('team_id', $user->team_id)
         ->paginate(5000)
         ->withQueryString();
