@@ -7,6 +7,7 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Http\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Log;
 
 class CheckBanned
 {
@@ -28,8 +29,22 @@ class CheckBanned
         }
 
         if(auth()->check() && !$request->session()->has('price')){
-            $prices = Http::withOptions(["verify"=>false])->get("https://mindicador.cl/api") ?? '';
-            $price  = $prices ? $prices['dolar']['valor'] : '';
+            try {
+                // Timeout de 3 segundos para no bloquear la aplicación
+                $prices = Http::withOptions(["verify" => false])
+                    ->timeout(3)
+                    ->get("https://mindicador.cl/api");
+                
+                $price = $prices->successful() && isset($prices['dolar']['valor']) 
+                    ? $prices['dolar']['valor'] 
+                    : 900; // Valor por defecto si la API falla
+                    
+            } catch (\Exception $e) {
+                // Si la API falla, usar valor por defecto
+                Log::warning('Mindicador API no disponible: ' . $e->getMessage());
+                $price = 900;
+            }
+            
             session(['price' => $price]);
         }
 
