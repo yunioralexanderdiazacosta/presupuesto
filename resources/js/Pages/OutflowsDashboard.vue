@@ -67,6 +67,18 @@ const props = defineProps({
     byDevelopmentState: {
         type: Array,
         default: () => []
+    },
+    byDevelopmentStateWithoutInvestments: {
+        type: Array,
+        default: () => []
+    },
+    costoKiloAcumulado: {
+        type: Object,
+        default: () => ({
+            totalProduccion: 0,
+            totalKilos: 0,
+            costoKilo: 0
+        })
     }
 });
 
@@ -90,6 +102,15 @@ const formatNumber = (number) => {
         minimumFractionDigits: 0,
         maximumFractionDigits: 0
     }).format(Math.round(number));
+};
+
+// Formatear costo kilo con 1 decimal
+const formatCostoKilo = (number) => {
+    if (number === null || number === undefined) return '0,0';
+    return new Intl.NumberFormat('es-CL', {
+        minimumFractionDigits: 1,
+        maximumFractionDigits: 1
+    }).format(number);
 };
 
 // Formatear moneda
@@ -311,28 +332,6 @@ const totalCompras = computed(() => {
                         </div>
                     </div>
 
-                    <!-- Total Notas de Crédito Card -->
-                    <div class="col-md-3">
-                        <div class="card h-100 border-start border-3" style="border-color: #6FB550 !important;">
-                            <div class="card-body py-2 px-3">
-                                <div class="d-flex align-items-center justify-content-between">
-                                    <div>
-                                        <small class="text-muted text-uppercase d-block mb-1">Notas de Crédito</small>
-                                        <h4 class="mb-0 fw-bold" style="color: #6FB550;">
-                                            {{ formatNumber(dividir && divisor ? (creditNotes?.total || 0) / divisor : (creditNotes?.total || 0)) }} {{ dividir ? 'USD' : 'CLP' }}
-                                        </h4>
-                                        <small class="text-muted fs-10">
-                                            {{ formatNumber(creditNotes?.count || 0) }} notas
-                                        </small>
-                                    </div>
-                                    <div style="color: #6FB550;">
-                                        <i class="fas fa-minus-circle fa-2x opacity-50"></i>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-
                     <!-- Total Notas de Débito Card -->
                     <div class="col-md-3">
                         <div class="card h-100 border-start border-3" style="border-color: #6FB550 !important;">
@@ -349,6 +348,28 @@ const totalCompras = computed(() => {
                                     </div>
                                     <div style="color: #6FB550;">
                                         <i class="fas fa-plus-circle fa-2x opacity-50"></i>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Total Notas de Crédito Card -->
+                    <div class="col-md-3">
+                        <div class="card h-100 border-start border-3" style="border-color: #6FB550 !important;">
+                            <div class="card-body py-2 px-3">
+                                <div class="d-flex align-items-center justify-content-between">
+                                    <div>
+                                        <small class="text-muted text-uppercase d-block mb-1">Notas de Crédito</small>
+                                        <h4 class="mb-0 fw-bold" style="color: #6FB550;">
+                                            {{ formatNumber(dividir && divisor ? (creditNotes?.total || 0) / divisor : (creditNotes?.total || 0)) }} {{ dividir ? 'USD' : 'CLP' }}
+                                        </h4>
+                                        <small class="text-muted fs-10">
+                                            {{ formatNumber(creditNotes?.count || 0) }} notas
+                                        </small>
+                                    </div>
+                                    <div style="color: #6FB550;">
+                                        <i class="fas fa-minus-circle fa-2x opacity-50"></i>
                                     </div>
                                 </div>
                             </div>
@@ -393,12 +414,12 @@ const totalCompras = computed(() => {
 
                 <!-- Card Totales por Estado de Desarrollo -->
                 <div class="row g-2 mb-3">
-                    <div class="col-12">
+                    <div class="col-md-6">
                         <div class="card border-start border-info border-3">
                             <div class="card-header bg-transparent py-2">
                                 <h6 class="mb-0 text-info">
                                     <i class="fas fa-seedling me-2"></i>
-                                    Resumen por Estado de Desarrollo
+                                    Resumen con Inversiones
                                 </h6>
                             </div>
                             <div class="card-body p-0">
@@ -412,14 +433,112 @@ const totalCompras = computed(() => {
                                             <i class="fas fa-circle text-info me-2" style="font-size: 8px;"></i>
                                             {{ state.name }}
                                         </span>
-                                        <strong class="text-info fs-6">
+                                        <span class="fs-8">
                                             {{ formatNumber(dividir && divisor ? state.total / divisor : state.total) }} {{ dividir ? 'USD' : 'CLP' }}
-                                        </strong>
+                                        </span>
                                     </div>
                                 </div>
                                 <div v-else class="text-center py-4">
                                     <i class="fas fa-info-circle fa-2x text-muted mb-2"></i>
                                     <p class="text-muted mb-0">No hay datos de estados de desarrollo disponibles</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Nuevo Card: Sin Inversiones -->
+                    <div class="col-md-6">
+                        <div class="card border-start border-warning border-3">
+                            <div class="card-header bg-transparent py-2">
+                                <h6 class="mb-0 text-warning">
+                                    <i class="fas fa-filter me-2"></i>
+                                    Sin Inversiones
+                                </h6>
+                            </div>
+                            <div class="card-body p-0">
+                                <div v-if="byDevelopmentStateWithoutInvestments && byDevelopmentStateWithoutInvestments.length > 0" class="list-group list-group-flush">
+                                    <div 
+                                        v-for="state in byDevelopmentStateWithoutInvestments" 
+                                        :key="state.id"
+                                        class="list-group-item d-flex justify-content-between align-items-center py-2 px-3"
+                                    >
+                                        <span class="fw-medium">
+                                            <i class="fas fa-circle text-warning me-2" style="font-size: 8px;"></i>
+                                            {{ state.name }}
+                                        </span>
+                                        <span class="fs-8">
+                                            {{ formatNumber(dividir && divisor ? state.total / divisor : state.total) }} {{ dividir ? 'USD' : 'CLP' }}
+                                        </span>
+                                    </div>
+                                </div>
+                                <div v-else class="text-center py-4">
+                                    <i class="fas fa-info-circle fa-2x text-muted mb-2"></i>
+                                    <p class="text-muted mb-0">No hay datos disponibles</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Card Costo Kilo Acumulado -->
+                <div class="row g-2 mb-3">
+                    <div class="col-12">
+                        <div class="card border-start border-success border-3 shadow-sm">
+                            <div class="card-header bg-transparent py-2">
+                                <div class="d-flex align-items-center justify-content-between">
+                                    <h6 class="mb-0 text-success">
+                                        <i class="fas fa-calculator me-2"></i>
+                                        Costo Kilo Acumulado
+                                    </h6>
+                                    <small class="text-muted">Producción / Kilos Estimados</small>
+                                </div>
+                            </div>
+                            <div class="card-body">
+                                <div class="row g-3">
+                                    <!-- Total Producción -->
+                                    <div class="col-md-4">
+                                        <div class="text-center p-3 bg-light rounded">
+                                            <small class="text-uppercase text-muted d-block mb-2" style="font-size: 0.75rem; font-weight: 600;">
+                                                Total Costos Producción
+                                            </small>
+                                            <div class="fs-7">
+                                                {{ formatNumber(dividir && divisor ? costoKiloAcumulado.totalProduccion / divisor : costoKiloAcumulado.totalProduccion) }} <small class="text-secondary">{{ dividir ? 'USD' : 'CLP' }}</small>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <!-- Total Kilos -->
+                                    <div class="col-md-4">
+                                        <div class="text-center p-3 bg-light rounded">
+                                            <small class="text-uppercase text-muted d-block mb-2" style="font-size: 0.75rem; font-weight: 600;">
+                                                Total Kilos Estimados
+                                            </small>
+                                            <div class="fs-7">
+                                                {{ formatNumber(costoKiloAcumulado.totalKilos) }} <small class="text-secondary">Kg</small>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <!-- Costo por Kilo -->
+                                    <div class="col-md-4">
+                                        <div class="text-center p-3 bg-success bg-opacity-10 rounded border border-success">
+                                            <small class="text-uppercase text-success d-block mb-2" style="font-size: 0.75rem; font-weight: 700;">
+                                                <i class="fas fa-star me-1"></i> Costo / Kilo Acumulado
+                                            </small>
+                                            <div class="fs-7 text-success">
+                                                {{ formatCostoKilo(dividir && divisor ? costoKiloAcumulado.costoKilo / divisor : costoKiloAcumulado.costoKilo) }} <small class="text-success fw-medium">{{ dividir ? 'USD' : 'CLP' }}/Kg</small>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- Mensaje si no hay datos -->
+                                <div v-if="!costoKiloAcumulado.totalKilos || !costoKiloAcumulado.totalProduccion" class="alert alert-warning mt-3 mb-0 py-2">
+                                    <i class="fas fa-exclamation-triangle me-2"></i>
+                                    <small>
+                                        <span v-if="!costoKiloAcumulado.totalKilos">No hay estimaciones de kilos registradas. </span>
+                                        <span v-if="!costoKiloAcumulado.totalProduccion">No hay gastos de producción registrados.</span>
+                                    </small>
                                 </div>
                             </div>
                         </div>

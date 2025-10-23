@@ -10,9 +10,11 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Inertia\Inertia;
+use App\Http\Controllers\Traits\BudgetTotalsTrait;
 
 class OutflowsDashboardController extends Controller
 {
+    use BudgetTotalsTrait;
     public function index(Request $request)
     {
         $season_id = session('season_id');
@@ -35,6 +37,8 @@ class OutflowsDashboardController extends Controller
             'byLevel1' => $this->getOutflowsByLevel1($season_id, $team_id),
             'byProject' => $this->getOutflowsByProject($season_id, $team_id),
             'byDevelopmentState' => $this->getTotalsByDevelopmentState($season_id, $team_id),
+            'byDevelopmentStateWithoutInvestments' => $this->getTotalsByDevelopmentStateWithoutInvestments($season_id, $team_id),
+            'costoKiloAcumulado' => $this->getCostoKiloAcumulado($season_id, $team_id),
         ]);
     }
 
@@ -430,6 +434,167 @@ class OutflowsDashboardController extends Controller
         } catch (\Exception $e) {
             Log::error('Error en OutflowsDashboard getTotalsByDevelopmentState: ' . $e->getMessage());
             return [];
+        }
+    }
+
+    private function getTotalsByDevelopmentStateWithoutInvestments($season_id, $team_id)
+    {
+        try {
+            // Subconsulta para obtener superficie total por outflow
+            $surfaceTotalsSubquery = DB::table('outflow_cost_center')
+                ->join('cost_centers', 'outflow_cost_center.cost_center_id', '=', 'cost_centers.id')
+                ->select('outflow_cost_center.outflow_id', DB::raw('SUM(cost_centers.surface) as total_surface'))
+                ->groupBy('outflow_cost_center.outflow_id');
+
+            // Consulta principal excluyendo inversiones
+            $results = DB::table('development_states')
+                ->join('cost_centers', 'development_states.id', '=', 'cost_centers.development_state_id')
+                ->join('outflow_cost_center', 'cost_centers.id', '=', 'outflow_cost_center.cost_center_id')
+                ->join('outflows', function($join) use ($season_id, $team_id) {
+                    $join->on('outflow_cost_center.outflow_id', '=', 'outflows.id')
+                         ->where('outflows.season_id', '=', $season_id)
+                         ->where('outflows.team_id', '=', $team_id);
+                })
+                ->leftJoin('operations', 'outflows.operation_id', '=', 'operations.id')
+                ->leftJoinSub($surfaceTotalsSubquery, 'surface_totals', function($join) {
+                    $join->on('outflows.id', '=', 'surface_totals.outflow_id');
+                })
+                ->leftJoin('invoice_product', 'outflows.invoice_product_id', '=', 'invoice_product.id')
+                ->leftJoin('credit_debit_note_items', 'outflows.credit_debit_note_item_id', '=', 'credit_debit_note_items.id')
+                // Excluir inversiones
+                ->where(function($query) {
+                    $query->whereNull('operations.name')
+                          ->orWhereRaw('LOWER(operations.name) NOT LIKE ?', ['%inversion%']);
+                })
+                ->selectRaw("
+                    development_states.id,
+                    development_states.name as state_name,
+                    COALESCE(SUM(
+                        CASE 
+                            WHEN cost_centers.surface = 0 THEN 
+                                outflows.quantity * COALESCE(invoice_product.unit_price, credit_debit_note_items.unit_price, 0)
+                            ELSE 
+                                (cost_centers.surface * (outflows.quantity / NULLIF(surface_totals.total_surface, 0))) * 
+                                COALESCE(invoice_product.unit_price, credit_debit_note_items.unit_price, 0)
+                        END
+                    ), 0) as total
+                ")
+                ->groupBy('development_states.id', 'development_states.name')
+                ->orderBy('total', 'desc')
+                ->get();
+
+            // Formatear resultados
+            return $results->map(function($item) {
+                return [
+                    'id' => $item->id,
+                    'name' => $item->state_name,
+                    'total' => floatval($item->total ?? 0),
+                ];
+            })->toArray();
+
+        } catch (\Exception $e) {
+            Log::error('Error en OutflowsDashboard getTotalsByDevelopmentStateWithoutInvestments: ' . $e->getMessage());
+            return [];
+        }
+    }
+
+    /**
+     * Calcula el costo kilo acumulado
+     * Fórmula: Total de producción / Total de kilos estimados
+     * 
+     * @param int $season_id
+     * @param int $team_id
+     * @return array
+     */
+    private function getCostoKiloAcumulado($season_id, $team_id)
+    {
+        try {
+            // 1. Obtener total de producción (outflows con operación "producción")
+            $totalProduccion = $this->getTotalProduccion($season_id, $team_id);
+
+            // 2. Obtener total de kilos estimados (última estimación)
+            $totalEstimatedKilosData = $this->getTotalEstimatedKilos($season_id, $team_id);
+            $kilosByFruit = $totalEstimatedKilosData['kilosByFruit'] ?? [];
+            
+            // Sumar todos los kilos de todas las frutas
+            $totalKilos = array_sum($kilosByFruit);
+
+            // 3. Calcular costo por kilo
+            $costoKilo = 0;
+            if ($totalKilos > 0) {
+                $costoKilo = $totalProduccion / $totalKilos;
+            }
+
+            return [
+                'totalProduccion' => floatval($totalProduccion),
+                'totalKilos' => floatval($totalKilos),
+                'costoKilo' => floatval($costoKilo),
+            ];
+
+        } catch (\Exception $e) {
+            Log::error('Error en OutflowsDashboard getCostoKiloAcumulado: ' . $e->getMessage());
+            return [
+                'totalProduccion' => 0,
+                'totalKilos' => 0,
+                'costoKilo' => 0,
+            ];
+        }
+    }
+
+    /**
+     * Obtiene el total de gastos de producción
+     * Replica la función getTotalsByDevelopmentStateWithoutInvestments pero filtrando por "producción"
+     * 
+     * @param int $season_id
+     * @param int $team_id
+     * @return float
+     */
+    private function getTotalProduccion($season_id, $team_id)
+    {
+        try {
+            // Subconsulta para obtener superficie total por outflow
+            $surfaceTotalsSubquery = DB::table('outflow_cost_center')
+                ->join('cost_centers', 'outflow_cost_center.cost_center_id', '=', 'cost_centers.id')
+                ->select('outflow_cost_center.outflow_id', DB::raw('SUM(cost_centers.surface) as total_surface'))
+                ->groupBy('outflow_cost_center.outflow_id');
+
+            // Consulta principal filtrando por estado de desarrollo "producción" y operación "gasto"
+            $result = DB::table('development_states')
+                ->join('cost_centers', 'development_states.id', '=', 'cost_centers.development_state_id')
+                ->join('outflow_cost_center', 'cost_centers.id', '=', 'outflow_cost_center.cost_center_id')
+                ->join('outflows', function($join) use ($season_id, $team_id) {
+                    $join->on('outflow_cost_center.outflow_id', '=', 'outflows.id')
+                         ->where('outflows.season_id', '=', $season_id)
+                         ->where('outflows.team_id', '=', $team_id);
+                })
+                ->join('operations', 'outflows.operation_id', '=', 'operations.id')
+                ->leftJoinSub($surfaceTotalsSubquery, 'surface_totals', function($join) {
+                    $join->on('outflows.id', '=', 'surface_totals.outflow_id');
+                })
+                ->leftJoin('invoice_product', 'outflows.invoice_product_id', '=', 'invoice_product.id')
+                ->leftJoin('credit_debit_note_items', 'outflows.credit_debit_note_item_id', '=', 'credit_debit_note_items.id')
+                // Filtrar por estado de desarrollo "producción" (con o sin acento, mayúsculas/minúsculas)
+                ->whereRaw("LOWER(REPLACE(development_states.name, 'ó', 'o')) LIKE ?", ['%produccion%'])
+                // Filtrar por operación "gasto"
+                ->whereRaw("LOWER(operations.name) = ?", ['gasto'])
+                ->selectRaw("
+                    COALESCE(SUM(
+                        CASE 
+                            WHEN cost_centers.surface = 0 THEN 
+                                outflows.quantity * COALESCE(invoice_product.unit_price, credit_debit_note_items.unit_price, 0)
+                            ELSE 
+                                (cost_centers.surface * (outflows.quantity / NULLIF(surface_totals.total_surface, 0))) * 
+                                COALESCE(invoice_product.unit_price, credit_debit_note_items.unit_price, 0)
+                        END
+                    ), 0) as total_produccion
+                ")
+                ->first();
+
+            return floatval($result->total_produccion ?? 0);
+
+        } catch (\Exception $e) {
+            Log::error('Error en OutflowsDashboard getTotalProduccion: ' . $e->getMessage());
+            return 0;
         }
     }
 }
