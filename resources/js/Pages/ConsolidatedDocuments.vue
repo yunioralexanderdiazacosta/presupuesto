@@ -141,6 +141,63 @@ function formatFecha(fecha) {
   // Mostrar la fecha tal como viene del backend
   return fecha || '';
 }
+
+// Función para generar un color único basado en el tipo de documento
+const getColorForType = (tipo) => {
+  const colors = [
+    { bg: 'bg-primary bg-opacity-25', badge: 'bg-primary' },         // Azul fuerte
+    { bg: 'bg-success bg-opacity-25', badge: 'bg-success' },         // Verde
+    { bg: 'bg-info bg-opacity-25', badge: 'bg-info' },               // Celeste
+    { bg: 'bg-warning bg-opacity-25', badge: 'bg-warning' },         // Amarillo
+    { bg: 'bg-danger bg-opacity-25', badge: 'bg-danger' },           // Rojo
+    { bg: 'bg-secondary bg-opacity-25', badge: 'bg-secondary' },     // Gris
+    { bg: 'bg-dark bg-opacity-10', badge: 'bg-dark' },               // Negro/Gris oscuro
+    { bg: 'bg-success bg-opacity-50', badge: 'bg-success' },         // Verde intenso
+    { bg: 'bg-info bg-opacity-50', badge: 'bg-info' },               // Celeste intenso
+    { bg: 'bg-warning bg-opacity-50', badge: 'bg-warning' },         // Amarillo intenso
+    { bg: 'bg-danger bg-opacity-50', badge: 'bg-danger' },           // Rojo intenso
+    { bg: 'bg-primary bg-opacity-50', badge: 'bg-primary' },         // Azul intenso
+  ];
+  
+  // Generar hash simple del tipo
+  let hash = 0;
+  const tipoStr = (tipo || '').toLowerCase();
+  for (let i = 0; i < tipoStr.length; i++) {
+    hash = ((hash << 5) - hash) + tipoStr.charCodeAt(i);
+    hash = hash & hash; // Convertir a entero de 32bit
+  }
+  
+  // Usar el hash para seleccionar un color
+  const index = Math.abs(hash) % colors.length;
+  return colors[index];
+};
+
+// Función para obtener la clase de color según el tipo de documento
+const getDocTypeClass = (tipo) => {
+  return getColorForType(tipo).bg;
+};
+
+// Función para obtener el badge según el tipo
+const getDocTypeBadge = (tipo) => {
+  const tipoLower = (tipo || '').toLowerCase();
+  const color = getColorForType(tipo);
+  
+  // Normalizar el texto del badge
+  let text = tipo || 'Documento';
+  if (tipoLower.includes('debito') || tipoLower.includes('débito') || tipoLower === 'nd') {
+    text = 'N. Débito';
+  } else if (tipoLower.includes('credito') || tipoLower.includes('crédito') || tipoLower === 'nc') {
+    text = 'N. Crédito';
+  } else if (tipoLower.includes('factura')) {
+    text = tipo.includes('EXENTA') || tipo.includes('exenta') ? 'F. Exenta' : 'Factura';
+  } else if (tipoLower.includes('boleta')) {
+    text = tipoLower.includes('honorario') ? 'B. Honorarios' : 'Boleta';
+  } else if (tipoLower.includes('remuneracion')) {
+    text = 'Remuneración';
+  }
+  
+  return { text, class: color.badge };
+};
 </script>
 
 
@@ -237,9 +294,7 @@ function formatFecha(fecha) {
                 <tbody>
                   <tr v-for="(doc, idx) in sortedDocuments" :key="idx">
                     <td style="max-width:70px; min-width:50px; width:60px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">
-                      <span v-if="doc.tipo === 'debito' || doc.tipo === 'Débito'" class="badge bg-secondary">Débito</span>
-                      <span v-else-if="doc.tipo === 'credito' || doc.tipo === 'Crédito'" class="badge bg-success">Crédito</span>
-                      <span v-else class="badge bg-primary">{{ doc.tipo }}</span>
+                      <span :class="'badge ' + getDocTypeBadge(doc.tipo).class">{{ getDocTypeBadge(doc.tipo).text }}</span>
                     </td>
                     <td class="text-lowercase" style="max-width:100px; min-width:100px; width:100px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">{{ doc.razon_social }}</td>
                     <td style="max-width:100px; min-width:100px; width:100px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">{{ doc.mes_contable }}</td>

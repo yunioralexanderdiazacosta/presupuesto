@@ -21,6 +21,12 @@ const props = defineProps({
   users: { type: Array, default: () => [] }
 });
 
+const title = 'Inversiones';
+const links = [
+  { title: 'Tablero', link: 'dashboard' },
+  { title: 'Inversiones', active: true }
+];
+
 const search = ref('');
 const filteredInvestments = computed(() => {
   if (!props.investments || !props.investments.data) return [];
@@ -50,6 +56,42 @@ function closeEditModal() {
 }
 function closeCreateModal() {
   showCreateModal.value = false;
+}
+
+const handleDelete = (investment) => {
+  Swal.fire({
+    title: '¿Estás seguro de que quieres eliminar esta inversión?',
+    text: `"${investment.name}"`,
+    icon: 'warning',
+    showCancelButton: true,
+    confirmButtonColor: 'rgb(0, 158, 247)',
+    cancelButtonColor: '#6e6e6e',
+    cancelButtonText: 'Cancelar',
+    confirmButtonText: 'Confirmar',
+  }).then((result) => {
+    if (result.isConfirmed) {
+      router.delete(route('investments.delete', investment.id), {
+        preserveScroll: true,
+        onSuccess: () => {
+          Swal.fire({
+            icon: 'success',
+            title: 'Registro eliminado correctamente',
+            showConfirmButton: false,
+            timer: 1000
+          });
+        },
+        onError: (errors) => {
+          console.error('Error al eliminar:', errors);
+          Swal.fire({
+            icon: 'error',
+            title: 'Error al eliminar',
+            text: 'Ocurrió un error al intentar eliminar la inversión',
+            showConfirmButton: true
+          });
+        }
+      });
+    }
+  });
 }
 </script>
 
@@ -111,7 +153,7 @@ function closeCreateModal() {
             <template #cell(actions)="{ item }">
               <button class="btn btn-sm btn-outline-primary me-1" @click="openEditModal(item)"><i
                   class="fas fa-edit"></i></button>
-              <button class="btn btn-sm btn-outline-danger" @click="$emit('delete', item)"><i
+              <button class="btn btn-sm btn-outline-danger" @click="handleDelete(item)"><i
                   class="fas fa-trash"></i></button>
             </template>
           </Table>

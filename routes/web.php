@@ -412,7 +412,7 @@ Route::middleware([
     Route::get('/investments', IndexInvestmentController::class)->name('investments.index');
     Route::post('/investments/store', StoreInvestmentController::class)->name('investments.store');
     Route::post('/investments/{investment}/update', UpdateInvestmentController::class)->name('investments.update');
-    Route::delete('/investments/{investment}/delete', DeleteInvestmentController::class)->name('investments.delete');
+    Route::delete('/investments/{investment}', DeleteInvestmentController::class)->name('investments.delete');
         Route::get('/fertilizers', FertilizersController::class)->name('fertilizers.index');
         Route::get('/cost-centers', CostCentersController::class)->name('cost.centers.index');
         Route::get('/manpowers', ManPowersController::class)->name('manpowers.index');

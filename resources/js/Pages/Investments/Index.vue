@@ -132,6 +132,44 @@ function updateInvestment() {
     }
   });
 }
+
+// Eliminar inversión
+function handleDelete(investment) {
+  Swal.fire({
+    title: '¿Estás seguro?',
+    text: `Se eliminará la inversión "${investment.name}"`,
+    icon: 'warning',
+    showCancelButton: true,
+    confirmButtonColor: '#d33',
+    cancelButtonColor: '#3085d6',
+    confirmButtonText: 'Sí, eliminar',
+    cancelButtonText: 'Cancelar'
+  }).then((result) => {
+    if (result.isConfirmed) {
+      router.delete(route('investments.delete', investment.id), {
+        preserveScroll: true,
+        onSuccess: () => {
+          Swal.fire({
+            icon: 'success',
+            title: '¡Eliminado!',
+            text: 'La inversión ha sido eliminada.',
+            timer: 1800,
+            showConfirmButton: false
+          });
+        },
+        onError: (errors) => {
+          console.error('Error al eliminar:', errors);
+          Swal.fire({
+            icon: 'error',
+            title: 'Error',
+            text: 'No se pudo eliminar la inversión.',
+            showConfirmButton: true
+          });
+        }
+      });
+    }
+  });
+}
 </script>
 
 <template>
@@ -213,7 +251,7 @@ function updateInvestment() {
                   <td><span class="text-muted small">{{ item.observations }}</span></td>
                   <td>
                     <button class="btn btn-sm btn-outline-primary me-1" @click="openEditModal(item)"><i class="fas fa-edit"></i></button>
-                    <button class="btn btn-sm btn-outline-danger" @click="$emit('delete', item)"><i class="fas fa-trash"></i></button>
+                    <button class="btn btn-sm btn-outline-danger" @click="handleDelete(item)"><i class="fas fa-trash"></i></button>
                   </td>
                 </tr>
               </template>
