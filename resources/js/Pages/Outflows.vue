@@ -115,7 +115,8 @@ const props = defineProps({
   operations: Array,
   machineries: Array,
   cost_centers: Array,
-  outflowDetails: { type: Array, default: () => [] }
+  outflowDetails: { type: Array, default: () => [] },
+  levels3: { type: Array, default: () => [] }
 });
 
 const title = 'Salidas de productos';
@@ -221,7 +222,8 @@ function openCard(outflow) {
       unit_name: outflow.unit,
       quantity: outflow.stock, // Inicializa cantidad con el stock
       cost_center_ids: [],
-      observations: ''
+      observations: '',
+      level3_id: null,
     });
   }
 }
@@ -261,7 +263,8 @@ function handleSave() {
       unit_name: sel.unit_name,
       quantity: sel.quantity,
       cost_center_ids: sel.cost_center_ids,
-      notes: sel.observations // Usar notes para el backend
+      notes: sel.observations, // Usar notes para el backend
+      level3_id: sel.level3_id,
     };
   });
   console.log('Registros enviados:', registros);
@@ -724,57 +727,64 @@ watch(selectedGroupings, (newVals) => {
                           </div>
                           <div class="col-12 col-md-2">
                             <label class="form-label">Proyecto</label>
-                            <Multiselect
-                              placeholder="Proyecto"
-                              v-model="selected.project_id"
-                              :options="props.projects"
-                              option-label="label"
-                              option-value="value"
-                              :searchable="true"
-                              class="multiselect-blue form-control"
-                            />
+                            <select 
+                              v-model="selected.project_id" 
+                              class="form-select form-select-sm"
+                            >
+                              <option :value="null" disabled selected hidden>Seleccione proyecto</option>
+                              <option v-for="project in props.projects" :key="project.value" :value="project.value">
+                                {{ project.label }}
+                              </option>
+                            </select>
                           </div>
                           <div class="col-12 col-md-2">
                             <label class="form-label">Operación</label>
-                            <Multiselect
-                              placeholder="Operación"
-                              v-model="selected.operation_id"
-                              :options="props.operations"
-                               class="multiselect-blue form-control"
-                              option-label="label"
-                              option-value="value"
-                              :searchable="true"
-                             
-                              
-                            />
+                            <select 
+                              v-model="selected.operation_id" 
+                              class="form-select form-select-sm"
+                            >
+                              <option :value="null" disabled selected hidden>Seleccione operación</option>
+                              <option v-for="operation in props.operations" :key="operation.value" :value="operation.value">
+                                {{ operation.label }}
+                              </option>
+                            </select>
+                          </div>
+                          <div class="col-12 col-md-3">
+                            <label class="form-label">Clasificación (Nivel 3)</label>
+                            <select 
+                              v-model="selected.level3_id" 
+                              class="form-select form-select-sm"
+                            >
+                              <option :value="null" disabled selected hidden>Seleccione clasificación</option>
+                              <option v-for="level in props.levels3" :key="level.value" :value="level.value">
+                                {{ level.label }}
+                              </option>
+                            </select>
                           </div>
                           <div class="col-12 col-md-2">
                             <label class="form-label">Maquinaria</label>
-                            <Multiselect
-                              placeholder="Maquinaria"
-                              v-model="selected.machinery_id"
-                              :options="props.machineries"
-                              option-label="label"
-                              option-value="value"
-                              :searchable="true"
-                              class="multiselect-blue form-control-sm"
-                            />
+                            <select 
+                              v-model="selected.machinery_id" 
+                              class="form-select form-select-sm"
+                            >
+                              <option :value="null" disabled selected hidden>Seleccione maquinaria</option>
+                              <option v-for="machinery in props.machineries" :key="machinery.value" :value="machinery.value">
+                                {{ machinery.label }}
+                              </option>
+                            </select>
                           </div>
-                          <!-- Selector de agrupación con Multiselect -->
+                          <!-- Selector de agrupación -->
                         <div class="col-sm-4">
                             <label class="col-form-label mb-0">Agrupación</label>
-                          
-                                <Multiselect
-                                    id="grouping"
-                                    v-model="selectedGroupings[selected.id]"
-                                    :options="(page.props.groupings || []).map(g => ({ value: g.id, label: g.name }))"
-                                    :placeholder="'Seleccione agrupación'"
-                                    :searchable="true"
-                                    :close-on-select="true"
-                                    :hide-selected="false"
-                                    class="multiselect-blue form-control-sm"
-                                />
-                          
+                            <select 
+                              v-model="selectedGroupings[selected.id]" 
+                              class="form-select form-select-sm"
+                            >
+                              <option :value="null" disabled selected hidden>Seleccione agrupación</option>
+                              <option v-for="g in (page.props.groupings || [])" :key="g.id" :value="g.id">
+                                {{ g.name }}
+                              </option>
+                            </select>
                         </div>
 
 
@@ -983,6 +993,25 @@ th {
 .sorted-desc:after {
   content: '\25BC'; /* triángulo hacia abajo */
   opacity: 1;
+}
+
+/* Ajustes para Multiselect - más opciones visibles - Override Bootstrap */
+.multiselect :deep(.multiselect-dropdown),
+.multiselect-blue :deep(.multiselect-dropdown) {
+  max-height: 400px !important;
+  height: auto !important;
+}
+
+.multiselect :deep(.multiselect-options),
+.multiselect-blue :deep(.multiselect-options) {
+  max-height: 400px !important;
+  overflow-y: auto !important;
+}
+
+/* Variable CSS de Multiselect */
+.multiselect-blue {
+  --ms-max-height: 400px !important;
+  --ms-dropdown-max-height: 400px !important;
 }
 
 

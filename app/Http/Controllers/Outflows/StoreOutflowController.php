@@ -30,6 +30,7 @@ class StoreOutflowController extends Controller
                 'quantity' => $outflowData['quantity'] ?? null,
                 'notes' => $outflowData['notes'] ?? null,
                 'date' => now(),
+                'level3_id' => $outflowData['level3_id'] ?? null,
             ];
             $outflow = \App\Models\Outflow::create($data);
             if (isset($outflowData['cost_center_ids']) && is_array($outflowData['cost_center_ids'])) {

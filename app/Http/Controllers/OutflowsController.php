@@ -267,6 +267,19 @@ class OutflowsController extends Controller
         ])->values(),
     ]);
 
+        // Obtener levels3 con jerarquía completa
+        $levels3 = \App\Models\Level3::with(['level2.level1'])
+            ->get()
+            ->map(function($level3) {
+                return [
+                    'value' => $level3->id,
+                    'label' => $level3->name . ' (' . $level3->level2->name . ' > ' . $level3->level2->level1->name . ')',
+                    'level3_name' => $level3->name,
+                    'level2_name' => $level3->level2->name,
+                    'level1_name' => $level3->level2->level1->name,
+                ];
+            });
+
         return Inertia::render('Outflows', [
             'outflows' => $paginated,
             'term'     => $term,
@@ -277,6 +290,7 @@ class OutflowsController extends Controller
             // Detalles de salidas ya mapeados incluyendo 'product'
             'outflowDetails' => $outflowDetails,
             'groupings' => $groupings,
+            'levels3' => $levels3,
         ]);
     }
 }

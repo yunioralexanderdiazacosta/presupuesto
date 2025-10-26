@@ -196,6 +196,7 @@ use App\Http\Controllers\Outflows\ShowOutflowController;
 use App\Http\Controllers\Outflows\EditOutflowController;
 use App\Http\Controllers\Outflows\UpdateOutflowController;
 use App\Http\Controllers\Outflows\DeleteOutflowController;
+use App\Http\Controllers\Outflows\GetLevel3SuggestionsController;
 use App\Http\Controllers\KardexController;
 use App\Http\Controllers\Investments\IndexInvestmentController;
 use App\Http\Controllers\Investments\StoreInvestmentController;
@@ -506,6 +507,7 @@ Route::middleware([
     Route::get('/outflows/{outflow}/edit', EditOutflowController::class)->name('outflows.edit');
     Route::put('/outflows/{outflow}', UpdateOutflowController::class)->name('outflows.update');
     Route::delete('/outflows/{outflow}', DeleteOutflowController::class)->name('outflows.delete');
+    Route::get('/outflows/level3-suggestions', GetLevel3SuggestionsController::class)->name('outflows.level3-suggestions');
 
     // Dashboard de Outflows
     Route::get('/outflows-dashboard', [OutflowsDashboardController::class, 'index'])->name('outflows.dashboard');

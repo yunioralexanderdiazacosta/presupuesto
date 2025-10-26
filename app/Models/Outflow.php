@@ -21,6 +21,7 @@ class Outflow extends Model
         'date',
         'team_id',
         'season_id',
+        'level3_id',
     ];
     public function creditDebitNoteItem()
     {
@@ -66,5 +67,10 @@ class Outflow extends Model
     public function costCenters()
     {
         return $this->hasMany(OutflowCostCenter::class);
+    }
+
+    public function level3()
+    {
+        return $this->belongsTo(Level3::class);
     }
 }

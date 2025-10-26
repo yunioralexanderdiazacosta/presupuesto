@@ -32,6 +32,7 @@ class OutflowRequest extends FormRequest
                 'outflows.*.notes' => 'nullable|string|max:255',
                 'outflows.*.cost_center_ids' => 'nullable|array',
                 'outflows.*.cost_center_ids.*' => 'exists:cost_centers,id',
+                'outflows.*.level3_id' => 'nullable|exists:level3s,id',
             ];
         }
         // Si no, es edición individual
@@ -43,6 +44,7 @@ class OutflowRequest extends FormRequest
             'notes' => 'nullable|string|max:255',
             'cost_center_ids' => 'nullable|array',
             'cost_center_ids.*' => 'exists:cost_centers,id',
+            'level3_id' => 'nullable|exists:level3s,id',
         ];
     }
 }
