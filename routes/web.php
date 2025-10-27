@@ -535,6 +535,9 @@ Route::middleware([
     // Summary de niveles anidados
     Route::get('/levels/summary', [LevelsController::class, 'summary'])->name('levels.summary');
 
+    // DIAGNÓSTICO TEMPORAL - ELIMINAR DESPUÉS
+    Route::get('/outflows/debug-level3', [OutflowsController::class, 'debugLevel3'])->name('outflows.debug');
+
     // Rutas para Outflows
     Route::get('/outflows', OutflowsController::class)->name('outflows.index');
     Route::get('/outflows/create', CreateOutflowController::class)->name('outflows.create');
