@@ -30,17 +30,21 @@ class CheckBanned
 
         if(auth()->check() && !$request->session()->has('price')){
             try {
-                // Timeout de 3 segundos para no bloquear la aplicación
-                $prices = Http::withOptions(["verify" => false])
-                    ->timeout(3)
+                // Timeout más agresivo y mejor manejo de SSL en producción
+                $prices = Http::withOptions([
+                        "verify" => false,
+                        "connect_timeout" => 2, // Timeout de conexión
+                        "timeout" => 3, // Timeout total
+                        "http_errors" => false // No lanzar excepciones en errores HTTP
+                    ])
                     ->get("https://mindicador.cl/api");
                 
                 $price = $prices->successful() && isset($prices['dolar']['valor']) 
                     ? $prices['dolar']['valor'] 
                     : 900; // Valor por defecto si la API falla
                     
-            } catch (\Exception $e) {
-                // Si la API falla, usar valor por defecto
+            } catch (\Throwable $e) {
+                // Capturar CUALQUIER error (incluyendo errores de conexión SSL/TLS)
                 Log::warning('Mindicador API no disponible: ' . $e->getMessage());
                 $price = 900;
             }

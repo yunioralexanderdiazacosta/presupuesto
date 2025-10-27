@@ -241,6 +241,42 @@ Route::middleware([
         return Inertia::render('FaqPage');
     })->name('faq');
 
+    // DIAGNÓSTICO TEMPORAL - ELIMINAR DESPUÉS
+    Route::get('/debug-level3', function () {
+        $level3Total = \App\Models\Level3::count();
+        $level3WithLevel2 = \App\Models\Level3::whereNotNull('level2_id')->count();
+        
+        $level3Data = \App\Models\Level3::with(['level2.level1'])
+            ->take(10)
+            ->get()
+            ->map(function($level3) {
+                return [
+                    'id' => $level3->id,
+                    'name' => $level3->name,
+                    'level2_id' => $level3->level2_id,
+                    'has_level2' => $level3->level2 !== null,
+                    'level2_name' => $level3->level2->name ?? 'NULL',
+                    'has_level1' => $level3->level2 && $level3->level2->level1 !== null,
+                    'level1_name' => optional($level3->level2)->level1->name ?? 'NULL',
+                ];
+            });
+
+        $filteredCount = \App\Models\Level3::with(['level2.level1'])
+            ->get()
+            ->filter(function($level3) {
+                return $level3->level2 !== null && $level3->level2->level1 !== null;
+            })
+            ->count();
+
+        return response()->json([
+            'total_level3' => $level3Total,
+            'level3_with_level2_id' => $level3WithLevel2,
+            'filtered_valid_level3' => $filteredCount,
+            'sample_data' => $level3Data,
+            'db_connection' => config('database.default'),
+            'db_name' => config('database.connections.mysql.database'),
+        ]);
+    });
 
 // Ruta para crear un nuevo estado de estimación desde el frontend
   Route::post('/estimate-status', [EstimatesController::class, 'storeEstimateStatus'])->name('estimate-status.store');
