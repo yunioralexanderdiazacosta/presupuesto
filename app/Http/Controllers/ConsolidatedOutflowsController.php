@@ -25,7 +25,8 @@ class ConsolidatedOutflowsController extends Controller
             'project',
             'operation',
             'machinery',
-            'costCenters.costCenter.developmentState'
+            'costCenters.costCenter.developmentState',
+            'level3.level2.level1'
         ])
         ->where('team_id', $user->team_id)
         ->where('season_id', $season_id);
@@ -91,6 +92,9 @@ class ConsolidatedOutflowsController extends Controller
                 'operation' => $outflow->operation->name ?? null,
                 'machinery' => $outflow->machinery->name ?? null,
                 'notes' => $outflow->notes,
+                'level1_name' => $outflow->level3->level2->level1->name ?? null,
+                'level2_name' => $outflow->level3->level2->name ?? null,
+                'level3_name' => $outflow->level3->name ?? null,
             ];
 
             // Calcular superficie total de los CC asociados

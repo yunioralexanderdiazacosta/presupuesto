@@ -13,7 +13,9 @@ const props = defineProps({
   machineries: Array,
   costCenters: Array,
   stockAvailable: Number,
-  stockLineData: Object // Nuevo: datos de la línea asociada (factura/nota)
+  stockLineData: Object, // Nuevo: datos de la línea asociada (factura/nota)
+  levels2: { type: Array, default: () => [] },
+  levels3: { type: Array, default: () => [] }
 });
 
 // Tooltip HTML para popover de Bootstrap
@@ -94,6 +96,14 @@ const maxQuantity = computed(() => originalQuantity.value + stockAvailable.value
 
 const emit = defineEmits(['close','updated']);
 
+// Computed para filtrar levels3 según el level2 seleccionado
+const filteredLevels3 = computed(() => {
+  if (!localForm.level2_id) {
+    return props.levels3; // Sin filtro, mostrar todos
+  }
+  return props.levels3.filter(l3 => l3.level2_id === localForm.level2_id);
+});
+
 const productName = computed(() => {
   if (!props.form) return '';
   // No se puede mostrar el nombre del producto si no se pasa la relación, pero puedes agregarlo al form si lo necesitas
@@ -116,7 +126,9 @@ const localForm = reactive({
   invoice_product_id: null,
   credit_debit_note_item_id: null,
   product_name: '',
-  unit_name: ''
+  unit_name: '',
+  level2_id: null, // Filtro helper (no se guarda)
+  level3_id: null
 });
 // Inicializar localForm cuando cambien las props.form
 watch(() => props.form, (val) => {
@@ -132,6 +144,17 @@ watch(() => props.form, (val) => {
   localForm.credit_debit_note_item_id = val.credit_debit_note_item_id;
   localForm.product_name = val.product_name;
   localForm.unit_name = val.unit_name;
+  localForm.level3_id = val.level3_id ? Number(val.level3_id) : null;
+  
+  // Auto-seleccionar level2_id basado en level3_id para el filtro
+  if (localForm.level3_id && props.levels3) {
+    const selectedLevel3 = props.levels3.find(l => l.value === localForm.level3_id);
+    if (selectedLevel3) {
+      localForm.level2_id = selectedLevel3.level2_id;
+    }
+  } else {
+    localForm.level2_id = null;
+  }
 }, { immediate: true });
 
 
@@ -140,8 +163,19 @@ function submit() {
   if (Number(localForm.quantity) > stockAvailable.value) {
     return Swal.fire('Error', `La cantidad no puede exceder el stock disponible (${stockAvailable.value})`, 'error');
   }
+  // Preparar datos para enviar (excluir level2_id que es solo filtro UI)
+  const dataToSend = {
+    id: localForm.id,
+    project_id: localForm.project_id,
+    operation_id: localForm.operation_id,
+    machinery_id: localForm.machinery_id,
+    cost_center_ids: localForm.cost_center_ids,
+    notes: localForm.notes,
+    quantity: localForm.quantity,
+    level3_id: localForm.level3_id,
+  };
   // Guardar con axios
-  axios.put(`/outflows/${localForm.id}`, localForm)
+  axios.put(`/outflows/${localForm.id}`, dataToSend)
     .then(() => {
       Swal.fire({ icon: 'success', title: '¡Actualizado!', timer: 1000, showConfirmButton: false });
       emit('updated');
@@ -164,10 +198,19 @@ function submit() {
   <Teleport to="body">
   <!-- Modal Bootstrap estándar -->
   <div v-if="show" class="modal fade show d-block" tabindex="-1" role="dialog" aria-modal="true">
-      <div class="modal-dialog modal-lg" role="document">
+      <div class="modal-dialog modal-xl" role="document">
         <div class="modal-content">
           <div class="modal-header">
-            <h5 class="modal-title">Editar salida de producto</h5>
+            <div class="d-flex align-items-center gap-2 text-start">
+              <span class="bg-secondary text-white rounded-circle d-flex align-items-center justify-content-center" style="width: 38px; height: 38px; font-size: 1.4rem;">
+                <i class="fas fa-edit"></i>
+              </span>
+              <span>
+                <span class="fw-bold" style="font-size: 1.2rem; color: #2d3748; letter-spacing: 0.5px;">Editar salida de producto</span>
+                <br>
+                <span class="text-muted" style="font-size: 0.85rem;">Modificar los datos de la salida registrada</span>
+              </span>
+            </div>
             <button type="button" class="btn-close" @click="$emit('close')"></button>
           </div>
           <form @submit.prevent="submit" autocomplete="off">
@@ -180,29 +223,23 @@ function submit() {
                 <label class="form-label">Unidad</label>
                 <input class="form-control" :value="unitName" disabled />
               </div>
-              <div class="col-12 col-md-3 d-flex align-items-end">
-                <div class="w-100">
-                  <div class="d-flex align-items-center gap-2">
-                    <label class="form-label mb-0">Stock disponible</label>
-                    <span
-                      v-if="showCreditNoteBadge"
-                      class="badge bg-warning text-dark ms-2 mb-1 small"
-                      tabindex="0"
-                      data-bs-toggle="popover"
-                      data-bs-html="true"
-                      :data-bs-content="creditNotePopover"
-                      data-bs-trigger="focus hover"
-                      style="cursor:pointer;"
-                    >+NC</span>
-                  </div>
-                  <input class="form-control mb-1" :value="stockAvailable.toFixed(2)" disabled />
-                </div>
-
-
+              <div class="col-12 col-md-3">
+                <label class="form-label">Stock disponible
+                  <span
+                    v-if="showCreditNoteBadge"
+                    class="badge bg-warning text-dark ms-2 small"
+                    tabindex="0"
+                    data-bs-toggle="popover"
+                    data-bs-html="true"
+                    :data-bs-content="creditNotePopover"
+                    data-bs-trigger="focus hover"
+                    style="cursor:pointer;"
+                  >+NC</span>
+                </label>
+                <input class="form-control" :value="stockAvailable.toFixed(2)" disabled />
               </div>
 
-
-              <div class="col-12 col-md-4">
+              <div class="col-12 col-md-3">
                 <label class="form-label">Cantidad</label>
                 <input
                   type="number"
@@ -215,29 +252,73 @@ function submit() {
                 />
                 <div class="form-text">Máximo permitido: {{ stockAvailable.toFixed(2) }}</div>
               </div>
-              <div class="col-12 col-md-4">
+              <div class="col-12 col-md-3">
                 <label class="form-label">Proyecto</label>
-                <Multiselect
-                  v-model="localForm.project_id"
-                  :options="projects"
-                  option-label="label"
-                  option-value="value"
-                  placeholder="Seleccione proyecto"
-                  :searchable="true"
-                  class="multiselect-blue"
-                />
+                <select 
+                  v-model="localForm.project_id" 
+                  class="form-select form-select-sm"
+                >
+                  
+                  <option v-for="project in projects" :key="project.value" :value="project.value">
+                    {{ project.label }}
+                  </option>
+                </select>
+              </div>
+              <div class="col-12 col-md-3">
+                <label class="form-label">Operación</label>
+                <select 
+                  v-model="localForm.operation_id" 
+                  class="form-select form-select-sm"
+                >
+                  
+                  <option v-for="operation in operations" :key="operation.value" :value="operation.value">
+                    {{ operation.label }}
+                  </option>
+                </select>
+              </div>
+              <div class="col-12 col-md-3">
+                <label class="form-label">Maquinaria</label>
+                <select 
+                  v-model="localForm.machinery_id" 
+                  class="form-select form-select-sm"
+                >
+                 
+                  <option v-for="machinery in machineries" :key="machinery.value" :value="machinery.value">
+                    {{ machinery.label }}
+                  </option>
+                </select>
               </div>
               <div class="col-12 col-md-4">
-                <label class="form-label">Maquinaria</label>
-                <Multiselect
-                  v-model="localForm.machinery_id"
-                  :options="machineries"
-                  option-label="label"
-                  option-value="value"
-                  placeholder="Seleccione maquinaria"
-                  :searchable="true"
-                  class="multiselect-blue"
-                />
+                <label class="form-label">
+                  Nivel 2 (Filtro)
+                  <i class="fas fa-filter text-muted" style="font-size: 0.65rem;"></i>
+                </label>
+                <select 
+                  v-model="localForm.level2_id" 
+                  class="form-select form-select-sm"
+                  @change="localForm.level3_id = null"
+                >
+                 
+                  <option v-for="level2 in levels2" :key="level2.value" :value="level2.value">
+                    {{ level2.label }}
+                  </option>
+                </select>
+              </div>
+              <div class="col-12 col-md-4">
+                <label class="form-label">Clasificación (Nivel 3) <span class="text-danger">*</span></label>
+                <select 
+                  v-model="localForm.level3_id" 
+                  class="form-select form-select-sm"
+                  required
+                >
+                  <option :value="null" disabled selected hidden>Seleccione clasificación</option>
+                  <option v-for="level in filteredLevels3" :key="level.value" :value="level.value">
+                    {{ level.label }}
+                  </option>
+                </select>
+                <small v-if="localForm.level2_id && filteredLevels3.length === 0" class="text-muted">
+                  No hay opciones para este nivel 2
+                </small>
               </div>
               <div class="col-12 col-md-8">
                 <label class="form-label">Centros de Costo</label>

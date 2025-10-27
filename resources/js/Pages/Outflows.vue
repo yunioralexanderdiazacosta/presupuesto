@@ -1,7 +1,7 @@
 <script setup>
 // Estado para ordenamiento con flechas CSS
 const sortBy = ref('id');
-const sortDesc = ref(false);
+const sortDesc = ref(true);
 function setSort(field) {
   if (sortBy.value === field) {
     sortDesc.value = !sortDesc.value;
@@ -65,13 +65,19 @@ const filteredOutflowDetails = computed(() => {
     const proyecto = item.project ? item.project.toLowerCase() : "";
     const operacion = item.operation ? item.operation.toLowerCase() : "";
     const maquinaria = item.machinery ? item.machinery.toLowerCase() : "";
+    const nivel1 = item.level1_name ? item.level1_name.toLowerCase() : "";
+    const nivel2 = item.level2_name ? item.level2_name.toLowerCase() : "";
+    const nivel3 = item.level3_name ? item.level3_name.toLowerCase() : "";
     return (
       proveedor.includes(search) ||
       numero.includes(search) ||
       producto.includes(search) ||
       proyecto.includes(search) ||
       operacion.includes(search) ||
-      maquinaria.includes(search)
+      maquinaria.includes(search) ||
+      nivel1.includes(search) ||
+      nivel2.includes(search) ||
+      nivel3.includes(search)
     );
   });
 });
@@ -87,6 +93,9 @@ const outflowsExcelData = computed(() => {
       centros_costo: Array.isArray(outflow.cost_centers)
         ? outflow.cost_centers.map(cc => cc.name + (cc.observations ? ' (' + cc.observations + ')' : '')).join(', ')
         : '',
+      nivel_1: outflow.level1_name || '-',
+      nivel_2: outflow.level2_name || '-',
+      nivel_3: outflow.level3_name || '-',
       precio_unitario: isNaN(precioNum) ? '' : precioNum,
       total: totalNum
     };
@@ -116,6 +125,7 @@ const props = defineProps({
   machineries: Array,
   cost_centers: Array,
   outflowDetails: { type: Array, default: () => [] },
+  levels2: { type: Array, default: () => [] },
   levels3: { type: Array, default: () => [] }
 });
 
@@ -194,7 +204,7 @@ function onDeleted(index) {
   form.value.outflows.splice(index, 1);
 }
 
-function openCard(outflow) {
+async function openCard(outflow) {
   // Permitir registrar salida para cualquier tipo de documento
   let id = null;
   let tipo = null;
@@ -210,7 +220,9 @@ function openCard(outflow) {
   }
   if (!showCards.value.includes(id)) {
     showCards.value.push(id);
-    selectedOutflows.value.push({
+    
+    // Crear el objeto de salida
+    const newOutflow = {
       id,
       tipo,
       invoice_product_id: outflow.invoice_product_id || null,
@@ -223,8 +235,40 @@ function openCard(outflow) {
       quantity: outflow.stock, // Inicializa cantidad con el stock
       cost_center_ids: [],
       observations: '',
+      level2_id: null, // Filtro helper (no se guarda)
       level3_id: null,
-    });
+      product_id: outflow.product_id || null,
+      suggested_level3: false, // Flag para saber si fue sugerido
+    };
+    
+    selectedOutflows.value.push(newOutflow);
+    
+    // Buscar sugerencia inteligente de level3_id basado en el producto
+    if (outflow.product_id) {
+      try {
+        const { data } = await axios.get(route('outflows.level3-suggestions'), {
+          params: { product_id: outflow.product_id }
+        });
+        
+        if (data && data.length > 0) {
+          // Auto-seleccionar el nivel 3 más usado
+          newOutflow.level3_id = data[0].level3_id;
+          newOutflow.suggested_level3 = true;
+          
+          // Auto-seleccionar también el nivel 2 padre para el filtro
+          const selectedLevel3 = props.levels3.find(l => l.value === data[0].level3_id);
+          if (selectedLevel3) {
+            newOutflow.level2_id = selectedLevel3.level2_id;
+          }
+          
+          // Mostrar notificación sutil
+          console.log(`✨ Sugerencia: "${data[0].level3_name}" (usado ${data[0].usage_count} veces)`);
+        }
+      } catch (error) {
+        console.error('Error al obtener sugerencias de nivel 3:', error);
+        // No mostrar error al usuario, simplemente no auto-completar
+      }
+    }
   }
 }
 function closeCard(id) {
@@ -382,6 +426,7 @@ function editOutflow(outflow) {
       editForm.value.product_name = data.outflow.invoice_product?.product?.name || data.outflow.credit_debit_note_item?.product?.name || '';
       editForm.value.unit_name = data.outflow.invoice_product?.product?.unit?.name || data.outflow.credit_debit_note_item?.product?.unit?.name || '';
       editForm.value.product_id = data.outflow.invoice_product?.product_id || data.outflow.credit_debit_note_item?.product_id || null;
+      editForm.value.level3_id = data.outflow.level3_id ? Number(data.outflow.level3_id) : null;
   // Pasar la propiedad has_credit_note y credit_note_info si existen
   editForm.value.has_credit_note = data.outflow.has_credit_note ?? false;
   editForm.value.credit_note_info = data.outflow.credit_note_info ?? null;
@@ -438,6 +483,15 @@ function handleEditModalUpdated() {
 
 // Estado para agrupación seleccionada por cada card
 const selectedGroupings = ref({});
+
+// Computed para filtrar levels3 según el level2 seleccionado en cada card
+const getFilteredLevels3 = (cardId) => {
+  const card = selectedOutflows.value.find(sel => sel.id === cardId);
+  if (!card || !card.level2_id) {
+    return props.levels3; // Sin filtro, mostrar todos
+  }
+  return props.levels3.filter(l3 => l3.level2_id === card.level2_id);
+};
 
 watch(selectedGroupings, (newVals) => {
   Object.entries(newVals).forEach(([cardId, groupingId]) => {
@@ -508,6 +562,9 @@ watch(selectedGroupings, (newVals) => {
                             { label: 'N° Doc', key: 'number_document' },
                             { label: 'Proveedor', key: 'supplier' },
                             { label: 'Producto', key: 'product' },
+                            { label: 'Nivel 1', key: 'nivel_1' },
+                            { label: 'Nivel 2', key: 'nivel_2' },
+                            { label: 'Nivel 3', key: 'nivel_3' },
                             { label: 'Precio Unitario', key: 'precio_unitario' },
                             { label: 'Total', key: 'total' },
                             { label: 'Proyecto', key: 'project' },
@@ -528,7 +585,7 @@ watch(selectedGroupings, (newVals) => {
                     </div>
            
                     <div class="table-responsive mb-4" style="max-height:450px; overflow-y:auto; overflow-x:auto; width:100%;">
-                      <table class="table table-bordered table-striped table-hover table-sm mb-0 tabla-edicion-small" style="min-width:1600px;">
+                      <table class="table table-bordered table-striped table-hover table-sm mb-0 tabla-edicion-small" style="min-width:2000px;">
 
                         <thead class="table-primary">
                           <tr>
@@ -539,6 +596,9 @@ watch(selectedGroupings, (newVals) => {
                             <th @click="setSort('fecha_factura')" :class="sortClass('fecha_factura')">Fecha factura</th>
                             <th @click="setSort('mes_contable')" :class="sortClass('mes_contable')">Mes contable</th>
                             <th @click="setSort('product_name')" :class="sortClass('product_name')">Producto</th>
+                            <th @click="setSort('level1_name')" :class="sortClass('level1_name')">Nivel 1</th>
+                            <th @click="setSort('level2_name')" :class="sortClass('level2_name')">Nivel 2</th>
+                            <th @click="setSort('level3_name')" :class="sortClass('level3_name')">Nivel 3</th>
                             <th @click="setSort('unit_price')" :class="sortClass('unit_price')">Precio Unitario</th>
                             <th @click="setSort('project')" :class="sortClass('project')">Proyecto</th>
                             <th @click="setSort('operation')" :class="sortClass('operation')">Operación</th>
@@ -560,6 +620,9 @@ watch(selectedGroupings, (newVals) => {
                             <td>{{ outflow.fecha_factura || '-' }}</td>
                             <td>{{ outflow.mes_contable || '-' }}</td>
                             <td>{{ outflow.product_name || outflow.product || '-' }}</td>
+                            <td style="max-width:130px; overflow:hidden; text-overflow:ellipsis;">{{ outflow.level1_name || '-' }}</td>
+                            <td style="max-width:150px; overflow:hidden; text-overflow:ellipsis;">{{ outflow.level2_name || '-' }}</td>
+                            <td style="max-width:150px; overflow:hidden; text-overflow:ellipsis;">{{ outflow.level3_name || '-' }}</td>
                             <td>
                               <span v-if="outflow.unit_price !== undefined && outflow.unit_price !== null">
                                 {{
@@ -619,18 +682,18 @@ watch(selectedGroupings, (newVals) => {
                                 </li>
                               </ul>
                             </td>
-                            <td>{{ outflow.user }}</td>
-                            <td class="text-center">
-                              <button type="button" class="btn btn-icon btn-active-light-primary w-30px h-30px me-2" @click="editOutflow(outflow)">
-                                <span class="fas fa-pen"></span>
+                            <td style="white-space:nowrap;">{{ outflow.user }}</td>
+                            <td class="text-center" style="white-space:nowrap;">
+                              <button type="button" class="btn btn-icon btn-active-light-primary w-20px h-20px me-1" @click="editOutflow(outflow)">
+                                <span class="fas fa-pen" style="font-size: 0.65rem;"></span>
                               </button>
-                              <button type="button" class="btn btn-icon btn-active-light-danger w-30px h-30px" @click="deleteOutflow(outflow)">
-                                <span class="fas fa-trash"></span>
+                              <button type="button" class="btn btn-icon btn-active-light-danger w-20px h-20px" @click="deleteOutflow(outflow)">
+                                <span class="fas fa-trash" style="font-size: 0.65rem;"></span>
                               </button>
                             </td>
                           </tr>
                           <tr v-if="!props.outflowDetails || !props.outflowDetails.length">
-                            <td colspan="10" class="text-center text-muted">No hay salidas registradas.</td>
+                            <td colspan="20" class="text-center text-muted">No hay salidas registradas.</td>
                           </tr>
                         </tbody>
                       </table>
@@ -701,6 +764,7 @@ watch(selectedGroupings, (newVals) => {
                       <h6>Registrar salida</h6>
                       <div class="card mb-2 p-3 shadow-sm">
                         <div class="row g-2 align-items-center">
+                          <!-- FILA 1: Producto, Unidad, Cantidad, Proyecto, Operación -->
                           <div class="col-12 col-md-3">
                             <label class="form-label">Producto</label>
                             <input v-model="selected.product_name" class="form-control form-control-sm w-100" disabled />
@@ -749,18 +813,8 @@ watch(selectedGroupings, (newVals) => {
                               </option>
                             </select>
                           </div>
-                          <div class="col-12 col-md-3">
-                            <label class="form-label">Clasificación (Nivel 3)</label>
-                            <select 
-                              v-model="selected.level3_id" 
-                              class="form-select form-select-sm"
-                            >
-                              <option :value="null" disabled selected hidden>Seleccione clasificación</option>
-                              <option v-for="level in props.levels3" :key="level.value" :value="level.value">
-                                {{ level.label }}
-                              </option>
-                            </select>
-                          </div>
+
+                          <!-- FILA 2: Maquinaria, Nivel 2 (Filtro), Nivel 3 (Clasificación) -->
                           <div class="col-12 col-md-2">
                             <label class="form-label">Maquinaria</label>
                             <select 
@@ -773,8 +827,48 @@ watch(selectedGroupings, (newVals) => {
                               </option>
                             </select>
                           </div>
-                          <!-- Selector de agrupación -->
-                        <div class="col-sm-4">
+                          <div class="col-12 col-md-4">
+                            <label class="form-label">
+                              Nivel 2 (Filtro)
+                              <i class="fas fa-filter text-muted" style="font-size: 0.65rem;"></i>
+                            </label>
+                            <select 
+                              v-model="selected.level2_id" 
+                              class="form-select form-select-sm"
+                              @change="!selected.suggested_level3 && (selected.level3_id = null)"
+                            >
+                              
+                              <option v-for="level2 in props.levels2" :key="level2.value" :value="level2.value">
+                                {{ level2.label }}
+                              </option>
+                            </select>
+                          </div>
+                          <div class="col-12 col-md-3">
+                            <label class="form-label">
+                              Clasificación (Nivel 3) <span class="text-danger">*</span>
+                              <span v-if="selected.suggested_level3" class="badge bg-info ms-1" style="font-size: 0.65rem;">
+                                <i class="fas fa-lightbulb"></i> Sugerido
+                              </span>
+                            </label>
+                            <select 
+                              v-model="selected.level3_id" 
+                              class="form-select form-select-sm"
+                              :class="{ 'border-info': selected.suggested_level3 }"
+                              @change="selected.suggested_level3 = false"
+                              required
+                            >
+                              <option v-if="selected.level3_id === null" :value="null" disabled selected hidden>Seleccione clasificación</option>
+                              <option v-for="level in getFilteredLevels3(selected.id)" :key="level.value" :value="level.value">
+                                {{ level.label }}
+                              </option>
+                            </select>
+                            <small v-if="selected.level2_id && getFilteredLevels3(selected.id).length === 0" class="text-muted">
+                              No hay opciones para este nivel 2
+                            </small>
+                          </div>
+
+                          <!-- FILA 3: Agrupación, Centro de Costo, Observaciones -->
+                          <div class="col-12 col-md-4">
                             <label class="col-form-label mb-0">Agrupación</label>
                             <select 
                               v-model="selectedGroupings[selected.id]" 
@@ -785,11 +879,7 @@ watch(selectedGroupings, (newVals) => {
                                 {{ g.name }}
                               </option>
                             </select>
-                        </div>
-
-
-
-
+                          </div>
                           <div class="col-12 col-md-5">
                             <label class="form-label">Centro de Costo</label>
                             <Multiselect
@@ -809,7 +899,9 @@ watch(selectedGroupings, (newVals) => {
                             <label class="form-label">Observaciones</label>
                             <input v-model="selected.observations" class="form-control form-control-sm w-100" />
                           </div>
-                          <div class="col-12 col-md-2 mt-4">
+
+                          <!-- Botón cerrar -->
+                          <div class="col-12 col-md-12 mt-2 text-end">
                             <button type="button" @click="closeCard(selected.id)" class="btn btn-sm btn-secondary">Cerrar</button>
                           </div>
                         </div>
@@ -841,6 +933,8 @@ watch(selectedGroupings, (newVals) => {
         :costCenters="editCostCenters"
         :stockAvailable="editStockAvailable"
         :stockLineData="editStockLineData"
+        :levels2="props.levels2"
+        :levels3="props.levels3"
         @close="showEditModal = false"
         @updated="handleEditModalUpdated"
       />

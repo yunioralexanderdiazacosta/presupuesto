@@ -13,7 +13,7 @@ const props = defineProps({
 });
 
 const title = 'Consolidado de Salidas';
-const term = ref(props.term || '');
+const term = ref('');
 
 const links = [
     { title: 'Gestión', url: null },
@@ -33,9 +33,30 @@ function setSort(field) {
     }
 }
 
-const sortedOutflows = computed(() => {
+// Filtrado en frontend
+const filteredOutflows = computed(() => {
     if (!props.outflows || !props.outflows.data) return [];
-    const arr = [...props.outflows.data];
+    if (!term.value) return props.outflows.data;
+    
+    const search = term.value.toLowerCase();
+    return props.outflows.data.filter(item => {
+        return (
+            (item.product_name && item.product_name.toLowerCase().includes(search)) ||
+            (item.supplier && item.supplier.toLowerCase().includes(search)) ||
+            (item.number_document && String(item.number_document).toLowerCase().includes(search)) ||
+            (item.project && item.project.toLowerCase().includes(search)) ||
+            (item.cost_center_name && item.cost_center_name.toLowerCase().includes(search)) ||
+            (item.level1_name && item.level1_name.toLowerCase().includes(search)) ||
+            (item.level2_name && item.level2_name.toLowerCase().includes(search)) ||
+            (item.level3_name && item.level3_name.toLowerCase().includes(search)) ||
+            (item.operation && item.operation.toLowerCase().includes(search)) ||
+            (item.machinery && item.machinery.toLowerCase().includes(search))
+        );
+    });
+});
+
+const sortedOutflows = computed(() => {
+    const arr = [...filteredOutflows.value];
     arr.sort((a, b) => {
         let aVal = a[sortBy.value];
         let bVal = b[sortBy.value];
@@ -66,22 +87,19 @@ const sortClass = (field) => ({
     'sorted-desc': sortBy.value === field && sortDesc.value,
 });
 
-// Totales
+// Totales basados en datos filtrados
 const totalGeneral = computed(() => {
-    if (!props.outflows || !props.outflows.data) return 0;
-    return props.outflows.data.reduce((sum, item) => sum + (Number(item.total) || 0), 0);
+    return filteredOutflows.value.reduce((sum, item) => sum + (Number(item.total) || 0), 0);
 });
 
 const totalCantidad = computed(() => {
-    if (!props.outflows || !props.outflows.data) return 0;
-    return props.outflows.data.reduce((sum, item) => sum + (Number(item.cantidad_asignada) || 0), 0);
+    return filteredOutflows.value.reduce((sum, item) => sum + (Number(item.cantidad_asignada) || 0), 0);
 });
 
 const totalSuperficie = computed(() => {
-    if (!props.outflows || !props.outflows.data) return 0;
     // Sumar superficies únicas (evitar duplicados por outflow_id)
     const superficies = {};
-    props.outflows.data.forEach(item => {
+    filteredOutflows.value.forEach(item => {
         if (item.cost_center_id) {
             superficies[item.cost_center_id] = item.surface;
         }
@@ -109,6 +127,9 @@ const excelData = computed(() => {
         tipo_documento: item.tipo_documento,
         producto: item.product_name,
         unidad: item.unit_name,
+        nivel_1: item.level1_name || '-',
+        nivel_2: item.level2_name || '-',
+        nivel_3: item.level3_name || '-',
         cantidad_total: item.quantity_total,
         precio_unitario: item.unit_price,
         proyecto: item.project || '-',
@@ -152,6 +173,9 @@ const excelData = computed(() => {
                                 { label: 'Tipo Documento', key: 'tipo_documento' },
                                 { label: 'Producto', key: 'producto' },
                                 { label: 'Unidad', key: 'unidad' },
+                                { label: 'Nivel 1', key: 'nivel_1' },
+                                { label: 'Nivel 2', key: 'nivel_2' },
+                                { label: 'Nivel 3', key: 'nivel_3' },
                                 { label: 'Cantidad Total', key: 'cantidad_total', type: 'number' },
                                 { label: 'Precio Unitario', key: 'precio_unitario', type: 'number' },
                                 { label: 'Proyecto', key: 'proyecto' },
@@ -183,7 +207,7 @@ const excelData = computed(() => {
                             </div>
                             <div class="card-body d-flex flex-column justify-content-end py-1 px-2">
                                 <p class="font-sans-serif lh-1 mb-1 fs-10 small-card-number">
-                                    {{ outflows.total || 0 }}
+                                    {{ filteredOutflows.length }}
                                 </p>
                             </div>
                         </div>
@@ -212,6 +236,9 @@ const excelData = computed(() => {
                                 <th @click="setSort('supplier')" :class="sortClass('supplier')">Proveedor</th>
                                 <th @click="setSort('number_document')" :class="sortClass('number_document')">N° Doc</th>
                                 <th @click="setSort('product_name')" :class="sortClass('product_name')">Producto</th>
+                                <th @click="setSort('level1_name')" :class="sortClass('level1_name')">Nivel 1</th>
+                                <th @click="setSort('level2_name')" :class="sortClass('level2_name')">Nivel 2</th>
+                                <th @click="setSort('level3_name')" :class="sortClass('level3_name')">Nivel 3</th>
                                 <th @click="setSort('quantity_total')" :class="sortClass('quantity_total')" class="text-end">Cant. Total</th>
                                 <th @click="setSort('unit_price')" :class="sortClass('unit_price')" class="text-end">Precio Unit.</th>
                                 <th @click="setSort('project')" :class="sortClass('project')">Proyecto</th>
@@ -224,7 +251,7 @@ const excelData = computed(() => {
                         </thead>
                         <tbody>
                             <tr v-if="sortedOutflows.length === 0">
-                                <td colspan="13" class="text-center py-4">No hay registros para mostrar</td>
+                                <td colspan="16" class="text-center py-4">No hay registros para mostrar</td>
                             </tr>
                             <tr v-for="(item, idx) in sortedOutflows" :key="idx">
                                 <td>{{ item.outflow_id }}</td>
@@ -232,6 +259,9 @@ const excelData = computed(() => {
                                 <td style="max-width:150px; overflow:hidden; text-overflow:ellipsis;">{{ item.supplier }}</td>
                                 <td>{{ item.number_document }}</td>
                                 <td style="max-width:180px; overflow:hidden; text-overflow:ellipsis;">{{ item.product_name }}</td>
+                                <td style="max-width:130px; overflow:hidden; text-overflow:ellipsis;">{{ item.level1_name || '-' }}</td>
+                                <td style="max-width:150px; overflow:hidden; text-overflow:ellipsis;">{{ item.level2_name || '-' }}</td>
+                                <td style="max-width:150px; overflow:hidden; text-overflow:ellipsis;">{{ item.level3_name || '-' }}</td>
                                 <td class="text-end">{{ formatNumber(item.quantity_total, 2) }}</td>
                                 <td class="text-end">{{ formatNumber(item.unit_price, 2) }}</td>
                                 <td style="max-width:120px; overflow:hidden; text-overflow:ellipsis;">{{ item.project || '-' }}</td>

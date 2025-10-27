@@ -248,6 +248,9 @@ class OutflowsController extends Controller
                         ];
                     })->toArray(),
                     'user' => $outflow->user->name ?? '',
+                    'level1_name' => $outflow->level3->level2->level1->name ?? null,
+                    'level2_name' => $outflow->level3->level2->name ?? null,
+                    'level3_name' => $outflow->level3->name ?? null,
                 ];
             });
 
@@ -267,14 +270,27 @@ class OutflowsController extends Controller
         ])->values(),
     ]);
 
-        // Obtener levels3 con jerarquía completa
+        // Obtener levels2 para el select de filtro
+        $levels2 = \App\Models\Level2::with(['level1'])
+            ->get()
+            ->map(function($level2) {
+                return [
+                    'value' => $level2->id,
+                    'label' => $level2->name . ' (' . $level2->level1->name . ')',
+                    'level2_name' => $level2->name,
+                    'level1_name' => $level2->level1->name,
+                ];
+            });
+
+        // Obtener levels3 con jerarquía completa y level2_id para filtrado
         $levels3 = \App\Models\Level3::with(['level2.level1'])
             ->get()
             ->map(function($level3) {
                 return [
                     'value' => $level3->id,
-                    'label' => $level3->name . ' (' . $level3->level2->name . ' > ' . $level3->level2->level1->name . ')',
+                    'label' => $level3->name,
                     'level3_name' => $level3->name,
+                    'level2_id' => $level3->level2_id,
                     'level2_name' => $level3->level2->name,
                     'level1_name' => $level3->level2->level1->name,
                 ];
@@ -290,6 +306,7 @@ class OutflowsController extends Controller
             // Detalles de salidas ya mapeados incluyendo 'product'
             'outflowDetails' => $outflowDetails,
             'groupings' => $groupings,
+            'levels2' => $levels2,
             'levels3' => $levels3,
         ]);
     }
