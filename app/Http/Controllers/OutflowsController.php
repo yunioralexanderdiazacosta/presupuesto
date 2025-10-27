@@ -273,6 +273,9 @@ class OutflowsController extends Controller
         // Obtener levels2 para el select de filtro
         $levels2 = \App\Models\Level2::with(['level1'])
             ->get()
+            ->filter(function($level2) {
+                return $level2->level1 !== null;
+            })
             ->map(function($level2) {
                 return [
                     'value' => $level2->id,
@@ -280,11 +283,15 @@ class OutflowsController extends Controller
                     'level2_name' => $level2->name,
                     'level1_name' => $level2->level1->name,
                 ];
-            });
+            })
+            ->values();
 
         // Obtener levels3 con jerarquía completa y level2_id para filtrado
         $levels3 = \App\Models\Level3::with(['level2.level1'])
             ->get()
+            ->filter(function($level3) {
+                return $level3->level2 !== null && $level3->level2->level1 !== null;
+            })
             ->map(function($level3) {
                 return [
                     'value' => $level3->id,
@@ -294,7 +301,8 @@ class OutflowsController extends Controller
                     'level2_name' => $level3->level2->name,
                     'level1_name' => $level3->level2->level1->name,
                 ];
-            });
+            })
+            ->values();
 
         return Inertia::render('Outflows', [
             'outflows' => $paginated,
