@@ -8,6 +8,7 @@ use App\Models\Invoice;
 use Inertia\Inertia;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Log;
 use \App\Traits\HasInventory;
 
 class OutflowsController extends Controller
@@ -303,6 +304,12 @@ class OutflowsController extends Controller
                 ];
             })
             ->values();
+
+        // DIAGNÓSTICO TEMPORAL
+        Log::info('Levels3 count in controller: ' . $levels3->count());
+        if ($levels3->count() > 0) {
+            Log::info('First level3: ' . json_encode($levels3->first()));
+        }
 
         return Inertia::render('Outflows', [
             'outflows' => $paginated,

@@ -129,6 +129,14 @@ const props = defineProps({
   levels3: { type: Array, default: () => [] }
 });
 
+// DIAGNÓSTICO TEMPORAL
+console.log('🔍 Props levels2:', props.levels2);
+console.log('🔍 Props levels3:', props.levels3);
+console.log('🔍 Levels3 count:', props.levels3?.length);
+if (props.levels3 && props.levels3.length > 0) {
+  console.log('🔍 First level3:', props.levels3[0]);
+}
+
 const title = 'Salidas de productos';
 const term  = ref("");
 const filteredOutflows = computed(() => {
