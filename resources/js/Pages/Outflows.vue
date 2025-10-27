@@ -129,15 +129,6 @@ const props = defineProps({
   levels3: { type: Array, default: () => [] }
 });
 
-// DIAGNÓSTICO TEMPORAL
-console.log('🔍 Props levels2:', props.levels2);
-console.log('🔍 Props levels3:', props.levels3);
-console.log('🔍 Levels3 count:', props.levels3?.length);
-if (props.levels3 && props.levels3.length > 0) {
-  console.log('🔍 First level3:', JSON.parse(JSON.stringify(props.levels3[0])));
-  console.log('🔍 All level3 data:', JSON.parse(JSON.stringify(props.levels3)));
-}
-
 const title = 'Salidas de productos';
 const term  = ref("");
 const filteredOutflows = computed(() => {
@@ -496,26 +487,10 @@ const selectedGroupings = ref({});
 // Computed para filtrar levels3 según el level2 seleccionado en cada card
 const getFilteredLevels3 = (cardId) => {
   const card = selectedOutflows.value.find(sel => sel.id === cardId);
-  
-  // DIAGNÓSTICO TEMPORAL
-  console.log('🔍 getFilteredLevels3 - cardId:', cardId);
-  console.log('🔍 getFilteredLevels3 - card:', card);
-  console.log('🔍 getFilteredLevels3 - card.level2_id:', card?.level2_id, typeof card?.level2_id);
-  console.log('🔍 getFilteredLevels3 - total levels3:', props.levels3.length);
-  
   if (!card || !card.level2_id) {
-    console.log('🔍 getFilteredLevels3 - NO FILTER, returning all:', props.levels3.length);
     return props.levels3; // Sin filtro, mostrar todos
   }
-  
-  const filtered = props.levels3.filter(l3 => {
-    const match = l3.level2_id === card.level2_id || l3.level2_id == card.level2_id; // Comparación estricta y débil
-    console.log('🔍 comparing', l3.level2_id, typeof l3.level2_id, 'with', card.level2_id, typeof card.level2_id, '=', match);
-    return match;
-  });
-  
-  console.log('🔍 getFilteredLevels3 - FILTERED result:', filtered.length);
-  return filtered;
+  return props.levels3.filter(l3 => l3.level2_id == card.level2_id);
 };
 
 watch(selectedGroupings, (newVals) => {
