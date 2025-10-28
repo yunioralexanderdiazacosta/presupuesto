@@ -587,7 +587,7 @@ watch(selectedGroupings, (newVals) => {
                     <div class="table-responsive mb-4" style="max-height:450px; overflow-y:auto; overflow-x:auto; width:100%;">
                       <table class="table table-bordered table-striped table-hover table-sm mb-0 tabla-edicion-small" style="min-width:2000px;">
 
-                        <thead class="table-primary">
+                        <thead class="table-primary" style="position: sticky; top: 0; z-index: 10;">
                           <tr>
                             <th @click="setSort('id')" :class="sortClass('id')">ID</th>
                             <th @click="setSort('date')" :class="sortClass('date')">Fecha dig.</th>

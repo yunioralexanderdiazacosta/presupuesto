@@ -1,11 +1,13 @@
 <script setup>
 import Swal from 'sweetalert2';
-import { Head, useForm, router } from '@inertiajs/vue3';
+import { Head, useForm, router, usePage } from '@inertiajs/vue3';
 import AppLayout from '@/Layouts/AppLayout.vue';
 import FormInvoice from '@/Components/Invoices/Form.vue';
 import Breadcrumb from '@/Components/Breadcrumb.vue';
+import { onMounted, watch } from 'vue';
 
 const title = 'Editar Factura';
+const page = usePage();
 
 const links = [{ title: 'Tablero', link: 'dashboard' }, { title: 'Facturas', link: 'invoices.index' }, { title: title, active: true }];
 
@@ -13,6 +15,30 @@ const props = defineProps({
 	invoice: Object,
 	invoiceProducts: Array
 })
+
+// Mostrar mensaje de error si existe
+onMounted(() => {
+	if (page.props.flash?.error) {
+		Swal.fire({
+			icon: 'error',
+			title: 'No se puede editar',
+			text: page.props.flash.error,
+			confirmButtonColor: '#d33',
+		});
+	}
+});
+
+// Watch para errores flash que lleguen después
+watch(() => page.props.flash?.error, (newError) => {
+	if (newError) {
+		Swal.fire({
+			icon: 'error',
+			title: 'No se puede editar',
+			text: newError,
+			confirmButtonColor: '#d33',
+		});
+	}
+});
 
 const form = useForm({
 	date: props.invoice.date,
@@ -55,6 +81,20 @@ const update = () => {
 		onSuccess: () => {
 			msgSuccess('Actualizado correctamente');
 			router.get(route('invoices.index'));
+		},
+		onError: (errors) => {
+			console.log('❌ Form errors:', errors);
+		},
+		onFinish: () => {
+			// Verificar si hay mensaje de error flash después de la respuesta
+			if (page.props.flash?.error) {
+				Swal.fire({
+					icon: 'error',
+					title: 'No se puede editar',
+					text: page.props.flash.error,
+					confirmButtonColor: '#d33',
+				});
+			}
 		}
 	});
 }

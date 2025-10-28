@@ -5,11 +5,42 @@ namespace App\Http\Controllers\Invoices;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\FormInvoiceRequest;
 use App\Models\Invoice;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 
 class UpdateInvoiceController extends Controller
 {
     public function __invoke(Invoice $invoice, FormInvoiceRequest $request)
     {
+        // Verificar si la factura tiene salidas (outflows) asociadas
+        // Buscar en invoice_product los registros de esta factura
+        $invoiceProductIds = DB::table('invoice_product')
+            ->where('invoice_id', $invoice->id)
+            ->pluck('id');
+
+        Log::info('UpdateInvoice - Invoice ID: ' . $invoice->id);
+        Log::info('UpdateInvoice - Invoice Product IDs: ' . $invoiceProductIds->toJson());
+
+        if ($invoiceProductIds->isNotEmpty()) {
+            $outflows = \App\Models\Outflow::whereIn('invoice_product_id', $invoiceProductIds)->get();
+            
+            Log::info('UpdateInvoice - Has Outflows: ' . ($outflows->isNotEmpty() ? 'YES' : 'NO'));
+            
+            if ($outflows->isNotEmpty()) {
+                Log::info('UpdateInvoice - BLOCKING EDIT - has outflows');
+                
+                $outflowIds = $outflows->pluck('id')->join(', #');
+                $count = $outflows->count();
+                $message = $count === 1 
+                    ? "No se puede editar esta factura porque ya tiene una salida de producto asociada (Salida #{$outflowIds})."
+                    : "No se puede editar esta factura porque ya tiene {$count} salidas de productos asociadas (Salidas #{$outflowIds}).";
+                
+                return redirect()->back()->with('error', $message);
+            }
+        }
+
+        Log::info('UpdateInvoice - ALLOWING EDIT - no outflows');
+
         $invoice->payment_term      = $request->payment_term;
         $invoice->payment_type      = $request->payment_type;
         $invoice->petty_cash        = $request->petty_cash;
@@ -32,6 +63,8 @@ class UpdateInvoiceController extends Controller
                 'observations' => $productAttach['observations'],
             ]);
         }
+
+        return redirect()->route('invoices.index')->with('success', 'Factura actualizada correctamente');
     }
 
     public function products($products)

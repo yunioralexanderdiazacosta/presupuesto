@@ -219,7 +219,11 @@ const totalFacturas = computed(() => {
 });
 // Formatea total con separador de miles y decimales
 const totalFacturasFormatted = computed(() => {
-    return new Intl.NumberFormat('es-ES', { style: 'decimal', minimumFractionDigits: 0 }).format(totalFacturas.value);
+    return new Intl.NumberFormat('es-ES', { 
+        style: 'decimal', 
+        minimumFractionDigits: 0,
+        maximumFractionDigits: 0 
+    }).format(totalFacturas.value);
 });
 
 const invoicesExcelData = computed(() => {
@@ -366,8 +370,8 @@ const onFilter = () => {
                     </div>
 
                     
-                        <div class="card-body pt-0" style="overflow-x: auto;">
-                        <Table :id="'invoices'" :total="filteredInvoices.length" :links="invoices.links" class="min-w-full">
+                        <div class="card-body pt-0" style="max-height: 600px; overflow-y: auto; overflow-x: auto;">
+                        <Table :id="'invoices'" :total="filteredInvoices.length" :links="invoices.links" :stickyHeader="true" class="min-w-full">
                             <!--begin::Table head-->
                             <template #header>
                                 <!--begin::Table row-->
@@ -557,5 +561,10 @@ const onFilter = () => {
 .sorted-desc:after {
     content: '\25BC'; /* triángulo hacia abajo */
     opacity: 1;
+}
+
+/* Estilo beige solo para los headers de esta tabla */
+thead.sticky-header th {
+    background-color: #91e0c5 !important;
 }
 </style>

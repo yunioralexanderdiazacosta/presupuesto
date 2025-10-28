@@ -65,6 +65,10 @@ class HandleInertiaRequests extends Middleware
                     'permissions' => $user->getAllPermissions()->pluck('name')
                 ] : null;
             },
+            'flash' => [
+                'error' => fn () => $request->session()->get('error'),
+                'success' => fn () => $request->session()->get('success'),
+            ],
             'lifetime' => env('SESSION_LIFETIME')
         ]);
     }
