@@ -612,7 +612,12 @@ watch(selectedGroupings, (newVals) => {
                           </tr>
                         </thead>
                         <tbody>
-                          <tr v-for="outflow in sortedOutflowDetails" :key="outflow.id">
+                          <tr 
+                            v-for="outflow in sortedOutflowDetails" 
+                            :key="outflow.id"
+                            @click="editOutflow(outflow)"
+                            style="cursor: pointer;"
+                          >
                             <td>{{ outflow.id }}</td>
                             <td>{{ outflow.date || '-' }}</td>
                             <td>{{ outflow.number_document || '-' }}</td>
@@ -684,10 +689,10 @@ watch(selectedGroupings, (newVals) => {
                             </td>
                             <td style="white-space:nowrap;">{{ outflow.user }}</td>
                             <td class="text-center" style="white-space:nowrap;">
-                              <button type="button" class="btn btn-icon btn-active-light-primary w-20px h-20px me-1" @click="editOutflow(outflow)">
+                              <button type="button" class="btn btn-icon btn-active-light-primary w-20px h-20px me-1" @click.stop="editOutflow(outflow)">
                                 <span class="fas fa-pen" style="font-size: 0.65rem;"></span>
                               </button>
-                              <button type="button" class="btn btn-icon btn-active-light-danger w-20px h-20px" @click="deleteOutflow(outflow)">
+                              <button type="button" class="btn btn-icon btn-active-light-danger w-20px h-20px" @click.stop="deleteOutflow(outflow)">
                                 <span class="fas fa-trash" style="font-size: 0.65rem;"></span>
                               </button>
                             </td>

@@ -270,8 +270,9 @@ class OutflowsDashboardController extends Controller
             $outflows = Outflow::where('season_id', $season_id)
                 ->where('team_id', $team_id)
                 ->with([
-                    'invoiceProduct.product.level1',
-                    'creditDebitNoteItem.product.level1'
+                    'level3.level2.level1',
+                    'invoiceProduct',
+                    'creditDebitNoteItem'
                 ])
                 ->get();
 
@@ -282,19 +283,16 @@ class OutflowsDashboardController extends Controller
                 $level1Name = null;
                 $amount = 0;
 
-                // Determinar el level1 y calcular el monto
+                // Obtener el level1 desde la jerarquía outflow → level3 → level2 → level1
+                if ($outflow->level3 && $outflow->level3->level2 && $outflow->level3->level2->level1) {
+                    $level1Name = $outflow->level3->level2->level1->name;
+                }
+
+                // Calcular el monto según el origen (invoice o nota de crédito/débito)
                 if ($outflow->invoice_product_id && $outflow->invoiceProduct) {
-                    $product = $outflow->invoiceProduct->product;
-                    if ($product && $product->level1) {
-                        $level1Name = $product->level1->name;
-                    }
                     $amount = $outflow->quantity * $outflow->invoiceProduct->unit_price;
                 }
                 elseif ($outflow->credit_debit_note_item_id && $outflow->creditDebitNoteItem) {
-                    $product = $outflow->creditDebitNoteItem->product;
-                    if ($product && $product->level1) {
-                        $level1Name = $product->level1->name;
-                    }
                     $amount = $outflow->quantity * $outflow->creditDebitNoteItem->unit_price;
                 }
 
