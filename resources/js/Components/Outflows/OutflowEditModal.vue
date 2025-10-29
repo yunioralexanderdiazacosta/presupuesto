@@ -101,7 +101,7 @@ const filteredLevels3 = computed(() => {
   if (!localForm.level2_id) {
     return props.levels3; // Sin filtro, mostrar todos
   }
-  return props.levels3.filter(l3 => l3.level2_id === localForm.level2_id);
+  return props.levels3.filter(l3 => Number(l3.level2_id) === Number(localForm.level2_id));
 });
 
 const productName = computed(() => {
@@ -150,7 +150,7 @@ watch(() => props.form, (val) => {
   if (localForm.level3_id && props.levels3) {
     const selectedLevel3 = props.levels3.find(l => l.value === localForm.level3_id);
     if (selectedLevel3) {
-      localForm.level2_id = selectedLevel3.level2_id;
+      localForm.level2_id = Number(selectedLevel3.level2_id);
     }
   } else {
     localForm.level2_id = null;

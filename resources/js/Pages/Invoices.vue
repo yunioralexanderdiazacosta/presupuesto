@@ -206,6 +206,10 @@ const updateProduct = () => {
     });
 };
 
+const editInvoice = (invoice) => {
+    router.visit(route('invoices.edit', invoice.id));
+};
+
 // Suma simple de la columna total
 const totalFacturas = computed(() => {
     if (!filteredInvoices.value.length) return 0;
@@ -411,7 +415,12 @@ const onFilter = () => {
                                     <Empty colspan="3" />
                                 </template>
                                 <template v-else>
-                                    <tr v-for="invoice in sortedInvoices" :key="invoice.id">
+                                    <tr 
+                                        v-for="invoice in sortedInvoices" 
+                                        :key="invoice.id"
+                                        @click="editInvoice(invoice)"
+                                        style="cursor: pointer;"
+                                    >
                                         <td style="white-space:nowrap;">{{ invoice.id }}</td>
                                         <td style="white-space:nowrap; max-width:120px; overflow:hidden; text-overflow:ellipsis;">{{ invoice.type_document }}</td>
                                         <td style="white-space:nowrap;">{{ invoice.month }}</td>
@@ -479,6 +488,7 @@ const onFilter = () => {
                                                 <!--begin::View-->
                                                 <Link :href="route('invoices.show', invoice.id)"
                                                     v-tooltip="'Ver'"
+                                                    @click.stop
                                                     class="btn btn-icon btn-active-light-primary w-16px h-16px me-1 p-1">
                                                     <span class="svg-icon svg-icon-2" style="font-size:12px;">
                                                         <i class="fas fa-eye"></i>
@@ -488,6 +498,7 @@ const onFilter = () => {
                                                 <!--begin::Update-->
                                                 <Link v-tooltip="'Editar'"
                                                     class="btn btn-icon btn-active-light-primary w-16px h-16px me-1 p-1"
+                                                    @click.stop
                                                     :href="route('invoices.edit', invoice.id)">
                                                     <span class="svg-icon svg-icon-1" style="font-size:12px;">
                                                         <svg width="14" height="14" viewBox="0 0 24 24" fill="none"
@@ -503,7 +514,7 @@ const onFilter = () => {
                                                 </Link>
                                                 <!--end::Update-->
                                                 <!--begin::Delete-->
-                                                <button type="button" v-tooltip="'Eliminar'" @click="onDeleted(invoice.id)"
+                                                <button type="button" v-tooltip="'Eliminar'" @click.stop="onDeleted(invoice.id)"
                                                     class="btn btn-icon btn-active-light-primary w-16px h-16px p-1">
                                                     <span class="svg-icon svg-icon-2" style="font-size:12px;">
                                                         <svg width="14" height="14" viewBox="0 0 24 24" fill="none"

@@ -46,8 +46,8 @@ const links = [
                                     </div>
                                 </div>
                                 <p class="card-text">
-                                    Se crea la vista Dashboard para las salidas.<br>
-                                    En los formularios de salidas y de ingresos se han implementado opciones de ordenación para las tablas disponibles.<br>
+                                    Se mejora niveles, ahora se relacionan a cada producto.<br>
+                                    En los formularios de salidas ahora al hacer click en fila ya se puede editar..<br>
                                 La pestaña parametros estara por defecto cerrada para ocupar menos espacio en pantalla.<br>
                                 En facturas, la tabla se carga con icono warning cuando el producto no esta resgistrado.
                                 
