@@ -182,6 +182,31 @@ const editMachineries = ref([]);
 const editCostCenters = ref([]);
 const editStockLineData = ref(null);
 
+// Función para calcular el precio total de una salida
+const calculateTotal = (selected) => {
+  const precio = Number(selected.unit_price) || 0;
+  const cantidad = Number(selected.quantity) || 0;
+  const total = precio * cantidad;
+  
+  if (isNaN(total)) return '-';
+  
+  const sinDecimales = total % 1 === 0;
+  return sinDecimales
+    ? total.toLocaleString('es-ES')
+    : total.toLocaleString('es-ES', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+};
+
+// Función para formatear precio unitario
+const formatPrice = (price) => {
+  const num = Number(price) || 0;
+  if (isNaN(num)) return '-';
+  
+  const sinDecimales = num % 1 === 0;
+  return sinDecimales
+    ? num.toLocaleString('es-ES')
+    : num.toLocaleString('es-ES', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+};
+
 const onFilter = () => {
   router.get(route('outflows.index', {term: term.value}), { preserveState: true });  
 }
@@ -233,6 +258,7 @@ async function openCard(outflow) {
       product_name: outflow.product,
       unit_name: outflow.unit,
       quantity: outflow.stock, // Inicializa cantidad con el stock
+      unit_price: outflow.unit_price || 0, // Precio unitario de la factura
       cost_center_ids: [],
       observations: '',
       level2_id: null, // Filtro helper (no se guarda)
@@ -769,7 +795,7 @@ watch(selectedGroupings, (newVals) => {
                       <h6>Registrar salida</h6>
                       <div class="card mb-2 p-3 shadow-sm">
                         <div class="row g-2 align-items-center">
-                          <!-- FILA 1: Producto, Unidad, Cantidad, Proyecto, Operación -->
+                          <!-- FILA 1: Producto, Unidad, Cantidad, Precio Unit., Total -->
                           <div class="col-12 col-md-3">
                             <label class="form-label">Producto</label>
                             <input v-model="selected.product_name" class="form-control form-control-sm w-100" disabled />
@@ -794,6 +820,26 @@ watch(selectedGroupings, (newVals) => {
                             />
                             <small v-if="Number(selected.quantity) > ((outflows.data.find(o => (o.invoice_product_id === selected.invoice_product_id || o.credit_debit_note_itemId === selected.credit_debit_note_item_id))?.stock) || 1)" class="text-danger">No puede exceder el stock disponible</small>
                           </div>
+                          <div class="col-6 col-md-2">
+                            <label class="form-label text-muted">Precio Unit.</label>
+                            <input
+                              :value="formatPrice(selected.unit_price)"
+                              class="form-control form-control-sm w-100 bg-light"
+                              disabled
+                              style="cursor: not-allowed;"
+                            />
+                          </div>
+                          <div class="col-6 col-md-2">
+                            <label class="form-label fw-bold text-primary">Total</label>
+                            <input
+                              :value="calculateTotal(selected)"
+                              class="form-control form-control-sm w-100 bg-light-primary fw-bold"
+                              disabled
+                              style="cursor: not-allowed;"
+                            />
+                          </div>
+
+                          <!-- FILA 2: Proyecto, Operación, Maquinaria -->
                           <div class="col-12 col-md-2">
                             <label class="form-label">Proyecto</label>
                             <select 
@@ -818,8 +864,6 @@ watch(selectedGroupings, (newVals) => {
                               </option>
                             </select>
                           </div>
-
-                          <!-- FILA 2: Maquinaria, Nivel 2 (Filtro), Nivel 3 (Clasificación) -->
                           <div class="col-12 col-md-2">
                             <label class="form-label">Maquinaria</label>
                             <select 
@@ -832,6 +876,8 @@ watch(selectedGroupings, (newVals) => {
                               </option>
                             </select>
                           </div>
+
+                          <!-- FILA 3: Nivel 2 (Filtro), Nivel 3 (Clasificación) -->
                           <div class="col-12 col-md-4">
                             <label class="form-label">
                               Nivel 2 (Filtro)
@@ -848,7 +894,7 @@ watch(selectedGroupings, (newVals) => {
                               </option>
                             </select>
                           </div>
-                          <div class="col-12 col-md-3">
+                          <div class="col-12 col-md-4">
                             <label class="form-label">
                               Clasificación (Nivel 3) <span class="text-danger">*</span>
                               <span v-if="selected.suggested_level3" class="badge bg-info ms-1" style="font-size: 0.65rem;">
@@ -862,7 +908,7 @@ watch(selectedGroupings, (newVals) => {
                               @change="selected.suggested_level3 = false"
                               required
                             >
-                              <option v-if="selected.level3_id === null" :value="null" disabled selected hidden>Seleccione clasificación</option>
+                             
                               <option v-for="level in getFilteredLevels3(selected.id)" :key="level.value" :value="level.value">
                                 {{ level.label }}
                               </option>
@@ -872,8 +918,8 @@ watch(selectedGroupings, (newVals) => {
                             </small>
                           </div>
 
-                          <!-- FILA 3: Agrupación, Centro de Costo, Observaciones -->
-                          <div class="col-12 col-md-4">
+                          <!-- FILA 4: Agrupación, Centro de Costo, Observaciones -->
+                          <div class="col-12 col-md-3">
                             <label class="col-form-label mb-0">Agrupación</label>
                             <select 
                               v-model="selectedGroupings[selected.id]" 
@@ -900,7 +946,7 @@ watch(selectedGroupings, (newVals) => {
                               class="multiselect-blue form-control-sm"
                             />
                           </div>
-                          <div class="col-12 col-md-3">
+                          <div class="col-12 col-md-4">
                             <label class="form-label">Observaciones</label>
                             <input v-model="selected.observations" class="form-control form-control-sm w-100" />
                           </div>
@@ -936,6 +982,7 @@ watch(selectedGroupings, (newVals) => {
         :operations="editOperations"
         :machineries="editMachineries"
         :costCenters="editCostCenters"
+        :groupings="page.props.groupings || []"
         :stockAvailable="editStockAvailable"
         :stockLineData="editStockLineData"
         :levels2="props.levels2"
@@ -1111,6 +1158,26 @@ th {
 .multiselect-blue {
   --ms-max-height: 400px !important;
   --ms-dropdown-max-height: 400px !important;
+}
+
+/* Reducir tamaño de fuente en los cards de registro de salidas */
+.outflow-cards .form-control-sm,
+.outflow-cards .form-select-sm {
+  font-size: 0.75rem !important;
+  padding: 0.2rem 0.5rem !important;
+  height: calc(1.3em + 0.4rem + 2px) !important;
+}
+
+.outflow-cards .form-label {
+  font-size: 0.75rem !important;
+  margin-bottom: 0.2rem !important;
+}
+
+/* Ajuste para el multiselect dentro de las cards */
+.outflow-cards .multiselect-blue {
+  font-size: 0.75rem !important;
+  min-height: 29px !important;
+  height: 29px !important;
 }
 
 

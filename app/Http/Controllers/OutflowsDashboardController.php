@@ -266,9 +266,12 @@ class OutflowsDashboardController extends Controller
     private function getOutflowsByLevel1($season_id, $team_id)
     {
         try {
-            // Obtener todos los outflows con sus relaciones anidadas
+            // Obtener todos los outflows con sus relaciones anidadas, excluyendo inversiones
             $outflows = Outflow::where('season_id', $season_id)
                 ->where('team_id', $team_id)
+                ->whereDoesntHave('operation', function($query) {
+                    $query->whereRaw('LOWER(name) LIKE ?', ['%inversion%']);
+                })
                 ->with([
                     'level3.level2.level1',
                     'invoiceProduct',

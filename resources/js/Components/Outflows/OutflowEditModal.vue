@@ -12,6 +12,7 @@ const props = defineProps({
   operations: Array,
   machineries: Array,
   costCenters: Array,
+  groupings: { type: Array, default: () => [] },
   stockAvailable: Number,
   stockLineData: Object, // Nuevo: datos de la línea asociada (factura/nota)
   levels2: { type: Array, default: () => [] },
@@ -156,6 +157,19 @@ watch(() => props.form, (val) => {
     localForm.level2_id = null;
   }
 }, { immediate: true });
+
+// Variable para manejar la agrupación seleccionada
+const selectedGrouping = ref(null);
+
+// Watch para aplicar agrupación automáticamente
+watch(selectedGrouping, (groupingId) => {
+  if (!groupingId) return;
+  const grouping = props.groupings?.find(g => g.id == groupingId);
+  if (grouping && Array.isArray(grouping.cost_centers)) {
+    const groupCCs = grouping.cost_centers.map(cc => cc.id);
+    localForm.cost_center_ids = groupCCs;
+  }
+});
 
 
 
@@ -319,6 +333,18 @@ function submit() {
                 <small v-if="localForm.level2_id && filteredLevels3.length === 0" class="text-muted">
                   No hay opciones para este nivel 2
                 </small>
+              </div>
+              <div class="col-12 col-md-4">
+                <label class="form-label">Agrupación</label>
+                <select 
+                  v-model="selectedGrouping" 
+                  class="form-select form-select-sm"
+                >
+                  <option :value="null">Seleccione agrupación</option>
+                  <option v-for="g in (props.groupings || [])" :key="g.id" :value="g.id">
+                    {{ g.name }}
+                  </option>
+                </select>
               </div>
               <div class="col-12 col-md-8">
                 <label class="form-label">Centros de Costo</label>
