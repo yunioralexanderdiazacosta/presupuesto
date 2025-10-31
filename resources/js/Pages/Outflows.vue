@@ -530,6 +530,73 @@ watch(selectedGroupings, (newVals) => {
     }
   });
 }, { deep: true });
+
+// Función para copiar datos de un card a todos los demás
+function copyToAllCards(sourceCardId) {
+  const sourceCard = selectedOutflows.value.find(sel => sel.id === sourceCardId);
+  
+  if (!sourceCard) {
+    Swal.fire({
+      icon: 'error',
+      title: 'Error',
+      text: 'No se encontró el card de origen',
+      timer: 2000,
+      showConfirmButton: false
+    });
+    return;
+  }
+  
+  // Verificar que al menos uno de los campos tenga valor (diferente de null, undefined y '')
+  const hasData = sourceCard.operation_id || sourceCard.machinery_id || sourceCard.project_id || 
+      sourceCard.level2_id || sourceCard.level3_id;
+  
+  if (!hasData) {
+    Swal.fire({
+      icon: 'warning',
+      title: 'Atención',
+      text: 'No hay datos para copiar. Selecciona al menos un campo.',
+      timer: 2500,
+      showConfirmButton: false
+    });
+    return;
+  }
+  
+  // Contar cuántos cards se van a actualizar
+  const targetCards = selectedOutflows.value.filter(sel => sel.id !== sourceCardId);
+  
+  if (targetCards.length === 0) {
+    Swal.fire({
+      icon: 'info',
+      title: 'Información',
+      text: 'No hay otros cards abiertos para copiar los datos.',
+      timer: 2000,
+      showConfirmButton: false
+    });
+    return;
+  }
+  
+  // Copiar los campos a todos los demás cards
+  targetCards.forEach(card => {
+    card.operation_id = sourceCard.operation_id;
+    card.machinery_id = sourceCard.machinery_id;
+    card.project_id = sourceCard.project_id;
+    card.level2_id = sourceCard.level2_id;
+    card.level3_id = sourceCard.level3_id;
+    // Resetear el flag de sugerencia automática ya que ahora es manual
+    card.suggested_level3 = false;
+  });
+  
+  // Feedback visual de éxito
+  Swal.fire({
+    icon: 'success',
+    title: '¡Copiado!',
+    html: `Datos replicados a <strong>${targetCards.length}</strong> card${targetCards.length > 1 ? 's' : ''}`,
+    timer: 2000,
+    showConfirmButton: false,
+    toast: true,
+    position: 'top-end'
+  });
+}
 </script>
 
 
@@ -792,7 +859,7 @@ watch(selectedGroupings, (newVals) => {
                     </div>
                     <!-- Cards para agregar nuevas salidas SOLO visibles en la pestaña Salidas -->
                     <div v-for="(selected, idx) in selectedOutflows" :key="selected.id" class="outflow-cards mt-4">
-                      <h6>Registrar salida</h6>
+                      <h6 class="mb-2">Registrar salida</h6>
                       <div class="card mb-2 p-3 shadow-sm">
                         <div class="row g-2 align-items-center">
                           <!-- FILA 1: Producto, Unidad, Cantidad, Precio Unit., Total -->
@@ -951,8 +1018,15 @@ watch(selectedGroupings, (newVals) => {
                             <input v-model="selected.observations" class="form-control form-control-sm w-100" />
                           </div>
 
-                          <!-- Botón cerrar -->
+                          <!-- Botones: Copiar y Cerrar -->
                           <div class="col-12 col-md-12 mt-2 text-end">
+                            <div 
+                              class="copy-icon-wrapper d-inline-flex me-2"
+                              @click="copyToAllCards(selected.id)"
+                              title="Copiar operación, maquinaria, proyecto y clasificación a todos los cards"
+                            >
+                              <i class="fas fa-clone" style="color: #ffffff;"></i>
+                            </div>
                             <button type="button" @click="closeCard(selected.id)" class="btn btn-sm btn-secondary">Cerrar</button>
                           </div>
                         </div>
@@ -1178,6 +1252,41 @@ th {
   font-size: 0.75rem !important;
   min-height: 29px !important;
   height: 29px !important;
+}
+
+/* Ícono de copiar/clonar con efecto hover */
+.copy-icon-wrapper {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 5px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  background: linear-gradient(135deg, #667eea 0%, #44a2cd 100%);
+  box-shadow: 0 2px 4px rgba(102, 126, 234, 0.3);
+  vertical-align: middle;
+  position: relative;
+  top: 1px;
+}
+
+.copy-icon-wrapper:hover {
+  transform: translateY(-1px) scale(1.05);
+  box-shadow: 0 4px 12px rgba(102, 126, 234, 0.5);
+  background: linear-gradient(135deg, #7c8ef5 0%, #5ab3d8 100%);
+}
+
+.copy-icon-wrapper:active {
+  transform: translateY(1px) scale(0.95);
+}
+
+.copy-icon-wrapper i,
+.copy-icon-wrapper i.fas,
+.copy-icon-wrapper i.fa-clone {
+  color: #ffffff !important;
+  font-size: 0.8rem !important;
+  opacity: 1 !important;
 }
 
 
