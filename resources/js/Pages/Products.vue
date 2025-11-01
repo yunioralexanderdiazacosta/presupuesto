@@ -220,7 +220,7 @@ const sortClass = (field) => ({
                     <div class="col-auto align-self-center">
                                                 <h5 class="fs-9 mb-0 text-nowrap py-2 py-xl-0">
                                                 <i class="fas fa-boxes text-primary me-2"></i>
-                                                Productos
+                                                Productos **----** Clasificación para Inventarios
                                             </h5>
                     </div>
                     <div class="col-auto ms-auto">

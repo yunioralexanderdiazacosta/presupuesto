@@ -3,7 +3,11 @@ import ProductForm from './ProductForm.vue';
 import Modal from '@/Components/Modal.vue';
 
 const props = defineProps({
-    form: Object
+    form: Object,
+    readonlyBasicFields: {
+        type: Boolean,
+        default: false
+    }
 });
 
 defineEmits(['update']);
@@ -16,14 +20,18 @@ defineEmits(['update']);
                     <i class="fas fa-box-open"></i>
                 </span>
                 <span>
-                    <span class="fw-bold" style="font-size: 1.2rem; color: #2d3748; letter-spacing: 0.5px;">Editar producto</span>
+                    <span class="fw-bold" style="font-size: 1.2rem; color: #2d3748; letter-spacing: 0.5px;">
+                        {{ readonlyBasicFields ? 'Actualizar clasificación' : 'Editar producto' }}
+                    </span>
                     <br>
-                    <span class="text-muted" style="font-size: 0.85rem;">Modifica los datos del producto</span>
+                    <span class="text-muted" style="font-size: 0.85rem;">
+                        {{ readonlyBasicFields ? 'Modifica la clasificación del producto' : 'Modifica los datos del producto' }}
+                    </span>
                 </span>
             </div>
         </template>
         <template #body>
-            <ProductForm :form="form" />
+            <ProductForm :form="form" :readonlyBasicFields="readonlyBasicFields" />
         </template>
         <template #footer>
             <button type="button" id="kt_modal_update_product_cancel" data-bs-dismiss="modal" class="btn btn-light me-3">Cerrar</button>

@@ -5,7 +5,11 @@
 	import InputError from '@/Components/InputError.vue';
 
 	const props = defineProps({
-		form: Object
+		form: Object,
+        readonlyBasicFields: {
+            type: Boolean,
+            default: false
+        }
 	});
 
     const getLevel2s = (event) => {
@@ -55,6 +59,7 @@
                     class="form-control form-control-solid"
                     type="text"
                     :class="{'is-invalid': form.errors.name}"
+                    :readonly="readonlyBasicFields"
                 />
                 <InputError class="mt-2" :message="form.errors.name" />
             </div>
@@ -70,6 +75,7 @@
                     class="multiselect-blue form-control"
                     :class="{'is-invalid': form.errors.unit_id}"
                     :searchable="true"
+                    :disabled="readonlyBasicFields"
                 />
                 <InputError class="mt-2" :message="form.errors.unit_id" />
             </div>

@@ -1,11 +1,14 @@
 <script setup>
 import { computed, ref } from 'vue';
-import { router } from '@inertiajs/vue3';
+import { router, useForm } from '@inertiajs/vue3';
 import AppLayout from '@/Layouts/AppLayout.vue';
 import Empty from '@/Components/Empty.vue';
 import Breadcrumb from '@/Components/Breadcrumb.vue';
 import CardHeader from '@/Components/CardHeader.vue';
 import SearchInput from '@/Components/SearchInput.vue';
+import EditProductModal from '@/Components/Products/EditProductModal.vue';
+import axios from 'axios';
+import Swal from 'sweetalert2';
 
 
 
@@ -17,6 +20,20 @@ const props = defineProps({
 
 // Estado local independiente para cada tabla
 const inventoryEdit = ref(props.inventory ? JSON.parse(JSON.stringify(props.inventory)) : []);
+
+// Form para editar clasificación del producto
+const productForm = useForm({
+    id: '',
+    name: '',
+    unit_id: '',
+    level1_id: '',
+    level2_id: '',
+    level3_id: '',
+    level4_id: '',
+    level2s: [],
+    level3s: [],
+    level4s: []
+});
 
 // Filtro local
 const term = ref('');
@@ -71,6 +88,101 @@ async function loadKardex(productId) {
 }
 
 
+// --- FUNCIONES PARA EDITAR PRODUCTO ---
+const getLevel2s = (level1Id) => {
+    if (level1Id && level1Id != "") {
+        axios.get(route('levels2.get', level1Id))
+            .then(response => {
+                productForm.level2s = response.data;
+            }).catch(error => console.log(error));
+    }
+};
+
+const getLevel3s = (level2Id) => {
+    if (level2Id && level2Id != "") {
+        axios.get(route('levels3.get', level2Id))
+            .then(response => {
+                productForm.level3s = response.data;
+            }).catch(error => console.log(error));
+    }
+};
+
+const getLevel4s = (level3Id) => {
+    if (level3Id && level3Id != "") {
+        axios.get(route('levels4.get', level3Id))
+            .then(response => {
+                productForm.level4s = response.data;
+            }).catch(error => console.log(error));
+    }
+};
+
+const openEditProduct = async (productId) => {
+    try {
+        const response = await axios.get(`/products/${productId}/show`);
+        const product = response.data;
+        
+        if (product) {
+            // Resetear formulario
+            productForm.reset();
+            
+            // Inicializar arrays vacíos
+            productForm.level2s = [];
+            productForm.level3s = [];
+            productForm.level4s = [];
+            
+            // Asignar valores del producto
+            productForm.id = product.id;
+            productForm.name = product.name;
+            productForm.unit_id = product.unit_id;
+            productForm.level1_id = product.level1_id;
+            productForm.level2_id = product.level2_id;
+            productForm.level3_id = product.level3_id;
+            productForm.level4_id = product.level4_id;
+            
+            // Cargar niveles dependientes si existen
+            if (product.level1_id) await getLevel2s(product.level1_id);
+            if (product.level2_id) await getLevel3s(product.level2_id);
+            if (product.level3_id) await getLevel4s(product.level3_id);
+            
+            $('#editProductModal').modal('show');
+        }
+    } catch (error) {
+        console.error('Error al cargar producto:', error);
+        Swal.fire({
+            icon: 'error',
+            title: 'Error',
+            text: 'No se pudo cargar el producto',
+        });
+    }
+};
+
+const updateProduct = () => {
+    productForm.post(route('products.update', productForm.id), {
+        preserveScroll: true,
+        onSuccess: () => {
+            productForm.reset();
+            $('#editProductModal').modal('hide');
+            Swal.fire({
+                position: 'center',
+                icon: 'success',
+                title: 'Clasificación actualizada correctamente',
+                showConfirmButton: false,
+                timer: 1500
+            });
+            // Recargar la página para actualizar el inventario
+            router.reload();
+        },
+        onError: (errors) => {
+            Swal.fire({
+                icon: 'error',
+                title: 'Error',
+                text: 'No se pudo actualizar la clasificación del producto',
+            });
+        }
+    });
+};
+
+
 // --- FUNCIÓN DE IMPRESIÓN ---
 function printKardex(productId) {
   const table = document.getElementById('kardex-table-' + productId);
@@ -109,51 +221,17 @@ function printKardex(productId) {
                  <li class="nav-item"><a class="nav-link" id="pill-detalles-compra" data-bs-toggle="tab" href="#pill-tab-detalles-compra" role="tab" aria-controls="pill-tab-detalles-compra" aria-selected="false">Detalle de compra</a></li>
             </ul>
            <div class="tab-content border p-3 mt-3" id="pill-myTabContent">
-          
-                    <div
-                        class="tab-pane fade show active"
-                        id="pill-tab-resumen"
-                        role="tabpanel"
-                        aria-labelledby="resumen-tab"
-                    >
-            <div class="row align-items-center mb-3">
-              <div class="col-md-6 col-12 mb-2 mb-md-0">
-                <SearchInput
-                  v-model="term"
-                  placeholder="Buscar por producto, nivel 2 o nivel 3..."
-                />
-              </div>
-                            <div class="col-md-6 col-12 text-md-end text-start">
-                                <a
-                                    :href="
-                                        route('invoices.pdf', { term: term })
-                                    "
-                                    target="_blank"
-                                    class="btn btn-light-primary me-3"
-                                >
-                                    <span class="svg-icon svg-icon-2">
-                                        <!-- ...SVG... -->
-                                    </span>
-                                    Exportar PDF
-                                </a>
-                                <a
-                                    :href="
-                                        route('invoices.excel', { term: term })
-                                    "
-                                    target="_blank"
-                                    class="btn btn-light-primary me-3"
-                                >
-                                    <span class="svg-icon svg-icon-2">
-                                        <!-- ...SVG... -->
-                                    </span>
-                                    Exportar Excel
-                                </a>
-                            </div>
-                        </div>
-                    </div>
-
        
               <div class="tab-pane fade show active" id="pill-tab-edicion" role="tabpanel" aria-labelledby="pill-edicion">
+                <!-- Search Input para tab Edición -->
+                <div class="row align-items-center mb-3">
+                  <div class="col-md-12 col-12 mb-2 mb-md-0">
+                    <SearchInput
+                      v-model="term"
+                      placeholder="Buscar por producto, nivel 2 o nivel 3..."
+                    />
+                  </div>
+                </div>
                 <div class="table-responsive mb-4">
                 <table class="table table-bordered table-striped table-sm small">
                   <thead class="table-primary text-white">
@@ -163,6 +241,7 @@ function printKardex(productId) {
                       <th>Producto</th>
                       <th>Stock</th>
                       <th>Unidad</th>
+                      <th>Acciones</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -172,9 +251,20 @@ function printKardex(productId) {
                       <td>{{ item.product_name }}</td>
                       <td>{{ item.cantidad }}</td>
                       <td>{{ item.unit_name || '' }}</td>
+                      <td class="text-center">
+                        <button
+                          @click="openEditProduct(item.product_id)"
+                          class="btn btn-sm p-1"
+                          :class="(!item.level2_name || !item.level3_name) ? 'btn-warning' : 'btn-primary'"
+                          :title="(!item.level2_name || !item.level3_name) ? 'Faltan datos de clasificación' : 'Editar Clasificacion'"
+                          style="display:flex; align-items:center; justify-content:center; padding:0.25rem; font-size:0.75rem; width:1.5rem; height:1.3rem;"
+                        >
+                          <i :class="(!item.level2_name || !item.level3_name) ? 'fa fa-exclamation-triangle' : 'fa fa-edit'"></i>
+                        </button>
+                      </td>
                     </tr>
                     <tr v-if="!filteredInventory.length">
-                      <td colspan="5" class="text-center text-muted">No hay datos de inventario.</td>
+                      <td colspan="6" class="text-center text-muted">No hay datos de inventario.</td>
                     </tr>
                   </tbody>
                 </table>
@@ -184,6 +274,15 @@ function printKardex(productId) {
 
 
                <div class="tab-pane fade" id="pill-tab-kardex" role="tabpanel" aria-labelledby="pill-kardex">
+                  <!-- Search Input para Kardex -->
+                  <div class="row align-items-center mb-3">
+                    <div class="col-md-12 col-12 mb-2 mb-md-0">
+                      <SearchInput
+                        v-model="term"
+                        placeholder="Buscar por producto, nivel 2 o nivel 3..."
+                      />
+                    </div>
+                  </div>
                   <div class="table-responsive mb-4">
                     <table class="table table-bordered table-striped table-sm small">
                       <thead class="table-primary text-white">
@@ -196,7 +295,7 @@ function printKardex(productId) {
                         </tr>
                       </thead>
                       <tbody>
-                        <template v-for="item in inventoryEdit" :key="'kardex-' + item.level2_name + '-' + item.level3_name + '-' + item.product_name">
+                        <template v-for="item in filteredInventory" :key="'kardex-' + item.level2_name + '-' + item.level3_name + '-' + item.product_name">
                           <tr>
                             <td>{{ item.level2_name || '--' }}</td>
                             <td>{{ item.level3_name || '--' }}</td>
@@ -283,7 +382,7 @@ function printKardex(productId) {
                             </td>
                           </tr>
                         </template>
-                        <tr v-if="!inventoryEdit.length">
+                        <tr v-if="!filteredInventory.length">
                           <td colspan="5" class="text-center text-muted">No hay datos de inventario.</td>
                         </tr>
                       </tbody>
@@ -294,6 +393,10 @@ function printKardex(productId) {
           </div>
     </div>
   </div>
+  
+  <!-- Modal para editar clasificación del producto -->
+  <EditProductModal @update="updateProduct" :form="productForm" :readonlyBasicFields="true" />
+  
   </AppLayout>
 </template>
 
