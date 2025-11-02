@@ -19,6 +19,7 @@ const form = useForm({
     cod_machinery: '',
     type_machinery_id: '', 
     company_reason_id: '',
+    counter_id: '',
     team_id: '',
     cod_machinery: '',
     volume: 0,
@@ -44,6 +45,7 @@ const openEdit = (machinery) => {
     form.cod_machinery = machinery.cod_machinery;
     form.type_machinery_id = machinery.type_machinery_id;
     form.company_reason_id = machinery.company_reason_id;
+    form.counter_id = machinery.counter_id;
     form.team_id = machinery.team_id;
     form.volume = machinery.volume;
     form.status = machinery.status;
@@ -170,6 +172,7 @@ const onFilter = () => {
                         <!--begin::Table row-->
                         <th width="min-w-150px">Código</th>
                         <th width="min-w-150px">Tipo</th>
+                        <th width="min-w-150px">Contador</th>
                         <th width="min-w-150px">Marca</th>
                         <th width="min-w-150px">Status</th>
                         <th width="min-w-150px" class="text-end">Acciones</th>
@@ -185,6 +188,7 @@ const onFilter = () => {
                             <tr v-for="(machinery, index) in machineries.data" :key="index">
                                 <td>{{machinery.cod_machinery}}</td>
                                 <td>{{machinery.type_machinery.name}}</td>
+                                <td>{{machinery.counter?.name || '-'}}</td>
                                 <td>{{machinery.brand}}</td>
                                 <td>
                                     <span class="badge badge-subtle-success" v-if="machinery.is_active == true">Activo</span>

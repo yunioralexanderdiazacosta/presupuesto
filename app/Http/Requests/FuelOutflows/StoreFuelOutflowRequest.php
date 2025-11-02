@@ -16,12 +16,12 @@ class StoreFuelOutflowRequest extends FormRequest
         return [
             'machinery_id' => 'required|exists:machineries,id',
             'operator_id' => 'required|exists:operators,id',
-            'cost_center_id' => 'nullable|exists:cost_centers,id',
-            // ...existing code...
-            'fuel_type' => 'required|string|max:50',
+            'cost_center_id' => 'nullable|array',
+            'cost_center_id.*' => 'exists:cost_centers,id',
+            'product_id' => 'required|exists:products,id',
             'liters' => 'required|numeric|min:0.01',
-            'horometer' => 'nullable|numeric|min:0',
-            'odometer' => 'nullable|numeric|min:0',
+            'counter_id' => 'nullable|exists:counters,id',
+            'counter_value' => 'nullable|numeric|min:0',
             'date' => 'required|date',
             'observations' => 'nullable|string',
         ];

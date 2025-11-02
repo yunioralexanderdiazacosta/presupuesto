@@ -15,11 +15,10 @@ class FuelOutflow extends Model
         'machinery_id',
         'operator_id',
         'cost_center_id',
-    // ...existing code...
-        'fuel_type',
+        'product_id',
+        'counter_id',
+        'counter_value',
         'liters',
-        'horometer',
-        'odometer',
         'date',
         'observations',
     ];
@@ -49,6 +48,16 @@ class FuelOutflow extends Model
     public function costCenter()
     {
         return $this->belongsTo(CostCenter::class);
+    }
+
+    public function product()
+    {
+        return $this->belongsTo(Product::class);
+    }
+
+    public function counter()
+    {
+        return $this->belongsTo(Counter::class);
     }
 
     // Relación igual que en Outflow: obtener los pivotes

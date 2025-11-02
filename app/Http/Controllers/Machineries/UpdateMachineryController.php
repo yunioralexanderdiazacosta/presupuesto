@@ -13,6 +13,7 @@ class UpdateMachineryController extends Controller
         $machinery->cod_machinery = $request->cod_machinery;
         $machinery->type_machinery_id = $request->type_machinery_id;
         $machinery->company_reason_id = $request->company_reason_id;
+        $machinery->counter_id = $request->counter_id;
         $machinery->volume = $request->volume;
         $machinery->brand = $request->brand;
         $machinery->observations = $request->observations;

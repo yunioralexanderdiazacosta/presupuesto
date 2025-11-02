@@ -50,6 +50,21 @@
         <InputError class="mt-2" :message="form.errors.company_reason_id" />
     </div>
 
+    <div class="fv-row">
+        <label for="counter_id" class="col-form-label">Tipo de Contador</label>
+        <Multiselect
+            :placeholder="'Seleccione tipo de contador'"
+            v-model="form.counter_id"
+            :close-on-select="true"
+            :options="$page.props.counters"
+            class="multiselect-blue form-control"
+            :class="{'is-invalid': form.errors.counter_id}"
+            :searchable="true"
+            :hide-selected="false"
+        />
+        <InputError class="mt-2" :message="form.errors.counter_id" />
+    </div>
+
 
      <div class="fv-row">
         <label for="volume" class="col-form-label">Volumen</label>

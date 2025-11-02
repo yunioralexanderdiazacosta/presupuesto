@@ -6,6 +6,7 @@ use Illuminate\Http\Request;
 use App\Models\Machinery;
 use App\Models\TypeMachinery;
 use App\Models\CompanyReason;
+use App\Models\Counter;
 use Inertia\Inertia;
 
 class MachineriesController extends Controller
@@ -30,10 +31,17 @@ class MachineriesController extends Controller
             ];
         });
 
+        $counters = Counter::all()->transform(function($counter){
+            return [
+                'label' => $counter->name,
+                'value' => $counter->id
+            ];
+        });
+
         $machineries = Machinery::when($request->term, function ($query, $search) {
             $query->where('cod_machinery', 'like', '%'.$search.'%');
-        })->with('typeMachinery')->where('team_id', $user->team_id)->paginate(10)->withQueryString();
+        })->with(['typeMachinery', 'counter'])->where('team_id', $user->team_id)->paginate(10)->withQueryString();
 
-        return Inertia::render('Machineries', compact('machineries', 'companyReasons', 'typeMachineries', 'term'));
+        return Inertia::render('Machineries', compact('machineries', 'companyReasons', 'typeMachineries', 'counters', 'term'));
     }
 }

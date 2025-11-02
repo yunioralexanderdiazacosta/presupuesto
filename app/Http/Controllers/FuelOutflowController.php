@@ -10,6 +10,8 @@ use App\Models\FuelOutflow;
 use App\Models\Machinery;
 use App\Models\Operator;
 use App\Models\CostCenter;
+use App\Models\Product;
+use App\Models\Counter;
 // ...existing code...
 
 class FuelOutflowController extends Controller
@@ -23,34 +25,65 @@ class FuelOutflowController extends Controller
         }
 
 
-    $fuelOutflows = FuelOutflow::with(['machinery', 'operator', 'costCenters.costCenter'])
+    $fuelOutflows = FuelOutflow::with(['machinery.counter', 'operator', 'product', 'counter', 'costCenters.costCenter'])
             ->where('team_id', $user->team_id)
             ->where('season_id', $season_id)
             ->latest('date')
-            ->paginate(20)
-            ->through(function ($item) {
-                $item->costCenters = $item->costCenters->map(function($cc) {
-                    return [
-                        'name' => $cc->costCenter->name ?? '',
-                        'observations' => $cc->observations ?? null,
-                    ];
-                });
-                return $item;
+            ->paginate(20);
+            
+        // Transformar la colección dentro del paginador
+        $fuelOutflows->getCollection()->transform(function ($item) {
+            $item->costCenters = $item->costCenters->map(function($cc) {
+                return [
+                    'cost_center_id' => $cc->cost_center_id,
+                    'name' => $cc->costCenter->name ?? '',
+                    'observations' => $cc->observations ?? null,
+                ];
             });
+            return $item;
+        });
 
-        $machineries = Machinery::all(['id', 'cod_machinery']);
+        $machineries = Machinery::with('counter')->get(['id', 'cod_machinery', 'counter_id'])->map(function($machinery) {
+            return [
+                'value' => $machinery->id,
+                'label' => $machinery->cod_machinery,
+                'counter_id' => $machinery->counter_id,
+                'counter_name' => $machinery->counter->name ?? null,
+            ];
+        });
         $operators = \App\Models\Operator::where('team_id', $user->team_id)
             ->where('season_id', $season_id)
             ->get(['id', 'name', 'team_id', 'season_id']);
         $costCenters = CostCenter::all(['id', 'name']);
-        // ...existing code...
+        
+        // Obtener productos de combustible (level3 = 'Combustible')
+        $fuelProducts = Product::whereHas('level3', function($query) {
+            $query->where('name', 'Combustible');
+        })
+        ->where('team_id', $user->team_id)
+        ->get(['id', 'name'])
+        ->map(function($product) {
+            return [
+                'value' => $product->id,
+                'label' => $product->name
+            ];
+        });
+
+        // Obtener todos los counters
+        $counters = Counter::all(['id', 'name'])->map(function($counter) {
+            return [
+                'value' => $counter->id,
+                'label' => $counter->name
+            ];
+        });
 
         return Inertia::render('FuelOutflows/Index', [
             'fuelOutflows' => $fuelOutflows,
             'machineries' => $machineries,
             'operators' => $operators,
             'costCenters' => $costCenters,
-            // ...existing code...
+            'fuelProducts' => $fuelProducts,
+            'counters' => $counters,
         ]);
     }
     // Aquí puedes agregar métodos agregados, reportes, exportaciones, etc.

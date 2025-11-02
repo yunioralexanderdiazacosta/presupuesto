@@ -24,6 +24,7 @@ class FormMachineryRequest extends FormRequest
         return [
             'company_reason_id' => 'required', 
             'type_machinery_id' => 'required',
+            'counter_id' => 'nullable|exists:counters,id',
             'cod_machinery' => 'required', 
             'volume' => 'required',
             'brand' => 'required',

@@ -16,6 +16,7 @@ class StoreMachineryController extends Controller
         Machinery::Create([
             'type_machinery_id' => $request->type_machinery_id,
             'company_reason_id' => $request->company_reason_id,
+            'counter_id' => $request->counter_id,
             'cod_machinery' => $request->cod_machinery,
             'brand' => $request->brand, 
             'volume' => $request->volume,
