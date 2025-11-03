@@ -16,6 +16,8 @@ class FuelOutflow extends Model
         'operator_id',
         'cost_center_id',
         'product_id',
+        'invoice_product_id',
+        'credit_debit_note_item_id',
         'counter_id',
         'counter_value',
         'liters',
@@ -64,5 +66,16 @@ class FuelOutflow extends Model
     public function costCenters()
     {
         return $this->hasMany(FuelOutflowCostCenter::class);
+    }
+
+    // Nuevas relaciones para rastrear origen del combustible
+    public function invoiceProduct()
+    {
+        return $this->belongsTo(InvoiceProduct::class);
+    }
+
+    public function creditDebitNoteItem()
+    {
+        return $this->belongsTo(CreditDebitNoteItem::class);
     }
 }

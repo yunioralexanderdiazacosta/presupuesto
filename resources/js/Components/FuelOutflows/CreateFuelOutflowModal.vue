@@ -11,6 +11,7 @@ const props = defineProps({
     costCenters: Array,
     fuelProducts: Array,
     counters: Array,
+    availableFuelStocks: Array,
 });
 
 const emit = defineEmits(['close', 'saved']);
@@ -20,6 +21,8 @@ const form = useForm({
     machinery_id: '',
     operator_id: '',
     cost_center_id: [],
+    invoice_product_id: null,
+    credit_debit_note_item_id: null,
     product_id: '',
     liters: '',
     counter_id: '',
@@ -28,19 +31,46 @@ const form = useForm({
 });
 
 const selectedMachinery = ref(null);
+const selectedStockLine = ref(null);
+const maxLiters = ref(null);
+
+const selectedProductName = computed(() => {
+    if (selectedStockLine.value) {
+        return selectedStockLine.value.product_name + ' (' + selectedStockLine.value.unit + ')';
+    }
+    return '-';
+});
+
+// Manejar selección de línea de stock
+function onStockLineSelected() {
+    if (selectedStockLine.value) {
+        form.product_id = selectedStockLine.value.product_id;
+        form.invoice_product_id = selectedStockLine.value.invoice_product_id;
+        form.credit_debit_note_item_id = selectedStockLine.value.credit_debit_note_item_id;
+        maxLiters.value = selectedStockLine.value.stock_disponible;
+        form.liters = selectedStockLine.value.stock_disponible;
+    } else {
+        form.product_id = '';
+        form.invoice_product_id = null;
+        form.credit_debit_note_item_id = null;
+        maxLiters.value = null;
+        form.liters = '';
+    }
+}
 
 watch(() => form.machinery_id, (machineryId) => {
     if (machineryId) {
         const machinery = props.machineries.find(m => m.value === machineryId);
         selectedMachinery.value = machinery;
+        
         if (machinery && machinery.counter_id) {
             form.counter_id = machinery.counter_id;
         } else {
-            form.counter_id = '';
+            form.counter_id = null;
         }
     } else {
         selectedMachinery.value = null;
-        form.counter_id = '';
+        form.counter_id = null;
     }
 });
 
@@ -48,6 +78,8 @@ watch(() => props.show, (val) => {
     if (val) {
         form.reset();
         selectedMachinery.value = null;
+        selectedStockLine.value = null;
+        maxLiters.value = null;
     }
 });
 
@@ -56,6 +88,16 @@ function closeModal() {
 }
 
 function save() {
+    // Validar que no exceda el stock
+    if (maxLiters.value && form.liters > maxLiters.value) {
+        Swal.fire({ 
+            icon: 'error', 
+            title: 'Error', 
+            text: `No puede consumir más de ${maxLiters.value} litros (stock disponible).` 
+        });
+        return;
+    }
+    
     form.post(route('fuel-outflows.store'), {
         onSuccess: () => {
             Swal.fire({ icon: 'success', title: 'Guardado', text: 'Consumo registrado correctamente', timer: 1200, showConfirmButton: false });
@@ -74,15 +116,10 @@ function save() {
 <template>
   <div class="modal fade show" tabindex="-1" style="display:block; background:rgba(0,0,0,0.2);" v-if="show">
     <div class="modal-dialog modal-xl">
-      <div class="modal-content">
-        <div class="modal-header">
+      <div class="modal-content" style="background-color: #f8f9fa;">
+        <div class="modal-header bg-white border-bottom">
           <h5 class="modal-title d-flex align-items-center">
-            <span class="svg-icon svg-icon-2 svg-icon-primary me-2">
-              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                <path opacity="0.3" d="M20 15H4C2.9 15 2 14.1 2 13V7C2 6.4 2.4 6 3 6H21C21.6 6 22 6.4 22 7V13C22 14.1 21.1 15 20 15ZM13 12H11C10.5 12 10 12.4 10 13V16C10 16.5 10.4 17 11 17H13C13.6 17 14 16.6 14 16V13C14 12.4 13.6 12 13 12Z" fill="currentColor"/>
-                <path d="M14 6V5H10V6H8V5C8 3.9 8.9 3 10 3H14C15.1 3 16 3.9 16 5V6H14ZM20 15H14V16C14 16.6 13.5 17 13 17H11C10.5 17 10 16.6 10 16V15H4C3.6 15 3.3 14.9 3 14.7V18C3 19.1 3.9 20 5 20H19C20.1 20 21 19.1 21 18V14.7C20.7 14.9 20.4 15 20 15Z" fill="currentColor"/>
-              </svg>
-            </span>
+            <i class="fas fa-gas-pump text-primary me-2 fs-8"></i>
             Nuevo Consumo de Combustible
           </h5>
           <button type="button" class="btn-close" @click="closeModal"></button>
@@ -90,9 +127,67 @@ function save() {
         <div class="modal-body">
           <form @submit.prevent="save">
             <div class="row g-2">
+              
+              <!-- 🔥 NUEVO: Select de línea de factura/nota -->
+              <div class="col-md-12">
+                <label class="form-label fw-bold text-primary">
+                  <i class="fas fa-file-invoice me-1"></i>
+                  Origen del Combustible
+                  <span class="badge bg-info ms-2" style="font-size: 0.7rem;">Stock Disponible</span>
+                </label>
+                <select 
+                  v-model="selectedStockLine" 
+                  class="form-select" 
+                  required
+                  @change="onStockLineSelected"
+                >
+                  <option :value="null">Seleccione factura/nota con combustible disponible</option>
+                  <option 
+                    v-for="stock in (props.availableFuelStocks || [])" 
+                    :key="stock.invoice_product_id || stock.credit_debit_note_item_id" 
+                    :value="stock"
+                  >
+                    {{ stock.origen === 'nota_debito' ? '📋' : '📄' }} 
+                    {{ stock.number_document }} - 
+                    {{ stock.supplier }} - 
+                    {{ stock.product_name }} 
+                    (Disponible: {{ stock.stock_disponible }} {{ stock.unit }})
+                  </option>
+                </select>
+              </div>
+              
               <div class="col-md-4">
                 <label class="form-label">Fecha</label>
                 <input type="date" v-model="form.date" class="form-control" required />
+              </div>
+              
+              <div class="col-md-4">
+                <label class="form-label">Combustible</label>
+                <input 
+                  type="text" 
+                  :value="selectedProductName" 
+                  class="form-control" 
+                  disabled 
+                  readonly
+                />
+              </div>
+              
+              <div class="col-md-4">
+                <label class="form-label">
+                  Litros 
+                  <span v-if="maxLiters" class="text-muted small">
+                    (Máx: {{ maxLiters }})
+                  </span>
+                </label>
+                <input 
+                  type="number" 
+                  v-model="form.liters" 
+                  class="form-control" 
+                  :max="maxLiters"
+                  min="0.01" 
+                  step="0.01" 
+                  required 
+                />
               </div>
              
               <div class="col-md-4">
@@ -126,22 +221,6 @@ function save() {
                   :hide-selected="false"
                   class="multiselect-blue form-control-sm"
                 />
-              </div>
-              <div class="col-md-4">
-                <label class="form-label">Combustible</label>
-                <Multiselect
-                  placeholder="Seleccione combustible"
-                  v-model="form.product_id"
-                  :close-on-select="true"
-                  :options="props.fuelProducts"
-                  :searchable="true"
-                  class="multiselect-blue form-control-sm"
-                  required
-                />
-              </div>
-              <div class="col-md-4">
-                <label class="form-label">Litros</label>
-                <input type="number" v-model="form.liters" class="form-control" min="0.01" step="0.01" required />
               </div>
               <div class="col-md-4">
                 <label class="form-label">Tipo Contador</label>

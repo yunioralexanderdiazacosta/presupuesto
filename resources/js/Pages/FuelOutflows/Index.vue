@@ -27,6 +27,7 @@ const props = defineProps({
     costCenters: Array,
     fuelProducts: Array,
     counters: Array,
+    availableFuelStocks: Array,
 });
 
 const title = 'Consumos de Combustible';
@@ -123,7 +124,10 @@ function deleteFuelOutflow(id) {
         <Breadcrumb :links="links" />
         <div class="card my-3">
             <div class="card-header d-flex justify-content-between align-items-center">
-                <h5 class="mb-0">{{ title }}</h5>
+                <h5 class="mb-0 d-flex align-items-center">
+                    <i class="fas fa-gas-pump text-primary me-2"></i>
+                    {{ title }}
+                </h5>
                 <button class="btn btn-primary btn-sm" @click="openCreateModal">
                     <i class="fas fa-plus"></i> Nuevo
                 </button>
@@ -223,6 +227,7 @@ function deleteFuelOutflow(id) {
             :costCenters="props.costCenters"
             :fuelProducts="props.fuelProducts"
             :counters="props.counters"
+            :availableFuelStocks="props.availableFuelStocks"
             @close="closeCreateModal"
             @saved="reloadAfterSave"
         />
