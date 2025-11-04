@@ -651,22 +651,25 @@ function copyToAllCards(sourceCardId) {
                         <ExportExcelButton
                           :data="outflowsExcelData"
                           :headers="[
-                            { label: 'Fecha', key: 'date' },
+                            { label: 'ID', key: 'id' },
+                            { label: 'Fecha digitación', key: 'date' },
                             { label: 'N° Doc', key: 'number_document' },
                             { label: 'Proveedor', key: 'supplier' },
+                            { label: 'Fecha factura', key: 'fecha_factura' },
+                            { label: 'Mes contable', key: 'mes_contable' },
                             { label: 'Producto', key: 'product' },
                             { label: 'Nivel 1', key: 'nivel_1' },
                             { label: 'Nivel 2', key: 'nivel_2' },
                             { label: 'Nivel 3', key: 'nivel_3' },
                             { label: 'Precio Unitario', key: 'precio_unitario' },
-                            { label: 'Total', key: 'total' },
                             { label: 'Proyecto', key: 'project' },
                             { label: 'Operación', key: 'operation' },
                             { label: 'Maquinaria', key: 'machinery' },
                             { label: 'Cantidad', key: 'quantity', type: 'number' },
+                            { label: 'Total', key: 'total' },
                             { label: 'Notas', key: 'notes' },
-                            { label: 'Usuario', key: 'user' },
-                            { label: 'Centros de Costo', key: 'centros_costo' }
+                            { label: 'Centros de Costo', key: 'centros_costo' },
+                            { label: 'Usuario', key: 'user' }
                           ]"
                           filename="salidas.xlsx"
                           class="btn btn-light-primary me-3"
