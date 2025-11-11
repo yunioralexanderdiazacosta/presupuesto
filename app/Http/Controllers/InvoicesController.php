@@ -19,16 +19,20 @@ class InvoicesController extends Controller
 
         $term = $request->term ?? '';
 
-    $invoices = Invoice::with('supplier', 'companyReason', 'products.level1', 'typeDocument', 'month')->when($request->term, function ($query, $search) {
-            $query->where('number_document', 'like', '%'.$search.'%');
+    $invoices = Invoice::with('supplier', 'companyReason', 'products.level1', 'typeDocument', 'month')
+        ->where('team_id', $user->team_id)
+        ->where('season_id', $season_id)
+        ->when($request->term, function ($query, $search) {
+            $query->where(function($q) use ($search) {
+                $q->where('number_document', 'like', '%'.$search.'%')
+                  ->orWhereHas('supplier', function($query) use ($search){
+                      $query->where('name', 'like', '%'.$search.'%');
+                  })
+                  ->orWhereHas('companyReason', function($query) use ($search){
+                      $query->where('name', 'like', '%'.$search.'%');
+                  });
+            });
         })
-        ->OrWhereHas('supplier', function($query) use ($term){
-            $query->where('name', 'like', '%'.$term.'%');
-        })
-        ->OrWhereHas('companyReason', function($query) use ($term){
-            $query->where('name', 'like', '%'.$term.'%');
-        })
-        ->where('team_id', $user->team_id)->where('season_id', $season_id)
         ->paginate(1500)
         ->withQueryString()
         ->through(function($invoice){

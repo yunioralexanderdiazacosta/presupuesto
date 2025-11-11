@@ -18,13 +18,14 @@ class ConsolidatedDocumentsController extends Controller
         $season_id = session('season_id');
 
         // Facturas
-        // Facturas
         $meses = [
             1 => 'Enero', 2 => 'Febrero', 3 => 'Marzo', 4 => 'Abril',
             5 => 'Mayo', 6 => 'Junio', 7 => 'Julio', 8 => 'Agosto',
             9 => 'Septiembre', 10 => 'Octubre', 11 => 'Noviembre', 12 => 'Diciembre'
         ];
         $invoices = Invoice::with(['supplier', 'companyReason', 'typeDocument'])
+            ->where('team_id', $user->team_id)
+            ->where('season_id', $season_id)
             ->get()
             ->map(function ($invoice) use ($meses) {
                 $monto = DB::table('invoice_product')
@@ -46,6 +47,8 @@ class ConsolidatedDocumentsController extends Controller
 
         // Notas de crédito/débito
         $notes = CreditDebitNote::with(['supplier', 'invoice.companyReason'])
+            ->where('team_id', $user->team_id)
+            ->where('season_id', $season_id)
             ->get()
             ->map(function ($note) use ($meses) {
                 $monto = DB::table('credit_debit_note_items')
