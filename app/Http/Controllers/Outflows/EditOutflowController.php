@@ -18,6 +18,9 @@ class EditOutflowController extends Controller
 {
     public function __invoke(\Illuminate\Http\Request $request, Outflow $outflow)
     {
+        $user = \Illuminate\Support\Facades\Auth::user();
+        $season_id = session('season_id');
+        
         // Cargar relaciones necesarias
         $outflow->load(['costCenters.costCenter', 'invoiceProduct.product.unit', 'creditDebitNoteItem.product.unit', 'project', 'operation', 'machinery']);
         // Calcular stock disponible para la línea de factura
@@ -81,10 +84,10 @@ class EditOutflowController extends Controller
                     'credit_note_info' => $creditNoteInfo,
                 ]
             ),
-            'projects' => Project::all(),
-            'operations' => Operation::all(),
-            'machineries' => Machinery::all(),
-            'costCenters' => CostCenter::all(),
+            'projects' => Project::where('team_id', $user->team_id)->where('season_id', $season_id)->get(),
+            'operations' => Operation::where('team_id', $user->team_id)->where('season_id', $season_id)->get(),
+            'machineries' => Machinery::where('team_id', $user->team_id)->get(),
+            'costCenters' => CostCenter::where('team_id', $user->team_id)->where('season_id', $season_id)->get(),
             'stockAvailable' => $stockAvailable,
         ];
         // Si es petición AJAX (modal), devolver JSON
