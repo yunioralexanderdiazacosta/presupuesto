@@ -270,8 +270,12 @@ class OutflowsController extends Controller
         ])->values(),
     ]);
 
-        // Obtener levels2 para el select de filtro
+        // Obtener levels2 para el select de filtro (filtrado por team y season)
         $levels2 = \App\Models\Level2::with(['level1'])
+            ->whereHas('level1', function($query) use ($user, $season_id) {
+                $query->where('team_id', $user->team_id)
+                      ->where('season_id', $season_id);
+            })
             ->get()
             ->filter(function($level2) {
                 return $level2->level1 !== null;
@@ -286,8 +290,12 @@ class OutflowsController extends Controller
             })
             ->values();
 
-        // Obtener levels3 con jerarquía completa y level2_id para filtrado
+        // Obtener levels3 con jerarquía completa y level2_id para filtrado (filtrado por team y season)
         $levels3 = \App\Models\Level3::with(['level2.level1'])
+            ->whereHas('level2.level1', function($query) use ($user, $season_id) {
+                $query->where('team_id', $user->team_id)
+                      ->where('season_id', $season_id);
+            })
             ->get()
             ->filter(function($level3) {
                 return $level3->level2 !== null && $level3->level2->level1 !== null;
