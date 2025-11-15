@@ -18,7 +18,12 @@ class EventServiceProvider extends ServiceProvider
         Registered::class => [
             SendEmailVerificationNotification::class,
         ],
-    // Eliminado: Al iniciar sesión, el usuario debe elegir la temporada
+        \Illuminate\Auth\Events\Login::class => [
+            \App\Listeners\InitializeSeason::class,
+        ],
+        \Illuminate\Auth\Events\Logout::class => [
+            \App\Listeners\ClearSessionOnLogout::class,
+        ],
     ];
 
     /**

@@ -14,7 +14,8 @@ class StoreInvoiceController extends Controller
 {
     public function __invoke(FormInvoiceRequest $request)
     {
-        $user = Auth::user();
+        // Obtener usuario actualizado directamente de la base de datos para evitar caché
+        $user = \App\Models\User::find(Auth::id());
 
         $season_id = session('season_id');
 
