@@ -34,7 +34,7 @@ public function __invoke($id, \Illuminate\Http\Request $request)
         $estimate->cost_center_id = $request->cost_center_id;
         $estimate->observations = $request->observations;
         $estimate->season_id = $request->season_id;
-        $estimate->team_id = auth()->user()->team_id;
+        $estimate->team_id = \App\Models\User::find(auth()->id())->team_id;
         $estimate->save();
         $message = 'Estimación actualizada correctamente.';
         if ($request->wantsJson()) {

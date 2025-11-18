@@ -19,7 +19,7 @@ class UpdateHarvestController extends Controller
         $harvest->subfamily_id = $request->subfamily_id;
         $harvest->unit_id      = $request->unit_id;
         $harvest->quantity     = $request->quantity;
-        $harvest->team_id = auth()->user()->team_id;
+        $harvest->team_id = \App\Models\User::find(auth()->id())->team_id;
         $harvest->user_id = auth()->user()->id; // Asignar el ID del usuario autenticado
         $harvest->season_id = session('season_id');
         $harvest->save();

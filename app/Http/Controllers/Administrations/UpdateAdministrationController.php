@@ -16,7 +16,7 @@ class UpdateAdministrationController extends Controller
         $administration->observations = $request->observations;
         $administration->subfamily_id = $request->subfamily_id;
         $administration->unit_id      = $request->unit_id;
-        $administration->team_id = auth()->user()->team_id;
+        $administration->team_id = \App\Models\User::find(auth()->id())->team_id;
         $administration->user_id = auth()->user()->id; // Asignar el ID del usuario autenticado
         $administration->season_id = session('season_id');
         $administration->save();

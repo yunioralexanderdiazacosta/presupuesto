@@ -69,6 +69,9 @@ class UpdateInvoiceController extends Controller
 
     public function products($products)
     {
+        // Obtener team_id fresco del usuario actual
+        $currentTeamId = \App\Models\User::find(auth()->id())->team_id;
+        
         $data = [];
         foreach ($products as $item) {
             // Gestionar unidad: buscar o crear
@@ -85,7 +88,7 @@ class UpdateInvoiceController extends Controller
             if (!is_numeric($prodId)) {
                 // Buscar producto existente por nombre (case-insensitive)
                 $existingProduct = \App\Models\Product::whereRaw('LOWER(name) = ?', [strtolower(trim($prodId))])
-                    ->where('team_id', auth()->user()->team_id)
+                    ->where('team_id', $currentTeamId)
                     ->first();
                 
                 if ($existingProduct) {
@@ -95,7 +98,7 @@ class UpdateInvoiceController extends Controller
                     // Si no existe, crear nuevo producto
                     $newProduct = \App\Models\Product::create([
                         'name'    => trim($prodId),
-                        'team_id' => auth()->user()->team_id,
+                        'team_id' => $currentTeamId,
                         'unit_id' => $unitId,
                     ]);
                     $prodId = $newProduct->id;
@@ -106,7 +109,7 @@ class UpdateInvoiceController extends Controller
                     // Si no existe, crear con el ID como nombre (fallback)
                     $newProduct = \App\Models\Product::create([
                         'name'    => $prodId,
-                        'team_id' => auth()->user()->team_id,
+                        'team_id' => $currentTeamId,
                         'unit_id' => $unitId,
                     ]);
                     $prodId = $newProduct->id;

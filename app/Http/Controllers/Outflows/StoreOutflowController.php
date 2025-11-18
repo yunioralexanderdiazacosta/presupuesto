@@ -11,11 +11,14 @@ class StoreOutflowController extends Controller
 {
     public function __invoke(OutflowRequest $request)
     {
-        $userId = Auth::id();
+        // Obtener usuario fresco de la base de datos
+        $user = \App\Models\User::find(Auth::id());
+        $userId = $user->id;
+        $teamId = $user->team_id;
+        $seasonId = session('season_id');
+        
         $outflows = $request->input('outflows', []);
         $saved = 0;
-        $teamId = Auth::user()->team_id ?? null;
-        $seasonId = session('season_id');
         foreach ($outflows as $outflowData) {
             // Determinar si es factura o nota de débito
             $data = [

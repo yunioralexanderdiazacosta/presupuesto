@@ -17,7 +17,7 @@ class UpdateFertilizerController extends Controller
         $fertilizer->subfamily_id = $request->subfamily_id;
         $fertilizer->unit_id      = $request->unit_id;
         $fertilizer->unit_id_price= $request->unit_id_price;
-        $fertilizer->team_id = auth()->user()->team_id;
+        $fertilizer->team_id = \App\Models\User::find(auth()->id())->team_id;
         $fertilizer->season_id = session('season_id');
         $fertilizer->user_id = auth()->user()->id; // Asignar el ID del usuario autenticado
         $fertilizer->save();

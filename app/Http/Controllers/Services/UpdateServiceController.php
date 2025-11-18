@@ -19,7 +19,7 @@ class UpdateServiceController extends Controller
         $service->subfamily_id = $request->subfamily_id;
         $service->unit_id      = $request->unit_id;
         $service->quantity     = $request->quantity;
-        $service->team_id = auth()->user()->team_id;
+        $service->team_id = \App\Models\User::find(auth()->id())->team_id;
         $service->user_id = auth()->user()->id; // Asignar el ID del usuario autenticado
         $service->season_id = session('season_id');
         $service->save();
