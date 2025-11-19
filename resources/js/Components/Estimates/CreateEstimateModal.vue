@@ -155,9 +155,9 @@ const handleDelete = (id) => {
                     <i class="fas fa-chess"></i>
                 </span>
                 <span>
-                    <span class="fw-bold" style="font-size: 1.2rem; color: #2d3748; letter-spacing: 0.5px;">Agregar estimaciones</span>
+                    <span class="fw-bold" style="font-size: 1.2rem; color: #2d3748; letter-spacing: 0.5px;">Gestionar estimaciones</span>
                     <br>
-                    <span class="text-muted" style="font-size: 0.85rem;">Completa los datos de la tabla con los kilos estimados</span>
+                    <span class="text-muted" style="font-size: 0.85rem;">Crea nuevas estimaciones o edita las existentes en la tabla</span>
                 </span>
             </div>
         </template>

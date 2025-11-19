@@ -230,6 +230,47 @@ const totalFacturasFormatted = computed(() => {
     }).format(totalFacturas.value);
 });
 
+// Suma simple de la columna IVA
+const totalIva = computed(() => {
+    if (!filteredInvoices.value.length) return 0;
+    return filteredInvoices.value.reduce((sum, factura) => {
+        if (!factura.iva) return sum;
+        let val = factura.iva;
+        if (typeof val === 'string') {
+            val = val.replace(/\./g, '').replace(',', '.');
+        }
+        return sum + (parseFloat(val) || 0);
+    }, 0);
+});
+// Formatea total IVA con separador de miles
+const totalIvaFormatted = computed(() => {
+    return new Intl.NumberFormat('es-ES', { 
+        style: 'decimal', 
+        minimumFractionDigits: 0,
+        maximumFractionDigits: 0 
+    }).format(totalIva.value);
+});
+
+// Suma simple de la columna Total General
+const totalGeneral = computed(() => {
+    if (!filteredInvoices.value.length) return 0;
+    return filteredInvoices.value.reduce((sum, factura) => {
+        let val = factura.total_general;
+        if (typeof val === 'string') {
+            val = val.replace(/\./g, '').replace(',', '.');
+        }
+        return sum + (parseFloat(val) || 0);
+    }, 0);
+});
+// Formatea total general con separador de miles
+const totalGeneralFormatted = computed(() => {
+    return new Intl.NumberFormat('es-ES', { 
+        style: 'decimal', 
+        minimumFractionDigits: 0,
+        maximumFractionDigits: 0 
+    }).format(totalGeneral.value);
+});
+
 const invoicesExcelData = computed(() => {
     return filteredInvoices.value.map(invoice => {
         // Parsear total igual que en la tabla
@@ -238,6 +279,16 @@ const invoicesExcelData = computed(() => {
             : Number(invoice.total);
         const totalNum = isNaN(t) ? '' : t;
         
+        const i = invoice.iva && typeof invoice.iva === 'string'
+            ? parseFloat(invoice.iva.replace(/\./g, '').replace(',', '.'))
+            : Number(invoice.iva || 0);
+        const ivaNum = isNaN(i) ? '' : i;
+        
+        const tg = invoice.total_general && typeof invoice.total_general === 'string'
+            ? parseFloat(invoice.total_general.replace(/\./g, '').replace(',', '.'))
+            : Number(invoice.total_general || 0);
+        const totalGeneralNum = isNaN(tg) ? '' : tg;
+        
         return {
             date: invoice.date,
             number_document: invoice.number_document,
@@ -245,6 +296,8 @@ const invoicesExcelData = computed(() => {
             companyReason: invoice.companyReason?.name || '',
             productos: Array.isArray(invoice.products) ? invoice.products.map(p => p.product_name).join(', ') : '',
             total: totalNum,
+            iva: ivaNum,
+            total_general: totalGeneralNum,
             month: invoice.month
         };
     });
@@ -330,7 +383,7 @@ const onFilter = () => {
                         
                     </ul>
                     <!-- Card de total de facturas alineado a la derecha -->
-                    <div>
+                    <div class="d-flex gap-2">
                         <div class="card h-100 p-1 small-card">
                             <div class="card-header pb-0 pt-1 px-2">
                                 <h6 class="mb-0 mt-1 fs-10 d-flex align-items-center small-card-title">Total Neto Facturas</h6>
@@ -338,6 +391,26 @@ const onFilter = () => {
                             <div class="card-body d-flex flex-column justify-content-end py-1 px-2">
                                 <p class="font-sans-serif lh-1 mb-1 fs-10 small-card-number">
                                     {{ totalFacturasFormatted }}
+                                </p>
+                            </div>
+                        </div>
+                        <div class="card h-100 p-1 small-card">
+                            <div class="card-header pb-0 pt-1 px-2">
+                                <h6 class="mb-0 mt-1 fs-10 d-flex align-items-center small-card-title">Total IVA</h6>
+                            </div>
+                            <div class="card-body d-flex flex-column justify-content-end py-1 px-2">
+                                <p class="font-sans-serif lh-1 mb-1 fs-10 small-card-number">
+                                    {{ totalIvaFormatted }}
+                                </p>
+                            </div>
+                        </div>
+                        <div class="card h-100 p-1 small-card">
+                            <div class="card-header pb-0 pt-1 px-2">
+                                <h6 class="mb-0 mt-1 fs-10 d-flex align-items-center small-card-title">Total General</h6>
+                            </div>
+                            <div class="card-body d-flex flex-column justify-content-end py-1 px-2">
+                                <p class="font-sans-serif lh-1 mb-1 fs-10 small-card-number">
+                                    {{ totalGeneralFormatted }}
                                 </p>
                             </div>
                         </div>
@@ -361,6 +434,8 @@ const onFilter = () => {
                                                                                                  { label: 'Razón Social', key: 'companyReason' },
                                                                                                  { label: 'Producto', key: 'productos' },
                                                                                                  { label: 'Total', key: 'total' },
+                                                                                                 { label: 'IVA', key: 'iva' },
+                                                                                                 { label: 'Total General', key: 'total_general' },
                                                                                                  { label: 'Mes', key: 'month' }
                                                                                              ]"
                                                                                              filename="facturas.xlsx"
@@ -404,6 +479,12 @@ const onFilter = () => {
                                 <th width="min-w-200px" style="white-space:nowrap;" @click="setSort('products')" :class="sortClass('products')">Productos</th>
                                 <th width="min-w-150px" class="text-end" style="white-space:nowrap" @click="setSort('total')" :class="sortClass('total')">
                                     Total
+                                </th>
+                                <th width="min-w-150px" class="text-end" style="white-space:nowrap" @click="setSort('iva')" :class="sortClass('iva')">
+                                    IVA
+                                </th>
+                                <th width="min-w-150px" class="text-end" style="white-space:nowrap" @click="setSort('total_general')" :class="sortClass('total_general')">
+                                    Total General
                                 </th>
                                 <th width="80px" class="text-end" style="white-space:nowrap;">Acciones</th>
                                 <!--end::Table row-->
@@ -481,6 +562,25 @@ const onFilter = () => {
                                                                                         return sinDecimales
                                                                                             ? t.toLocaleString('es-ES')
                                                                                             : t.toLocaleString('es-ES', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+                                                                                    })() }}
+                                                                                </td>
+                                                                                <td class="text-end">
+                                                                                    {{ (() => {
+                                                                                        if (!invoice.iva) return '';
+                                                                                        const i = typeof invoice.iva === 'string'
+                                                                                            ? parseFloat(invoice.iva.replace(/\./g, '').replace(',', '.'))
+                                                                                            : Number(invoice.iva);
+                                                                                        if (isNaN(i)) return '';
+                                                                                        return i.toLocaleString('es-ES', { minimumFractionDigits: 0, maximumFractionDigits: 0 });
+                                                                                    })() }}
+                                                                                </td>
+                                                                                <td class="text-end fw-bold">
+                                                                                    {{ (() => {
+                                                                                        const tg = typeof invoice.total_general === 'string'
+                                                                                            ? parseFloat(invoice.total_general.replace(/\./g, '').replace(',', '.'))
+                                                                                            : Number(invoice.total_general);
+                                                                                        if (isNaN(tg)) return '-';
+                                                                                        return tg.toLocaleString('es-ES', { minimumFractionDigits: 0, maximumFractionDigits: 0 });
                                                                                     })() }}
                                                                                 </td>
                                         <td class="text-end">

@@ -95,6 +95,30 @@ const totalNetoNC = computed(() => {
     .filter(doc => doc.tipo === 'credito' || doc.tipo === 'Crédito')
     .reduce((sum, doc) => sum + Number(doc.monto_total), 0);
 });
+
+// Agrupar documentos por tipo
+const documentsByType = computed(() => {
+  const groups = {};
+  sortedDocuments.value.forEach(doc => {
+    const tipo = doc.tipo || 'Sin tipo';
+    if (!groups[tipo]) {
+      groups[tipo] = [];
+    }
+    groups[tipo].push(doc);
+  });
+  return groups;
+});
+
+// Calcular subtotales por tipo
+const getSubtotalByType = (docs, field) => {
+  return docs.reduce((sum, doc) => {
+    const value = Number(doc[field] || 0);
+    // Para notas de crédito, considerar negativos
+    const isCredito = doc.tipo === 'credito' || doc.tipo === 'Crédito';
+    return sum + (isCredito && field !== 'iva' ? -value : value);
+  }, 0);
+};
+
 const consolidatedExcelData = computed(() => {
   return filteredDocuments.value.map(doc => ({
     tipo: doc.tipo,
@@ -103,7 +127,9 @@ const consolidatedExcelData = computed(() => {
     fecha: doc.fecha,
     proveedor: doc.proveedor,
     n_doc: doc.n_doc,
-    monto_total: doc.monto_total
+    monto_total: doc.monto_total,
+    iva: doc.iva,
+    total_general: Number(doc.monto_total || 0) + Number(doc.iva || 0)
   }));
 });
 
@@ -209,14 +235,18 @@ const getDocTypeBadge = (tipo) => {
       <div class="card-body bg-body-tertiary">
         <ul class="nav nav-pills mb-3" id="pill-consolidado" role="tablist">
           <li class="nav-item">
-            <a class="nav-link active" id="pill-lista" data-bs-toggle="tab" href="#pill-tab-lista" role="tab" aria-controls="pill-tab-lista" aria-selected="true">Lista</a>
+            <a class="nav-link active" id="pill-resumen" data-bs-toggle="tab" href="#pill-tab-resumen" role="tab" aria-controls="pill-tab-resumen" aria-selected="true">Resumen</a>
+          </li>
+          <li class="nav-item">
+            <a class="nav-link" id="pill-lista" data-bs-toggle="tab" href="#pill-tab-lista" role="tab" aria-controls="pill-tab-lista" aria-selected="false">Lista</a>
           </li>
           <li class="nav-item">
             <a class="nav-link" id="pill-pivot" data-bs-toggle="tab" href="#pill-tab-pivot" role="tab" aria-controls="pill-tab-pivot" aria-selected="false">Mensual</a>
           </li>
         </ul>
         <div class="tab-content" id="pill-consolidado-content">
-          <div class="tab-pane fade show active" id="pill-tab-lista" role="tabpanel" aria-labelledby="pill-lista">
+          <!-- PILL RESUMEN -->
+          <div class="tab-pane fade show active" id="pill-tab-resumen" role="tabpanel" aria-labelledby="pill-resumen">
             <div class="row mb-3">
               <div class="col-md-4 col-12">
                 <SearchInput v-model="term" placeholder="Buscar por proveedor, número, razón social..." />
@@ -229,7 +259,70 @@ const getDocTypeBadge = (tipo) => {
                   { label: 'Fecha', key: 'fecha' },
                   { label: 'Proveedor', key: 'proveedor' },
                   { label: 'N° Doc', key: 'n_doc' },
-                  { label: 'Monto Total', key: 'monto_total', type: 'number' }
+                  { label: 'Monto Total', key: 'monto_total', type: 'number' },
+                  { label: 'IVA', key: 'iva', type: 'number' },
+                  { label: 'Total General', key: 'total_general', type: 'number' }
+                ]" filename="consolidado.xlsx" class="btn btn-light-primary me-3">
+                  <span class="svg-icon svg-icon-2"></span>
+                  Exportar Excel
+                </ExportExcelButton>
+              </div>
+            </div>
+            <div class="table-responsive mb-4">
+              <table class="table table-bordered table-striped table-hover table-sm fs-10 mb-0">
+                <thead class="table-primary">
+                  <tr>
+                    <th>Tipo de Documento</th>
+                    <th class="text-end">Cantidad</th>
+                    <th class="text-end">Monto Total</th>
+                    <th class="text-end">IVA</th>
+                    <th class="text-end">Total General</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr v-for="(docs, tipo) in documentsByType" :key="tipo">
+                    <td><span :class="'badge ' + getDocTypeBadge(tipo).class">{{ getDocTypeBadge(tipo).text }}</span></td>
+                    <td class="text-end">{{ docs.length }}</td>
+                    <td class="text-end" :class="(tipo === 'credito' || tipo === 'Crédito') ? 'text-danger' : ''">
+                      {{ formatNumber(getSubtotalByType(docs, 'monto_total'), 0) }}
+                    </td>
+                    <td class="text-end" :class="(tipo === 'credito' || tipo === 'Crédito') ? 'text-danger' : ''">
+                      {{ formatNumber(getSubtotalByType(docs, 'iva'), 0) }}
+                    </td>
+                    <td class="text-end fw-bold" :class="(tipo === 'credito' || tipo === 'Crédito') ? 'text-danger' : ''">
+                      {{ formatNumber(getSubtotalByType(docs, 'monto_total') + getSubtotalByType(docs, 'iva'), 0) }}
+                    </td>
+                  </tr>
+                </tbody>
+                <tfoot class="table-dark">
+                  <tr>
+                    <td class="fw-bold">TOTAL GENERAL</td>
+                    <td class="text-end fw-bold">{{ sortedDocuments.length }}</td>
+                    <td class="text-end fw-bold">{{ formatNumber(totalGeneral, 0) }}</td>
+                    <td class="text-end fw-bold">{{ formatNumber(sortedDocuments.reduce((sum, doc) => sum + Number(doc.iva || 0), 0), 0) }}</td>
+                    <td class="text-end fw-bold">{{ formatNumber(totalGeneral + sortedDocuments.reduce((sum, doc) => sum + Number(doc.iva || 0), 0), 0) }}</td>
+                  </tr>
+                </tfoot>
+              </table>
+            </div>
+          </div>
+          <!-- PILL LISTA -->
+          <div class="tab-pane fade" id="pill-tab-lista" role="tabpanel" aria-labelledby="pill-lista">
+            <div class="row mb-3">
+              <div class="col-md-4 col-12">
+                <SearchInput v-model="term" placeholder="Buscar por proveedor, número, razón social..." />
+              </div>
+              <div class="col-md-8 col-12 text-end d-flex flex-wrap justify-content-end gap-2">
+                <ExportExcelButton :data="consolidatedExcelData" :headers=" [
+                  { label: 'Tipo', key: 'tipo' },
+                  { label: 'Razón Social', key: 'razon_social' },
+                  { label: 'Mes Contable', key: 'mes_contable' },
+                  { label: 'Fecha', key: 'fecha' },
+                  { label: 'Proveedor', key: 'proveedor' },
+                  { label: 'N° Doc', key: 'n_doc' },
+                  { label: 'Monto Total', key: 'monto_total', type: 'number' },
+                  { label: 'IVA', key: 'iva', type: 'number' },
+                  { label: 'Total General', key: 'total_general', type: 'number' }
                 ]" filename="consolidado.xlsx" class="btn btn-light-primary me-3">
                   <span class="svg-icon svg-icon-2"></span>
                   Exportar Excel
@@ -289,32 +382,53 @@ const getDocTypeBadge = (tipo) => {
                     <th style="max-width:100px; min-width:100px; width:100px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis" @click="setSort('n_doc')" :class="sortClass('n_doc')">N° Doc</th>
                     <th style="max-width:200px; min-width:200px; width:200px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis" @click="setSort('proveedor')" :class="sortClass('proveedor')">Proveedor</th>
                     <th class="text-end" @click="setSort('monto_total')" :class="sortClass('monto_total')">Monto Total</th>
+                    <th class="text-end" @click="setSort('iva')" :class="sortClass('iva')">IVA</th>
+                    <th class="text-end">Total General</th>
                   </tr>
                 </thead>
                 <tbody>
-                  <tr v-for="(doc, idx) in sortedDocuments" :key="idx">
-                    <td style="max-width:70px; min-width:50px; width:60px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">
-                      <span :class="'badge ' + getDocTypeBadge(doc.tipo).class">{{ getDocTypeBadge(doc.tipo).text }}</span>
-                    </td>
-                    <td class="text-lowercase" style="max-width:100px; min-width:100px; width:100px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">{{ doc.razon_social }}</td>
-                    <td style="max-width:100px; min-width:100px; width:100px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">{{ doc.mes_contable }}</td>
-                    <td style="max-width:100px; min-width:100px; width:100px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">{{ doc.fecha }}</td>
-                    <td style="max-width:100px; min-width:100px; width:100px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">{{ doc.n_doc }}</td>
-                    <td style="max-width:200px; min-width:200px; width:200px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">{{ doc.proveedor }}</td>
-                    <td class="text-end" :class="(doc.tipo === 'credito' || doc.tipo === 'Crédito') ? 'text-danger' : ''">
-                      {{ (doc.tipo === 'credito' || doc.tipo === 'Crédito') ? '-' + formatNumber(doc.monto_total, 0) : formatNumber(doc.monto_total, 0) }}
-                    </td>
-                  </tr>
+                  <template v-for="(docs, tipo) in documentsByType" :key="tipo">
+                    <!-- Documentos del tipo -->
+                    <tr v-for="(doc, idx) in docs" :key="tipo + '-' + idx">
+                      <td style="max-width:70px; min-width:50px; width:60px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">
+                        <span :class="'badge ' + getDocTypeBadge(doc.tipo).class">{{ getDocTypeBadge(doc.tipo).text }}</span>
+                      </td>
+                      <td class="text-lowercase" style="max-width:100px; min-width:100px; width:100px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">{{ doc.razon_social }}</td>
+                      <td style="max-width:100px; min-width:100px; width:100px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">{{ doc.mes_contable }}</td>
+                      <td style="max-width:100px; min-width:100px; width:100px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">{{ doc.fecha }}</td>
+                      <td style="max-width:100px; min-width:100px; width:100px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">{{ doc.n_doc }}</td>
+                      <td style="max-width:200px; min-width:200px; width:200px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">{{ doc.proveedor }}</td>
+                      <td class="text-end" :class="(doc.tipo === 'credito' || doc.tipo === 'Crédito') ? 'text-danger' : ''">
+                        {{ (doc.tipo === 'credito' || doc.tipo === 'Crédito') ? '-' + formatNumber(doc.monto_total, 0) : formatNumber(doc.monto_total, 0) }}
+                      </td>
+                      <td class="text-end" :class="(doc.tipo === 'credito' || doc.tipo === 'Crédito') ? 'text-danger' : ''">
+                        {{ doc.iva !== null ? ((doc.tipo === 'credito' || doc.tipo === 'Crédito') ? '-' + formatNumber(Math.abs(doc.iva), 0) : formatNumber(doc.iva, 0)) : '' }}
+                      </td>
+                      <td class="text-end fw-bold" :class="(doc.tipo === 'credito' || doc.tipo === 'Crédito') ? 'text-danger' : ''">
+                        {{ (doc.tipo === 'credito' || doc.tipo === 'Crédito') ? '-' + formatNumber(Number(doc.monto_total || 0) + Math.abs(Number(doc.iva || 0)), 0) : formatNumber(Number(doc.monto_total || 0) + Number(doc.iva || 0), 0) }}
+                      </td>
+                    </tr>
+                    <!-- Subtotal por tipo -->
+                    <tr class="table-secondary fw-bold" style="background-color: #e9ecef !important;">
+                      <td colspan="6" class="text-end">Subtotal {{ tipo }}</td>
+                      <td class="text-end">{{ formatNumber(getSubtotalByType(docs, 'monto_total'), 0) }}</td>
+                      <td class="text-end">{{ formatNumber(getSubtotalByType(docs, 'iva'), 0) }}</td>
+                      <td class="text-end">{{ formatNumber(getSubtotalByType(docs, 'monto_total') + getSubtotalByType(docs, 'iva'), 0) }}</td>
+                    </tr>
+                  </template>
                 </tbody>
                 <tfoot>
                   <tr>
                     <td colspan="6" class="text-end fw-bold">Total general</td>
                     <td class="text-end fw-bold">{{ formatNumber(totalGeneral, 0) }}</td>
+                    <td class="text-end fw-bold">{{ formatNumber(sortedDocuments.reduce((sum, doc) => sum + Number(doc.iva || 0), 0), 0) }}</td>
+                    <td class="text-end fw-bold">{{ formatNumber(totalGeneral + sortedDocuments.reduce((sum, doc) => sum + Number(doc.iva || 0), 0), 0) }}</td>
                   </tr>
                 </tfoot>
               </table>
             </div>
           </div>
+          <!-- PILL MENSUAL -->
           <div class="tab-pane fade" id="pill-tab-pivot" role="tabpanel" aria-labelledby="pill-pivot">
             <div class="row mb-3">
               <div class="col-md-4 col-12">

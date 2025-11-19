@@ -34,14 +34,20 @@ class ConsolidatedDocumentsController extends Controller
                     ->value('total');
                 $mes_num = (int)date('n', strtotime($invoice->date));
                 $mes_texto = $meses[$mes_num] ?? '';
+                $tipo_doc = $invoice->typeDocument->name ?? '';
+                $monto_total = $monto ?? 0;
+                // Calcular IVA solo para facturas (19% del monto total)
+                $iva = (strtolower($tipo_doc) === 'factura') ? ($monto_total * 0.19) : null;
+                
                 return [
-                    'tipo' => $invoice->typeDocument->name ?? '',
+                    'tipo' => $tipo_doc,
                     'razon_social' => $invoice->companyReason->name ?? '',
                     'mes_contable' => $mes_texto,
                     'fecha' => date('d-m-Y', strtotime($invoice->date)),
                     'proveedor' => $invoice->supplier->name ?? '',
                     'n_doc' => $invoice->number_document,
-                    'monto_total' => $monto ?? 0,
+                    'monto_total' => $monto_total,
+                    'iva' => $iva,
                 ];
             });
 
@@ -57,10 +63,23 @@ class ConsolidatedDocumentsController extends Controller
                     ->value('total');
                 // Normalizar tipo para visualización
                 $tipo = $note->type;
+                $es_credito = false;
                 if ($tipo === 'ND') $tipo = 'Débito';
-                else if ($tipo === 'NC') $tipo = 'Crédito';
+                else if ($tipo === 'NC') {
+                    $tipo = 'Crédito';
+                    $es_credito = true;
+                }
                 $mes_num = (int)date('n', strtotime($note->date));
                 $mes_texto = $meses[$mes_num] ?? '';
+                $monto_total = $monto ?? 0;
+                // Calcular IVA (19% del monto total)
+                $iva = $monto_total * 0.19;
+                
+                // Si es nota de crédito, el IVA también debe ser negativo
+                if ($es_credito) {
+                    $iva = -$iva;
+                }
+                
                 return [
                     'tipo' => $tipo,
                     'razon_social' => $note->invoice->companyReason->name ?? '',
@@ -68,7 +87,8 @@ class ConsolidatedDocumentsController extends Controller
                     'fecha' => date('d-m-Y', strtotime($note->date)),
                     'proveedor' => $note->supplier->name ?? '',
                     'n_doc' => $note->number,
-                    'monto_total' => $monto ?? 0,
+                    'monto_total' => $monto_total,
+                    'iva' => $iva,
                 ];
             });
 

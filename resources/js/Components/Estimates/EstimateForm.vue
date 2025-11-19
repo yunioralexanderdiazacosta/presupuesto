@@ -77,6 +77,11 @@
 
     const kilosInputs = ref([]);
     const observationsInputs = ref([]);
+    const modifiedRows = ref(new Set());
+
+    function markAsModified(idx) {
+        modifiedRows.value.add(idx);
+    }
 
     // Unificar: mostrar todos los costcenters filtrados, asociando estimate si existe
     const rows = computed(() => {
@@ -99,10 +104,20 @@
 
     function updateKilos(idx, value) {
         rows.value[idx].kilos = value;
+        markAsModified(idx);
     }
     function updateObservation(idx, value) {
         rows.value[idx].observation = value;
+        markAsModified(idx);
     }
+
+    const countNewRows = computed(() => {
+        return rows.value.filter(row => !row.isExisting && row.kilos && row.kilos !== '').length;
+    });
+
+    const countModifiedRows = computed(() => {
+        return rows.value.filter(row => row.isExisting && modifiedRows.value.has(rows.value.indexOf(row))).length;
+    });
 
     function handleEdit(idx) {
         // Emitir evento para editar estimate existente
@@ -140,10 +155,14 @@
     }
 </script>
 <template>
-    <!-- Botón para crear nombre de estimación (siempre visible, alineado a la izquierda) -->
-    <div class="mb-2 d-flex justify-content-end">
-        <button v-if="true" class="btn btn-primary btn-sm" @click="() => { showModal = true; nuevoFruitId = selectedFruitId }">
-            Crear nombre de estimación
+    <!-- Instrucción y botón para crear nombre de estimación -->
+    <div class="alert alert-info d-flex align-items-center justify-content-between mb-3" role="alert">
+        <div>
+            <i class="fas fa-info-circle me-2"></i>
+            <strong>Paso previo:</strong> Si el nombre de estimación que necesitas no existe, créalo primero.
+        </div>
+        <button class="btn btn-sm btn-primary" @click="() => { showModal = true; nuevoFruitId = selectedFruitId }">
+            <i class="fas fa-plus me-1"></i> Crear nombre de estimación
         </button>
     </div>
 
@@ -194,10 +213,21 @@
             </select>
         </div>
     </div>
+    
+    <!-- Leyenda de colores -->
+    <div class="alert alert-light border mb-3 py-2">
+        <small class="d-flex flex-wrap gap-3 mb-0">
+            <span><span class="badge bg-secondary me-1">Vacío</span> Sin datos</span>
+            <span><span class="badge bg-success me-1">Nuevo</span> Se creará al guardar</span>
+            <span><span class="badge bg-info me-1">Guardado</span> Ya existe en BD</span>
+            <span><span class="badge bg-warning text-dark me-1">Modificado</span> Tiene cambios sin guardar</span>
+        </small>
+    </div>
     <div class="table-responsive">
         <table class="table table-bordered table-hover table-sm fs-10 mb-0">
             <thead>
                 <tr>
+                    <th>Estado</th>
                     <th>Centro de Costo</th>
                     <th>Variedad</th>
                     <th>Kilos</th>
@@ -206,7 +236,17 @@
                 </tr>
             </thead>
             <tbody>
-                <tr v-for="(row, idx) in rows" :key="idx">
+                <tr v-for="(row, idx) in rows" :key="idx" 
+                    :class="{ 
+                        'table-success': !row.isExisting && row.kilos, 
+                        'table-warning': row.isExisting && modifiedRows.has(idx)
+                    }">
+                    <td>
+                        <span v-if="!row.isExisting && row.kilos" class="badge bg-success">Nuevo</span>
+                        <span v-else-if="row.isExisting && !modifiedRows.has(idx)" class="badge bg-info">Guardado</span>
+                        <span v-else-if="row.isExisting && modifiedRows.has(idx)" class="badge bg-warning text-dark">Modificado</span>
+                        <span v-else class="badge bg-secondary">Vacío</span>
+                    </td>
                     <td>{{ row.costcenter }}</td>
                     <td>{{ row.variety }}</td>
                     <td>
@@ -214,7 +254,12 @@
                             :value="row.kilos"
                             @input="updateKilos(idx, $event.target.value)"
                             min="0"
-                            :class="{'is-invalid': props.form?.errors?.[`kilos_ha_${idx}`]}"
+                            :class="{
+                                'is-invalid': props.form?.errors?.[`kilos_ha_${idx}`],
+                                'border-warning border-2': row.isExisting && modifiedRows.has(idx),
+                                'border-success border-2': !row.isExisting && row.kilos
+                            }"
+                            placeholder="Ingresa kilos"
                         />
                         <InputError class="mt-1" :message="props.form?.errors?.[`kilos_ha_${idx}`]" />
                     </td>
@@ -222,20 +267,16 @@
                         <input type="text" class="form-control form-control-sm"
                             :value="row.observation"
                             @input="updateObservation(idx, $event.target.value)"
-                            :class="{'is-invalid': props.form?.errors?.[`observations_${idx}`]}"
+                            :class="{
+                                'is-invalid': props.form?.errors?.[`observations_${idx}`],
+                                'border-warning border-2': row.isExisting && modifiedRows.has(idx)
+                            }"
+                            placeholder="Observaciones opcionales"
                         />
                         <InputError class="mt-1" :message="props.form?.errors?.[`observations_${idx}`]" />
                     </td>
                     <td>
-                        <button v-if="row.isExisting" type="button" @click="handleEdit(idx)" v-tooltip="'Editar'" class="btn btn-icon btn-active-light-primary w-30px h-30px me-2">
-                            <span class="svg-icon svg-icon-3">
-                                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                                    <path opacity="0.3" d="M21.4 8.35303L19.241 10.511L13.485 4.755L15.643 2.59595C16.0248 2.21423 16.5426 1.99988 17.0825 1.99988C17.6224 1.99988 18.1402 2.21423 18.522 2.59595L21.4 5.474C21.7817 5.85581 21.9962 6.37355 21.9962 6.91345C21.9962 7.45335 21.7817 7.97122 21.4 8.35303ZM3.68699 21.932L9.88699 19.865L4.13099 14.109L2.06399 20.309C1.98815 20.5354 1.97703 20.7787 2.03189 21.0111C2.08674 21.2436 2.2054 21.4561 2.37449 21.6248C2.54359 21.7934 2.75641 21.9115 2.989 21.9658C3.22158 22.0201 3.4647 22.0084 3.69099 21.932H3.68699Z" fill="currentColor"></path>
-                                    <path d="M5.574 21.3L3.692 21.928C3.46591 22.0032 3.22334 22.0141 2.99144 21.9594C2.75954 21.9046 2.54744 21.7864 2.3789 21.6179C2.21036 21.4495 2.09202 21.2375 2.03711 21.0056C1.9822 20.7737 1.99289 20.5312 2.06799 20.3051L2.696 18.422L5.574 21.3ZM4.13499 14.105L9.891 19.861L19.245 10.507L13.489 4.75098L4.13499 14.105Z" fill="currentColor"></path>
-                                </svg>
-                            </span>
-                        </button>
-                        <button v-if="row.isExisting" type="button" @click="handleDelete(idx)" v-tooltip="'Eliminar'" class="btn btn-icon btn-active-light-primary w-30px h-30px">
+                        <button v-if="row.isExisting" type="button" @click="handleDelete(idx)" v-tooltip="'Eliminar'" class="btn btn-icon btn-active-light-danger w-30px h-30px">
                             <span class="svg-icon svg-icon-3">
                                 <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
                                     <path d="M5 9C5 8.44772 5.44772 8 6 8H18C18.5523 8 19 8.44772 19 9V18C19 19.6569 17.6569 21 16 21H8C6.34315 21 5 19.6569 5 18V9Z" fill="currentColor" />
@@ -248,8 +289,25 @@
             </tbody>
         </table>
     </div>
-    <div class="mt-3 text-end">
-        <button type="button" class="btn btn-primary" @click="handleSave">Guardar</button>
+    <div class="mt-3 d-flex justify-content-between align-items-center">
+        <div class="text-muted small">
+            <i class="fas fa-info-circle me-1"></i>
+            <span v-if="countNewRows > 0 || countModifiedRows > 0">
+                Se guardarán <strong>{{ countNewRows }}</strong> nuevo(s) y <strong>{{ countModifiedRows }}</strong> modificado(s)
+            </span>
+            <span v-else>
+                No hay cambios para guardar
+            </span>
+        </div>
+        <button type="button" class="btn btn-primary" @click="handleSave" 
+                :disabled="countNewRows === 0 && countModifiedRows === 0"
+                v-tooltip="'Guarda todas las estimaciones nuevas y modificadas'">
+            <i class="fas fa-save me-1"></i>
+            Guardar todo
+            <span v-if="countNewRows > 0 || countModifiedRows > 0" class="badge bg-light text-dark ms-2">
+                {{ countNewRows + countModifiedRows }}
+            </span>
+        </button>
     </div>
 </template>
 <style src="@vueform/multiselect/themes/default.css"></style>

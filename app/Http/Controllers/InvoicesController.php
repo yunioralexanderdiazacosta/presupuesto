@@ -56,7 +56,9 @@ class InvoicesController extends Controller
                                                 'observations' => $ip->observations,
                                             ];
                                         }),
-                'total'             => $this->get_total($invoice)
+                'total'             => $this->get_total($invoice),
+                'iva'               => $this->get_iva($invoice),
+                'total_general'     => $this->get_total_general($invoice)
             ];
         }); 
 
@@ -104,5 +106,45 @@ class InvoicesController extends Controller
         }
 
         return number_format($total, 2, ',', '.');
+    }
+
+    private function get_iva($invoice)
+    {
+        // Calcular IVA solo para facturas (19% del total)
+        $tipo_doc = $invoice->typeDocument ? strtolower($invoice->typeDocument->name) : '';
+        
+        if ($tipo_doc === 'factura') {
+            $total = 0;
+            $products = $invoice->products()->get();
+            
+            foreach($products as $product)
+            {
+                $total = $total + ($product->pivot->unit_price * $product->pivot->amount);    
+            }
+            
+            $iva = $total * 0.19;
+            return number_format($iva, 0, ',', '.');
+        }
+        
+        return null;
+    }
+
+    private function get_total_general($invoice)
+    {
+        $total = 0;
+        $products = $invoice->products()->get();
+        
+        foreach($products as $product)
+        {
+            $total = $total + ($product->pivot->unit_price * $product->pivot->amount);    
+        }
+        
+        // Sumar IVA solo si es factura
+        $tipo_doc = $invoice->typeDocument ? strtolower($invoice->typeDocument->name) : '';
+        if ($tipo_doc === 'factura') {
+            $total = $total + ($total * 0.19);
+        }
+        
+        return number_format($total, 0, ',', '.');
     }
 }
