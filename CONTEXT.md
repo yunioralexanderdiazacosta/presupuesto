@@ -19,6 +19,24 @@ Este proyecto es un sistema de gestión presupuestaria agrícola desarrollado en
 - Todos los selects en formularios deben implementarse usando el componente Multiselect de Vue (`@vueform/multiselect`), nunca el nativo ni otros plugins.
 - Al guardar o editar cualquier entidad mediante formularios, siempre se debe mostrar un mensaje de confirmación usando SweetAlert (Swal.fire), siguiendo el estándar visual del sistema.
 
+### Jerarquía de niveles y filtrado por equipo
+- **Estructura jerárquica**: El sistema usa una jerarquía de 4 niveles: `Level1` -> `Level2` -> `Level3` -> `Level4`
+- **Relación con team**: El `team_id` se encuentra en `Level1`, no en los niveles inferiores
+- **Filtrado correcto**: Para filtrar entidades por equipo en niveles inferiores, usar relaciones:
+  ```php
+  // ❌ INCORRECTO: Level3 no tiene team_id directamente
+  $level3s = Level3::where('team_id', $teamId)->get();
+  
+  // ✅ CORRECTO: Filtrar a través de las relaciones
+  $level3s = Level3::whereHas('level2.level1', function($query) use ($teamId) {
+      $query->where('team_id', $teamId);
+  })->get();
+  ```
+- **Productos**: Los productos SÍ tienen `team_id` directo, además de `level3_id`
+- **Combustibles**: Para obtener productos de combustible del equipo:
+  1. Buscar `Level3` con nombre 'combustible' que pertenezcan al team (vía level2.level1)
+  2. Filtrar productos por esos level3_ids Y por team_id del usuario
+
 ## Flujo típico de usuario
 1. El usuario inicia sesión y selecciona una temporada activa.
 2. Navega por el menú lateral para acceder a módulos como Inversiones, Presupuestos, etc.

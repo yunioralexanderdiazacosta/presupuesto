@@ -1,23 +1,60 @@
 <script setup>
+import { ref } from 'vue';
 import Multiselect from "@vueform/multiselect";
 import TextInput from "@/Components/TextInput.vue";
 import InputError from "@/Components/InputError.vue";
 import Checkbox from "@/Components/Checkbox.vue";
+import axios from 'axios';
 
 const props = defineProps({
     form: Object,
 });
 
-const getVarieties = (event) => {
-    if (event && event != "") {
-        axios
-            .get(route("varieties.get", event))
-            .then((response) => {
-                props.form.varieties = response.data;
-                props.form.variety_id = "";
-            })
-            .catch((error) => console.log(error));
+const loadingVarieties = ref(false);
+let debounceTimer = null;
+
+const getVarieties = (fruitId) => {
+    // Limpiar timer anterior
+    if (debounceTimer) {
+        clearTimeout(debounceTimer);
     }
+    
+    // Debounce de 300ms
+    debounceTimer = setTimeout(() => {
+        if (fruitId && fruitId !== "") {
+            loadingVarieties.value = true;
+            
+            // Guardar el variety_id actual si existe
+            const currentVarietyId = props.form.variety_id;
+            
+            axios
+                .get(route("varieties.get", fruitId))
+                .then((response) => {
+                    props.form.varieties = response.data;
+                    
+                    // Solo resetear variety_id si no está en las nuevas opciones
+                    if (currentVarietyId) {
+                        const varietyExists = response.data.some(v => v.value === currentVarietyId);
+                        if (!varietyExists) {
+                            props.form.variety_id = "";
+                        }
+                    } else {
+                        props.form.variety_id = "";
+                    }
+                })
+                .catch((error) => {
+                    console.error('Error cargando variedades:', error);
+                    props.form.varieties = [];
+                    props.form.variety_id = "";
+                })
+                .finally(() => {
+                    loadingVarieties.value = false;
+                });
+        } else {
+            props.form.varieties = [];
+            props.form.variety_id = "";
+        }
+    }, 300);
 };
 </script>
 <template>
@@ -67,17 +104,24 @@ const getVarieties = (event) => {
             <InputError class="mt-2" :message="form.errors.fruit_id" />
         </div>
         <div class="col-lg-3">
-                <label for="variety" class="col-form-label">Variedad</label>
+                <label for="variety" class="col-form-label">
+                    Variedad
+                    <span v-if="loadingVarieties" class="spinner-border spinner-border-sm ms-2" role="status">
+                        <span class="visually-hidden">Cargando...</span>
+                    </span>
+                </label>
                   <div class="input-group">
                     <span class="input-group-text"><i class="fas fa-flask"></i></span>
                 <Multiselect
-                    :placeholder="'Seleccione variedad'"
+                    :placeholder="loadingVarieties ? 'Cargando variedades...' : 'Seleccione variedad'"
                     v-model="form.variety_id"
                     :close-on-select="true"
                     :options="form.varieties"
                     class="multiselect-blue form-control"
                     :class="{ 'is-invalid': form.errors.variety_id }"
                     :searchable="true"
+                    :disabled="loadingVarieties || !form.fruit_id"
+                    :loading="loadingVarieties"
                 />
                 </div>
                 <InputError class="mt-2" :message="form.errors.variety_id" />

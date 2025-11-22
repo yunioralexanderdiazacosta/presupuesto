@@ -25,7 +25,11 @@ class IndexFuelOutflowController extends Controller
 
         $machineries = Machinery::all(['id', 'cod_machinery']);
         $operators = Operator::all(['id', 'name']);
-        $costCenters = CostCenter::all(['id', 'name']);
+        $costCenters = CostCenter::where('season_id', $season_id)
+            ->whereHas('season', function($q) use ($user) {
+                $q->where('team_id', $user->team_id);
+            })
+            ->get(['id', 'name']);
 
         return Inertia::render('FuelOutflows/Index', [
             'fuelOutflows' => $fuelOutflows,

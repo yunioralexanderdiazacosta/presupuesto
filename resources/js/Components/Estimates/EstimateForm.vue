@@ -75,40 +75,52 @@
         .catch(() => alert('Error al guardar'));
     }
 
-    const kilosInputs = ref([]);
-    const observationsInputs = ref([]);
-    const modifiedRows = ref(new Set());
+    const kilosInputs = ref({});
+    const observationsInputs = ref({});
+    const modifiedRows = ref({});
 
-    function markAsModified(idx) {
-        modifiedRows.value.add(idx);
+    function markAsModified(costcenterId) {
+        modifiedRows.value[costcenterId] = true;
     }
 
     // Unificar: mostrar todos los costcenters filtrados, asociando estimate si existe
     const rows = computed(() => {
         return props.costcenters
             .filter(cc => cc.variety && cc.fruit_id == selectedFruitId.value)
-            .map((cc, idx) => {
+            .map((cc) => {
                 const estimate = props.estimates.find(e => e.cost_center_id == cc.id && e.estimate_status_id == selectedEstimateStatusId.value);
+                const costcenterId = cc.id;
+                
+                // Usar valores de los inputs si existen, sino usar los del estimate
+                const currentKilos = kilosInputs.value[costcenterId] !== undefined 
+                    ? kilosInputs.value[costcenterId] 
+                    : (estimate ? estimate.kilos_ha : '');
+                    
+                const currentObservation = observationsInputs.value[costcenterId] !== undefined 
+                    ? observationsInputs.value[costcenterId] 
+                    : (estimate ? estimate.observations || '' : '');
+                
                 return {
                     id: estimate ? estimate.id : null,
                     costcenter: cc.name,
-                    costcenterId: cc.id,
+                    costcenterId: costcenterId,
                     variety: cc.variety.name,
                     varietyId: cc.variety.id,
-                    kilos: estimate ? estimate.kilos_ha : (kilosInputs.value[idx] || ''),
-                    observation: estimate ? estimate.observations || '' : (observationsInputs.value[idx] || ''),
-                    isExisting: !!estimate
+                    kilos: currentKilos,
+                    observation: currentObservation,
+                    isExisting: !!estimate,
+                    isModified: !!modifiedRows.value[costcenterId]
                 };
             });
     });
 
-    function updateKilos(idx, value) {
-        rows.value[idx].kilos = value;
-        markAsModified(idx);
+    function updateKilos(costcenterId, value) {
+        kilosInputs.value[costcenterId] = value;
+        markAsModified(costcenterId);
     }
-    function updateObservation(idx, value) {
-        rows.value[idx].observation = value;
-        markAsModified(idx);
+    function updateObservation(costcenterId, value) {
+        observationsInputs.value[costcenterId] = value;
+        markAsModified(costcenterId);
     }
 
     const countNewRows = computed(() => {
@@ -116,7 +128,7 @@
     });
 
     const countModifiedRows = computed(() => {
-        return rows.value.filter(row => row.isExisting && modifiedRows.value.has(rows.value.indexOf(row))).length;
+        return rows.value.filter(row => row.isExisting && row.isModified).length;
     });
 
     function handleEdit(idx) {
@@ -236,15 +248,15 @@
                 </tr>
             </thead>
             <tbody>
-                <tr v-for="(row, idx) in rows" :key="idx" 
+                <tr v-for="(row, idx) in rows" :key="row.costcenterId" 
                     :class="{ 
                         'table-success': !row.isExisting && row.kilos, 
-                        'table-warning': row.isExisting && modifiedRows.has(idx)
+                        'table-warning': row.isExisting && row.isModified
                     }">
                     <td>
                         <span v-if="!row.isExisting && row.kilos" class="badge bg-success">Nuevo</span>
-                        <span v-else-if="row.isExisting && !modifiedRows.has(idx)" class="badge bg-info">Guardado</span>
-                        <span v-else-if="row.isExisting && modifiedRows.has(idx)" class="badge bg-warning text-dark">Modificado</span>
+                        <span v-else-if="row.isExisting && !row.isModified" class="badge bg-info">Guardado</span>
+                        <span v-else-if="row.isExisting && row.isModified" class="badge bg-warning text-dark">Modificado</span>
                         <span v-else class="badge bg-secondary">Vacío</span>
                     </td>
                     <td>{{ row.costcenter }}</td>
@@ -252,11 +264,11 @@
                     <td>
                         <input type="number" class="form-control form-control-sm"
                             :value="row.kilos"
-                            @input="updateKilos(idx, $event.target.value)"
+                            @input="updateKilos(row.costcenterId, $event.target.value)"
                             min="0"
                             :class="{
                                 'is-invalid': props.form?.errors?.[`kilos_ha_${idx}`],
-                                'border-warning border-2': row.isExisting && modifiedRows.has(idx),
+                                'border-warning border-2': row.isExisting && row.isModified,
                                 'border-success border-2': !row.isExisting && row.kilos
                             }"
                             placeholder="Ingresa kilos"
@@ -266,10 +278,10 @@
                     <td>
                         <input type="text" class="form-control form-control-sm"
                             :value="row.observation"
-                            @input="updateObservation(idx, $event.target.value)"
+                            @input="updateObservation(row.costcenterId, $event.target.value)"
                             :class="{
                                 'is-invalid': props.form?.errors?.[`observations_${idx}`],
-                                'border-warning border-2': row.isExisting && modifiedRows.has(idx)
+                                'border-warning border-2': row.isExisting && row.isModified
                             }"
                             placeholder="Observaciones opcionales"
                         />

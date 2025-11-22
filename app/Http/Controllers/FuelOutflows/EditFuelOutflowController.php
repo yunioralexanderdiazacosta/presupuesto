@@ -19,12 +19,18 @@ class EditFuelOutflowController
         $operators = Operator::where('team_id', $user->team_id)
             ->where('season_id', $season_id)
             ->get(['id', 'name']);
+        
+        $costCenters = CostCenter::where('season_id', $season_id)
+            ->whereHas('season', function($q) use ($user) {
+                $q->where('team_id', $user->team_id);
+            })
+            ->get(['id', 'name']);
 
         return Inertia::render('FuelOutflows/Edit', [
             'fuelOutflow' => $fuelOutflow->load(['machinery', 'operator', 'costCenter']),
             'machineries' => Machinery::all(),
             'operators' => $operators,
-            'costCenters' => CostCenter::all(),
+            'costCenters' => $costCenters,
         ]);
     }
 }

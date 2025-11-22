@@ -558,10 +558,7 @@ const onFilter = () => {
                                                                                             ? parseFloat(invoice.total.replace(/\./g, '').replace(',', '.'))
                                                                                             : Number(invoice.total);
                                                                                         if (isNaN(t)) return '-';
-                                                                                        const sinDecimales = t % 1 === 0;
-                                                                                        return sinDecimales
-                                                                                            ? t.toLocaleString('es-ES')
-                                                                                            : t.toLocaleString('es-ES', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+                                                                                        return t.toLocaleString('es-ES', { minimumFractionDigits: 0, maximumFractionDigits: 0 });
                                                                                     })() }}
                                                                                 </td>
                                                                                 <td class="text-end">

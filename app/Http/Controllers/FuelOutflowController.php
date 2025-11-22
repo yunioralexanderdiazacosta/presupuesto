@@ -15,6 +15,7 @@ use App\Models\Product;
 use App\Models\Counter;
 use App\Models\Invoice;
 use App\Models\Level3;
+
 // ...existing code...
 
 class FuelOutflowController extends Controller
@@ -23,6 +24,7 @@ class FuelOutflowController extends Controller
     {
         $user = Auth::user();
         $season_id = session('season_id');
+        
         if (!$season_id) {
             return redirect()->route('dashboard')->with('error', 'Debe seleccionar una campaña activa.');
         }
@@ -60,21 +62,29 @@ class FuelOutflowController extends Controller
         $operators = \App\Models\Operator::where('team_id', $user->team_id)
             ->where('season_id', $season_id)
             ->get(['id', 'name', 'team_id', 'season_id']);
-        $costCenters = CostCenter::all(['id', 'name']);
+        
+        $costCenters = CostCenter::where('season_id', $season_id)
+            ->whereHas('season', function($q) use ($user) {
+                $q->where('team_id', $user->team_id);
+            })
+            ->get(['id', 'name']);
         
         // ========================================
         // 🔥 NUEVO: Calcular stock disponible de COMBUSTIBLES
         // ========================================
         
-        // 1. Obtener IDs de productos clasificados como "Combustible" (level3)
-        $combustibleLevel3 = Level3::where('name', 'combustible')->first();
-        $combustibleProductIds = collect();
+        // 1. Obtener IDs de level3 "combustible" que pertenecen al team del usuario
+        // level3 -> level2 -> level1 -> team_id
+        $combustibleLevel3Ids = Level3::where('name', 'combustible')
+            ->whereHas('level2.level1', function($query) use ($user) {
+                $query->where('team_id', $user->team_id);
+            })
+            ->pluck('id');
         
-        if ($combustibleLevel3) {
-            $combustibleProductIds = Product::where('level3_id', $combustibleLevel3->id)
-                ->where('team_id', $user->team_id)
-                ->pluck('id');
-        }
+        // Obtener IDs de productos de combustible del team
+        $combustibleProductIds = Product::whereIn('level3_id', $combustibleLevel3Ids)
+            ->where('team_id', $user->team_id)
+            ->pluck('id');
         
         // 2. Calcular salidas de combustible (FuelOutflows)
         $fuelOutflowsByInvoiceProduct = DB::table('fuel_outflows')
@@ -107,15 +117,15 @@ class FuelOutflowController extends Controller
         // 4. Traer líneas de facturas de combustibles
         $availableFuelStocks = [];
         
-        $invoices = Invoice::with(['supplier', 'typeDocument', 'invoiceProducts.product.unit'])
+        $invoices = Invoice::with(['supplier', 'typeDocument', 'products.unit', 'products.level3'])
             ->where('team_id', $user->team_id)
             ->where('season_id', $season_id)
             ->get();
         
         foreach ($invoices as $invoice) {
-            foreach ($invoice->invoiceProducts as $invoiceProduct) {
+            foreach ($invoice->products as $product) {
                 // Filtrar solo productos de combustible
-                if ($combustibleProductIds->isEmpty() || !$combustibleProductIds->contains($invoiceProduct->product_id)) {
+                if ($combustibleProductIds->isEmpty() || !$combustibleProductIds->contains($product->id)) {
                     continue;
                 }
                 
@@ -123,34 +133,34 @@ class FuelOutflowController extends Controller
                 $hasCreditNote = DB::table('credit_debit_note_items')
                     ->join('credit_debit_notes', 'credit_debit_note_items.credit_debit_note_id', '=', 'credit_debit_notes.id')
                     ->where('credit_debit_notes.type', 'credito')
-                    ->where('credit_debit_note_items.invoice_product_id', $invoiceProduct->id)
+                    ->where('credit_debit_note_items.invoice_product_id', $product->pivot->id)
                     ->exists();
                 
                 if ($hasCreditNote) {
                     continue;
                 }
                 
-                $consumido = $fuelOutflowsByInvoiceProduct[$invoiceProduct->id] ?? 0;
-                $devuelto = $creditNotesReturns[$invoiceProduct->id] ?? 0;
-                $cantidadOriginal = $invoiceProduct->quantity ?? $invoiceProduct->amount ?? 0;
+                $consumido = $fuelOutflowsByInvoiceProduct[$product->pivot->id] ?? 0;
+                $devuelto = $creditNotesReturns[$product->pivot->id] ?? 0;
+                $cantidadOriginal = $product->pivot->amount ?? 0;
                 $stockDisponible = $cantidadOriginal - $consumido - $devuelto;
                 
                 if ($stockDisponible <= 0) {
-                    continue; // No mostrar si no hay stock
+                    continue;
                 }
                 
                 $availableFuelStocks[] = [
                     'origen' => $invoice->typeDocument?->name ?? 'factura',
-                    'invoice_product_id' => $invoiceProduct->id,
+                    'invoice_product_id' => $product->pivot->id,
                     'credit_debit_note_item_id' => null,
                     'number_document' => $invoice->number_document,
                     'supplier' => $invoice->supplier->name ?? '-',
-                    'product_id' => $invoiceProduct->product_id,
-                    'product_name' => $invoiceProduct->product->name ?? '-',
-                    'unit' => $invoiceProduct->product->unit->name ?? '-',
+                    'product_id' => $product->id,
+                    'product_name' => $product->name ?? '-',
+                    'unit' => $product->unit->name ?? '-',
                     'cantidad_original' => $cantidadOriginal,
                     'stock_disponible' => $stockDisponible,
-                    'unit_price' => $invoiceProduct->unit_price ?? 0,
+                    'unit_price' => $product->pivot->unit_price ?? 0,
                     'date' => $invoice->date instanceof \Carbon\Carbon ? $invoice->date->format('Y-m-d') : $invoice->date,
                 ];
             }

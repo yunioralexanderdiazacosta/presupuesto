@@ -10,11 +10,15 @@ class GetVarietyController extends Controller
 {
     public function __invoke(Fruit $fruit)
     {
-          return response()->json($fruit->varieties()->orderBy('name', 'asc')->get()->transform(function ($value){
-            return [
-                'label' => $value->name,
-                'value' => $value->id
-            ];
-        })); 
+        return response()->json($fruit->varieties()
+            ->select('id', 'name')
+            ->orderBy('name', 'asc')
+            ->get()
+            ->transform(function ($value) {
+                return [
+                    'label' => $value->name,
+                    'value' => $value->id
+                ];
+            })); 
     }
 }
