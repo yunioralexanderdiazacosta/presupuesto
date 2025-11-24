@@ -50,43 +50,89 @@ watch(selectedFruitId, (newFruitId) => {
     }
 });
 
-const handleStore = (data) => {
+const handleStore = async (data) => {
     // Guardar selección actual antes de refrescar
     if (data.length && data[0].fruit_id && data[0].estimate_status_id) {
         selectedFruitId.value = data[0].fruit_id;
         selectedEstimateStatusId.value = data[0].estimate_status_id;
     }
-    router.post(route('estimates.store'), data, {
-        preserveState: true,
-        preserveScroll: true,
-        onSuccess: () => {
-            props.form.reset && props.form.reset();
-            Swal.fire({
-                position: 'center',
-                icon: 'success',
-                title: 'Guardado correctamente',
-                text: usePage().props.success || '',
-                showConfirmButton: false,
-                timer: 2000
+    
+    // Separar registros nuevos de modificados
+    const newRecords = data.filter(item => !item.isExisting);
+    const modifiedRecords = data.filter(item => item.isExisting);
+    
+    let hasErrors = false;
+    
+    // Procesar registros nuevos
+    if (newRecords.length > 0) {
+        await new Promise((resolve) => {
+            router.post(route('estimates.store'), newRecords, {
+                preserveState: true,
+                preserveScroll: true,
+                onSuccess: () => {
+                    resolve();
+                },
+                onError: (errors) => {
+                    hasErrors = true;
+                    let msg = 'Ya existe una estimación para ese centro de costo y estado. Por favor revisa los datos.';
+                    if (errors && (errors.duplicate || errors.error)) {
+                        msg = errors.duplicate || errors.error;
+                    } else if (typeof errors === 'string') {
+                        msg = errors;
+                    }
+                    Swal.fire({
+                        position: 'center',
+                        icon: 'error',
+                        title: 'Error al guardar nuevos',
+                        text: msg,
+                        showConfirmButton: true
+                    });
+                    resolve();
+                }
             });
-        },
-        onError: (errors) => {
-            // Si hay error de validación o duplicado, mostrar alerta
-            let msg = 'Ya existe una estimación para ese centro de costo y estado. Por favor revisa los datos.';
-            if (errors && (errors.duplicate || errors.error)) {
-                msg = errors.duplicate || errors.error;
-            } else if (typeof errors === 'string') {
-                msg = errors;
-            }
-            Swal.fire({
-                position: 'center',
-                icon: 'error',
-                title: 'Dato duplicado',
-                text: msg,
-                showConfirmButton: true
+        });
+    }
+    
+    // Procesar registros modificados (uno por uno)
+    if (modifiedRecords.length > 0) {
+        for (const record of modifiedRecords) {
+            await new Promise((resolve) => {
+                router.post(`/estimates/${record.id}/update`, record, {
+                    preserveState: true,
+                    preserveScroll: true,
+                    onSuccess: () => {
+                        resolve();
+                    },
+                    onError: (errors) => {
+                        hasErrors = true;
+                        Swal.fire({
+                            position: 'center',
+                            icon: 'error',
+                            title: 'Error al actualizar',
+                            text: 'Error actualizando la estimación',
+                            showConfirmButton: true
+                        });
+                        resolve();
+                    }
+                });
             });
         }
-    });
+    }
+    
+    // Mostrar mensaje de éxito solo si no hubo errores
+    if (!hasErrors) {
+        props.form.reset && props.form.reset();
+        Swal.fire({
+            position: 'center',
+            icon: 'success',
+            title: 'Guardado correctamente',
+            text: `${newRecords.length} nuevo(s), ${modifiedRecords.length} modificado(s)`,
+            showConfirmButton: false,
+            timer: 2000
+        });
+        // Recargar datos
+        router.reload({ only: ['estimates'] });
+    }
 };
 
 const handleEdit = (estimate) => {
