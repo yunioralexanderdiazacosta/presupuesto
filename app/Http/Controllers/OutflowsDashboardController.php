@@ -35,6 +35,7 @@ class OutflowsDashboardController extends Controller
             'creditNotes' => $this->getCreditNotesTotal($season_id, $team_id),
             'debitNotes' => $this->getDebitNotesTotal($season_id, $team_id),
             'byLevel1' => $this->getOutflowsByLevel1($season_id, $team_id),
+            'byLevel2' => $this->getOutflowsByLevel2($season_id, $team_id),
             'byProject' => $this->getOutflowsByProject($season_id, $team_id),
             'byDevelopmentState' => $this->getTotalsByDevelopmentState($season_id, $team_id),
             'byDevelopmentStateWithoutInvestments' => $this->getTotalsByDevelopmentStateWithoutInvestments($season_id, $team_id),
@@ -320,6 +321,100 @@ class OutflowsDashboardController extends Controller
 
         } catch (\Exception $e) {
             Log::error('Error en OutflowsDashboard getOutflowsByLevel1: ' . $e->getMessage());
+            return [
+                'labels' => [],
+                'data' => [],
+            ];
+        }
+    }
+
+    /**
+     * Obtiene el total de salidas agrupadas por Level2
+     * 
+     * Relaciones: Outflow -> level3 -> level2
+     * Excluye inversiones para mostrar solo gastos operativos
+     * 
+     * @param int $season_id
+     * @param int $team_id
+     * @return array Arreglo con labels (nombres de level2) y data (totales)
+     */
+    private function getOutflowsByLevel2($season_id, $team_id)
+    {
+        try {
+            // Obtener todos los outflows con sus relaciones anidadas, excluyendo inversiones
+            $outflows = Outflow::where('season_id', $season_id)
+                ->where('team_id', $team_id)
+                ->whereDoesntHave('operation', function($query) {
+                    $query->whereRaw('LOWER(name) LIKE ?', ['%inversion%']);
+                })
+                ->with([
+                    'level3.level2.level1',
+                    'invoiceProduct',
+                    'creditDebitNoteItem'
+                ])
+                ->get();
+
+            // Agrupar por level2 y calcular totales
+            $groupedData = [];
+
+            foreach ($outflows as $outflow) {
+                $level2Name = null;
+                $level1Name = null;
+                $amount = 0;
+
+                // Obtener el level2 y level1 desde la jerarquía outflow → level3 → level2 → level1
+                if ($outflow->level3 && $outflow->level3->level2) {
+                    $level2Name = $outflow->level3->level2->name;
+                    if ($outflow->level3->level2->level1) {
+                        $level1Name = $outflow->level3->level2->level1->name;
+                    }
+                }
+
+                // Calcular el monto según el origen (invoice o nota de crédito/débito)
+                if ($outflow->invoice_product_id && $outflow->invoiceProduct) {
+                    $amount = $outflow->quantity * $outflow->invoiceProduct->unit_price;
+                }
+                elseif ($outflow->credit_debit_note_item_id && $outflow->creditDebitNoteItem) {
+                    $amount = $outflow->quantity * $outflow->creditDebitNoteItem->unit_price;
+                }
+
+                // Si no tiene level2, agruparlo como "Sin Clasificar"
+                $key = $level2Name ?? 'Sin Clasificar';
+
+                // Acumular el total por level2 y guardar level1
+                if (!isset($groupedData[$key])) {
+                    $groupedData[$key] = [
+                        'total' => 0,
+                        'level1' => $level1Name ?? 'Sin Clasificar'
+                    ];
+                }
+                $groupedData[$key]['total'] += $amount;
+            }
+
+            // Ordenar por total descendente
+            uasort($groupedData, function($a, $b) {
+                return $b['total'] <=> $a['total'];
+            });
+
+            // Convertir a formato para el gráfico
+            $labels = [];
+            $data = [];
+            $level1Data = [];
+            
+            foreach ($groupedData as $level2Name => $info) {
+                $labels[] = $level2Name;
+                $data[] = $info['total'];
+                $level1Data[] = $info['level1'];
+            }
+
+            return [
+                'labels' => $labels,
+                'data' => $data,
+                'level1' => $level1Data,
+            ];
+
+        } catch (\Exception $e) {
+            Log::error('Error en OutflowsDashboard getOutflowsByLevel2: ' . $e->getMessage());
             return [
                 'labels' => [],
                 'data' => [],

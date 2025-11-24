@@ -57,6 +57,20 @@ const props = defineProps({
             data: []
         })
     },
+    byLevel1: {
+        type: Object,
+        default: () => ({
+            labels: [],
+            data: []
+        })
+    },
+    byLevel2: {
+        type: Object,
+        default: () => ({
+            labels: [],
+            data: []
+        })
+    },
     byProject: {
         type: Object,
         default: () => ({
@@ -160,6 +174,24 @@ const pieChartLevel1Data = computed(() => {
     };
 });
 
+// Preparar datos para el gráfico de torta de Level2
+const pieChartLevel2Data = computed(() => {
+    if (!props.byLevel2 || !props.byLevel2.labels || !props.byLevel2.data) {
+        return { labels: [], datasets: [] };
+    }
+    // Aplicar conversión si está activada
+    const convertedData = dividir.value && divisor.value 
+        ? props.byLevel2.data.map(value => value / divisor.value)
+        : props.byLevel2.data;
+    
+    return {
+        labels: props.byLevel2.labels,
+        datasets: [{
+            data: convertedData
+        }]
+    };
+});
+
 // Datos convertidos para gráfico de barras de Project
 const convertedProjectData = computed(() => {
     if (!props.byProject || !props.byProject.data) return [];
@@ -174,6 +206,14 @@ const convertedLevel1Data = computed(() => {
     return dividir.value && divisor.value 
         ? props.byLevel1.data.map(value => value / divisor.value)
         : props.byLevel1.data;
+});
+
+// Datos convertidos para gráfico de barras de Level2
+const convertedLevel2Data = computed(() => {
+    if (!props.byLevel2 || !props.byLevel2.data) return [];
+    return dividir.value && divisor.value 
+        ? props.byLevel2.data.map(value => value / divisor.value)
+        : props.byLevel2.data;
 });
 
 // Calcular total de compras: Facturas + Crédito - Débito
@@ -547,6 +587,106 @@ const totalCompras = computed(() => {
 
                 <!-- Área para gráficos y análisis -->
                 <div class="row g-3">
+                    <!-- Level2 Charts -->
+                    <div class="col-12">
+                        <div class="row g-3">
+                            <!-- Gráfico de Barras Level2 -->
+                            <div class="col-12">
+                                <div class="card h-100">
+                                    <div class="card-header">
+                                        <h6 class="mb-0">
+                                            <i class="fas fa-chart-bar text-info me-2"></i>
+                                            Clasificación por Nivel 2
+                                        </h6>
+                                    </div>
+                                    <div class="card-body">
+                                        <FalconBarChart
+                                            v-if="byLevel2.labels && byLevel2.labels.length > 0"
+                                            :barLabels="byLevel2.labels"
+                                            :barData="convertedLevel2Data"
+                                            :height="350"
+                                            :color="['#3b82f6', '#60a5fa', '#93c5fd', '#2563eb', '#1d4ed8', '#1e40af', '#1e3a8a', '#06b6d4']"
+                                        />
+                                        <div v-else class="text-center py-5">
+                                            <i class="fas fa-chart-bar fa-4x text-muted mb-3"></i>
+                                            <h5 class="text-muted">No hay datos disponibles</h5>
+                                            <p class="text-muted mb-0">
+                                                Aún no hay salidas registradas para mostrar en el gráfico
+                                            </p>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Tabla resumen Level2 -->
+                    <div class="col-12" v-if="byLevel2.labels && byLevel2.labels.length > 0">
+                        <div class="card">
+                            <div class="card-header">
+                                <h6 class="mb-0">
+                                    <i class="fas fa-table text-info me-2"></i>
+                                    Resumen Detallado por Nivel 2
+                                </h6>
+                            </div>
+                            <div class="card-body">
+                                <div class="table-responsive">
+                                    <table class="table table-sm table-hover align-middle mb-0">
+                                        <thead class="bg-light">
+                                            <tr>
+                                                <th class="border-0 py-2">
+                                                    <small class="text-uppercase fw-bold">Nivel 1</small>
+                                                </th>
+                                                <th class="border-0 py-2">
+                                                    <small class="text-uppercase fw-bold">Nivel 2</small>
+                                                </th>
+                                                <th class="border-0 py-2 text-end">
+                                                    <small class="text-uppercase fw-bold">Monto Total</small>
+                                                </th>
+                                                <th class="border-0 py-2 text-end">
+                                                    <small class="text-uppercase fw-bold">% del Total</small>
+                                                </th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            <tr v-for="(label, index) in byLevel2.labels" :key="index">
+                                                <td class="py-2">
+                                                    <small class="text-muted" v-if="index === 0 || byLevel2.level1[index] !== byLevel2.level1[index - 1]">
+                                                        {{ byLevel2.level1[index] }}
+                                                    </small>
+                                                </td>
+                                                <td class="py-2">
+                                                    <span class="badge" :style="{backgroundColor: ['#3b82f6', '#60a5fa', '#93c5fd', '#2563eb', '#1d4ed8', '#1e40af', '#1e3a8a', '#06b6d4'][index % 8]}">
+                                                        {{ label }}
+                                                    </span>
+                                                </td>
+                                                <td class="py-2 text-end">
+                                                    <strong>{{ formatNumber(dividir && divisor ? byLevel2.data[index] / divisor : byLevel2.data[index]) }}</strong>
+                                                    <small class="text-secondary ms-1">{{ dividir ? 'USD' : 'CLP' }}</small>
+                                                </td>
+                                                <td class="py-2 text-end">
+                                                    <span class="badge bg-secondary">
+                                                        {{ ((byLevel2.data[index] / byLevel2.data.reduce((a, b) => a + b, 0)) * 100).toFixed(1) }}%
+                                                    </span>
+                                                </td>
+                                            </tr>
+                                            <tr class="table-primary fw-bold">
+                                                <td class="py-2" colspan="2">TOTAL</td>
+                                                <td class="py-2 text-end">
+                                                    {{ formatNumber(dividir && divisor ? byLevel2.data.reduce((a, b) => a + b, 0) / divisor : byLevel2.data.reduce((a, b) => a + b, 0)) }}
+                                                    <small class="text-secondary ms-1">{{ dividir ? 'USD' : 'CLP' }}</small>
+                                                </td>
+                                                <td class="py-2 text-end">
+                                                    <span class="badge bg-primary">100%</span>
+                                                </td>
+                                            </tr>
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
                     <div class="col-12">
                         <div class="row g-3">
                             <!-- Gráfico de Barras -->
