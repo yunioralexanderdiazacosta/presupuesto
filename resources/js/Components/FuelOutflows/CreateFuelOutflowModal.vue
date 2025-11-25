@@ -32,6 +32,7 @@ const form = useForm({
 
 const selectedMachinery = ref(null);
 const selectedStockLine = ref(null);
+const selectedStockLineIndex = ref(null);
 const maxLiters = ref(null);
 
 const selectedProductName = computed(() => {
@@ -43,13 +44,15 @@ const selectedProductName = computed(() => {
 
 // Manejar selección de línea de stock
 function onStockLineSelected() {
-    if (selectedStockLine.value) {
+    if (selectedStockLineIndex.value !== null && props.availableFuelStocks[selectedStockLineIndex.value]) {
+        selectedStockLine.value = props.availableFuelStocks[selectedStockLineIndex.value];
         form.product_id = selectedStockLine.value.product_id;
         form.invoice_product_id = selectedStockLine.value.invoice_product_id;
         form.credit_debit_note_item_id = selectedStockLine.value.credit_debit_note_item_id;
         maxLiters.value = selectedStockLine.value.stock_disponible;
         form.liters = selectedStockLine.value.stock_disponible;
     } else {
+        selectedStockLine.value = null;
         form.product_id = '';
         form.invoice_product_id = null;
         form.credit_debit_note_item_id = null;
@@ -79,6 +82,7 @@ watch(() => props.show, (val) => {
         form.reset();
         selectedMachinery.value = null;
         selectedStockLine.value = null;
+        selectedStockLineIndex.value = null;
         maxLiters.value = null;
     }
 });
@@ -136,16 +140,16 @@ function save() {
                   <span class="badge bg-info ms-2" style="font-size: 0.7rem;">Stock Disponible</span>
                 </label>
                 <select 
-                  v-model="selectedStockLine" 
+                  v-model="selectedStockLineIndex" 
                   class="form-select" 
                   required
                   @change="onStockLineSelected"
                 >
                   <option :value="null">Seleccione factura/nota con combustible disponible</option>
                   <option 
-                    v-for="stock in (props.availableFuelStocks || [])" 
+                    v-for="(stock, index) in (props.availableFuelStocks || [])" 
                     :key="stock.invoice_product_id || stock.credit_debit_note_item_id" 
-                    :value="stock"
+                    :value="index"
                   >
                     {{ stock.origen === 'nota_debito' ? '📋' : '📄' }} 
                     {{ stock.number_document }} - 
