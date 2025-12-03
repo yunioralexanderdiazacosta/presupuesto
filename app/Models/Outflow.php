@@ -22,6 +22,7 @@ class Outflow extends Model
         'team_id',
         'season_id',
         'level3_id',
+        'fuel_outflow_id',
     ];
     public function creditDebitNoteItem()
     {
@@ -72,5 +73,10 @@ class Outflow extends Model
     public function level3()
     {
         return $this->belongsTo(Level3::class);
+    }
+
+    public function fuelOutflow()
+    {
+        return $this->belongsTo(FuelOutflow::class);
     }
 }

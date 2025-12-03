@@ -78,4 +78,10 @@ class FuelOutflow extends Model
     {
         return $this->belongsTo(CreditDebitNoteItem::class);
     }
+
+    // Relación con el registro de outflow correspondiente
+    public function outflow()
+    {
+        return $this->hasOne(Outflow::class);
+    }
 }

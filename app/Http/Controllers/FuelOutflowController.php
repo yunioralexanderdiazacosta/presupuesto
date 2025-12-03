@@ -30,7 +30,7 @@ class FuelOutflowController extends Controller
         }
 
 
-    $fuelOutflows = FuelOutflow::with(['machinery.counter', 'operator', 'product', 'counter', 'costCenters.costCenter'])
+    $fuelOutflows = FuelOutflow::with(['machinery.counter', 'operator', 'product', 'counter', 'outflow.costCenters.costCenter'])
             ->where('team_id', $user->team_id)
             ->where('season_id', $season_id)
             ->latest('date')
@@ -38,13 +38,16 @@ class FuelOutflowController extends Controller
             
         // Transformar la colección dentro del paginador
         $fuelOutflows->getCollection()->transform(function ($item) {
-            $item->costCenters = $item->costCenters->map(function($cc) {
-                return [
-                    'cost_center_id' => $cc->cost_center_id,
-                    'name' => $cc->costCenter->name ?? '',
-                    'observations' => $cc->observations ?? null,
-                ];
-            });
+            // Obtener centros de costo desde el outflow relacionado
+            $item->costCenters = $item->outflow && $item->outflow->costCenters 
+                ? $item->outflow->costCenters->map(function($cc) {
+                    return [
+                        'cost_center_id' => $cc->cost_center_id,
+                        'name' => $cc->costCenter->name ?? '',
+                        'observations' => $cc->observations ?? null,
+                    ];
+                })
+                : collect([]);
             return $item;
         });
 

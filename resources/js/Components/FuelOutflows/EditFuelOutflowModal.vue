@@ -23,6 +23,8 @@ const form = useForm({
     operator_id: '',
     cost_center_id: [],
     product_id: '',
+    invoice_product_id: null,
+    credit_debit_note_item_id: null,
     liters: '',
     counter_id: '',
     counter_value: '',
@@ -52,6 +54,8 @@ watch(() => props.show, (val) => {
         // Convertir los centros de costo a array de IDs
         form.cost_center_id = (props.fuelOutflow.costCenters || []).map(cc => cc.cost_center_id || cc.id);
         form.product_id = props.fuelOutflow.product_id;
+        form.invoice_product_id = props.fuelOutflow.invoice_product_id || null;
+        form.credit_debit_note_item_id = props.fuelOutflow.credit_debit_note_item_id || null;
         form.liters = props.fuelOutflow.liters;
         form.counter_id = props.fuelOutflow.counter_id || '';
         form.counter_value = props.fuelOutflow.counter_value || '';

@@ -26,8 +26,22 @@ class EditFuelOutflowController
             })
             ->get(['id', 'name']);
 
+        // Cargar el fuelOutflow con su outflow y los costCenters del outflow
+        $fuelOutflow->load(['machinery', 'operator', 'outflow.costCenters.costCenter']);
+        
+        // Transformar costCenters desde el outflow al formato esperado
+        $fuelOutflow->costCenters = $fuelOutflow->outflow && $fuelOutflow->outflow->costCenters 
+            ? $fuelOutflow->outflow->costCenters->map(function($cc) {
+                return [
+                    'cost_center_id' => $cc->cost_center_id,
+                    'name' => $cc->costCenter->name ?? '',
+                    'observations' => $cc->observations ?? null,
+                ];
+            })
+            : collect([]);
+
         return Inertia::render('FuelOutflows/Edit', [
-            'fuelOutflow' => $fuelOutflow->load(['machinery', 'operator', 'costCenter']),
+            'fuelOutflow' => $fuelOutflow,
             'machineries' => Machinery::all(),
             'operators' => $operators,
             'costCenters' => $costCenters,

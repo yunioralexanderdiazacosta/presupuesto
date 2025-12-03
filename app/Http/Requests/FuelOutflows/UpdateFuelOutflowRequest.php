@@ -18,6 +18,8 @@ class UpdateFuelOutflowRequest extends FormRequest
             'operator_id' => 'required|exists:operators,id',
             'cost_center_id' => 'nullable|array',
             'cost_center_id.*' => 'exists:cost_centers,id',
+            'invoice_product_id' => 'nullable|exists:invoice_product,id',
+            'credit_debit_note_item_id' => 'nullable|exists:credit_debit_note_items,id',
             'product_id' => 'required|exists:products,id',
             'liters' => 'required|numeric|min:0.01',
             'counter_id' => 'nullable|exists:counters,id',
