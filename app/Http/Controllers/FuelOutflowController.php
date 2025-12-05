@@ -233,6 +233,17 @@ class FuelOutflowController extends Controller
             ];
         });
 
+        // Obtener proyectos y operaciones para los selects
+        $projects = \App\Models\Project::where('team_id', $user->team_id)
+            ->where('season_id', $season_id)
+            ->get(['id', 'name'])
+            ->map(fn($p) => ['value' => $p->id, 'label' => $p->name])
+            ->values();
+        
+        $operations = \App\Models\Operation::all(['id', 'name'])
+            ->map(fn($o) => ['value' => $o->id, 'label' => $o->name])
+            ->values();
+
         return Inertia::render('FuelOutflows/Index', [
             'fuelOutflows' => $fuelOutflows,
             'availableFuelStocks' => $availableFuelStocks,
@@ -241,6 +252,8 @@ class FuelOutflowController extends Controller
             'costCenters' => $costCenters,
             'fuelProducts' => $fuelProducts,
             'counters' => $counters,
+            'projects' => $projects,
+            'operations' => $operations,
         ]);
     }
     // Aquí puedes agregar métodos agregados, reportes, exportaciones, etc.

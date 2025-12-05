@@ -12,6 +12,8 @@ const props = defineProps({
     costCenters: Array,
     fuelProducts: Array,
     counters: Array,
+    projects: Array,
+    operations: Array,
 });
 
 const emit = defineEmits(['close', 'saved']);
@@ -25,6 +27,8 @@ const form = useForm({
     product_id: '',
     invoice_product_id: null,
     credit_debit_note_item_id: null,
+    project_id: null,
+    operation_id: null,
     liters: '',
     counter_id: '',
     counter_value: '',
@@ -56,6 +60,8 @@ watch(() => props.show, (val) => {
         form.product_id = props.fuelOutflow.product_id;
         form.invoice_product_id = props.fuelOutflow.invoice_product_id || null;
         form.credit_debit_note_item_id = props.fuelOutflow.credit_debit_note_item_id || null;
+        form.project_id = props.fuelOutflow.outflow?.project_id || null;
+        form.operation_id = props.fuelOutflow.outflow?.operation_id || null;
         form.liters = props.fuelOutflow.liters;
         form.counter_id = props.fuelOutflow.counter_id || '';
         form.counter_value = props.fuelOutflow.counter_value || '';
@@ -144,6 +150,28 @@ function update() {
                   :options="props.costCenters.map(c => ({ value: c.id, label: c.name }))"
                   :searchable="true"
                   :hide-selected="false"
+                  class="multiselect-blue form-control-sm"
+                />
+              </div>
+              <div class="col-md-4">
+                <label class="form-label">Proyecto</label>
+                <Multiselect
+                  placeholder="Seleccione proyecto"
+                  v-model="form.project_id"
+                  :close-on-select="true"
+                  :options="props.projects"
+                  :searchable="true"
+                  class="multiselect-blue form-control-sm"
+                />
+              </div>
+              <div class="col-md-4">
+                <label class="form-label">Operación</label>
+                <Multiselect
+                  placeholder="Seleccione operación"
+                  v-model="form.operation_id"
+                  :close-on-select="true"
+                  :options="props.operations"
+                  :searchable="true"
                   class="multiselect-blue form-control-sm"
                 />
               </div>

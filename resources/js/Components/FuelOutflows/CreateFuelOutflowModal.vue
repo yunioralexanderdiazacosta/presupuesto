@@ -12,6 +12,8 @@ const props = defineProps({
     fuelProducts: Array,
     counters: Array,
     availableFuelStocks: Array,
+    projects: Array,
+    operations: Array,
 });
 
 const emit = defineEmits(['close', 'saved']);
@@ -24,6 +26,8 @@ const form = useForm({
     invoice_product_id: null,
     credit_debit_note_item_id: null,
     product_id: '',
+    project_id: null,
+    operation_id: null,
     liters: '',
     counter_id: '',
     counter_value: '',
@@ -223,6 +227,28 @@ function save() {
                   :options="props.costCenters.map(c => ({ value: c.id, label: c.name }))"
                   :searchable="true"
                   :hide-selected="false"
+                  class="multiselect-blue form-control-sm"
+                />
+              </div>
+              <div class="col-md-4">
+                <label class="form-label">Proyecto</label>
+                <Multiselect
+                  placeholder="Seleccione proyecto"
+                  v-model="form.project_id"
+                  :close-on-select="true"
+                  :options="props.projects"
+                  :searchable="true"
+                  class="multiselect-blue form-control-sm"
+                />
+              </div>
+              <div class="col-md-4">
+                <label class="form-label">Operación</label>
+                <Multiselect
+                  placeholder="Seleccione operación"
+                  v-model="form.operation_id"
+                  :close-on-select="true"
+                  :options="props.operations"
+                  :searchable="true"
                   class="multiselect-blue form-control-sm"
                 />
               </div>

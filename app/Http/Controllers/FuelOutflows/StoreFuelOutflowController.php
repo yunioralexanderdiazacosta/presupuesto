@@ -87,6 +87,8 @@ class StoreFuelOutflowController
                 'invoice_product_id' => $validated['invoice_product_id'] ?? null,
                 'credit_debit_note_item_id' => $validated['credit_debit_note_item_id'] ?? null,
                 'machinery_id' => $validated['machinery_id'] ?? null,
+                'project_id' => $validated['project_id'] ?? null,
+                'operation_id' => $validated['operation_id'] ?? null,
                 'quantity' => $validated['liters'],
                 'date' => $validated['date'],
                 'level3_id' => $level3Id,

@@ -6,6 +6,7 @@ import AppLayout from '@/Layouts/AppLayout.vue';
 import Breadcrumb from '@/Components/Breadcrumb.vue';
 import CreateFuelOutflowModal from '@/Components/FuelOutflows/CreateFuelOutflowModal.vue';
 import EditFuelOutflowModal from '@/Components/FuelOutflows/EditFuelOutflowModal.vue';
+import AnalyticsModal from '@/Components/FuelOutflows/AnalyticsModal.vue';
 
 // Función para mostrar detalles de centros de costo adicionales
 function showMoreCenters(centers) {
@@ -28,6 +29,8 @@ const props = defineProps({
     fuelProducts: Array,
     counters: Array,
     availableFuelStocks: Array,
+    projects: Array,
+    operations: Array,
 });
 
 const title = 'Consumos de Combustible';
@@ -57,8 +60,33 @@ const filteredRows = computed(() => {
     });
 });
 
+// 🔥 Agrupar stock de combustible por product_id
+const fuelStockByProduct = computed(() => {
+    if (!props.availableFuelStocks || !Array.isArray(props.availableFuelStocks)) return [];
+    
+    const grouped = {};
+    props.availableFuelStocks.forEach(item => {
+        if (!grouped[item.product_id]) {
+            grouped[item.product_id] = {
+                product_id: item.product_id,
+                product_name: item.product_name,
+                unit: item.unit,
+                stock_disponible: 0
+            };
+        }
+        grouped[item.product_id].stock_disponible += item.stock_disponible;
+    });
+    
+    return Object.values(grouped);
+});
+
+const totalStockCombustible = computed(() => {
+    return fuelStockByProduct.value.reduce((sum, item) => sum + item.stock_disponible, 0);
+});
+
 const showCreateModal = ref(false);
 const showEditModal = ref(false);
+const showAnalyticsModal = ref(false);
 const editingFuelOutflow = ref(null);
 
 function openCreateModal() {
@@ -66,6 +94,12 @@ function openCreateModal() {
 }
 function closeCreateModal() {
     showCreateModal.value = false;
+}
+function openAnalyticsModal() {
+    showAnalyticsModal.value = true;
+}
+function closeAnalyticsModal() {
+    showAnalyticsModal.value = false;
 }
 function reloadAfterSave() {
     closeCreateModal();
@@ -128,11 +162,52 @@ function deleteFuelOutflow(id) {
                     <i class="fas fa-gas-pump text-primary me-2"></i>
                     {{ title }}
                 </h5>
-                <button class="btn btn-primary btn-sm" @click="openCreateModal">
-                    <i class="fas fa-plus"></i> Nuevo
-                </button>
+                <div class="d-flex gap-2">
+                    <button class="btn btn-info btn-sm" @click="openAnalyticsModal">
+                        <i class="fas fa-chart-line"></i> Análisis
+                    </button>
+                    <button class="btn btn-primary btn-sm" @click="openCreateModal">
+                        <i class="fas fa-plus"></i> Nuevo
+                    </button>
+                </div>
             </div>
             <div class="card-body">
+                <!-- Card Pills de Stock -->
+                <div class="row mb-3">
+                    <div class="col-md-4 col-12 mb-2">
+                        <div class="card bg-light-info border-info h-100">
+                            <div class="card-body py-2 px-3">
+                                <div class="d-flex justify-content-between align-items-center">
+                                    <div>
+                                        <h6 class="mb-0 text-muted fs-9">Stock Total Combustible</h6>
+                                        <h4 class="mb-0 fw-bold text-info">{{ totalStockCombustible.toFixed(2) }} L</h4>
+                                    </div>
+                                    <i class="fas fa-gas-pump fa-2x text-info opacity-50"></i>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-8 col-12">
+                        <div class="card bg-light-secondary border-secondary h-100">
+                            <div class="card-body py-2 px-3">
+                                <h6 class="mb-1 text-muted fs-9">Detalle por Producto</h6>
+                                <div class="d-flex flex-wrap gap-2">
+                                    <span 
+                                        v-for="fuel in fuelStockByProduct" 
+                                        :key="fuel.product_id"
+                                        class="badge bg-secondary fs-10 px-2 py-1"
+                                    >
+                                        {{ fuel.product_name }}: {{ fuel.stock_disponible.toFixed(2) }} {{ fuel.unit }}
+                                    </span>
+                                    <span v-if="fuelStockByProduct.length === 0" class="text-muted fs-10">
+                                        Sin stock disponible
+                                    </span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
                 <input v-model="term" class="form-control mb-3" placeholder="Buscar..." />
                 <div class="table-responsive">
                   <table class="table table-bordered table-striped table-hover table-sm fs-10 mb-0">
@@ -228,6 +303,8 @@ function deleteFuelOutflow(id) {
             :fuelProducts="props.fuelProducts"
             :counters="props.counters"
             :availableFuelStocks="props.availableFuelStocks"
+            :projects="props.projects"
+            :operations="props.operations"
             @close="closeCreateModal"
             @saved="reloadAfterSave"
         />
@@ -241,8 +318,19 @@ function deleteFuelOutflow(id) {
             :costCenters="props.costCenters"
             :fuelProducts="props.fuelProducts"
             :counters="props.counters"
+            :projects="props.projects"
+            :operations="props.operations"
             @close="closeEditModal"
             @saved="reloadAfterSave"
+        />
+
+        <!-- Modal de Análisis -->
+        <AnalyticsModal
+            :show="showAnalyticsModal"
+            :fuelStockByProduct="fuelStockByProduct"
+            :totalStock="totalStockCombustible"
+            :fuelOutflows="props.fuelOutflows"
+            @close="closeAnalyticsModal"
         />
     </AppLayout>
 </template>

@@ -32,9 +32,16 @@ class OutflowsController extends Controller
             ->groupBy('credit_debit_note_items.invoice_product_id')
             ->pluck('total_devuelto', 'credit_debit_note_items.invoice_product_id');
 
-
-        // Obtener inventario actual
-        $inventario = collect($this->getInventory($user->team_id, $season_id));
+        // 🔥 OPTIMIZACIÓN: Precalcular qué invoice_product_ids tienen notas de crédito con un solo query
+        $invoiceProductsWithCreditNotes = DB::table('credit_debit_note_items')
+            ->join('credit_debit_notes', 'credit_debit_note_items.credit_debit_note_id', '=', 'credit_debit_notes.id')
+            ->where('credit_debit_notes.type', 'credito')
+            ->where('credit_debit_notes.team_id', $user->team_id)
+            ->where('credit_debit_notes.season_id', $season_id)
+            ->whereNotNull('credit_debit_note_items.invoice_product_id')
+            ->pluck('credit_debit_note_items.invoice_product_id')
+            ->unique()
+            ->toArray();
 
         // Traer productos de facturas
         $invoices = Invoice::with(['supplier', 'typeDocument', 'invoiceProducts.product.unit'])
@@ -63,12 +70,8 @@ class OutflowsController extends Controller
         $rows = [];
         foreach ($invoices as $invoice) {
             foreach ($invoice->invoiceProducts as $invoiceProduct) {
-                // Omitir si está asociada a una nota de crédito
-                $hasCreditNote = DB::table('credit_debit_note_items')
-                    ->join('credit_debit_notes', 'credit_debit_note_items.credit_debit_note_id', '=', 'credit_debit_notes.id')
-                    ->where('credit_debit_notes.type', 'credito')
-                    ->where('credit_debit_note_items.invoice_product_id', $invoiceProduct->id)
-                    ->exists();
+                // 🔥 OPTIMIZACIÓN: Usar array precalculado en lugar de query por cada producto
+                $hasCreditNote = in_array($invoiceProduct->id, $invoiceProductsWithCreditNotes);
                 if ($hasCreditNote) {
                     continue;
                 }
@@ -188,7 +191,7 @@ class OutflowsController extends Controller
         })->get()->map(fn($c) => ['value' => $c->id, 'label' => $c->name]);
 
         // Traer detalles de salidas ya registradas con sus centros de costo
-        // Detalles de salidas ya registradas
+        // 🔥 OPTIMIZACIÓN: Eager loading completo para evitar N+1 queries
         $outflowDetails = Outflow::with([
             'costCenters.costCenter',
             'project',
@@ -196,10 +199,16 @@ class OutflowsController extends Controller
             'machinery',
             'user',
             'invoiceProduct.product',
-            'creditDebitNoteItem.product'
+            'invoiceProduct.invoice.supplier',
+            'invoiceProduct.invoice.month',
+            'creditDebitNoteItem.product',
+            'creditDebitNoteItem.creditDebitNote.supplier',
+            'creditDebitNoteItem.creditDebitNote.month',
+            'level3.level2.level1'
         ])
             ->where('team_id', $user->team_id)
             ->where('season_id', $season_id)
+            ->whereNull('fuel_outflow_id') // 🔥 Excluir outflows de combustible
             ->orderByDesc('id')
             ->take(1000)
             ->get()

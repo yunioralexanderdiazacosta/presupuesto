@@ -84,10 +84,12 @@ class EditOutflowController extends Controller
                     'credit_note_info' => $creditNoteInfo,
                 ]
             ),
-            'projects' => Project::where('team_id', $user->team_id)->where('season_id', $season_id)->get(),
-            'operations' => Operation::where('team_id', $user->team_id)->where('season_id', $season_id)->get(),
-            'machineries' => Machinery::where('team_id', $user->team_id)->get(),
-            'costCenters' => CostCenter::where('team_id', $user->team_id)->where('season_id', $season_id)->get(),
+            'projects' => Project::where('team_id', $user->team_id)->where('season_id', $season_id)->get(['id', 'name']),
+            'operations' => Operation::all(['id', 'name']),
+            'machineries' => Machinery::where('team_id', $user->team_id)->get(['id', 'cod_machinery', 'brand']),
+            'costCenters' => CostCenter::whereHas('season', function($q) use ($user) {
+                $q->where('team_id', $user->team_id);
+            })->where('season_id', $season_id)->get(['id', 'name']),
             'stockAvailable' => $stockAvailable,
         ];
         // Si es petición AJAX (modal), devolver JSON
