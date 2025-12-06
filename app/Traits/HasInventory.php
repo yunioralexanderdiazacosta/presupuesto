@@ -31,7 +31,7 @@ trait HasInventory
                 'units.name as unit_name',
                 DB::raw('SUM(invoice_product.amount) as cantidad')
             )
-            ->groupBy('products.level2_id', 'level2s.name', 'products.level3_id', 'level3s.name', 'products.id', 'products.name', 'units.name');
+            ->groupBy('products.level2_id', 'level2s.name', 'products.level3_id', 'level3s.name', 'products.id', 'products.name');
 
         // Notas de débito (tipo = "debito")
         $debitNotes = DB::table('credit_debit_note_items')
@@ -54,7 +54,7 @@ trait HasInventory
                 'units.name as unit_name',
                 DB::raw('SUM(credit_debit_note_items.quantity) as cantidad')
             )
-            ->groupBy('products.level2_id', 'level2s.name', 'products.level3_id', 'level3s.name', 'products.id', 'products.name', 'units.name');
+            ->groupBy('products.level2_id', 'level2s.name', 'products.level3_id', 'level3s.name', 'products.id', 'products.name');
 
     // Salidas: Outflows (factura y nota de débito) + Notas de crédito
         // Salidas asociadas a factura
@@ -77,7 +77,7 @@ trait HasInventory
                 'units.name as unit_name',
                 DB::raw('SUM(outflows.quantity) as cantidad')
             )
-            ->groupBy('products.level2_id', 'level2s.name', 'products.level3_id', 'level3s.name', 'products.id', 'products.name', 'units.name');
+            ->groupBy('products.level2_id', 'level2s.name', 'products.level3_id', 'level3s.name', 'products.id', 'products.name');
 
         // Salidas asociadas a nota de débito
         $salidasND = DB::table('outflows')
@@ -99,7 +99,7 @@ trait HasInventory
                 'units.name as unit_name',
                 DB::raw('SUM(outflows.quantity) as cantidad')
             )
-            ->groupBy('products.level2_id', 'level2s.name', 'products.level3_id', 'level3s.name', 'products.id', 'products.name', 'units.name');
+            ->groupBy('products.level2_id', 'level2s.name', 'products.level3_id', 'level3s.name', 'products.id', 'products.name');
 
         // Notas de crédito (tipo = "credito")
         $creditNotes = DB::table('credit_debit_note_items')
@@ -122,7 +122,7 @@ trait HasInventory
                 'units.name as unit_name',
                 DB::raw('SUM(credit_debit_note_items.quantity) as cantidad')
             )
-            ->groupBy('products.level2_id', 'level2s.name', 'products.level3_id', 'level3s.name', 'products.id', 'products.name', 'units.name');
+            ->groupBy('products.level2_id', 'level2s.name', 'products.level3_id', 'level3s.name', 'products.id', 'products.name');
 
         // Unir y calcular inventario
     $entradasArr = $entradas->get()->toArray();

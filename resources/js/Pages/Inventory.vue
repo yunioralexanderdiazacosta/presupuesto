@@ -18,9 +18,6 @@ const props = defineProps({
   kardex: Array
 });
 
-// Estado local independiente para cada tabla
-const inventoryEdit = ref(props.inventory ? JSON.parse(JSON.stringify(props.inventory)) : []);
-
 // Form para editar clasificación del producto
 const productForm = useForm({
     id: '',
@@ -38,10 +35,10 @@ const productForm = useForm({
 // Filtro local
 const term = ref('');
 const filteredInventory = computed(() => {
-  if (!inventoryEdit.value.length) return [];
-  if (!term.value) return inventoryEdit.value;
+  if (!props.inventory || !props.inventory.length) return [];
+  if (!term.value) return props.inventory;
   const search = term.value.toLowerCase();
-  return inventoryEdit.value.filter(item => {
+  return props.inventory.filter(item => {
     const level2 = item.level2_name ? item.level2_name.toLowerCase() : '';
     const level3 = item.level3_name ? item.level3_name.toLowerCase() : '';
     const product = item.product_name ? item.product_name.toLowerCase() : '';
@@ -245,7 +242,7 @@ function printKardex(productId) {
                     </tr>
                   </thead>
                   <tbody>
-                    <tr v-for="item in filteredInventory" :key="item.level2_name + '-' + item.level3_name + '-' + item.product_name">
+                    <tr v-for="item in filteredInventory" :key="item.product_id">
                       <td>{{ item.level2_name || '--' }}</td>
                       <td>{{ item.level3_name || '--' }}</td>
                       <td>{{ item.product_name }}</td>
@@ -295,7 +292,7 @@ function printKardex(productId) {
                         </tr>
                       </thead>
                       <tbody>
-                        <template v-for="item in filteredInventory" :key="'kardex-' + item.level2_name + '-' + item.level3_name + '-' + item.product_name">
+                        <template v-for="item in filteredInventory" :key="'kardex-' + item.product_id">
                           <tr>
                             <td>{{ item.level2_name || '--' }}</td>
                             <td>{{ item.level3_name || '--' }}</td>

@@ -256,5 +256,33 @@ class FuelOutflowController extends Controller
             'operations' => $operations,
         ]);
     }
-    // Aquí puedes agregar métodos agregados, reportes, exportaciones, etc.
+    
+    /**
+     * Obtener datos de análisis de consumo de combustible
+     */
+    public function analytics(Request $request)
+    {
+        $user = Auth::user();
+        $season_id = session('season_id');
+        
+        // Consumo total por maquinaria
+        $consumoPorMaquinaria = DB::table('fuel_outflows')
+            ->join('machineries', 'fuel_outflows.machinery_id', '=', 'machineries.id')
+            ->where('fuel_outflows.team_id', $user->team_id)
+            ->where('fuel_outflows.season_id', $season_id)
+            ->select(
+                'machineries.id as machinery_id',
+                'machineries.cod_machinery as machinery_name',
+                DB::raw('SUM(fuel_outflows.liters) as total_litros'),
+                DB::raw('COUNT(*) as cantidad_registros'),
+                DB::raw('AVG(fuel_outflows.liters) as promedio_litros')
+            )
+            ->groupBy('machineries.id', 'machineries.cod_machinery')
+            ->orderByDesc('total_litros')
+            ->get();
+        
+        return response()->json([
+            'consumo_por_maquinaria' => $consumoPorMaquinaria
+        ]);
+    }
 }

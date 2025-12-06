@@ -1,5 +1,6 @@
 <script setup>
-import { computed } from 'vue';
+import { computed, ref, watch, nextTick } from 'vue';
+import FalconBarChart from '@/Components/FalconBarChart.vue';
 
 const props = defineProps({
     show: Boolean,
@@ -9,6 +10,53 @@ const props = defineProps({
 });
 
 const emit = defineEmits(['close']);
+
+// Estado para datos de analytics
+const analyticsData = ref(null);
+const loadingAnalytics = ref(false);
+const chartKey = ref(0); // Key para forzar re-render del gráfico
+
+// Cargar datos de analytics cuando se abre el modal
+watch(() => props.show, async (isOpen) => {
+    if (isOpen && !analyticsData.value) {
+        await loadAnalytics();
+        // Forzar re-render del gráfico después de cargar datos
+        await nextTick();
+        chartKey.value++;
+    }
+});
+
+async function loadAnalytics() {
+    loadingAnalytics.value = true;
+    try {
+        const response = await fetch(route('fuel-outflows.analytics'), {
+            headers: { 'X-Requested-With': 'XMLHttpRequest' }
+        });
+        if (!response.ok) throw new Error('Error al cargar analytics');
+        const data = await response.json();
+        analyticsData.value = data;
+    } catch (error) {
+        console.error('Error loading analytics:', error);
+        analyticsData.value = { consumo_por_maquinaria: [] };
+    } finally {
+        loadingAnalytics.value = false;
+    }
+}
+
+// Preparar datos para el gráfico de barras
+const chartLabels = computed(() => {
+    if (!analyticsData.value?.consumo_por_maquinaria) return [];
+    const labels = analyticsData.value.consumo_por_maquinaria.map(m => m.machinery_name);
+    console.log('Chart Labels:', labels);
+    return labels;
+});
+
+const chartData = computed(() => {
+    if (!analyticsData.value?.consumo_por_maquinaria) return [];
+    const data = analyticsData.value.consumo_por_maquinaria.map(m => parseFloat(m.total_litros));
+    console.log('Chart Data:', data);
+    return data;
+});
 
 function closeModal() {
     emit('close');
@@ -122,13 +170,80 @@ function closeModal() {
                             </div>
                         </div>
 
-                        <!-- Tab 2: Gráficos (placeholder) -->
+                        <!-- Tab 2: Gráficos -->
                         <div class="tab-pane fade" id="graficos-tab">
-                            <div class="alert alert-info">
-                                <i class="fas fa-info-circle me-2"></i>
-                                <strong>En desarrollo:</strong> Aquí se mostrarán gráficos de consumo por maquinaria, tendencias temporales, etc.
+                            <div v-if="loadingAnalytics" class="text-center py-5">
+                                <div class="spinner-border text-primary" role="status">
+                                    <span class="visually-hidden">Cargando...</span>
+                                </div>
+                                <p class="mt-2 text-muted">Cargando datos de análisis...</p>
                             </div>
-                            <!-- Aquí irán los gráficos con Chart.js o ApexCharts -->
+
+                            <div v-else-if="analyticsData && chartData.length > 0">
+                                <h5 class="mb-3">Consumo Total por Maquinaria</h5>
+                                
+                                <!-- Gráfico de Barras -->
+                                <div class="card mb-4">
+                                    <div class="card-body">
+                                        <div style="height: 400px;">
+                                            <FalconBarChart
+                                                :key="chartKey"
+                                                :barLabels="chartLabels"
+                                                :barData="chartData"
+                                                :height="400"
+                                                containerStyle="height: 400px; width: 100%;"
+                                                color="#2c7be5"
+                                            />
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- Tabla de Datos -->
+                                <div class="card">
+                                    <div class="card-header">
+                                        <h6 class="mb-0">Detalle de Consumo</h6>
+                                    </div>
+                                    <div class="card-body">
+                                        <div class="table-responsive">
+                                            <table class="table table-bordered table-striped table-hover table-sm">
+                                                <thead class="table-primary">
+                                                    <tr>
+                                                        <th>Maquinaria</th>
+                                                        <th class="text-end">Total Litros</th>
+                                                        <th class="text-end">N° Registros</th>
+                                                        <th class="text-end">Promedio L/Consumo</th>
+                                                    </tr>
+                                                </thead>
+                                                <tbody>
+                                                    <tr v-for="m in analyticsData.consumo_por_maquinaria" :key="m.machinery_id">
+                                                        <td><strong>{{ m.machinery_name }}</strong></td>
+                                                        <td class="text-end">{{ parseFloat(m.total_litros).toFixed(2) }} L</td>
+                                                        <td class="text-end">{{ m.cantidad_registros }}</td>
+                                                        <td class="text-end">{{ parseFloat(m.promedio_litros).toFixed(2) }} L</td>
+                                                    </tr>
+                                                </tbody>
+                                                <tfoot class="table-light">
+                                                    <tr>
+                                                        <th>TOTAL</th>
+                                                        <th class="text-end">
+                                                            {{ analyticsData.consumo_por_maquinaria.reduce((sum, m) => sum + parseFloat(m.total_litros), 0).toFixed(2) }} L
+                                                        </th>
+                                                        <th class="text-end">
+                                                            {{ analyticsData.consumo_por_maquinaria.reduce((sum, m) => sum + parseInt(m.cantidad_registros), 0) }}
+                                                        </th>
+                                                        <th></th>
+                                                    </tr>
+                                                </tfoot>
+                                            </table>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div v-else class="alert alert-warning">
+                                <i class="fas fa-exclamation-triangle me-2"></i>
+                                No hay datos de consumo disponibles para mostrar.
+                            </div>
                         </div>
 
                         <!-- Tab 3: Promedios (placeholder) -->

@@ -524,6 +524,7 @@ Route::middleware([
    
 
     Route::get('/fuel-outflows', FuelOutflowController::class.'@index')->name('fuel-outflows.index');
+    Route::get('/fuel-outflows/analytics', [FuelOutflowController::class, 'analytics'])->name('fuel-outflows.analytics');
     Route::post('/fuel-outflows', StoreFuelOutflowController::class)->name('fuel-outflows.store');
     Route::get('/fuel-outflows/{fuelOutFlow}', ShowFuelOutflowController::class)->name('fuel-outflows.show');
     Route::get('/fuel-outflows/{fuelOutFlow}/edit', EditFuelOutflowController::class)->name('fuel-outflows.edit');
