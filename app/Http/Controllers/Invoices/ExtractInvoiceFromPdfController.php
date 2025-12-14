@@ -9,6 +9,7 @@ use App\Models\CompanyReason;
 use App\Models\TypeDocument;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Log;
 
 class ExtractInvoiceFromPdfController extends Controller
 {
@@ -29,6 +30,12 @@ class ExtractInvoiceFromPdfController extends Controller
             // 1. Extraer datos del PDF con Mindee
             $ocrData = $this->ocrService->extractFromPdf($request->file('pdf'));
 
+            Log::info('📊 Datos extraídos del OCR', [
+                'supplier_name' => $ocrData['supplier_name'],
+                'supplier_tax_id' => $ocrData['supplier_tax_id'],
+                'invoice_number' => $ocrData['invoice_number']
+            ]);
+
             // 2. Buscar proveedor
             $supplier = $this->findSupplier($ocrData);
 
@@ -38,8 +45,8 @@ class ExtractInvoiceFromPdfController extends Controller
             // 4. Detectar tipo de documento
             $typeDocument = $this->findTypeDocument($ocrData);
 
-            // 5. Inferir tipo de pago (por ahora simple)
-            $paymentInfo = ['type' => 1, 'term' => 30]; // Default: Crédito 30 días
+            // 5. Detectar tipo de pago desde el texto del PDF
+            $paymentInfo = $this->detectPaymentType($ocrData);
 
             return response()->json([
                 'success' => true,
@@ -58,11 +65,13 @@ class ExtractInvoiceFromPdfController extends Controller
                     'customer_name' => $ocrData['customer_name'],
                     'customer_rut' => $ocrData['customer_tax_id'],
                     'document_type' => $ocrData['document_type'],
+                    'payment_detected' => $paymentInfo['type'] == 2 ? 'Contado' : 'Crédito',
                 ],
                 'confidence' => [
                     'supplier' => $supplier ? 0.95 : 0,
                     'company_reason' => $companyReason ? 0.98 : 0,
                     'type_document' => $typeDocument ? 0.90 : 0,
+                    'payment_type' => $paymentInfo['type'] == 2 ? 0.95 : 0.50,
                 ]
             ]);
 
@@ -134,5 +143,44 @@ class ExtractInvoiceFromPdfController extends Controller
 
         // Si no se detectó, intentar por defecto "Factura"
         return TypeDocument::where('code', '33')->first();
+    }
+
+    private function detectPaymentType($ocrData)
+    {
+        // Obtener todo el texto extraído del PDF
+        $fullText = strtolower($ocrData['full_text'] ?? '');
+        
+        // Palabras clave que indican pago al CONTADO
+        $contadoPatterns = [
+            '/\bcontado\b/i',
+            '/\bal contado\b/i',
+            '/\bpago contado\b/i',
+            '/\bpago al contado\b/i',
+            '/\befectivo\b/i',
+            '/\bcash\b/i',
+        ];
+        
+        // Buscar cualquier patrón de contado
+        foreach ($contadoPatterns as $pattern) {
+            if (preg_match($pattern, $fullText)) {
+                return [
+                    'type' => 2,  // 2 = Contado
+                    'term' => 0   // Sin plazo
+                ];
+            }
+        }
+        
+        // Palabras clave que indican CRÉDITO específico
+        if (preg_match('/\bcr[eé]dito\b/i', $fullText) || preg_match('/\bcredit\b/i', $fullText)) {
+            // Intentar extraer número de días (30, 60, 90, etc.)
+            if (preg_match('/(\d+)\s*d[ií]as?/i', $fullText, $matches)) {
+                $days = (int)$matches[1];
+                return ['type' => 1, 'term' => $days];
+            }
+            return ['type' => 1, 'term' => 30]; // Crédito por defecto 30 días
+        }
+        
+        // Por defecto: Crédito 30 días
+        return ['type' => 1, 'term' => 30];
     }
 }

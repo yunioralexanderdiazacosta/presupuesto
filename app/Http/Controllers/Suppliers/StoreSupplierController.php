@@ -15,7 +15,7 @@ class StoreSupplierController extends Controller
     {
         $user = Auth::user();
 
-        Supplier::Create([
+        $supplier = Supplier::Create([
             'name' => $request->name,
             'rut' => $request->rut,
             'email' => $request->email,
@@ -23,5 +23,8 @@ class StoreSupplierController extends Controller
             'phone' => $request->phone,
             'team_id' => $user->team_id
         ]);
+
+        // Retornar el proveedor creado en flash para que Inertia lo pase al frontend
+        return redirect()->back()->with('supplier', $supplier);
     }
 }

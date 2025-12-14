@@ -24,9 +24,9 @@ class FormSupplierRequest extends FormRequest
         return [
             'name'      => 'required',
             'rut'       => 'required',
-            'email'     => 'email|required',
-            'contact'   => 'required',
-            'phone'     => 'required'
+            'email'     => 'nullable|email',
+            'contact'   => 'nullable',
+            'phone'     => 'nullable'
         ];
     }
 }

@@ -1,7 +1,7 @@
 
 
 <script setup>
-import { ref, watch } from 'vue';
+import { ref, watch, nextTick } from 'vue';
 import { usePage } from '@inertiajs/vue3';
 import Multiselect from "@vueform/multiselect";
 import TextInput from "@/Components/TextInput.vue";
@@ -65,13 +65,16 @@ const handleDataExtracted = (result) => {
 
 // Cuando no se encuentra el proveedor
 const handleSupplierNotFound = (supplierData) => {
+    console.log('🔍 handleSupplierNotFound llamado:', supplierData);
+    console.log('📋 Nombre:', supplierData.name);
+    console.log('📋 RUT:', supplierData.rut);
     suggestedSupplierData.value = supplierData;
     
     Swal.fire({
         title: '⚠️ Proveedor no encontrado',
         html: `
-            El proveedor <strong>${supplierData.name}</strong><br>
-            (RUT: ${supplierData.rut}) no está registrado.
+            El proveedor <strong>${supplierData.name || 'Sin nombre'}</strong><br>
+            (RUT: ${supplierData.rut || 'Sin RUT'}) no está registrado.
             <br><br>¿Deseas crearlo ahora?
         `,
         icon: 'warning',
@@ -83,42 +86,84 @@ const handleSupplierNotFound = (supplierData) => {
     }).then((result) => {
         if (result.isConfirmed) {
             // Pre-llenar form con datos detectados
+            supplierForm.reset();
             supplierForm.name = supplierData.name;
             supplierForm.rut = supplierData.rut;
+            console.log('✏️ Formulario pre-llenado:');
+            console.log('   - Nombre:', supplierForm.name);
+            console.log('   - RUT:', supplierForm.rut);
             showCreateSupplierModal.value = true;
+            
+            // Mostrar modal con Bootstrap después de que Vue actualice el DOM
+            nextTick(() => {
+                console.log('🔓 Abriendo modal de proveedor');
+                $('#createSupplierModal').modal('show');
+            });
         }
     });
 };
 
 // Guardar proveedor nuevo
 const storeSupplier = () => {
+    console.log('💾 Guardando proveedor:', supplierForm.data());
     supplierForm.post(route('suppliers.store'), {
         preserveScroll: true,
         onSuccess: (response) => {
+            console.log('✅ Proveedor creado, response:', response);
+            console.log('✅ Flash supplier:', response.props.flash?.supplier);
+            
+            // Cerrar modal con Bootstrap
+            $('#createSupplierModal').modal('hide');
+            
             // Obtener el proveedor recién creado desde la respuesta
             const newSupplier = response.props.flash?.supplier;
             
             if (newSupplier) {
-                // Agregar a la lista de proveedores disponibles
-                page.props.suppliers.push({
-                    label: newSupplier.name,
-                    value: newSupplier.id
-                });
+                // Agregar a la lista de proveedores disponibles (crear nuevo array para reactividad)
+                page.props.suppliers = [
+                    ...page.props.suppliers,
+                    {
+                        label: newSupplier.name,
+                        value: newSupplier.id
+                    }
+                ];
                 
-                // Seleccionar automáticamente
+                // Seleccionar automáticamente el proveedor
                 props.form.supplier_id = newSupplier.id;
+                
+                Swal.fire({
+                    icon: 'success',
+                    title: 'Proveedor creado',
+                    text: 'Se ha seleccionado automáticamente',
+                    timer: 2000,
+                    showConfirmButton: false
+                });
             }
             
-            // Cerrar modal y resetear form
-            showCreateSupplierModal.value = false;
+            // Resetear form
             supplierForm.reset();
+            showCreateSupplierModal.value = false;
+        },
+        onError: (errors) => {
+            console.log('❌ Error al crear proveedor:', errors);
+            const errorMessages = Object.entries(errors).map(([field, messages]) => {
+                const fieldNames = {
+                    name: 'Nombre',
+                    rut: 'RUT',
+                    email: 'Email',
+                    contact: 'Contacto',
+                    phone: 'Teléfono'
+                };
+                const fieldName = fieldNames[field] || field;
+                const message = Array.isArray(messages) ? messages[0] : messages;
+                return `${fieldName}: ${message}`;
+            });
             
             Swal.fire({
-                icon: 'success',
-                title: 'Proveedor creado',
-                text: 'El formulario ha sido autocompletado',
-                timer: 2000,
-                showConfirmButton: false
+                icon: 'error',
+                title: 'Error al crear proveedor',
+                html: `<div class="text-start">${errorMessages.join('<br>')}</div>`,
+                confirmButtonColor: '#d33'
             });
         }
     });
@@ -131,9 +176,8 @@ const storeSupplier = () => {
         @supplierNotFound="handleSupplierNotFound"
     />
 
-    <!-- Modal crear proveedor rápido -->
+    <!-- Modal crear proveedor rápido (siempre montado, se controla con Bootstrap JS) -->
     <CreateSupplierModal 
-        v-if="showCreateSupplierModal"
         :form="supplierForm"
         @store="storeSupplier"
     />

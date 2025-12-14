@@ -39,17 +39,27 @@ const handlePdfUpload = async (file) => {
         const result = response.data;
 
         if (result.success) {
-            // Emitir datos extraídos
+            // Emitir datos extraídos primero
             emit('extracted', result);
 
-            // Si no se encontró proveedor, emitir evento
+            // Si no se encontró proveedor, emitir evento y NO mostrar SweetAlert todavía
             if (!result.data.supplier_id && result.raw.supplier_name) {
-                emit('supplierNotFound', {
+                const supplierData = {
                     name: result.raw.supplier_name,
-                    rut: result.raw.supplier_rut
-                });
+                    rut: result.raw.supplier_rut || ''
+                };
+                console.log('⚠️ Proveedor no encontrado, emitiendo evento supplierNotFound:', supplierData);
+                console.log('   📄 Nombre detectado:', supplierData.name);
+                console.log('   🆔 RUT detectado:', supplierData.rut);
+                if (!supplierData.rut) {
+                    console.warn('⚠️ ADVERTENCIA: RUT no detectado por el OCR');
+                }
+                emit('supplierNotFound', supplierData);
+                // No mostrar el SweetAlert de éxito aún, esperar a que el usuario maneje el proveedor
+                return;
             }
 
+            // Si todo está bien, mostrar SweetAlert de éxito
             Swal.fire({
                 icon: 'success',
                 title: '¡Datos extraídos!',
@@ -59,7 +69,8 @@ const handlePdfUpload = async (file) => {
                         <p class="mb-2"><strong>✓ N° Documento:</strong> ${result.data.number_document || 'No detectado'}</p>
                         <p class="mb-2"><strong>✓ Tipo Documento:</strong> ${result.data.type_document_id ? 'Detectado' : 'Por defecto'}</p>
                         <p class="mb-2"><strong>✓ Proveedor:</strong> ${result.data.supplier_id ? 'Encontrado' : 'No encontrado'}</p>
-                        <p class="mb-0"><strong>✓ RUT Empresa:</strong> ${result.data.company_reason_id ? 'Encontrado' : 'No encontrado'}</p>
+                        <p class="mb-2"><strong>✓ RUT Empresa:</strong> ${result.data.company_reason_id ? 'Encontrado' : 'No encontrado'}</p>
+                        <p class="mb-0"><strong>✓ Forma de Pago:</strong> <span class="badge ${result.raw.payment_detected === 'Contado' ? 'bg-success' : 'bg-warning'}">${result.raw.payment_detected}</span> ${result.data.payment_term > 0 ? `(${result.data.payment_term} días)` : ''}</p>
                     </div>
                 `,
                 confirmButtonText: 'Continuar',
