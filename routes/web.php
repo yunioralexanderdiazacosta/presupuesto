@@ -89,6 +89,7 @@ use App\Http\Controllers\Invoices\ShowInvoiceController;
 use App\Http\Controllers\Invoices\EditInvoiceController;
 use App\Http\Controllers\Invoices\UpdateInvoiceController;
 use App\Http\Controllers\Invoices\DeleteInvoiceController;
+use App\Http\Controllers\Invoices\ExtractInvoiceFromPdfController;
 use App\Http\Controllers\Level2s\GetLevel2Controller;
 use App\Http\Controllers\Level3s\GetLevel3Controller;
 use App\Http\Controllers\Level4s\GetLevel4Controller;
@@ -319,6 +320,7 @@ Route::middleware([
     Route::get('/invoices', InvoicesController::class)->name('invoices.index');
     Route::get('/invoices/{invoice}/show', ShowInvoiceController::class)->name('invoices.show');
     Route::get('/invoices/create', CreateInvoiceController::class)->name('invoices.create');
+    Route::post('/invoices/extract-from-pdf', ExtractInvoiceFromPdfController::class)->name('invoices.extract');
     Route::post('/invoices/store', StoreInvoiceController::class)->name('invoices.store');
     Route::get('/invoices/{invoice}/edit', EditInvoiceController::class)->name('invoices.edit');
     Route::post('/invoices/{invoice}/update', UpdateInvoiceController::class)->name('invoices.update');

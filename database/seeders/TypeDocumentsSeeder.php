@@ -14,19 +14,23 @@ class TypeDocumentsSeeder extends Seeder
     public function run(): void
     {
         TypeDocument::create([
-            'name' => 'FACTURA'
+            'name' => 'FACTURA',
+            'code' => '33'
         ]);
 
         TypeDocument::create([
-            'name' => 'BOLETA'
+            'name' => 'BOLETA',
+            'code' => '39'
         ]);
 
         TypeDocument::create([
-            'name' => 'NOTA CREDITO'
+            'name' => 'NOTA CREDITO',
+            'code' => '61'
         ]);
 
         TypeDocument::create([
-            'name' => 'NOTA DEBITO'
+            'name' => 'NOTA DEBITO',
+            'code' => '56'
         ]);
     }
 }

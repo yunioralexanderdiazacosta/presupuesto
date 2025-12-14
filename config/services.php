@@ -33,9 +33,12 @@ return [
 
 
     'weatherapi' => [
-    'key' => env('WEATHER_API_KEY'),
-]    ,
+        'key' => env('WEATHER_API_KEY'),
+    ],
 
+    'mindee' => [
+        'api_key' => env('MINDEE_API_KEY'),
+    ],
 
 ];
 

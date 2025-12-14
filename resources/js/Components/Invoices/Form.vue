@@ -1,20 +1,40 @@
 
 
 <script setup>
-import { watch } from 'vue';
+import { ref, watch } from 'vue';
+import { usePage } from '@inertiajs/vue3';
 import Multiselect from "@vueform/multiselect";
 import TextInput from "@/Components/TextInput.vue";
 import InputError from "@/Components/InputError.vue";
 import FormProducts from "./FormProducts.vue";
+import PdfUploader from "./PdfUploader.vue";
+import CreateSupplierModal from '@/Components/Suppliers/CreateSupplierModal.vue';
+import { useForm } from '@inertiajs/vue3';
+import Swal from 'sweetalert2';
+
 const props = defineProps({
     form: Object,
 });
+
+const page = usePage();
 
 const paymentTypes = [
     { id: 1, label: "Credito" },
     { id: 2, label: "Contado" },
 ];
 
+// Estado para modal de crear proveedor
+const showCreateSupplierModal = ref(false);
+const suggestedSupplierData = ref(null);
+
+// Form para crear proveedor rápido
+const supplierForm = useForm({
+    name: '',
+    rut: '',
+    contact: '',
+    email: '',
+    phone: '',
+});
 
 // Si plazo de pago es 0, tipo de pago debe ser 'Contado' (id=2)
 watch(
@@ -28,9 +48,96 @@ watch(
     }
 );
 
+// Cuando se extraen datos del PDF
+const handleDataExtracted = (result) => {
+    const data = result.data;
+    
+    // Autocompletar campos
+    if (data.date) props.form.date = data.date;
+    if (data.due_date) props.form.due_date = data.due_date;
+    if (data.number_document) props.form.number_document = data.number_document;
+    if (data.type_document_id) props.form.type_document_id = data.type_document_id;
+    if (data.supplier_id) props.form.supplier_id = data.supplier_id;
+    if (data.company_reason_id) props.form.company_reason_id = data.company_reason_id;
+    if (data.payment_type) props.form.payment_type = data.payment_type;
+    if (data.payment_term !== undefined) props.form.payment_term = data.payment_term;
+};
 
+// Cuando no se encuentra el proveedor
+const handleSupplierNotFound = (supplierData) => {
+    suggestedSupplierData.value = supplierData;
+    
+    Swal.fire({
+        title: '⚠️ Proveedor no encontrado',
+        html: `
+            El proveedor <strong>${supplierData.name}</strong><br>
+            (RUT: ${supplierData.rut}) no está registrado.
+            <br><br>¿Deseas crearlo ahora?
+        `,
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonText: '✚ Crear proveedor',
+        cancelButtonText: 'Omitir',
+        confirmButtonColor: '#2c7be5',
+        cancelButtonColor: '#6c757d',
+    }).then((result) => {
+        if (result.isConfirmed) {
+            // Pre-llenar form con datos detectados
+            supplierForm.name = supplierData.name;
+            supplierForm.rut = supplierData.rut;
+            showCreateSupplierModal.value = true;
+        }
+    });
+};
+
+// Guardar proveedor nuevo
+const storeSupplier = () => {
+    supplierForm.post(route('suppliers.store'), {
+        preserveScroll: true,
+        onSuccess: (response) => {
+            // Obtener el proveedor recién creado desde la respuesta
+            const newSupplier = response.props.flash?.supplier;
+            
+            if (newSupplier) {
+                // Agregar a la lista de proveedores disponibles
+                page.props.suppliers.push({
+                    label: newSupplier.name,
+                    value: newSupplier.id
+                });
+                
+                // Seleccionar automáticamente
+                props.form.supplier_id = newSupplier.id;
+            }
+            
+            // Cerrar modal y resetear form
+            showCreateSupplierModal.value = false;
+            supplierForm.reset();
+            
+            Swal.fire({
+                icon: 'success',
+                title: 'Proveedor creado',
+                text: 'El formulario ha sido autocompletado',
+                timer: 2000,
+                showConfirmButton: false
+            });
+        }
+    });
+};
 </script>
 <template>
+    <!-- PDF Uploader Component -->
+    <PdfUploader 
+        @extracted="handleDataExtracted"
+        @supplierNotFound="handleSupplierNotFound"
+    />
+
+    <!-- Modal crear proveedor rápido -->
+    <CreateSupplierModal 
+        v-if="showCreateSupplierModal"
+        :form="supplierForm"
+        @store="storeSupplier"
+    />
+
     <!--begin::Wrapper
 <div class="d-flex flex-column align-items-start flex-xxl-row">
 	<div class="d-flex flex-center flex-equal fw-row text-nowrap order-1 order-xxl-2 me-4" data-bs-toggle="tooltip" data-bs-trigger="hover" title="Enter invoice number">
