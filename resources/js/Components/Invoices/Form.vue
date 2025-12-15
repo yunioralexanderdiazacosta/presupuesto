@@ -48,6 +48,28 @@ watch(
     }
 );
 
+// Detectar error de factura duplicada
+watch(
+    () => props.form.errors.number_document,
+    (errorMessage) => {
+        if (errorMessage && errorMessage.includes('Ya existe una factura')) {
+            Swal.fire({
+                icon: 'error',
+                title: '⚠️ Factura duplicada',
+                html: `
+                    <div class="text-start">
+                        <strong>${errorMessage}</strong>
+                        <br><br>
+                        Esta factura ya fue registrada previamente en el sistema.
+                    </div>
+                `,
+                confirmButtonText: 'Entendido',
+                confirmButtonColor: '#d33'
+            });
+        }
+    }
+);
+
 // Cuando se extraen datos del PDF
 const handleDataExtracted = (result) => {
     const data = result.data;
