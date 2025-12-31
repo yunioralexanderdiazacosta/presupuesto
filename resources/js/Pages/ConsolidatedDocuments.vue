@@ -113,9 +113,9 @@ const documentsByType = computed(() => {
 const getSubtotalByType = (docs, field) => {
   return docs.reduce((sum, doc) => {
     const value = Number(doc[field] || 0);
-    // Para notas de crédito, considerar negativos
+    // Para notas de crédito, todos los valores van en negativo (incluido IVA)
     const isCredito = doc.tipo === 'credito' || doc.tipo === 'Crédito';
-    return sum + (isCredito && field !== 'iva' ? -value : value);
+    return sum + (isCredito ? -value : value);
   }, 0);
 };
 
@@ -299,8 +299,16 @@ const getDocTypeBadge = (tipo) => {
                     <td class="fw-bold">TOTAL GENERAL</td>
                     <td class="text-end fw-bold">{{ sortedDocuments.length }}</td>
                     <td class="text-end fw-bold">{{ formatNumber(totalGeneral, 0) }}</td>
-                    <td class="text-end fw-bold">{{ formatNumber(sortedDocuments.reduce((sum, doc) => sum + Number(doc.iva || 0), 0), 0) }}</td>
-                    <td class="text-end fw-bold">{{ formatNumber(totalGeneral + sortedDocuments.reduce((sum, doc) => sum + Number(doc.iva || 0), 0), 0) }}</td>
+                    <td class="text-end fw-bold">{{ formatNumber(sortedDocuments.reduce((sum, doc) => {
+                      const iva = Number(doc.iva || 0);
+                      const isCredito = doc.tipo === 'credito' || doc.tipo === 'Crédito';
+                      return sum + (isCredito ? -iva : iva);
+                    }, 0), 0) }}</td>
+                    <td class="text-end fw-bold">{{ formatNumber(totalGeneral + sortedDocuments.reduce((sum, doc) => {
+                      const iva = Number(doc.iva || 0);
+                      const isCredito = doc.tipo === 'credito' || doc.tipo === 'Crédito';
+                      return sum + (isCredito ? -iva : iva);
+                    }, 0), 0) }}</td>
                   </tr>
                 </tfoot>
               </table>
@@ -421,8 +429,16 @@ const getDocTypeBadge = (tipo) => {
                   <tr>
                     <td colspan="6" class="text-end fw-bold">Total general</td>
                     <td class="text-end fw-bold">{{ formatNumber(totalGeneral, 0) }}</td>
-                    <td class="text-end fw-bold">{{ formatNumber(sortedDocuments.reduce((sum, doc) => sum + Number(doc.iva || 0), 0), 0) }}</td>
-                    <td class="text-end fw-bold">{{ formatNumber(totalGeneral + sortedDocuments.reduce((sum, doc) => sum + Number(doc.iva || 0), 0), 0) }}</td>
+                    <td class="text-end fw-bold">{{ formatNumber(sortedDocuments.reduce((sum, doc) => {
+                      const iva = Number(doc.iva || 0);
+                      const isCredito = doc.tipo === 'credito' || doc.tipo === 'Crédito';
+                      return sum + (isCredito ? -iva : iva);
+                    }, 0), 0) }}</td>
+                    <td class="text-end fw-bold">{{ formatNumber(totalGeneral + sortedDocuments.reduce((sum, doc) => {
+                      const iva = Number(doc.iva || 0);
+                      const isCredito = doc.tipo === 'credito' || doc.tipo === 'Crédito';
+                      return sum + (isCredito ? -iva : iva);
+                    }, 0), 0) }}</td>
                   </tr>
                 </tfoot>
               </table>
