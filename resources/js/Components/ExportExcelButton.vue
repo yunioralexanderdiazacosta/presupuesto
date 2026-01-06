@@ -37,6 +37,13 @@ function exportExcel() {
       const obj = {};
       props.headers.forEach(h => {
         const rawValue = getValueByPath(row, h.key);
+        
+        // Si el valor ya es un número, usarlo directamente sin conversión
+        if (typeof rawValue === 'number') {
+          obj[h.label] = rawValue;
+          return;
+        }
+        
         const text = stripHtml(rawValue);
         const isNumeric = /^-?[0-9.,]+$/.test(text);
         if (h.type === 'number' || isNumeric) {
