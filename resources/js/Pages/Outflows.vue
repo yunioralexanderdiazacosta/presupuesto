@@ -243,65 +243,96 @@ async function openCard(outflow) {
     // Si no tiene ninguno, no se puede registrar salida
     return;
   }
-  if (!showCards.value.includes(id)) {
+  
+  // Verificar si ya existe tanto en showCards como en selectedOutflows
+  if (showCards.value.includes(id)) {
+    console.log('Card ya abierto:', id);
+    return; // Ya está abierto, no hacer nada
+  }
+  
+  // Verificar también en selectedOutflows por si acaso hay desincronización
+  const existsInSelected = selectedOutflows.value.some(sel => sel.id === id);
+  if (existsInSelected) {
+    console.warn('Desincronización detectada: existe en selectedOutflows pero no en showCards');
+    // Sincronizar agregándolo a showCards
     showCards.value.push(id);
-    
-    // Crear el objeto de salida
-    const newOutflow = {
-      id,
-      tipo,
-      invoice_product_id: outflow.invoice_product_id || null,
-      credit_debit_note_item_id: outflow.credit_debit_note_item_id || null,
-      project_id: '',
-      operation_id: '',
-      machinery_id: '',
-      product_name: outflow.product,
-      unit_name: outflow.unit,
-      quantity: outflow.stock, // Inicializa cantidad con el stock
-      unit_price: outflow.unit_price || 0, // Precio unitario de la factura
-      cost_center_ids: [],
-      observations: '',
-      level2_id: null, // Filtro helper (no se guarda)
-      level3_id: null,
-      product_id: outflow.product_id || null,
-      suggested_level3: false, // Flag para saber si fue sugerido
-    };
-    
-    selectedOutflows.value.push(newOutflow);
-    
-    // Buscar sugerencia inteligente de level3_id basado en el producto
-    if (outflow.product_id) {
-      try {
-        const { data } = await axios.get(route('outflows.level3-suggestions'), {
-          params: { product_id: outflow.product_id }
-        });
-        
-        if (data && data.length > 0) {
-          // Auto-seleccionar el nivel 3 más usado
-          newOutflow.level3_id = data[0].level3_id;
-          newOutflow.suggested_level3 = true;
-          
-          // Auto-seleccionar también el nivel 2 padre para el filtro
-          const selectedLevel3 = props.levels3.find(l => l.value === data[0].level3_id);
-          if (selectedLevel3) {
-            newOutflow.level2_id = selectedLevel3.level2_id;
-          }
-          
-          // Mostrar notificación sutil
-          console.log(`✨ Sugerencia: "${data[0].level3_name}" (usado ${data[0].usage_count} veces)`);
+    return;
+  }
+  
+  // Si llegamos aquí, es seguro agregar el card
+  showCards.value.push(id);
+  
+  // Crear el objeto de salida
+  const newOutflow = {
+    id,
+    tipo,
+    invoice_product_id: outflow.invoice_product_id || null,
+    credit_debit_note_item_id: outflow.credit_debit_note_item_id || null,
+    project_id: '',
+    operation_id: '',
+    machinery_id: '',
+    product_name: outflow.product,
+    unit_name: outflow.unit,
+    quantity: outflow.stock, // Inicializa cantidad con el stock
+    unit_price: outflow.unit_price || 0, // Precio unitario de la factura
+    cost_center_ids: [],
+    observations: '',
+    level2_id: null, // Filtro helper (no se guarda)
+    level3_id: null,
+    product_id: outflow.product_id || null,
+    suggested_level3: false, // Flag para saber si fue sugerido
+  };
+  
+  selectedOutflows.value.push(newOutflow);
+  
+  // Buscar sugerencia inteligente de level3_id basado en el producto
+  if (outflow.product_id) {
+    try {
+      const { data } = await axios.get(route('outflows.level3-suggestions'), {
+        params: { product_id: outflow.product_id }
+      });
+      
+      if (data && data.length > 0) {
+        // Verificar que el card aún existe antes de modificarlo (por si fue cerrado durante la llamada async)
+        const cardStillExists = selectedOutflows.value.find(sel => sel.id === id);
+        if (!cardStillExists) {
+          console.log('Card fue cerrado durante la llamada async, ignorando sugerencia');
+          return;
         }
-      } catch (error) {
-        console.error('Error al obtener sugerencias de nivel 3:', error);
-        // No mostrar error al usuario, simplemente no auto-completar
+        
+        // Auto-seleccionar el nivel 3 más usado
+        newOutflow.level3_id = data[0].level3_id;
+        newOutflow.suggested_level3 = true;
+        
+        // Auto-seleccionar también el nivel 2 padre para el filtro
+        const selectedLevel3 = props.levels3.find(l => l.value === data[0].level3_id);
+        if (selectedLevel3) {
+          newOutflow.level2_id = selectedLevel3.level2_id;
+        }
+        
+        // Mostrar notificación sutil
+        console.log(`✨ Sugerencia: "${data[0].level3_name}" (usado ${data[0].usage_count} veces)`);
       }
+    } catch (error) {
+      console.error('Error al obtener sugerencias de nivel 3:', error);
+      // No mostrar error al usuario, simplemente no auto-completar
     }
   }
 }
 function closeCard(id) {
-  const idx = showCards.value.indexOf(id);
-  if (idx !== -1) {
-    showCards.value.splice(idx, 1);
-    selectedOutflows.value.splice(idx, 1);
+  // Encontrar el índice en showCards
+  const showCardsIdx = showCards.value.indexOf(id);
+  
+  if (showCardsIdx !== -1) {
+    // Eliminar de showCards
+    showCards.value.splice(showCardsIdx, 1);
+    
+    // Buscar el índice correcto en selectedOutflows usando el mismo id
+    const selectedIdx = selectedOutflows.value.findIndex(sel => sel.id === id);
+    
+    if (selectedIdx !== -1) {
+      selectedOutflows.value.splice(selectedIdx, 1);
+    }
   }
 }
 
