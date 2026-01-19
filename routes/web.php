@@ -22,6 +22,13 @@ use App\Http\Controllers\Products2\DeleteProduct2Controller;
     use App\Http\Controllers\FuelOutflows\UpdateFuelOutflowController;
     use App\Http\Controllers\FuelOutflows\DeleteFuelOutflowController;
 
+// Rutas para Application Orders
+    use App\Http\Controllers\ApplicationOrdersController;
+    use App\Http\Controllers\ApplicationOrders\StoreApplicationOrderController;
+    use App\Http\Controllers\ApplicationOrders\UpdateApplicationOrderController;
+    use App\Http\Controllers\ApplicationOrders\DeleteApplicationOrderController;
+    use App\Http\Controllers\ApplicationOrders\ShowApplicationOrderController;
+
 use Illuminate\Foundation\Application;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\HomeController;
@@ -532,6 +539,14 @@ Route::middleware([
     Route::get('/fuel-outflows/{fuelOutFlow}/edit', EditFuelOutflowController::class)->name('fuel-outflows.edit');
     Route::put('/fuel-outflows/{fuelOutFlow}', UpdateFuelOutflowController::class)->name('fuel-outflows.update');
     Route::delete('/fuel-outflows/{fuelOutFlow}', DeleteFuelOutflowController::class)->name('fuel-outflows.delete');
+
+    // Application Orders
+    Route::get('/application-orders', [ApplicationOrdersController::class, 'index'])->name('application-orders.index');
+    Route::post('/application-orders', StoreApplicationOrderController::class)->name('application-orders.store');
+    Route::get('/application-orders/{applicationOrder}/pdf', \App\Http\Controllers\ApplicationOrders\PdfApplicationOrderController::class)->name('application-orders.pdf');
+    Route::get('/application-orders/{applicationOrder}', ShowApplicationOrderController::class)->name('application-orders.show');
+    Route::put('/application-orders/{applicationOrder}', UpdateApplicationOrderController::class)->name('application-orders.update');
+    Route::delete('/application-orders/{applicationOrder}', DeleteApplicationOrderController::class)->name('application-orders.delete');
 
     // Consolidated Documents
     Route::get('/consolidated-documents', [ConsolidatedDocumentsController::class, 'index'])

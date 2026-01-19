@@ -10,7 +10,7 @@ const presupuestos = ['/dashboard','/technicalpanel','/budgets', '/agrochemicals
 
 const parametros = ['/cost-centers', '/levels', '/users', '/company-reasons', '/fruits', '/varieties', '/parcels', '/seasons'];
 
-const gestion = ['/suppliers','/estimates', '/products', '/invoices', '/credit_debit_notes', '/machineries', '/type-machineries'];
+const gestion = ['/suppliers','/estimates', '/products', '/invoices', '/credit_debit_notes', '/machineries', '/type-machineries', '/application-orders'];
 
 var active = ref(0);
 var active2 = ref('');
@@ -239,6 +239,13 @@ const items = [
                 title: 'Tipo de Maquinarias',
                 icon: `<i class="bi bi-card-checklist"></i>`,
                 link: 'type.machineries.index',
+                subitems: []
+            },
+
+            {
+                title: 'Órdenes de Aplicación',
+                icon: `<i class="bi bi-card-checklist"></i>`,
+                link: 'application-orders.index',
                 subitems: []
             }
         ]

@@ -9,6 +9,9 @@ const { hasCostCenter, hasVariety, hasFruit, hasCompanyReason, hasSeason, hasPar
 
 const lifetime = computed(() =>usePage().props.lifetime);
 
+// Path base para assets
+const path = '';
+
  let timeoutId;
   const inactivityTime = lifetime.value * 60 * 1000; // 30 minutos en milisegundos
 
@@ -309,6 +312,12 @@ const logout = () => {
                 </li>
                 <li class="nav-item"><Link class="nav-link" :href="route('type.machineries.index')">
                     <div class="d-flex align-items-center"><span class="nav-link-text ps-3">Tipo de Maquinarias</span>
+                    </div>
+                  </Link>
+                  <!-- more inner pages-->
+                </li>
+                <li class="nav-item"><Link class="nav-link" :href="route('application-orders.index')">
+                    <div class="d-flex align-items-center"><span class="nav-link-text ps-3">Órdenes de Aplicación</span>
                     </div>
                   </Link>
                   <!-- more inner pages-->
