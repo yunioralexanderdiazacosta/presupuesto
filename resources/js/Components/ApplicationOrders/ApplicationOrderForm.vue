@@ -1,5 +1,5 @@
 <script setup>
-import { ref, computed } from 'vue';
+import { ref, computed, watch } from 'vue';
 import Multiselect from '@vueform/multiselect';
 import TextInput from '@/Components/TextInput.vue';
 import InputError from '@/Components/InputError.vue';
@@ -9,6 +9,7 @@ const props = defineProps({
     form: Object,
     products: Array,
     costCenters: Array,
+    units: Array,
     isEditing: {
         type: Boolean,
         default: false
@@ -20,11 +21,22 @@ const selectedProduct = ref(null);
 const editingProductIndex = ref(null);
 const newProduct = ref({
     product_id: '',
+    unit_id: null,
     tipo_dosis: 'por_hectarea',
     dosis_por_100: '',
     dosis_por_hectarea: '',
     carencia: '',
     reingreso: '',
+});
+
+// Watcher para actualizar unit_id automáticamente cuando se selecciona un producto
+watch(() => newProduct.value.product_id, (newProductId) => {
+    if (newProductId) {
+        const product = props.products.find(p => p.value === newProductId);
+        if (product) {
+            newProduct.value.unit_id = product.unit_id;
+        }
+    }
 });
 
 const totalHectareas = computed(() => {
@@ -91,6 +103,7 @@ function addProduct() {
     // Resetear form
     newProduct.value = {
         product_id: '',
+        unit_id: null,
         tipo_dosis: 'por_hectarea',
         dosis_por_100: '',
         dosis_por_hectarea: '',
@@ -106,6 +119,7 @@ function editProduct(index) {
     
     newProduct.value = {
         product_id: product.product_id,
+        unit_id: product.unit_id,
         tipo_dosis: product.tipo_dosis,
         dosis_por_100: product.dosis_por_100,
         dosis_por_hectarea: product.dosis_por_hectarea,
@@ -123,6 +137,7 @@ function cancelEditProduct() {
     editingProductIndex.value = null;
     newProduct.value = {
         product_id: '',
+        unit_id: null,
         tipo_dosis: 'por_hectarea',
         dosis_por_100: '',
         dosis_por_hectarea: '',
@@ -144,6 +159,11 @@ function getProductName(productId) {
 function getProductUnit(productId) {
     const product = props.products.find(p => p.value === productId);
     return product?.unit_name || '';
+}
+
+function getUnitName(unitId) {
+    const unit = props.units.find(u => u.value === unitId);
+    return unit?.label || '';
 }
 
 // ==== CENTROS DE COSTO ====
@@ -301,7 +321,7 @@ function getProductTotalQuantity(product) {
                     :searchable="true"
                     :close-on-select="false"
                     placeholder="Seleccione centros de costo..."
-                    class="form-control"
+                    class="multiselect-blue form-control-sm"
                     :class="{'is-invalid': form.errors.cost_centers}"
                 />
                 <InputError :message="form.errors.cost_centers" />
@@ -352,7 +372,7 @@ function getProductTotalQuantity(product) {
                             :options="products"
                             :searchable="true"
                             placeholder="Seleccione un producto..."
-                            class="form-control"
+                            class="multiselect-blue form-control-sm"
                         />
                     </div>
 
@@ -380,7 +400,7 @@ function getProductTotalQuantity(product) {
                     </div>
                 </div>
 
-                <div class="row mb-2">
+                <div class="row mb-3">
                     <div class="col-md-3" v-if="newProduct.tipo_dosis === 'por_hectarea'">
                         <label class="form-label">Dosis por Hectárea</label>
                         <input
@@ -404,6 +424,17 @@ function getProductTotalQuantity(product) {
                     </div>
 
                     <div class="col-md-3">
+                        <label class="form-label">Unidad</label>
+                        <Multiselect
+                            v-model="newProduct.unit_id"
+                            :options="units"
+                            :searchable="true"
+                            placeholder="Seleccione unidad..."
+                            class="multiselect-blue form-control-sm"
+                        />
+                    </div>
+
+                    <div class="col-md-3">
                         <label class="form-label">Carencia (días)</label>
                         <input
                             v-model="newProduct.carencia"
@@ -422,8 +453,10 @@ function getProductTotalQuantity(product) {
                             placeholder="0"
                         />
                     </div>
+                </div>
 
-                    <div class="col-md-3 d-flex align-items-end">
+                <div class="row mb-2">
+                    <div class="col-md-12">
                         <button @click="addProduct" class="btn w-100" :class="editingProductIndex !== null ? 'btn-warning' : 'btn-success'" type="button">
                             <i :class="editingProductIndex !== null ? 'fas fa-save' : 'fas fa-plus'" class="me-1"></i>
                             {{ editingProductIndex !== null ? 'Actualizar Producto' : 'Agregar Producto' }}
@@ -435,9 +468,9 @@ function getProductTotalQuantity(product) {
                 <div v-if="newProduct.product_id && totalHectareas > 0" class="alert alert-info mt-2">
                     <strong>Vista Previa:</strong><br>
                     Cantidad por hectárea: <strong>{{ calculatedQuantityPerHa.toFixed(2) }}</strong> 
-                    {{ getProductUnit(newProduct.product_id) }}/ha<br>
+                    {{ getUnitName(newProduct.unit_id) || getProductUnit(newProduct.product_id) }}/ha<br>
                     Cantidad total: <strong>{{ calculatedTotalQuantity.toFixed(2) }}</strong> 
-                    {{ getProductUnit(newProduct.product_id) }}
+                    {{ getUnitName(newProduct.unit_id) || getProductUnit(newProduct.product_id) }}
                 </div>
             </div>
         </div>
@@ -466,17 +499,17 @@ function getProductTotalQuantity(product) {
                         </td>
                         <td class="text-end">
                             <span v-if="product.tipo_dosis === 'por_hectarea'">
-                                {{ Number(product.dosis_por_hectarea).toFixed(2) }} {{ getProductUnit(product.product_id) }}/ha
+                                {{ Number(product.dosis_por_hectarea).toFixed(2) }} {{ getUnitName(product.unit_id) || getProductUnit(product.product_id) }}/ha
                             </span>
                             <span v-else>
-                                {{ Number(product.dosis_por_100).toFixed(2) }} {{ getProductUnit(product.product_id) }}/100L
+                                {{ Number(product.dosis_por_100).toFixed(2) }} {{ getUnitName(product.unit_id) || getProductUnit(product.product_id) }}/100L
                             </span>
                         </td>
                         <td class="text-end">
-                            {{ getProductQuantityPerHa(product).toFixed(2) }} {{ getProductUnit(product.product_id) }}/ha
+                            {{ getProductQuantityPerHa(product).toFixed(2) }} {{ getUnitName(product.unit_id) || getProductUnit(product.product_id) }}/ha
                         </td>
                         <td class="text-end">
-                            <strong>{{ getProductTotalQuantity(product).toFixed(2) }}</strong> {{ getProductUnit(product.product_id) }}
+                            <strong>{{ getProductTotalQuantity(product).toFixed(2) }}</strong> {{ getUnitName(product.unit_id) || getProductUnit(product.product_id) }}
                         </td>
                         <td class="text-center">{{ product.carencia }} días</td>
                         <td class="text-center">{{ product.reingreso }} días</td>
@@ -498,3 +531,14 @@ function getProductTotalQuantity(product) {
 </template>
 
 <style src="@vueform/multiselect/themes/default.css"></style>
+<style>
+.multiselect-blue {
+    --ms-bg: var(--kt-input-solid-bg) !important;
+    --ms-border-color: var(--kt-input-solid-bg);
+    --ms-py: 3px !important;
+    --ms-tag-bg: #2c7be5;
+    --ms-tag-color: var(--kt-primary);
+    --ms-option-bg-selected: var(--kt-primary);
+    --ms-option-bg-selected-pointed: var(--kt-primary);
+}
+</style>

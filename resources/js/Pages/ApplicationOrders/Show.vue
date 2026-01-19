@@ -10,6 +10,7 @@ const props = defineProps({
     applicationOrder: Object,
     products: Array,
     costCenters: Array,
+    units: Array,
 });
 
 const title = 'Detalle de Orden de Aplicación';
@@ -319,6 +320,7 @@ function confirmDelete() {
             :order="applicationOrder"
             :products="products"
             :cost-centers="costCenters"
+            :units="units"
             @close="closeEditModal"
         />
     </AppLayout>

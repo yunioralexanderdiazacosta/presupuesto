@@ -11,6 +11,7 @@ const props = defineProps({
     applicationOrders: Object,
     products: Array,
     costCenters: Array,
+    units: Array,
 });
 
 const title = 'Órdenes de Aplicación';
@@ -25,15 +26,14 @@ const filteredRows = computed(() => {
     if (!term.value) return props.applicationOrders.data;
     const search = term.value.toLowerCase();
     return props.applicationOrders.data.filter(item => {
-        const recomendado = item.recomendado?.toLowerCase() || '';
-        const responsable = item.responsable?.toLowerCase() || '';
         const aplicadores = item.aplicadores?.toLowerCase() || '';
         const status = item.status?.toLowerCase() || '';
+        const productos = item.order_products?.map(op => op.product?.name?.toLowerCase() || '').join(' ') || '';
         return (
-            recomendado.includes(search) ||
-            responsable.includes(search) ||
             aplicadores.includes(search) ||
-            status.includes(search)
+            status.includes(search) ||
+            productos.includes(search) ||
+            item.id.toString().includes(search)
         );
     });
 });
@@ -140,9 +140,8 @@ function getStatusLabel(status) {
                         <table class="table table-hover table-sm">
                             <thead class="table-light">
                                 <tr>
+                                    <th style="width: 80px;">#Orden</th>
                                     <th>Fecha</th>
-                                    <th>Recomendado</th>
-                                    <th>Responsable</th>
                                     <th>Estado</th>
                                     <th>Mojamiento (L)</th>
                                     <th>Productos</th>
@@ -152,26 +151,24 @@ function getStatusLabel(status) {
                             </thead>
                             <tbody>
                                 <tr v-for="order in filteredRows" :key="order.id">
+                                    <td><strong class="text-primary">#{{ order.id }}</strong></td>
                                     <td>{{ new Date(order.date).toLocaleDateString('es-ES') }}</td>
-                                    <td>{{ order.recomendado }}</td>
-                                    <td>{{ order.responsable }}</td>
                                     <td>
                                         <span class="badge" :class="getStatusBadgeClass(order.status)">
                                             {{ getStatusLabel(order.status) }}
                                         </span>
                                     </td>
                                     <td>{{ Number(order.mojamiento).toLocaleString('es-ES') }}</td>
-                                    <td>
-                                        <span class="badge bg-secondary">
-                                            {{ order.order_products?.length || 0 }}
-                                        </span>
+                                    <td class="small" style="max-width: 250px;">
+                                        <div v-if="order.order_products?.length > 0">
+                                            {{ order.order_products.map(op => op.product?.name || 'N/A').join(', ') }}
+                                        </div>
+                                        <span v-else class="text-muted">Sin productos</span>
                                     </td>
                                     <td style="max-width: 200px;">
-                                        <div v-if="order.order_cost_centers?.length > 0" style="max-height: 60px; overflow-y: auto;">
-                                            <div v-for="(occ, index) in order.order_cost_centers" :key="index" class="mb-1">
-                                                <span class="badge bg-info me-1">
-                                                    <i class="fas fa-map-marker-alt me-1"></i>{{ occ.cost_center?.name || 'N/A' }}
-                                                </span>
+                                        <div v-if="order.order_cost_centers?.length > 0" style="max-height: 60px; overflow-y: auto;" class="small">
+                                            <div v-for="(occ, index) in order.order_cost_centers" :key="index">
+                                                • {{ occ.cost_center?.name || 'N/A' }}
                                             </div>
                                         </div>
                                         <span v-else class="text-muted small">Sin centros</span>
@@ -203,7 +200,7 @@ function getStatusLabel(status) {
                                     </td>
                                 </tr>
                                 <tr v-if="filteredRows.length === 0">
-                                    <td colspan="8" class="text-center text-muted">
+                                    <td colspan="7" class="text-center text-muted">
                                         No hay órdenes de aplicación registradas
                                     </td>
                                 </tr>
@@ -241,6 +238,7 @@ function getStatusLabel(status) {
             :show="showCreateModal"
             :products="products"
             :cost-centers="costCenters"
+            :units="units"
             @close="closeCreateModal"
         />
 
@@ -249,6 +247,7 @@ function getStatusLabel(status) {
             :order="editingOrder"
             :products="products"
             :cost-centers="costCenters"
+            :units="units"
             @close="closeEditModal"
         />
     </AppLayout>

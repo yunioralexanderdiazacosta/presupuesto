@@ -56,6 +56,7 @@ class StoreApplicationOrderController
                 ApplicationOrderProduct::create([
                     'application_order_id' => $applicationOrder->id,
                     'product_id' => $productData['product_id'],
+                    'unit_id' => $productData['unit_id'] ?? null,
                     'tipo_dosis' => $productData['tipo_dosis'],
                     'dosis_por_100' => $productData['dosis_por_100'] ?? null,
                     'dosis_por_hectarea' => $productData['dosis_por_hectarea'] ?? null,

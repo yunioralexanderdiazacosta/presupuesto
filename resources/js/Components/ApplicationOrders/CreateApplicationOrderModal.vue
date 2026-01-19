@@ -8,6 +8,7 @@ const props = defineProps({
     show: Boolean,
     products: Array,
     costCenters: Array,
+    units: Array,
 });
 
 const emit = defineEmits(['close']);
@@ -42,6 +43,11 @@ onMounted(() => {
 
 function closeModal() {
     $('#createApplicationOrderModal').modal('hide');
+    // Forzar eliminación del backdrop
+    setTimeout(() => {
+        $('.modal-backdrop').remove();
+        $('body').removeClass('modal-open').css('overflow', '');
+    }, 300);
 }
 
 function save() {
@@ -95,8 +101,7 @@ function save() {
                     <ApplicationOrderForm
                         :form="form"
                         :products="products"
-                        :cost-centers="costCenters"
-                    />
+                        :cost-centers="costCenters"                        :units="units"                    />
                 </div>
 
                 <div class="modal-footer">

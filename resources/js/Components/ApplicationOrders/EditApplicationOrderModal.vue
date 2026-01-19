@@ -9,6 +9,7 @@ const props = defineProps({
     order: Object,
     products: Array,
     costCenters: Array,
+    units: Array,
 });
 
 const emit = defineEmits(['close']);
@@ -43,6 +44,7 @@ watch(() => props.show, (val) => {
         // Cargar productos
         form.products = (props.order.order_products || []).map(op => ({
             product_id: op.product_id,
+            unit_id: op.unit_id,
             tipo_dosis: op.tipo_dosis,
             dosis_por_100: op.dosis_por_100,
             dosis_por_hectarea: op.dosis_por_hectarea,
@@ -74,6 +76,11 @@ onMounted(() => {
 
 function closeModal() {
     $('#editApplicationOrderModal').modal('hide');
+    // Forzar eliminación del backdrop
+    setTimeout(() => {
+        $('.modal-backdrop').remove();
+        $('body').removeClass('modal-open').css('overflow', '');
+    }, 300);
 }
 
 function save() {
@@ -128,8 +135,7 @@ function save() {
                     <ApplicationOrderForm
                         :form="form"
                         :products="products"
-                        :cost-centers="costCenters"
-                        :is-editing="true"
+                        :cost-centers="costCenters"                        :units="units"                        :is-editing="true"
                     />
                 </div>
 

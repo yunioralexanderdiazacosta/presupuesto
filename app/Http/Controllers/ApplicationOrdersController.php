@@ -9,6 +9,7 @@ use App\Models\ApplicationOrder;
 use App\Models\Product;
 use App\Models\CostCenter;
 use App\Models\Level3;
+use App\Models\Unit;
 
 class ApplicationOrdersController extends Controller
 {
@@ -58,10 +59,19 @@ class ApplicationOrdersController extends Controller
                 ];
             });
 
+        // Obtener unidades
+        $units = Unit::orderBy('name')->get(['id', 'name'])->map(function($unit) {
+            return [
+                'value' => $unit->id,
+                'label' => $unit->name,
+            ];
+        });
+
         return Inertia::render('ApplicationOrders/Index', [
             'applicationOrders' => $applicationOrders,
             'products' => $products,
             'costCenters' => $costCenters,
+            'units' => $units,
         ]);
     }
 }

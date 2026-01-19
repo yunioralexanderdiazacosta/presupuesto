@@ -5,6 +5,7 @@ namespace App\Http\Controllers\ApplicationOrders;
 use App\Models\ApplicationOrder;
 use App\Models\Product;
 use App\Models\CostCenter;
+use App\Models\Unit;
 use Illuminate\Support\Facades\Auth;
 use Inertia\Inertia;
 
@@ -54,11 +55,20 @@ class ShowApplicationOrderController
                     'surface' => $cc->surface ?? 0,
                 ];
             });
+
+        // Obtener unidades
+        $units = Unit::orderBy('name')->get(['id', 'name'])->map(function($unit) {
+            return [
+                'value' => $unit->id,
+                'label' => $unit->name,
+            ];
+        });
         
         return Inertia::render('ApplicationOrders/Show', [
             'applicationOrder' => $applicationOrder,
             'products' => $products,
             'costCenters' => $costCenters,
+            'units' => $units,
         ]);
     }
 }

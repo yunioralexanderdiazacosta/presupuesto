@@ -14,6 +14,7 @@ class ApplicationOrderProduct extends Model
     protected $fillable = [
         'application_order_id',
         'product_id',
+        'unit_id',
         'tipo_dosis',
         'dosis_por_100',
         'dosis_por_hectarea',
@@ -46,5 +47,13 @@ class ApplicationOrderProduct extends Model
     public function product()
     {
         return $this->belongsTo(Product::class);
+    }
+
+    /**
+     * Relación con Unit
+     */
+    public function unit()
+    {
+        return $this->belongsTo(Unit::class);
     }
 }
