@@ -1,5 +1,5 @@
 <script setup>
-import { ref, computed } from 'vue';
+import { ref, computed, onMounted, nextTick, watch } from 'vue';
 import Swal from 'sweetalert2';
 import { Link, router, Head } from '@inertiajs/vue3';
 import AppLayout from '@/Layouts/AppLayout.vue';
@@ -12,6 +12,7 @@ const props = defineProps({
     products: Array,
     costCenters: Array,
     units: Array,
+    groupings: Array,
 });
 
 const title = 'Órdenes de Aplicación';
@@ -37,6 +38,13 @@ const filteredRows = computed(() => {
         );
     });
 });
+
+// Función para generar HTML del tooltip con los centros de costo restantes
+function getCostCentersTooltip(order) {
+    if (!order.order_cost_centers || order.order_cost_centers.length <= 3) return '';
+    const remaining = order.order_cost_centers.slice(3);
+    return remaining.map(occ => `• ${occ.cost_center?.name || 'N/A'}`).join('<br>');
+}
 
 const showCreateModal = ref(false);
 const showEditModal = ref(false);
@@ -102,6 +110,33 @@ function getStatusLabel(status) {
     };
     return labels[status] || status;
 }
+
+// Función para inicializar tooltips
+function initTooltips() {
+    nextTick(() => {
+        const tooltipTriggerList = document.querySelectorAll('[data-bs-toggle="tooltip"]');
+        tooltipTriggerList.forEach(el => {
+            // Destruir tooltip existente si existe
+            if (el._tooltip) {
+                el._tooltip.dispose();
+            }
+            // Crear nuevo tooltip
+            if (window.bootstrap) {
+                el._tooltip = new window.bootstrap.Tooltip(el);
+            }
+        });
+    });
+}
+
+// Inicializar tooltips al montar
+onMounted(() => {
+    initTooltips();
+});
+
+// Reinicializar tooltips cuando cambien los datos filtrados
+watch(filteredRows, () => {
+    initTooltips();
+});
 </script>
 
 <template>
@@ -166,9 +201,23 @@ function getStatusLabel(status) {
                                         <span v-else class="text-muted">Sin productos</span>
                                     </td>
                                     <td style="max-width: 200px;">
-                                        <div v-if="order.order_cost_centers?.length > 0" style="max-height: 60px; overflow-y: auto;" class="small">
-                                            <div v-for="(occ, index) in order.order_cost_centers" :key="index">
+                                        <div v-if="order.order_cost_centers?.length > 0" class="small">
+                                            <!-- Mostrar máximo 3 centros -->
+                                            <div v-for="(occ, index) in order.order_cost_centers.slice(0, 3)" :key="index">
                                                 • {{ occ.cost_center?.name || 'N/A' }}
+                                            </div>
+                                            <!-- Si hay más de 3, mostrar "y X más" con tooltip -->
+                                            <div 
+                                                v-if="order.order_cost_centers.length > 3"
+                                                class="text-primary fw-bold"
+                                                style="cursor: pointer;"
+                                                :data-bs-title="getCostCentersTooltip(order)"
+                                                data-bs-toggle="tooltip"
+                                                data-bs-placement="top"
+                                                data-bs-html="true"
+                                            >
+                                                <i class="fas fa-plus-circle me-1"></i>
+                                                y {{ order.order_cost_centers.length - 3 }} más...
                                             </div>
                                         </div>
                                         <span v-else class="text-muted small">Sin centros</span>
@@ -239,6 +288,7 @@ function getStatusLabel(status) {
             :products="products"
             :cost-centers="costCenters"
             :units="units"
+            :groupings="groupings"
             @close="closeCreateModal"
         />
 
@@ -248,6 +298,7 @@ function getStatusLabel(status) {
             :products="products"
             :cost-centers="costCenters"
             :units="units"
+            :groupings="groupings"
             @close="closeEditModal"
         />
     </AppLayout>

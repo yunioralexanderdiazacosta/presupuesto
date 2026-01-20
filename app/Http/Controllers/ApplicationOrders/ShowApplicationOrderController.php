@@ -24,6 +24,7 @@ class ShowApplicationOrderController
         // Cargar todas las relaciones necesarias
         $applicationOrder->load([
             'orderProducts.product.unit',
+            'orderProducts.unit',
             'orderCostCenters.costCenter',
             'team',
             'season'
@@ -63,12 +64,29 @@ class ShowApplicationOrderController
                 'label' => $unit->name,
             ];
         });
+
+        // Obtener agrupaciones con sus centros de costo
+        $groupings = \App\Models\Grouping::with(['costCenters' => function($q) use ($seasonId) {
+            $q->select('cost_centers.id', 'cost_centers.name')->where('season_id', $seasonId);
+        }])
+        ->where('season_id', $seasonId)
+        ->whereHas('season.team', fn($q) => $q->where('team_id', $user->team_id))
+        ->get()
+        ->map(fn($g) => [
+            'id' => $g->id,
+            'name' => $g->name,
+            'cost_centers' => $g->costCenters->map(fn($cc) => [
+                'id' => $cc->id,
+                'name' => $cc->name
+            ])->values(),
+        ]);
         
         return Inertia::render('ApplicationOrders/Show', [
             'applicationOrder' => $applicationOrder,
             'products' => $products,
             'costCenters' => $costCenters,
             'units' => $units,
+            'groupings' => $groupings,
         ]);
     }
 }

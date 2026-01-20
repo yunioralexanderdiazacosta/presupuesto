@@ -10,6 +10,7 @@ const props = defineProps({
     products: Array,
     costCenters: Array,
     units: Array,
+    groupings: Array,
     isEditing: {
         type: Boolean,
         default: false
@@ -55,6 +56,46 @@ const calculatedQuantityPerHa = computed(() => {
 
 const calculatedTotalQuantity = computed(() => {
     return calculatedQuantityPerHa.value * totalHectareas.value;
+});
+
+// Computed para vista previa simplificada
+const previewSimplifiedQuantity = computed(() => {
+    const cantidad = calculatedTotalQuantity.value;
+    const unitId = newProduct.value.unit_id || null;
+    
+    // Obtener el nombre de la unidad
+    let unitName = '';
+    if (unitId) {
+        const unit = props.units.find(u => u.value === unitId);
+        unitName = unit?.label || '';
+    } else {
+        const prod = props.products.find(p => p.value === newProduct.value.product_id);
+        unitName = prod?.unit_name || '';
+    }
+    
+    unitName = unitName.toLowerCase();
+    
+    // Convertir cc a lt si es >= 1000
+    if (unitName === 'cc' && cantidad >= 1000) {
+        return {
+            value: (cantidad / 1000).toFixed(2),
+            unit: 'lt'
+        };
+    }
+    
+    // Convertir gr a kg si es >= 1000
+    if (unitName === 'gr' && cantidad >= 1000) {
+        return {
+            value: (cantidad / 1000).toFixed(2),
+            unit: 'kg'
+        };
+    }
+    
+    // No convertir, devolver original
+    return {
+        value: cantidad.toFixed(2),
+        unit: getUnitName(unitId) || getProductUnit(newProduct.value.product_id)
+    };
 });
 
 function addProduct() {
@@ -188,6 +229,19 @@ const selectedCostCenters = computed({
     }
 });
 
+// ==== AGRUPACIÓN ====
+const selectedGrouping = ref(null);
+
+// Watch para aplicar agrupación automáticamente
+watch(selectedGrouping, (groupingId) => {
+    if (!groupingId) return;
+    const grouping = props.groupings?.find(g => g.id == groupingId);
+    if (grouping && Array.isArray(grouping.cost_centers)) {
+        const groupCCs = grouping.cost_centers.map(cc => cc.id);
+        selectedCostCenters.value = groupCCs;
+    }
+});
+
 // Calcular cantidades para productos ya agregados
 function getProductQuantityPerHa(product) {
     if (product.tipo_dosis === 'por_hectarea') {
@@ -202,62 +256,102 @@ function getProductQuantityPerHa(product) {
 function getProductTotalQuantity(product) {
     return getProductQuantityPerHa(product) * totalHectareas.value;
 }
+
+// Función para convertir y simplificar cantidades (cc a lt, gr a kg)
+function getSimplifiedQuantity(product) {
+    const cantidad = getProductTotalQuantity(product);
+    const unitId = product.unit_id || null;
+    
+    // Obtener el nombre de la unidad
+    let unitName = '';
+    if (unitId) {
+        const unit = props.units.find(u => u.value === unitId);
+        unitName = unit?.label || '';
+    } else {
+        const prod = props.products.find(p => p.value === product.product_id);
+        unitName = prod?.unit_name || '';
+    }
+    
+    unitName = unitName.toLowerCase();
+    
+    // Convertir cc a lt si es >= 1000
+    if (unitName === 'cc' && cantidad >= 1000) {
+        return {
+            value: (cantidad / 1000).toFixed(2),
+            unit: 'lt'
+        };
+    }
+    
+    // Convertir gr a kg si es >= 1000
+    if (unitName === 'gr' && cantidad >= 1000) {
+        return {
+            value: (cantidad / 1000).toFixed(2),
+            unit: 'kg'
+        };
+    }
+    
+    // No convertir, devolver original
+    return {
+        value: cantidad.toFixed(2),
+        unit: getUnitName(unitId) || getProductUnit(product.product_id)
+    };
+}
 </script>
 
 <template>
     <div class="container-fluid">
         <!-- Datos Generales -->
-        <div class="row mb-3">
+        <div class="row mb-2">
             <div class="col-md-12">
-                <h6 class="text-primary border-bottom pb-2">
-                    <i class="fas fa-info-circle me-2"></i>Datos Generales
+                <h6 class="text-primary border-bottom pb-1 mb-2">
+                    <i class="fas fa-info-circle me-1"></i>Datos Generales
                 </h6>
             </div>
         </div>
 
-        <div class="row mb-3">
-            <div class="col-md-3">
-                <label class="form-label">Fecha <span class="text-danger">*</span></label>
+        <div class="row mb-2">
+            <div class="col-md-3 mb-2">
+                <label class="form-label small mb-1">Fecha <span class="text-danger">*</span></label>
                 <input
                     v-model="form.date"
                     type="date"
-                    class="form-control"
+                    class="form-control form-control-sm"
                     :class="{'is-invalid': form.errors.date}"
                 />
                 <InputError :message="form.errors.date" />
             </div>
 
-            <div class="col-md-3">
-                <label class="form-label">Mojamiento (Litros) <span class="text-danger">*</span></label>
+            <div class="col-md-3 mb-2">
+                <label class="form-label small mb-1">Mojamiento (L) <span class="text-danger">*</span></label>
                 <input
                     v-model="form.mojamiento"
                     type="number"
                     step="0.01"
-                    class="form-control"
+                    class="form-control form-control-sm"
                     :class="{'is-invalid': form.errors.mojamiento}"
                     placeholder="Ej: 1500"
                 />
                 <InputError :message="form.errors.mojamiento" />
             </div>
 
-            <div class="col-md-3">
-                <label class="form-label">Recomendado por <span class="text-danger">*</span></label>
+            <div class="col-md-3 mb-2">
+                <label class="form-label small mb-1">Recomendado por <span class="text-danger">*</span></label>
                 <input
                     v-model="form.recomendado"
                     type="text"
-                    class="form-control"
+                    class="form-control form-control-sm"
                     :class="{'is-invalid': form.errors.recomendado}"
                     placeholder="Nombre"
                 />
                 <InputError :message="form.errors.recomendado" />
             </div>
 
-            <div class="col-md-3">
-                <label class="form-label">Responsable <span class="text-danger">*</span></label>
+            <div class="col-md-3 mb-2">
+                <label class="form-label small mb-1">Responsable <span class="text-danger">*</span></label>
                 <input
                     v-model="form.responsable"
                     type="text"
-                    class="form-control"
+                    class="form-control form-control-sm"
                     :class="{'is-invalid': form.errors.responsable}"
                     placeholder="Nombre del responsable"
                 />
@@ -265,22 +359,22 @@ function getProductTotalQuantity(product) {
             </div>
         </div>
 
-        <div class="row mb-3">
-            <div class="col-md-6">
-                <label class="form-label">Aplicadores <span class="text-danger">*</span></label>
+        <div class="row mb-2">
+            <div class="col-md-6 mb-2">
+                <label class="form-label small mb-1">Aplicadores <span class="text-danger">*</span></label>
                 <textarea
                     v-model="form.aplicadores"
-                    rows="3"
-                    class="form-control"
+                    rows="2"
+                    class="form-control form-control-sm"
                     :class="{'is-invalid': form.errors.aplicadores}"
                     placeholder="Nombres de los aplicadores..."
                 ></textarea>
                 <InputError :message="form.errors.aplicadores" />
             </div>
 
-            <div class="col-md-3">
-                <label class="form-label">Estado <span class="text-danger">*</span></label>
-                <select v-model="form.status" class="form-select" :class="{'is-invalid': form.errors.status}">
+            <div class="col-md-3 mb-2">
+                <label class="form-label small mb-1">Estado <span class="text-danger">*</span></label>
+                <select v-model="form.status" class="form-select form-select-sm" :class="{'is-invalid': form.errors.status}">
                     <option value="pendiente">Pendiente</option>
                     <option value="en_proceso">En Proceso</option>
                     <option value="completada">Completada</option>
@@ -289,31 +383,49 @@ function getProductTotalQuantity(product) {
                 <InputError :message="form.errors.status" />
             </div>
 
-            <div class="col-md-3">
-                <label class="form-label">Observaciones</label>
+            <div class="col-md-3 mb-2">
+                <label class="form-label small mb-1">Observaciones</label>
                 <textarea
                     v-model="form.observations"
-                    rows="3"
-                    class="form-control"
+                    rows="2"
+                    class="form-control form-control-sm"
                     placeholder="Observaciones generales..."
                 ></textarea>
             </div>
         </div>
 
-        <hr class="my-4">
+        <hr class="my-2">
 
         <!-- Centros de Costo -->
-        <div class="row mb-3">
+        <div class="row mb-2">
             <div class="col-md-12">
-                <h6 class="text-primary border-bottom pb-2">
-                    <i class="fas fa-map-marker-alt me-2"></i>Centros de Costo
+                <h6 class="text-primary border-bottom pb-1 mb-2">
+                    <i class="fas fa-map-marker-alt me-1"></i>Centros de Costo
                 </h6>
             </div>
         </div>
 
-        <div class="row mb-3">
-            <div class="col-md-12">
-                <label class="form-label">Seleccionar Centros de Costo <span class="text-danger">*</span></label>
+        <div class="row mb-2">
+            <div class="col-md-4">
+                <label class="form-label small mb-1">
+                    <i class="fas fa-layer-group me-1"></i>Agrupación (Preselección rápida)
+                </label>
+                <select 
+                    v-model="selectedGrouping" 
+                    class="form-select form-select-sm"
+                >
+                    <option :value="null">Seleccione agrupación...</option>
+                    <option v-for="g in (groupings || [])" :key="g.id" :value="g.id">
+                        {{ g.name }}
+                    </option>
+                </select>
+                <small class="text-muted d-block mt-1">
+                    <i class="fas fa-info-circle me-1"></i>
+                    Preselección rápida
+                </small>
+            </div>
+            <div class="col-md-8">
+                <label class="form-label small mb-1">Seleccionar Centros de Costo <span class="text-danger">*</span></label>
                 <Multiselect
                     v-model="selectedCostCenters"
                     :options="costCenters"
@@ -325,33 +437,33 @@ function getProductTotalQuantity(product) {
                     :class="{'is-invalid': form.errors.cost_centers}"
                 />
                 <InputError :message="form.errors.cost_centers" />
-                <small v-if="totalHectareas > 0" class="text-muted">
+                <small v-if="totalHectareas > 0" class="text-muted d-block mt-1">
                     <i class="fas fa-calculator me-1"></i>
                     Total: <strong>{{ totalHectareas.toLocaleString('es-ES', {minimumFractionDigits: 2}) }} ha</strong>
                 </small>
             </div>
         </div>
 
-        <hr class="my-4">
+        <hr class="my-2">
 
         <!-- Productos -->
-        <div class="row mb-3">
+        <div class="row mb-2">
             <div class="col-md-12">
-                <h6 class="text-primary border-bottom pb-2">
-                    <i class="fas fa-flask me-2"></i>Productos
+                <h6 class="text-primary border-bottom pb-1 mb-2">
+                    <i class="fas fa-flask me-1"></i>Productos
                 </h6>
             </div>
         </div>
 
         <!-- Formulario agregar producto -->
-        <div class="card mb-3" :class="{'border-warning': editingProductIndex !== null}">
-            <div class="card-header" :class="{'bg-warning': editingProductIndex !== null, 'bg-light': editingProductIndex === null}">
+        <div class="card mb-2 shadow-sm" :class="{'border-warning': editingProductIndex !== null}">
+            <div class="card-header py-2" :class="{'bg-warning': editingProductIndex !== null, 'bg-light': editingProductIndex === null}">
                 <div class="d-flex justify-content-between align-items-center">
-                    <strong v-if="editingProductIndex === null">
-                        <i class="fas fa-plus-circle me-2"></i>Agregar Producto
+                    <strong class="small" v-if="editingProductIndex === null">
+                        <i class="fas fa-plus-circle me-1"></i>Agregar Producto
                     </strong>
-                    <strong v-else class="text-dark">
-                        <i class="fas fa-edit me-2"></i>Editando Producto
+                    <strong class="small text-dark" v-else>
+                        <i class="fas fa-edit me-1"></i>Editando Producto
                     </strong>
                     <button 
                         v-if="editingProductIndex !== null" 
@@ -363,10 +475,10 @@ function getProductTotalQuantity(product) {
                     </button>
                 </div>
             </div>
-            <div class="card-body">
+            <div class="card-body py-2">
                 <div class="row mb-2">
                     <div class="col-md-6">
-                        <label class="form-label">Producto</label>
+                        <label class="form-label small mb-1">Producto</label>
                         <Multiselect
                             v-model="newProduct.product_id"
                             :options="products"
@@ -377,8 +489,8 @@ function getProductTotalQuantity(product) {
                     </div>
 
                     <div class="col-md-6">
-                        <label class="form-label">Tipo de Dosis</label>
-                        <div class="btn-group w-100" role="group">
+                        <label class="form-label small mb-1">Tipo de Dosis</label>
+                        <div class="btn-group btn-group-sm w-100" role="group">
                             <input
                                 type="radio"
                                 class="btn-check"
@@ -395,36 +507,36 @@ function getProductTotalQuantity(product) {
                                 v-model="newProduct.tipo_dosis"
                                 value="por_100_litros"
                             />
-                            <label class="btn btn-outline-primary" for="tipo_100_litros">Por 100 Litros</label>
+                            <label class="btn btn-outline-primary" for="tipo_100_litros">Por 100L</label>
                         </div>
                     </div>
                 </div>
 
-                <div class="row mb-3">
+                <div class="row mb-2">
                     <div class="col-md-3" v-if="newProduct.tipo_dosis === 'por_hectarea'">
-                        <label class="form-label">Dosis por Hectárea</label>
+                        <label class="form-label small mb-1">Dosis por Hectárea</label>
                         <input
                             v-model="newProduct.dosis_por_hectarea"
                             type="number"
                             step="0.01"
-                            class="form-control"
+                            class="form-control form-control-sm"
                             placeholder="0.00"
                         />
                     </div>
 
                     <div class="col-md-3" v-if="newProduct.tipo_dosis === 'por_100_litros'">
-                        <label class="form-label">Dosis por 100L</label>
+                        <label class="form-label small mb-1">Dosis por 100L</label>
                         <input
                             v-model="newProduct.dosis_por_100"
                             type="number"
                             step="0.01"
-                            class="form-control"
+                            class="form-control form-control-sm"
                             placeholder="0.00"
                         />
                     </div>
 
                     <div class="col-md-3">
-                        <label class="form-label">Unidad</label>
+                        <label class="form-label small mb-1">Unidad</label>
                         <Multiselect
                             v-model="newProduct.unit_id"
                             :options="units"
@@ -435,21 +547,21 @@ function getProductTotalQuantity(product) {
                     </div>
 
                     <div class="col-md-3">
-                        <label class="form-label">Carencia (días)</label>
+                        <label class="form-label small mb-1">Carencia (días)</label>
                         <input
                             v-model="newProduct.carencia"
                             type="number"
-                            class="form-control"
+                            class="form-control form-control-sm"
                             placeholder="0"
                         />
                     </div>
 
                     <div class="col-md-3">
-                        <label class="form-label">Reingreso (días)</label>
+                        <label class="form-label small mb-1">Reingreso (horas)</label>
                         <input
                             v-model="newProduct.reingreso"
                             type="number"
-                            class="form-control"
+                            class="form-control form-control-sm"
                             placeholder="0"
                         />
                     </div>
@@ -457,7 +569,7 @@ function getProductTotalQuantity(product) {
 
                 <div class="row mb-2">
                     <div class="col-md-12">
-                        <button @click="addProduct" class="btn w-100" :class="editingProductIndex !== null ? 'btn-warning' : 'btn-success'" type="button">
+                        <button @click="addProduct" class="btn btn-sm w-100" :class="editingProductIndex !== null ? 'btn-warning' : 'btn-success'" type="button">
                             <i :class="editingProductIndex !== null ? 'fas fa-save' : 'fas fa-plus'" class="me-1"></i>
                             {{ editingProductIndex !== null ? 'Actualizar Producto' : 'Agregar Producto' }}
                         </button>
@@ -465,39 +577,41 @@ function getProductTotalQuantity(product) {
                 </div>
 
                 <!-- Vista previa de cálculos -->
-                <div v-if="newProduct.product_id && totalHectareas > 0" class="alert alert-info mt-2">
-                    <strong>Vista Previa:</strong><br>
-                    Cantidad por hectárea: <strong>{{ calculatedQuantityPerHa.toFixed(2) }}</strong> 
-                    {{ getUnitName(newProduct.unit_id) || getProductUnit(newProduct.product_id) }}/ha<br>
-                    Cantidad total: <strong>{{ calculatedTotalQuantity.toFixed(2) }}</strong> 
-                    {{ getUnitName(newProduct.unit_id) || getProductUnit(newProduct.product_id) }}
+                <div v-if="newProduct.product_id && totalHectareas > 0" class="alert alert-info py-2 mt-2 mb-0">
+                    <strong class="small">Vista Previa:</strong><br>
+                    <small>
+                        Cantidad por hectárea: <strong>{{ calculatedQuantityPerHa.toFixed(2) }}</strong> 
+                        {{ getUnitName(newProduct.unit_id) || getProductUnit(newProduct.product_id) }}/ha<br>
+                        Cantidad total: <strong>{{ Number(previewSimplifiedQuantity.value).toLocaleString('es-ES', {minimumFractionDigits: 2}) }}</strong> 
+                        {{ previewSimplifiedQuantity.unit }}
+                    </small>
                 </div>
             </div>
         </div>
 
         <!-- Tabla de productos agregados -->
-        <div v-if="form.products.length > 0" class="table-responsive">
-            <table class="table table-sm table-bordered">
+        <div v-if="form.products.length > 0" class="table-responsive mt-2">
+            <table class="table table-sm table-bordered mb-0">
                 <thead class="table-light">
                     <tr>
-                        <th>Producto</th>
-                        <th>Tipo Dosis</th>
-                        <th class="text-end">Dosis</th>
-                        <th class="text-end">Cantidad/ha</th>
-                        <th class="text-end">Cantidad Total</th>
-                        <th class="text-center">Carencia</th>
-                        <th class="text-center">Reingreso</th>
-                        <th class="text-center" style="width: 80px;">Acciones</th>
+                        <th class="small">Producto</th>
+                        <th class="small">Tipo Dosis</th>
+                        <th class="text-end small">Dosis</th>
+                        <th class="text-end small">Cantidad/ha</th>
+                        <th class="text-end small">Cantidad Total</th>
+                        <th class="text-center small">Carencia</th>
+                        <th class="text-center small">Reingreso</th>
+                        <th class="text-center small" style="width: 80px;">Acciones</th>
                     </tr>
                 </thead>
                 <tbody>
                     <tr v-for="(product, index) in form.products" :key="index">
-                        <td>{{ getProductName(product.product_id) }}</td>
+                        <td class="small">{{ getProductName(product.product_id) }}</td>
                         <td>
-                            <span v-if="product.tipo_dosis === 'por_hectarea'" class="badge bg-primary">Por Hectárea</span>
-                            <span v-else class="badge bg-info">Por 100L</span>
+                            <span v-if="product.tipo_dosis === 'por_hectarea'" class="badge badge-sm bg-primary">Hectárea</span>
+                            <span v-else class="badge badge-sm bg-info">100L</span>
                         </td>
-                        <td class="text-end">
+                        <td class="text-end small">
                             <span v-if="product.tipo_dosis === 'por_hectarea'">
                                 {{ Number(product.dosis_por_hectarea).toFixed(2) }} {{ getUnitName(product.unit_id) || getProductUnit(product.product_id) }}/ha
                             </span>
@@ -505,14 +619,14 @@ function getProductTotalQuantity(product) {
                                 {{ Number(product.dosis_por_100).toFixed(2) }} {{ getUnitName(product.unit_id) || getProductUnit(product.product_id) }}/100L
                             </span>
                         </td>
-                        <td class="text-end">
+                        <td class="text-end small">
                             {{ getProductQuantityPerHa(product).toFixed(2) }} {{ getUnitName(product.unit_id) || getProductUnit(product.product_id) }}/ha
                         </td>
-                        <td class="text-end">
-                            <strong>{{ getProductTotalQuantity(product).toFixed(2) }}</strong> {{ getUnitName(product.unit_id) || getProductUnit(product.product_id) }}
+                        <td class="text-end small">
+                            <strong>{{ Number(getSimplifiedQuantity(product).value).toLocaleString('es-ES', {minimumFractionDigits: 2}) }}</strong> {{ getSimplifiedQuantity(product).unit }}
                         </td>
-                        <td class="text-center">{{ product.carencia }} días</td>
-                        <td class="text-center">{{ product.reingreso }} días</td>
+                        <td class="text-center small">{{ product.carencia }} d</td>
+                        <td class="text-center small">{{ product.reingreso }} h</td>
                         <td class="text-center">
                             <div class="btn-group btn-group-sm">
                                 <button @click="editProduct(index)" class="btn btn-sm btn-warning" type="button" title="Editar">

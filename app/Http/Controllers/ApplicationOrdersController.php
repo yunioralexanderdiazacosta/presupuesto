@@ -25,6 +25,7 @@ class ApplicationOrdersController extends Controller
         // Obtener órdenes de aplicación con relaciones
         $applicationOrders = ApplicationOrder::with([
             'orderProducts.product',
+            'orderProducts.unit',
             'orderCostCenters.costCenter'
         ])
             ->where('team_id', $user->team_id)
@@ -67,11 +68,28 @@ class ApplicationOrdersController extends Controller
             ];
         });
 
+        // Obtener agrupaciones con sus centros de costo
+        $groupings = \App\Models\Grouping::with(['costCenters' => function($q) use ($season_id) {
+            $q->select('cost_centers.id', 'cost_centers.name')->where('season_id', $season_id);
+        }])
+        ->where('season_id', $season_id)
+        ->whereHas('season.team', fn($q) => $q->where('team_id', $user->team_id))
+        ->get()
+        ->map(fn($g) => [
+            'id' => $g->id,
+            'name' => $g->name,
+            'cost_centers' => $g->costCenters->map(fn($cc) => [
+                'id' => $cc->id,
+                'name' => $cc->name
+            ])->values(),
+        ]);
+
         return Inertia::render('ApplicationOrders/Index', [
             'applicationOrders' => $applicationOrders,
             'products' => $products,
             'costCenters' => $costCenters,
             'units' => $units,
+            'groupings' => $groupings,
         ]);
     }
 }

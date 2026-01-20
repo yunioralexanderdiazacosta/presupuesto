@@ -9,6 +9,7 @@ const props = defineProps({
     products: Array,
     costCenters: Array,
     units: Array,
+    groupings: Array,
 });
 
 const emit = defineEmits(['close']);
@@ -101,7 +102,10 @@ function save() {
                     <ApplicationOrderForm
                         :form="form"
                         :products="products"
-                        :cost-centers="costCenters"                        :units="units"                    />
+                        :cost-centers="costCenters"
+                        :units="units"
+                        :groupings="groupings"
+                    />
                 </div>
 
                 <div class="modal-footer">

@@ -11,6 +11,7 @@ const props = defineProps({
     products: Array,
     costCenters: Array,
     units: Array,
+    groupings: Array,
 });
 
 const title = 'Detalle de Orden de Aplicación';
@@ -79,6 +80,34 @@ function confirmDelete() {
             });
         }
     });
+}
+
+// Función para convertir y simplificar cantidades (cc a lt, gr a kg)
+function getSimplifiedQuantity(orderProduct) {
+    const cantidad = Number(orderProduct.cantidad_total);
+    const unitName = (orderProduct.unit?.name || orderProduct.product?.unit?.name || '').toLowerCase();
+    
+    // Convertir cc a lt si es >= 1000
+    if (unitName === 'cc' && cantidad >= 1000) {
+        return {
+            value: (cantidad / 1000).toFixed(2),
+            unit: 'lt'
+        };
+    }
+    
+    // Convertir gr a kg si es >= 1000
+    if (unitName === 'gr' && cantidad >= 1000) {
+        return {
+            value: (cantidad / 1000).toFixed(2),
+            unit: 'kg'
+        };
+    }
+    
+    // No convertir, devolver original
+    return {
+        value: cantidad.toFixed(2),
+        unit: orderProduct.unit?.name || orderProduct.product?.unit?.name || ''
+    };
 }
 </script>
 
@@ -187,9 +216,9 @@ function confirmDelete() {
                     </h5>
                 </div>
                 <div class="card-body">
-                    <div v-if="applicationOrder.order_cost_centers?.length > 0" class="table-responsive">
+                    <div v-if="applicationOrder.order_cost_centers?.length > 0" class="table-responsive" style="max-height: 400px; overflow-y: auto;">
                         <table class="table table-hover table-sm">
-                            <thead class="table-light">
+                            <thead class="table-light sticky-top">
                                 <tr>
                                     <th>#</th>
                                     <th>Centro de Costo</th>
@@ -208,7 +237,7 @@ function confirmDelete() {
                                     </td>
                                 </tr>
                             </tbody>
-                            <tfoot class="table-light">
+                            <tfoot class="table-light sticky-bottom">
                                 <tr>
                                     <th colspan="2" class="text-end">Total:</th>
                                     <th class="text-end">{{ totalHectareas.toLocaleString('es-ES', {minimumFractionDigits: 2}) }} ha</th>
@@ -263,28 +292,28 @@ function confirmDelete() {
                                     <td class="text-end">
                                         <span v-if="op.tipo_dosis === 'por_hectarea'">
                                             {{ Number(op.dosis_por_hectarea).toLocaleString('es-ES', {minimumFractionDigits: 2}) }}
-                                            {{ op.product?.unit?.name || '' }}/ha
+                                            {{ op.unit?.name || op.product?.unit?.name || '' }}/ha
                                         </span>
                                         <span v-else>
                                             {{ Number(op.dosis_por_100).toLocaleString('es-ES', {minimumFractionDigits: 2}) }}
-                                            {{ op.product?.unit?.name || '' }}/100L
+                                            {{ op.unit?.name || op.product?.unit?.name || '' }}/100L
                                         </span>
                                     </td>
                                     <td class="text-end">
                                         {{ Number(op.cantidad_por_hectarea).toLocaleString('es-ES', {minimumFractionDigits: 2}) }}
-                                        {{ op.product?.unit?.name || '' }}/ha
+                                        {{ op.unit?.name || op.product?.unit?.name || '' }}/ha
                                     </td>
                                     <td class="text-end">
                                         <strong class="text-dark">
-                                            {{ Number(op.cantidad_total).toLocaleString('es-ES', {minimumFractionDigits: 2}) }}
-                                            {{ op.product?.unit?.name || '' }}
+                                            {{ Number(getSimplifiedQuantity(op).value).toLocaleString('es-ES', {minimumFractionDigits: 2}) }}
+                                            {{ getSimplifiedQuantity(op).unit }}
                                         </strong>
                                     </td>
                                     <td class="text-center">
                                         <span class="badge bg-warning text-dark">{{ op.carencia }} días</span>
                                     </td>
                                     <td class="text-center">
-                                        <span class="badge bg-secondary">{{ op.reingreso }} días</span>
+                                        <span class="badge bg-secondary">{{ op.reingreso }} horas</span>
                                     </td>
                                 </tr>
                             </tbody>
@@ -321,6 +350,7 @@ function confirmDelete() {
             :products="products"
             :cost-centers="costCenters"
             :units="units"
+            :groupings="groupings"
             @close="closeEditModal"
         />
     </AppLayout>
