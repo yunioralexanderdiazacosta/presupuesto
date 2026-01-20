@@ -11,6 +11,8 @@ const props = defineProps({
     costCenters: Array,
     units: Array,
     groupings: Array,
+    fruits: Array,
+    phenologicalStages: Array,
     isEditing: {
         type: Boolean,
         default: false
@@ -42,6 +44,16 @@ watch(() => newProduct.value.product_id, (newProductId) => {
 
 const totalHectareas = computed(() => {
     return props.form.cost_centers.reduce((sum, cc) => sum + Number(cc.surface || 0), 0);
+});
+
+const maquinadas = computed(() => {
+    const mojamiento = Number(props.form.mojamiento || 0);
+    const hectareas = totalHectareas.value;
+    const volumen = Number(props.form.volume || 0);
+    
+    if (volumen === 0 || hectareas === 0) return 0;
+    
+    return (mojamiento * hectareas) / volumen;
 });
 
 const calculatedQuantityPerHa = computed(() => {
@@ -232,6 +244,23 @@ const selectedCostCenters = computed({
 // ==== AGRUPACIÓN ====
 const selectedGrouping = ref(null);
 
+// ==== FILTRADO DE ETAPAS FENOLÓGICAS ====
+const selectedFruit = ref(null); // Solo para filtrar, NO se guarda
+
+// Computed para filtrar etapas fenológicas por frutal seleccionado
+const filteredPhenologicalStages = computed(() => {
+    if (!selectedFruit.value || !props.phenologicalStages) {
+        return props.phenologicalStages || [];
+    }
+    return props.phenologicalStages.filter(stage => stage.fruit_id === selectedFruit.value);
+});
+
+// Watch para limpiar la etapa fenológica si se cambia el frutal
+watch(selectedFruit, () => {
+    // Si cambia el frutal, resetear la etapa fenológica seleccionada
+    props.form.phenological_stage_id = null;
+});
+
 // Watch para aplicar agrupación automáticamente
 watch(selectedGrouping, (groupingId) => {
     if (!groupingId) return;
@@ -322,6 +351,29 @@ function getSimplifiedQuantity(product) {
             </div>
 
             <div class="col-md-3 mb-2">
+                <label class="form-label small mb-1">Fecha Inicio</label>
+                <input
+                    v-model="form.start_date"
+                    type="date"
+                    class="form-control form-control-sm"
+                    :class="{'is-invalid': form.errors.start_date}"
+                />
+                <InputError :message="form.errors.start_date" />
+            </div>
+
+            <div class="col-md-3 mb-2">
+                <label class="form-label small mb-1">Volumen</label>
+                <input
+                    v-model="form.volume"
+                    type="number"
+                    class="form-control form-control-sm"
+                    :class="{'is-invalid': form.errors.volume}"
+                    placeholder="0"
+                />
+                <InputError :message="form.errors.volume" />
+            </div>
+
+            <div class="col-md-3 mb-2">
                 <label class="form-label small mb-1">Mojamiento (L) <span class="text-danger">*</span></label>
                 <input
                     v-model="form.mojamiento"
@@ -333,7 +385,9 @@ function getSimplifiedQuantity(product) {
                 />
                 <InputError :message="form.errors.mojamiento" />
             </div>
+        </div>
 
+        <div class="row mb-2">
             <div class="col-md-3 mb-2">
                 <label class="form-label small mb-1">Recomendado por <span class="text-danger">*</span></label>
                 <input
@@ -360,11 +414,42 @@ function getSimplifiedQuantity(product) {
         </div>
 
         <div class="row mb-2">
+            <div class="col-md-4 mb-2">
+                <label class="form-label small mb-1">Frutal (filtro)</label>
+                <select 
+                    v-model="selectedFruit" 
+                    class="form-select form-select-sm"
+                >
+                    <option :value="null" disabled selected>Seleccione frutal para filtrar...</option>
+                    <option v-for="fruit in fruits" :key="fruit.value" :value="fruit.value">
+                        {{ fruit.label }}
+                    </option>
+                </select>
+                <small class="text-muted">Solo para filtrar etapas fenológicas</small>
+            </div>
+
+            <div class="col-md-4 mb-2">
+                <label class="form-label small mb-1">Etapa Fenológica</label>
+                <select 
+                    v-model="form.phenological_stage_id" 
+                    class="form-select form-select-sm"
+                    :class="{'is-invalid': form.errors.phenological_stage_id}"
+                >
+                    <option :value="null" disabled selected>Seleccione etapa fenológica...</option>
+                    <option v-for="stage in filteredPhenologicalStages" :key="stage.value" :value="stage.value">
+                        {{ stage.label }}
+                    </option>
+                </select>
+                <InputError :message="form.errors.phenological_stage_id" />
+            </div>
+        </div>
+
+        <div class="row mb-2">
             <div class="col-md-6 mb-2">
                 <label class="form-label small mb-1">Aplicadores <span class="text-danger">*</span></label>
                 <textarea
                     v-model="form.aplicadores"
-                    rows="2"
+                    rows="1"
                     class="form-control form-control-sm"
                     :class="{'is-invalid': form.errors.aplicadores}"
                     placeholder="Nombres de los aplicadores..."
@@ -387,7 +472,7 @@ function getSimplifiedQuantity(product) {
                 <label class="form-label small mb-1">Observaciones</label>
                 <textarea
                     v-model="form.observations"
-                    rows="2"
+                    rows="1"
                     class="form-control form-control-sm"
                     placeholder="Observaciones generales..."
                 ></textarea>
@@ -414,7 +499,7 @@ function getSimplifiedQuantity(product) {
                     v-model="selectedGrouping" 
                     class="form-select form-select-sm"
                 >
-                    <option :value="null">Seleccione agrupación...</option>
+                    <option :value="null" disabled selected>Seleccione agrupación...</option>
                     <option v-for="g in (groupings || [])" :key="g.id" :value="g.id">
                         {{ g.name }}
                     </option>
@@ -437,10 +522,31 @@ function getSimplifiedQuantity(product) {
                     :class="{'is-invalid': form.errors.cost_centers}"
                 />
                 <InputError :message="form.errors.cost_centers" />
-                <small v-if="totalHectareas > 0" class="text-muted d-block mt-1">
-                    <i class="fas fa-calculator me-1"></i>
-                    Total: <strong>{{ totalHectareas.toLocaleString('es-ES', {minimumFractionDigits: 2}) }} ha</strong>
-                </small>
+            </div>
+        </div>
+
+        <div class="row mb-2 mt-3" v-if="form.volume && totalHectareas > 0">
+            <div class="col-md-3 mb-2">
+                <div class="p-1 border border-success rounded bg-light-success" style="background-color: #d1f4d1;">
+                    <small class="text-muted d-block" style="margin-bottom: 2px;">
+                        <i class="fas fa-calculator me-1"></i>Total Hectáreas
+                    </small>
+                    <span class="h6 mb-0 text-success fw-bold">
+                        {{ totalHectareas.toLocaleString('es-ES', {minimumFractionDigits: 2, maximumFractionDigits: 2}) }}
+                    </span>
+                    <small class="text-success ms-1">ha</small>
+                </div>
+            </div>
+            
+            <div class="col-md-3 mb-2">
+                <div class="p-1 border border-primary rounded bg-light-primary" style="background-color: #cfe2ff;">
+                    <small class="text-muted d-block" style="margin-bottom: 2px;">
+                        <i class="fas fa-tractor me-1"></i>Maquinadas
+                    </small>
+                    <span class="h6 mb-0 text-primary fw-bold">
+                        {{ maquinadas.toLocaleString('es-ES', {minimumFractionDigits: 2, maximumFractionDigits: 2}) }}
+                    </span>
+                </div>
             </div>
         </div>
 
@@ -479,13 +585,15 @@ function getSimplifiedQuantity(product) {
                 <div class="row mb-2">
                     <div class="col-md-6">
                         <label class="form-label small mb-1">Producto</label>
-                        <Multiselect
+                        <select
                             v-model="newProduct.product_id"
-                            :options="products"
-                            :searchable="true"
-                            placeholder="Seleccione un producto..."
-                            class="multiselect-blue form-control-sm"
-                        />
+                            class="form-select form-select-sm"
+                        >
+                            <option :value="''" disabled selected>Seleccione un producto...</option>
+                            <option v-for="product in products" :key="product.value" :value="product.value">
+                                {{ product.label }}
+                            </option>
+                        </select>
                     </div>
 
                     <div class="col-md-6">
@@ -537,13 +645,15 @@ function getSimplifiedQuantity(product) {
 
                     <div class="col-md-3">
                         <label class="form-label small mb-1">Unidad</label>
-                        <Multiselect
+                        <select
                             v-model="newProduct.unit_id"
-                            :options="units"
-                            :searchable="true"
-                            placeholder="Seleccione unidad..."
-                            class="multiselect-blue form-control-sm"
-                        />
+                            class="form-select form-select-sm"
+                        >
+                            <option :value="null" disabled selected>Seleccione unidad...</option>
+                            <option v-for="unit in units" :key="unit.value" :value="unit.value">
+                                {{ unit.label }}
+                            </option>
+                        </select>
                     </div>
 
                     <div class="col-md-3">

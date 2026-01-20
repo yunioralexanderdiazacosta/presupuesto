@@ -21,6 +21,7 @@ class PdfApplicationOrderController
         $applicationOrder->load([
             'orderProducts.product.unit',
             'orderCostCenters.costCenter',
+            'phenologicalStage',
             'team',
             'season'
         ]);

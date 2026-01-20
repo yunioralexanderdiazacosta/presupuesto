@@ -11,6 +11,8 @@ class ApplicationOrder extends Model
 
     protected $fillable = [
         'date',
+        'start_date',
+        'volume',
         'mojamiento',
         'recomendado',
         'aplicadores',
@@ -19,11 +21,14 @@ class ApplicationOrder extends Model
         'observations',
         'team_id',
         'season_id',
+        'phenological_stage_id',
     ];
 
     protected $casts = [
         'date' => 'date',
+        'start_date' => 'date',
         'mojamiento' => 'decimal:2',
+        'volume' => 'integer',
     ];
 
     /**
@@ -40,6 +45,14 @@ class ApplicationOrder extends Model
     public function season()
     {
         return $this->belongsTo(Season::class);
+    }
+
+    /**
+     * Relación con PhenologicalStage
+     */
+    public function phenologicalStage()
+    {
+        return $this->belongsTo(PhenologicalStage::class);
     }
 
     /**

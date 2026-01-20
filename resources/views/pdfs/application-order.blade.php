@@ -227,55 +227,106 @@
     <!-- Información General -->
     <div class="info-section">
         <h2>📋 Información General</h2>
-        <div class="info-grid">
-            <div class="info-item">
-                <div class="info-label">Fecha de Aplicación:</div>
-                <div class="info-value">{{ \Carbon\Carbon::parse($order->date)->format('d/m/Y') }}</div>
-            </div>
-            <div class="info-item">
-                <div class="info-label">Estado:</div>
-                <div class="info-value">
-                    @php
-                        $statusLabels = [
-                            'pendiente' => 'Pendiente',
-                            'en_proceso' => 'En Proceso',
-                            'completada' => 'Completada',
-                            'cancelada' => 'Cancelada'
-                        ];
-                        $statusClass = 'status-' . $order->status;
-                    @endphp
-                    <span class="status-badge {{ $statusClass }}">
-                        {{ $statusLabels[$order->status] ?? $order->status }}
-                    </span>
-                </div>
-            </div>
-            <div class="info-item">
-                <div class="info-label">Mojamiento:</div>
-                <div class="info-value">{{ number_format($order->mojamiento, 2, ',', '.') }} Litros</div>
-            </div>
-            <div class="info-item">
-                <div class="info-label">Total Hectáreas:</div>
-                <div class="info-value" style="color: #007bff; font-weight: bold;">{{ number_format($totalHectareas, 2, ',', '.') }} ha</div>
-            </div>
-            <div class="info-item">
-                <div class="info-label">Recomendado por:</div>
-                <div class="info-value">{{ $order->recomendado }}</div>
-            </div>
-            <div class="info-item">
-                <div class="info-label">Responsable:</div>
-                <div class="info-value">{{ $order->responsable }}</div>
-            </div>
-        </div>
-        <div style="margin-top: 10px;">
-            <div class="info-label">Aplicadores:</div>
-            <div class="info-value">{{ $order->aplicadores }}</div>
-        </div>
-        @if($order->observations)
-        <div style="margin-top: 10px;">
-            <div class="info-label">Observaciones:</div>
-            <div class="info-value">{{ $order->observations }}</div>
-        </div>
-        @endif
+        <table style="border: none; margin: 0;">
+            <tr>
+                <td style="width: 25%; border: none; padding: 5px; vertical-align: top;">
+                    <div class="info-label">Fecha de Aplicación:</div>
+                    <div class="info-value">{{ \Carbon\Carbon::parse($order->date)->format('d/m/Y') }}</div>
+                </td>
+                @if($order->start_date)
+                <td style="width: 25%; border: none; padding: 5px; vertical-align: top;">
+                    <div class="info-label">Fecha Inicio:</div>
+                    <div class="info-value">{{ \Carbon\Carbon::parse($order->start_date)->format('d/m/Y') }}</div>
+                </td>
+                @endif
+                @if($order->volume)
+                <td style="width: 25%; border: none; padding: 5px; vertical-align: top;">
+                    <div class="info-label">Volumen:</div>
+                    <div class="info-value">{{ number_format($order->volume, 0, ',', '.') }}</div>
+                </td>
+                @endif
+                <td style="width: 25%; border: none; padding: 5px; vertical-align: top;">
+                    <div class="info-label">Mojamiento:</div>
+                    <div class="info-value">{{ number_format($order->mojamiento, 2, ',', '.') }} L</div>
+                </td>
+                @if($order->volume)
+                <td style="width: 25%; border: none; padding: 5px; vertical-align: top;">
+                    <div class="info-label">Maquinadas:</div>
+                    <div class="info-value" style="color: #007bff; font-weight: bold;">{{ number_format(($order->mojamiento * $totalHectareas) / $order->volume, 2, ',', '.') }}</div>
+                </td>
+                @endif
+            </tr>
+            <tr>
+                <td style="border: none; padding: 5px; vertical-align: top;">
+                    <div class="info-label">Total Hectáreas:</div>
+                    <div class="info-value" style="color: #28a745; font-weight: bold;">{{ number_format($totalHectareas, 2, ',', '.') }} ha</div>
+                </td>
+                <td colspan="3" style="border: none; padding: 5px; vertical-align: top;">
+                    <div class="info-label">Estado:</div>
+                    <div class="info-value">
+                        @php
+                            $statusLabels = [
+                                'pendiente' => 'Pendiente',
+                                'en_proceso' => 'En Proceso',
+                                'completada' => 'Completada',
+                                'cancelada' => 'Cancelada'
+                            ];
+                            $statusClass = 'status-' . $order->status;
+                        @endphp
+                        <span class="status-badge {{ $statusClass }}">
+                            {{ $statusLabels[$order->status] ?? $order->status }}
+                        </span>
+                    </div>
+                </td>
+            </tr>
+            @if($order->phenologicalStage)
+            <tr>
+                <td colspan="4" style="border: none; padding: 5px; vertical-align: top;">
+                    <div class="info-label">Etapa Fenológica:</div>
+                    <div class="info-value" style="color: #28a745; font-weight: bold;">🌱 {{ $order->phenologicalStage->name }}</div>
+                </td>
+            </tr>
+            @endif
+        </table>
+        
+        <table style="border: none; margin: 10px 0 0 0;">
+            <tr>
+                <td style="width: 50%; border: none; padding: 5px; vertical-align: top;">
+                    <table style="border: none; margin: 0;">
+                        <tr>
+                            <td style="border: none; padding: 2px 5px;">
+                                <div class="info-label">Recomendado por:</div>
+                                <div class="info-value">{{ $order->recomendado }}</div>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td style="border: none; padding: 2px 5px;">
+                                <div class="info-label">Responsable:</div>
+                                <div class="info-value">{{ $order->responsable }}</div>
+                            </td>
+                        </tr>
+                    </table>
+                </td>
+                <td style="width: 50%; border: none; padding: 5px; vertical-align: top;">
+                    <table style="border: none; margin: 0;">
+                        <tr>
+                            <td style="border: none; padding: 2px 5px;">
+                                <div class="info-label">Aplicadores:</div>
+                                <div class="info-value">{{ $order->aplicadores }}</div>
+                            </td>
+                        </tr>
+                        @if($order->observations)
+                        <tr>
+                            <td style="border: none; padding: 2px 5px;">
+                                <div class="info-label">Observaciones:</div>
+                                <div class="info-value">{{ $order->observations }}</div>
+                            </td>
+                        </tr>
+                        @endif
+                    </table>
+                </td>
+            </tr>
+        </table>
     </div>
 
     <!-- Centros de Costo -->

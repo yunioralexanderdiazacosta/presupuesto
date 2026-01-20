@@ -11,18 +11,23 @@ const props = defineProps({
     costCenters: Array,
     units: Array,
     groupings: Array,
+    fruits: Array,
+    phenologicalStages: Array,
 });
 
 const emit = defineEmits(['close']);
 
 const form = useForm({
     date: '',
+    start_date: '',
+    volume: '',
     mojamiento: '',
     recomendado: '',
     aplicadores: '',
     status: 'pendiente',
     responsable: '',
     observations: '',
+    phenological_stage_id: null,
     products: [],
     cost_centers: [],
 });
@@ -33,14 +38,24 @@ watch(() => props.show, (val) => {
         // Limpiar errores previos
         form.clearErrors();
         
+        // Formatear fecha para input date (solo YYYY-MM-DD)
+        const formatDate = (dateString) => {
+            if (!dateString) return '';
+            const date = new Date(dateString);
+            return date.toISOString().split('T')[0];
+        };
+        
         // Cargar datos de la orden
-        form.date = props.order.date;
+        form.date = formatDate(props.order.date);
+        form.start_date = formatDate(props.order.start_date);
+        form.volume = props.order.volume || '';
         form.mojamiento = props.order.mojamiento;
         form.recomendado = props.order.recomendado;
         form.aplicadores = props.order.aplicadores;
         form.status = props.order.status;
         form.responsable = props.order.responsable;
         form.observations = props.order.observations || '';
+        form.phenological_stage_id = props.order.phenological_stage_id || null;
         
         // Cargar productos
         form.products = (props.order.order_products || []).map(op => ({
@@ -139,6 +154,8 @@ function save() {
                         :cost-centers="costCenters"
                         :units="units"
                         :groupings="groupings"
+                        :fruits="fruits"
+                        :phenological-stages="phenologicalStages"
                         :is-editing="true"
                     />
                 </div>

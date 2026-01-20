@@ -13,6 +13,8 @@ const props = defineProps({
     costCenters: Array,
     units: Array,
     groupings: Array,
+    fruits: Array,
+    phenologicalStages: Array,
 });
 
 const title = 'Órdenes de Aplicación';
@@ -289,6 +291,8 @@ watch(filteredRows, () => {
             :cost-centers="costCenters"
             :units="units"
             :groupings="groupings"
+            :fruits="fruits"
+            :phenological-stages="phenologicalStages"
             @close="closeCreateModal"
         />
 
@@ -299,6 +303,8 @@ watch(filteredRows, () => {
             :cost-centers="costCenters"
             :units="units"
             :groupings="groupings"
+            :fruits="fruits"
+            :phenological-stages="phenologicalStages"
             @close="closeEditModal"
         />
     </AppLayout>

@@ -26,7 +26,8 @@ class ApplicationOrdersController extends Controller
         $applicationOrders = ApplicationOrder::with([
             'orderProducts.product',
             'orderProducts.unit',
-            'orderCostCenters.costCenter'
+            'orderCostCenters.costCenter',
+            'phenologicalStage'
         ])
             ->where('team_id', $user->team_id)
             ->where('season_id', $season_id)
@@ -84,12 +85,38 @@ class ApplicationOrdersController extends Controller
             ])->values(),
         ]);
 
+        // Obtener frutales del equipo
+        $fruits = \App\Models\Fruit::where('team_id', $user->team_id)
+            ->orderBy('name')
+            ->get(['id', 'name'])
+            ->map(function($fruit) {
+                return [
+                    'value' => $fruit->id,
+                    'label' => $fruit->name,
+                ];
+            });
+
+        // Obtener etapas fenológicas del equipo con su frutal
+        $phenologicalStages = \App\Models\PhenologicalStage::with('fruit:id,name')
+            ->where('team_id', $user->team_id)
+            ->orderBy('name')
+            ->get(['id', 'name', 'fruit_id'])
+            ->map(function($stage) {
+                return [
+                    'value' => $stage->id,
+                    'label' => $stage->name,
+                    'fruit_id' => $stage->fruit_id,
+                ];
+            });
+
         return Inertia::render('ApplicationOrders/Index', [
             'applicationOrders' => $applicationOrders,
             'products' => $products,
             'costCenters' => $costCenters,
             'units' => $units,
             'groupings' => $groupings,
+            'fruits' => $fruits,
+            'phenologicalStages' => $phenologicalStages,
         ]);
     }
 }

@@ -410,6 +410,14 @@ const logout = () => {
                   <!-- more inner pages-->
                 </li>
                 <li class="nav-item">
+                  <Link class="nav-link" :href="route('phenological-stages.index')">
+                    <div class="d-flex align-items-center">
+                      <span class="nav-link-text ps-3">Etapas Fenológicas</span>
+                    </div>
+                  </Link>
+                  <!-- more inner pages-->
+                </li>
+                <li class="nav-item">
                   <Link class="nav-link" :href="route('varieties.index')">
                     <div class="d-flex align-items-center">
                       <span class="nav-link-text ps-3">Variedades</span>

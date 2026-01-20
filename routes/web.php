@@ -119,6 +119,10 @@ use App\Http\Controllers\Level4s\DeleteLevel4Controller;
 use App\Http\Controllers\Fruits\StoreFruitController;
 use App\Http\Controllers\Fruits\UpdateFruitController;
 use App\Http\Controllers\Fruits\DeleteFruitController;
+use App\Http\Controllers\PhenologicalStagesController;
+use App\Http\Controllers\PhenologicalStages\StorePhenologicalStageController;
+use App\Http\Controllers\PhenologicalStages\UpdatePhenologicalStageController;
+use App\Http\Controllers\PhenologicalStages\DeletePhenologicalStageController;
 use App\Http\Controllers\Varieties\GetVarietyController;
 use App\Http\Controllers\Varieties\StoreVarietyController;
 use App\Http\Controllers\Varieties\UpdateVarietyController;
@@ -387,6 +391,11 @@ Route::middleware([
     Route::post('/fruits/store', StoreFruitController::class)->name('fruits.store');
     Route::post('/fruits/{fruit}/update', UpdateFruitController::class)->name('fruits.update');
     Route::delete('/fruits/{fruit}/delete', DeleteFruitController::class)->name('fruits.delete');
+
+    Route::get('/phenological-stages', PhenologicalStagesController::class)->name('phenological-stages.index');
+    Route::post('/phenological-stages/store', StorePhenologicalStageController::class)->name('phenological-stages.store');
+    Route::post('/phenological-stages/{phenologicalStage}/update', UpdatePhenologicalStageController::class)->name('phenological-stages.update');
+    Route::delete('/phenological-stages/{phenologicalStage}/delete', DeletePhenologicalStageController::class)->name('phenological-stages.delete');
 
     Route::get('/varieties/pdf', VarietiesPdfController::class)->name('varieties.pdf');
     Route::get('/varieties/excel', VarietiesExcelController::class)->name('varieties.excel');

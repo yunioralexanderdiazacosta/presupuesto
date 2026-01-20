@@ -15,4 +15,9 @@ class Fruit extends Model
     {
         return $this->hasMany(Variety::class);
     }
+
+    public function phenologicalStages()
+    {
+        return $this->hasMany(PhenologicalStage::class);
+    }
 }

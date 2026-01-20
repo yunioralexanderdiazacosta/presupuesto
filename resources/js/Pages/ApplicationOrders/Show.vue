@@ -12,6 +12,8 @@ const props = defineProps({
     costCenters: Array,
     units: Array,
     groupings: Array,
+    fruits: Array,
+    phenologicalStages: Array,
 });
 
 const title = 'Detalle de Orden de Aplicación';
@@ -27,6 +29,16 @@ const totalHectareas = computed(() => {
     return props.applicationOrder.order_cost_centers?.reduce((sum, occ) => {
         return sum + Number(occ.cost_center?.surface || 0);
     }, 0) || 0;
+});
+
+const maquinadas = computed(() => {
+    const mojamiento = Number(props.applicationOrder.mojamiento || 0);
+    const hectareas = totalHectareas.value;
+    const volumen = Number(props.applicationOrder.volume || 0);
+    
+    if (volumen === 0) return 0;
+    
+    return (mojamiento * hectareas) / volumen;
 });
 
 function openEditModal() {
@@ -147,62 +159,74 @@ function getSimplifiedQuantity(orderProduct) {
                     </h5>
                 </div>
                 <div class="card-body">
-                    <div class="row">
-                        <div class="col-md-3 mb-3">
+                    <div class="row g-3">
+                        <div class="col-md-2">
                             <label class="text-muted small">Fecha:</label>
-                            <p class="fw-bold">
-                                {{ new Date(applicationOrder.date).toLocaleDateString('es-ES', { 
-                                    weekday: 'long', 
-                                    year: 'numeric', 
-                                    month: 'long', 
-                                    day: 'numeric' 
-                                }) }}
-                            </p>
+                            <p class="fw-bold mb-0">{{ new Date(applicationOrder.date).toLocaleDateString('es-ES') }}</p>
                         </div>
-                        <div class="col-md-3 mb-3">
+                        <div class="col-md-2" v-if="applicationOrder.start_date">
+                            <label class="text-muted small">Fecha Inicio:</label>
+                            <p class="fw-bold mb-0">{{ new Date(applicationOrder.start_date).toLocaleDateString('es-ES') }}</p>
+                        </div>
+                        <div class="col-md-2" v-if="applicationOrder.volume">
+                            <label class="text-muted small">Volumen:</label>
+                            <p class="fw-bold mb-0">{{ Number(applicationOrder.volume).toLocaleString('es-ES') }} L</p>
+                        </div>
+                        <div class="col-md-2">
+                            <label class="text-muted small">Mojamiento:</label>
+                            <p class="fw-bold mb-0">{{ Number(applicationOrder.mojamiento).toLocaleString('es-ES') }} L</p>
+                        </div>
+                        <div class="col-md-2" v-if="applicationOrder.volume">
+                            <label class="text-muted small">Maquinadas:</label>
+                            <p class="fw-bold mb-0 text-primary">{{ maquinadas.toLocaleString('es-ES', {minimumFractionDigits: 2, maximumFractionDigits: 2}) }}</p>
+                        </div>
+                        <div class="col-md-2">
+                            <label class="text-muted small">Total Hectáreas:</label>
+                            <p class="fw-bold mb-0 text-success">{{ totalHectareas.toLocaleString('es-ES', {minimumFractionDigits: 2}) }} ha</p>
+                        </div>
+                        <div class="col-md-2">
                             <label class="text-muted small">Estado:</label>
-                            <p>
+                            <p class="mb-0">
                                 <span class="badge" :class="getStatusBadgeClass(applicationOrder.status)">
                                     {{ getStatusLabel(applicationOrder.status) }}
                                 </span>
                             </p>
                         </div>
-                        <div class="col-md-3 mb-3">
-                            <label class="text-muted small">Mojamiento:</label>
-                            <p class="fw-bold">{{ Number(applicationOrder.mojamiento).toLocaleString('es-ES') }} Litros</p>
-                        </div>
-                        <div class="col-md-3 mb-3">
-                            <label class="text-muted small">Total Hectáreas:</label>
-                            <p class="fw-bold text-dark">{{ totalHectareas.toLocaleString('es-ES', {minimumFractionDigits: 2}) }} ha</p>
-                        </div>
                     </div>
 
-                    <div class="row">
-                        <div class="col-md-4 mb-3">
+                    <div class="row g-3 mt-1">
+                        <div class="col-md-3">
                             <label class="text-muted small">Recomendado por:</label>
-                            <p class="fw-bold">{{ applicationOrder.recomendado }}</p>
+                            <p class="fw-bold mb-0">{{ applicationOrder.recomendado }}</p>
                         </div>
-                        <div class="col-md-4 mb-3">
+                        <div class="col-md-3">
                             <label class="text-muted small">Responsable:</label>
-                            <p class="fw-bold">{{ applicationOrder.responsable }}</p>
+                            <p class="fw-bold mb-0">{{ applicationOrder.responsable }}</p>
                         </div>
-                        <div class="col-md-4 mb-3">
+                        <div class="col-md-3" v-if="applicationOrder.phenological_stage">
+                            <label class="text-muted small">Etapa Fenológica:</label>
+                            <p class="fw-bold mb-0">
+                                <i class="fas fa-seedling text-success me-1"></i>
+                                {{ applicationOrder.phenological_stage.name }}
+                            </p>
+                        </div>
+                        <div class="col-md-3">
                             <label class="text-muted small">Temporada:</label>
-                            <p class="fw-bold">{{ applicationOrder.season?.name || 'N/A' }}</p>
+                            <p class="fw-bold mb-0">{{ applicationOrder.season?.name || 'N/A' }}</p>
                         </div>
                     </div>
 
-                    <div class="row">
-                        <div class="col-md-12 mb-3">
+                    <div class="row g-3 mt-1">
+                        <div class="col-md-12">
                             <label class="text-muted small">Aplicadores:</label>
-                            <p class="fw-bold">{{ applicationOrder.aplicadores }}</p>
+                            <p class="fw-bold mb-0">{{ applicationOrder.aplicadores }}</p>
                         </div>
                     </div>
 
-                    <div v-if="applicationOrder.observations" class="row">
+                    <div v-if="applicationOrder.observations" class="row g-3 mt-1">
                         <div class="col-md-12">
                             <label class="text-muted small">Observaciones:</label>
-                            <p class="text-muted">{{ applicationOrder.observations }}</p>
+                            <p class="text-muted mb-0">{{ applicationOrder.observations }}</p>
                         </div>
                     </div>
                 </div>
@@ -351,6 +375,8 @@ function getSimplifiedQuantity(orderProduct) {
             :cost-centers="costCenters"
             :units="units"
             :groupings="groupings"
+            :fruits="fruits"
+            :phenological-stages="phenologicalStages"
             @close="closeEditModal"
         />
     </AppLayout>

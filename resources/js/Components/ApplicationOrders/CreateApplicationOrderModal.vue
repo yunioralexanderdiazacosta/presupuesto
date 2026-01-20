@@ -10,18 +10,23 @@ const props = defineProps({
     costCenters: Array,
     units: Array,
     groupings: Array,
+    fruits: Array,
+    phenologicalStages: Array,
 });
 
 const emit = defineEmits(['close']);
 
 const form = useForm({
     date: '',
+    start_date: '',
+    volume: '',
     mojamiento: '',
     recomendado: '',
     aplicadores: '',
     status: 'pendiente',
     responsable: '',
     observations: '',
+    phenological_stage_id: null,
     products: [],
     cost_centers: [],
 });
@@ -30,6 +35,12 @@ watch(() => props.show, (val) => {
     if (val) {
         form.reset();
         form.status = 'pendiente';
+        // Establecer fecha actual por defecto
+        const today = new Date();
+        const year = today.getFullYear();
+        const month = String(today.getMonth() + 1).padStart(2, '0');
+        const day = String(today.getDate()).padStart(2, '0');
+        form.date = `${year}-${month}-${day}`;
         $('#createApplicationOrderModal').modal('show');
     } else {
         $('#createApplicationOrderModal').modal('hide');
@@ -105,6 +116,8 @@ function save() {
                         :cost-centers="costCenters"
                         :units="units"
                         :groupings="groupings"
+                        :fruits="fruits"
+                        :phenological-stages="phenologicalStages"
                     />
                 </div>
 
