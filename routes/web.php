@@ -29,6 +29,11 @@ use App\Http\Controllers\Products2\DeleteProduct2Controller;
     use App\Http\Controllers\ApplicationOrders\DeleteApplicationOrderController;
     use App\Http\Controllers\ApplicationOrders\ShowApplicationOrderController;
 
+// Rutas para Agrochemical Outflows
+    use App\Http\Controllers\AgrochemicalOutflows\AgrochemicalOutflowController;
+    use App\Http\Controllers\AgrochemicalOutflows\StoreAgrochemicalOutflowController;
+    use App\Http\Controllers\AgrochemicalOutflows\DeleteAgrochemicalOutflowController;
+
 use Illuminate\Foundation\Application;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\HomeController;
@@ -556,6 +561,11 @@ Route::middleware([
     Route::get('/application-orders/{applicationOrder}', ShowApplicationOrderController::class)->name('application-orders.show');
     Route::put('/application-orders/{applicationOrder}', UpdateApplicationOrderController::class)->name('application-orders.update');
     Route::delete('/application-orders/{applicationOrder}', DeleteApplicationOrderController::class)->name('application-orders.delete');
+
+    // Agrochemical Outflows
+    Route::get('/agrochemical-outflows', [AgrochemicalOutflowController::class, 'index'])->name('agrochemical-outflows.index');
+    Route::post('/agrochemical-outflows', StoreAgrochemicalOutflowController::class)->name('agrochemical-outflows.store');
+    Route::delete('/agrochemical-outflows/{agrochemicalOutflow}', DeleteAgrochemicalOutflowController::class)->name('agrochemical-outflows.delete');
 
     // Consolidated Documents
     Route::get('/consolidated-documents', [ConsolidatedDocumentsController::class, 'index'])

@@ -13,41 +13,41 @@
         
         body {
             font-family: Arial, sans-serif;
-            font-size: 11px;
-            line-height: 1.4;
+            font-size: 9px;
+            line-height: 1.2;
             color: #333;
-            padding: 20px;
+            padding: 10px;
         }
         
         .header {
             text-align: center;
-            margin-bottom: 20px;
-            border-bottom: 3px solid #007bff;
-            padding-bottom: 15px;
+            margin-bottom: 8px;
+            border-bottom: 2px solid #007bff;
+            padding-bottom: 6px;
         }
         
         .header h1 {
-            font-size: 24px;
+            font-size: 16px;
             color: #007bff;
-            margin-bottom: 5px;
+            margin-bottom: 3px;
         }
         
         .header p {
-            font-size: 12px;
+            font-size: 8px;
             color: #666;
         }
         
         .info-section {
-            margin-bottom: 15px;
-            padding: 10px;
+            margin-bottom: 6px;
+            padding: 5px;
             background-color: #f8f9fa;
-            border-left: 4px solid #007bff;
+            border-left: 3px solid #007bff;
         }
         
         .info-section h2 {
-            font-size: 14px;
+            font-size: 10px;
             color: #007bff;
-            margin-bottom: 8px;
+            margin-bottom: 4px;
             text-transform: uppercase;
         }
         
@@ -64,22 +64,22 @@
         .info-label {
             font-weight: bold;
             color: #666;
-            font-size: 10px;
+            font-size: 7px;
             text-transform: uppercase;
         }
         
         .info-value {
             color: #333;
-            font-size: 11px;
-            margin-top: 2px;
+            font-size: 8px;
+            margin-top: 1px;
         }
         
         .status-badge {
             display: inline-block;
-            padding: 3px 10px;
-            border-radius: 3px;
+            padding: 2px 6px;
+            border-radius: 2px;
             font-weight: bold;
-            font-size: 10px;
+            font-size: 7px;
         }
         
         .status-pendiente {
@@ -105,23 +105,23 @@
         table {
             width: 100%;
             border-collapse: collapse;
-            margin-top: 10px;
-            margin-bottom: 15px;
+            margin-top: 3px;
+            margin-bottom: 5px;
         }
         
         table th {
             background-color: #007bff;
             color: white;
-            padding: 8px;
+            padding: 4px;
             text-align: left;
-            font-size: 10px;
+            font-size: 7px;
             text-transform: uppercase;
         }
         
         table td {
-            padding: 6px 8px;
+            padding: 3px 4px;
             border-bottom: 1px solid #dee2e6;
-            font-size: 10px;
+            font-size: 7px;
         }
         
         table tbody tr:nth-child(even) {
@@ -144,60 +144,59 @@
         .badge-primary {
             background-color: #007bff;
             color: white;
-            padding: 2px 6px;
-            border-radius: 3px;
-            font-size: 9px;
+            padding: 1px 3px;
+            border-radius: 2px;
+            font-size: 6px;
         }
         
         .badge-info {
             background-color: #17a2b8;
             color: white;
-            padding: 2px 6px;
-            border-radius: 3px;
-            font-size: 9px;
+            padding: 1px 3px;
+            border-radius: 2px;
+            font-size: 6px;
         }
         
         .badge-warning {
             background-color: #ffc107;
             color: #000;
-            padding: 2px 6px;
-            border-radius: 3px;
-            font-size: 9px;
+            padding: 1px 3px;
+            border-radius: 2px;
+            font-size: 6px;
         }
         
         .badge-secondary {
             background-color: #6c757d;
             color: white;
-            padding: 2px 6px;
-            border-radius: 3px;
-            font-size: 9px;
+            padding: 1px 3px;
+            border-radius: 2px;
+            font-size: 6px;
         }
         
         .footer {
-            margin-top: 30px;
-            padding-top: 15px;
-            border-top: 2px solid #dee2e6;
+            margin-top: 8px;
+            padding-top: 6px;
+            border-top: 1px solid #dee2e6;
             text-align: center;
-            font-size: 9px;
+            font-size: 6px;
             color: #666;
         }
         
         .signature-section {
-            margin-top: 40px;
+            margin-top: 10px;
             display: grid;
-            grid-template-columns: repeat(3, 1fr);
-            gap: 20px;
-            page-break-inside: avoid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 15px;
         }
         
         .signature-box {
             text-align: center;
-            border-top: 2px solid #333;
-            padding-top: 10px;
+            border-top: 1px solid #333;
+            padding-top: 5px;
         }
         
         .signature-label {
-            font-size: 10px;
+            font-size: 8px;
             font-weight: bold;
             color: #666;
         }
@@ -206,7 +205,7 @@
             background-color: #007bff;
             color: white;
             font-weight: bold;
-            padding: 8px;
+            padding: 4px;
         }
         
         @media print {
@@ -226,7 +225,7 @@
 
     <!-- Información General -->
     <div class="info-section">
-        <h2>📋 Información General</h2>
+        <h2>:: Información General</h2>
         <table style="border: none; margin: 0;">
             <tr>
                 <td style="width: 25%; border: none; padding: 5px; vertical-align: top;">
@@ -283,7 +282,7 @@
             <tr>
                 <td colspan="4" style="border: none; padding: 5px; vertical-align: top;">
                     <div class="info-label">Etapa Fenológica:</div>
-                    <div class="info-value" style="color: #28a745; font-weight: bold;">🌱 {{ $order->phenologicalStage->name }}</div>
+                    <div class="info-value" style="color: #28a745; font-weight: bold;">{{ $order->phenologicalStage->name }}</div>
                 </td>
             </tr>
             @endif
@@ -331,7 +330,7 @@
 
     <!-- Centros de Costo -->
     <div class="info-section" style="border-left-color: #28a745;">
-        <h2>🗺️ Centros de Costo</h2>
+        <h2>:: Centros de Costo</h2>
         <table>
             <thead>
                 <tr>
@@ -364,7 +363,7 @@
 
     <!-- Productos a Aplicar -->
     <div class="info-section" style="border-left-color: #17a2b8;">
-        <h2>🧪 Productos a Aplicar</h2>
+        <h2>:: Productos a Aplicar</h2>
         <table>
             <thead>
                 <tr>
@@ -422,19 +421,14 @@
     <!-- Firmas -->
     <div class="signature-section">
         <div class="signature-box">
-            <div style="height: 40px;"></div>
-            <div class="signature-label">{{ $order->recomendado }}</div>
-            <div style="font-size: 9px; color: #999;">Recomendado por</div>
-        </div>
-        <div class="signature-box">
-            <div style="height: 40px;"></div>
+            <div style="height: 20px;"></div>
             <div class="signature-label">{{ $order->responsable }}</div>
-            <div style="font-size: 9px; color: #999;">Responsable</div>
+            <div style="font-size: 6px; color: #999;">Responsable</div>
         </div>
         <div class="signature-box">
-            <div style="height: 40px;"></div>
+            <div style="height: 20px;"></div>
             <div class="signature-label">_________________</div>
-            <div style="font-size: 9px; color: #999;">Aplicador</div>
+            <div style="font-size: 6px; color: #999;">Aplicador</div>
         </div>
     </div>
 

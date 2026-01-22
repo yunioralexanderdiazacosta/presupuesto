@@ -23,6 +23,7 @@ class Outflow extends Model
         'season_id',
         'level3_id',
         'fuel_outflow_id',
+        'agrochemical_outflow_id',
     ];
     public function creditDebitNoteItem()
     {
@@ -78,5 +79,10 @@ class Outflow extends Model
     public function fuelOutflow()
     {
         return $this->belongsTo(FuelOutflow::class);
+    }
+
+    public function agrochemicalOutflow()
+    {
+        return $this->belongsTo(AgrochemicalOutflow::class);
     }
 }
