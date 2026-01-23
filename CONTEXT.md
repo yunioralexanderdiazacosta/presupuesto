@@ -65,6 +65,84 @@ Este proyecto es un sistema de gestión presupuestaria agrícola desarrollado en
 - El código debe ser limpio, comentado y fácil de mantener.
 - Documentar cualquier lógica especial o excepción en este archivo.
 
+### Sistema de Conversión de Unidades (CRÍTICO)
+
+**Regla fundamental**: La tabla `outflows` (kardex maestro) SIEMPRE debe almacenar cantidades en la **unidad base del producto**.
+
+**Contexto del problema:**
+- Un producto puede llegar en factura con una unidad (ej: 5 LT)
+- Pero el agrónomo trabaja con otra unidad (ej: dosis de 20 cc/ha)
+- El sistema debe permitir trabajar con la unidad práctica pero guardar correctamente en la unidad base
+
+**Implementación:**
+
+1. **Helper global disponible**: `convertToBaseUnit($quantity, $fromUnitName, $toUnitName)`
+   - Ubicación: `app/Helpers/UnitHelper.php`
+   - Auto-cargado en `composer.json` (sección `autoload.files`)
+   - Disponible globalmente en todo el sistema (controladores, modelos, Blade)
+
+2. **Conversiones soportadas**:
+   - cc ↔ lt (centímetros cúbicos ↔ litros): factor 1000
+   - ml ↔ lt (mililitros ↔ litros): factor 1000
+   - gr ↔ kg (gramos ↔ kilogramos): factor 1000
+   - mg ↔ gr (miligramos ↔ gramos): factor 1000
+
+3. **Flujo de uso obligatorio**:
+   ```php
+   // Ejemplo en AgrochemicalOutflows
+   $product = Product::with('unit')->find($productId);
+   $orderProduct = ApplicationOrderProduct::find($orderProductId);
+   
+   $usedUnitName = $orderProduct->unit->name; // "cc"
+   $baseUnitName = $product->unit->name; // "lt"
+   $quantityOriginal = 60; // 60 cc
+   
+   // Convertir a unidad base antes de guardar en outflows
+   $quantityConverted = convertToBaseUnit($quantityOriginal, $usedUnitName, $baseUnitName);
+   // $quantityConverted = 0.060 (litros)
+   
+   // Guardar trazabilidad en registro específico
+   AgrochemicalOutflow::create([
+       'quantity' => $quantityOriginal, // 60 cc (para trazabilidad)
+       'unit_id' => $orderProduct->unit_id, // ID de "cc"
+   ]);
+   
+   // Guardar en kardex EN UNIDAD BASE
+   Outflow::create([
+       'quantity' => $quantityConverted, // 0.060 lt (¡CRÍTICO!)
+   ]);
+   ```
+
+4. **Tablas que almacenan unidad usada (trazabilidad)**:
+   - `application_order_products`: `unit_id` (unidad usada en la orden)
+   - `agrochemical_outflows`: `unit_id` (unidad usada en la aplicación)
+   - `fuel_outflows`: No requiere `unit_id` (siempre trabaja en litros)
+
+5. **Display en frontend**: La función `getSimplifiedQuantity()` en componentes Vue convierte cc→lt y gr→kg cuando cantidad >= 1000, SOLO para visualización. Los valores internos permanecen en unidad original.
+
+6. **IMPORTANTE**: Si no existe conversión directa entre dos unidades, `convertToBaseUnit()` devuelve la cantidad original y registra un warning en el log.
+
+**Ejemplo de caso de uso real:**
+```
+Factura: Insecticida X - 5 LT (unidad base del producto)
+Orden de aplicación: 3 ha × 20 cc/ha = 60 cc
+Ejecución real: 65 cc consumidos
+
+Guardado en BD:
+- application_order_products.quantity = 60, unit_id = "cc"
+- agrochemical_outflows.quantity = 65, unit_id = "cc" (trazabilidad)
+- outflows.quantity = 0.065 (convertido a LT - unidad base)
+
+Stock resultante: 5.000 LT - 0.065 LT = 4.935 LT ✅
+```
+
+**Cuándo usar este sistema:**
+- ✅ ApplicationOrders (orden usa cc, producto base es lt)
+- ✅ AgrochemicalOutflows (aplicación usa cc, producto base es lt)
+- ✅ Cualquier módulo que registre consumos en `outflows`
+- ✅ Services (si trabajan con unidades alternativas)
+- ❌ FuelOutflows (ya trabaja directo en litros)
+
 ### Exportación a Excel
 - **Formato de datos numéricos**: Al exportar datos a Excel usando el componente `ExportExcelButton`, los valores numéricos (como totales, precios, cantidades) deben exportarse como números puros (sin formatear con `toLocaleString`).
 - **Razón**: Si se exportan como strings formateados, el componente ExportExcelButton los reconvierte y elimina el separador de miles. Al enviar números puros, Excel los formatea automáticamente con separador de miles (coma) según su configuración regional.

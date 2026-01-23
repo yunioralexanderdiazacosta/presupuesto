@@ -118,7 +118,20 @@ function save() {
         cancelButtonText: 'Cancelar'
     }).then((result) => {
         if (result.isConfirmed) {
-            form.post(route('agrochemical-outflows.store'), {
+            // Limpiar datos antes de enviar (remover propiedades no necesarias)
+            const cleanedProducts = form.products.map(p => ({
+                product_id: p.product_id,
+                cost_center_id: p.cost_center_id,
+                lines: p.lines.map(l => ({
+                    invoice_product_id: l.invoice_product_id,
+                    quantity: l.quantity
+                }))
+            }));
+            
+            form.transform((data) => ({
+                ...data,
+                products: cleanedProducts
+            })).post(route('agrochemical-outflows.store'), {
                 preserveScroll: true,
                 onSuccess: () => {
                     Swal.fire({
@@ -133,10 +146,22 @@ function save() {
                 },
                 onError: (errors) => {
                     console.error('Errores de validación:', errors);
+                    
+                    // Construir mensaje de error detallado
+                    let errorMsg = 'Por favor revise los datos ingresados:<br><br>';
+                    
+                    if (typeof errors === 'object') {
+                        Object.keys(errors).forEach(key => {
+                            errorMsg += `• ${errors[key]}<br>`;
+                        });
+                    } else {
+                        errorMsg = errors.message || errorMsg;
+                    }
+                    
                     Swal.fire({
                         icon: 'error',
-                        title: 'Error',
-                        text: errors.message || 'Por favor revise los datos ingresados',
+                        title: 'Error de validación',
+                        html: errorMsg,
                     });
                 }
             });

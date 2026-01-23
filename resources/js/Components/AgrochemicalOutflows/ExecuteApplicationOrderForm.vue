@@ -36,15 +36,15 @@ function initializeProducts() {
         return {
             product_id: op.product_id,
             product_name: op.product?.name,
-            unit_name: op.product?.unit?.name,
+            unit_name: op.product?.unit?.name || 'unidad',
             theoretical_quantity: op.cantidad_total,
+            real_quantity: 0,
             cost_center_id: selectedOrder.value.order_cost_centers?.[0]?.cost_center_id || null,
             availableInvoices: productStocks,
             lines: [
-                // Primera línea con cantidad teórica precargada
                 {
                     invoice_product_id: null,
-                    quantity: op.cantidad_total,
+                    quantity: 0,
                 }
             ]
         };
@@ -125,6 +125,21 @@ function calculateVariance(theoretical, real) {
     if (!theoretical || !real) return 0;
     return (((real - theoretical) / theoretical) * 100).toFixed(2);
 }
+
+// Función para formatear cantidades - SOLO PARA DISPLAY (sin conversiones)
+function formatQuantity(cantidad) {
+    const qty = parseFloat(cantidad);
+    if (!qty || isNaN(qty)) return '0.00';
+    return qty.toFixed(2);
+}
+
+// Función para formatear con separador de miles
+function formatNumber(value) {
+    const num = parseFloat(value);
+    if (!num || isNaN(num)) return '0.00';
+    return num.toLocaleString('es-ES', {minimumFractionDigits: 2, maximumFractionDigits: 2});
+}
+
 </script>
 
 <template>
@@ -255,6 +270,9 @@ function calculateVariance(theoretical, real) {
                                     :class="expandedProducts[idx] ? 'fa-chevron-down' : 'fa-chevron-right'"
                                 ></i>
                                 <strong>{{ product.product_name }}</strong>
+                                <small class="text-info">
+                                    | Stock: {{ getTotalStockAvailable(product).toLocaleString('es-ES', {minimumFractionDigits: 2}) }} {{ product.unit_name }}
+                                </small>
                             </div>
                             <div v-if="product.real_quantity > 0">
                                 <span 
@@ -266,7 +284,7 @@ function calculateVariance(theoretical, real) {
                                         'bg-secondary': getTotalUsed(product) === 0
                                     }"
                                 >
-                                    {{ getTotalUsed(product).toLocaleString('es-ES', {minimumFractionDigits: 2}) }} / {{ parseFloat(product.real_quantity).toLocaleString('es-ES', {minimumFractionDigits: 2}) }} {{ product.unit_name }}
+                                    {{ formatNumber(getTotalUsed(product)) }} / {{ formatNumber(product.real_quantity) }} {{ product.unit_name }}
                                 </span>
                             </div>
                             <div v-else>
@@ -280,7 +298,7 @@ function calculateVariance(theoretical, real) {
                                     <div class="col-md-4">
                                         <label class="form-label small mb-1 fw-bold">Cantidad Teórica</label>
                                         <div class="text-muted">
-                                            {{ product.theoretical_quantity?.toLocaleString('es-ES', {minimumFractionDigits: 2}) }} {{ product.unit_name }}
+                                            {{ formatNumber(product.theoretical_quantity) }} {{ product.unit_name }}
                                         </div>
                                     </div>
                                     <div class="col-md-4">
@@ -305,7 +323,7 @@ function calculateVariance(theoretical, real) {
                                                 'text-muted': getTotalUsed(product) === 0
                                             }"
                                         >
-                                            {{ getTotalUsed(product).toLocaleString('es-ES', {minimumFractionDigits: 2}) }} {{ product.unit_name }}
+                                            {{ formatNumber(getTotalUsed(product)) }} {{ product.unit_name }}
                                         </div>
                                         <small 
                                             v-if="getTotalUsed(product) > 0 && product.theoretical_quantity"

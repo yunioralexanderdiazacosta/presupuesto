@@ -76,6 +76,8 @@ class StoreAgrochemicalOutflowController
                 
                 // Crear un registro por cada línea de factura
                 foreach ($productData['lines'] as $line) {
+                    $quantity = $line['quantity'];
+                    
                     // 1. Crear AgrochemicalOutflow
                     $agrochemicalOutflow = AgrochemicalOutflow::create([
                         'application_order_id' => $applicationOrderId,
@@ -83,7 +85,7 @@ class StoreAgrochemicalOutflowController
                         'date' => $date,
                         'product_id' => $productData['product_id'],
                         'invoice_product_id' => $line['invoice_product_id'],
-                        'quantity' => $line['quantity'],
+                        'quantity' => $quantity,
                         'cost_center_id' => $costCenterId,
                         'observations' => $observations,
                         'team_id' => $teamId,
@@ -97,7 +99,7 @@ class StoreAgrochemicalOutflowController
                         'season_id' => $seasonId,
                         'user_id' => $user->id,
                         'invoice_product_id' => $line['invoice_product_id'],
-                        'quantity' => $line['quantity'],
+                        'quantity' => $quantity,
                         'date' => $date,
                         'level3_id' => $product->level3_id,
                         'notes' => 'Aplicación agroquímico - Orden #' . $applicationOrderId . ' - ' . ($observations ?? 'Sin observaciones'),

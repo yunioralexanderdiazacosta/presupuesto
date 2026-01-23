@@ -21,18 +21,16 @@ class StoreAgrochemicalOutflowRequest extends FormRequest
     {
         return [
             'application_order_id' => 'required|exists:application_orders,id',
-            'maquinadas' => 'required|numeric|min:0',
+            'maquinadas' => 'required|numeric|min:0.01',
             'date' => 'required|date',
             'observations' => 'nullable|string|max:500',
             
             'products' => 'required|array|min:1',
             'products.*.product_id' => 'required|exists:products,id',
-            'products.*.real_quantity' => 'required|numeric|min:0.01',
             'products.*.cost_center_id' => 'required|exists:cost_centers,id',
             
-            // Validar las líneas de cada producto
             'products.*.lines' => 'required|array|min:1',
-            'products.*.lines.*.invoice_product_id' => 'required|exists:invoice_products,id',
+            'products.*.lines.*.invoice_product_id' => 'required|exists:invoice_product,id',
             'products.*.lines.*.quantity' => 'required|numeric|min:0.01',
         ];
     }

@@ -70,6 +70,14 @@ class AgrochemicalOutflow extends Model
     }
 
     /**
+     * Relación con Unit (unidad usada en la aplicación)
+     */
+    public function unit()
+    {
+        return $this->belongsTo(Unit::class);
+    }
+
+    /**
      * Relación con Team
      */
     public function team()

@@ -34,7 +34,8 @@ class AgrochemicalOutflowController
 
         // Obtener órdenes disponibles para ejecutar con sus productos
         $availableOrders = ApplicationOrder::with([
-            'orderProducts.product.unit', 
+            'orderProducts.product.unit',
+            'orderProducts.unit', // Unidad usada en la orden
             'orderCostCenters.costCenter'
         ])
             ->where('team_id', $teamId)
@@ -55,8 +56,8 @@ class AgrochemicalOutflowController
 
     private function calculateAvailableStocks($teamId, $seasonId)
     {
-        // Calcular consumos por invoice_product_id desde agrochemical_outflows
-        $consumosByInvoiceProduct = DB::table('agrochemical_outflows')
+        // Calcular consumos por invoice_product_id desde OUTFLOWS (tabla maestra del kardex)
+        $consumosByInvoiceProduct = DB::table('outflows')
             ->select('invoice_product_id', DB::raw('SUM(quantity) as total_consumido'))
             ->where('team_id', $teamId)
             ->where('season_id', $seasonId)
