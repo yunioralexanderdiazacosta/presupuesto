@@ -4,6 +4,52 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Orden de Aplicación #{{ $order->id }}</title>
+    
+    @php
+    /**
+     * Convierte cantidades a unidades prácticas para aplicación en campo
+     * Si cantidad < 1 lt -> muestra en cc
+     * Si cantidad < 1 kg -> muestra en gr
+     */
+    function convertToPracticalUnit($quantity, $unitName) {
+        $unitNameLower = strtolower($unitName);
+        
+        // Convertir lt a cc si es menor a 1
+        if ($unitNameLower === 'lt' && $quantity < 1) {
+            return [
+                'value' => $quantity * 1000,
+                'unit' => 'cc'
+            ];
+        }
+        
+        // Convertir kg a gr si es menor a 1
+        if ($unitNameLower === 'kg' && $quantity < 1) {
+            return [
+                'value' => $quantity * 1000,
+                'unit' => 'gr'
+            ];
+        }
+        
+        // No convertir, devolver original
+        return [
+            'value' => $quantity,
+            'unit' => $unitName
+        ];
+    }
+    
+    /**
+     * Formatea el número para mostrar en PDF (sin decimales innecesarios)
+     */
+    function formatQuantityForPdf($value) {
+        // Si el valor es entero o tiene solo ceros decimales, mostrar sin decimales
+        if (floor($value) == $value) {
+            return number_format($value, 0, ',', '.');
+        }
+        // Si tiene decimales significativos, mostrar 2 decimales
+        return number_format($value, 2, ',', '.');
+    }
+    @endphp
+    
     <style>
         * {
             margin: 0;
@@ -246,12 +292,12 @@
                 @endif
                 <td style="width: 25%; border: none; padding: 5px; vertical-align: top;">
                     <div class="info-label">Mojamiento:</div>
-                    <div class="info-value">{{ number_format($order->mojamiento, 2, ',', '.') }} L</div>
+                    <div class="info-value">{{ number_format($order->mojamiento, 0, ',', '.') }} L</div>
                 </td>
                 @if($order->volume)
                 <td style="width: 25%; border: none; padding: 5px; vertical-align: top;">
                     <div class="info-label">Maquinadas:</div>
-                    <div class="info-value" style="color: #007bff; font-weight: bold;">{{ number_format(($order->mojamiento * $totalHectareas) / $order->volume, 2, ',', '.') }}</div>
+                    <div class="info-value" style="color: #007bff; font-weight: bold;">{{ number_format(($order->mojamiento * $totalHectareas) / $order->volume, 1, ',', '.') }}</div>
                 </td>
                 @endif
             </tr>
@@ -364,6 +410,9 @@
     <!-- Productos a Aplicar -->
     <div class="info-section" style="border-left-color: #17a2b8;">
         <h2>:: Productos a Aplicar</h2>
+        <p style="font-size: 6px; color: #666; margin-bottom: 3px; font-style: italic;">
+            * Cantidades mostradas en unidades prácticas para aplicación en campo (cc, gr, etc.)
+        </p>
         <table>
             <thead>
                 <tr>
@@ -391,16 +440,28 @@
                     </td>
                     <td class="text-right">
                         @if($op->tipo_dosis === 'por_hectarea')
-                            {{ number_format($op->dosis_por_hectarea, 2, ',', '.') }} {{ $op->product->unit->name ?? '' }}/ha
+                            @php
+                                $converted = convertToPracticalUnit($op->dosis_por_hectarea, $op->product->unit->name ?? '');
+                            @endphp
+                            {{ formatQuantityForPdf($converted['value']) }} {{ $converted['unit'] }}/ha
                         @else
-                            {{ number_format($op->dosis_por_100, 2, ',', '.') }} {{ $op->product->unit->name ?? '' }}/100L
+                            @php
+                                $converted = convertToPracticalUnit($op->dosis_por_100, $op->product->unit->name ?? '');
+                            @endphp
+                            {{ formatQuantityForPdf($converted['value']) }} {{ $converted['unit'] }}/100L
                         @endif
                     </td>
                     <td class="text-right">
-                        {{ number_format($op->cantidad_por_hectarea, 2, ',', '.') }} {{ $op->product->unit->name ?? '' }}/ha
+                        @php
+                            $converted = convertToPracticalUnit($op->cantidad_por_hectarea, $op->product->unit->name ?? '');
+                        @endphp
+                        {{ formatQuantityForPdf($converted['value']) }} {{ $converted['unit'] }}/ha
                     </td>
                     <td class="text-right" style="font-weight: bold; color: #007bff;">
-                        {{ number_format($op->cantidad_total, 2, ',', '.') }} {{ $op->product->unit->name ?? '' }}
+                        @php
+                            $converted = convertToPracticalUnit($op->cantidad_total, $op->product->unit->name ?? '');
+                        @endphp
+                        {{ formatQuantityForPdf($converted['value']) }} {{ $converted['unit'] }}
                     </td>
                     <td class="text-center">
                         <span class="badge-warning">{{ $op->carencia }} días</span>

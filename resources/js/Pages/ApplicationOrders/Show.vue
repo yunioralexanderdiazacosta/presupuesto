@@ -94,24 +94,24 @@ function confirmDelete() {
     });
 }
 
-// Función para convertir y simplificar cantidades (cc a lt, gr a kg)
+// Función para convertir a unidades prácticas para aplicación en campo
 function getSimplifiedQuantity(orderProduct) {
     const cantidad = Number(orderProduct.cantidad_total);
     const unitName = (orderProduct.unit?.name || orderProduct.product?.unit?.name || '').toLowerCase();
     
-    // Convertir cc a lt si es >= 1000
-    if (unitName === 'cc' && cantidad >= 1000) {
+    // Convertir lt a cc si es < 1
+    if (unitName === 'lt' && cantidad < 1) {
         return {
-            value: (cantidad / 1000).toFixed(2),
-            unit: 'lt'
+            value: (cantidad * 1000).toFixed(0),
+            unit: 'cc'
         };
     }
     
-    // Convertir gr a kg si es >= 1000
-    if (unitName === 'gr' && cantidad >= 1000) {
+    // Convertir kg a gr si es < 1
+    if (unitName === 'kg' && cantidad < 1) {
         return {
-            value: (cantidad / 1000).toFixed(2),
-            unit: 'kg'
+            value: (cantidad * 1000).toFixed(0),
+            unit: 'gr'
         };
     }
     
@@ -119,6 +119,33 @@ function getSimplifiedQuantity(orderProduct) {
     return {
         value: cantidad.toFixed(2),
         unit: orderProduct.unit?.name || orderProduct.product?.unit?.name || ''
+    };
+}
+
+// Función para convertir cantidades por hectárea
+function getPracticalQuantityPerHa(value, unitName) {
+    const cantidad = Number(value);
+    const unit = unitName.toLowerCase();
+    
+    // Convertir lt a cc si es < 1
+    if (unit === 'lt' && cantidad < 1) {
+        return {
+            value: (cantidad * 1000).toFixed(0),
+            unit: 'cc'
+        };
+    }
+    
+    // Convertir kg a gr si es < 1
+    if (unit === 'kg' && cantidad < 1) {
+        return {
+            value: (cantidad * 1000).toFixed(0),
+            unit: 'gr'
+        };
+    }
+    
+    return {
+        value: cantidad.toFixed(2),
+        unit: unitName
     };
 }
 </script>
@@ -174,11 +201,11 @@ function getSimplifiedQuantity(orderProduct) {
                         </div>
                         <div class="col-md-2">
                             <label class="text-muted small">Mojamiento:</label>
-                            <p class="fw-bold mb-0">{{ Number(applicationOrder.mojamiento).toLocaleString('es-ES') }} L</p>
+                            <p class="fw-bold mb-0">{{ Math.round(Number(applicationOrder.mojamiento)).toLocaleString('es-ES') }} L</p>
                         </div>
                         <div class="col-md-2" v-if="applicationOrder.volume">
                             <label class="text-muted small">Maquinadas:</label>
-                            <p class="fw-bold mb-0 text-primary">{{ maquinadas.toLocaleString('es-ES', {minimumFractionDigits: 2, maximumFractionDigits: 2}) }}</p>
+                            <p class="fw-bold mb-0 text-primary">{{ maquinadas.toLocaleString('es-ES', {minimumFractionDigits: 1, maximumFractionDigits: 1}) }}</p>
                         </div>
                         <div class="col-md-2">
                             <label class="text-muted small">Total Hectáreas:</label>
@@ -315,21 +342,21 @@ function getSimplifiedQuantity(orderProduct) {
                                     </td>
                                     <td class="text-end">
                                         <span v-if="op.tipo_dosis === 'por_hectarea'">
-                                            {{ Number(op.dosis_por_hectarea).toLocaleString('es-ES', {minimumFractionDigits: 2}) }}
-                                            {{ op.unit?.name || op.product?.unit?.name || '' }}/ha
+                                            {{ getPracticalQuantityPerHa(op.dosis_por_hectarea, op.unit?.name || op.product?.unit?.name || '').value }}
+                                            {{ getPracticalQuantityPerHa(op.dosis_por_hectarea, op.unit?.name || op.product?.unit?.name || '').unit }}/ha
                                         </span>
                                         <span v-else>
-                                            {{ Number(op.dosis_por_100).toLocaleString('es-ES', {minimumFractionDigits: 2}) }}
-                                            {{ op.unit?.name || op.product?.unit?.name || '' }}/100L
+                                            {{ getPracticalQuantityPerHa(op.dosis_por_100, op.unit?.name || op.product?.unit?.name || '').value }}
+                                            {{ getPracticalQuantityPerHa(op.dosis_por_100, op.unit?.name || op.product?.unit?.name || '').unit }}/100L
                                         </span>
                                     </td>
                                     <td class="text-end">
-                                        {{ Number(op.cantidad_por_hectarea).toLocaleString('es-ES', {minimumFractionDigits: 2}) }}
-                                        {{ op.unit?.name || op.product?.unit?.name || '' }}/ha
+                                        {{ getPracticalQuantityPerHa(op.cantidad_por_hectarea, op.unit?.name || op.product?.unit?.name || '').value }}
+                                        {{ getPracticalQuantityPerHa(op.cantidad_por_hectarea, op.unit?.name || op.product?.unit?.name || '').unit }}/ha
                                     </td>
                                     <td class="text-end">
                                         <strong class="text-dark">
-                                            {{ Number(getSimplifiedQuantity(op).value).toLocaleString('es-ES', {minimumFractionDigits: 2}) }}
+                                            {{ getSimplifiedQuantity(op).value }}
                                             {{ getSimplifiedQuantity(op).unit }}
                                         </strong>
                                     </td>

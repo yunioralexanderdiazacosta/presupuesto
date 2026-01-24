@@ -58,6 +58,7 @@ Este proyecto es un sistema de gestión presupuestaria agrícola desarrollado en
 - Componentes Vue modulares y reutilizables.
 - Migraciones claras y reversibles.
 - **Patrón de modales y formularios:** Para formularios complejos, el componente del modal (`CreateXModal.vue`, `EditXModal.vue`, etc.) debe encargarse únicamente del header, footer y slots, mientras que el formulario real (inputs, selects, lógica de negocio) debe estar en un componente aparte (por ejemplo, `XForm.vue`). El modal siempre debe estar montado y abrirse/cerrarse usando Bootstrap JS (`$('#modalId').modal('show')`). Esto permite máxima escalabilidad, reutilización y consistencia entre módulos.
+- **Estilo de botones de acción:** Los botones principales de acción (Agregar, Guardar, Actualizar, etc.) deben estar alineados a la derecha y tener un ancho apropiado al contenido del texto, NO deben ocupar todo el ancho del contenedor (evitar `w-100` o `col-12` para botones). Esto mejora la usabilidad y mantiene la consistencia visual del sistema.
 
 ## Expectativas y buenas prácticas
 - Todo nuevo módulo debe respetar el filtrado por season y team.
@@ -65,83 +66,57 @@ Este proyecto es un sistema de gestión presupuestaria agrícola desarrollado en
 - El código debe ser limpio, comentado y fácil de mantener.
 - Documentar cualquier lógica especial o excepción en este archivo.
 
-### Sistema de Conversión de Unidades (CRÍTICO)
+### Sistema de Unidades en Application Orders
 
-**Regla fundamental**: La tabla `outflows` (kardex maestro) SIEMPRE debe almacenar cantidades en la **unidad base del producto**.
+**Regla fundamental**: Las órdenes de aplicación (`application_orders`) SIEMPRE trabajan con la **unidad base del producto**.
 
-**Contexto del problema:**
-- Un producto puede llegar en factura con una unidad (ej: 5 LT)
-- Pero el agrónomo trabaja con otra unidad (ej: dosis de 20 cc/ha)
-- El sistema debe permitir trabajar con la unidad práctica pero guardar correctamente en la unidad base
+**Filosofía del sistema:**
+- El usuario es responsable de hacer los cálculos de conversión de unidades
+- El sistema NO hace conversiones automáticas
+- Todas las cantidades se almacenan y calculan en la unidad base del producto
+- El `unit_id` en `application_order_products` es el mismo que el del producto base
 
-**Implementación:**
+**Flujo correcto:**
 
-1. **Helper global disponible**: `convertToBaseUnit($quantity, $fromUnitName, $toUnitName)`
-   - Ubicación: `app/Helpers/UnitHelper.php`
-   - Auto-cargado en `composer.json` (sección `autoload.files`)
-   - Disponible globalmente en todo el sistema (controladores, modelos, Blade)
-
-2. **Conversiones soportadas**:
-   - cc ↔ lt (centímetros cúbicos ↔ litros): factor 1000
-   - ml ↔ lt (mililitros ↔ litros): factor 1000
-   - gr ↔ kg (gramos ↔ kilogramos): factor 1000
-   - mg ↔ gr (miligramos ↔ gramos): factor 1000
-
-3. **Flujo de uso obligatorio**:
+1. **En Application Orders**:
    ```php
-   // Ejemplo en AgrochemicalOutflows
-   $product = Product::with('unit')->find($productId);
-   $orderProduct = ApplicationOrderProduct::find($orderProductId);
+   // El usuario ingresa cantidades YA calculadas en la unidad base
+   // Ejemplo: Producto base en LT, usuario ingresa dosis en LT
+   $product = Product::find($productId);
    
-   $usedUnitName = $orderProduct->unit->name; // "cc"
-   $baseUnitName = $product->unit->name; // "lt"
-   $quantityOriginal = 60; // 60 cc
-   
-   // Convertir a unidad base antes de guardar en outflows
-   $quantityConverted = convertToBaseUnit($quantityOriginal, $usedUnitName, $baseUnitName);
-   // $quantityConverted = 0.060 (litros)
-   
-   // Guardar trazabilidad en registro específico
-   AgrochemicalOutflow::create([
-       'quantity' => $quantityOriginal, // 60 cc (para trazabilidad)
-       'unit_id' => $orderProduct->unit_id, // ID de "cc"
-   ]);
-   
-   // Guardar en kardex EN UNIDAD BASE
-   Outflow::create([
-       'quantity' => $quantityConverted, // 0.060 lt (¡CRÍTICO!)
+   ApplicationOrderProduct::create([
+       'product_id' => $productId,
+       'unit_id' => $product->unit_id, // SIEMPRE la unidad base del producto
+       'dosis_por_hectarea' => 0.020, // Usuario ingresa 0.020 LT (no 20 cc)
+       'cantidad_total' => 0.060, // 0.020 LT × 3 ha = 0.060 LT
    ]);
    ```
 
-4. **Tablas que almacenan unidad usada (trazabilidad)**:
-   - `application_order_products`: `unit_id` (unidad usada en la orden)
-   - `agrochemical_outflows`: `unit_id` (unidad usada en la aplicación)
-   - `fuel_outflows`: No requiere `unit_id` (siempre trabaja en litros)
+2. **En el Frontend**:
+   - Se muestra la unidad base del producto
+   - NO hay conversiones automáticas
+   - El usuario debe calcular manualmente si trabaja con unidades alternativas
 
-5. **Display en frontend**: La función `getSimplifiedQuantity()` en componentes Vue convierte cc→lt y gr→kg cuando cantidad >= 1000, SOLO para visualización. Los valores internos permanecen en unidad original.
+3. **Ejemplo práctico**:
+   ```
+   Producto: Glifosato 5 LT (unidad base: litros)
+   Hectáreas: 3 ha
+   
+   Usuario calcula:
+   - Necesita 20 cc/ha
+   - 20 cc = 0.020 LT
+   - Total: 0.020 LT/ha × 3 ha = 0.060 LT
+   
+   Usuario ingresa en la orden: 0.020 LT/ha (dosis ya convertida)
+   Sistema calcula: 0.060 LT total
+   Se guarda: unit_id = LT (unidad base del producto)
+   ```
 
-6. **IMPORTANTE**: Si no existe conversión directa entre dos unidades, `convertToBaseUnit()` devuelve la cantidad original y registra un warning en el log.
-
-**Ejemplo de caso de uso real:**
-```
-Factura: Insecticida X - 5 LT (unidad base del producto)
-Orden de aplicación: 3 ha × 20 cc/ha = 60 cc
-Ejecución real: 65 cc consumidos
-
-Guardado en BD:
-- application_order_products.quantity = 60, unit_id = "cc"
-- agrochemical_outflows.quantity = 65, unit_id = "cc" (trazabilidad)
-- outflows.quantity = 0.065 (convertido a LT - unidad base)
-
-Stock resultante: 5.000 LT - 0.065 LT = 4.935 LT ✅
-```
-
-**Cuándo usar este sistema:**
-- ✅ ApplicationOrders (orden usa cc, producto base es lt)
-- ✅ AgrochemicalOutflows (aplicación usa cc, producto base es lt)
-- ✅ Cualquier módulo que registre consumos en `outflows`
-- ✅ Services (si trabajan con unidades alternativas)
-- ❌ FuelOutflows (ya trabaja directo en litros)
+**IMPORTANTE**: 
+- ❌ NO usar `convertToBaseUnit()` en Application Orders
+- ❌ NO permitir selección de unidad alternativa en el formulario
+- ✅ Mostrar siempre la unidad base del producto
+- ✅ Responsabilidad del usuario hacer conversiones manuales
 
 ### Exportación a Excel
 - **Formato de datos numéricos**: Al exportar datos a Excel usando el componente `ExportExcelButton`, los valores numéricos (como totales, precios, cantidades) deben exportarse como números puros (sin formatear con `toLocaleString`).

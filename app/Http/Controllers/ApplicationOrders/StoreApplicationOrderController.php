@@ -42,6 +42,9 @@ class StoreApplicationOrderController
                 $cantidadPorHectarea = 0;
                 $cantidadTotal = 0;
                 
+                // Obtener el producto para usar su unidad base
+                $product = \App\Models\Product::findOrFail($productData['product_id']);
+                
                 if ($productData['tipo_dosis'] === 'por_hectarea') {
                     // Cálculo directo por hectárea
                     $cantidadPorHectarea = $productData['dosis_por_hectarea'];
@@ -56,7 +59,7 @@ class StoreApplicationOrderController
                 ApplicationOrderProduct::create([
                     'application_order_id' => $applicationOrder->id,
                     'product_id' => $productData['product_id'],
-                    'unit_id' => $productData['unit_id'] ?? null,
+                    'unit_id' => $product->unit_id,
                     'tipo_dosis' => $productData['tipo_dosis'],
                     'dosis_por_100' => $productData['dosis_por_100'] ?? null,
                     'dosis_por_hectarea' => $productData['dosis_por_hectarea'] ?? null,

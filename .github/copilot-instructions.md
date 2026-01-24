@@ -60,6 +60,52 @@ Esto permite máxima escalabilidad, reutilización y consistencia entre módulos
 
 **Confirmaciones**: Usar SweetAlert (`Swal.fire`) en TODA operación de guardado/edición, siguiendo el estándar visual del sistema.
 
+**Formato Visual de Vistas Principales**: TODAS las vistas principales (Index) deben seguir el patrón estándar del sistema:
+
+```vue
+<template>
+    <AppLayout title="[Título]">
+        <div class="card my-3">
+            <div class="card-header">
+                <div class="row flex-between-center">
+                    <div class="col-6 col-sm-auto d-flex align-items-center pe-0">
+                        <h5 class="fs-9 mb-0 text-nowrap py-2 py-xl-0">
+                            <i class="fas fa-[icono] me-2"></i>[Título]
+                        </h5>
+                    </div>
+                    <div class="col-6 col-sm-auto ms-auto text-end ps-0">
+                        <div class="d-flex align-items-center gap-2">
+                            <!-- Botones de acción -->
+                            <ExportExcelButton 
+                                class="btn btn-falcon-default btn-sm"
+                            />
+                            <button class="btn btn-falcon-default btn-sm">
+                                <span class="fas fa-plus" data-fa-transform="shrink-3 down-2"></span>
+                                <span class="d-none d-sm-inline-block ms-1">Nuevo</span>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card-body bg-body-tertiary">
+                <!-- Contenido: tablas, pestañas, etc. -->
+            </div>
+        </div>
+    </AppLayout>
+</template>
+```
+
+**Reglas del formato:**
+- ✅ Título y botones DENTRO del `card-header`
+- ✅ Todos los botones usan `btn-falcon-default` (sin colores)
+- ✅ Estructura: `card` > `card-header` + `card-body bg-body-tertiary`
+- ✅ Iconos en el título con clase `me-2`
+- ✅ Botones con iconos usando `data-fa-transform="shrink-3 down-2"`
+- ❌ NO usar colores en botones (no `btn-primary`, `btn-danger`, etc.)
+- ❌ NO poner título fuera del card
+- ❌ NO usar `container-fluid` con rows para el layout principal
+
 **Exportación Excel**: Al usar `ExportExcelButton`, exportar números puros (sin `toLocaleString`). Excel aplica formato automático con separador de miles.
 
 ```javascript

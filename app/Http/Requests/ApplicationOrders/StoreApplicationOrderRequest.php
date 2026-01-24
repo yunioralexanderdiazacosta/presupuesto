@@ -34,7 +34,6 @@ class StoreApplicationOrderRequest extends FormRequest
             // Productos (array de productos)
             'products' => 'required|array|min:1',
             'products.*.product_id' => 'required|exists:products,id',
-            'products.*.unit_id' => 'nullable|exists:units,id',
             'products.*.tipo_dosis' => 'required|in:por_hectarea,por_100_litros',
             'products.*.dosis_por_100' => 'nullable|numeric|min:0',
             'products.*.dosis_por_hectarea' => 'nullable|numeric|min:0',

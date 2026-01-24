@@ -24,22 +24,11 @@ const selectedProduct = ref(null);
 const editingProductIndex = ref(null);
 const newProduct = ref({
     product_id: '',
-    unit_id: null,
     tipo_dosis: 'por_hectarea',
     dosis_por_100: '',
     dosis_por_hectarea: '',
     carencia: '',
     reingreso: '',
-});
-
-// Watcher para actualizar unit_id automáticamente cuando se selecciona un producto
-watch(() => newProduct.value.product_id, (newProductId) => {
-    if (newProductId) {
-        const product = props.products.find(p => p.value === newProductId);
-        if (product) {
-            newProduct.value.unit_id = product.unit_id;
-        }
-    }
 });
 
 const totalHectareas = computed(() => {
@@ -70,43 +59,22 @@ const calculatedTotalQuantity = computed(() => {
     return calculatedQuantityPerHa.value * totalHectareas.value;
 });
 
-// Computed para vista previa simplificada
+// Computed para obtener la unidad base del producto seleccionado
+const selectedProductUnit = computed(() => {
+    if (!newProduct.value.product_id) return '';
+    const product = props.products.find(p => p.value === newProduct.value.product_id);
+    return product?.unit_name || '';
+});
+
+// Computed para vista previa de cantidad total con unidad base del producto
 const previewSimplifiedQuantity = computed(() => {
     const cantidad = calculatedTotalQuantity.value;
-    const unitId = newProduct.value.unit_id || null;
+    const prod = props.products.find(p => p.value === newProduct.value.product_id);
+    const unitName = prod?.unit_name || '';
     
-    // Obtener el nombre de la unidad
-    let unitName = '';
-    if (unitId) {
-        const unit = props.units.find(u => u.value === unitId);
-        unitName = unit?.label || '';
-    } else {
-        const prod = props.products.find(p => p.value === newProduct.value.product_id);
-        unitName = prod?.unit_name || '';
-    }
-    
-    unitName = unitName.toLowerCase();
-    
-    // Convertir cc a lt si es >= 1000
-    if (unitName === 'cc' && cantidad >= 1000) {
-        return {
-            value: (cantidad / 1000).toFixed(2),
-            unit: 'lt'
-        };
-    }
-    
-    // Convertir gr a kg si es >= 1000
-    if (unitName === 'gr' && cantidad >= 1000) {
-        return {
-            value: (cantidad / 1000).toFixed(2),
-            unit: 'kg'
-        };
-    }
-    
-    // No convertir, devolver original
     return {
         value: cantidad.toFixed(2),
-        unit: getUnitName(unitId) || getProductUnit(newProduct.value.product_id)
+        unit: unitName
     };
 });
 
@@ -156,7 +124,6 @@ function addProduct() {
     // Resetear form
     newProduct.value = {
         product_id: '',
-        unit_id: null,
         tipo_dosis: 'por_hectarea',
         dosis_por_100: '',
         dosis_por_hectarea: '',
@@ -172,7 +139,6 @@ function editProduct(index) {
     
     newProduct.value = {
         product_id: product.product_id,
-        unit_id: product.unit_id,
         tipo_dosis: product.tipo_dosis,
         dosis_por_100: product.dosis_por_100,
         dosis_por_hectarea: product.dosis_por_hectarea,
@@ -190,7 +156,6 @@ function cancelEditProduct() {
     editingProductIndex.value = null;
     newProduct.value = {
         product_id: '',
-        unit_id: null,
         tipo_dosis: 'por_hectarea',
         dosis_por_100: '',
         dosis_por_hectarea: '',
@@ -286,43 +251,15 @@ function getProductTotalQuantity(product) {
     return getProductQuantityPerHa(product) * totalHectareas.value;
 }
 
-// Función para convertir y simplificar cantidades (cc a lt, gr a kg)
+// Función para obtener cantidad con unidad base del producto
 function getSimplifiedQuantity(product) {
     const cantidad = getProductTotalQuantity(product);
-    const unitId = product.unit_id || null;
+    const prod = props.products.find(p => p.value === product.product_id);
+    const unitName = prod?.unit_name || '';
     
-    // Obtener el nombre de la unidad
-    let unitName = '';
-    if (unitId) {
-        const unit = props.units.find(u => u.value === unitId);
-        unitName = unit?.label || '';
-    } else {
-        const prod = props.products.find(p => p.value === product.product_id);
-        unitName = prod?.unit_name || '';
-    }
-    
-    unitName = unitName.toLowerCase();
-    
-    // Convertir cc a lt si es >= 1000
-    if (unitName === 'cc' && cantidad >= 1000) {
-        return {
-            value: (cantidad / 1000).toFixed(2),
-            unit: 'lt'
-        };
-    }
-    
-    // Convertir gr a kg si es >= 1000
-    if (unitName === 'gr' && cantidad >= 1000) {
-        return {
-            value: (cantidad / 1000).toFixed(2),
-            unit: 'kg'
-        };
-    }
-    
-    // No convertir, devolver original
     return {
         value: cantidad.toFixed(2),
-        unit: getUnitName(unitId) || getProductUnit(product.product_id)
+        unit: unitName
     };
 }
 </script>
@@ -644,16 +581,24 @@ function getSimplifiedQuantity(product) {
                     </div>
 
                     <div class="col-md-3">
-                        <label class="form-label small mb-1">Unidad</label>
-                        <select
-                            v-model="newProduct.unit_id"
-                            class="form-select form-select-sm"
-                        >
-                            <option :value="null" disabled selected>Seleccione unidad...</option>
-                            <option v-for="unit in units" :key="unit.value" :value="unit.value">
-                                {{ unit.label }}
-                            </option>
-                        </select>
+                        <label class="form-label small mb-1">
+                            <i class="fas fa-balance-scale me-1"></i>Unidad Base
+                        </label>
+                        <div class="input-group input-group-sm">
+                            <input
+                                :value="selectedProductUnit"
+                                type="text"
+                                class="form-control form-control-sm bg-light"
+                                readonly
+                                placeholder="Seleccione producto..."
+                            />
+                            <span class="input-group-text bg-info text-white">
+                                <i class="fas fa-info-circle"></i>
+                            </span>
+                        </div>
+                        <small class="text-muted d-block mt-1">
+                            <i class="fas fa-lightbulb me-1"></i>Ingrese cantidades en esta unidad
+                        </small>
                     </div>
 
                     <div class="col-md-3">
@@ -678,8 +623,8 @@ function getSimplifiedQuantity(product) {
                 </div>
 
                 <div class="row mb-2">
-                    <div class="col-md-12">
-                        <button @click="addProduct" class="btn btn-sm w-100" :class="editingProductIndex !== null ? 'btn-warning' : 'btn-success'" type="button">
+                    <div class="col-md-12 text-end">
+                        <button @click="addProduct" class="btn btn-sm" :class="editingProductIndex !== null ? 'btn-warning' : 'btn-success'" type="button">
                             <i :class="editingProductIndex !== null ? 'fas fa-save' : 'fas fa-plus'" class="me-1"></i>
                             {{ editingProductIndex !== null ? 'Actualizar Producto' : 'Agregar Producto' }}
                         </button>
@@ -691,7 +636,7 @@ function getSimplifiedQuantity(product) {
                     <strong class="small">Vista Previa:</strong><br>
                     <small>
                         Cantidad por hectárea: <strong>{{ calculatedQuantityPerHa.toFixed(2) }}</strong> 
-                        {{ getUnitName(newProduct.unit_id) || getProductUnit(newProduct.product_id) }}/ha<br>
+                        {{ selectedProductUnit }}/ha<br>
                         Cantidad total: <strong>{{ Number(previewSimplifiedQuantity.value).toLocaleString('es-ES', {minimumFractionDigits: 2}) }}</strong> 
                         {{ previewSimplifiedQuantity.unit }}
                     </small>

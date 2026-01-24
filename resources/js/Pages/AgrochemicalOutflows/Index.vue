@@ -62,86 +62,86 @@ const excelData = computed(() => {
 
 <template>
     <AppLayout title="Aplicaciones de Agroquímicos">
-        <div class="container-fluid">
-            <div class="row mb-3">
-                <div class="col-12">
-                    <div class="d-flex justify-content-between align-items-center">
-                        <h2 class="mb-0">Aplicaciones de Agroquímicos</h2>
-                        <div class="d-flex gap-2">
+        <div class="card my-3">
+            <div class="card-header">
+                <div class="row flex-between-center">
+                    <div class="col-6 col-sm-auto d-flex align-items-center pe-0">
+                        <h5 class="fs-9 mb-0 text-nowrap py-2 py-xl-0">
+                            <i class="fas fa-spray-can me-2"></i>Aplicaciones de Agroquímicos
+                        </h5>
+                    </div>
+                    <div class="col-6 col-sm-auto ms-auto text-end ps-0">
+                        <div class="d-flex align-items-center gap-2">
                             <ExportExcelButton 
                                 :data="excelData"
                                 filename="aplicaciones-agroquimicos"
                                 sheet-name="Aplicaciones"
+                                class="btn btn-falcon-default btn-sm d-flex align-items-center"
                             />
                             <button 
                                 @click="openExecuteModal"
-                                class="btn btn-primary"
+                                class="btn btn-falcon-default btn-sm"
                             >
-                                <i class="fas fa-plus"></i> Registrar Aplicación
+                                <span class="fas fa-plus" data-fa-transform="shrink-3 down-2"></span>
+                                <span class="d-none d-sm-inline-block ms-1">Registrar Aplicación</span>
                             </button>
                         </div>
                     </div>
                 </div>
             </div>
 
-            <div class="row">
-                <div class="col-12">
-                    <div class="card">
-                        <div class="card-body">
-                            <!-- Tabla de aplicaciones -->
-                            <div class="table-responsive">
-                                <table class="table table-striped">
-                                    <thead>
-                                        <tr>
-                                            <th>Fecha</th>
-                                            <th>Orden #</th>
-                                            <th>Maquinadas</th>
-                                            <th>Producto</th>
-                                            <th>Cantidad</th>
-                                            <th>Factura Origen</th>
-                                            <th class="text-center">Acciones</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody>
-                                        <tr v-for="outflow in outflows.data" :key="outflow.id">
-                                            <td>
-                                                {{ new Date(outflow.date).toLocaleDateString('es-ES') }}
-                                            </td>
-                                            <td>
-                                                #{{ outflow.application_order_id }}
-                                            </td>
-                                            <td>
-                                                {{ outflow.maquinadas.toLocaleString('es-ES', {minimumFractionDigits: 2}) }}
-                                            </td>
-                                            <td>
-                                                {{ outflow.product?.name }}
-                                            </td>
-                                            <td class="text-end">
-                                                {{ outflow.quantity.toLocaleString('es-ES', {minimumFractionDigits: 2}) }} {{ outflow.product?.unit?.name }}
-                                            </td>
-                                            <td>
-                                                <small class="text-muted">{{ outflow.invoice_product?.invoice?.number_document || 'N/A' }}</small>
-                                            </td>
-                                            <td class="text-center">
-                                                <button 
-                                                    @click="deleteOutflow(outflow.id)"
-                                                    class="btn btn-sm btn-danger"
-                                                    title="Eliminar aplicación"
-                                                >
-                                                    <i class="fas fa-trash"></i>
-                                                </button>
-                                            </td>
-                                        </tr>
-                                        <tr v-if="outflows.data.length === 0">
-                                            <td colspan="7" class="text-center text-muted">
-                                                No hay aplicaciones registradas
-                                            </td>
-                                        </tr>
-                                    </tbody>
-                                </table>
-                            </div>
-                        </div>
-                    </div>
+            <div class="card-body bg-body-tertiary">
+                <!-- Tabla de aplicaciones -->
+                <div class="table-responsive">
+                    <table class="table table-striped">
+                        <thead>
+                            <tr>
+                                <th>Fecha</th>
+                                <th>Orden #</th>
+                                <th>Maquinadas</th>
+                                <th>Producto</th>
+                                <th>Cantidad</th>
+                                <th>Factura Origen</th>
+                                <th class="text-center">Acciones</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr v-for="outflow in outflows.data" :key="outflow.id">
+                                <td>
+                                    {{ new Date(outflow.date).toLocaleDateString('es-ES') }}
+                                </td>
+                                <td>
+                                    #{{ outflow.application_order_id }}
+                                </td>
+                                <td>
+                                    {{ outflow.maquinadas.toLocaleString('es-ES', {minimumFractionDigits: 2}) }}
+                                </td>
+                                <td>
+                                    {{ outflow.product?.name }}
+                                </td>
+                                <td class="text-end">
+                                    {{ outflow.quantity.toLocaleString('es-ES', {minimumFractionDigits: 2}) }} {{ outflow.product?.unit?.name }}
+                                </td>
+                                <td>
+                                    <small class="text-muted">{{ outflow.invoice_product?.invoice?.number_document || 'N/A' }}</small>
+                                </td>
+                                <td class="text-center">
+                                    <button 
+                                        @click="deleteOutflow(outflow.id)"
+                                        class="btn btn-sm btn-falcon-default"
+                                        title="Eliminar aplicación"
+                                    >
+                                        <i class="fas fa-trash"></i>
+                                    </button>
+                                </td>
+                            </tr>
+                            <tr v-if="outflows.data.length === 0">
+                                <td colspan="7" class="text-center text-muted">
+                                    No hay aplicaciones registradas
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
                 </div>
             </div>
         </div>

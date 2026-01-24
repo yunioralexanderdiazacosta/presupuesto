@@ -248,12 +248,6 @@ function formatNumber(value) {
                         </span>
                     </div>
                 </div>
-
-                <div class="alert alert-info mb-3">
-                    <i class="fas fa-info-circle me-2"></i>
-                    <strong>Importante:</strong> Debe registrar TODOS los productos de la orden ({{ form.products.length }} productos). 
-                    Los productos se mezclan en el tanque y se aplican juntos.
-                </div>
                 
                 <h6 class="mb-3">Productos a Aplicar ({{ form.products.length }})</h6>
                 
