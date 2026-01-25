@@ -45,4 +45,38 @@ class Invoice extends Model
     {
         return $this->hasMany(\App\Models\InvoiceProduct::class);
     }
+
+    public function payments()
+    {
+        return $this->hasMany(InvoicePayment::class);
+    }
+
+    public function getTotalPaidAttribute()
+    {
+        return $this->payments()->sum('amount');
+    }
+
+    public function getTotalInvoiceAttribute()
+    {
+        return $this->invoiceProducts()->sum(\DB::raw('unit_price * amount'));
+    }
+
+    public function getBalanceAttribute()
+    {
+        return $this->total_invoice - $this->total_paid;
+    }
+
+    public function getPaymentStatusAttribute()
+    {
+        $totalPaid = $this->total_paid;
+        $totalInvoice = $this->total_invoice;
+
+        if ($totalPaid == 0) {
+            return 'pending'; // Pendiente
+        } elseif ($totalPaid >= $totalInvoice) {
+            return 'paid'; // Pagado
+        } else {
+            return 'partial'; // Parcial
+        }
+    }
 }

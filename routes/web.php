@@ -34,6 +34,13 @@ use App\Http\Controllers\Products2\DeleteProduct2Controller;
     use App\Http\Controllers\AgrochemicalOutflows\StoreAgrochemicalOutflowController;
     use App\Http\Controllers\AgrochemicalOutflows\DeleteAgrochemicalOutflowController;
 
+// Rutas para Invoice Payments
+    use App\Http\Controllers\InvoicePayments\InvoicePaymentController;
+    use App\Http\Controllers\InvoicePayments\InvoicePaymentDashboardController;
+    use App\Http\Controllers\InvoicePayments\StoreInvoicePaymentController;
+    use App\Http\Controllers\InvoicePayments\UpdateInvoicePaymentController;
+    use App\Http\Controllers\InvoicePayments\DeleteInvoicePaymentController;
+
 use Illuminate\Foundation\Application;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\HomeController;
@@ -182,6 +189,7 @@ use App\Http\Controllers\Excels\SeasonsExcelController;
 use App\Http\Controllers\Excels\SuppliersExcelController;
 use App\Http\Controllers\Excels\ProductsExcelController;
 use App\Http\Controllers\Excels\InvoicesExcelController;
+use App\Http\Controllers\Excels\InvoicePaymentsExcelController;
 use App\Http\Controllers\Excels\MachineriesExcelController;
 use App\Http\Controllers\Excels\TypeMachineriesExcelController;
 use App\Http\Controllers\WeatherController;
@@ -566,6 +574,16 @@ Route::middleware([
     Route::get('/agrochemical-outflows', [AgrochemicalOutflowController::class, 'index'])->name('agrochemical-outflows.index');
     Route::post('/agrochemical-outflows', StoreAgrochemicalOutflowController::class)->name('agrochemical-outflows.store');
     Route::delete('/agrochemical-outflows/{agrochemicalOutflow}', DeleteAgrochemicalOutflowController::class)->name('agrochemical-outflows.delete');
+
+    // Invoice Payments
+    Route::get('/invoice-payments', InvoicePaymentController::class)->name('invoice-payments.index');
+    Route::get('/invoice-payments/dashboard', InvoicePaymentDashboardController::class)->name('invoice-payments.dashboard');
+    Route::get('/invoice-payments/excel', InvoicePaymentsExcelController::class)->name('invoice-payments.excel');
+    Route::get('/api/invoices/search', [InvoicePaymentController::class, 'searchInvoices'])->name('invoices.search');
+    Route::post('/invoice-payments', StoreInvoicePaymentController::class)->name('invoice-payments.store');
+    Route::put('/invoice-payments/{payment}', UpdateInvoicePaymentController::class)->name('invoice-payments.update');
+    Route::delete('/invoice-payments/{payment}', DeleteInvoicePaymentController::class)->name('invoice-payments.delete');
+
 
     // Consolidated Documents
     Route::get('/consolidated-documents', [ConsolidatedDocumentsController::class, 'index'])
