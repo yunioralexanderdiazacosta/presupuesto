@@ -280,10 +280,42 @@ const logout = () => {
                             </div>
                           </Link>
                         </li>
+                      </ul>
+                    </li>
+                    <li class="nav-item">
+                      <a class="nav-link dropdown-indicator" href="#agrochemicals" data-bs-toggle="collapse" aria-expanded="false" aria-controls="agrochemicals">
+                        <div class="d-flex align-items-center">
+                          <span class="nav-link-text ps-3">Agroquímicos</span>
+                        </div>
+                      </a>
+                      <ul class="nav collapse" id="agrochemicals">
+                        <li class="nav-item">
+                          <Link class="nav-link" :href="route('application-orders.index')">
+                            <div class="d-flex align-items-center">
+                              <span class="nav-link-text ps-4">Órdenes de Aplicación</span>
+                            </div>
+                          </Link>
+                        </li>
                         <li class="nav-item">
                           <Link class="nav-link" :href="route('agrochemical-outflows.index')">
                             <div class="d-flex align-items-center">
                               <span class="nav-link-text ps-4">Aplicación Agroquímicos</span>
+                            </div>
+                          </Link>
+                        </li>
+                      </ul>
+                    </li>
+                    <li class="nav-item">
+                      <a class="nav-link dropdown-indicator" href="#fertilizers" data-bs-toggle="collapse" aria-expanded="false" aria-controls="fertilizers">
+                        <div class="d-flex align-items-center">
+                          <span class="nav-link-text ps-3">Fertilizantes</span>
+                        </div>
+                      </a>
+                      <ul class="nav collapse" id="fertilizers">
+                        <li class="nav-item">
+                          <Link class="nav-link" :href="route('fertilizer-orders.index')">
+                            <div class="d-flex align-items-center">
+                              <span class="nav-link-text ps-4">Órdenes de Fertilizante</span>
                             </div>
                           </Link>
                         </li>
@@ -328,8 +360,8 @@ const logout = () => {
                   </Link>
                   <!-- more inner pages-->
                 </li>
-                <li class="nav-item"><Link class="nav-link" :href="route('application-orders.index')">
-                    <div class="d-flex align-items-center"><span class="nav-link-text ps-3">Órdenes de Aplicación</span>
+                <li class="nav-item"><Link class="nav-link" :href="route('irrigation-pumps.index')">
+                    <div class="d-flex align-items-center"><span class="nav-link-text ps-3">Equipos de Riego</span>
                     </div>
                   </Link>
                   <!-- more inner pages-->

@@ -151,8 +151,9 @@ watch(filteredRows, () => {
             <div class="card">
                 <div class="card-header d-flex justify-content-between align-items-center">
                     <h5 class="mb-0">{{ title }}</h5>
-                    <button @click="openCreateModal" class="btn btn-primary btn-sm">
-                        <i class="fas fa-plus me-1"></i> Nueva Orden
+                    <button @click="openCreateModal" class="btn btn-falcon-default btn-sm">
+                        <span class="fas fa-plus" data-fa-transform="shrink-3 down-2"></span>
+                        <span class="d-none d-sm-inline-block ms-1">Nueva Orden</span>
                     </button>
                 </div>
 
@@ -228,21 +229,21 @@ watch(filteredRows, () => {
                                         <div class="btn-group btn-group-sm">
                                             <button
                                                 @click="openEditModal(order)"
-                                                class="btn btn-sm btn-warning"
+                                                class="btn btn-sm btn-falcon-default"
                                                 title="Editar"
                                             >
                                                 <i class="fas fa-edit"></i>
                                             </button>
                                             <Link
                                                 :href="route('application-orders.show', order.id)"
-                                                class="btn btn-sm btn-info"
+                                                class="btn btn-sm btn-falcon-default"
                                                 title="Ver"
                                             >
                                                 <i class="fas fa-eye"></i>
                                             </Link>
                                             <button
                                                 @click="confirmDelete(order.id)"
-                                                class="btn btn-sm btn-danger"
+                                                class="btn btn-sm btn-falcon-default"
                                                 title="Eliminar"
                                             >
                                                 <i class="fas fa-trash"></i>

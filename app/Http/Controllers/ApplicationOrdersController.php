@@ -34,10 +34,13 @@ class ApplicationOrdersController extends Controller
             ->latest('date')
             ->paginate(20);
 
-        // Obtener productos del equipo
+        // Obtener productos de agroquímicos del equipo
         $products = Product::with('unit:id,name')
+            ->whereHas('level2', function($query) {
+                $query->where('name', 'agroquimicos');
+            })
             ->where('team_id', $user->team_id)
-            ->get(['id', 'name', 'unit_id'])
+            ->get(['id', 'name', 'unit_id', 'level2_id'])
             ->map(function($product) {
                 return [
                     'value' => $product->id,

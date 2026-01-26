@@ -11,7 +11,9 @@ defineEmits(['store']);
 <template>
     <Modal :maxWidth="'lg'" :id="'createMachineryModal'">
         <template #header>
-            <h2 class="mb-3">Agregar Maquinaria</h2>
+            <h5 class="modal-title mb-0">
+                <i class="fas fa-tractor me-2"></i>Agregar Maquinaria
+            </h5>
         </template>
         <template #body>
             <MachineryForm :form="form" />
