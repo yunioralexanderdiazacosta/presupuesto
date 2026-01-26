@@ -18,6 +18,8 @@ const newSector = ref({
     observations: ''
 });
 
+const editingIndex = ref(null);
+
 function addSector() {
     if (!newSector.value.name || !newSector.value.surface) {
         Swal.fire('Error', 'El nombre y superficie del sector son obligatorios', 'error');
@@ -40,7 +42,60 @@ function addSector() {
 }
 
 function removeSector(index) {
-    props.form.sectors.splice(index, 1);
+    const sector = props.form.sectors[index];
+    
+    // Verificar si tiene órdenes asociadas
+    if (sector.orders_count && sector.orders_count > 0) {
+        Swal.fire({
+            title: 'No se puede eliminar',
+            html: `El sector "<strong>${sector.name}</strong>" está siendo usado en <strong>${sector.orders_count}</strong> orden(es) de fertilizante.<br><br>Debe eliminar primero las órdenes asociadas.`,
+            icon: 'warning',
+            confirmButtonText: 'Entendido'
+        });
+        return;
+    }
+    
+    Swal.fire({
+        title: '¿Eliminar sector?',
+        text: `Se eliminará el sector "${sector.name}"`,
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonColor: '#d33',
+        cancelButtonColor: '#3085d6',
+        confirmButtonText: 'Sí, eliminar',
+        cancelButtonText: 'Cancelar'
+    }).then((result) => {
+        if (result.isConfirmed) {
+            props.form.sectors.splice(index, 1);
+            if (editingIndex.value === index) {
+                editingIndex.value = null;
+            }
+        }
+    });
+}
+
+function editSector(index) {
+    editingIndex.value = index;
+}
+
+function cancelEdit() {
+    editingIndex.value = null;
+}
+
+function saveEdit(index) {
+    const sector = props.form.sectors[index];
+    
+    if (!sector.name || !sector.surface) {
+        Swal.fire('Error', 'El nombre y superficie son obligatorios', 'error');
+        return;
+    }
+
+    if (parseFloat(sector.surface) <= 0) {
+        Swal.fire('Error', 'La superficie debe ser mayor a 0', 'error');
+        return;
+    }
+
+    editingIndex.value = null;
 }
 
 const getTotalSurface = () => {
@@ -179,18 +234,86 @@ const getTotalSurface = () => {
                     <tbody>
                         <tr v-for="(sector, index) in form.sectors" :key="index">
                             <td>{{ index + 1 }}</td>
-                            <td><strong>{{ sector.name }}</strong></td>
-                            <td>{{ parseFloat(sector.surface).toFixed(2) }}</td>
-                            <td class="small">{{ sector.observations || '-' }}</td>
+                            <td>
+                                <input 
+                                    v-if="editingIndex === index"
+                                    v-model="sector.name"
+                                    type="text"
+                                    class="form-control form-control-sm"
+                                    placeholder="Nombre del sector"
+                                />
+                                <div v-else>
+                                    <strong>{{ sector.name }}</strong>
+                                    <span 
+                                        v-if="sector.orders_count && sector.orders_count > 0" 
+                                        class="badge bg-info ms-2"
+                                        title="Este sector está siendo usado en órdenes"
+                                    >
+                                        <i class="fas fa-lock me-1"></i>{{ sector.orders_count }} orden(es)
+                                    </span>
+                                </div>
+                            </td>
+                            <td>
+                                <input 
+                                    v-if="editingIndex === index"
+                                    v-model="sector.surface"
+                                    type="number"
+                                    step="0.01"
+                                    min="0.01"
+                                    class="form-control form-control-sm"
+                                    style="width: 100px;"
+                                />
+                                <span v-else>{{ parseFloat(sector.surface).toFixed(2) }}</span>
+                            </td>
+                            <td class="small">
+                                <input 
+                                    v-if="editingIndex === index"
+                                    v-model="sector.observations"
+                                    type="text"
+                                    class="form-control form-control-sm"
+                                    placeholder="Observaciones"
+                                />
+                                <span v-else>{{ sector.observations || '-' }}</span>
+                            </td>
                             <td class="text-center">
-                                <button
-                                    @click="removeSector(index)"
-                                    type="button"
-                                    class="btn btn-sm btn-falcon-default"
-                                    title="Eliminar"
-                                >
-                                    <i class="fas fa-trash"></i>
-                                </button>
+                                <div v-if="editingIndex === index" class="btn-group btn-group-sm">
+                                    <button
+                                        @click="saveEdit(index)"
+                                        type="button"
+                                        class="btn btn-success btn-sm"
+                                        title="Guardar"
+                                    >
+                                        <i class="fas fa-check"></i>
+                                    </button>
+                                    <button
+                                        @click="cancelEdit"
+                                        type="button"
+                                        class="btn btn-secondary btn-sm"
+                                        title="Cancelar"
+                                    >
+                                        <i class="fas fa-times"></i>
+                                    </button>
+                                </div>
+                                <div v-else class="btn-group btn-group-sm">
+                                    <button
+                                        @click="editSector(index)"
+                                        type="button"
+                                        class="btn btn-falcon-default btn-sm"
+                                        title="Editar"
+                                    >
+                                        <i class="fas fa-edit"></i>
+                                    </button>
+                                    <button
+                                        @click="removeSector(index)"
+                                        type="button"
+                                        class="btn btn-falcon-default btn-sm"
+                                        :disabled="sector.orders_count && sector.orders_count > 0"
+                                        :title="sector.orders_count && sector.orders_count > 0 ? 'No se puede eliminar: sector en uso' : 'Eliminar'"
+                                        :class="{ 'opacity-50': sector.orders_count && sector.orders_count > 0 }"
+                                    >
+                                        <i class="fas fa-trash"></i>
+                                    </button>
+                                </div>
                             </td>
                         </tr>
                     </tbody>

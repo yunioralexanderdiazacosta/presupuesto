@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\IrrigationPump;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
 use Inertia\Inertia;
 
 class IrrigationPumpsController extends Controller
@@ -33,6 +34,15 @@ class IrrigationPumpsController extends Controller
             })
             ->latest()
             ->paginate(15);
+        
+        // Agregar información de sectores en uso
+        foreach ($irrigationPumps as $pump) {
+            foreach ($pump->sectors as $sector) {
+                $sector->orders_count = DB::table('fertilizer_order_irrigation_sector')
+                    ->where('irrigation_sector_id', $sector->id)
+                    ->count();
+            }
+        }
 
         return Inertia::render('IrrigationPumps/Index', [
             'irrigationPumps' => $irrigationPumps,

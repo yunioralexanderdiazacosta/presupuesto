@@ -30,17 +30,54 @@ class UpdateIrrigationPumpController extends Controller
                 'model' => $request->model,
             ]);
 
-            // Eliminar sectores existentes y crear los nuevos
-            $irrigationPump->sectors()->delete();
+            // Obtener sectores actuales
+            $currentSectorIds = $irrigationPump->sectors->pluck('id')->toArray();
+            
+            // Obtener IDs de sectores que se mantendrán (si tienen 'id' en el request)
+            $keepingSectorIds = collect($request->sectors ?? [])
+                ->filter(fn($s) => isset($s['id']))
+                ->pluck('id')
+                ->toArray();
+            
+            // Sectores a eliminar
+            $sectorsToDelete = array_diff($currentSectorIds, $keepingSectorIds);
+            
+            // Validar que sectores a eliminar NO estén en uso
+            if (!empty($sectorsToDelete)) {
+                $sectorsInUse = DB::table('fertilizer_order_irrigation_sector')
+                    ->whereIn('irrigation_sector_id', $sectorsToDelete)
+                    ->exists();
+                
+                if ($sectorsInUse) {
+                    DB::rollBack();
+                    return back()->withErrors([
+                        'error' => 'No se puede eliminar sectores que están siendo usados en órdenes de fertilizantes. Por favor, elimine primero las órdenes asociadas o conserve los sectores.'
+                    ])->withInput();
+                }
+                
+                // Si no están en uso, eliminar
+                IrrigationSector::whereIn('id', $sectorsToDelete)->delete();
+            }
 
+            // Actualizar o crear sectores
             if ($request->has('sectors') && is_array($request->sectors)) {
                 foreach ($request->sectors as $sectorData) {
-                    IrrigationSector::create([
-                        'name' => $sectorData['name'],
-                        'surface' => $sectorData['surface'],
-                        'irrigation_pump_id' => $irrigationPump->id,
-                        'observations' => $sectorData['observations'] ?? null,
-                    ]);
+                    if (isset($sectorData['id'])) {
+                        // Actualizar sector existente
+                        IrrigationSector::where('id', $sectorData['id'])->update([
+                            'name' => $sectorData['name'],
+                            'surface' => $sectorData['surface'],
+                            'observations' => $sectorData['observations'] ?? null,
+                        ]);
+                    } else {
+                        // Crear nuevo sector
+                        IrrigationSector::create([
+                            'name' => $sectorData['name'],
+                            'surface' => $sectorData['surface'],
+                            'irrigation_pump_id' => $irrigationPump->id,
+                            'observations' => $sectorData['observations'] ?? null,
+                        ]);
+                    }
                 }
             }
 

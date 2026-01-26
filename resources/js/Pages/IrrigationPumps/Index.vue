@@ -39,8 +39,16 @@ function closeCreateModal() {
 }
 
 function openEditModal(pump) {
-    editingPump.value = pump;
-    showEditModal.value = true;
+    // Recargar desde servidor para obtener orders_count actualizado
+    router.reload({
+        only: ['irrigationPumps'],
+        onSuccess: () => {
+            // Buscar la bomba actualizada en los datos recargados
+            const updatedPump = props.irrigationPumps.data.find(p => p.id === pump.id);
+            editingPump.value = updatedPump || pump;
+            showEditModal.value = true;
+        }
+    });
 }
 
 function closeEditModal() {

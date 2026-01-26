@@ -1,38 +1,36 @@
 <?php
 
-namespace App\Http\Controllers;
+namespace App\Http\Controllers\FertilizerOrders;
 
+use App\Http\Controllers\Controller;
 use App\Models\FertilizerOrder;
 use App\Models\Product;
 use App\Models\CostCenter;
 use App\Models\IrrigationPump;
 use App\Models\Unit;
-use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Inertia\Inertia;
 
-class FertilizerOrdersController extends Controller
+class ShowFertilizerOrderController extends Controller
 {
-    public function index(Request $request)
+    public function __invoke(FertilizerOrder $fertilizerOrder)
     {
         $user = Auth::user();
-        $season_id = session('season_id');
         
-        if (!$season_id) {
-            return redirect()->route('dashboard')->with('error', 'Debe seleccionar una campaña activa.');
+        // Verificar que la orden pertenezca al equipo del usuario
+        if ($fertilizerOrder->team_id !== $user->team_id) {
+            abort(403, 'No autorizado');
         }
 
-        $fertilizerOrders = FertilizerOrder::with([
-            'orderProducts.product',
-            'orderProducts.unit',
+        // Cargar relaciones
+        $fertilizerOrder->load([
+            'orderProducts.product.unit',
             'orderIrrigationSectors.irrigationSector',
             'orderCostCenters.costCenter',
-            'irrigationPump'
-        ])
-            ->where('team_id', $user->team_id)
-            ->where('season_id', $season_id)
-            ->latest('date')
-            ->get();
+            'irrigationPump',
+            'team',
+            'season'
+        ]);
 
         // Obtener productos de fertilizantes del equipo
         $products = Product::with('unit:id,name')
@@ -51,7 +49,7 @@ class FertilizerOrdersController extends Controller
             });
 
         // Obtener centros de costo
-        $costCenters = CostCenter::where('season_id', $season_id)
+        $costCenters = CostCenter::where('season_id', session('season_id'))
             ->whereHas('season', function($q) use ($user) {
                 $q->where('team_id', $user->team_id);
             })
@@ -67,7 +65,7 @@ class FertilizerOrdersController extends Controller
         // Obtener bombas de riego
         $irrigationPumps = IrrigationPump::with('sectors')
             ->where('team_id', $user->team_id)
-            ->where('season_id', $season_id)
+            ->where('season_id', session('season_id'))
             ->get()
             ->map(function($pump) {
                 return [
@@ -83,7 +81,6 @@ class FertilizerOrdersController extends Controller
                 ];
             });
 
-        // Obtener unidades
         $units = Unit::orderBy('name')->get(['id', 'name'])->map(function($unit) {
             return [
                 'value' => $unit->id,
@@ -92,6 +89,7 @@ class FertilizerOrdersController extends Controller
         });
 
         // Obtener agrupaciones con sus centros de costo
+        $season_id = session('season_id');
         $groupings = \App\Models\Grouping::with(['costCenters' => function($q) use ($season_id) {
             $q->select('cost_centers.id', 'cost_centers.name')->where('season_id', $season_id);
         }])
@@ -107,8 +105,8 @@ class FertilizerOrdersController extends Controller
             ])->values(),
         ]);
 
-        return Inertia::render('FertilizerOrders/Index', [
-            'fertilizerOrders' => $fertilizerOrders,
+        return Inertia::render('FertilizerOrders/Show', [
+            'fertilizerOrder' => $fertilizerOrder,
             'products' => $products,
             'costCenters' => $costCenters,
             'irrigationPumps' => $irrigationPumps,

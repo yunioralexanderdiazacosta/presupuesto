@@ -588,6 +588,8 @@ Route::middleware([
     // Fertilizer Orders
     Route::get('/fertilizer-orders', [\App\Http\Controllers\FertilizerOrdersController::class, 'index'])->name('fertilizer-orders.index');
     Route::post('/fertilizer-orders', \App\Http\Controllers\FertilizerOrders\StoreFertilizerOrderController::class)->name('fertilizer-orders.store');
+    Route::get('/fertilizer-orders/{fertilizerOrder}/pdf', \App\Http\Controllers\FertilizerOrders\PdfFertilizerOrderController::class)->name('fertilizer-orders.pdf');
+    Route::get('/fertilizer-orders/{fertilizerOrder}', \App\Http\Controllers\FertilizerOrders\ShowFertilizerOrderController::class)->name('fertilizer-orders.show');
     Route::put('/fertilizer-orders/{fertilizerOrder}', \App\Http\Controllers\FertilizerOrders\UpdateFertilizerOrderController::class)->name('fertilizer-orders.update');
     Route::delete('/fertilizer-orders/{fertilizerOrder}', \App\Http\Controllers\FertilizerOrders\DeleteFertilizerOrderController::class)->name('fertilizer-orders.destroy');
 

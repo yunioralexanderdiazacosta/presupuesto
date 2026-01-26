@@ -76,27 +76,33 @@ watch(() => props.show, (val) => {
         
         console.log('Intentando abrir modal editApplicationOrderModal');
         setTimeout(() => {
-            $('#editApplicationOrderModal').modal('show');
+            const modalElement = document.getElementById('editApplicationOrderModal');
+            const modal = new bootstrap.Modal(modalElement);
+            modal.show();
         }, 100);
     } else if (!val) {
         console.log('Cerrando modal editApplicationOrderModal');
-        $('#editApplicationOrderModal').modal('hide');
+        const modalElement = document.getElementById('editApplicationOrderModal');
+        const modalInstance = bootstrap.Modal.getInstance(modalElement);
+        if (modalInstance) {
+            modalInstance.hide();
+        }
     }
 });
 
 onMounted(() => {
-    $('#editApplicationOrderModal').on('hidden.bs.modal', () => {
+    const modalElement = document.getElementById('editApplicationOrderModal');
+    modalElement.addEventListener('hidden.bs.modal', () => {
         emit('close');
     });
 });
 
 function closeModal() {
-    $('#editApplicationOrderModal').modal('hide');
-    // Forzar eliminación del backdrop
-    setTimeout(() => {
-        $('.modal-backdrop').remove();
-        $('body').removeClass('modal-open').css('overflow', '');
-    }, 300);
+    const modalElement = document.getElementById('editApplicationOrderModal');
+    const modalInstance = bootstrap.Modal.getInstance(modalElement);
+    if (modalInstance) {
+        modalInstance.hide();
+    }
 }
 
 function save() {

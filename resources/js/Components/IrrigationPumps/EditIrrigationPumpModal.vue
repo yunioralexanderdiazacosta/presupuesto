@@ -26,9 +26,11 @@ watch(() => props.show, (val) => {
         form.brand = props.pump.brand || '';
         form.model = props.pump.model || '';
         form.sectors = props.pump.sectors ? props.pump.sectors.map(s => ({
+            id: s.id, // Incluir ID para actualización
             name: s.name,
             surface: s.surface,
-            observations: s.observations || ''
+            observations: s.observations || '',
+            orders_count: s.orders_count || 0 // Incluir contador de órdenes
         })) : [];
         openModal();
     }

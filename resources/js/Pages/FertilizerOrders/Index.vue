@@ -15,6 +15,7 @@ const props = defineProps({
     irrigationPumps: { type: Array, default: () => [] },
     costCenters: { type: Array, default: () => [] },
     units: { type: Array, default: () => [] },
+    groupings: { type: Array, default: () => [] },
 });
 
 const title = 'Órdenes de Fertilizante';
@@ -25,6 +26,8 @@ const links = [
 
 const searchTerm = ref('');
 const selectedFertilizerOrder = ref(null);
+const showCreateModal = ref(false);
+const showEditModal = ref(false);
 
 const filteredFertilizerOrders = computed(() => {
     if (!searchTerm.value) return props.fertilizerOrders;
@@ -38,16 +41,21 @@ const filteredFertilizerOrders = computed(() => {
 });
 
 const openCreateModal = () => {
-    const modalElement = document.getElementById('createFertilizerOrderModal');
-    const modal = new bootstrap.Modal(modalElement);
-    modal.show();
+    showCreateModal.value = true;
+};
+
+const closeCreateModal = () => {
+    showCreateModal.value = false;
 };
 
 const openEditModal = (fertilizerOrder) => {
     selectedFertilizerOrder.value = fertilizerOrder;
-    const modalElement = document.getElementById('editFertilizerOrderModal');
-    const modal = new bootstrap.Modal(modalElement);
-    modal.show();
+    showEditModal.value = true;
+};
+
+const closeEditModal = () => {
+    showEditModal.value = false;
+    selectedFertilizerOrder.value = null;
 };
 
 const deleteFertilizerOrder = (id) => {
@@ -78,6 +86,24 @@ const formatDate = (dateString) => {
     if (!dateString) return '-';
     const date = new Date(dateString);
     return date.toLocaleDateString('es-ES', { year: 'numeric', month: '2-digit', day: '2-digit' });
+};
+
+const getStatusBadgeClass = (status) => {
+    const classes = {
+        'pending': 'bg-warning text-dark',
+        'executed': 'bg-success text-white',
+        'canceled': 'bg-danger text-white'
+    };
+    return classes[status] || 'bg-secondary text-white';
+};
+
+const getStatusLabel = (status) => {
+    const labels = {
+        'pending': 'Pendiente',
+        'executed': 'Ejecutado',
+        'canceled': 'Cancelado'
+    };
+    return labels[status] || status;
 };
 
 const excelData = computed(() => {
@@ -169,15 +195,8 @@ const excelFilename = computed(() => `ordenes_fertilizantes_${new Date().toISOSt
                                     <span v-else class="text-muted">Sin sectores</span>
                                 </td>
                                 <td>
-                                    <span 
-                                        class="badge"
-                                        :class="{
-                                            'bg-warning text-dark': order.status === 'pending',
-                                            'bg-success text-white': order.status === 'executed',
-                                            'bg-danger text-white': order.status === 'canceled'
-                                        }"
-                                    >
-                                        {{ order.status === 'pending' ? 'Pendiente' : order.status === 'executed' ? 'Ejecutado' : 'Cancelado' }}
+                                    <span class="badge" :class="getStatusBadgeClass(order.status)">
+                                        {{ getStatusLabel(order.status) }}
                                     </span>
                                 </td>
                                 <td class="text-center">
@@ -189,6 +208,13 @@ const excelFilename = computed(() => `ordenes_fertilizantes_${new Date().toISOSt
                                         >
                                             <i class="fas fa-edit"></i>
                                         </button>
+                                        <Link
+                                            :href="route('fertilizer-orders.show', order.id)"
+                                            class="btn btn-sm btn-falcon-default"
+                                            title="Ver"
+                                        >
+                                            <i class="fas fa-eye"></i>
+                                        </Link>
                                         <button
                                             @click="deleteFertilizerOrder(order.id)"
                                             class="btn btn-sm btn-falcon-default"
@@ -213,19 +239,24 @@ const excelFilename = computed(() => `ordenes_fertilizantes_${new Date().toISOSt
 
         <!-- Modals -->
         <CreateFertilizerOrderModal 
+            :show="showCreateModal"
+            @close="closeCreateModal"
             :products="products"
             :irrigation-pumps="irrigationPumps"
             :cost-centers="costCenters"
             :units="units"
+            :groupings="groupings"
         />
 
         <EditFertilizerOrderModal 
-            v-if="selectedFertilizerOrder"
+            :show="showEditModal"
+            @close="closeEditModal"
             :fertilizer-order="selectedFertilizerOrder"
             :products="products"
             :irrigation-pumps="irrigationPumps"
             :cost-centers="costCenters"
             :units="units"
+            :groupings="groupings"
         />
     </AppLayout>
 </template>
