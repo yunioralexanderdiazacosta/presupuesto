@@ -13,9 +13,9 @@ trait HasInventory
     public function getInventory($team_id, $season_id)
     {
     // Entradas: Facturas + Notas de débito
-    $entradas = DB::table('invoice_product')
-            ->join('invoices', 'invoice_product.invoice_id', '=', 'invoices.id')
-            ->join('products', 'invoice_product.product_id', '=', 'products.id')
+    $entradas = DB::table('invoice_products')
+            ->join('invoices', 'invoice_products.invoice_id', '=', 'invoices.id')
+            ->join('products', 'invoice_products.product_id', '=', 'products.id')
             ->leftJoin('units', 'products.unit_id', '=', 'units.id')
             ->leftJoin('level2s', 'products.level2_id', '=', 'level2s.id')
             ->leftJoin('level3s', 'products.level3_id', '=', 'level3s.id')
@@ -29,7 +29,7 @@ trait HasInventory
                 'products.id as product_id',
                 'products.name as product_name',
                 'units.name as unit_name',
-                DB::raw('SUM(invoice_product.amount) as cantidad')
+                DB::raw('SUM(invoice_products.amount) as cantidad')
             )
             ->groupBy('products.level2_id', 'level2s.name', 'products.level3_id', 'level3s.name', 'products.id', 'products.name');
 
@@ -59,8 +59,8 @@ trait HasInventory
     // Salidas: Outflows (factura y nota de débito) + Notas de crédito
         // Salidas asociadas a factura
         $salidasFactura = DB::table('outflows')
-            ->join('invoice_product', 'outflows.invoice_product_id', '=', 'invoice_product.id')
-            ->join('products', 'invoice_product.product_id', '=', 'products.id')
+            ->join('invoice_products', 'outflows.invoice_product_id', '=', 'invoice_products.id')
+            ->join('products', 'invoice_products.product_id', '=', 'products.id')
             ->leftJoin('units', 'products.unit_id', '=', 'units.id')
             ->leftJoin('level2s', 'products.level2_id', '=', 'level2s.id')
             ->leftJoin('level3s', 'products.level3_id', '=', 'level3s.id')
@@ -168,5 +168,91 @@ trait HasInventory
             }
         }
         return array_values($inventario);
+    }
+
+    /**
+     * Calcula el stock disponible agrupado por producto e invoice_product.
+     * Retorna un array con invoice_products que tienen stock disponible,
+     * agrupados por product_id.
+     * 
+     * @param int $teamId
+     * @param int $seasonId
+     * @param int|null $excludeOutflowId ID del outflow a excluir del cálculo (útil para edición)
+     * @return array
+     */
+    public function getAvailableStocksByInvoiceProduct($teamId, $seasonId, $excludeOutflowId = null)
+    {
+        // Calcular consumos por invoice_product_id desde OUTFLOWS (tabla maestra del kardex)
+        $consumosByInvoiceProduct = DB::table('outflows')
+            ->select('invoice_product_id', DB::raw('SUM(quantity) as total_consumido'))
+            ->where('team_id', $teamId)
+            ->where('season_id', $seasonId)
+            ->whereNotNull('invoice_product_id')
+            ->when($excludeOutflowId, function($q) use ($excludeOutflowId) {
+                $q->where('id', '!=', $excludeOutflowId);
+            })
+            ->groupBy('invoice_product_id')
+            ->pluck('total_consumido', 'invoice_product_id');
+
+        // Devoluciones (notas de crédito)
+        $creditNotesReturns = DB::table('credit_debit_note_items')
+            ->join('credit_debit_notes', 'credit_debit_note_items.credit_debit_note_id', '=', 'credit_debit_notes.id')
+            ->where('credit_debit_notes.team_id', $teamId)
+            ->where('credit_debit_notes.season_id', $seasonId)
+            ->where('credit_debit_notes.type', 'credito')
+            ->whereNotNull('credit_debit_note_items.invoice_product_id')
+            ->select('credit_debit_note_items.invoice_product_id', DB::raw('SUM(credit_debit_note_items.quantity) as total_devuelto'))
+            ->groupBy('credit_debit_note_items.invoice_product_id')
+            ->pluck('total_devuelto', 'credit_debit_note_items.invoice_product_id');
+
+        // Traer facturas con productos
+        $stocksByProduct = [];
+
+        $invoices = \App\Models\Invoice::with(['supplier', 'typeDocument', 'products.unit'])
+            ->where('team_id', $teamId)
+            ->where('season_id', $seasonId)
+            ->get();
+
+        foreach ($invoices as $invoice) {
+            foreach ($invoice->products as $product) {
+                // Excluir si tiene nota de crédito
+                $hasCreditNote = DB::table('credit_debit_note_items')
+                    ->join('credit_debit_notes', 'credit_debit_note_items.credit_debit_note_id', '=', 'credit_debit_notes.id')
+                    ->where('credit_debit_notes.type', 'credito')
+                    ->where('credit_debit_note_items.invoice_product_id', $product->pivot->id)
+                    ->exists();
+
+                if ($hasCreditNote) {
+                    continue;
+                }
+
+                $consumido = $consumosByInvoiceProduct[$product->pivot->id] ?? 0;
+                $devuelto = $creditNotesReturns[$product->pivot->id] ?? 0;
+                $cantidadOriginal = $product->pivot->amount ?? 0;
+                $stockDisponible = $cantidadOriginal - $consumido - $devuelto;
+
+                if ($stockDisponible <= 0) {
+                    continue;
+                }
+
+                // Agrupar por product_id
+                if (!isset($stocksByProduct[$product->id])) {
+                    $stocksByProduct[$product->id] = [];
+                }
+
+                $stocksByProduct[$product->id][] = [
+                    'invoice_product_id' => $product->pivot->id,
+                    'number_document' => $invoice->number_document,
+                    'supplier' => $invoice->supplier->name ?? '-',
+                    'cantidad_original' => $cantidadOriginal,
+                    'stock_disponible' => $stockDisponible,
+                    'unit' => $product->unit->name ?? '-',
+                    'unit_price' => $product->pivot->unit_price ?? 0,
+                    'date' => $invoice->date instanceof \Carbon\Carbon ? $invoice->date->format('Y-m-d') : $invoice->date,
+                ];
+            }
+        }
+
+        return $stocksByProduct;
     }
 }

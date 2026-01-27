@@ -15,7 +15,7 @@ return new class extends Migration
     {
         Schema::table('credit_debit_note_items', function (Blueprint $table) {
             $table->unsignedBigInteger('invoice_product_id')->nullable()->after('credit_debit_note_id');
-            $table->foreign('invoice_product_id')->references('id')->on('invoice_product')->onDelete('set null');
+            $table->foreign('invoice_product_id')->references('id')->on('invoice_products')->onDelete('set null');
         });
     }
 

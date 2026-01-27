@@ -90,18 +90,18 @@ const formatDate = (dateString) => {
 
 const getStatusBadgeClass = (status) => {
     const classes = {
-        'pending': 'bg-warning text-dark',
-        'executed': 'bg-success text-white',
-        'canceled': 'bg-danger text-white'
+        'pendiente': 'bg-warning text-dark',
+        'completada': 'bg-success text-white',
+        'cancelada': 'bg-danger text-white'
     };
     return classes[status] || 'bg-secondary text-white';
 };
 
 const getStatusLabel = (status) => {
     const labels = {
-        'pending': 'Pendiente',
-        'executed': 'Ejecutado',
-        'canceled': 'Cancelado'
+        'pendiente': 'Pendiente',
+        'completada': 'Completada',
+        'cancelada': 'Cancelada'
     };
     return labels[status] || status;
 };

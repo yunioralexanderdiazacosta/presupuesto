@@ -17,11 +17,11 @@ class KardexController extends Controller
     $product = Product::with('unit')->findOrFail($product_id);
 
         // Movimientos de facturas (entradas)
-        $facturas = DB::table('invoice_product')
-            ->join('invoices', 'invoice_product.invoice_id', '=', 'invoices.id')
+        $facturas = DB::table('invoice_products')
+            ->join('invoices', 'invoice_products.invoice_id', '=', 'invoices.id')
             ->join('suppliers', 'invoices.supplier_id', '=', 'suppliers.id')
             ->leftJoin('type_documents', 'invoices.type_document_id', '=', 'type_documents.id')
-            ->where('invoice_product.product_id', $product_id)
+            ->where('invoice_products.product_id', $product_id)
             ->where('invoices.team_id', $user->team_id)
             ->where('invoices.season_id', $season_id)
             ->select([
@@ -29,9 +29,9 @@ class KardexController extends Controller
                 DB::raw("COALESCE(type_documents.name, 'Factura') as tipo"),
                 'suppliers.name as proveedor',
                 'invoices.number_document as documento',
-                'invoice_product.amount as entrada',
+                'invoice_products.amount as entrada',
                 DB::raw('0 as salida'),
-                'invoice_product.unit_price as precio',
+                'invoice_products.unit_price as precio',
                 DB::raw('NULL as observaciones'),
                 DB::raw('1 as affects_inventory')
             ]);
@@ -80,10 +80,10 @@ class KardexController extends Controller
 
         // Movimientos de consumos/outflows (salidas) asociados a factura
         $outflowsFactura = DB::table('outflows')
-            ->join('invoice_product', 'outflows.invoice_product_id', '=', 'invoice_product.id')
-            ->join('invoices', 'invoice_product.invoice_id', '=', 'invoices.id')
+            ->join('invoice_products', 'outflows.invoice_product_id', '=', 'invoice_products.id')
+            ->join('invoices', 'invoice_products.invoice_id', '=', 'invoices.id')
             ->join('suppliers', 'invoices.supplier_id', '=', 'suppliers.id')
-            ->where('invoice_product.product_id', $product_id)
+            ->where('invoice_products.product_id', $product_id)
             ->where('outflows.team_id', $user->team_id)
             ->where('outflows.season_id', $season_id)
             ->whereNotNull('outflows.invoice_product_id')

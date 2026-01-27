@@ -25,18 +25,31 @@ use App\Http\Controllers\Products2\DeleteProduct2Controller;
 // Rutas para Application Orders
     use App\Http\Controllers\ApplicationOrdersController;
     use App\Http\Controllers\ApplicationOrders\StoreApplicationOrderController;
+    use App\Http\Controllers\ApplicationOrders\ShowApplicationOrderController;
     use App\Http\Controllers\ApplicationOrders\UpdateApplicationOrderController;
     use App\Http\Controllers\ApplicationOrders\DeleteApplicationOrderController;
-    use App\Http\Controllers\ApplicationOrders\ShowApplicationOrderController;
+    use App\Http\Controllers\ApplicationOrders\PdfApplicationOrderController;
 
 // Rutas para Irrigation Pumps
     use App\Http\Controllers\IrrigationPumpsController;
+    use App\Http\Controllers\IrrigationPumps\StoreIrrigationPumpController;
+    use App\Http\Controllers\IrrigationPumps\UpdateIrrigationPumpController;
+    use App\Http\Controllers\IrrigationPumps\DeleteIrrigationPumpController;
 
 // Rutas para Fertilizer Orders
     use App\Http\Controllers\FertilizerOrdersController;
     use App\Http\Controllers\FertilizerOrders\StoreFertilizerOrderController;
+    use App\Http\Controllers\FertilizerOrders\ShowFertilizerOrderController;
     use App\Http\Controllers\FertilizerOrders\UpdateFertilizerOrderController;
     use App\Http\Controllers\FertilizerOrders\DeleteFertilizerOrderController;
+    use App\Http\Controllers\FertilizerOrders\PdfFertilizerOrderController;
+
+// Rutas para Fertilizer Outflows
+    use App\Http\Controllers\FertilizerOutflows\FertilizerOutflowController;
+    use App\Http\Controllers\FertilizerOutflows\StoreFertilizerOutflowController;
+    use App\Http\Controllers\FertilizerOutflows\EditFertilizerOutflowController;
+    use App\Http\Controllers\FertilizerOutflows\UpdateFertilizerOutflowController;
+    use App\Http\Controllers\FertilizerOutflows\DeleteFertilizerOutflowController;
 
 // Rutas para Agrochemical Outflows
     use App\Http\Controllers\AgrochemicalOutflows\AgrochemicalOutflowController;
@@ -275,8 +288,8 @@ Route::middleware([
         return Inertia::render('FaqPage');
     })->name('faq');
 
-// Ruta para crear un nuevo estado de estimación desde el frontend
-  Route::post('/estimate-status', [EstimatesController::class, 'storeEstimateStatus'])->name('estimate-status.store');
+    // Ruta para crear un nuevo estado de estimación desde el frontend
+    Route::post('/estimate-status', [EstimatesController::class, 'storeEstimateStatus'])->name('estimate-status.store');
 
 
 
@@ -552,7 +565,7 @@ Route::middleware([
     Route::get('/outflows-dashboard', [OutflowsDashboardController::class, 'index'])->name('outflows.dashboard');
     
     // Consolidado de Outflows
-    Route::get('/consolidated-outflows', ConsolidatedOutflowsController::class)->name('consolidated-outflows.index');
+    Route::get('/consolidated-outflows', [ConsolidatedOutflowsController::class, 'index'])->name('consolidated-outflows.index');
 
     // Inventario
     Route::get('/inventory', [InventoryController::class, 'index'])->name('inventory');
@@ -563,7 +576,7 @@ Route::middleware([
 
    
 
-    Route::get('/fuel-outflows', FuelOutflowController::class.'@index')->name('fuel-outflows.index');
+    Route::get('/fuel-outflows', [FuelOutflowController::class, 'index'])->name('fuel-outflows.index');
     Route::get('/fuel-outflows/analytics', [FuelOutflowController::class, 'analytics'])->name('fuel-outflows.analytics');
     Route::post('/fuel-outflows', StoreFuelOutflowController::class)->name('fuel-outflows.store');
     Route::get('/fuel-outflows/{fuelOutFlow}', ShowFuelOutflowController::class)->name('fuel-outflows.show');
@@ -574,24 +587,24 @@ Route::middleware([
     // Application Orders
     Route::get('/application-orders', [ApplicationOrdersController::class, 'index'])->name('application-orders.index');
     Route::post('/application-orders', StoreApplicationOrderController::class)->name('application-orders.store');
-    Route::get('/application-orders/{applicationOrder}/pdf', \App\Http\Controllers\ApplicationOrders\PdfApplicationOrderController::class)->name('application-orders.pdf');
+    Route::get('/application-orders/{applicationOrder}/pdf', PdfApplicationOrderController::class)->name('application-orders.pdf');
     Route::get('/application-orders/{applicationOrder}', ShowApplicationOrderController::class)->name('application-orders.show');
     Route::put('/application-orders/{applicationOrder}', UpdateApplicationOrderController::class)->name('application-orders.update');
     Route::delete('/application-orders/{applicationOrder}', DeleteApplicationOrderController::class)->name('application-orders.delete');
 
     // Irrigation Pumps
     Route::get('/irrigation-pumps', [IrrigationPumpsController::class, 'index'])->name('irrigation-pumps.index');
-    Route::post('/irrigation-pumps', \App\Http\Controllers\IrrigationPumps\StoreIrrigationPumpController::class)->name('irrigation-pumps.store');
-    Route::put('/irrigation-pumps/{irrigationPump}', \App\Http\Controllers\IrrigationPumps\UpdateIrrigationPumpController::class)->name('irrigation-pumps.update');
-    Route::delete('/irrigation-pumps/{irrigationPump}', \App\Http\Controllers\IrrigationPumps\DeleteIrrigationPumpController::class)->name('irrigation-pumps.delete');
+    Route::post('/irrigation-pumps', StoreIrrigationPumpController::class)->name('irrigation-pumps.store');
+    Route::put('/irrigation-pumps/{irrigationPump}', UpdateIrrigationPumpController::class)->name('irrigation-pumps.update');
+    Route::delete('/irrigation-pumps/{irrigationPump}', DeleteIrrigationPumpController::class)->name('irrigation-pumps.delete');
 
     // Fertilizer Orders
-    Route::get('/fertilizer-orders', [\App\Http\Controllers\FertilizerOrdersController::class, 'index'])->name('fertilizer-orders.index');
-    Route::post('/fertilizer-orders', \App\Http\Controllers\FertilizerOrders\StoreFertilizerOrderController::class)->name('fertilizer-orders.store');
-    Route::get('/fertilizer-orders/{fertilizerOrder}/pdf', \App\Http\Controllers\FertilizerOrders\PdfFertilizerOrderController::class)->name('fertilizer-orders.pdf');
-    Route::get('/fertilizer-orders/{fertilizerOrder}', \App\Http\Controllers\FertilizerOrders\ShowFertilizerOrderController::class)->name('fertilizer-orders.show');
-    Route::put('/fertilizer-orders/{fertilizerOrder}', \App\Http\Controllers\FertilizerOrders\UpdateFertilizerOrderController::class)->name('fertilizer-orders.update');
-    Route::delete('/fertilizer-orders/{fertilizerOrder}', \App\Http\Controllers\FertilizerOrders\DeleteFertilizerOrderController::class)->name('fertilizer-orders.destroy');
+    Route::get('/fertilizer-orders', [FertilizerOrdersController::class, 'index'])->name('fertilizer-orders.index');
+    Route::post('/fertilizer-orders', StoreFertilizerOrderController::class)->name('fertilizer-orders.store');
+    Route::get('/fertilizer-orders/{fertilizerOrder}/pdf', PdfFertilizerOrderController::class)->name('fertilizer-orders.pdf');
+    Route::get('/fertilizer-orders/{fertilizerOrder}', ShowFertilizerOrderController::class)->name('fertilizer-orders.show');
+    Route::put('/fertilizer-orders/{fertilizerOrder}', UpdateFertilizerOrderController::class)->name('fertilizer-orders.update');
+    Route::delete('/fertilizer-orders/{fertilizerOrder}', DeleteFertilizerOrderController::class)->name('fertilizer-orders.delete');
 
     // Agrochemical Outflows
     Route::get('/agrochemical-outflows', [AgrochemicalOutflowController::class, 'index'])->name('agrochemical-outflows.index');
@@ -599,13 +612,15 @@ Route::middleware([
     Route::delete('/agrochemical-outflows/{agrochemicalOutflow}', DeleteAgrochemicalOutflowController::class)->name('agrochemical-outflows.delete');
 
     // Fertilizer Outflows
-    Route::get('/fertilizer-outflows', [\App\Http\Controllers\FertilizerOutflows\FertilizerOutflowController::class, 'index'])->name('fertilizer-outflows.index');
-    Route::post('/fertilizer-outflows', \App\Http\Controllers\FertilizerOutflows\StoreFertilizerOutflowController::class)->name('fertilizer-outflows.store');
-    Route::delete('/fertilizer-outflows/{fertilizerOutflow}', \App\Http\Controllers\FertilizerOutflows\DeleteFertilizerOutflowController::class)->name('fertilizer-outflows.delete');
+    Route::get('/fertilizer-outflows', [FertilizerOutflowController::class, 'index'])->name('fertilizer-outflows.index');
+    Route::post('/fertilizer-outflows', StoreFertilizerOutflowController::class)->name('fertilizer-outflows.store');
+    Route::get('/fertilizer-outflows/{fertilizerOutflow}/edit', EditFertilizerOutflowController::class)->name('fertilizer-outflows.edit');
+    Route::put('/fertilizer-outflows/{fertilizerOutflow}', UpdateFertilizerOutflowController::class)->name('fertilizer-outflows.update');
+    Route::delete('/fertilizer-outflows/{fertilizerOutflow}', DeleteFertilizerOutflowController::class)->name('fertilizer-outflows.delete');
 
     // Invoice Payments
-    Route::get('/invoice-payments', InvoicePaymentController::class)->name('invoice-payments.index');
-    Route::get('/invoice-payments/dashboard', InvoicePaymentDashboardController::class)->name('invoice-payments.dashboard');
+    Route::get('/invoice-payments', [InvoicePaymentController::class, 'index'])->name('invoice-payments.index');
+    Route::get('/invoice-payments/dashboard', [InvoicePaymentDashboardController::class, 'index'])->name('invoice-payments.dashboard');
     Route::get('/invoice-payments/excel', InvoicePaymentsExcelController::class)->name('invoice-payments.excel');
     Route::get('/api/invoices/search', [InvoicePaymentController::class, 'searchInvoices'])->name('invoices.search');
     Route::post('/invoice-payments', StoreInvoicePaymentController::class)->name('invoice-payments.store');
@@ -614,6 +629,5 @@ Route::middleware([
 
 
     // Consolidated Documents
-    Route::get('/consolidated-documents', [ConsolidatedDocumentsController::class, 'index'])
-    ->name('consolidated-documents.index');
+    Route::get('/consolidated-documents', [ConsolidatedDocumentsController::class, 'index'])->name('consolidated-documents.index');
 });

@@ -5,6 +5,7 @@ import { router } from '@inertiajs/vue3';
 import Swal from 'sweetalert2';
 import ExportExcelButton from '@/Components/ExportExcelButton.vue';
 import ExecuteFertilizerOrderModal from '@/Components/FertilizerOutflows/ExecuteFertilizerOrderModal.vue';
+import EditFertilizerOutflowModal from '@/Components/FertilizerOutflows/EditFertilizerOutflowModal.vue';
 
 const props = defineProps({
     outflows: Object,
@@ -13,9 +14,37 @@ const props = defineProps({
 });
 
 const showExecuteModal = ref(false);
+const showEditModal = ref(false);
+const editingOutflow = ref(null);
+const editingStocks = ref([]);
 
 const openExecuteModal = () => {
     showExecuteModal.value = true;
+};
+
+const openEditModal = async (outflowId) => {
+    try {
+        const response = await axios.get(route('fertilizer-outflows.edit', outflowId));
+        editingOutflow.value = response.data.outflow;
+        editingStocks.value = response.data.availableStocks;
+        showEditModal.value = true;
+        
+        // Abrir modal
+        setTimeout(() => {
+            const modalElement = document.getElementById('editFertilizerOutflowModal');
+            const modal = new bootstrap.Modal(modalElement);
+            modal.show();
+        }, 100);
+    } catch (error) {
+        Swal.fire('Error', 'No se pudo cargar la información de la aplicación', 'error');
+    }
+};
+
+const handleEditClose = () => {
+    showEditModal.value = false;
+    editingOutflow.value = null;
+    editingStocks.value = [];
+    router.reload();
 };
 
 const handleOrderExecuted = () => {
@@ -121,6 +150,13 @@ const excelData = computed(() => {
                                 </td>
                                 <td class="text-center">
                                     <button 
+                                        @click="openEditModal(outflow.id)"
+                                        class="btn btn-sm btn-falcon-default me-1"
+                                        title="Editar aplicación"
+                                    >
+                                        <i class="fas fa-edit"></i>
+                                    </button>
+                                    <button 
                                         @click="deleteOutflow(outflow.id)"
                                         class="btn btn-sm btn-falcon-default"
                                         title="Eliminar aplicación"
@@ -148,5 +184,11 @@ const excelData = computed(() => {
             @close="showExecuteModal = false"
             @order-executed="handleOrderExecuted"
         />
-    </AppLayout>
+        <!-- Modal para editar aplicación -->
+        <EditFertilizerOutflowModal
+            v-if="showEditModal && editingOutflow"
+            :fertilizer-outflow="editingOutflow"
+            :available-stocks="editingStocks"
+            @close="handleEditClose"
+        />    </AppLayout>
 </template>

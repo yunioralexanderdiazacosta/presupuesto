@@ -13,7 +13,7 @@ return new class extends Migration
     {
         Schema::create('outflows', function (Blueprint $table) {
             $table->id();
-            $table->foreignId('invoice_product_id')->constrained('invoice_product')->onDelete('cascade');
+            $table->foreignId('invoice_product_id')->constrained('invoice_products')->onDelete('cascade');
             $table->foreignId('user_id')->constrained('users')->onDelete('cascade');
             $table->foreignId('project_id')->nullable()->constrained('projects')->onDelete('set null');
             $table->foreignId('operation_id')->nullable()->constrained('operations')->onDelete('set null');

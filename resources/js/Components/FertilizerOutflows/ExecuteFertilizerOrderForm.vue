@@ -147,6 +147,9 @@ function formatNumber(value) {
                     <option v-for="order in availableOrders" :key="order.id" :value="order.id">
                         Orden #{{ order.id }} - {{ new Date(order.date).toLocaleDateString('es-ES') }} 
                         ({{ order.order_products?.length || 0 }} productos)
+                        <template v-if="order.status === 'completada'"> - ✅ Completada</template>
+                        <template v-else-if="order.status === 'cancelada'"> - ❌ Cancelada</template>
+                        <template v-else> - ⏳ Pendiente</template>
                     </option>
                 </select>
                 <div v-if="form.errors.fertilizer_order_id" class="invalid-feedback">
@@ -264,7 +267,15 @@ function formatNumber(value) {
                                 </span>
                             </div>
                             <div v-else>
-                                <span class="badge bg-secondary">Pendiente</span>
+                                <span class="badge" :class="{
+                                    'bg-success': selectedOrder?.status === 'completada',
+                                    'bg-danger': selectedOrder?.status === 'cancelada',
+                                    'bg-secondary': selectedOrder?.status === 'pendiente' || !selectedOrder?.status
+                                }">
+                                    <template v-if="selectedOrder?.status === 'completada'">✅ Completada</template>
+                                    <template v-else-if="selectedOrder?.status === 'cancelada'">❌ Cancelada</template>
+                                    <template v-else>⏳ Pendiente</template>
+                                </span>
                             </div>
                         </div>
                         

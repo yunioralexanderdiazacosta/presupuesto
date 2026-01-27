@@ -30,7 +30,7 @@ class StoreAgrochemicalOutflowRequest extends FormRequest
             'products.*.cost_center_id' => 'required|exists:cost_centers,id',
             
             'products.*.lines' => 'required|array|min:1',
-            'products.*.lines.*.invoice_product_id' => 'required|exists:invoice_product,id',
+            'products.*.lines.*.invoice_product_id' => 'required|exists:invoice_products,id',
             'products.*.lines.*.quantity' => 'required|numeric|min:0.01',
         ];
     }

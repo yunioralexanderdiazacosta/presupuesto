@@ -73,9 +73,12 @@ class StoreFertilizerOutflowController
             $date = $request->date;
             $observations = $request->observations;
             
+            // Obtener cost centers de la orden
+            $fertilizerOrder = FertilizerOrder::with('orderCostCenters')->findOrFail($fertilizerOrderId);
+            $orderCostCenters = $fertilizerOrder->orderCostCenters;
+            
             foreach ($request->products as $productData) {
                 $product = Product::findOrFail($productData['product_id']);
-                $costCenterId = $productData['cost_center_id'];
                 
                 // Crear un registro por cada línea de factura
                 foreach ($productData['lines'] as $line) {
@@ -95,7 +98,7 @@ class StoreFertilizerOutflowController
                         'invoice_product_id' => $invoiceProductId,
                         'quantity' => $quantity,
                         'unit_id' => $product->unit_id,
-                        'cost_center_id' => $costCenterId,
+                        'cost_center_id' => $orderCostCenters->first()->cost_center_id ?? null, // Para compatibilidad
                         'observations' => $observations,
                         'team_id' => $teamId,
                         'season_id' => $seasonId,
@@ -103,7 +106,7 @@ class StoreFertilizerOutflowController
                     
                     // Crear Outflow (kardex maestro)
                     if ($invoiceProductId) {
-                        Outflow::create([
+                        $outflow = Outflow::create([
                             'invoice_product_id' => $invoiceProductId,
                             'user_id' => $user->id,
                             'quantity' => $quantity,
@@ -114,13 +117,21 @@ class StoreFertilizerOutflowController
                             'level3_id' => $product->level3_id,
                             'fertilizer_outflow_id' => $fertilizerOutflow->id,
                         ]);
+                        
+                        // Crear MÚLTIPLES outflow_cost_centers (uno por cada cost center de la orden)
+                        foreach ($orderCostCenters as $occ) {
+                            $outflow->costCenters()->create([
+                                'cost_center_id' => $occ->cost_center_id,
+                                'observations' => $observations,
+                            ]);
+                        }
                     }
                 }
             }
             
             // Actualizar estado de la orden
             FertilizerOrder::where('id', $fertilizerOrderId)->update([
-                'status' => 'executed'
+                'status' => 'completada'
             ]);
             
             DB::commit();

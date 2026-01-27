@@ -44,6 +44,56 @@ $level3s = Level3::whereHas('level2.level1', function($query) use ($teamId) {
 
 **FormRequests dedicados**: Cada flujo debe tener su FormRequest para centralizar validaciones (ej. `FormFuelOutflowRequest.php`). Usa `StoreXRequest` y `UpdateXRequest` para acciones específicas.
 
+## Convenciones de Rutas (web.php)
+
+**Sintaxis moderna (REQUERIDA)**: Usar controladores de acción única sin arrays:
+
+```php
+// ✅ CORRECTO: Sintaxis moderna limpia
+use App\Http\Controllers\InvoicePayments\InvoicePaymentController;
+use App\Http\Controllers\InvoicePayments\StoreInvoicePaymentController;
+
+Route::get('/invoice-payments', InvoicePaymentController::class)->name('invoice-payments.index');
+Route::post('/invoice-payments', StoreInvoicePaymentController::class)->name('invoice-payments.store');
+
+// ❌ INCORRECTO: Sintaxis antigua con arrays
+Route::get('/invoice-payments', [InvoicePaymentController::class, 'index'])->name('invoice-payments.index');
+
+// ❌ INCORRECTO: Namespaces completos
+Route::post('/invoice-payments', \App\Http\Controllers\InvoicePayments\StoreInvoicePaymentController::class);
+```
+
+**Reglas obligatorias**:
+1. **Importar TODOS los controladores** en la parte superior de web.php
+2. **NO usar namespaces completos** en las rutas (ej. `\App\Http\Controllers\...`)
+3. **Sintaxis según tipo de controlador**:
+   - **Controladores de acción única** (con `__invoke()`): usar `Controller::class` sin array
+   - **Controladores principales/orquestadores** (con método `index()`): usar `[Controller::class, 'index']`
+   - **Métodos auxiliares específicos**: usar `[Controller::class, 'metodo']` (ej. `'import'`, `'template'`, `'searchInvoices'`)
+4. **Nombres consistentes**: usar `.delete` en lugar de `.destroy` para consistencia
+
+**Ejemplos**:
+```php
+// ✅ Controlador de acción única (tiene __invoke)
+Route::post('/invoice-payments', StoreInvoicePaymentController::class);
+
+// ✅ Controlador principal (tiene método index)
+Route::get('/outflows-dashboard', [OutflowsDashboardController::class, 'index']);
+
+// ✅ Método auxiliar específico
+Route::get('/api/invoices/search', [InvoicePaymentController::class, 'searchInvoices']);
+```
+
+**Organización de imports**: Agrupar imports por módulo con comentario descriptivo:
+```php
+// Rutas para Invoice Payments
+use App\Http\Controllers\InvoicePayments\InvoicePaymentController;
+use App\Http\Controllers\InvoicePayments\InvoicePaymentDashboardController;
+use App\Http\Controllers\InvoicePayments\StoreInvoicePaymentController;
+use App\Http\Controllers\InvoicePayments\UpdateInvoicePaymentController;
+use App\Http\Controllers\InvoicePayments\DeleteInvoicePaymentController;
+```
+
 ## Convenciones Frontend
 
 **Selects**: Usar SIEMPRE `@vueform/multiselect`, nunca selects nativos ni otros plugins. Ejemplo:

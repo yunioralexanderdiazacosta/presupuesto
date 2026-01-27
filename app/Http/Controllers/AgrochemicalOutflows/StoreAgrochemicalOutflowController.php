@@ -70,6 +70,10 @@ class StoreAgrochemicalOutflowController
             $date = $request->date;
             $observations = $request->observations;
             
+            // Obtener cost centers de la orden de aplicación
+            $applicationOrder = ApplicationOrder::with('orderCostCenters')->findOrFail($applicationOrderId);
+            $orderCostCenters = $applicationOrder->orderCostCenters;
+            
             foreach ($request->products as $productData) {
                 $product = Product::findOrFail($productData['product_id']);
                 $costCenterId = $productData['cost_center_id'];
@@ -105,11 +109,13 @@ class StoreAgrochemicalOutflowController
                         'notes' => 'Aplicación agroquímico - Orden #' . $applicationOrderId . ' - ' . ($observations ?? 'Sin observaciones'),
                     ]);
                     
-                    // 3. Crear outflow_cost_centers
-                    $outflow->costCenters()->create([
-                        'cost_center_id' => $costCenterId,
-                        'observations' => $observations,
-                    ]);
+                    // 3. Crear MÚLTIPLES outflow_cost_centers (uno por cada cost center de la orden)
+                    foreach ($orderCostCenters as $occ) {
+                        $outflow->costCenters()->create([
+                            'cost_center_id' => $occ->cost_center_id,
+                            'observations' => $observations,
+                        ]);
+                    }
                 }
             }
             

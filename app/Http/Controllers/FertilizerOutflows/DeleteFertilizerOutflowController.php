@@ -16,18 +16,16 @@ class DeleteFertilizerOutflowController
         try {
             $orderId = $fertilizerOutflow->fertilizer_order_id;
             
-            // Eliminar outflows relacionados (kardex)
-            Outflow::where('fertilizer_outflow_id', $fertilizerOutflow->id)->delete();
-            
-            // Eliminar el fertilizer outflow
+            // Eliminar fertilizer outflow
+            // (los outflows y outflow_cost_centers se eliminan automáticamente por cascade)
             $fertilizerOutflow->delete();
             
             // Verificar si quedan más aplicaciones de esta orden
             $remainingOutflows = FertilizerOutflow::where('fertilizer_order_id', $orderId)->count();
             
-            // Si no quedan aplicaciones, cambiar estado a pending
-            if ($remainingOutflows === 0) {
-                FertilizerOrder::where('id', $orderId)->update(['status' => 'pending']);
+            // Si no quedan aplicaciones, cambiar estado a pendiente
+            if ($remainingOutflows === 0 && $orderId) {
+                FertilizerOrder::where('id', $orderId)->update(['status' => 'pendiente']);
             }
             
             DB::commit();

@@ -18,7 +18,7 @@ class Product extends Model
 
     public function invoices()
     {
-        return $this->belongsToMany(Invoice::class);
+        return $this->belongsToMany(Invoice::class, 'invoice_products');
     }
 
     public function level1()
