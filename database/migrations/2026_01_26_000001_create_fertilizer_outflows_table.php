@@ -11,14 +11,13 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::create('agrochemical_outflows', function (Blueprint $table) {
+        Schema::create('fertilizer_outflows', function (Blueprint $table) {
             $table->id();
             
-            // Relación con la orden de aplicación
-            $table->foreignId('application_order_id')->constrained('application_orders')->cascadeOnDelete();
+            // Relación con la orden de fertilizante
+            $table->foreignId('fertilizer_order_id')->constrained('fertilizer_orders')->cascadeOnDelete();
             
             // Datos de la aplicación
-            $table->decimal('maquinadas', 10, 2);
             $table->date('date');
             
             // Producto aplicado
@@ -45,7 +44,7 @@ return new class extends Migration
             
             // Índices
             $table->index(['team_id', 'season_id']);
-            $table->index('application_order_id');
+            $table->index('fertilizer_order_id');
             $table->index('date');
         });
     }
@@ -55,6 +54,6 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::dropIfExists('agrochemical_outflows');
+        Schema::dropIfExists('fertilizer_outflows');
     }
 };

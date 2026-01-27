@@ -598,6 +598,11 @@ Route::middleware([
     Route::post('/agrochemical-outflows', StoreAgrochemicalOutflowController::class)->name('agrochemical-outflows.store');
     Route::delete('/agrochemical-outflows/{agrochemicalOutflow}', DeleteAgrochemicalOutflowController::class)->name('agrochemical-outflows.delete');
 
+    // Fertilizer Outflows
+    Route::get('/fertilizer-outflows', [\App\Http\Controllers\FertilizerOutflows\FertilizerOutflowController::class, 'index'])->name('fertilizer-outflows.index');
+    Route::post('/fertilizer-outflows', \App\Http\Controllers\FertilizerOutflows\StoreFertilizerOutflowController::class)->name('fertilizer-outflows.store');
+    Route::delete('/fertilizer-outflows/{fertilizerOutflow}', \App\Http\Controllers\FertilizerOutflows\DeleteFertilizerOutflowController::class)->name('fertilizer-outflows.delete');
+
     // Invoice Payments
     Route::get('/invoice-payments', InvoicePaymentController::class)->name('invoice-payments.index');
     Route::get('/invoice-payments/dashboard', InvoicePaymentDashboardController::class)->name('invoice-payments.dashboard');
