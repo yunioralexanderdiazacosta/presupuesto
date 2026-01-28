@@ -24,7 +24,7 @@ return new class extends Migration
             $table->foreignId('product_id')->constrained('products')->cascadeOnDelete();
             
             // Origen del stock
-            $table->foreignId('invoice_product_id')->nullable()->constrained('invoice_product')->nullOnDelete();
+            $table->foreignId('invoice_product_id')->nullable()->constrained('invoice_products')->nullOnDelete();
             $table->foreignId('credit_debit_note_item_id')->nullable()->constrained('credit_debit_note_items')->nullOnDelete();
             
             // Cantidad utilizada

@@ -19,7 +19,7 @@ return new class extends Migration
             // Foreign keys
             $table->foreign('invoice_product_id')
                 ->references('id')
-                ->on('invoice_product')
+                ->on('invoice_products')
                 ->onDelete('set null');
             
             $table->foreign('credit_debit_note_item_id')

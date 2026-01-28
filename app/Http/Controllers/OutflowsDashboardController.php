@@ -499,7 +499,7 @@ class OutflowsDashboardController extends Controller
                 ->leftJoinSub($surfaceTotalsSubquery, 'surface_totals', function($join) {
                     $join->on('outflows.id', '=', 'surface_totals.outflow_id');
                 })
-                ->leftJoin('invoice_product', 'outflows.invoice_product_id', '=', 'invoice_product.id')
+                ->leftJoin('invoice_products', 'outflows.invoice_product_id', '=', 'invoice_products.id')
                 ->leftJoin('credit_debit_note_items', 'outflows.credit_debit_note_item_id', '=', 'credit_debit_note_items.id')
                 ->selectRaw("
                     development_states.id,
@@ -507,7 +507,7 @@ class OutflowsDashboardController extends Controller
                     COALESCE(SUM(
                         CASE 
                             WHEN cost_centers.surface = 0 THEN 
-                                outflows.quantity * COALESCE(invoice_product.unit_price, credit_debit_note_items.unit_price, 0)
+                                outflows.quantity * COALESCE(invoice_products.unit_price, credit_debit_note_items.unit_price, 0)
                             ELSE 
                                 (cost_centers.surface * (outflows.quantity / NULLIF(surface_totals.total_surface, 0))) * 
                                 COALESCE(invoice_product.unit_price, credit_debit_note_items.unit_price, 0)
@@ -555,7 +555,7 @@ class OutflowsDashboardController extends Controller
                 ->leftJoinSub($surfaceTotalsSubquery, 'surface_totals', function($join) {
                     $join->on('outflows.id', '=', 'surface_totals.outflow_id');
                 })
-                ->leftJoin('invoice_product', 'outflows.invoice_product_id', '=', 'invoice_product.id')
+                ->leftJoin('invoice_products', 'outflows.invoice_product_id', '=', 'invoice_products.id')
                 ->leftJoin('credit_debit_note_items', 'outflows.credit_debit_note_item_id', '=', 'credit_debit_note_items.id')
                 // Excluir inversiones
                 ->where(function($query) {
@@ -568,10 +568,10 @@ class OutflowsDashboardController extends Controller
                     COALESCE(SUM(
                         CASE 
                             WHEN cost_centers.surface = 0 THEN 
-                                outflows.quantity * COALESCE(invoice_product.unit_price, credit_debit_note_items.unit_price, 0)
+                                outflows.quantity * COALESCE(invoice_products.unit_price, credit_debit_note_items.unit_price, 0)
                             ELSE 
                                 (cost_centers.surface * (outflows.quantity / NULLIF(surface_totals.total_surface, 0))) * 
-                                COALESCE(invoice_product.unit_price, credit_debit_note_items.unit_price, 0)
+                                COALESCE(invoice_products.unit_price, credit_debit_note_items.unit_price, 0)
                         END
                     ), 0) as total
                 ")
@@ -667,7 +667,7 @@ class OutflowsDashboardController extends Controller
                 ->leftJoinSub($surfaceTotalsSubquery, 'surface_totals', function($join) {
                     $join->on('outflows.id', '=', 'surface_totals.outflow_id');
                 })
-                ->leftJoin('invoice_product', 'outflows.invoice_product_id', '=', 'invoice_product.id')
+                ->leftJoin('invoice_products', 'outflows.invoice_product_id', '=', 'invoice_products.id')
                 ->leftJoin('credit_debit_note_items', 'outflows.credit_debit_note_item_id', '=', 'credit_debit_note_items.id')
                 // Filtrar por estado de desarrollo "producción" (con o sin acento, mayúsculas/minúsculas)
                 ->whereRaw("LOWER(REPLACE(development_states.name, 'ó', 'o')) LIKE ?", ['%produccion%'])
@@ -677,10 +677,10 @@ class OutflowsDashboardController extends Controller
                     COALESCE(SUM(
                         CASE 
                             WHEN cost_centers.surface = 0 THEN 
-                                outflows.quantity * COALESCE(invoice_product.unit_price, credit_debit_note_items.unit_price, 0)
+                                outflows.quantity * COALESCE(invoice_products.unit_price, credit_debit_note_items.unit_price, 0)
                             ELSE 
                                 (cost_centers.surface * (outflows.quantity / NULLIF(surface_totals.total_surface, 0))) * 
-                                COALESCE(invoice_product.unit_price, credit_debit_note_items.unit_price, 0)
+                                COALESCE(invoice_products.unit_price, credit_debit_note_items.unit_price, 0)
                         END
                     ), 0) as total_produccion
                 ")

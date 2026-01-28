@@ -11,7 +11,7 @@ return new class extends Migration
         Schema::table('outflows', function (Blueprint $table) {
             $table->dropForeign(['invoice_product_id']);
             $table->foreign('invoice_product_id')
-                ->references('id')->on('invoice_product')
+                ->references('id')->on('invoice_products')
                 ->onDelete('restrict');
         });
     }
@@ -21,7 +21,7 @@ return new class extends Migration
         Schema::table('outflows', function (Blueprint $table) {
             $table->dropForeign(['invoice_product_id']);
             $table->foreign('invoice_product_id')
-                ->references('id')->on('invoice_product')
+                ->references('id')->on('invoice_products')
                 ->onDelete('cascade');
         });
     }

@@ -22,8 +22,8 @@ class DeleteProductController extends Controller
         
         if ($totalUsages > 0) {
             $messages = [];
-            if ($usageChecks['invoice_product'] > 0) {
-                $messages[] = "Facturas: {$usageChecks['invoice_product']}";
+            if ($usageChecks['invoice_products'] > 0) {
+                $messages[] = "Facturas: {$usageChecks['invoice_products']}";
             }
             if ($usageChecks['fertilizer_order_product'] > 0) {
                 $messages[] = "Órdenes de fertilizante: {$usageChecks['fertilizer_order_product']}";
