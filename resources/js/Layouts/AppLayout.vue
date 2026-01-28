@@ -214,6 +214,16 @@ const logout = () => {
                       </Link>
                     </li>
 
+                    <li class="nav-item">
+                      <Link class="nav-link" :href="route('comparative.dashboard')">
+                        <div class="d-flex align-items-center">
+                          <span class="nav-link-text ps-3">
+                            <i class="fas fa-chart-line me-2"></i>Comparativo Presupuesto vs Real
+                          </span>
+                        </div>
+                      </Link>
+                    </li>
+
                   <li class="nav-item">
                   <a class="nav-link dropdown-indicator" href="#documents" data-bs-toggle="collapse" aria-expanded="false" aria-controls="documents">
                     <div class="d-flex align-items-center">

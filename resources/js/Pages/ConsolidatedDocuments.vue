@@ -461,6 +461,10 @@ const getDocTypeBadge = (tipo) => {
                     <th style="max-width:180px; min-width:120px; width:160px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">Proveedor</th>
                     <th v-for="mes in mesesPivot" :key="mes" class="text-end">{{ mes }}</th>
                   </tr>
+                  <tr class="table-warning">
+                    <td colspan="4" class="text-end fw-bold">Total por mes</td>
+                    <td v-for="mes in mesesPivot" :key="'pivot-total-header-' + mes" class="text-end fw-bold">{{ formatNumber(totalPorMes[mes], 0) }}</td>
+                  </tr>
                 </thead>
                 <tbody>
                   <tr v-for="(doc, idx) in filteredDocuments" :key="'pivot-' + idx">
@@ -475,12 +479,6 @@ const getDocTypeBadge = (tipo) => {
                     </td>
                   </tr>
                 </tbody>
-                <tfoot>
-                  <tr>
-                    <td colspan="4" class="text-end fw-bold">Total por mes</td>
-                    <td v-for="mes in mesesPivot" :key="'pivot-total-' + mes" class="text-end fw-bold">{{ formatNumber(totalPorMes[mes], 0) }}</td>
-                  </tr>
-                </tfoot>
               </table>
             </div>
           </div>

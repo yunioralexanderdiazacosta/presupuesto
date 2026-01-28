@@ -9,6 +9,14 @@ use Illuminate\Support\Facades\Auth;
 
 class ConsolidatedOutflowsController extends Controller
 {
+    /**
+     * Método index que delega a __invoke para compatibilidad de rutas
+     */
+    public function index(Request $request)
+    {
+        return $this->__invoke($request);
+    }
+
     public function __invoke(Request $request)
     {
         $user = Auth::user();

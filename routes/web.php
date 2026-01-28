@@ -237,6 +237,7 @@ use App\Http\Controllers\Groupings\DeleteGroupingController;
 use App\Http\Controllers\GroupingsController;
 use App\Http\Controllers\OutflowsController;
 use App\Http\Controllers\OutflowsDashboardController;
+use App\Http\Controllers\ComparativeOutflowsDashboardController;
 use App\Http\Controllers\Outflows\CreateOutflowController;
 use App\Http\Controllers\Outflows\StoreOutflowController;
 use App\Http\Controllers\Outflows\ShowOutflowController;
@@ -563,6 +564,9 @@ Route::middleware([
 
     // Dashboard de Outflows
     Route::get('/outflows-dashboard', [OutflowsDashboardController::class, 'index'])->name('outflows.dashboard');
+    
+    // Dashboard Comparativo (Presupuesto vs Real)
+    Route::get('/comparative-dashboard', [ComparativeOutflowsDashboardController::class, 'index'])->name('comparative.dashboard');
     
     // Consolidado de Outflows
     Route::get('/consolidated-outflows', [ConsolidatedOutflowsController::class, 'index'])->name('consolidated-outflows.index');

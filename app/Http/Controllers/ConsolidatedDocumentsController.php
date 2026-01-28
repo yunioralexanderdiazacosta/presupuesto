@@ -28,7 +28,7 @@ class ConsolidatedDocumentsController extends Controller
             ->where('season_id', $season_id)
             ->get()
             ->map(function ($invoice) use ($meses) {
-                $monto = DB::table('invoice_product')
+                $monto = DB::table('invoice_products')
                     ->where('invoice_id', $invoice->id)
                     ->select(DB::raw('SUM(amount * unit_price) as total'))
                     ->value('total');
