@@ -131,6 +131,7 @@ const onFilter = () => {
             <th>Productos</th>
             <th>Afecta inventario</th>
             <th>Fecha</th>
+            <th class="text-end">Total</th>
             <th>Acciones</th>
           </tr>
         </thead>
@@ -146,6 +147,14 @@ const onFilter = () => {
               <span v-else class="badge bg-secondary">No</span>
             </td>
             <td>{{ note.date }}</td>
+            <td class="text-end">
+              <span v-if="note.type === 'credito'" class="text-danger">
+                -{{ new Intl.NumberFormat('es-ES', { minimumFractionDigits: 0, maximumFractionDigits: 0 }).format(note.total) }}
+              </span>
+              <span v-else class="text-success">
+                {{ new Intl.NumberFormat('es-ES', { minimumFractionDigits: 0, maximumFractionDigits: 0 }).format(note.total) }}
+              </span>
+            </td>
             <td>
               <div class="btn-group">
                 <!-- Ver -->
