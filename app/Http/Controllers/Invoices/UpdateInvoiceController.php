@@ -14,7 +14,7 @@ class UpdateInvoiceController extends Controller
     {
         // Verificar si la factura tiene salidas (outflows) asociadas
         // Buscar en invoice_product los registros de esta factura
-        $invoiceProductIds = DB::table('invoice_product')
+        $invoiceProductIds = DB::table('invoice_products')
             ->where('invoice_id', $invoice->id)
             ->pluck('id');
 

@@ -13,7 +13,7 @@ class DeleteProductController extends Controller
     {
         // Verificar si el producto está siendo usado
         $usageChecks = [
-            'invoice_product' => DB::table('invoice_product')->where('product_id', $product->id)->count(),
+            'invoice_products' => DB::table('invoice_products')->where('product_id', $product->id)->count(),
             'fertilizer_order_product' => DB::table('fertilizer_order_product')->where('product_id', $product->id)->count(),
             'application_order_product' => DB::table('application_order_product')->where('product_id', $product->id)->exists() ? 1 : 0,
         ];
