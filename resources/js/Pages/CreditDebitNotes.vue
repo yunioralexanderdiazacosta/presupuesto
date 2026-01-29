@@ -10,7 +10,7 @@ import Breadcrumb from '@/Components/Breadcrumb.vue';
 
 
 const props = defineProps({
-  notes: Object,
+  notes: Array,
   term: String
 });
 
@@ -30,13 +30,13 @@ const msgSuccess = (msg) => {
 
 // --- Totales de notas de débito y crédito ---
 const totalDebito = computed(() => {
-  if (!props.notes.data.length) return 0;
-  return props.notes.data.filter(n => n.type === 'debito').reduce((sum, n) => sum + (parseFloat(n.total) || 0), 0);
+  if (!props.notes.length) return 0;
+  return props.notes.filter(n => n.type === 'debito').reduce((sum, n) => sum + (parseFloat(n.total) || 0), 0);
 });
 const totalCredito = computed(() => {
-  if (!props.notes.data.length) return 0;
+  if (!props.notes.length) return 0;
   // Se muestra como negativo
-  return props.notes.data.filter(n => n.type === 'credito').reduce((sum, n) => sum + (parseFloat(n.total) || 0), 0) * -1;
+  return props.notes.filter(n => n.type === 'credito').reduce((sum, n) => sum + (parseFloat(n.total) || 0), 0) * -1;
 });
 const totalDebitoFormatted = computed(() => {
   return new Intl.NumberFormat('es-ES', { style: 'decimal', minimumFractionDigits: 0, maximumFractionDigits: 2 }).format(totalDebito.value);
@@ -136,7 +136,7 @@ const onFilter = () => {
           </tr>
         </thead>
         <tbody>
-          <tr v-for="note in notes.data" :key="note.id">
+          <tr v-for="note in notes" :key="note.id">
             <td>{{ note.number }}</td>
             <td>{{ note.type }}</td>
             <td>{{ note.supplier?.name }}</td>

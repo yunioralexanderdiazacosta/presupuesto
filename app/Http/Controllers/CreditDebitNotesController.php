@@ -16,16 +16,20 @@ class CreditDebitNotesController extends Controller
         $term = $request->term ?? '';
 
         $notes = CreditDebitNote::with(['supplier', 'invoice', 'items.product'])
-            ->when($request->term, function ($query, $search) {
-                $query->where('number', 'like', '%'.$search.'%');
-            })
-            ->orWhereHas('supplier', function($query) use ($term){
-                $query->where('name', 'like', '%'.$term.'%');
-            })
             ->where('team_id', $user->team_id)
             ->where('season_id', $season_id)
-            ->paginate(10)
-            ->through(function($note){
+            ->when($request->term, function ($query, $search) {
+                $query->where(function($q) use ($search) {
+                    $q->where('number', 'like', '%'.$search.'%')
+                      ->orWhereHas('supplier', function($subQuery) use ($search) {
+                          $subQuery->where('name', 'like', '%'.$search.'%');
+                      });
+                });
+            })
+            ->orderBy('date', 'desc')
+            ->orderBy('id', 'desc')
+            ->get()
+            ->map(function($note){
                 $productNames = $note->items->map(function($item) {
                     return $item->product ? $item->product->name : null;
                 })->filter()->unique()->values()->all();

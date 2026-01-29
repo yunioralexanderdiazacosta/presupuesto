@@ -510,7 +510,7 @@ class OutflowsDashboardController extends Controller
                                 outflows.quantity * COALESCE(invoice_products.unit_price, credit_debit_note_items.unit_price, 0)
                             ELSE 
                                 (cost_centers.surface * (outflows.quantity / NULLIF(surface_totals.total_surface, 0))) * 
-                                COALESCE(invoice_product.unit_price, credit_debit_note_items.unit_price, 0)
+                                COALESCE(invoice_products.unit_price, credit_debit_note_items.unit_price, 0)
                         END
                     ), 0) as total
                 ")
