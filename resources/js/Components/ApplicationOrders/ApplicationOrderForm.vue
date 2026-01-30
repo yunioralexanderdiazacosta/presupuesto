@@ -217,7 +217,8 @@ const filteredPhenologicalStages = computed(() => {
     if (!selectedFruit.value || !props.phenologicalStages) {
         return props.phenologicalStages || [];
     }
-    return props.phenologicalStages.filter(stage => stage.fruit_id === selectedFruit.value);
+    // Usar == en lugar de === para comparar independientemente del tipo
+    return props.phenologicalStages.filter(stage => stage.fruit_id == selectedFruit.value);
 });
 
 // Watch para limpiar la etapa fenológica si se cambia el frutal
@@ -357,12 +358,12 @@ function getSimplifiedQuantity(product) {
                     v-model="selectedFruit" 
                     class="form-select form-select-sm"
                 >
-                    <option :value="null" disabled selected>Seleccione frutal para filtrar...</option>
+                    <option :value="null">Todos los frutales</option>
                     <option v-for="fruit in fruits" :key="fruit.value" :value="fruit.value">
                         {{ fruit.label }}
                     </option>
                 </select>
-                <small class="text-muted">Solo para filtrar etapas fenológicas</small>
+                <small class="text-muted">Seleccione para filtrar etapas fenológicas</small>
             </div>
 
             <div class="col-md-4 mb-2">
