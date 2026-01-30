@@ -30,6 +30,9 @@ use App\Http\Controllers\Products2\DeleteProduct2Controller;
     use App\Http\Controllers\ApplicationOrders\DeleteApplicationOrderController;
     use App\Http\Controllers\ApplicationOrders\PdfApplicationOrderController;
 
+// Rutas API
+    use App\Http\Controllers\Api\GetProductsController;
+
 // Rutas para Irrigation Pumps
     use App\Http\Controllers\IrrigationPumpsController;
     use App\Http\Controllers\IrrigationPumps\StoreIrrigationPumpController;
@@ -292,7 +295,8 @@ Route::middleware([
     // Ruta para crear un nuevo estado de estimación desde el frontend
     Route::post('/estimate-status', [EstimatesController::class, 'storeEstimateStatus'])->name('estimate-status.store');
 
-
+    // API para refrescar selects
+    Route::get('/api/products', GetProductsController::class)->name('api.products');
 
     // Products2 estilo teams: vista única y controladores separados para acciones
 

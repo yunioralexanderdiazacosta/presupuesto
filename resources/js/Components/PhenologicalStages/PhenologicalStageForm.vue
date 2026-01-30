@@ -30,12 +30,20 @@ defineProps({
                 :searchable="true"
                 :canClear="true"
                 placeholder="Seleccione un frutal"
-                :classes="{
-                    container: 'multiselect form-control form-control-solid p-0',
-                    containerActive: form.errors.fruit_id ? 'is-invalid' : ''
-                }"
+                class="multiselect-blue form-control"
+                :class="{'is-invalid': form.errors.fruit_id}"
             />
             <InputError class="mt-2" :message="form.errors.fruit_id" />
         </div>
     </div>
 </template>
+<style src="@vueform/multiselect/themes/default.css"></style>
+<style>
+.multiselect-blue {
+    --ms-bg: var(--kt-input-solid-bg) !important;
+    --ms-border-color: var(--kt-input-solid-bg);
+    --ms-py: 3px !important;
+    --ms-tag-bg: #2c7be5;
+    --ms-tag-color: var(--kt-primary);
+}
+</style>

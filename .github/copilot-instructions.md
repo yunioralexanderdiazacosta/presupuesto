@@ -120,6 +120,99 @@ Esto permite máxima escalabilidad, reutilización y consistencia entre módulos
 
 **Confirmaciones**: Usar SweetAlert (`Swal.fire`) en TODA operación de guardado/edición, siguiendo el estándar visual del sistema.
 
+**Botón de Refresco en Selects**: Para permitir actualizar opciones de selects sin cerrar modales (ej. agregar producto en ventana flotante):
+
+**Backend - API Controller** (`app/Http/Controllers/Api/GetXController.php`):
+```php
+<?php
+namespace App\Http\Controllers\Api;
+use App\Http\Controllers\Controller;
+use App\Models\X;
+use Illuminate\Support\Facades\Auth;
+
+class GetXController extends Controller
+{
+    public function __invoke()
+    {
+        $user = Auth::user();
+        return X::where('team_id', $user->team_id)
+            ->orderBy('name')
+            ->get(['id', 'name'])
+            ->map(fn($item) => ['value' => $item->id, 'label' => $item->name]);
+    }
+}
+```
+
+**Ruta API** (en `routes/web.php` dentro del middleware auth):
+```php
+// API para refrescar selects
+use App\Http\Controllers\Api\GetXController;
+Route::get('/api/x', GetXController::class)->name('api.x');
+```
+
+**Frontend - Componente Vue**:
+```vue
+<script setup>
+import { ref } from 'vue';
+import axios from 'axios';
+import Swal from 'sweetalert2';
+
+const xOptions = ref(props.x); // Usar ref en lugar de prop directamente
+const isRefreshingX = ref(false);
+
+const refreshX = async () => {
+    isRefreshingX.value = true;
+    try {
+        const response = await axios.get(route('api.x'));
+        xOptions.value = response.data;
+        form.x_id = ''; // Limpiar selección actual para mostrar que funcionó
+        Swal.fire({
+            icon: 'success',
+            title: 'Lista actualizada',
+            showConfirmButton: false,
+            timer: 1000
+        });
+    } catch (error) {
+        console.error('Error al refrescar:', error);
+        Swal.fire('Error', 'No se pudo refrescar la lista', 'error');
+    } finally {
+        isRefreshingX.value = false;
+    }
+};
+</script>
+
+<template>
+    <div class="col-md-6">
+        <div class="d-flex align-items-center justify-content-between mb-1">
+            <label class="form-label small mb-0">Label</label>
+            <button 
+                type="button" 
+                @click="refreshX" 
+                :disabled="isRefreshingX"
+                class="btn btn-sm btn-light-primary d-flex align-items-center gap-1 py-0 px-2"
+                v-tooltip="'Refrescar lista'"
+                style="font-size: 0.75rem;"
+            >
+                <i class="fas fa-sync-alt fa-xs" :class="{'fa-spin': isRefreshingX}"></i>
+            </button>
+        </div>
+        <select v-model="form.x_id" class="form-select form-select-sm">
+            <option :value="''" disabled selected>Seleccione...</option>
+            <option v-for="item in xOptions" :key="item.value" :value="item.value">
+                {{ item.label }}
+            </option>
+        </select>
+    </div>
+</template>
+```
+
+**Ubicación y estilo del botón**:
+- Posición: A la derecha del label, en la misma línea
+- Icono: `fas fa-sync-alt fa-xs` con clase `fa-spin` cuando está cargando
+- Clase: `btn btn-sm btn-light-primary d-flex align-items-center gap-1 py-0 px-2`
+- Tamaño fuente: `0.75rem` para mantenerlo discreto
+- Tooltip: Siempre incluir `v-tooltip="'Refrescar lista'"`
+
 **Formato Visual de Vistas Principales**: TODAS las vistas principales (Index) deben seguir el patrón estándar del sistema:
 
 ```vue

@@ -1,5 +1,6 @@
 <script setup>
 import { ref, computed, watch } from 'vue';
+import axios from 'axios';
 import Multiselect from '@vueform/multiselect';
 import TextInput from '@/Components/TextInput.vue';
 import InputError from '@/Components/InputError.vue';
@@ -20,6 +21,8 @@ const props = defineProps({
 });
 
 // ==== PRODUCTOS ====
+const productsOptions = ref(props.products);
+const isRefreshingProducts = ref(false);
 const selectedProduct = ref(null);
 const editingProductIndex = ref(null);
 const newProduct = ref({
@@ -30,6 +33,26 @@ const newProduct = ref({
     carencia: '',
     reingreso: '',
 });
+
+const refreshProducts = async () => {
+    isRefreshingProducts.value = true;
+    try {
+        const response = await axios.get(route('api.products'));
+        productsOptions.value = response.data;
+        newProduct.value.product_id = ''; // Limpiar selección actual
+        Swal.fire({
+            icon: 'success',
+            title: 'Productos actualizados',
+            showConfirmButton: false,
+            timer: 1000
+        });
+    } catch (error) {
+        console.error('Error al refrescar productos:', error);
+        Swal.fire('Error', 'No se pudieron refrescar los productos', 'error');
+    } finally {
+        isRefreshingProducts.value = false;
+    }
+};
 
 const totalHectareas = computed(() => {
     return props.form.cost_centers.reduce((sum, cc) => sum + Number(cc.surface || 0), 0);
@@ -62,14 +85,14 @@ const calculatedTotalQuantity = computed(() => {
 // Computed para obtener la unidad base del producto seleccionado
 const selectedProductUnit = computed(() => {
     if (!newProduct.value.product_id) return '';
-    const product = props.products.find(p => p.value === newProduct.value.product_id);
+    const product = productsOptions.value.find(p => p.value === newProduct.value.product_id);
     return product?.unit_name || '';
 });
 
 // Computed para vista previa de cantidad total con unidad base del producto
 const previewSimplifiedQuantity = computed(() => {
     const cantidad = calculatedTotalQuantity.value;
-    const prod = props.products.find(p => p.value === newProduct.value.product_id);
+    const prod = productsOptions.value.find(p => p.value === newProduct.value.product_id);
     const unitName = prod?.unit_name || '';
     
     return {
@@ -170,12 +193,12 @@ function removeProduct(index) {
 }
 
 function getProductName(productId) {
-    const product = props.products.find(p => p.value === productId);
-    return product ? product.label : '';
+    const product = productsOptions.value.find(p => p.value === productId);
+    return product?.label || '';
 }
 
-function getProductUnit(productId) {
-    const product = props.products.find(p => p.value === productId);
+function getProductUnitName(productId) {
+    const product = productsOptions.value.find(p => p.value === productId);
     return product?.unit_name || '';
 }
 
@@ -255,7 +278,7 @@ function getProductTotalQuantity(product) {
 // Función para obtener cantidad con unidad base del producto
 function getSimplifiedQuantity(product) {
     const cantidad = getProductTotalQuantity(product);
-    const prod = props.products.find(p => p.value === product.product_id);
+    const prod = productsOptions.value.find(p => p.value === product.product_id);
     const unitName = prod?.unit_name || '';
     
     return {
@@ -522,13 +545,25 @@ function getSimplifiedQuantity(product) {
             <div class="card-body py-2">
                 <div class="row mb-2">
                     <div class="col-md-6">
-                        <label class="form-label small mb-1">Producto</label>
+                        <div class="d-flex align-items-center justify-content-between mb-1">
+                            <label class="form-label small mb-0">Producto</label>
+                            <button 
+                                type="button" 
+                                @click="refreshProducts" 
+                                :disabled="isRefreshingProducts"
+                                class="btn btn-sm btn-light-primary d-flex align-items-center gap-1 py-0 px-2"
+                                v-tooltip="'Refrescar lista de productos'"
+                                style="font-size: 0.75rem;"
+                            >
+                                <i class="fas fa-sync-alt fa-xs" :class="{'fa-spin': isRefreshingProducts}"></i>
+                            </button>
+                        </div>
                         <select
                             v-model="newProduct.product_id"
                             class="form-select form-select-sm"
                         >
                             <option :value="''" disabled selected>Seleccione un producto...</option>
-                            <option v-for="product in products" :key="product.value" :value="product.value">
+                            <option v-for="product in productsOptions" :key="product.value" :value="product.value">
                                 {{ product.label }}
                             </option>
                         </select>

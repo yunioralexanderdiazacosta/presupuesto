@@ -471,11 +471,11 @@ const logout = () => {
                   <!-- more inner pages-->
                 </li>
                 <li class="nav-item">
-                  <Link class="nav-link" :href="route('phenological-stages.index')">
+                  <a class="nav-link" :href="route('phenological-stages.index')" target="_blank" rel="noopener">
                     <div class="d-flex align-items-center">
-                      <span class="nav-link-text ps-3">Etapas Fenológicas</span>
+                      <span class="nav-link-text ps-3">Etapas Fenológicas <i class="fas fa-external-link-alt ms-1"></i></span>
                     </div>
-                  </Link>
+                  </a>
                   <!-- more inner pages-->
                 </li>
                 <li class="nav-item">
