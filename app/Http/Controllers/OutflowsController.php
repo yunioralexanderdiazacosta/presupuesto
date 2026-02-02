@@ -32,17 +32,6 @@ class OutflowsController extends Controller
             ->groupBy('credit_debit_note_items.invoice_product_id')
             ->pluck('total_devuelto', 'credit_debit_note_items.invoice_product_id');
 
-        // 🔥 OPTIMIZACIÓN: Precalcular qué invoice_product_ids tienen notas de crédito con un solo query
-        $invoiceProductsWithCreditNotes = DB::table('credit_debit_note_items')
-            ->join('credit_debit_notes', 'credit_debit_note_items.credit_debit_note_id', '=', 'credit_debit_notes.id')
-            ->where('credit_debit_notes.type', 'credito')
-            ->where('credit_debit_notes.team_id', $user->team_id)
-            ->where('credit_debit_notes.season_id', $season_id)
-            ->whereNotNull('credit_debit_note_items.invoice_product_id')
-            ->pluck('credit_debit_note_items.invoice_product_id')
-            ->unique()
-            ->toArray();
-
         // Traer productos de facturas
         $invoices = Invoice::with(['supplier', 'typeDocument', 'invoiceProducts.product.unit'])
             ->where('team_id', $user->team_id)
@@ -70,11 +59,6 @@ class OutflowsController extends Controller
         $rows = [];
         foreach ($invoices as $invoice) {
             foreach ($invoice->invoiceProducts as $invoiceProduct) {
-                // 🔥 OPTIMIZACIÓN: Usar array precalculado en lugar de query por cada producto
-                $hasCreditNote = in_array($invoiceProduct->id, $invoiceProductsWithCreditNotes);
-                if ($hasCreditNote) {
-                    continue;
-                }
                 if ($term && stripos($invoice->number_document, $term) === false) {
                     continue;
                 }
@@ -82,6 +66,7 @@ class OutflowsController extends Controller
                 $devuelto = $creditNotesReturns[$invoiceProduct->id] ?? 0;
                 $cantidadOriginal = $invoiceProduct->quantity ?? $invoiceProduct->amount ?? 0;
                 $stockLinea = $cantidadOriginal - $consumido - $devuelto;
+
                 // Excluir líneas con stock cero o negativo
                 if ($stockLinea <= 0) {
                     continue;

@@ -345,10 +345,11 @@ const logout = () => {
                       <!-- more inner pages-->
                     </li>
 
-                <li class="nav-item"><Link class="nav-link" :href="route('suppliers.index')">
-                    <div class="d-flex align-items-center"><span class="nav-link-text ps-3">Proveedores</span>
+                <li class="nav-item">
+                  <a class="nav-link" :href="route('suppliers.index')" target="_blank" rel="noopener">
+                    <div class="d-flex align-items-center"><span class="nav-link-text ps-3">Proveedores <i class="fas fa-external-link-alt ms-1"></i></span>
                     </div>
-                  </Link>
+                  </a>
                   <!-- more inner pages-->
                 </li>
                 <li class="nav-item"><Link class="nav-link" :href="route('inventory')">
@@ -356,10 +357,11 @@ const logout = () => {
                     </div>
                   </Link>
                 </li>
-                <li class="nav-item"><Link class="nav-link" :href="route('products.index')">
-                    <div class="d-flex align-items-center"><span class="nav-link-text ps-3">Productos</span>
+                <li class="nav-item">
+                  <a class="nav-link" :href="route('products.index')" target="_blank" rel="noopener">
+                    <div class="d-flex align-items-center"><span class="nav-link-text ps-3">Productos <i class="fas fa-external-link-alt ms-1"></i></span>
                     </div>
-                  </Link>
+                  </a>
                   <!-- more inner pages-->
                 </li>
                  

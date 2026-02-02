@@ -48,6 +48,8 @@ const save = () => {
     preserveScroll: true,
     onSuccess: () => {
       msgSuccess('Guardado correctamente');
+      // Invalidar caché para que Outflows se refresque cuando se visite
+      router.reload({ only: [] });
       router.get(route('credit_debit_notes.index'));
     }
   });

@@ -45,5 +45,8 @@ class StoreCreditDebitNoteController extends Controller
                 ]);
             }
         });
+
+        // Invalidar caché de Inertia para que Outflows se refresque cuando el usuario la visite
+        return back()->with('success', 'Nota de crédito/débito guardada correctamente');
     }
 }

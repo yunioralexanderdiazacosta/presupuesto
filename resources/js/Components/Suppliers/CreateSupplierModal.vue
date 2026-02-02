@@ -11,15 +11,36 @@ defineEmits(['store']);
 <template>
     <Modal :maxWidth="'lg'" :id="'createSupplierModal'">
         <template #header>
-            <h1 class="mb-3">Agregar proveedor</h1>
+            <h5 class="modal-title mb-0 d-flex align-items-center">
+                <i class="fas fa-truck text-primary me-2"></i>
+                <span>Agregar Proveedor</span>
+            </h5>
         </template>
         <template #body>
             <SupplierForm :form="form" />
         </template>
         <template #footer>
-            <button type="button" id="kt_modal_add_supplier_cancel" data-bs-dismiss="modal" class="btn btn-light me-3">Cerrar</button>
-            <button type="button" @click="$emit('store')" :disabled="form.processing" id="kt_modal_add_supplier_submit" class="btn btn-primary">
-                <span class="indicator-label">Guardar</span>
+            <button
+                type="button"
+                id="kt_modal_add_supplier_cancel"
+                data-bs-dismiss="modal"
+                class="btn btn-light me-3"
+            >
+                <i class="fas fa-times me-1"></i>Cancelar
+            </button>
+            <button
+                type="button"
+                @click="$emit('store')"
+                :disabled="form.processing"
+                id="kt_modal_add_supplier_submit"
+                class="btn btn-primary"
+            >
+                <span v-if="!form.processing" class="indicator-label">
+                    <i class="fas fa-save me-1"></i>Guardar
+                </span>
+                <span v-else class="indicator-label">
+                    <span class="spinner-border spinner-border-sm me-1"></span>Guardando...
+                </span>
             </button>
         </template>
     </Modal>

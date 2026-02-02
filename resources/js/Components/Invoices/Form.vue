@@ -125,6 +125,15 @@ const handleSupplierNotFound = (supplierData) => {
     });
 };
 
+// Abrir modal para crear proveedor manualmente
+const openCreateSupplierModal = () => {
+    supplierForm.reset();
+    showCreateSupplierModal.value = true;
+    nextTick(() => {
+        $('#createSupplierModal').modal('show');
+    });
+};
+
 // Guardar proveedor nuevo
 const storeSupplier = () => {
     console.log('💾 Guardando proveedor:', supplierForm.data());
@@ -261,7 +270,18 @@ const storeSupplier = () => {
             </div>
             <div class="col-lg-6">
                 <div class="fv-row">
-                    <label for="" class="col-form-label">Proveedor</label>
+                    <div class="d-flex justify-content-between align-items-center">
+                        <label for="" class="col-form-label mb-0">Proveedor</label>
+                        <button
+                            type="button"
+                            class="btn btn-link text-primary p-0"
+                            @click="openCreateSupplierModal"
+                            v-tooltip="'Agregar nuevo proveedor'"
+                            style="font-size: 0.875rem;"
+                        >
+                            <i class="fas fa-plus-circle"></i>
+                        </button>
+                    </div>
                     <Multiselect
                         :placeholder="'Seleccione proveedor'"
                         v-model="form.supplier_id"
