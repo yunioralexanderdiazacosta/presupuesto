@@ -293,6 +293,8 @@ class ComparativeOutflowsDashboardController extends Controller
             $budgetByMonth = [];
             $budgetWithInvestmentsByMonth = [];
             $realByMonth = [];
+            $consumedByMonth = [];
+            $consumedWithInvestmentsByMonth = [];
 
             foreach ($months as $month) {
                 $monthId = $month['id'];
@@ -318,7 +320,12 @@ class ComparativeOutflowsDashboardController extends Controller
                 $invoicedMonth = $this->getInvoicedForMonth($season_id, $team_id, $monthId);
                 $realByMonth[] = floatval($invoicedMonth);
 
-                Log::info("Mes {$month['name']} (ID: $monthId) - Budget: $budgetMonth, Con Inv: " . ($budgetMonth + $investmentMonth) . ", Facturado: $invoicedMonth");
+                // Consumido del mes (desde outflows)
+                $consumedData = $this->getConsumedForMonth($season_id, $team_id, $monthId);
+                $consumedByMonth[] = floatval($consumedData['total']);
+                $consumedWithInvestmentsByMonth[] = floatval($consumedData['total_with_investments']);
+
+                Log::info("Mes {$month['name']} (ID: $monthId) - Budget: $budgetMonth, Con Inv: " . ($budgetMonth + $investmentMonth) . ", Facturado: $invoicedMonth, Consumido: {$consumedData['total']}, Consumido con Inv: {$consumedData['total_with_investments']}");
             }
 
             Log::info('Monthly Comparison - Budget Total: ' . array_sum($budgetByMonth));
@@ -330,6 +337,8 @@ class ComparativeOutflowsDashboardController extends Controller
                 'budget' => $budgetByMonth,
                 'budget_with_investments' => $budgetWithInvestmentsByMonth,
                 'real' => $realByMonth,
+                'consumed' => $consumedByMonth,
+                'consumed_with_investments' => $consumedWithInvestmentsByMonth,
             ];
 
         } catch (\Exception $e) {
@@ -354,15 +363,27 @@ class ComparativeOutflowsDashboardController extends Controller
             $budgetCumulative = [];
             $budgetWithInvestmentsCumulative = [];
             $realCumulative = [];
+            $consumedCumulative = [];
+            $consumedWithInvestmentsCumulative = [];
             $accumulatedBudget = 0;
             $accumulatedBudgetWithInvestments = 0;
             $accumulatedReal = 0;
+            $accumulatedConsumed = 0;
+            $accumulatedConsumedWithInvestments = 0;
             
             // Detectar último mes con datos reales (facturado > 0)
             $lastMonthWithData = 0;
             foreach ($monthlyData['real'] as $index => $realValue) {
                 if ($realValue > 0) {
                     $lastMonthWithData = $index;
+                }
+            }
+
+            // Detectar último mes con datos de consumo
+            $lastMonthWithConsumedData = 0;
+            foreach ($monthlyData['consumed'] as $index => $consumedValue) {
+                if ($consumedValue > 0) {
+                    $lastMonthWithConsumedData = $index;
                 }
             }
 
@@ -382,19 +403,36 @@ class ComparativeOutflowsDashboardController extends Controller
                 } else {
                     $realCumulative[] = null; // null para no mostrar línea después
                 }
+
+                // Solo acumular consumido hasta el último mes con datos
+                if ($index <= $lastMonthWithConsumedData) {
+                    $accumulatedConsumed += $monthlyData['consumed'][$index];
+                    $accumulatedConsumedWithInvestments += $monthlyData['consumed_with_investments'][$index];
+                    $consumedCumulative[] = floatval($accumulatedConsumed);
+                    $consumedWithInvestmentsCumulative[] = floatval($accumulatedConsumedWithInvestments);
+                } else {
+                    $consumedCumulative[] = null;
+                    $consumedWithInvestmentsCumulative[] = null;
+                }
             }
 
             Log::info('Cumulative Comparison - Last month with data: ' . $lastMonthWithData);
+            Log::info('Cumulative Comparison - Last month with consumed data: ' . $lastMonthWithConsumedData);
             Log::info('Cumulative Comparison - Budget: ' . json_encode($budgetCumulative));
             Log::info('Cumulative Comparison - Budget with Investments: ' . json_encode($budgetWithInvestmentsCumulative));
             Log::info('Cumulative Comparison - Real: ' . json_encode($realCumulative));
+            Log::info('Cumulative Comparison - Consumed: ' . json_encode($consumedCumulative));
+            Log::info('Cumulative Comparison - Consumed with Investments: ' . json_encode($consumedWithInvestmentsCumulative));
 
             return [
                 'labels' => $monthlyData['labels'],
                 'budget_cumulative' => $budgetCumulative,
                 'budget_with_investments_cumulative' => $budgetWithInvestmentsCumulative,
                 'real_cumulative' => $realCumulative,
+                'consumed_cumulative' => $consumedCumulative,
+                'consumed_with_investments_cumulative' => $consumedWithInvestmentsCumulative,
                 'last_month_with_data' => $lastMonthWithData,
+                'last_month_with_consumed_data' => $lastMonthWithConsumedData,
             ];
 
         } catch (\Exception $e) {
@@ -404,6 +442,8 @@ class ComparativeOutflowsDashboardController extends Controller
                 'budget_cumulative' => array_fill(0, 12, 0),
                 'budget_with_investments_cumulative' => array_fill(0, 12, 0),
                 'real_cumulative' => array_fill(0, 12, 0),
+                'consumed_cumulative' => array_fill(0, 12, 0),
+                'consumed_with_investments_cumulative' => array_fill(0, 12, 0),
             ];
         }
     }
@@ -695,6 +735,93 @@ class ComparativeOutflowsDashboardController extends Controller
         } catch (\Exception $e) {
             Log::error('Error en getInvoicedForMonth (month_id: ' . $month_id . '): ' . $e->getMessage());
             return 0;
+        }
+    }
+
+    /**
+     * Obtener consumido de un mes específico desde outflows
+     * Retorna dos valores: total (sin inversiones) y total_with_investments (con inversiones)
+     * IMPORTANTE: Filtra por el MES DE LA FACTURA/NOTA, no por la fecha del outflow
+     * 
+     * @param int $season_id
+     * @param int $team_id
+     * @param int $month_id Número del mes (1-12)
+     * @return array ['total' => float, 'total_with_investments' => float]
+     */
+    private function getConsumedForMonth($season_id, $team_id, $month_id)
+    {
+        try {
+            // Consumido CON inversiones (todos los outflows del mes según fecha de factura)
+            $allOutflows = Outflow::where('season_id', $season_id)
+                ->where('team_id', $team_id)
+                ->where(function($query) use ($month_id) {
+                    // Filtrar por mes de factura (invoice_product)
+                    $query->whereHas('invoiceProduct.invoice', function($q) use ($month_id) {
+                        $q->whereRaw('MONTH(date) = ?', [$month_id]);
+                    })
+                    // O por mes de nota de crédito/débito
+                    ->orWhereHas('creditDebitNoteItem.creditDebitNote', function($q) use ($month_id) {
+                        $q->whereRaw('MONTH(date) = ?', [$month_id]);
+                    });
+                })
+                ->with(['invoiceProduct', 'creditDebitNoteItem'])
+                ->get();
+
+            $totalWithInvestments = $allOutflows->sum(function($outflow) {
+                if ($outflow->invoice_product_id && $outflow->invoiceProduct) {
+                    return $outflow->quantity * $outflow->invoiceProduct->unit_price;
+                }
+                if ($outflow->credit_debit_note_item_id && $outflow->creditDebitNoteItem) {
+                    return $outflow->quantity * $outflow->creditDebitNoteItem->unit_price;
+                }
+                return 0;
+            });
+
+            // Consumido SOLO inversiones (también por mes de factura)
+            $investmentOutflows = Outflow::where('season_id', $season_id)
+                ->where('team_id', $team_id)
+                ->where(function($query) use ($month_id) {
+                    // Filtrar por mes de factura (invoice_product)
+                    $query->whereHas('invoiceProduct.invoice', function($q) use ($month_id) {
+                        $q->whereRaw('MONTH(date) = ?', [$month_id]);
+                    })
+                    // O por mes de nota de crédito/débito
+                    ->orWhereHas('creditDebitNoteItem.creditDebitNote', function($q) use ($month_id) {
+                        $q->whereRaw('MONTH(date) = ?', [$month_id]);
+                    });
+                })
+                ->whereHas('operation', function($query) {
+                    $query->whereRaw('LOWER(name) LIKE ?', ['%inversion%']);
+                })
+                ->with(['invoiceProduct', 'creditDebitNoteItem'])
+                ->get();
+
+            $investmentsTotal = $investmentOutflows->sum(function($outflow) {
+                if ($outflow->invoice_product_id && $outflow->invoiceProduct) {
+                    return $outflow->quantity * $outflow->invoiceProduct->unit_price;
+                }
+                if ($outflow->credit_debit_note_item_id && $outflow->creditDebitNoteItem) {
+                    return $outflow->quantity * $outflow->creditDebitNoteItem->unit_price;
+                }
+                return 0;
+            });
+
+            // Total sin inversiones
+            $total = $totalWithInvestments - $investmentsTotal;
+
+            return [
+                'total' => floatval($total),
+                'total_with_investments' => floatval($totalWithInvestments),
+                'investments' => floatval($investmentsTotal)
+            ];
+
+        } catch (\Exception $e) {
+            Log::error('Error en getConsumedForMonth (month_id: ' . $month_id . '): ' . $e->getMessage());
+            return [
+                'total' => 0,
+                'total_with_investments' => 0,
+                'investments' => 0
+            ];
         }
     }
 

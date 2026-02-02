@@ -41,13 +41,92 @@ const displayedConsumedPerHectare = computed(() =>
     includeInvestments.value ? props.summary.consumed_per_hectare_with_investments : props.summary.consumed_per_hectare
 );
 
+// Facturado: cuando NO incluye inversiones, restar las inversiones CONSUMIDAS del facturado
+const displayedInvoiced = computed(() => 
+    includeInvestments.value ? props.summary.invoiced_total : (props.summary.invoiced_total - props.summary.consumed_investments_total)
+);
+
+const displayedInvoicedPerHectare = computed(() => {
+    if (includeInvestments.value) {
+        return props.summary.invoiced_per_hectare;
+    }
+    const investmentsPerHa = props.summary.total_surface > 0 ? (props.summary.consumed_investments_total / props.summary.total_surface) : 0;
+    return props.summary.invoiced_per_hectare - investmentsPerHa;
+});
+
 const displayedDifference = computed(() => 
-    displayedBudget.value - props.summary.invoiced_total
+    displayedBudget.value - displayedInvoiced.value
 );
 
 const displayedPercentageExecution = computed(() => 
-    displayedBudget.value > 0 ? (props.summary.invoiced_total / displayedBudget.value) * 100 : 0
+    displayedBudget.value > 0 ? (displayedInvoiced.value / displayedBudget.value) * 100 : 0
 );
+
+// Diferencia acumulada hasta el mes anterior al actual
+const differenceToCurrentMonth = computed(() => {
+    const today = new Date();
+    const currentMonth = today.getMonth() + 1; // 1-12
+    
+    // Presupuesto: usar según el toggle
+    const budgetData = includeInvestments.value 
+        ? props.cumulativeComparison.budget_with_investments_cumulative 
+        : props.cumulativeComparison.budget_cumulative;
+    
+    // Facturado acumulado (sin ajustes)
+    const realData = props.cumulativeComparison.real_cumulative;
+    
+    // Encontrar el índice del mes actual en el array de meses de la temporada
+    let currentMonthIndex = -1;
+    for (let i = 0; i < props.months.length; i++) {
+        if (props.months[i].id === currentMonth) {
+            currentMonthIndex = i;
+            break;
+        }
+    }
+    
+    if (currentMonthIndex <= 0) {
+        // Si no encontramos el mes o es el primer mes de la temporada, no hay mes anterior
+        return null;
+    }
+    
+    // Obtener datos del mes anterior (índice actual - 1)
+    const previousMonthIndex = currentMonthIndex - 1;
+    
+    if (previousMonthIndex >= 0 && previousMonthIndex < budgetData.length) {
+        const budgetUpToMonth = budgetData[previousMonthIndex] || 0;
+        
+        // Buscar el último valor real disponible hasta el mes anterior (puede ser null)
+        let realUpToMonth = realData[previousMonthIndex];
+        
+        // Si es null, buscar el último valor no-null anterior
+        if (realUpToMonth === null) {
+            for (let i = previousMonthIndex - 1; i >= 0; i--) {
+                if (realData[i] !== null) {
+                    realUpToMonth = realData[i];
+                    break;
+                }
+            }
+        }
+        
+        realUpToMonth = realUpToMonth || 0;
+        
+        // Ajustar facturado si NO incluye inversiones
+        // Restar directamente el total de inversiones consumidas
+        let adjustedReal = realUpToMonth;
+        if (!includeInvestments.value && props.summary.consumed_investments_total > 0) {
+            adjustedReal = realUpToMonth - props.summary.consumed_investments_total;
+        }
+        
+        return {
+            difference: budgetUpToMonth - adjustedReal,
+            monthName: props.months[previousMonthIndex]?.name || 'Mes anterior',
+            budget: budgetUpToMonth,
+            real: adjustedReal
+        };
+    }
+    
+    return null;
+});
 
 // Formatear números en formato chileno
 const formatCLP = (value) => {
@@ -190,6 +269,10 @@ function createCumulativeChart() {
         ? props.cumulativeComparison.budget_with_investments_cumulative 
         : props.cumulativeComparison.budget_cumulative;
 
+    const consumedCumulativeData = includeInvestments.value 
+        ? props.cumulativeComparison.consumed_with_investments_cumulative 
+        : props.cumulativeComparison.consumed_cumulative;
+
     cumulativeChart = new Chart(ctx, {
         type: 'line',
         data: {
@@ -213,6 +296,20 @@ function createCumulativeChart() {
                     data: props.cumulativeComparison.real_cumulative,
                     borderColor: 'rgb(75, 192, 192)',
                     backgroundColor: 'rgba(75, 192, 192, 0.1)',
+                    borderWidth: 3,
+                    fill: false,
+                    tension: 0.4,
+                    pointRadius: 4,
+                    pointHoverRadius: 6,
+                    spanGaps: false // No conectar puntos null
+                },
+                {
+                    label: includeInvestments.value 
+                        ? 'Acumulado Consumido con Inversiones (Real)' 
+                        : 'Acumulado Consumido (Real)',
+                    data: consumedCumulativeData,
+                    borderColor: 'rgb(255, 159, 64)',
+                    backgroundColor: 'rgba(255, 159, 64, 0.1)',
                     borderWidth: 3,
                     fill: false,
                     tension: 0.4,
@@ -318,7 +415,7 @@ function createCumulativeChart() {
                             <small class="text-muted">{{ formatCLP(displayedBudgetPerHectare) }}/ha</small>
                             
                             <!-- Indicador de inversiones presupuestadas -->
-                            <div v-if="summary.total_investments > 0" class="mt-3">
+                            <div v-if="includeInvestments && summary.total_investments > 0" class="mt-3">
                                 <small class="text-info">
                                     <i class="fas fa-info-circle"></i>
                                     Inversiones presupuestadas: {{ formatCLP(summary.total_investments) }}
@@ -335,8 +432,8 @@ function createCumulativeChart() {
                                 <h6 class="mb-0 text-muted">Facturado</h6>
                                 <i class="fas fa-file-invoice-dollar text-success fa-lg"></i>
                             </div>
-                            <h3 class="mb-0 text-success">{{ formatCLP(summary.invoiced_total) }}</h3>
-                            <small class="text-muted">{{ formatCLP(summary.invoiced_per_hectare) }}/ha</small>
+                            <h3 class="mb-0 text-success">{{ formatCLP(displayedInvoiced) }}</h3>
+                            <small class="text-muted">{{ formatCLP(displayedInvoicedPerHectare) }}/ha</small>
                         </div>
                     </div>
                 </div>
@@ -352,7 +449,7 @@ function createCumulativeChart() {
                             <small class="text-muted">{{ formatCLP(displayedConsumedPerHectare) }}/ha</small>
                             
                             <!-- Indicador de inversiones consumidas -->
-                            <div v-if="summary.consumed_investments_total > 0" class="mt-3">
+                            <div v-if="includeInvestments && summary.consumed_investments_total > 0" class="mt-3">
                                 <small class="text-info">
                                     <i class="fas fa-info-circle"></i>
                                     Inversiones consumidas: {{ formatCLP(summary.consumed_investments_total) }}
@@ -366,17 +463,30 @@ function createCumulativeChart() {
                     <div class="card h-100">
                         <div class="card-body">
                             <div class="d-flex justify-content-between align-items-center mb-2">
-                                <h6 class="mb-0 text-muted">Diferencia</h6>
-                                <i :class="['fas', displayedDifference >= 0 ? 'fa-arrow-down text-success' : 'fa-arrow-up text-danger', 'fa-lg']"></i>
+                                <h6 class="mb-0 text-muted small">Diferencia</h6>
+                                <i :class="['fas', displayedDifference >= 0 ? 'fa-arrow-down text-success' : 'fa-arrow-up text-danger']"></i>
                             </div>
-                            <h3 class="mb-0" :class="displayedDifference >= 0 ? 'text-success' : 'text-danger'">
+                            <h4 class="mb-1" :class="displayedDifference >= 0 ? 'text-success' : 'text-danger'">
                                 {{ formatCLP(Math.abs(displayedDifference)) }}
-                            </h3>
-                            <small>
+                            </h4>
+                            <small style="font-size: 0.7rem;">
                                 <span :class="['badge', displayedDifference >= 0 ? 'bg-success' : 'bg-danger']">
                                     {{ displayedDifference >= 0 ? '✅ Bajo Presupuesto' : '⚠️ Sobrepresupuesto' }}
                                 </span>
                             </small>
+                            
+                            <!-- Diferencia hasta el mes anterior -->
+                            <div v-if="differenceToCurrentMonth" class="mt-3 pt-2 border-top">
+                                <small class="text-muted d-block mb-1" style="font-size: 0.7rem;">
+                                    <strong>Hasta {{ differenceToCurrentMonth.monthName }}:</strong>
+                                </small>
+                                <h5 class="mb-0" :class="differenceToCurrentMonth.difference >= 0 ? 'text-success' : 'text-danger'" style="font-size: 1rem;">
+                                    {{ formatCLP(Math.abs(differenceToCurrentMonth.difference)) }}
+                                </h5>
+                                <small :class="differenceToCurrentMonth.difference >= 0 ? 'text-success' : 'text-danger'" style="font-size: 0.65rem;">
+                                    {{ differenceToCurrentMonth.difference >= 0 ? '✅' : '⚠️' }}
+                                </small>
+                            </div>
                         </div>
                     </div>
                 </div>
