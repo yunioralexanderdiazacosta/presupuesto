@@ -17,11 +17,11 @@ class KardexController extends Controller
     $product = Product::with('unit')->findOrFail($product_id);
 
         // Movimientos de facturas (entradas)
-        $facturas = DB::table('invoice_products')
-            ->join('invoices', 'invoice_products.invoice_id', '=', 'invoices.id')
+        $facturas = DB::table('invoice_product')
+            ->join('invoices', 'invoice_product.invoice_id', '=', 'invoices.id')
             ->join('suppliers', 'invoices.supplier_id', '=', 'suppliers.id')
             ->leftJoin('type_documents', 'invoices.type_document_id', '=', 'type_documents.id')
-            ->where('invoice_products.product_id', $product_id)
+            ->where('invoice_product.product_id', $product_id)
             ->where('invoices.team_id', $user->team_id)
             ->where('invoices.season_id', $season_id)
             ->select([
@@ -29,9 +29,9 @@ class KardexController extends Controller
                 DB::raw("COALESCE(type_documents.name, 'Factura') as tipo"),
                 'suppliers.name as proveedor',
                 'invoices.number_document as documento',
-                'invoice_products.amount as entrada',
+                'invoice_product.amount as entrada',
                 DB::raw('0 as salida'),
-                'invoice_products.unit_price as precio',
+                'invoice_product.unit_price as precio',
                 DB::raw('NULL as observaciones'),
                 DB::raw('1 as affects_inventory')
             ]);
@@ -44,7 +44,6 @@ class KardexController extends Controller
             ->where('credit_debit_notes.team_id', $user->team_id)
             ->where('credit_debit_notes.season_id', $season_id)
             ->where('credit_debit_notes.type', 'debito')
-            // Incluir notas de débito con affects_inventory true o false
             ->select([
                 'credit_debit_notes.date as fecha',
                 DB::raw("'Nota Débito' as tipo"),
@@ -54,7 +53,7 @@ class KardexController extends Controller
                 DB::raw('0 as salida'),
                 'credit_debit_note_items.unit_price as precio',
                 DB::raw('NULL as observaciones'),
-                'credit_debit_notes.affects_inventory as affects_inventory'
+                'credit_debit_notes.affects_inventory'
             ]);
 
         // Movimientos de notas de crédito (salidas)
@@ -65,7 +64,6 @@ class KardexController extends Controller
             ->where('credit_debit_notes.team_id', $user->team_id)
             ->where('credit_debit_notes.season_id', $season_id)
             ->where('credit_debit_notes.type', 'credito')
-            // Incluir notas de crédito con affects_inventory true o false
             ->select([
                 'credit_debit_notes.date as fecha',
                 DB::raw("'Nota Crédito' as tipo"),
@@ -75,15 +73,15 @@ class KardexController extends Controller
                 'credit_debit_note_items.quantity as salida',
                 'credit_debit_note_items.unit_price as precio',
                 DB::raw('NULL as observaciones'),
-                'credit_debit_notes.affects_inventory as affects_inventory'
+                'credit_debit_notes.affects_inventory'
             ]);
 
         // Movimientos de consumos/outflows (salidas) asociados a factura
-        $outflowsFactura = DB::table('outflows')
-            ->join('invoice_products', 'outflows.invoice_product_id', '=', 'invoice_products.id')
-            ->join('invoices', 'invoice_products.invoice_id', '=', 'invoices.id')
+    $outflowsFactura = DB::table('outflows')
+            ->join('invoice_product', 'outflows.invoice_product_id', '=', 'invoice_product.id')
+            ->join('invoices', 'invoice_product.invoice_id', '=', 'invoices.id')
             ->join('suppliers', 'invoices.supplier_id', '=', 'suppliers.id')
-            ->where('invoice_products.product_id', $product_id)
+            ->where('invoice_product.product_id', $product_id)
             ->where('outflows.team_id', $user->team_id)
             ->where('outflows.season_id', $season_id)
             ->whereNotNull('outflows.invoice_product_id')
@@ -100,7 +98,7 @@ class KardexController extends Controller
             ]);
 
         // Movimientos de consumos/outflows (salidas) asociados a nota de débito
-        $outflowsND = DB::table('outflows')
+    $outflowsND = DB::table('outflows')
             ->join('credit_debit_note_items', 'outflows.credit_debit_note_item_id', '=', 'credit_debit_note_items.id')
             ->join('credit_debit_notes', 'credit_debit_note_items.credit_debit_note_id', '=', 'credit_debit_notes.id')
             ->join('suppliers', 'credit_debit_notes.supplier_id', '=', 'suppliers.id')
@@ -117,27 +115,30 @@ class KardexController extends Controller
                 'outflows.quantity as salida',
                 DB::raw('NULL as precio'),
                 'outflows.notes as observaciones',
-                'credit_debit_notes.affects_inventory as affects_inventory'
+                DB::raw('1 as affects_inventory')
             ]);
 
-        // Unir todos los movimientos y ordenarlos por fecha
+        // Unir todos los movimientos y recuperar resultados sin ORDER BY
         $movimientos = $facturas
             ->unionAll($notasDebito)
             ->unionAll($notasCredito)
             ->unionAll($outflowsFactura)
             ->unionAll($outflowsND)
-            ->orderBy('fecha')
             ->get();
+        // Ordenar por fecha en PHP para evitar problemas con ORDER BY en consultas UNION
+    $movimientos = collect($movimientos)->sortBy('fecha')->values()->all();
 
         // Calcular saldo acumulado
-        $saldo = 0;
-        $kardex = [];
+    // Calcular saldo acumulado
+    /** @var \stdClass[] $movimientos */
+    $saldo = 0;
+    $kardex = [];
+    /** @var \stdClass $mov */
     foreach ($movimientos as $mov) {
             $saldo += ($mov->entrada - $mov->salida);
             $kardex[] = [
                 'fecha' => $mov->fecha,
                 'tipo' => $mov->tipo,
-                // Incluir nombre de proveedor
                 'proveedor' => $mov->proveedor ?? null,
                 'documento' => $mov->documento,
                 'entrada' => $mov->entrada,
