@@ -10,29 +10,27 @@ use Illuminate\Http\Request;
 
 class UpdateCreditDebitNoteController extends Controller
 {
-    public function __invoke(CreditDebitNote $note, FormCreditDebitNoteRequest $request)
+    public function __invoke(CreditDebitNote $note, Request $request)
     {
-        DB::transaction(function() use ($note, $request) {
-            $note->update([
-                'type'              => $request->type,
-                'invoice_id'        => $request->invoice_id,
-                'supplier_id'       => $request->supplier_id,
-                'number'            => $request->number,
-                'date'              => $request->date,
-                'reason'            => $request->reason,
-                'affects_inventory' => $request->affects_inventory ?? false,
-            ]);
+        // Validar solo los campos editables
+        $validated = $request->validate([
+            'number' => 'required|string|max:255',
+            'date'   => 'required|date',
+            'reason' => 'nullable|string',
+        ]);
 
-            // Actualizar items: eliminar y volver a crear (simple y seguro)
-            $note->items()->delete();
-            foreach ($request->items as $item) {
-                $note->items()->create([
-                    'product_id' => $item['product_id'],
-                    'unit_id'    => $item['unit_id'],
-                    'quantity'   => $item['quantity'],
-                    'unit_price' => $item['unit_price'],
-                ]);
-            }
-        });
+        // Por motivos fiscales y de auditoría, solo se permite editar:
+        // - Número de documento
+        // - Fecha (dentro del mismo período)
+        // - Motivo/razón
+        //
+        // NO se permite editar: tipo, proveedor, factura, items, cantidades, precios, checkboxes
+        $note->update([
+            'number' => $validated['number'],
+            'date'   => $validated['date'],
+            'reason' => $validated['reason'] ?? null,
+        ]);
+
+        return back()->with('success', 'Nota actualizada correctamente');
     }
 }

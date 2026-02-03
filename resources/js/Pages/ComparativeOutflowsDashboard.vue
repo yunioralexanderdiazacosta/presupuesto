@@ -23,6 +23,34 @@ let cumulativeChart = null;
 // Toggle ÚNICO para incluir/excluir inversiones en TODO el dashboard
 const includeInvestments = ref(false);
 
+// Mes seleccionado para el card de diferencia (inicializar con mes anterior al actual)
+const selectedMonthIndex = ref(null);
+
+// Inicializar mes seleccionado en onMounted
+onMounted(() => {
+    const today = new Date();
+    const currentMonth = today.getMonth() + 1; // 1-12
+    
+    // Encontrar el índice del mes actual
+    let currentMonthIndex = -1;
+    for (let i = 0; i < props.months.length; i++) {
+        if (props.months[i].id === currentMonth) {
+            currentMonthIndex = i;
+            break;
+        }
+    }
+    
+    // Inicializar con el mes anterior al actual (o el último mes disponible)
+    if (currentMonthIndex > 0) {
+        selectedMonthIndex.value = currentMonthIndex - 1;
+    } else if (props.months.length > 0) {
+        selectedMonthIndex.value = props.months.length - 1;
+    }
+    
+    createMonthlyChart();
+    createCumulativeChart();
+});
+
 // Valores reactivos del presupuesto según el toggle
 const displayedBudget = computed(() => 
     includeInvestments.value ? props.summary.budget_total_with_investments : props.summary.budget_total
@@ -62,10 +90,11 @@ const displayedPercentageExecution = computed(() =>
     displayedBudget.value > 0 ? (displayedInvoiced.value / displayedBudget.value) * 100 : 0
 );
 
-// Diferencia acumulada hasta el mes anterior al actual
-const differenceToCurrentMonth = computed(() => {
-    const today = new Date();
-    const currentMonth = today.getMonth() + 1; // 1-12
+// Diferencia acumulada hasta el mes seleccionado
+const differenceToSelectedMonth = computed(() => {
+    if (selectedMonthIndex.value === null || selectedMonthIndex.value < 0) {
+        return null;
+    }
     
     // Presupuesto: usar según el toggle
     const budgetData = includeInvestments.value 
@@ -75,32 +104,17 @@ const differenceToCurrentMonth = computed(() => {
     // Facturado acumulado (sin ajustes)
     const realData = props.cumulativeComparison.real_cumulative;
     
-    // Encontrar el índice del mes actual en el array de meses de la temporada
-    let currentMonthIndex = -1;
-    for (let i = 0; i < props.months.length; i++) {
-        if (props.months[i].id === currentMonth) {
-            currentMonthIndex = i;
-            break;
-        }
-    }
+    const monthIndex = selectedMonthIndex.value;
     
-    if (currentMonthIndex <= 0) {
-        // Si no encontramos el mes o es el primer mes de la temporada, no hay mes anterior
-        return null;
-    }
-    
-    // Obtener datos del mes anterior (índice actual - 1)
-    const previousMonthIndex = currentMonthIndex - 1;
-    
-    if (previousMonthIndex >= 0 && previousMonthIndex < budgetData.length) {
-        const budgetUpToMonth = budgetData[previousMonthIndex] || 0;
+    if (monthIndex >= 0 && monthIndex < budgetData.length) {
+        const budgetUpToMonth = budgetData[monthIndex] || 0;
         
-        // Buscar el último valor real disponible hasta el mes anterior (puede ser null)
-        let realUpToMonth = realData[previousMonthIndex];
+        // Buscar el último valor real disponible hasta el mes seleccionado (puede ser null)
+        let realUpToMonth = realData[monthIndex];
         
         // Si es null, buscar el último valor no-null anterior
         if (realUpToMonth === null) {
-            for (let i = previousMonthIndex - 1; i >= 0; i--) {
+            for (let i = monthIndex - 1; i >= 0; i--) {
                 if (realData[i] !== null) {
                     realUpToMonth = realData[i];
                     break;
@@ -119,7 +133,7 @@ const differenceToCurrentMonth = computed(() => {
         
         return {
             difference: budgetUpToMonth - adjustedReal,
-            monthName: props.months[previousMonthIndex]?.name || 'Mes anterior',
+            monthName: props.months[monthIndex]?.name || 'Mes',
             budget: budgetUpToMonth,
             real: adjustedReal
         };
@@ -157,6 +171,34 @@ const getStatusIcon = (status) => {
     return '✅';
 };
 
+// Datos para exportar a Excel - Evolución Acumulada
+const cumulativeTableData = computed(() => {
+    return props.cumulativeComparison.labels.map((month, index) => {
+        const budget = includeInvestments.value 
+            ? props.cumulativeComparison.budget_with_investments_cumulative[index] 
+            : props.cumulativeComparison.budget_cumulative[index];
+        const invoiced = props.cumulativeComparison.real_cumulative[index];
+        const consumed = includeInvestments.value 
+            ? props.cumulativeComparison.consumed_with_investments_cumulative[index] 
+            : props.cumulativeComparison.consumed_cumulative[index];
+        const difference = invoiced !== null ? budget - invoiced : null;
+        const differenceConsumed = consumed !== null ? budget - consumed : null;
+        const variance = invoiced !== null && budget > 0 ? ((invoiced / budget) * 100 - 100) : null;
+        const varianceConsumed = consumed !== null && budget > 0 ? ((consumed / budget) * 100 - 100) : null;
+        
+        return {
+            month: month,
+            budget: budget || 0,
+            invoiced: invoiced || 0,
+            consumed: consumed || 0,
+            difference: difference !== null ? difference : 0,
+            differenceConsumed: differenceConsumed !== null ? differenceConsumed : 0,
+            variance: variance !== null ? variance.toFixed(2) : 0,
+            varianceConsumed: varianceConsumed !== null ? varianceConsumed.toFixed(2) : 0
+        };
+    });
+});
+
 // Datos para exportar a Excel
 const excelData = computed(() => {
     return props.detailedTable.map(item => ({
@@ -166,12 +208,6 @@ const excelData = computed(() => {
         'Diferencia': item.difference,
         'Variación %': item.variance.toFixed(2),
     }));
-});
-
-onMounted(() => {
-    console.log('Cumulative data:', props.cumulativeComparison);
-    createMonthlyChart();
-    createCumulativeChart();
 });
 
 // Watch para actualizar gráficos cuando cambie el toggle
@@ -380,14 +416,16 @@ function createCumulativeChart() {
                         <div class="col-6 col-sm-auto ms-auto text-end ps-0">
                             <div class="d-flex align-items-center gap-2">
                                 <!-- Toggle maestro para inversiones -->
-                                <div class="form-check form-switch mb-0">
+                                <div class="form-check form-switch mb-0 d-flex align-items-center">
                                     <input 
-                                        class="form-check-input" 
+                                        class="form-check-input me-2" 
                                         type="checkbox" 
+                                        role="switch"
                                         id="includeInvestmentsToggle"
                                         v-model="includeInvestments"
+                                        style="cursor: pointer;"
                                     >
-                                    <label class="form-check-label text-muted small" for="includeInvestmentsToggle">
+                                    <label class="form-check-label text-muted small mb-0" for="includeInvestmentsToggle" style="cursor: pointer;">
                                         <span v-if="includeInvestments">
                                             <i class="fas fa-check-circle text-success"></i> Con inversiones
                                         </span>
@@ -463,30 +501,16 @@ function createCumulativeChart() {
                     <div class="card h-100">
                         <div class="card-body">
                             <div class="d-flex justify-content-between align-items-center mb-2">
-                                <h6 class="mb-0 text-muted small">Diferencia</h6>
+                                <h6 class="mb-0 text-muted">Diferencia</h6>
                                 <i :class="['fas', displayedDifference >= 0 ? 'fa-arrow-down text-success' : 'fa-arrow-up text-danger']"></i>
                             </div>
-                            <h4 class="mb-1" :class="displayedDifference >= 0 ? 'text-success' : 'text-danger'">
+                            <h3 class="mb-0" :class="displayedDifference >= 0 ? 'text-success' : 'text-danger'">
                                 {{ formatCLP(Math.abs(displayedDifference)) }}
-                            </h4>
-                            <small style="font-size: 0.7rem;">
-                                <span :class="['badge', displayedDifference >= 0 ? 'bg-success' : 'bg-danger']">
-                                    {{ displayedDifference >= 0 ? '✅ Bajo Presupuesto' : '⚠️ Sobrepresupuesto' }}
-                                </span>
-                            </small>
-                            
-                            <!-- Diferencia hasta el mes anterior -->
-                            <div v-if="differenceToCurrentMonth" class="mt-3 pt-2 border-top">
-                                <small class="text-muted d-block mb-1" style="font-size: 0.7rem;">
-                                    <strong>Hasta {{ differenceToCurrentMonth.monthName }}:</strong>
-                                </small>
-                                <h5 class="mb-0" :class="differenceToCurrentMonth.difference >= 0 ? 'text-success' : 'text-danger'" style="font-size: 1rem;">
-                                    {{ formatCLP(Math.abs(differenceToCurrentMonth.difference)) }}
-                                </h5>
-                                <small :class="differenceToCurrentMonth.difference >= 0 ? 'text-success' : 'text-danger'" style="font-size: 0.65rem;">
-                                    {{ differenceToCurrentMonth.difference >= 0 ? '✅' : '⚠️' }}
-                                </small>
-                            </div>
+                            </h3>
+                            <small class="text-muted d-block mb-2">Presupuesto - Facturado</small>
+                            <span :class="['badge', displayedDifference >= 0 ? 'bg-success' : 'bg-danger']">
+                                {{ displayedDifference >= 0 ? '✅ Bajo Presupuesto' : '⚠️ Sobrepresupuesto' }}
+                            </span>
                         </div>
                     </div>
                 </div>
@@ -535,13 +559,161 @@ function createCumulativeChart() {
                 </div>
             </div>
 
-            <!-- Gráfico por Categorías -->
+            <!-- Tabla de Evolución Acumulada -->
             <div class="row g-3 mb-3">
                 <div class="col-12">
                     <div class="card">
-                        <div class="card-body">
-                            <div style="height: 400px;">
-                                <canvas id="categoryChart"></canvas>
+                        <div class="card-header">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <h6 class="mb-0">
+                                    <i class="fas fa-chart-line me-2"></i>Evolución Acumulada - Datos Mensuales
+                                </h6>
+                                <ExportExcelButton
+                                    :data="cumulativeTableData"
+                                    :headers="[
+                                        { label: 'Mes', key: 'month' },
+                                        { label: 'Presupuesto Acumulado', key: 'budget' },
+                                        { label: 'Facturado Acumulado', key: 'invoiced' },
+                                        { label: 'Consumido Acumulado', key: 'consumed' },
+                                        { label: 'Diferencia (Presup. - Fact.)', key: 'difference' },
+                                        { label: 'Diferencia (Presup. - Cons.)', key: 'differenceConsumed' },
+                                        { label: 'Variación % (Fact.)', key: 'variance' },
+                                        { label: 'Variación % (Cons.)', key: 'varianceConsumed' }
+                                    ]"
+                                    filename="evolucion_acumulada.xlsx"
+                                    class="btn btn-sm btn-light-primary"
+                                >
+                                    <i class="fas fa-file-excel me-1"></i>
+                                    Exportar
+                                </ExportExcelButton>
+                            </div>
+                        </div>
+                        <div class="card-body p-0">
+                            <div class="table-responsive">
+                                <table class="table table-sm table-hover mb-0">
+                                    <thead class="table-light">
+                                        <tr>
+                                            <th style="width: 10%;">Mes</th>
+                                            <th class="text-end" style="width: 14%;">Presupuesto Acumulado</th>
+                                            <th class="text-end" style="width: 14%;">Facturado Acumulado</th>
+                                            <th class="text-end" style="width: 14%;">Consumido Acumulado</th>
+                                            <th class="text-end" style="width: 12%;">Dif. (P-F)</th>
+                                            <th class="text-end" style="width: 12%;">Dif. (P-C)</th>
+                                            <th class="text-end" style="width: 12%;">Var. % (F)</th>
+                                            <th class="text-end" style="width: 12%;">Var. % (C)</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <tr v-for="(month, index) in cumulativeComparison.labels" :key="index">
+                                            <td class="fw-semibold">{{ month }}</td>
+                                            <td class="text-end">
+                                                {{ formatCLP(includeInvestments 
+                                                    ? cumulativeComparison.budget_with_investments_cumulative[index] 
+                                                    : cumulativeComparison.budget_cumulative[index]) }}
+                                            </td>
+                                            <td class="text-end">
+                                                <span v-if="cumulativeComparison.real_cumulative[index] !== null">
+                                                    {{ formatCLP(cumulativeComparison.real_cumulative[index]) }}
+                                                </span>
+                                                <span v-else class="text-muted">-</span>
+                                            </td>
+                                            <td class="text-end text-warning">
+                                                <span v-if="(includeInvestments 
+                                                    ? cumulativeComparison.consumed_with_investments_cumulative[index] 
+                                                    : cumulativeComparison.consumed_cumulative[index]) !== null">
+                                                    {{ formatCLP(includeInvestments 
+                                                        ? cumulativeComparison.consumed_with_investments_cumulative[index] 
+                                                        : cumulativeComparison.consumed_cumulative[index]) }}
+                                                </span>
+                                                <span v-else class="text-muted">-</span>
+                                            </td>
+                                            <td class="text-end fw-bold" 
+                                                v-if="cumulativeComparison.real_cumulative[index] !== null"
+                                                :class="((includeInvestments 
+                                                    ? cumulativeComparison.budget_with_investments_cumulative[index] 
+                                                    : cumulativeComparison.budget_cumulative[index]) - cumulativeComparison.real_cumulative[index]) >= 0 
+                                                    ? 'text-success' : 'text-danger'">
+                                                {{ formatCLP(Math.abs((includeInvestments 
+                                                    ? cumulativeComparison.budget_with_investments_cumulative[index] 
+                                                    : cumulativeComparison.budget_cumulative[index]) - cumulativeComparison.real_cumulative[index])) }}
+                                                <i :class="['fas', 'fa-xs', 'ms-1', 
+                                                    ((includeInvestments 
+                                                        ? cumulativeComparison.budget_with_investments_cumulative[index] 
+                                                        : cumulativeComparison.budget_cumulative[index]) - cumulativeComparison.real_cumulative[index]) >= 0 
+                                                        ? 'fa-arrow-down' : 'fa-arrow-up']"></i>
+                                            </td>
+                                            <td class="text-end" v-else>
+                                                <span class="text-muted">-</span>
+                                            </td>
+                                            <td class="text-end fw-bold" 
+                                                v-if="(includeInvestments 
+                                                    ? cumulativeComparison.consumed_with_investments_cumulative[index] 
+                                                    : cumulativeComparison.consumed_cumulative[index]) !== null"
+                                                :class="((includeInvestments 
+                                                    ? cumulativeComparison.budget_with_investments_cumulative[index] 
+                                                    : cumulativeComparison.budget_cumulative[index]) - (includeInvestments 
+                                                    ? cumulativeComparison.consumed_with_investments_cumulative[index] 
+                                                    : cumulativeComparison.consumed_cumulative[index])) >= 0 
+                                                    ? 'text-success' : 'text-danger'">
+                                                {{ formatCLP(Math.abs((includeInvestments 
+                                                    ? cumulativeComparison.budget_with_investments_cumulative[index] 
+                                                    : cumulativeComparison.budget_cumulative[index]) - (includeInvestments 
+                                                    ? cumulativeComparison.consumed_with_investments_cumulative[index] 
+                                                    : cumulativeComparison.consumed_cumulative[index]))) }}
+                                                <i :class="['fas', 'fa-xs', 'ms-1', 
+                                                    ((includeInvestments 
+                                                        ? cumulativeComparison.budget_with_investments_cumulative[index] 
+                                                        : cumulativeComparison.budget_cumulative[index]) - (includeInvestments 
+                                                        ? cumulativeComparison.consumed_with_investments_cumulative[index] 
+                                                        : cumulativeComparison.consumed_cumulative[index])) >= 0 
+                                                        ? 'fa-arrow-down' : 'fa-arrow-up']"></i>
+                                            </td>
+                                            <td class="text-end" v-else>
+                                                <span class="text-muted">-</span>
+                                            </td>
+                                            <td class="text-end"
+                                                v-if="cumulativeComparison.real_cumulative[index] !== null"
+                                                :class="((cumulativeComparison.real_cumulative[index] / (includeInvestments 
+                                                    ? cumulativeComparison.budget_with_investments_cumulative[index] 
+                                                    : cumulativeComparison.budget_cumulative[index])) * 100 - 100) > 0 
+                                                    ? 'text-danger' : 'text-success'">
+                                                {{ ((cumulativeComparison.real_cumulative[index] / (includeInvestments 
+                                                    ? cumulativeComparison.budget_with_investments_cumulative[index] 
+                                                    : cumulativeComparison.budget_cumulative[index])) * 100 - 100) > 0 ? '+' : '' }}{{ 
+                                                    formatPercent((cumulativeComparison.real_cumulative[index] / (includeInvestments 
+                                                    ? cumulativeComparison.budget_with_investments_cumulative[index] 
+                                                    : cumulativeComparison.budget_cumulative[index])) * 100 - 100) }}
+                                            </td>
+                                            <td class="text-end" v-else>
+                                                <span class="text-muted">-</span>
+                                            </td>
+                                            <td class="text-end"
+                                                v-if="(includeInvestments 
+                                                    ? cumulativeComparison.consumed_with_investments_cumulative[index] 
+                                                    : cumulativeComparison.consumed_cumulative[index]) !== null"
+                                                :class="(((includeInvestments 
+                                                    ? cumulativeComparison.consumed_with_investments_cumulative[index] 
+                                                    : cumulativeComparison.consumed_cumulative[index]) / (includeInvestments 
+                                                    ? cumulativeComparison.budget_with_investments_cumulative[index] 
+                                                    : cumulativeComparison.budget_cumulative[index])) * 100 - 100) > 0 
+                                                    ? 'text-danger' : 'text-success'">
+                                                {{ (((includeInvestments 
+                                                    ? cumulativeComparison.consumed_with_investments_cumulative[index] 
+                                                    : cumulativeComparison.consumed_cumulative[index]) / (includeInvestments 
+                                                    ? cumulativeComparison.budget_with_investments_cumulative[index] 
+                                                    : cumulativeComparison.budget_cumulative[index])) * 100 - 100) > 0 ? '+' : '' }}{{ 
+                                                    formatPercent(((includeInvestments 
+                                                    ? cumulativeComparison.consumed_with_investments_cumulative[index] 
+                                                    : cumulativeComparison.consumed_cumulative[index]) / (includeInvestments 
+                                                    ? cumulativeComparison.budget_with_investments_cumulative[index] 
+                                                    : cumulativeComparison.budget_cumulative[index])) * 100 - 100) }}
+                                            </td>
+                                            <td class="text-end" v-else>
+                                                <span class="text-muted">-</span>
+                                            </td>
+                                        </tr>
+                                    </tbody>
+                                </table>
                             </div>
                         </div>
                     </div>
@@ -617,29 +789,6 @@ function createCumulativeChart() {
                                         </tr>
                                     </tfoot>
                                 </table>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Gráficos de Torta Comparativos -->
-            <div class="row g-3 mb-3">
-                <div class="col-lg-6">
-                    <div class="card h-100">
-                        <div class="card-body">
-                            <div style="height: 350px;">
-                                <canvas id="pieChartBudget"></canvas>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                <div class="col-lg-6">
-                    <div class="card h-100">
-                        <div class="card-body">
-                            <div style="height: 350px;">
-                                <canvas id="pieChartReal"></canvas>
                             </div>
                         </div>
                     </div>

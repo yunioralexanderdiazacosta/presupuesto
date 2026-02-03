@@ -1,5 +1,5 @@
 <script setup>
-import { computed, watch } from 'vue';
+import { computed, watch, onMounted } from 'vue';
 const props = defineProps({
   items: Array,
   products: Array,  // líneas de factura (crédito) o productos (débito)
@@ -11,6 +11,13 @@ const props = defineProps({
     default: true
   }
 });
+
+onMounted(() => {
+  console.log('FormItems mounted with items:', props.items);
+  console.log('FormItems products:', props.products);
+  console.log('FormItems type:', props.type);
+});
+
 const emit = defineEmits(['update:items']);
 // Diccionario de productos o líneas para autocompletar
 const itemDict = {};

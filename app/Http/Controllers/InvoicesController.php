@@ -19,7 +19,13 @@ class InvoicesController extends Controller
 
         $term = $request->term ?? '';
 
-    $invoices = Invoice::with('supplier', 'companyReason', 'products.level1', 'typeDocument', 'month')
+    $invoices = Invoice::with([
+            'supplier:id,name',
+            'companyReason:id,name',
+            'typeDocument:id,name',
+            'month:id,name',
+            'invoiceProducts.product:id,name,level1_id'
+        ])
         ->where('team_id', $user->team_id)
         ->where('season_id', $season_id)
         ->when($request->term, function ($query, $search) {
@@ -36,6 +42,17 @@ class InvoicesController extends Controller
         ->paginate(1500)
         ->withQueryString()
         ->through(function($invoice){
+            // Calcular totales una sola vez usando la relación ya cargada
+            $total_neto = 0;
+            foreach($invoice->invoiceProducts as $ip) {
+                $total_neto += ($ip->unit_price * $ip->amount);
+            }
+            
+            // Calcular IVA solo si es factura
+            $tipo_doc = $invoice->typeDocument ? strtolower($invoice->typeDocument->name) : '';
+            $iva = ($tipo_doc === 'factura') ? ($total_neto * 0.19) : 0;
+            $total_general = $total_neto + $iva;
+            
             return [
                 'id'                => $invoice->id,
                 'date'              => $invoice->date ? \Carbon\Carbon::parse($invoice->date)->format('d-m-Y') : null,
@@ -56,9 +73,9 @@ class InvoicesController extends Controller
                                                 'observations' => $ip->observations,
                                             ];
                                         }),
-                'total'             => $this->get_total($invoice),
-                'iva'               => $this->get_iva($invoice),
-                'total_general'     => $this->get_total_general($invoice)
+                'total'             => number_format($total_neto, 2, ',', '.'),
+                'iva'               => $iva > 0 ? number_format($iva, 0, ',', '.') : null,
+                'total_general'     => number_format($total_general, 0, ',', '.')
             ];
         }); 
 
@@ -93,58 +110,5 @@ class InvoicesController extends Controller
                 });
             
             return Inertia::render('Invoices', compact('invoices', 'term', 'months', 'units', 'level1s'));
-    }
-
-    private function get_total($invoice)
-    {
-        $total = 0;
-        $products = $invoice->products()->get();
-
-        foreach($products as $product)
-        {
-            $total = $total + ($product->pivot->unit_price * $product->pivot->amount);    
-        }
-
-        return number_format($total, 2, ',', '.');
-    }
-
-    private function get_iva($invoice)
-    {
-        // Calcular IVA solo para facturas (19% del total)
-        $tipo_doc = $invoice->typeDocument ? strtolower($invoice->typeDocument->name) : '';
-        
-        if ($tipo_doc === 'factura') {
-            $total = 0;
-            $products = $invoice->products()->get();
-            
-            foreach($products as $product)
-            {
-                $total = $total + ($product->pivot->unit_price * $product->pivot->amount);    
-            }
-            
-            $iva = $total * 0.19;
-            return number_format($iva, 0, ',', '.');
-        }
-        
-        return null;
-    }
-
-    private function get_total_general($invoice)
-    {
-        $total = 0;
-        $products = $invoice->products()->get();
-        
-        foreach($products as $product)
-        {
-            $total = $total + ($product->pivot->unit_price * $product->pivot->amount);    
-        }
-        
-        // Sumar IVA solo si es factura
-        $tipo_doc = $invoice->typeDocument ? strtolower($invoice->typeDocument->name) : '';
-        if ($tipo_doc === 'factura') {
-            $total = $total + ($total * 0.19);
-        }
-        
-        return number_format($total, 0, ',', '.');
     }
 }

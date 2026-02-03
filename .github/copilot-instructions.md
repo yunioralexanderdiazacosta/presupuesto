@@ -8,7 +8,7 @@ Sistema de gestión presupuestaria agrícola construido con:
 - **Stack**: PHP 8.1+, MySQL, Vite
 - **Estructura**: `app/Http/Controllers/` (lógica), `app/Models/` (Eloquent), `resources/js/Pages/` (vistas), `resources/js/Components/` (componentes reutilizables)
 - **Ubicación**: Chile - Usar moneda **CLP** (Pesos Chilenos) con símbolo **$**
-- **JavaScript**: NO se usa jQuery. Usar Bootstrap 5 nativo y JavaScript vanilla.
+- **JavaScript**: Usar jQuery para manejo de modales Bootstrap 5 (`$('#modal').modal('show/hide')`).
 
 ## Contexto de Negocio
 
@@ -101,19 +101,14 @@ use App\Http\Controllers\InvoicePayments\DeleteInvoicePaymentController;
 import Multiselect from '@vueform/multiselect';
 ```
 
-**Modales y formularios**: Los modales (ej. `CreateFuelOutflowModal.vue`, `EditXModal.vue`) solo manejan header/footer/slots. El formulario real (inputs, selects, lógica de negocio) va en componente separado (ej. `XForm.vue`). El modal siempre debe estar montado y abrirse/cerrarse con Bootstrap 5 nativo:
+**Modales y formularios**: Los modales (ej. `CreateFuelOutflowModal.vue`, `EditXModal.vue`) solo manejan header/footer/slots. El formulario real (inputs, selects, lógica de negocio) va en componente separado (ej. `XForm.vue`). Los modales se abren y cierran con jQuery + Bootstrap 5:
 
 ```javascript
 // Abrir modal
-const modalElement = document.getElementById('modalId');
-const modal = new bootstrap.Modal(modalElement);
-modal.show();
+$('#modalId').modal('show');
 
 // Cerrar modal
-const modalInstance = bootstrap.Modal.getInstance(modalElement);
-if (modalInstance) {
-    modalInstance.hide();
-}
+$('#modalId').modal('hide');
 ```
 
 Esto permite máxima escalabilidad, reutilización y consistencia entre módulos.

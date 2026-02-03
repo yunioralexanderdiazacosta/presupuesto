@@ -339,10 +339,39 @@ const onDeleted = (id) => {
 };
 
 const onFilter = () => {
-    router.get(route("invoices.index", { term: term.value }), {
-        preserveState: true,
-    });
+    // El filtrado ahora es local, no hace falta visitar servidor
 };
+
+// Generar rango de paginación con "..."
+const paginationRange = computed(() => {
+    const current = props.invoices.current_page;
+    const last = props.invoices.last_page;
+    const delta = 2; // Páginas a mostrar alrededor de la actual
+    
+    const range = [];
+    const rangeWithDots = [];
+    let l;
+    
+    for (let i = 1; i <= last; i++) {
+        if (i === 1 || i === last || (i >= current - delta && i <= current + delta)) {
+            range.push(i);
+        }
+    }
+    
+    for (let i of range) {
+        if (l) {
+            if (i - l === 2) {
+                rangeWithDots.push(l + 1);
+            } else if (i - l !== 1) {
+                rangeWithDots.push('...');
+            }
+        }
+        rangeWithDots.push(i);
+        l = i;
+    }
+    
+    return rangeWithDots;
+});
 </script>
 <template>
 
@@ -454,6 +483,7 @@ const onFilter = () => {
                             <!--begin::Table head-->
                             <template #header>
                                 <!--begin::Table row-->
+                                <th width="80px" class="text-center" style="white-space:nowrap;">Acciones</th>
                                 <th width="60px" style="white-space:nowrap;" @click="setSort('id')" :class="sortClass('id')">
                                     ID
                                 </th>
@@ -486,7 +516,6 @@ const onFilter = () => {
                                 <th width="min-w-150px" class="text-end" style="white-space:nowrap" @click="setSort('total_general')" :class="sortClass('total_general')">
                                     Total General
                                 </th>
-                                <th width="80px" class="text-end" style="white-space:nowrap;">Acciones</th>
                                 <!--end::Table row-->
                             </template>
                             <!--end::Table head-->
@@ -502,6 +531,57 @@ const onFilter = () => {
                                         @click="editInvoice(invoice)"
                                         style="cursor: pointer;"
                                     >
+                                        <td class="text-center">
+                                            <div class="btn-group">
+                                                <!--begin::View-->
+                                                <Link :href="route('invoices.show', invoice.id)"
+                                                    v-tooltip="'Ver'"
+                                                    @click.stop
+                                                    class="btn btn-icon btn-active-light-primary w-16px h-16px me-1 p-1">
+                                                    <span class="svg-icon svg-icon-2" style="font-size:12px;">
+                                                        <i class="fas fa-eye"></i>
+                                                    </span>
+                                                </Link>
+                                                <!--end::View-->
+                                                <!--begin::Update-->
+                                                <Link v-tooltip="'Editar'"
+                                                    class="btn btn-icon btn-active-light-primary w-16px h-16px me-1 p-1"
+                                                    @click.stop
+                                                    :href="route('invoices.edit', invoice.id)">
+                                                    <span class="svg-icon svg-icon-1" style="font-size:12px;">
+                                                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none"
+                                                            xmlns="http://www.w3.org/2000/svg">
+                                                            <path opacity="0.3"
+                                                                d="M21.4 8.35303L19.241 10.511L13.485 4.755L15.643 2.59595C16.0248 2.21423 16.5426 1.99988 17.0825 1.99988C17.6224 1.99988 18.1402 2.21423 18.522 2.59595L21.4 5.474C21.7817 5.85581 21.9962 6.37355 21.9962 6.91345C21.9962 7.45335 21.7817 7.97122 21.4 8.35303ZM3.68699 21.932L9.88699 19.865L4.13099 14.109L2.06399 20.309C1.98815 20.5354 1.97703 20.7787 2.03189 21.0111C2.08674 21.2436 2.2054 21.4561 2.37449 21.6248C2.54359 21.7934 2.75641 21.9115 2.989 21.9658C3.22158 22.0201 3.4647 22.0084 3.69099 21.932H3.68699Z"
+                                                                fill="currentColor"></path>
+                                                            <path
+                                                                d="M5.574 21.3L3.692 21.928C3.46591 22.0032 3.22334 22.0141 2.99144 21.9594C2.75954 21.9046 2.54744 21.7864 2.3789 21.6179C2.21036 21.4495 2.09202 21.2375 2.03711 21.0056C1.9822 20.7737 1.99289 20.5312 2.06799 20.3051L2.696 18.422L5.574 21.3ZM4.13499 14.105L9.891 19.861L19.245 10.507L13.489 4.75098L4.13499 14.105Z"
+                                                                fill="currentColor"></path>
+                                                        </svg>
+                                                    </span>
+                                                </Link>
+                                                <!--end::Update-->
+                                                <!--begin::Delete-->
+                                                <button type="button" v-tooltip="'Eliminar'" @click.stop="onDeleted(invoice.id)"
+                                                    class="btn btn-icon btn-active-light-primary w-16px h-16px p-1">
+                                                    <span class="svg-icon svg-icon-2" style="font-size:12px;">
+                                                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none"
+                                                            xmlns="http://www.w3.org/2000/svg">
+                                                            <path
+                                                                d="M5 9C5 8.44772 5.44772 8 6 8H18C18.5523 8 19 8.44772 19 9V18C19 19.6569 17.6569 21 16 21H8C6.34315 21 5 19.6569 5 18V9Z"
+                                                                fill="currentColor" />
+                                                            <path opacity="0.5"
+                                                                d="M5 5C5 4.44772 5.44772 4 6 4H18C18.5523 4 19 4.44772 19 5V5C19 5.55228 18.5523 6 18 6H6C5.44772 6 5 5.55228 5 5V5Z"
+                                                                fill="currentColor" />
+                                                            <path opacity="0.5"
+                                                                d="M9 4C9 3.44772 9.44772 3 10 3H14C14.5523 3 15 3.44772 15 4V4H9V4Z"
+                                                                fill="currentColor" />
+                                                        </svg>
+                                                    </span>
+                                                </button>
+                                                <!--end::Delete-->
+                                            </div>
+                                        </td>
                                         <td style="white-space:nowrap;">{{ invoice.id }}</td>
                                         <td style="white-space:nowrap; max-width:120px; overflow:hidden; text-overflow:ellipsis;">{{ invoice.type_document }}</td>
                                         <td style="white-space:nowrap;">{{ invoice.month }}</td>
@@ -580,57 +660,6 @@ const onFilter = () => {
                                                                                         return tg.toLocaleString('es-ES', { minimumFractionDigits: 0, maximumFractionDigits: 0 });
                                                                                     })() }}
                                                                                 </td>
-                                        <td class="text-end">
-                                            <div class="btn-group">
-                                                <!--begin::View-->
-                                                <Link :href="route('invoices.show', invoice.id)"
-                                                    v-tooltip="'Ver'"
-                                                    @click.stop
-                                                    class="btn btn-icon btn-active-light-primary w-16px h-16px me-1 p-1">
-                                                    <span class="svg-icon svg-icon-2" style="font-size:12px;">
-                                                        <i class="fas fa-eye"></i>
-                                                    </span>
-                                                </Link>
-                                                <!--end::View-->
-                                                <!--begin::Update-->
-                                                <Link v-tooltip="'Editar'"
-                                                    class="btn btn-icon btn-active-light-primary w-16px h-16px me-1 p-1"
-                                                    @click.stop
-                                                    :href="route('invoices.edit', invoice.id)">
-                                                    <span class="svg-icon svg-icon-1" style="font-size:12px;">
-                                                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none"
-                                                            xmlns="http://www.w3.org/2000/svg">
-                                                            <path opacity="0.3"
-                                                                d="M21.4 8.35303L19.241 10.511L13.485 4.755L15.643 2.59595C16.0248 2.21423 16.5426 1.99988 17.0825 1.99988C17.6224 1.99988 18.1402 2.21423 18.522 2.59595L21.4 5.474C21.7817 5.85581 21.9962 6.37355 21.9962 6.91345C21.9962 7.45335 21.7817 7.97122 21.4 8.35303ZM3.68699 21.932L9.88699 19.865L4.13099 14.109L2.06399 20.309C1.98815 20.5354 1.97703 20.7787 2.03189 21.0111C2.08674 21.2436 2.2054 21.4561 2.37449 21.6248C2.54359 21.7934 2.75641 21.9115 2.989 21.9658C3.22158 22.0201 3.4647 22.0084 3.69099 21.932H3.68699Z"
-                                                                fill="currentColor"></path>
-                                                            <path
-                                                                d="M5.574 21.3L3.692 21.928C3.46591 22.0032 3.22334 22.0141 2.99144 21.9594C2.75954 21.9046 2.54744 21.7864 2.3789 21.6179C2.21036 21.4495 2.09202 21.2375 2.03711 21.0056C1.9822 20.7737 1.99289 20.5312 2.06799 20.3051L2.696 18.422L5.574 21.3ZM4.13499 14.105L9.891 19.861L19.245 10.507L13.489 4.75098L4.13499 14.105Z"
-                                                                fill="currentColor"></path>
-                                                        </svg>
-                                                    </span>
-                                                </Link>
-                                                <!--end::Update-->
-                                                <!--begin::Delete-->
-                                                <button type="button" v-tooltip="'Eliminar'" @click.stop="onDeleted(invoice.id)"
-                                                    class="btn btn-icon btn-active-light-primary w-16px h-16px p-1">
-                                                    <span class="svg-icon svg-icon-2" style="font-size:12px;">
-                                                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none"
-                                                            xmlns="http://www.w3.org/2000/svg">
-                                                            <path
-                                                                d="M5 9C5 8.44772 5.44772 8 6 8H18C18.5523 8 19 8.44772 19 9V18C19 19.6569 17.6569 21 16 21H8C6.34315 21 5 19.6569 5 18V9Z"
-                                                                fill="currentColor" />
-                                                            <path opacity="0.5"
-                                                                d="M5 5C5 4.44772 5.44772 4 6 4H18C18.5523 4 19 4.44772 19 5V5C19 5.55228 18.5523 6 18 6H6C5.44772 6 5 5.55228 5 5V5Z"
-                                                                fill="currentColor" />
-                                                            <path opacity="0.5"
-                                                                d="M9 4C9 3.44772 9.44772 3 10 3H14C14.5523 3 15 3.44772 15 4V4H9V4Z"
-                                                                fill="currentColor" />
-                                                        </svg>
-                                                    </span>
-                                                </button>
-                                                <!--end::Delete-->
-                                            </div>
-                                        </td>
                                     </tr>
                                 </template>
                             </template>

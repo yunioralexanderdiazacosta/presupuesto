@@ -12,24 +12,30 @@ const props = defineProps({
     units: Array,
 });
 
-// Forzar valor inicial vacío en el select tipo
-if (props.form && (props.form.type === undefined || props.form.type === null || props.form.type === 'credito' || props.form.type === 'debito')) {
-    props.form.type = '';
+// Forzar valor inicial vacío en el select tipo solo si no hay valor previo (modo creación)
+if (props.form && props.form.type === undefined) {
+    props.form.type = null;
 }
 
-// Limpiar factura y productos al cambiar proveedor
+// Limpiar factura y productos al cambiar proveedor (solo si hay cambio real, no carga inicial)
 watch(
     () => props.form.supplier_id,
-    (nuevoProveedor) => {
-        if (props.form.invoice_id) props.form.invoice_id = "";
-        props.form.items = [];
+    (nuevoProveedor, viejoProveedor) => {
+        // Solo limpiar si hay un cambio real (no undefined -> valor en carga inicial)
+        if (viejoProveedor !== undefined && nuevoProveedor !== viejoProveedor) {
+            if (props.form.invoice_id) props.form.invoice_id = "";
+            props.form.items = [];
+        }
     }
 );
-// Limpiar productos al cambiar factura
+// Limpiar productos al cambiar factura (solo si hay cambio real, no carga inicial)
 watch(
     () => props.form.invoice_id,
-    (nuevaFactura) => {
-        props.form.items = [];
+    (nuevaFactura, viejaFactura) => {
+        // Solo limpiar si hay un cambio real (no undefined -> valor en carga inicial)
+        if (viejaFactura !== undefined && nuevaFactura !== viejaFactura) {
+            props.form.items = [];
+        }
     }
 );
 
@@ -74,6 +80,12 @@ watch(
         [isAnnulment, invoiceId, affectsInventory, type],
         [prevAnnulment, prevInvoiceId, prevAffectsInventory, prevType]
     ) => {
+        // Solo autocompletar si hay un cambio REAL en alguno de los valores
+        // No en la carga inicial (cuando todos los previos son undefined)
+        const isInitialLoad = prevAnnulment === undefined && prevInvoiceId === undefined &&
+                             prevAffectsInventory === undefined && prevType === undefined;
+        if (isInitialLoad) return;
+
         const factura = props.invoices.find((inv) => inv.value === invoiceId);
         if (!factura || !factura.products) return;
 

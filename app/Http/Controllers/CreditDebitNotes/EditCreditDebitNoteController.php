@@ -28,7 +28,17 @@ class EditCreditDebitNoteController extends Controller
         $invoices = Invoice::where('team_id', $user->team_id)->get()->transform(function($invoice){
             return [
                 'label' => $invoice->number_document,
-                'value' => $invoice->id
+                'value' => $invoice->id,
+                'supplier_id' => $invoice->supplier_id,
+                'products' => $invoice->invoiceProducts->map(function($ip) {
+                    return [
+                        'value' => $ip->id,
+                        'product_id' => $ip->product_id,
+                        'unit_id' => $ip->product->unit_id ?? null,
+                        'amount' => $ip->amount,
+                        'unit_price' => $ip->unit_price,
+                    ];
+                })->toArray()
             ];
         });
 
@@ -49,12 +59,18 @@ class EditCreditDebitNoteController extends Controller
 
         $items = $note->items()->with(['product', 'unit'])->get()->transform(function($item){
             return [
+                'invoice_product_id' => $item->invoice_product_id,
                 'product_id'   => $item->product_id,
                 'unit_id'      => $item->unit_id,
                 'quantity'     => $item->quantity,
                 'unit_price'   => $item->unit_price,
             ];
         });
+
+        // Si es petición AJAX, retornar JSON
+        if (request()->wantsJson() || request()->ajax()) {
+            return response()->json(compact('note', 'suppliers', 'invoices', 'products', 'units', 'items'));
+        }
 
         return Inertia::render('CreditDebitNotes/Edit', compact('note', 'suppliers', 'invoices', 'products', 'units', 'items'));
     }

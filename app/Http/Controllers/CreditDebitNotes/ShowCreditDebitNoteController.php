@@ -10,6 +10,9 @@ class ShowCreditDebitNoteController extends Controller
 {
     public function __invoke(CreditDebitNote $note)
     {
+        // Cargar relaciones necesarias
+        $note->load(['supplier', 'invoice.month']);
+        
         $items = $note->items()->with(['product', 'unit'])->get()->transform(function($item){
             return [
                 'product_id'   => $item->product_id,

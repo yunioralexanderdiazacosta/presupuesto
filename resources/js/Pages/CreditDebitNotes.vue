@@ -1,22 +1,43 @@
 
 <script setup>
-import { computed, ref } from 'vue';
+import { computed, ref, nextTick } from 'vue';
 import { Link, router, Head, usePage, useForm } from '@inertiajs/vue3';
 import Swal from 'sweetalert2';
+import axios from 'axios';
 import AppLayout from '@/Layouts/AppLayout.vue';
 import Table from '@/Components/Table.vue';
 import Empty from '@/Components/Empty.vue';
 import Breadcrumb from '@/Components/Breadcrumb.vue';
+import EditCreditDebitNoteModal from '@/Components/CreditDebitNotes/EditCreditDebitNoteModal.vue';
 
 
 const props = defineProps({
   notes: Array,
-  term: String
+  term: String,
+  suppliers: Array,
+  invoices: Array,
+  products: Array,
+  units: Array
 });
 
 const title = 'Notas de Crédito/Débito';
 const term  = ref(props.term);
 const links = [{ title: 'Tablero', link: 'dashboard' }, { title: title, active: true }];
+
+// Form para edición
+const form = useForm({
+  id: null,
+  type: null,
+  supplier_id: null,
+  invoice_id: null,
+  number: '',
+  date: null,
+  month_id: null,
+  reason: '',
+  affects_inventory: false,
+  is_annulment: false,
+  items: []
+});
 
 const msgSuccess = (msg) => {
   Swal.fire({
@@ -71,64 +92,112 @@ const onDeleted = (id) => {
 const onFilter = () => {
   router.get(route('credit_debit_notes.index', {term: term.value}), { preserveState: true});  
 }
+
+const openEdit = async (note) => {
+  form.reset();
+  
+  // Cargar datos completos de la nota incluyendo items
+  try {
+    const response = await axios.get(route('credit_debit_notes.edit', note.id));
+    const fullNote = response.data.note;
+    const items = response.data.items;
+    
+    console.log('Items from backend:', items);
+    
+    form.id = fullNote.id;
+    form.type = fullNote.type || null;
+    form.supplier_id = fullNote.supplier_id || null;
+    form.invoice_id = fullNote.invoice_id || null;
+    form.number = fullNote.number || '';
+    // Extraer solo la fecha (YYYY-MM-DD) del timestamp ISO
+    form.date = fullNote.date ? fullNote.date.split('T')[0] : null;
+    form.month_id = fullNote.month_id || null;
+    form.reason = fullNote.reason || '';
+    form.affects_inventory = fullNote.affects_inventory ?? false;
+    form.is_annulment = fullNote.is_annulment ?? false;
+    form.items = items || [];
+    
+    console.log('Form items after assignment:', form.items);
+    console.log('Form type after assignment:', form.type);
+    
+    // Esperar a que Vue actualice el DOM y los valores reactivos
+    await nextTick();
+    
+    $('#editCreditDebitNoteModal').modal('show');
+  } catch (error) {
+    console.error('Error al cargar datos:', error);
+    Swal.fire('Error', 'No se pudieron cargar los datos de la nota', 'error');
+  }
+};
+
+const updateNote = () => {
+  form.put(route('credit_debit_notes.update', form.id), {
+    preserveScroll: true,
+    onSuccess: () => {
+      form.reset();
+      $('#editCreditDebitNoteModal').modal('hide');
+      msgSuccess('Nota actualizada correctamente');
+    }
+  });
+};
 </script>
 
 <template>
-   <Head :title="title" />
-  <AppLayout title="Notas de Crédito/Débito">
-     <!--begin::Breadcrumb-->
+    <Head :title="title" />
+    <AppLayout title="Notas de Crédito/Débito">
+        <!--begin::Breadcrumb-->
         <Breadcrumb :links="links" />
-        
         <!--end::Breadcrumb-->
-    <!-- Aquí irá el listado de notas -->
-     <div class="card my-3">
+        
+        <!-- Aquí irá el listado de notas -->
+        <div class="card my-3">
             <div class="card-header">
-    <div class="mb-4 d-flex justify-content-between align-items-center">
-      <h5 class="fs-9 mb-0 text-nowrap py-2 py-xl-0"><i class="fas fa-chess text-primary me-2"></i>Notas de Credito/Debito</h5>
-      <Link class="btn btn-primary" :href="route('credit_debit_notes.create')">Nueva Nota</Link>
-    </div>
-    <div class="card-body bg-body-tertiary">
-
-<div class="row mb-3">
-          <div class="col-md-2 col-12 ms-auto">
-            <div class="card h-100 p-1 small-card">
-              <div class="card-header pb-0 pt-1 px-2">
-                <h6 class="mb-0 mt-1 fs-10 d-flex align-items-center small-card-title">Total Notas de Débito</h6>
-              </div>
-              <div class="card-body d-flex flex-column justify-content-end py-1 px-2">
-                <p class="font-sans-serif lh-1 mb-1 fs-10 small-card-number">
-                  {{ totalDebitoFormatted }}
-                </p>
-              </div>
+                <div class="mb-4 d-flex justify-content-between align-items-center">
+                    <h5 class="fs-9 mb-0 text-nowrap py-2 py-xl-0">
+                        <i class="fas fa-chess text-primary me-2"></i>Notas de Credito/Debito
+                    </h5>
+                    <Link class="btn btn-primary" :href="route('credit_debit_notes.create')">Nueva Nota</Link>
+                </div>
             </div>
-          </div>
-          <div class="col-md-2 col-12">
-            <div class="card h-100 p-1 small-card">
-              <div class="card-header pb-0 pt-1 px-2">
-                <h6 class="mb-0 mt-1 fs-10 d-flex align-items-center small-card-title">Total Notas de Crédito</h6>
-              </div>
-              <div class="card-body d-flex flex-column justify-content-end py-1 px-2">
-                <p class="font-sans-serif lh-1 mb-1 fs-10 small-card-number">
-                  {{ totalCreditoFormatted }}
-                </p>
-              </div>
-            </div>
-          </div>
-        </div>
+            
+            <div class="card-body bg-body-tertiary">
+                <div class="row mb-3">
+                    <div class="col-md-2 col-12 ms-auto">
+                        <div class="card h-100 p-1 small-card">
+                            <div class="card-header pb-0 pt-1 px-2">
+                                <h6 class="mb-0 mt-1 fs-10 d-flex align-items-center small-card-title">Total Notas de Débito</h6>
+                            </div>
+                            <div class="card-body d-flex flex-column justify-content-end py-1 px-2">
+                                <p class="font-sans-serif lh-1 mb-1 fs-10 small-card-number">
+                                    {{ totalDebitoFormatted }}
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-2 col-12">
+                        <div class="card h-100 p-1 small-card">
+                            <div class="card-header pb-0 pt-1 px-2">
+                                <h6 class="mb-0 mt-1 fs-10 d-flex align-items-center small-card-title">Total Notas de Crédito</h6>
+                            </div>
+                            <div class="card-body d-flex flex-column justify-content-end py-1 px-2">
+                                <p class="font-sans-serif lh-1 mb-1 fs-10 small-card-number">
+                                    {{ totalCreditoFormatted }}
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
 
-
-
-
-      <div class="tab-content border p-3 mt-3" id="pill-myTabContent">
-    <div class="table-responsive mt-1" style="max-height: 450px; overflow-y: auto;">
-      <table class="table table-bordered table-hover table-sm custom-striped fs-10 mb-0">
-        <thead>
-          <tr>
-            <th>#</th>
-            <th>Tipo</th>
-            <th>Proveedor</th>
-            <th>Factura</th>
-            <th>Productos</th>
+                <div class="tab-content border p-3 mt-3" id="pill-myTabContent">
+                    <div class="table-responsive mt-1" style="max-height: 450px; overflow-y: auto;">
+                        <table class="table table-bordered table-hover table-sm custom-striped fs-10 mb-0">
+                            <thead>
+                                <tr>
+                                    <th>#</th>
+                                    <th>Tipo</th>
+                                    <th>Proveedor</th>
+                                    <th>Factura</th>
+                                    <th>Productos</th>
             <th>Afecta inventario</th>
             <th>Fecha</th>
             <th class="text-end">Total</th>
@@ -166,7 +235,8 @@ const onFilter = () => {
                   </span>
                 </Link>
                 <!-- Editar -->
-                <Link :href="route('credit_debit_notes.edit', note.id)"
+                <button type="button"
+                  @click="openEdit(note)"
                   v-tooltip="'Editar'"
                   class="btn btn-icon btn-active-light-primary w-30px h-30px me-3">
                   <span class="svg-icon svg-icon-3">
@@ -175,7 +245,7 @@ const onFilter = () => {
                       <path d="M5.574 21.3L3.692 21.928C3.46591 22.0032 3.22334 22.0141 2.99144 21.9594C2.75954 21.9046 2.54744 21.7864 2.3789 21.6179C2.21036 21.4495 2.09202 21.2375 2.03711 21.0056C1.9822 20.7737 1.99289 20.5312 2.06799 20.3051L2.696 18.422L5.574 21.3ZM4.13499 14.105L9.891 19.861L19.245 10.507L13.489 4.75098L4.13499 14.105Z" fill="currentColor"></path>
                     </svg>
                   </span>
-                </Link>
+                </button>
                 <!-- Eliminar -->
                 <button type="button" v-tooltip="'Eliminar'" @click="onDeleted(note.id)" class="btn btn-icon btn-active-light-primary w-30px h-30px">
                   <span class="svg-icon svg-icon-3">
@@ -186,18 +256,24 @@ const onFilter = () => {
                     </svg>
                   </span>
                 </button>
-              </div>
-            </td>
-          </tr>
-        </tbody>
-      </table>
-      </div>
-    </div>
-     </div>
-      </div>
-      </div>
-  </AppLayout>
+                                </div>
+                            </td>
+                        </tr>
+                        </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Modal de Edición -->
+        <EditCreditDebitNoteModal
+            @update="updateNote"
+            :form="form"
+            :suppliers="suppliers"
+            :invoices="invoices"
+            :products="products"
+            :units="units"
+        />
+    </AppLayout>
 </template>
-
-
-

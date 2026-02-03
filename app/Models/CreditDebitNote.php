@@ -17,6 +17,7 @@ class CreditDebitNote extends Model
         'supplier_id',
         'number',
         'date',
+        'month_id',
         'reason',
         'affects_inventory',
         'user_id',
@@ -57,5 +58,10 @@ class CreditDebitNote extends Model
     public function user()
     {
         return $this->belongsTo(User::class);
+    }
+
+    public function month()
+    {
+        return $this->belongsTo(Month::class);
     }
 }
