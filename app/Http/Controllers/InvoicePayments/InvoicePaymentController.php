@@ -14,7 +14,7 @@ use Inertia\Inertia;
 
 class InvoicePaymentController extends Controller
 {
-    public function __invoke(Request $request)
+    public function index(Request $request)
     {
         $user = Auth::user();
         $season_id = session('season_id');

@@ -106,6 +106,7 @@ class StoreAgrochemicalOutflowController
                         'quantity' => $quantity,
                         'date' => $date,
                         'level3_id' => $product->level3_id,
+                        'operation_id' => 1, // Gasto
                         'notes' => 'Aplicación agroquímico - Orden #' . $applicationOrderId . ' - ' . ($observations ?? 'Sin observaciones'),
                     ]);
                     

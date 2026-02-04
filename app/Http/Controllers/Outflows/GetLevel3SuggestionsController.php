@@ -18,7 +18,7 @@ class GetLevel3SuggestionsController extends Controller
 
         // Buscar los level3_id más usados para este producto
         $suggestions = DB::table('outflows as o')
-            ->join('invoice_product as ip', 'o.invoice_product_id', '=', 'ip.id')
+            ->join('invoice_products as ip', 'o.invoice_product_id', '=', 'ip.id')
             ->join('level3s as l3', 'o.level3_id', '=', 'l3.id')
             ->join('level2s as l2', 'l3.level2_id', '=', 'l2.id')
             ->join('level1s as l1', 'l2.level1_id', '=', 'l1.id')

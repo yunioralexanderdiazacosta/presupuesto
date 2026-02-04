@@ -111,6 +111,7 @@ class StoreFertilizerOutflowController
                             'user_id' => $user->id,
                             'quantity' => $quantity,
                             'date' => $date,
+                            'operation_id' => 1, // Gasto
                             'notes' => "Aplicación fertilizante - Orden #{$fertilizerOrderId}",
                             'team_id' => $teamId,
                             'season_id' => $seasonId,

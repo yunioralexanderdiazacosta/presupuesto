@@ -17,19 +17,65 @@ class InvoicesController extends Controller
 
         $term = $request->term ?? '';
 
-    $invoices = Invoice::with('supplier', 'companyReason', 'products', 'typeDocument', 'month')->when($request->term, function ($query, $search) {
-            $query->where('number_document', 'like', '%'.$search.'%');
-        })
-        ->OrWhereHas('supplier', function($query) use ($term){
-            $query->where('name', 'like', '%'.$term.'%');
-        })
-        ->OrWhereHas('companyReason', function($query) use ($term){
-            $query->where('name', 'like', '%'.$term.'%');
-        })
-        ->where('team_id', $user->team_id)->where('season_id', $season_id)
-        ->paginate(500)
-        ->withQueryString()
-        ->through(function($invoice){
+        // Obtener todas las facturas con eager loading optimizado
+        $invoicesQuery = Invoice::with([
+            'supplier:id,name', 
+            'companyReason:id,name', 
+            'typeDocument:id,name',
+            'month:id,name',
+            'invoiceProducts.product:id,name,level1_id'
+        ])
+        ->where('team_id', $user->team_id)
+        ->where('season_id', $season_id)
+        ->orderBy('id', 'desc');
+
+        // Aplicar filtros de búsqueda
+        if ($term) {
+            $invoicesQuery->where(function($query) use ($term) {
+                $query->where('number_document', 'like', '%'.$term.'%')
+                    ->orWhereHas('supplier', function($q) use ($term) {
+                        $q->where('name', 'like', '%'.$term.'%');
+                    })
+                    ->orWhereHas('companyReason', function($q) use ($term) {
+                        $q->where('name', 'like', '%'.$term.'%');
+                    })
+                    ->orWhereHas('invoiceProducts.product', function($q) use ($term) {
+                        $q->where('name', 'like', '%'.$term.'%');
+                    });
+            });
+        }
+
+        // Obtener todas las facturas (sin paginación para cálculos correctos)
+        $allInvoices = $invoicesQuery->get();
+
+        // Calcular totales globales
+        $totalFacturas = 0;
+        $totalIva = 0;
+        $totalGeneral = 0;
+
+        foreach ($allInvoices as $invoice) {
+            $total = 0;
+            foreach ($invoice->invoiceProducts as $ip) {
+                $total += $ip->unit_price * $ip->amount;
+            }
+            
+            $totalFacturas += $total;
+            
+            // Solo agregar IVA si es factura
+            if ($invoice->typeDocument && strtolower($invoice->typeDocument->name) === 'factura') {
+                $totalIva += $total * 0.19;
+            }
+        }
+
+        $totalGeneral = $totalFacturas + $totalIva;
+
+        // Preparar datos para la vista
+        $invoices = $allInvoices->map(function($invoice) {
+            $total = 0;
+            foreach ($invoice->invoiceProducts as $ip) {
+                $total += $ip->unit_price * $ip->amount;
+            }
+
             return [
                 'id'                => $invoice->id,
                 'date'              => $invoice->date,
@@ -39,29 +85,26 @@ class InvoicesController extends Controller
                 'type_document'     => $invoice->typeDocument ? $invoice->typeDocument->name : null,
                 'month'             => $invoice->month ? $invoice->month->name : null,
                 'number_document'   => $invoice->number_document,
-                'products'          => $invoice->products->map(function($p){
-                                            return [
-                                                'id' => $p->id,
-                                                'product_name' => $p->name
-                                            ];
-                                        }),
-                'total'             => $this->get_total($invoice)
+                'products'          => $invoice->invoiceProducts->map(function($ip) {
+                    return [
+                        'id' => $ip->product ? $ip->product->id : null,
+                        'product_name' => $ip->product ? $ip->product->name : 'Producto eliminado',
+                        'has_level1' => $ip->product && $ip->product->level1_id ? true : false
+                    ];
+                }),
+                'total'             => '$' . number_format($total, 0, ',', '.')
             ];
-        }); 
+        });
 
-        return Inertia::render('Invoices', compact('invoices', 'term'));
-    }
-
-    private function get_total($invoice)
-    {
-        $total = 0;
-        $products = $invoice->products()->get();
-
-        foreach($products as $product)
-        {
-            $total = $total + ($product->pivot->unit_price * $product->pivot->amount);    
-        }
-
-        return number_format($total, 2, ',', '.');
+        return Inertia::render('Invoices', [
+            'invoices' => [
+                'data' => $invoices,
+                'links' => []
+            ],
+            'term' => $term,
+            'totalFacturas' => $totalFacturas,
+            'totalIva' => $totalIva,
+            'totalGeneral' => $totalGeneral
+        ]);
     }
 }

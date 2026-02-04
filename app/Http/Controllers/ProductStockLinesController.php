@@ -23,16 +23,16 @@ class ProductStockLinesController extends Controller
 
             // Facturas: obtener líneas base
             $invoiceLines = DB::table('invoice_products')
-                ->join('invoices', 'invoice_product.invoice_id', '=', 'invoices.id')
+                ->join('invoices', 'invoice_products.invoice_id', '=', 'invoices.id')
                 ->leftJoin('suppliers', 'invoices.supplier_id', '=', 'suppliers.id')
                 ->where('invoices.team_id', $user->team_id)
                 ->where('invoices.season_id', $season_id)
-                ->where('invoice_product.product_id', $product_id)
+                ->where('invoice_products.product_id', $product_id)
                 ->select(
-                    'invoice_product.id as line_id',
+                    'invoice_products.id as line_id',
                     'invoices.number_document as documento',
                     'suppliers.name as proveedor',
-                    'invoice_product.amount as cantidad_original'
+                    'invoice_products.amount as cantidad_original'
                 )
                 ->get();
 

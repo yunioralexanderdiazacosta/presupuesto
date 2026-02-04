@@ -11,6 +11,9 @@ import SearchInput from "@/Components/SearchInput.vue";
 const props = defineProps({
     invoices: Object,
     term: String,
+    totalFacturas: Number,
+    totalIva: Number,
+    totalGeneral: Number,
 });
 
 const title = "Facturas";
@@ -147,15 +150,35 @@ const onFilter = () => {
                                 aria-selected="false">Detalle de compra</a>
                         </li>
                     </ul>
-                    <!-- Card de total de facturas alineado a la derecha -->
-                    <div>
+                    <!-- Cards de totales alineados a la derecha -->
+                    <div class="d-flex gap-2">
                         <div class="card h-100 p-1 small-card">
                             <div class="card-header pb-0 pt-1 px-2">
-                                <h6 class="mb-0 mt-1 fs-10 d-flex align-items-center small-card-title">Total Neto Facturas</h6>
+                                <h6 class="mb-0 mt-1 fs-10 d-flex align-items-center small-card-title">Total Neto</h6>
                             </div>
                             <div class="card-body d-flex flex-column justify-content-end py-1 px-2">
                                 <p class="font-sans-serif lh-1 mb-1 fs-10 small-card-number">
-                                    {{ totalFacturasFormatted }}
+                                    ${{ props.totalFacturas ? Math.round(props.totalFacturas).toLocaleString('es-ES') : '0' }}
+                                </p>
+                            </div>
+                        </div>
+                        <div class="card h-100 p-1 small-card">
+                            <div class="card-header pb-0 pt-1 px-2">
+                                <h6 class="mb-0 mt-1 fs-10 d-flex align-items-center small-card-title">IVA (19%)</h6>
+                            </div>
+                            <div class="card-body d-flex flex-column justify-content-end py-1 px-2">
+                                <p class="font-sans-serif lh-1 mb-1 fs-10 small-card-number">
+                                    ${{ props.totalIva ? Math.round(props.totalIva).toLocaleString('es-ES') : '0' }}
+                                </p>
+                            </div>
+                        </div>
+                        <div class="card h-100 p-1 small-card">
+                            <div class="card-header pb-0 pt-1 px-2">
+                                <h6 class="mb-0 mt-1 fs-10 d-flex align-items-center small-card-title">Total General</h6>
+                            </div>
+                            <div class="card-body d-flex flex-column justify-content-end py-1 px-2">
+                                <p class="font-sans-serif lh-1 mb-1 fs-10 small-card-number fw-bold text-primary">
+                                    ${{ props.totalGeneral ? Math.round(props.totalGeneral).toLocaleString('es-ES') : '0' }}
                                 </p>
                             </div>
                         </div>
@@ -190,11 +213,13 @@ const onFilter = () => {
                     </div>
 
                     
-                        <div class="card-body pt-0" style="overflow-x: auto;">
+                        <div class="card-body pt-0" style="overflow-x: auto; max-height: calc(100vh - 350px); overflow-y: auto;">
                         <Table :id="'invoices'" :total="filteredInvoices.length" :links="invoices.links" class="min-w-full">
                             <!--begin::Table head-->
                             <template #header>
                                 <!--begin::Table row-->
+                                <th width="80px" class="text-center" style="white-space:nowrap;">Acciones</th>
+                                <th width="60px" class="text-center" style="white-space:nowrap;">ID</th>
                                 <th width="min-w-150px" style="white-space:nowrap;">Tipo documento</th>
                                 <th width="min-w-150px" style="white-space:nowrap;">Mes contable</th>
                                 <th width="300px" style="white-space:nowrap; max-width:300px; overflow:hidden; text-overflow:ellipsis;">Proveedor</th>
@@ -204,7 +229,6 @@ const onFilter = () => {
                                 <th width="min-w-150px" style="white-space:nowrap;">Fecha de Vencimiento</th>
                                 <th width="min-w-200px" style="white-space:nowrap;">Productos</th>
                                 <th width="min-w-150px" class="text-end" style="white-space:nowrap;">Total</th>
-                                <th width="80px" class="text-end" style="white-space:nowrap;">Acciones</th>
                                 <!--end::Table row-->
                             </template>
                             <!--end::Table head-->
@@ -217,32 +241,7 @@ const onFilter = () => {
                                     <tr v-for="(
 invoice, index
                                         ) in filteredInvoices" :key="index">
-                                        <td style="white-space:nowrap;">{{ invoice.type_document }}</td>
-                                        <td style="white-space:nowrap;">{{ invoice.month }}</td>
-                                        <td style="white-space:nowrap; max-width:300px; overflow:hidden; text-overflow:ellipsis;">{{ invoice.supplier.name }}</td>
-                                        <td style="white-space:nowrap;">{{ invoice.number_document }}</td>
-                                        <td style="white-space:nowrap;">{{ invoice.companyReason.name }}</td>
-                                        <td style="white-space:nowrap;">{{ invoice.date }}</td>
-                                        <td style="white-space:nowrap;">{{ invoice.due_date }}</td>
-                                        <td style="white-space:nowrap;">
-                                            <span v-if="invoice.products && invoice.products.length">
-                                                <span v-if="invoice.products.length <= 2">
-                                                    <span v-for="(prod, idx) in invoice.products" :key="prod.id || idx">
-                                                        {{ prod.product_name }}<span v-if="idx < invoice.products.length - 1">, </span>
-                                                    </span>
-                                                </span>
-                                                <span v-else>
-                                                    <span
-                                                        v-tooltip="invoice.products.map(p => p.product_name).join(', ')"
-                                                    >
-                                                        {{ invoice.products[0].product_name }}, {{ invoice.products[1].product_name }} y {{ invoice.products.length - 2 }} más
-                                                    </span>
-                                                </span>
-                                            </span>
-                                            <span v-else class="text-muted">—</span>
-                                        </td>
-                                        <td class="text-end">{{ invoice.total }}</td>
-                                        <td class="text-end">
+                                        <td class="text-center">
                                             <div class="btn-group">
                                                 <!--begin::View-->
                                                 <Link :href="route(
@@ -299,6 +298,32 @@ invoice, index
                                                 <!--end::Delete-->
                                             </div>
                                         </td>
+                                        <td class="text-center" style="white-space:nowrap;">{{ invoice.id }}</td>
+                                        <td style="white-space:nowrap;">{{ invoice.type_document }}</td>
+                                        <td style="white-space:nowrap;">{{ invoice.month }}</td>
+                                        <td style="white-space:nowrap; max-width:300px; overflow:hidden; text-overflow:ellipsis;">{{ invoice.supplier.name }}</td>
+                                        <td style="white-space:nowrap;">{{ invoice.number_document }}</td>
+                                        <td style="white-space:nowrap;">{{ invoice.companyReason.name }}</td>
+                                        <td style="white-space:nowrap;">{{ invoice.date }}</td>
+                                        <td style="white-space:nowrap;">{{ invoice.due_date }}</td>
+                                        <td style="white-space:nowrap;">
+                                            <span v-if="invoice.products && invoice.products.length">
+                                                <span v-if="invoice.products.length <= 2">
+                                                    <span v-for="(prod, idx) in invoice.products" :key="prod.id || idx">
+                                                        {{ prod.product_name }}<span v-if="idx < invoice.products.length - 1">, </span>
+                                                    </span>
+                                                </span>
+                                                <span v-else>
+                                                    <span
+                                                        v-tooltip="invoice.products.map(p => p.product_name).join(', ')"
+                                                    >
+                                                        {{ invoice.products[0].product_name }}, {{ invoice.products[1].product_name }} y {{ invoice.products.length - 2 }} más
+                                                    </span>
+                                                </span>
+                                            </span>
+                                            <span v-else class="text-muted">—</span>
+                                        </td>
+                                        <td class="text-end">{{ invoice.total }}</td>
                                     </tr>
                                 </template>
                             </template>
