@@ -18,6 +18,9 @@ class EditCreditDebitNoteController extends Controller
     {
         $user = Auth::user();
 
+        // Cargar relaciones necesarias
+        $note->load(['supplier', 'invoice']);
+
         $suppliers = Supplier::where('team_id', $user->team_id)->get()->transform(function($supplier){
             return [
                 'label' => $supplier->name,
