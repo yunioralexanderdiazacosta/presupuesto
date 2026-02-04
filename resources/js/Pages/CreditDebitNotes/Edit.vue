@@ -1,6 +1,6 @@
 <template>
   <AppLayout title="Editar Nota de Crédito/Débito">
-    <FormCreditDebitNote :note="note" :suppliers="suppliers" :invoices="invoices" :products="products" :units="units" :items="items" />
+    <FormCreditDebitNote :form="note" :suppliers="suppliers" :invoices="invoices" :products="products" :units="units" :items="items" />
   </AppLayout>
 </template>
 
