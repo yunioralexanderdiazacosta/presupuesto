@@ -75,6 +75,18 @@ class EditCreditDebitNoteController extends Controller
             return response()->json(compact('note', 'suppliers', 'invoices', 'products', 'units', 'items'));
         }
 
-        return Inertia::render('CreditDebitNotes/Edit', compact('note', 'suppliers', 'invoices', 'products', 'units', 'items'));
+        // Agregar supplier_id e invoice_id al objeto note para que el form los encuentre
+        $noteData = $note->toArray();
+        $noteData['supplier_id'] = $note->supplier_id;
+        $noteData['invoice_id'] = $note->invoice_id;
+
+        return Inertia::render('CreditDebitNotes/Edit', [
+            'note' => $noteData,
+            'suppliers' => $suppliers,
+            'invoices' => $invoices,
+            'products' => $products,
+            'units' => $units,
+            'items' => $items
+        ]);
     }
 }
