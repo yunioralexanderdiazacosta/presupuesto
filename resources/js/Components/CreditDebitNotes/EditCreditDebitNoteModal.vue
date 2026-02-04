@@ -155,12 +155,12 @@ const props = defineProps({
 defineEmits(['update']);
 
 const getSupplierName = () => {
-    const supplier = props.suppliers.find(s => s.value === props.form.supplier_id);
+    const supplier = props.suppliers.find(s => String(s.value) === String(props.form.supplier_id));
     return supplier ? supplier.label : 'N/A';
 };
 
 const getInvoiceNumber = () => {
-    const invoice = props.invoices.find(i => i.value === props.form.invoice_id);
+    const invoice = props.invoices.find(i => String(i.value) === String(props.form.invoice_id));
     return invoice ? invoice.label : 'N/A';
 };
 
