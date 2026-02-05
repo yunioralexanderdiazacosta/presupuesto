@@ -102,12 +102,6 @@ const openEdit = async (note) => {
     const fullNote = response.data.note;
     const items = response.data.items;
     
-    console.log('Full response from backend:', response.data);
-    console.log('fullNote object:', fullNote);
-    console.log('fullNote.supplier_id:', fullNote.supplier_id);
-    console.log('fullNote.invoice_id:', fullNote.invoice_id);
-    console.log('Items from backend:', items);
-    
     form.id = fullNote.id;
     form.type = fullNote.type || null;
     form.supplier_id = fullNote.supplier_id || null;
@@ -120,9 +114,6 @@ const openEdit = async (note) => {
     form.affects_inventory = fullNote.affects_inventory ?? false;
     form.is_annulment = fullNote.is_annulment ?? false;
     form.items = items || [];
-    
-    console.log('Form items after assignment:', form.items);
-    console.log('Form type after assignment:', form.type);
     
     // Esperar a que Vue actualice el DOM y los valores reactivos
     await nextTick();

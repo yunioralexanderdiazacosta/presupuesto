@@ -50,7 +50,7 @@ const totalEdicion = computed(() => {
 });
 
 const totalEdicionFormatted = computed(() => {
-  return new Intl.NumberFormat('es-ES', { style: 'decimal', minimumFractionDigits: 0, maximumFractionDigits: 2 }).format(totalEdicion.value);
+  return new Intl.NumberFormat('es-ES', { style: 'decimal', minimumFractionDigits: 0, maximumFractionDigits: 0 }).format(totalEdicion.value);
 });
 const termEdicion = ref("");
 
@@ -244,10 +244,11 @@ async function openCard(outflow) {
     return;
   }
   
-  // Verificar si ya existe tanto en showCards como en selectedOutflows
+  // Si ya está abierto, cerrarlo (toggle)
   if (showCards.value.includes(id)) {
-    console.log('Card ya abierto:', id);
-    return; // Ya está abierto, no hacer nada
+    console.log('Cerrando card:', id);
+    closeCard(id);
+    return;
   }
   
   // Verificar también en selectedOutflows por si acaso hay desincronización
@@ -274,6 +275,7 @@ async function openCard(outflow) {
     product_name: outflow.product,
     unit_name: outflow.unit,
     quantity: outflow.stock, // Inicializa cantidad con el stock
+    stock_original: outflow.stock, // Guardar stock original para validaciones
     unit_price: outflow.unit_price || 0, // Precio unitario de la factura
     cost_center_ids: [],
     observations: '',
@@ -849,7 +851,7 @@ function copyToAllCards(sourceCardId) {
                             <th class="text-center">Acciones</th>
                           </template>
                           <template #body>
-                            <tr v-for="outflow in filteredOutflows" :key="outflow.document_id + '-' + outflow.product">
+                            <tr v-for="outflow in filteredOutflows" :key="(outflow.credit_debit_note_item_id ? 'nota-' + outflow.credit_debit_note_item_id : 'factura-' + outflow.invoice_product_id)">
                                 <td>
                                   <span v-if="outflow.origen && outflow.origen.toLowerCase().includes('factura')" class="badge bg-success">{{ outflow.origen }}</span>
                                   <span v-else class="badge bg-info text-dark">{{ outflow.origen }}</span>
@@ -874,9 +876,12 @@ function copyToAllCards(sourceCardId) {
                                 <td>{{ outflow.stock }}</td>
                                 <td>{{ outflow.unit }}</td>
                                 <td class="text-center">
-                                  <button @click="openCard(outflow)"
+                                  <button 
+                                    @click.stop="openCard(outflow)"
+                                    type="button"
                                     class="btn btn-sm me-1"
-                                    :class="isCardOpen(outflow) ? 'btn-success btn-active' : 'btn-white'">
+                                    :class="isCardOpen(outflow) ? 'btn-success btn-active' : 'btn-white'"
+                                    :title="isCardOpen(outflow) ? 'Cerrar card' : 'Registrar salida'">
                                     <span 
                                       class="fas fa-paper-plane"
                                       :class="isCardOpen(outflow) ? 'text-success' : 'text-secondary'"
@@ -912,14 +917,15 @@ function copyToAllCards(sourceCardId) {
                               class="form-control form-control-sm w-100"
                               type="number"
                               min="1"
-                              :max="outflows.data.find(o => (o.invoice_product_id === selected.invoice_product_id || o.credit_debit_note_item_id === selected.credit_debit_note_item_id))?.stock || 1"
+                              :max="selected.stock_original"
                               step="0.01"
                               @input="
-                                const stock = outflows.data.find(o => (o.invoice_product_id === selected.invoice_product_id || o.credit_debit_note_item_id === selected.credit_debit_note_item_id))?.stock || 1;
-                                if (Number(selected.quantity) > stock) selected.quantity = stock;
+                                if (Number(selected.quantity) > Number(selected.stock_original)) {
+                                  selected.quantity = selected.stock_original;
+                                }
                               "
                             />
-                            <small v-if="Number(selected.quantity) > ((outflows.data.find(o => (o.invoice_product_id === selected.invoice_product_id || o.credit_debit_note_itemId === selected.credit_debit_note_item_id))?.stock) || 1)" class="text-danger">No puede exceder el stock disponible</small>
+                            <small v-if="Number(selected.quantity) > Number(selected.stock_original)" class="text-danger">No puede exceder el stock disponible ({{ selected.stock_original }})</small>
                           </div>
                           <div class="col-6 col-md-2">
                             <label class="form-label text-muted">Precio Unit.</label>

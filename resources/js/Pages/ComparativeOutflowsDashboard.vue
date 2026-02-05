@@ -26,6 +26,172 @@ const includeInvestments = ref(false);
 // Mes seleccionado para el card de diferencia (inicializar con mes anterior al actual)
 const selectedMonthIndex = ref(null);
 
+// Estado para selección de filas en la tabla de categorías
+const selectedRows = ref([]);
+
+// Estado para grupos creados
+const customGroups = ref([]);
+
+// Estado para controlar qué grupos están expandidos
+const expandedGroups = ref([]);
+
+// Computed para saber si todas las filas están seleccionadas
+const allRowsSelected = computed({
+    get: () => props.comparisonByLevel1?.length > 0 && selectedRows.value.length === props.comparisonByLevel1.length,
+    set: (value) => {
+        if (value) {
+            selectedRows.value = props.comparisonByLevel1.map((item, index) => index);
+        } else {
+            selectedRows.value = [];
+        }
+    }
+});
+
+// Función para toggle de una fila
+const toggleRow = (index) => {
+    const idx = selectedRows.value.indexOf(index);
+    if (idx > -1) {
+        selectedRows.value.splice(idx, 1);
+    } else {
+        selectedRows.value.push(index);
+    }
+};
+
+// Función temporal para agrupar (Paso 3)
+const groupSelected = () => {
+    if (selectedRows.value.length === 0) return;
+    
+    // Obtener las filas seleccionadas con sus índices originales
+    const selectedItems = selectedRows.value.map(idx => ({
+        ...props.comparisonByLevel1[idx],
+        originalIndex: idx
+    }));
+    
+    // Calcular totales del grupo
+    const totals = selectedItems.reduce((acc, item) => {
+        acc.budget += item.budget || 0;
+        acc.invoiced += item.invoiced || 0;
+        acc.consumed += item.consumed || 0;
+        return acc;
+    }, { budget: 0, invoiced: 0, consumed: 0 });
+    
+    totals.difference = totals.budget - totals.invoiced;
+    totals.variance = totals.budget > 0 ? ((totals.invoiced - totals.budget) / totals.budget) * 100 : 0;
+    
+    // Crear el grupo guardando los índices originales
+    const newGroup = {
+        id: Date.now(),
+        name: `Grupo ${customGroups.value.length + 1}`,
+        items: selectedItems,
+        hiddenIndices: [...selectedRows.value], // Guardar índices para ocultar
+        totals: totals,
+        expanded: true
+    };
+    
+    customGroups.value.push(newGroup);
+    expandedGroups.value.push(newGroup.id);
+    
+    // Limpiar selección
+    selectedRows.value = [];
+};
+
+// Toggle expandir/colapsar grupo
+const toggleGroup = (groupId) => {
+    const idx = expandedGroups.value.indexOf(groupId);
+    if (idx > -1) {
+        expandedGroups.value.splice(idx, 1);
+    } else {
+        expandedGroups.value.push(groupId);
+    }
+};
+
+// Eliminar un grupo (las filas vuelven a la lista principal)
+const removeGroup = (groupId) => {
+    const groupIdx = customGroups.value.findIndex(g => g.id === groupId);
+    if (groupIdx > -1) {
+        // Eliminar el grupo
+        customGroups.value.splice(groupIdx, 1);
+        
+        // Eliminar de expandidos
+        const expIdx = expandedGroups.value.indexOf(groupId);
+        if (expIdx > -1) {
+            expandedGroups.value.splice(expIdx, 1);
+        }
+        
+        // Las filas se mostrarán automáticamente porque ya no están en ningún grupo
+        // El computed hiddenRowIndices se recalcula automáticamente
+    }
+};
+
+// Agrupar automáticamente por Nivel 1
+const groupByLevel1 = () => {
+    // Si ya hay grupos, desagrupar todo
+    if (customGroups.value.length > 0) {
+        customGroups.value = [];
+        expandedGroups.value = [];
+        selectedRows.value = [];
+        return;
+    }
+    
+    // Obtener niveles 1 únicos que aún están visibles
+    const level1Groups = {};
+    
+    props.comparisonByLevel1.forEach((item, index) => {
+        // Solo agrupar filas que no estén ya en un grupo
+        if (isRowVisible(index)) {
+            if (!level1Groups[item.level1]) {
+                level1Groups[item.level1] = [];
+            }
+            level1Groups[item.level1].push({ ...item, originalIndex: index });
+        }
+    });
+    
+    // Crear un grupo por cada Nivel 1
+    Object.keys(level1Groups).forEach(level1Name => {
+        const items = level1Groups[level1Name];
+        
+        // Calcular totales del grupo
+        const totals = items.reduce((acc, item) => {
+            acc.budget += item.budget || 0;
+            acc.invoiced += item.invoiced || 0;
+            acc.consumed += item.consumed || 0;
+            return acc;
+        }, { budget: 0, invoiced: 0, consumed: 0 });
+        
+        totals.difference = totals.budget - totals.invoiced;
+        totals.variance = totals.budget > 0 ? ((totals.invoiced - totals.budget) / totals.budget) * 100 : 0;
+        
+        // Crear el grupo
+        const newGroup = {
+            id: Date.now() + Math.random(), // Asegurar ID único
+            name: level1Name,
+            items: items,
+            hiddenIndices: items.map(item => item.originalIndex),
+            totals: totals,
+            expanded: false // Iniciar colapsado
+        };
+        
+        customGroups.value.push(newGroup);
+    });
+    
+    // Limpiar selección
+    selectedRows.value = [];
+};
+
+// Computed para obtener los índices que están ocultos por grupos
+const hiddenRowIndices = computed(() => {
+    const hidden = new Set();
+    customGroups.value.forEach(group => {
+        group.hiddenIndices.forEach(idx => hidden.add(idx));
+    });
+    return hidden;
+});
+
+// Computed para verificar si una fila debe mostrarse
+const isRowVisible = (index) => {
+    return !hiddenRowIndices.value.has(index);
+};
+
 // Inicializar mes seleccionado en onMounted
 onMounted(() => {
     const today = new Date();
@@ -725,15 +891,59 @@ function createCumulativeChart() {
                 <div class="col-12">
                     <div class="card">
                         <div class="card-header">
-                            <h6 class="mb-0">
-                                <i class="fas fa-table me-2"></i>Detalle por Categoría
-                            </h6>
+                            <div class="d-flex align-items-center justify-content-between">
+                                <h6 class="mb-0">
+                                    <i class="fas fa-table me-2"></i>Detalle por Categoría
+                                </h6>
+                                <button 
+                                    class="btn btn-sm"
+                                    :class="customGroups.length > 0 ? 'btn-warning' : 'btn-outline-primary'"
+                                    @click="groupByLevel1"
+                                    :title="customGroups.length > 0 ? 'Desagrupar y mostrar vista normal' : 'Agrupar todas las categorías por Nivel 1'">
+                                    <i class="fas me-1" :class="customGroups.length > 0 ? 'fa-list' : 'fa-folder-tree'"></i>
+                                    {{ customGroups.length > 0 ? 'Desagrupar Todo' : 'Agrupar por Nivel 1' }}
+                                </button>
+                            </div>
                         </div>
+                        
+                        <!-- Barra de controles (se muestra solo cuando hay selección) -->
+                        <div v-if="selectedRows.length > 0" class="card-body bg-light border-bottom py-2">
+                            <div class="d-flex align-items-center justify-content-between">
+                                <div class="d-flex align-items-center gap-3">
+                                    <span class="badge bg-primary">
+                                        {{ selectedRows.length }} fila{{ selectedRows.length !== 1 ? 's' : '' }} seleccionada{{ selectedRows.length !== 1 ? 's' : '' }}
+                                    </span>
+                                    <button 
+                                        class="btn btn-sm btn-outline-secondary"
+                                        @click="selectedRows = []"
+                                        title="Limpiar selección">
+                                        <i class="fas fa-times me-1"></i>
+                                        Limpiar selección
+                                    </button>
+                                </div>
+                                <button 
+                                    class="btn btn-sm btn-primary"
+                                    @click="groupSelected"
+                                    title="Agrupar filas seleccionadas">
+                                    <i class="fas fa-layer-group me-1"></i>
+                                    Agrupar seleccionados
+                                </button>
+                            </div>
+                        </div>
+                        
                         <div class="card-body">
                             <div class="table-responsive">
                                 <table class="table table-striped table-hover">
                                     <thead>
                                         <tr>
+                                            <th style="width: 40px;">
+                                                <input 
+                                                    type="checkbox" 
+                                                    class="form-check-input" 
+                                                    v-model="allRowsSelected"
+                                                    title="Seleccionar todas"
+                                                />
+                                            </th>
                                             <th>Nivel 1</th>
                                             <th>Nivel 2</th>
                                             <th class="text-end">Presupuestado</th>
@@ -745,7 +955,79 @@ function createCumulativeChart() {
                                         </tr>
                                     </thead>
                                     <tbody>
-                                        <tr v-for="item in comparisonByLevel1" :key="item.category">
+                                        <!-- Grupos personalizados -->
+                                        <template v-for="group in customGroups" :key="'group-' + group.id">
+                                            <!-- Fila del grupo (colapsable) -->
+                                            <tr class="table-info cursor-pointer" @click="toggleGroup(group.id)">
+                                                <td>
+                                                    <button 
+                                                        type="button" 
+                                                        class="btn btn-sm btn-link text-danger p-0"
+                                                        @click.stop="removeGroup(group.id)"
+                                                        title="Eliminar grupo">
+                                                        <i class="fas fa-trash-alt"></i>
+                                                    </button>
+                                                </td>
+                                                <td colspan="2" class="fw-bold">
+                                                    <i class="fas" :class="expandedGroups.includes(group.id) ? 'fa-chevron-down' : 'fa-chevron-right'"></i>
+                                                    {{ group.name }} ({{ group.items.length }} categorías)
+                                                </td>
+                                                <td class="text-end fw-bold">{{ formatCLP(group.totals.budget) }}</td>
+                                                <td class="text-end fw-bold">{{ formatCLP(group.totals.invoiced) }}</td>
+                                                <td class="text-end fw-bold">{{ formatCLP(group.totals.consumed) }}</td>
+                                                <td class="text-end fw-bold" :class="group.totals.difference > 0 ? 'text-success' : 'text-danger'">
+                                                    {{ formatCLP(Math.abs(group.totals.difference)) }}
+                                                </td>
+                                                <td class="text-end fw-bold">
+                                                    <span :class="group.totals.variance > 0 ? 'text-danger' : 'text-success'">
+                                                        {{ group.totals.variance > 0 ? '+' : '' }}{{ formatPercent(group.totals.variance) }}
+                                                    </span>
+                                                </td>
+                                                <td class="text-center">
+                                                    <span class="badge" :class="getVarianceClass(Math.abs(group.totals.variance))">
+                                                        {{ getStatusIcon('ok') }}
+                                                        Grupo
+                                                    </span>
+                                                </td>
+                                            </tr>
+                                            
+                                            <!-- Items del grupo (se muestran cuando está expandido) -->
+                                            <template v-if="expandedGroups.includes(group.id)">
+                                                <tr v-for="(item, idx) in group.items" :key="'group-item-' + group.id + '-' + idx" class="table-light">
+                                                    <td></td>
+                                                    <td class="fw-semibold text-muted small ps-4">└ {{ item.level1 }}</td>
+                                                    <td class="fw-normal">{{ item.level2 }}</td>
+                                                    <td class="text-end">{{ formatCLP(item.budget) }}</td>
+                                                    <td class="text-end">{{ formatCLP(item.invoiced) }}</td>
+                                                    <td class="text-end">{{ formatCLP(item.consumed) }}</td>
+                                                    <td class="text-end" :class="item.difference > 0 ? 'text-success' : 'text-danger'">
+                                                        {{ formatCLP(Math.abs(item.difference)) }}
+                                                    </td>
+                                                    <td class="text-end">
+                                                        <span :class="item.variance > 0 ? 'text-danger' : 'text-success'">
+                                                            {{ item.variance > 0 ? '+' : '' }}{{ formatPercent(item.variance) }}
+                                                        </span>
+                                                    </td>
+                                                    <td class="text-center">
+                                                        <span class="badge" :class="getVarianceClass(Math.abs(item.variance))">
+                                                            {{ getStatusIcon(item.status) }}
+                                                            {{ Math.abs(item.variance) > 10 ? 'Atención' : Math.abs(item.variance) > 5 ? 'Revisión' : 'OK' }}
+                                                        </span>
+                                                    </td>
+                                                </tr>
+                                            </template>
+                                        </template>
+                                        
+                                        <!-- Filas normales (solo las que no están en grupos) -->
+                                        <tr v-for="(item, index) in comparisonByLevel1" :key="item.category" v-show="isRowVisible(index)">
+                                            <td>
+                                                <input 
+                                                    type="checkbox" 
+                                                    class="form-check-input"
+                                                    :checked="selectedRows.includes(index)"
+                                                    @change="toggleRow(index)"
+                                                />
+                                            </td>
                                             <td class="fw-semibold text-muted small">{{ item.level1 }}</td>
                                             <td class="fw-bold">{{ item.level2 }}</td>
                                             <td class="text-end">{{ formatCLP(item.budget) }}</td>
@@ -769,6 +1051,7 @@ function createCumulativeChart() {
                                     </tbody>
                                     <tfoot class="table-light">
                                         <tr class="fw-bold">
+                                            <td></td>
                                             <td colspan="2">TOTAL</td>
                                             <td class="text-end">{{ formatCLP(displayedBudget) }}</td>
                                             <td class="text-end">{{ formatCLP(summary.invoiced_total) }}</td>
@@ -821,5 +1104,17 @@ h3 {
 .badge {
     font-size: 0.8rem;
     padding: 0.35em 0.65em;
+}
+
+.cursor-pointer {
+    cursor: pointer;
+}
+
+.table-info {
+    background-color: #d1ecf1 !important;
+}
+
+.table-info:hover {
+    background-color: #bee5eb !important;
 }
 </style>
