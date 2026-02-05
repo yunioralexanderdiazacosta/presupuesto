@@ -911,13 +911,13 @@ class ComparativeOutflowsDashboardController extends Controller
             // 1. PRESUPUESTO por categoría (las 6 principales + Administración + Gral Campo)
             // ========================================
             $budgetCategories = [
-                'Costos Directos - Agroquímicos' => (float) $this->getTotalAgrochemical($season_id, $team_id),
+                'Costos Directos - Agroquimicos' => (float) $this->getTotalAgrochemical($season_id, $team_id),
                 'Costos Directos - Fertilizantes' => (float) $this->getTotalFertilizer($season_id, $team_id),
                 'Costos Directos - Mano de Obra' => (float) $this->getTotalManPower($season_id, $team_id),
                 'Costos Directos - Servicios' => (float) $this->getTotalServices($season_id, $team_id),
                 'Costos Directos - Insumos' => (float) $this->getTotalSupplies($season_id, $team_id),
                 'Cosecha - Cosecha' => (float) $this->getTotalHarvest($season_id, $team_id),
-                'Administración - Administración' => (float) $this->getTotalAdministration($season_id, $team_id),
+                'Administracion - Administracion' => (float) $this->getTotalAdministration($season_id, $team_id),
                 'Generales Campo - Gral. Campo' => (float) $this->getTotalField($season_id, $team_id),
             ];
 
