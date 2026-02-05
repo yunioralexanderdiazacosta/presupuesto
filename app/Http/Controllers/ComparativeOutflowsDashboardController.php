@@ -908,31 +908,15 @@ class ComparativeOutflowsDashboardController extends Controller
             $categories = [];
 
             // ========================================
-            // 1. PRESUPUESTO por categoría (las 6 principales + Administración + Gral Campo)
+            // 1. PRESUPUESTO por categoría - USANDO RELACIONES CON LEVEL1/LEVEL2
             // ========================================
-            $budgetCategories = [
-                'Costos Directos - Agroquimicos' => (float) $this->getTotalAgrochemical($season_id, $team_id),
-                'Costos Directos - Fertilizantes' => (float) $this->getTotalFertilizer($season_id, $team_id),
-                'Costos Directos - Mano de Obra' => (float) $this->getTotalManPower($season_id, $team_id),
-                'Costos Directos - Servicios' => (float) $this->getTotalServices($season_id, $team_id),
-                'Costos Directos - Insumos' => (float) $this->getTotalSupplies($season_id, $team_id),
-                'Cosecha - Cosecha' => (float) $this->getTotalHarvest($season_id, $team_id),
-                'Administracion - Administracion' => (float) $this->getTotalAdministration($season_id, $team_id),
-                'Generales Campo - Gral. Campo' => (float) $this->getTotalField($season_id, $team_id),
-            ];
-
-            // Mapa de categorías normalizadas a nombre display
-            $categoryMap = [];
+            $budgetByLevel = $this->getBudgetTotalsByLevel12($season_id, $team_id);
             
-            foreach ($budgetCategories as $name => $budget) {
-                // Extraer solo el level2 para normalización (después del guión)
-                $parts = explode(' - ', $name);
-                $level2Name = count($parts) > 1 ? $parts[1] : $name;
-                $normalizedKey = $this->normalizeCategory($level2Name);
-                $categoryMap[$normalizedKey] = $name; // Guardar el nombre completo
+            foreach ($budgetByLevel as $row) {
+                $fullName = $row['level1_name'] . ' - ' . $row['level2_name'];
                 
-                $categories[$name] = [
-                    'budget' => $budget,
+                $categories[$fullName] = [
+                    'budget' => floatval($row['total_amount']),
                     'invoiced' => 0,
                     'consumed' => 0
                 ];
@@ -960,26 +944,17 @@ class ComparativeOutflowsDashboardController extends Controller
                 ->get();
 
             foreach ($invoicesByLevel2 as $row) {
-                $level1Name = $row->level1_name;
-                $level2Name = $row->level2_name;
-                $fullName = $level1Name . ' - ' . $level2Name;
+                $fullName = $row->level1_name . ' - ' . $row->level2_name;
                 
-                $normalizedKey = $this->normalizeCategory($level2Name);
-                
-                // Buscar si existe una categoría con el mismo nombre normalizado
-                $categoryName = $categoryMap[$normalizedKey] ?? $fullName;
-                
-                // Si la categoría no existe, crearla y registrar en el mapa
-                if (!isset($categories[$categoryName])) {
-                    $categories[$categoryName] = [
+                if (!isset($categories[$fullName])) {
+                    $categories[$fullName] = [
                         'budget' => 0,
                         'invoiced' => 0,
                         'consumed' => 0
                     ];
-                    $categoryMap[$normalizedKey] = $categoryName;
                 }
                 
-                $categories[$categoryName]['invoiced'] += floatval($row->total);
+                $categories[$fullName]['invoiced'] += floatval($row->total);
             }
 
             // Notas de Crédito/Débito
@@ -1001,32 +976,23 @@ class ComparativeOutflowsDashboardController extends Controller
                 ->get();
 
             foreach ($notesByLevel2 as $row) {
-                $level1Name = $row->level1_name;
-                $level2Name = $row->level2_name;
-                $fullName = $level1Name . ' - ' . $level2Name;
+                $fullName = $row->level1_name . ' - ' . $row->level2_name;
                 
-                $normalizedKey = $this->normalizeCategory($level2Name);
-                
-                // Buscar si existe una categoría con el mismo nombre normalizado
-                $categoryName = $categoryMap[$normalizedKey] ?? $fullName;
-                
-                // Si la categoría no existe, crearla y registrar en el mapa
-                if (!isset($categories[$categoryName])) {
-                    $categories[$categoryName] = [
+                if (!isset($categories[$fullName])) {
+                    $categories[$fullName] = [
                         'budget' => 0,
                         'invoiced' => 0,
                         'consumed' => 0
                     ];
-                    $categoryMap[$normalizedKey] = $categoryName;
                 }
                 
                 $monto = floatval($row->total);
                 $type = strtolower($row->type);
                 
                 if ($type === 'credito' || $type === 'nc') {
-                    $categories[$categoryName]['invoiced'] -= $monto;
+                    $categories[$fullName]['invoiced'] -= $monto;
                 } else {
-                    $categories[$categoryName]['invoiced'] += $monto;
+                    $categories[$fullName]['invoiced'] += $monto;
                 }
             }
 
@@ -1047,10 +1013,10 @@ class ComparativeOutflowsDashboardController extends Controller
                         $level2Name = $outflow->level3->level2->name;
                         return $level1Name . ' - ' . $level2Name;
                     }
-                    return 'Sin Clasificar';
+                    return 'Sin Clasificar - Sin Clasificar';
                 });
 
-            foreach ($outflowsByLevel2 as $fullCategoryName => $outflows) {
+            foreach ($outflowsByLevel2 as $fullName => $outflows) {
                 $total = $outflows->sum(function($outflow) {
                     if ($outflow->invoice_product_id && $outflow->invoiceProduct) {
                         return $outflow->quantity * $outflow->invoiceProduct->unit_price;
@@ -1061,25 +1027,15 @@ class ComparativeOutflowsDashboardController extends Controller
                     return 0;
                 });
 
-                // Extraer solo el level2 para normalización (después del guión)
-                $parts = explode(' - ', $fullCategoryName);
-                $level2Name = count($parts) > 1 ? $parts[1] : $fullCategoryName;
-                $normalizedKey = $this->normalizeCategory($level2Name);
-                
-                // Buscar si existe una categoría con el mismo nombre normalizado
-                $categoryName = $categoryMap[$normalizedKey] ?? $fullCategoryName;
-                
-                // Si la categoría no existe, crearla y registrar en el mapa
-                if (!isset($categories[$categoryName])) {
-                    $categories[$categoryName] = [
+                if (!isset($categories[$fullName])) {
+                    $categories[$fullName] = [
                         'budget' => 0,
                         'invoiced' => 0,
                         'consumed' => 0
                     ];
-                    $categoryMap[$normalizedKey] = $categoryName;
                 }
                 
-                $categories[$categoryName]['consumed'] += floatval($total);
+                $categories[$fullName]['consumed'] += floatval($total);
             }
 
             Log::info('Categorías finales:', ['count' => count($categories)]);
@@ -1171,6 +1127,325 @@ class ComparativeOutflowsDashboardController extends Controller
     private function getDetailedComparisonTable($season_id, $team_id)
     {
         return $this->getComparisonByLevel1($season_id, $team_id);
+    }
+
+    /**
+     * Obtiene los totales de presupuesto agrupados por Level1 y Level2
+     * Replica la lógica de DashboardController->getTotalsByLevel12()
+     * Retorna: [level1_id, level1_name, level2_id, level2_name, total_amount]
+     */
+    private function getBudgetTotalsByLevel12($season_id, $team_id)
+    {
+        $season = \App\Models\Season::select('month_id')->where('id', $season_id)->first();
+        $currentMonth = $season ? $season->month_id : 1;
+        $months = [];
+        for ($x = $currentMonth; $x < $currentMonth + 12; $x++) {
+            $id = date('n', mktime(0, 0, 0, $x, 1));
+            $months[] = $id;
+        }
+
+        $costCentersQuery = \App\Models\CostCenter::where('season_id', $season_id);
+        if ($team_id) {
+            $costCentersQuery->whereHas('season.team', function ($query) use ($team_id) {
+                $query->where('team_id', $team_id);
+            });
+        }
+        $costCenters = $costCentersQuery->get(['id', 'fruit_id', 'surface'])->keyBy('id');
+
+        $totals = [];
+        
+        $addTotal = function ($level1_id, $level1_name, $level2_id, $level2_name, $amount) use (&$totals) {
+            $key = $level1_id . '-' . $level2_id;
+            if (!isset($totals[$key])) {
+                $totals[$key] = [
+                    'level1_id' => $level1_id,
+                    'level1_name' => $level1_name,
+                    'level2_id' => $level2_id,
+                    'level2_name' => $level2_name,
+                    'total_amount' => 0
+                ];
+            }
+            $totals[$key]['total_amount'] += $amount;
+        };
+
+        // AGROCHEMICALS
+        $agrochemicals = \App\Models\Agrochemical::from('agrochemicals as a')
+            ->join('agrochemical_items as ai', 'a.id', 'ai.agrochemical_id')
+            ->join('level3s as l3', 'a.subfamily_id', 'l3.id')
+            ->join('level2s as l2', 'l3.level2_id', 'l2.id')
+            ->join('level1s as l1', 'l2.level1_id', 'l1.id')
+            ->select('a.*', 'l1.id as level1_id', 'l1.name as level1_name', 'l2.id as level2_id', 'l2.name as level2_name', 'ai.cost_center_id')
+            ->where('a.season_id', $season_id)
+            ->where('a.team_id', $team_id)
+            ->whereIn('ai.cost_center_id', $costCenters->keys())
+            ->groupBy('a.id', 'l1.id', 'l1.name', 'l2.id', 'l2.name', 'ai.cost_center_id')
+            ->get();
+
+        foreach ($agrochemicals as $a) {
+            $amount = 0;
+            $cc = $costCenters->get($a->cost_center_id);
+            $surface = $cc ? $cc->surface : 0;
+            
+            $dose = (($a->unit_id == 4 && $a->unit_id_price == 3) || ($a->unit_id == 2 && $a->unit_id_price == 1)) ? ($a->dose / 1000) : $a->dose;
+            
+            if ($a->dose_type_id == 1) {
+                $quantityFirst = round($dose * $surface, 2);
+            } elseif ($a->dose_type_id == 2) {
+                $quantityFirst = round((($a->mojamiento / 100) * $dose * $surface), 2);
+            } else {
+                $quantityFirst = 0;
+            }
+            
+            $amountFirst = round($a->price * $quantityFirst, 2);
+            
+            foreach ($months as $month) {
+                $count = DB::table('agrochemical_items')
+                    ->where('agrochemical_id', $a->id)
+                    ->where('month_id', $month)
+                    ->where('cost_center_id', $a->cost_center_id)
+                    ->count();
+                $amount += ($count > 0 ? $amountFirst : 0);
+            }
+            
+            $addTotal($a->level1_id, $a->level1_name, $a->level2_id, $a->level2_name, $amount);
+        }
+
+        // FERTILIZERS
+        $fertilizers = \App\Models\Fertilizer::from('fertilizers as f')
+            ->join('fertilizer_items as fi', 'f.id', 'fi.fertilizer_id')
+            ->join('level3s as l3', 'f.subfamily_id', 'l3.id')
+            ->join('level2s as l2', 'l3.level2_id', 'l2.id')
+            ->join('level1s as l1', 'l2.level1_id', 'l1.id')
+            ->select('f.*', 'l1.id as level1_id', 'l1.name as level1_name', 'l2.id as level2_id', 'l2.name as level2_name', 'fi.cost_center_id')
+            ->where('f.season_id', $season_id)
+            ->where('f.team_id', $team_id)
+            ->whereIn('fi.cost_center_id', $costCenters->keys())
+            ->groupBy('f.id', 'l1.id', 'l1.name', 'l2.id', 'l2.name', 'fi.cost_center_id')
+            ->get();
+
+        foreach ($fertilizers as $f) {
+            $amount = 0;
+            $cc = $costCenters->get($f->cost_center_id);
+            $surface = $cc ? $cc->surface : 0;
+            
+            $dose = (($f->unit_id == 4 && $f->unit_id_price == 3) || ($f->unit_id == 2 && $f->unit_id_price == 1)) ? ($f->dose / 1000) : $f->dose;
+            $quantityFirst = round($dose * $surface, 2);
+            $amountFirst = round($f->price * $quantityFirst, 2);
+            
+            foreach ($months as $month) {
+                $count = DB::table('fertilizer_items')
+                    ->where('fertilizer_id', $f->id)
+                    ->where('month_id', $month)
+                    ->where('cost_center_id', $f->cost_center_id)
+                    ->count();
+                $amount += ($count > 0 ? $amountFirst : 0);
+            }
+            
+            $addTotal($f->level1_id, $f->level1_name, $f->level2_id, $f->level2_name, $amount);
+        }
+
+        // MANPOWER
+        $manpowers = \App\Models\ManPower::from('man_powers as mp')
+            ->join('manpower_items as mpi', 'mp.id', 'mpi.man_power_id')
+            ->join('level3s as l3', 'mp.subfamily_id', 'l3.id')
+            ->join('level2s as l2', 'l3.level2_id', 'l2.id')
+            ->join('level1s as l1', 'l2.level1_id', 'l1.id')
+            ->select('mp.*', 'l1.id as level1_id', 'l1.name as level1_name', 'l2.id as level2_id', 'l2.name as level2_name', 'mpi.cost_center_id')
+            ->where('mp.season_id', $season_id)
+            ->where('mp.team_id', $team_id)
+            ->whereIn('mpi.cost_center_id', $costCenters->keys())
+            ->groupBy('mp.id', 'l1.id', 'l1.name', 'l2.id', 'l2.name', 'mpi.cost_center_id')
+            ->get();
+
+        foreach ($manpowers as $mp) {
+            $amount = 0;
+            $cc = $costCenters->get($mp->cost_center_id);
+            $surface = $cc ? $cc->surface : 0;
+            
+            $quantityFirst = round($mp->workday * $surface, 2);
+            $amountFirst = round($mp->price * $quantityFirst, 2);
+            
+            foreach ($months as $month) {
+                $count = DB::table('manpower_items')
+                    ->where('man_power_id', $mp->id)
+                    ->where('month_id', $month)
+                    ->where('cost_center_id', $mp->cost_center_id)
+                    ->count();
+                $amount += ($count > 0 ? $amountFirst : 0);
+            }
+            
+            $addTotal($mp->level1_id, $mp->level1_name, $mp->level2_id, $mp->level2_name, $amount);
+        }
+
+        // SUPPLIES
+        $supplies = \App\Models\Supply::from('supplies as s')
+            ->join('supply_items as si', 's.id', 'si.supply_id')
+            ->join('level3s as l3', 's.subfamily_id', 'l3.id')
+            ->join('level2s as l2', 'l3.level2_id', 'l2.id')
+            ->join('level1s as l1', 'l2.level1_id', 'l1.id')
+            ->select('s.*', 'l1.id as level1_id', 'l1.name as level1_name', 'l2.id as level2_id', 'l2.name as level2_name', 'si.cost_center_id')
+            ->where('s.season_id', $season_id)
+            ->where('s.team_id', $team_id)
+            ->whereIn('si.cost_center_id', $costCenters->keys())
+            ->groupBy('s.id', 'l1.id', 'l1.name', 'l2.id', 'l2.name', 'si.cost_center_id')
+            ->get();
+
+        foreach ($supplies as $s) {
+            $amount = 0;
+            $cc = $costCenters->get($s->cost_center_id);
+            $surface = $cc ? $cc->surface : 0;
+            
+            $quantity = ($s->unit_id !== null && in_array($s->unit_id, [2, 4])) ? ($s->quantity / 1000) : $s->quantity;
+            $quantityFirst = round($quantity * $surface, 2);
+            $amountFirst = round($s->price * $quantityFirst, 2);
+            
+            foreach ($months as $month) {
+                $count = DB::table('supply_items')
+                    ->where('supply_id', $s->id)
+                    ->where('month_id', $month)
+                    ->where('cost_center_id', $s->cost_center_id)
+                    ->count();
+                $amount += ($count > 0 ? $amountFirst : 0);
+            }
+            
+            $addTotal($s->level1_id, $s->level1_name, $s->level2_id, $s->level2_name, $amount);
+        }
+
+        // SERVICES
+        $services = \App\Models\Service::from('services as srv')
+            ->join('service_items as si', 'srv.id', 'si.service_id')
+            ->join('level3s as l3', 'srv.subfamily_id', 'l3.id')
+            ->join('level2s as l2', 'l3.level2_id', 'l2.id')
+            ->join('level1s as l1', 'l2.level1_id', 'l1.id')
+            ->select('srv.*', 'l1.id as level1_id', 'l1.name as level1_name', 'l2.id as level2_id', 'l2.name as level2_name', 'si.cost_center_id')
+            ->where('srv.season_id', $season_id)
+            ->where('srv.team_id', $team_id)
+            ->whereIn('si.cost_center_id', $costCenters->keys())
+            ->groupBy('srv.id', 'l1.id', 'l1.name', 'l2.id', 'l2.name', 'si.cost_center_id')
+            ->get();
+
+        foreach ($services as $srv) {
+            $amount = 0;
+            $cc = $costCenters->get($srv->cost_center_id);
+            $surface = $cc ? $cc->surface : 0;
+            
+            $quantityFirst = round($srv->quantity * $surface, 2);
+            $amountFirst = round($srv->price * $quantityFirst, 2);
+            
+            foreach ($months as $month) {
+                $count = DB::table('service_items')
+                    ->where('service_id', $srv->id)
+                    ->where('month_id', $month)
+                    ->where('cost_center_id', $srv->cost_center_id)
+                    ->count();
+                $amount += ($count > 0 ? $amountFirst : 0);
+            }
+            
+            $addTotal($srv->level1_id, $srv->level1_name, $srv->level2_id, $srv->level2_name, $amount);
+        }
+
+        // HARVESTS
+        $harvests = \App\Models\Harvest::from('harvests as h')
+            ->join('harvest_items as hi', 'h.id', 'hi.harvest_id')
+            ->join('level3s as l3', 'h.subfamily_id', 'l3.id')
+            ->join('level2s as l2', 'l3.level2_id', 'l2.id')
+            ->join('level1s as l1', 'l2.level1_id', 'l1.id')
+            ->select('h.*', 'l1.id as level1_id', 'l1.name as level1_name', 'l2.id as level2_id', 'l2.name as level2_name', 'hi.cost_center_id')
+            ->where('h.season_id', $season_id)
+            ->where('h.team_id', $team_id)
+            ->whereIn('hi.cost_center_id', $costCenters->keys())
+            ->groupBy('h.id', 'l1.id', 'l1.name', 'l2.id', 'l2.name', 'hi.cost_center_id')
+            ->get();
+
+        foreach ($harvests as $h) {
+            $amount = 0;
+            $cc = $costCenters->get($h->cost_center_id);
+            $surface = $cc ? $cc->surface : 0;
+            
+            $quantityFirst = round($h->quantity * $surface, 2);
+            $amountFirst = round($h->price * $quantityFirst, 2);
+            
+            foreach ($months as $month) {
+                $count = DB::table('harvest_items')
+                    ->where('harvest_id', $h->id)
+                    ->where('month_id', $month)
+                    ->where('cost_center_id', $h->cost_center_id)
+                    ->count();
+                $amount += ($count > 0 ? $amountFirst : 0);
+            }
+            
+            $addTotal($h->level1_id, $h->level1_name, $h->level2_id, $h->level2_name, $amount);
+        }
+
+        // ADMINISTRATIONS
+        $administrations = DB::table('administrations as a')
+            ->join('level3s as l3', 'a.subfamily_id', '=', 'l3.id')
+            ->join('level2s as l2', 'l3.level2_id', '=', 'l2.id')
+            ->join('level1s as l1', 'l2.level1_id', '=', 'l1.id')
+            ->select(
+                'l1.id as level1_id',
+                'l1.name as level1_name',
+                'l2.id as level2_id',
+                'l2.name as level2_name',
+                'a.id as administration_id',
+                'a.price',
+                'a.quantity',
+                'a.unit_id'
+            )
+            ->where('a.season_id', $season_id)
+            ->where('a.team_id', $team_id)
+            ->get();
+
+        foreach ($administrations as $adm) {
+            $activeMonths = DB::table('administration_items')
+                ->where('administration_id', $adm->administration_id)
+                ->whereIn('month_id', $months)
+                ->distinct('month_id')
+                ->pluck('month_id');
+            
+            $countMonths = $activeMonths->count();
+            if ($countMonths > 0) {
+                $quantity = ($adm->quantity !== null && ($adm->quantity > 0)) ? ((in_array($adm->unit_id ?? null, [2, 4])) ? ($adm->quantity / 1000) : $adm->quantity) : 0;
+                $amount = round($adm->price * $quantity * $countMonths, 2);
+                $addTotal($adm->level1_id, $adm->level1_name, $adm->level2_id, $adm->level2_name, $amount);
+            }
+        }
+
+        // FIELDS
+        $fields = DB::table('fields as f')
+            ->join('level3s as l3', 'f.subfamily_id', '=', 'l3.id')
+            ->join('level2s as l2', 'l3.level2_id', '=', 'l2.id')
+            ->join('level1s as l1', 'l2.level1_id', '=', 'l1.id')
+            ->select(
+                'l1.id as level1_id',
+                'l1.name as level1_name',
+                'l2.id as level2_id',
+                'l2.name as level2_name',
+                'f.id as field_id',
+                'f.price',
+                'f.quantity',
+                'f.unit_id'
+            )
+            ->where('f.season_id', $season_id)
+            ->where('f.team_id', $team_id)
+            ->get();
+
+        foreach ($fields as $fld) {
+            $activeMonths = DB::table('field_items')
+                ->where('field_id', $fld->field_id)
+                ->whereIn('month_id', $months)
+                ->distinct('month_id')
+                ->pluck('month_id');
+            
+            $countMonths = $activeMonths->count();
+            if ($countMonths > 0) {
+                $quantity = ($fld->quantity !== null && ($fld->quantity > 0)) ? ((in_array($fld->unit_id ?? null, [2, 4])) ? ($fld->quantity / 1000) : $fld->quantity) : 0;
+                $amount = round($fld->price * $quantity * $countMonths, 2);
+                $addTotal($fld->level1_id, $fld->level1_name, $fld->level2_id, $fld->level2_name, $amount);
+            }
+        }
+
+        return collect(array_values($totals));
     }
 
     /**
