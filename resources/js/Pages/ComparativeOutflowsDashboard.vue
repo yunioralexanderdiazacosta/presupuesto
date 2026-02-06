@@ -324,10 +324,14 @@ const formatPercent = (value) => {
 };
 
 // Obtener clase de badge según variación
-const getVarianceClass = (variance) => {
-    if (variance > 10) return 'bg-danger';
-    if (variance > 5) return 'bg-warning text-dark';
-    if (variance > 0) return 'bg-info';
+const getVarianceClass = (variance, isOverBudget = false) => {
+    // Si es ahorro (variance negativa o difference positiva), siempre verde
+    if (!isOverBudget) return 'bg-success';
+    
+    // Solo aplicar alertas si hay sobregasto
+    const absVariance = Math.abs(variance);
+    if (absVariance > 10) return 'bg-danger';
+    if (absVariance > 5) return 'bg-warning text-dark';
     return 'bg-success';
 };
 
@@ -760,9 +764,9 @@ function createCumulativeChart() {
                                     <thead class="table-light">
                                         <tr>
                                             <th style="width: 10%;">Mes</th>
-                                            <th class="text-end" style="width: 14%;">Presupuesto Acumulado</th>
-                                            <th class="text-end" style="width: 14%;">Facturado Acumulado</th>
-                                            <th class="text-end" style="width: 14%;">Consumido Acumulado</th>
+                                            <th class="text-end" style="width: 14%;">Presupuesto<br>Acumulado</th>
+                                            <th class="text-end" style="width: 14%;">Facturado<br>Acumulado</th>
+                                            <th class="text-end" style="width: 14%;">Consumido<br>Acumulado</th>
                                             <th class="text-end" style="width: 12%;">Dif. (P-F)</th>
                                             <th class="text-end" style="width: 12%;">Dif. (P-C)</th>
                                             <th class="text-end" style="width: 12%;">Var. % (F)</th>
@@ -984,9 +988,9 @@ function createCumulativeChart() {
                                                     </span>
                                                 </td>
                                                 <td class="text-center">
-                                                    <span class="badge" :class="getVarianceClass(Math.abs(group.totals.variance))">
-                                                        {{ getStatusIcon('ok') }}
-                                                        Grupo
+                                                    <span class="badge" :class="getVarianceClass(group.totals.variance, group.totals.variance > 0)">
+                                                        {{ getStatusIcon(group.totals.variance > 0 ? 'over' : 'ok') }}
+                                                        {{ group.totals.variance > 0 ? (Math.abs(group.totals.variance) > 10 ? 'Alerta' : Math.abs(group.totals.variance) > 5 ? 'Revisión' : 'OK') : 'OK' }}
                                                     </span>
                                                 </td>
                                             </tr>
@@ -1009,9 +1013,9 @@ function createCumulativeChart() {
                                                         </span>
                                                     </td>
                                                     <td class="text-center">
-                                                        <span class="badge" :class="getVarianceClass(Math.abs(item.variance))">
+                                                        <span class="badge" :class="getVarianceClass(item.variance, item.variance > 0)">
                                                             {{ getStatusIcon(item.status) }}
-                                                            {{ Math.abs(item.variance) > 10 ? 'Atención' : Math.abs(item.variance) > 5 ? 'Revisión' : 'OK' }}
+                                                            {{ item.variance > 0 ? (Math.abs(item.variance) > 10 ? 'Alerta' : Math.abs(item.variance) > 5 ? 'Revisión' : 'OK') : 'OK' }}
                                                         </span>
                                                     </td>
                                                 </tr>
@@ -1042,9 +1046,9 @@ function createCumulativeChart() {
                                                 </span>
                                             </td>
                                             <td class="text-center">
-                                                <span class="badge" :class="getVarianceClass(Math.abs(item.variance))">
+                                                <span class="badge" :class="getVarianceClass(item.variance, item.variance > 0)">
                                                     {{ getStatusIcon(item.status) }}
-                                                    {{ Math.abs(item.variance) > 10 ? 'Atención' : Math.abs(item.variance) > 5 ? 'Revisión' : 'OK' }}
+                                                    {{ item.variance > 0 ? (Math.abs(item.variance) > 10 ? 'Alerta' : Math.abs(item.variance) > 5 ? 'Revisión' : 'OK') : 'OK' }}
                                                 </span>
                                             </td>
                                         </tr>
