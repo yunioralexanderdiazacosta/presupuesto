@@ -3,7 +3,11 @@ import TextInput from '@/Components/TextInput.vue';
 import InputError from '@/Components/InputError.vue';
 
 const props = defineProps({
-    form: Object
+    form: Object,
+    availableRoles: {
+        type: Array,
+        default: () => []
+    }
 });
 </script>
 <template>
@@ -44,16 +48,24 @@ const props = defineProps({
         </div>
 </div>
      <div class="fv-row">
-        <label for="role" class="col-form-label">Rol</label><br>
+        <label for="roles" class="col-form-label">
+            <i class="fas fa-user-shield me-1"></i>Roles
+        </label>
+        <small class="text-muted d-block mb-2">Selecciona uno o más roles para este usuario</small>
         
-    <div class="form-check form-check-solid form-check-inline mb-1">
-            <input class="form-check-input" type="radio" v-model="form.role" id="admin" value="Admin">
-            <label class="form-check-label ps-1" for="admin">Administrador</label>
+        <div v-for="role in availableRoles" :key="role.value" class="form-check form-check-solid mb-2">
+            <input 
+                class="form-check-input" 
+                type="checkbox" 
+                :id="`role-${role.value}`" 
+                :value="role.value"
+                v-model="form.roles"
+            >
+            <label class="form-check-label ps-2" :for="`role-${role.value}`">
+                {{ role.label }}
+            </label>
         </div>
-         <div class="form-check form-check-solid form-check-inline mb-1">
-            <input class="form-check-input" type="radio" v-model="form.role" id="admin" value="Normal">
-            <label class="form-check-label ps-1" for="admin">Digitador</label>
-        </div>
-        <small class="text-danger mt-2" :v-if="form.errors.role">{{form.errors.role}}</small>
+        
+        <InputError class="mt-2" :message="form.errors.roles" />
     </div>
 </template>

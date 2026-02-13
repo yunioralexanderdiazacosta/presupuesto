@@ -12,7 +12,8 @@ import EditUserModal from '@/Components/Users/EditUserModal.vue';
 
 const props = defineProps({
     users: Object,
-    term: String
+    term: String,
+    availableRoles: Array
 });
 
 const form = useForm({
@@ -20,7 +21,7 @@ const form = useForm({
     name: '',
     email: '',
     password: '',
-    role: ''    
+    roles: []    
 });
 
 const title = 'Usuarios';
@@ -39,7 +40,7 @@ const openEdit = (user) => {
     form.id = user.id; 
     form.name = user.name;
     form.email = user.email;
-    form.role = user.role == 'Administrador' ? 'Admin' : 'Normal';   
+    form.roles = user.roles || [];   
     $('#editUserModal').modal('show');
 }
 
@@ -199,7 +200,14 @@ const onFilter = () => {
                                 <td>{{user.name}}</td>
                                 <td>{{user.email}}</td>
                                 <td>
-                                    <span class="badge" :class="{' rounded-pill badge-subtle-info': user.role == 'Digitador', 'rounded-pill badge-subtle-warning':  user.role == 'Administrador'}">{{user.role}}</span>
+                                    <span 
+                                        v-for="(role, idx) in user.roles" 
+                                        :key="idx" 
+                                        class="badge rounded-pill badge-subtle-primary me-1"
+                                    >
+                                        {{ role == 'Normal' ? 'Digitador' : role }}
+                                    </span>
+                                    <span v-if="user.roles.length === 0" class="text-muted">Sin rol</span>
                                 </td>
                                 <td>{{moment(user.created_at).format('DD-MM-YYYY hh:mm A')}}</td>
                                 <td>
@@ -254,7 +262,7 @@ const onFilter = () => {
             </div>
         </div>
 
-        <CreateUserModal @store="storeUser" :form="form" />
-        <EditUserModal @update="updateUser" :form="form" />
+        <CreateUserModal @store="storeUser" :form="form" :availableRoles="availableRoles" />
+        <EditUserModal @update="updateUser" :form="form" :availableRoles="availableRoles" />
     </AppLayout>
 </template>

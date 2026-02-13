@@ -22,6 +22,6 @@ class StoreUserController extends Controller
         $user->team_id = $owner->team_id;
         $user->save();
 
-        $user->assignRole($request->role);
+        $user->syncRoles($request->roles);
     }
 }

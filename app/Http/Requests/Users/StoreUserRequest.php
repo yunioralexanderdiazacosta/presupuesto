@@ -24,7 +24,18 @@ class StoreUserRequest extends FormRequest
         return [
             'name' => 'required',
             'email' => 'required|max:255|unique:users',
-            'password' => 'required:max:255'
+            'password' => 'required:max:255',
+            'roles' => 'required|array|min:1',
+            'roles.*' => 'exists:roles,name'
+        ];
+    }
+
+    public function messages(): array
+    {
+        return [
+            'roles.required' => 'Debe seleccionar al menos un rol.',
+            'roles.min' => 'Debe seleccionar al menos un rol.',
+            'roles.*.exists' => 'El rol seleccionado no es válido.'
         ];
     }
 }

@@ -3,7 +3,8 @@ import UserForm from './UserForm.vue';
 import Modal from '@/Components/Modal.vue';
 
 const props = defineProps({
-    form: Object
+    form: Object,
+    availableRoles: Array
 });
 
 defineEmits(['store']);
@@ -23,7 +24,7 @@ defineEmits(['store']);
             </div>
         </template>
         <template #body>
-            <UserForm :form="form" />
+            <UserForm :form="form" :availableRoles="availableRoles" />
         </template>
         <template #footer>
             <button type="button" id="kt_modal_add_user_cancel" data-bs-dismiss="modal" class="btn btn-light me-3">Cerrar</button>

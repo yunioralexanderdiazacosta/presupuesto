@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use App\Models\User;
+use Spatie\Permission\Models\Role;
 use Inertia\Inertia;
 
 class UsersController extends Controller
@@ -25,12 +26,20 @@ class UsersController extends Controller
                 'id' => $value->id,
                 'name' => $value->name,
                 'email' => $value->email,
-                'role'  => $value->getRoleNames()[0] == 'Normal' ? 'Digitador' : 'Administrador',
+                'roles' => $value->getRoleNames()->toArray(),
                 'status' => $value->status,
                 'created_at' => $value->created_at 
             ];
         });
 
-        return Inertia::render('Users', compact('users', 'term'));
+        // Obtener todos los roles disponibles
+        $availableRoles = Role::orderBy('name')->get()->map(function($role) {
+            return [
+                'value' => $role->name,
+                'label' => $role->name == 'Normal' ? 'Digitador' : $role->name
+            ];
+        });
+
+        return Inertia::render('Users', compact('users', 'term', 'availableRoles'));
     }
 }

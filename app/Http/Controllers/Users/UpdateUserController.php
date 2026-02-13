@@ -18,6 +18,6 @@ class UpdateUserController extends Controller
         }
         $user->save();
 
-        $user->syncRoles([$request->role]); 
+        $user->syncRoles($request->roles); 
     }
 }

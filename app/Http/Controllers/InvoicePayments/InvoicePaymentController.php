@@ -63,27 +63,7 @@ class InvoicePaymentController extends Controller
                 $query->where('bank_id', $id);
             })
             ->latest('payment_date')
-            ->paginate(50)
-            ->withQueryString()
-            ->through(function($payment){
-                return [
-                    'id' => $payment->id,
-                    'payment_date' => $payment->payment_date ? \Carbon\Carbon::parse($payment->payment_date)->format('d-m-Y') : null,
-                    'amount' => $payment->amount,
-                    'payment_method' => $payment->payment_method,
-                    'payment_method_name' => $payment->payment_method_name,
-                    'transaction_number' => $payment->transaction_number,
-                    'observations' => $payment->observations,
-                    'bank' => $payment->bank ? ['id' => $payment->bank->id, 'name' => $payment->bank->name] : null,
-                    'invoice' => [
-                        'id' => $payment->invoice->id,
-                        'number_document' => $payment->invoice->number_document,
-                        'supplier' => $payment->invoice->supplier->name ?? '',
-                        'type_document' => $payment->invoice->typeDocument->name ?? '',
-                    ],
-                    'user' => $payment->user->name ?? '',
-                ];
-            });
+            ->paginate(50);
 
         // Obtener bancos activos
         $banks = Bank::where('active', true)

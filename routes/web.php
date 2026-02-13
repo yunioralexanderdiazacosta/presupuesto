@@ -66,6 +66,14 @@ use App\Http\Controllers\Products2\DeleteProduct2Controller;
     use App\Http\Controllers\InvoicePayments\UpdateInvoicePaymentController;
     use App\Http\Controllers\InvoicePayments\DeleteInvoicePaymentController;
 
+// Rutas para Purchase Orders
+    use App\Http\Controllers\PurchaseOrders\PurchaseOrderController;
+    use App\Http\Controllers\PurchaseOrders\StorePurchaseOrderController;
+    use App\Http\Controllers\PurchaseOrders\UpdatePurchaseOrderController;
+    use App\Http\Controllers\PurchaseOrders\DeletePurchaseOrderController;
+    use App\Http\Controllers\PurchaseOrders\ShowPurchaseOrderController;
+    use App\Http\Controllers\PurchaseOrders\UpdatePurchaseOrderStatusController;
+
 use Illuminate\Foundation\Application;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\HomeController;
@@ -635,6 +643,13 @@ Route::middleware([
     Route::put('/invoice-payments/{payment}', UpdateInvoicePaymentController::class)->name('invoice-payments.update');
     Route::delete('/invoice-payments/{payment}', DeleteInvoicePaymentController::class)->name('invoice-payments.delete');
 
+    // Purchase Orders
+    Route::get('/purchase-orders', [PurchaseOrderController::class, 'index'])->name('purchase-orders.index');
+    Route::post('/purchase-orders', StorePurchaseOrderController::class)->name('purchase-orders.store');
+    Route::get('/purchase-orders/{purchaseOrder}', ShowPurchaseOrderController::class)->name('purchase-orders.show');
+    Route::put('/purchase-orders/{purchaseOrder}', UpdatePurchaseOrderController::class)->name('purchase-orders.update');
+    Route::delete('/purchase-orders/{purchaseOrder}', DeletePurchaseOrderController::class)->name('purchase-orders.delete');
+    Route::patch('/purchase-orders/{purchaseOrder}/status', UpdatePurchaseOrderStatusController::class)->name('purchase-orders.update-status');
 
     // Consolidated Documents
     Route::get('/consolidated-documents', [ConsolidatedDocumentsController::class, 'index'])->name('consolidated-documents.index');

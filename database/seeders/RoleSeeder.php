@@ -18,16 +18,22 @@ class RoleSeeder extends Seeder
     {
         app()[\Spatie\Permission\PermissionRegistrar::class]->forgetCachedPermissions();
 
-        $roleSuperAdmin = Role::create(['name' => 'Super Admin']);
-        $roleAdmin      = Role::create(['name' => 'Admin']);
-        $roleNormal     = Role::create(['name' => 'Normal']);
+        $roleSuperAdmin = Role::firstOrCreate(['name' => 'Super Admin']);
+        $roleAdmin      = Role::firstOrCreate(['name' => 'Admin']);
+        $roleNormal     = Role::firstOrCreate(['name' => 'Normal']);
+        $roleAprobador  = Role::firstOrCreate(['name' => 'Aprobador Compras']);
 
-        $user = User::create([
-            'name'                  => 'Administrador',
-            'email'                 => 'admin@example.com',
-            'password'              => Hash::make('1234'),
-        ]);
+        // Solo crear usuario admin si no existe
+        $user = User::firstOrCreate(
+            ['email' => 'admin@example.com'],
+            [
+                'name'     => 'Administrador',
+                'password' => Hash::make('1234'),
+            ]
+        );
 
-        $user->assignRole($roleSuperAdmin);
+        if (!$user->hasRole('Super Admin')) {
+            $user->assignRole($roleSuperAdmin);
+        }
     }
 }
