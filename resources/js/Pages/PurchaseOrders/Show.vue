@@ -47,150 +47,198 @@ function printOrder() {
         <div class="card my-3">
             <div class="card-header">
                 <div class="row flex-between-center">
-                    <div class="col-auto">
-                        <h5 class="fs-9 mb-0">
-                            <i class="fas fa-file-invoice me-2"></i>Orden de Compra {{ purchaseOrder.order_number }}
+                    <div class="col-6 col-sm-auto d-flex align-items-center pe-0">
+                        <h5 class="fs-9 mb-0 text-nowrap py-2 py-xl-0">
+                            <i class="fas fa-file-invoice me-2 text-primary"></i>
+                            Orden de Compra #{{ purchaseOrder.order_number }}
                         </h5>
                     </div>
-                    <div class="col-auto">
+                    <div class="col-6 col-sm-auto ms-auto text-end ps-0">
                         <Link 
                             :href="route('purchase-orders.index')" 
                             class="btn btn-falcon-default btn-sm me-2"
                         >
-                            <i class="fas fa-arrow-left me-1"></i> Volver
+                            <span class="fas fa-arrow-left" data-fa-transform="shrink-3 down-2"></span>
+                            <span class="d-none d-sm-inline-block ms-1">Volver</span>
                         </Link>
                         <button @click="printOrder" class="btn btn-falcon-default btn-sm">
-                            <i class="fas fa-print me-1"></i> Imprimir
+                            <span class="fas fa-print" data-fa-transform="shrink-3 down-2"></span>
+                            <span class="d-none d-sm-inline-block ms-1">Imprimir</span>
                         </button>
                     </div>
                 </div>
             </div>
 
-            <div class="card-body">
+            <div class="card-body bg-body-tertiary">
                 <!-- Información General -->
-                <div class="row mb-4">
+                <div class="row g-3 mb-4">
                     <div class="col-md-6">
-                        <h6 class="text-uppercase text-muted mb-3">Información de la Orden</h6>
-                        <table class="table table-sm table-borderless">
-                            <tr>
-                                <td class="fw-semibold" style="width: 40%;">N° Orden:</td>
-                                <td>{{ purchaseOrder.order_number }}</td>
-                            </tr>
-                            <tr>
-                                <td class="fw-semibold">Fecha Orden:</td>
-                                <td>{{ formatDate(purchaseOrder.order_date) }}</td>
-                            </tr>
-                            <tr>
-                                <td class="fw-semibold">Fecha Entrega:</td>
-                                <td>{{ purchaseOrder.delivery_date ? formatDate(purchaseOrder.delivery_date) : 'No especificada' }}</td>
-                            </tr>
-                            <tr>
-                                <td class="fw-semibold">Estado:</td>
-                                <td>
-                                    <span :class="['badge', getStatusBadgeClass(purchaseOrder.status)]">
-                                        {{ purchaseOrder.status_label }}
-                                    </span>
-                                </td>
-                            </tr>
-                            <tr>
-                                <td class="fw-semibold">Condiciones Pago:</td>
-                                <td>{{ purchaseOrder.payment_terms || '-' }}</td>
-                            </tr>
-                        </table>
+                        <div class="card h-100">
+                            <div class="card-body">
+                                <h6 class="card-title text-muted mb-3">
+                                    <i class="fas fa-info-circle me-2"></i>Información de la Orden
+                                </h6>
+                                <div class="row g-2">
+                                    <div class="col-6">
+                                        <small class="text-muted d-block">N° Orden</small>
+                                        <strong>{{ purchaseOrder.order_number }}</strong>
+                                    </div>
+                                    <div class="col-6">
+                                        <small class="text-muted d-block">Estado</small>
+                                        <span :class="['badge', getStatusBadgeClass(purchaseOrder.status)]">
+                                            {{ purchaseOrder.status_label }}
+                                        </span>
+                                    </div>
+                                    <div class="col-6">
+                                        <small class="text-muted d-block">Fecha Orden</small>
+                                        <span>{{ formatDate(purchaseOrder.order_date) }}</span>
+                                    </div>
+                                    <div class="col-6">
+                                        <small class="text-muted d-block">Fecha Entrega</small>
+                                        <span>{{ purchaseOrder.delivery_date ? formatDate(purchaseOrder.delivery_date) : 'No especificada' }}</span>
+                                    </div>
+                                    <div class="col-12">
+                                        <small class="text-muted d-block">Condiciones de Pago</small>
+                                        <span>{{ purchaseOrder.payment_terms || '-' }}</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
                     </div>
+
                     <div class="col-md-6">
-                        <h6 class="text-uppercase text-muted mb-3">Proveedor</h6>
-                        <table class="table table-sm table-borderless" v-if="purchaseOrder.supplier">
-                            <tr>
-                                <td class="fw-semibold" style="width: 40%;">Nombre:</td>
-                                <td>{{ purchaseOrder.supplier.name }}</td>
-                            </tr>
-                            <tr v-if="purchaseOrder.supplier.rut">
-                                <td class="fw-semibold">RUT:</td>
-                                <td>{{ purchaseOrder.supplier.rut }}</td>
-                            </tr>
-                            <tr v-if="purchaseOrder.supplier.contact">
-                                <td class="fw-semibold">Contacto:</td>
-                                <td>{{ purchaseOrder.supplier.contact }}</td>
-                            </tr>
-                            <tr v-if="purchaseOrder.supplier.email">
-                                <td class="fw-semibold">Email:</td>
-                                <td>{{ purchaseOrder.supplier.email }}</td>
-                            </tr>
-                            <tr v-if="purchaseOrder.supplier.phone">
-                                <td class="fw-semibold">Teléfono:</td>
-                                <td>{{ purchaseOrder.supplier.phone }}</td>
-                            </tr>
-                        </table>
+                        <div class="card h-100">
+                            <div class="card-body">
+                                <h6 class="card-title text-muted mb-3">
+                                    <i class="fas fa-building me-2"></i>Proveedor
+                                </h6>
+                                <div class="row g-2" v-if="purchaseOrder.supplier">
+                                    <div class="col-12">
+                                        <small class="text-muted d-block">Nombre</small>
+                                        <strong>{{ purchaseOrder.supplier.name }}</strong>
+                                    </div>
+                                    <div class="col-6" v-if="purchaseOrder.supplier.rut">
+                                        <small class="text-muted d-block">RUT</small>
+                                        <span>{{ purchaseOrder.supplier.rut }}</span>
+                                    </div>
+                                    <div class="col-6" v-if="purchaseOrder.supplier.contact">
+                                        <small class="text-muted d-block">Contacto</small>
+                                        <span>{{ purchaseOrder.supplier.contact }}</span>
+                                    </div>
+                                    <div class="col-6" v-if="purchaseOrder.supplier.email">
+                                        <small class="text-muted d-block">Email</small>
+                                        <span>{{ purchaseOrder.supplier.email }}</span>
+                                    </div>
+                                    <div class="col-6" v-if="purchaseOrder.supplier.phone">
+                                        <small class="text-muted d-block">Teléfono</small>
+                                        <span>{{ purchaseOrder.supplier.phone }}</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
                     </div>
                 </div>
 
-                <!-- Items de la Orden -->
-                <h6 class="text-uppercase text-muted mb-3">Productos</h6>
-                <div class="table-responsive mb-4">
-                    <table class="table table-sm table-bordered">
-                        <thead class="bg-light">
-                            <tr>
-                                <th style="width: 40%;">Producto</th>
-                                <th class="text-center" style="width: 15%;">Cantidad</th>
-                                <th class="text-center" style="width: 10%;">Unidad</th>
-                                <th class="text-end" style="width: 15%;">P. Unitario</th>
-                                <th class="text-end" style="width: 20%;">Subtotal</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            <tr v-for="item in purchaseOrder.items" :key="item.id">
-                                <td>
-                                    {{ item.product.name }}
-                                    <small v-if="item.notes" class="text-muted d-block">{{ item.notes }}</small>
-                                </td>
-                                <td class="text-center">{{ item.quantity }}</td>
-                                <td class="text-center">{{ item.unit.name }}</td>
-                                <td class="text-end">${{ formatCurrency(item.unit_price) }}</td>
-                                <td class="text-end">${{ formatCurrency(item.subtotal) }}</td>
-                            </tr>
-                        </tbody>
-                        <tfoot>
-                            <tr>
-                                <td colspan="4" class="text-end fw-semibold">Subtotal:</td>
-                                <td class="text-end">${{ formatCurrency(purchaseOrder.subtotal) }}</td>
-                            </tr>
-                            <tr>
-                                <td colspan="4" class="text-end fw-semibold">IVA (19%):</td>
-                                <td class="text-end">${{ formatCurrency(purchaseOrder.tax) }}</td>
-                            </tr>
-                            <tr class="table-active">
-                                <td colspan="4" class="text-end fw-bold">TOTAL:</td>
-                                <td class="text-end fw-bold">${{ formatCurrency(purchaseOrder.total) }}</td>
-                            </tr>
-                        </tfoot>
-                    </table>
+                <!-- Tabla de Productos -->
+                <div class="card mb-3">
+                    <div class="card-header">
+                        <h6 class="mb-0">
+                            <i class="fas fa-list me-2"></i>Detalle de Productos
+                        </h6>
+                    </div>
+                    <div class="card-body p-0">
+                        <div class="table-responsive">
+                            <table class="table table-sm table-hover mb-0">
+                                <thead class="bg-light">
+                                    <tr>
+                                        <th class="text-start">Producto</th>
+                                        <th class="text-center">Cantidad</th>
+                                        <th class="text-center">Unidad</th>
+                                        <th class="text-end">P. Unitario</th>
+                                        <th class="text-end">Subtotal</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr v-for="item in purchaseOrder.items" :key="item.id">
+                                        <td class="text-start">
+                                            {{ item.product.name }}
+                                            <small v-if="item.notes" class="text-muted d-block">{{ item.notes }}</small>
+                                        </td>
+                                        <td class="text-center">{{ item.quantity }}</td>
+                                        <td class="text-center">{{ item.unit.name }}</td>
+                                        <td class="text-end">${{ formatCurrency(item.unit_price) }}</td>
+                                        <td class="text-end fw-bold">${{ formatCurrency(item.subtotal) }}</td>
+                                    </tr>
+                                </tbody>
+                                <tfoot class="bg-light">
+                                    <tr>
+                                        <td colspan="4" class="text-end fw-bold">Subtotal:</td>
+                                        <td class="text-end fw-bold">${{ formatCurrency(purchaseOrder.subtotal) }}</td>
+                                    </tr>
+                                    <tr>
+                                        <td colspan="4" class="text-end fw-bold">IVA (19%):</td>
+                                        <td class="text-end fw-bold">${{ formatCurrency(purchaseOrder.tax) }}</td>
+                                    </tr>
+                                    <tr class="table-active">
+                                        <td colspan="4" class="text-end fw-bold">TOTAL:</td>
+                                        <td class="text-end fw-bold text-primary">${{ formatCurrency(purchaseOrder.total) }}</td>
+                                    </tr>
+                                </tfoot>
+                            </table>
+                        </div>
+                    </div>
                 </div>
 
                 <!-- Información Adicional -->
-                <div class="row">
+                <div class="row g-3">
                     <div class="col-md-6" v-if="purchaseOrder.cost_centers && purchaseOrder.cost_centers.length > 0">
-                        <h6 class="text-uppercase text-muted mb-2">Centros de Costo</h6>
-                        <ul class="mb-0">
-                            <li v-for="cc in purchaseOrder.cost_centers" :key="cc.id">
-                                {{ cc.name }}
-                            </li>
-                        </ul>
+                        <div class="card h-100">
+                            <div class="card-body">
+                                <h6 class="card-title text-muted mb-3">
+                                    <i class="fas fa-sitemap me-2"></i>Centros de Costo
+                                </h6>
+                                <ul class="mb-0">
+                                    <li v-for="cc in purchaseOrder.cost_centers" :key="cc.id">
+                                        {{ cc.name }}
+                                    </li>
+                                </ul>
+                            </div>
+                        </div>
                     </div>
+
                     <div :class="purchaseOrder.cost_centers && purchaseOrder.cost_centers.length > 0 ? 'col-md-6' : 'col-md-12'">
-                        <h6 class="text-uppercase text-muted mb-2">Datos de Gestión</h6>
-                        <p class="mb-1"><strong>Solicitado por:</strong> {{ purchaseOrder.requested_by }}</p>
-                        <p class="mb-1" v-if="purchaseOrder.approved_by">
-                            <strong>Aprobado por:</strong> {{ purchaseOrder.approved_by }}
-                        </p>
-                        <p class="mb-1"><strong>Creado:</strong> {{ purchaseOrder.created_at }}</p>
+                        <div class="card h-100">
+                            <div class="card-body">
+                                <h6 class="card-title text-muted mb-3">
+                                    <i class="fas fa-users-cog me-2"></i>Datos de Gestión
+                                </h6>
+                                <div class="row g-2">
+                                    <div class="col-12">
+                                        <small class="text-muted d-block">Solicitado por</small>
+                                        <strong>{{ purchaseOrder.requested_by }}</strong>
+                                    </div>
+                                    <div class="col-12" v-if="purchaseOrder.approved_by">
+                                        <small class="text-muted d-block">Aprobado por</small>
+                                        <strong>{{ purchaseOrder.approved_by }}</strong>
+                                    </div>
+                                    <div class="col-12">
+                                        <small class="text-muted d-block">Fecha de creación</small>
+                                        <span>{{ purchaseOrder.created_at }}</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
                     </div>
                 </div>
 
-                <!-- Notas -->
-                <div v-if="purchaseOrder.notes" class="mt-3">
-                    <h6 class="text-uppercase text-muted mb-2">Observaciones</h6>
-                    <p class="text-muted">{{ purchaseOrder.notes }}</p>
+                <!-- Notas/Observaciones -->
+                <div v-if="purchaseOrder.notes" class="card mt-3">
+                    <div class="card-body">
+                        <h6 class="card-title text-muted mb-2">
+                            <i class="fas fa-sticky-note me-2"></i>Observaciones
+                        </h6>
+                        <p class="mb-0 text-muted" style="white-space: pre-line;">{{ purchaseOrder.notes }}</p>
+                    </div>
                 </div>
             </div>
         </div>
@@ -199,8 +247,27 @@ function printOrder() {
 
 <style scoped>
 @media print {
-    .btn, .card-header button, nav {
+    .btn, 
+    .card-header button, 
+    nav,
+    .sidebar,
+    .navbar {
         display: none !important;
+    }
+    
+    .card {
+        border: none !important;
+        box-shadow: none !important;
+    }
+    
+    .card-body {
+        padding: 1rem !important;
+    }
+    
+    /* Mantener colores de badges en impresión */
+    .badge {
+        -webkit-print-color-adjust: exact;
+        print-color-adjust: exact;
     }
 }
 </style>
