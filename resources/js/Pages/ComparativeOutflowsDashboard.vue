@@ -23,6 +23,12 @@ let cumulativeChart = null;
 // Toggle ÚNICO para incluir/excluir inversiones en TODO el dashboard
 const includeInvestments = ref(false);
 
+// Variables para conversión USD
+const divisor = ref(970);
+const divisorMin = 800;
+const divisorMax = 1100;
+const dividir = ref(false); // Por defecto desactivado
+
 // Mes seleccionado para el card de diferencia (inicializar con mes anterior al actual)
 const selectedMonthIndex = ref(null);
 
@@ -308,13 +314,21 @@ const differenceToSelectedMonth = computed(() => {
     return null;
 });
 
-// Formatear números en formato chileno
+// Formatear números en formato chileno (con conversión USD opcional)
 const formatCLP = (value) => {
-    if (!value && value !== 0) return '$0';
-    return '$' + parseFloat(value).toLocaleString('es-CL', {
+    if (!value && value !== 0) return dividir.value ? '$0 USD' : '$0';
+    const convertedValue = dividir.value && divisor.value ? value / divisor.value : value;
+    return '$' + parseFloat(convertedValue).toLocaleString('es-CL', {
         minimumFractionDigits: 0,
         maximumFractionDigits: 0
-    });
+    }) + (dividir.value ? ' USD' : '');
+};
+
+// Formatear números sin símbolo de moneda (para uso interno en gráficos)
+const formatNumber = (value) => {
+    if (!value && value !== 0) return 0;
+    const convertedValue = dividir.value && divisor.value ? value / divisor.value : value;
+    return convertedValue;
 };
 
 // Formatear porcentajes
@@ -351,16 +365,22 @@ const cumulativeTableData = computed(() => {
         const consumed = includeInvestments.value 
             ? props.cumulativeComparison.consumed_with_investments_cumulative[index] 
             : props.cumulativeComparison.consumed_cumulative[index];
-        const difference = invoiced !== null ? budget - invoiced : null;
-        const differenceConsumed = consumed !== null ? budget - consumed : null;
-        const variance = invoiced !== null && budget > 0 ? ((invoiced / budget) * 100 - 100) : null;
-        const varianceConsumed = consumed !== null && budget > 0 ? ((consumed / budget) * 100 - 100) : null;
+        
+        // Aplicar conversión USD si está activada
+        const convertedBudget = dividir.value && divisor.value ? budget / divisor.value : budget;
+        const convertedInvoiced = invoiced !== null && dividir.value && divisor.value ? invoiced / divisor.value : invoiced;
+        const convertedConsumed = consumed !== null && dividir.value && divisor.value ? consumed / divisor.value : consumed;
+        
+        const difference = convertedInvoiced !== null ? convertedBudget - convertedInvoiced : null;
+        const differenceConsumed = convertedConsumed !== null ? convertedBudget - convertedConsumed : null;
+        const variance = convertedInvoiced !== null && convertedBudget > 0 ? ((convertedInvoiced / convertedBudget) * 100 - 100) : null;
+        const varianceConsumed = convertedConsumed !== null && convertedBudget > 0 ? ((convertedConsumed / convertedBudget) * 100 - 100) : null;
         
         return {
             month: month,
-            budget: budget || 0,
-            invoiced: invoiced || 0,
-            consumed: consumed || 0,
+            budget: convertedBudget || 0,
+            invoiced: convertedInvoiced || 0,
+            consumed: convertedConsumed || 0,
             difference: difference !== null ? difference : 0,
             differenceConsumed: differenceConsumed !== null ? differenceConsumed : 0,
             variance: variance !== null ? variance.toFixed(2) : 0,
@@ -371,17 +391,24 @@ const cumulativeTableData = computed(() => {
 
 // Datos para exportar a Excel
 const excelData = computed(() => {
-    return props.detailedTable.map(item => ({
-        'Categoría': item.category,
-        'Presupuestado': item.budget,
-        'Facturado': item.real,
-        'Diferencia': item.difference,
-        'Variación %': item.variance.toFixed(2),
-    }));
+    return props.detailedTable.map(item => {
+        // Aplicar conversión USD si está activada
+        const budget = dividir.value && divisor.value ? item.budget / divisor.value : item.budget;
+        const real = dividir.value && divisor.value ? item.real / divisor.value : item.real;
+        const difference = dividir.value && divisor.value ? item.difference / divisor.value : item.difference;
+        
+        return {
+            'Categoría': item.category,
+            'Presupuestado': budget,
+            'Facturado': real,
+            'Diferencia': difference,
+            'Variación %': item.variance.toFixed(2),
+        };
+    });
 });
 
-// Watch para actualizar gráficos cuando cambie el toggle
-watch(includeInvestments, () => {
+// Watch para actualizar gráficos cuando cambie el toggle o la conversión USD
+watch([includeInvestments, dividir, divisor], () => {
     createMonthlyChart();
     createCumulativeChart();
 });
@@ -400,6 +427,15 @@ function createMonthlyChart() {
         ? props.monthlyComparison.budget_with_investments 
         : props.monthlyComparison.budget;
 
+    // Aplicar conversión USD si está activada
+    const convertedBudgetData = dividir.value && divisor.value 
+        ? budgetData.map(v => v / divisor.value)
+        : budgetData;
+    
+    const convertedRealData = dividir.value && divisor.value
+        ? props.monthlyComparison.real.map(v => v / divisor.value)
+        : props.monthlyComparison.real;
+
     monthlyChart = new Chart(ctx, {
         type: 'bar',
         data: {
@@ -407,14 +443,14 @@ function createMonthlyChart() {
             datasets: [
                 {
                     label: includeInvestments.value ? 'Presupuestado (con inversiones)' : 'Presupuestado',
-                    data: budgetData,
+                    data: convertedBudgetData,
                     backgroundColor: 'rgba(54, 162, 235, 0.7)',
                     borderColor: 'rgba(54, 162, 235, 1)',
                     borderWidth: 1
                 },
                 {
                     label: 'Facturado',
-                    data: props.monthlyComparison.real,
+                    data: convertedRealData,
                     backgroundColor: 'rgba(75, 192, 192, 0.7)',
                     borderColor: 'rgba(75, 192, 192, 1)',
                     borderWidth: 1
@@ -427,7 +463,7 @@ function createMonthlyChart() {
             plugins: {
                 title: {
                     display: true,
-                    text: 'Comparativo Mensual: Presupuesto vs Facturado',
+                    text: 'Comparativo Mensual: Presupuesto vs Facturado' + (dividir.value ? ' (USD)' : ' (CLP)'),
                     font: { size: 16 }
                 },
                 legend: {
@@ -441,7 +477,7 @@ function createMonthlyChart() {
                             if (label) {
                                 label += ': ';
                             }
-                            label += '$' + context.parsed.y.toLocaleString('es-CL');
+                            label += '$' + context.parsed.y.toLocaleString('es-CL') + (dividir.value ? ' USD' : '');
                             return label;
                         }
                     }
@@ -452,7 +488,7 @@ function createMonthlyChart() {
                     beginAtZero: true,
                     ticks: {
                         callback: function(value) {
-                            return '$' + (value / 1000000).toFixed(1) + 'M';
+                            return '$' + (value / 1000000).toFixed(1) + 'M' + (dividir.value ? ' USD' : '');
                         }
                     }
                 }
@@ -479,6 +515,19 @@ function createCumulativeChart() {
         ? props.cumulativeComparison.consumed_with_investments_cumulative 
         : props.cumulativeComparison.consumed_cumulative;
 
+    // Aplicar conversión USD si está activada
+    const convertedBudgetCumulative = dividir.value && divisor.value
+        ? budgetCumulativeData.map(v => v / divisor.value)
+        : budgetCumulativeData;
+    
+    const convertedRealCumulative = dividir.value && divisor.value
+        ? props.cumulativeComparison.real_cumulative.map(v => v !== null ? v / divisor.value : null)
+        : props.cumulativeComparison.real_cumulative;
+    
+    const convertedConsumedCumulative = dividir.value && divisor.value
+        ? consumedCumulativeData.map(v => v !== null ? v / divisor.value : null)
+        : consumedCumulativeData;
+
     cumulativeChart = new Chart(ctx, {
         type: 'line',
         data: {
@@ -488,7 +537,7 @@ function createCumulativeChart() {
                     label: includeInvestments.value 
                         ? 'Acumulado Presupuesto con Inversiones (Proyección completa)' 
                         : 'Acumulado Presupuesto (Proyección completa)',
-                    data: budgetCumulativeData,
+                    data: convertedBudgetCumulative,
                     borderColor: 'rgb(54, 162, 235)',
                     backgroundColor: 'rgba(54, 162, 235, 0.1)',
                     borderWidth: 3,
@@ -499,7 +548,7 @@ function createCumulativeChart() {
                 },
                 {
                     label: 'Acumulado Facturado (Real)',
-                    data: props.cumulativeComparison.real_cumulative,
+                    data: convertedRealCumulative,
                     borderColor: 'rgb(75, 192, 192)',
                     backgroundColor: 'rgba(75, 192, 192, 0.1)',
                     borderWidth: 3,
@@ -513,7 +562,7 @@ function createCumulativeChart() {
                     label: includeInvestments.value 
                         ? 'Acumulado Consumido con Inversiones (Real)' 
                         : 'Acumulado Consumido (Real)',
-                    data: consumedCumulativeData,
+                    data: convertedConsumedCumulative,
                     borderColor: 'rgb(255, 159, 64)',
                     backgroundColor: 'rgba(255, 159, 64, 0.1)',
                     borderWidth: 3,
@@ -531,7 +580,7 @@ function createCumulativeChart() {
             plugins: {
                 title: {
                     display: true,
-                    text: 'Evolución Acumulada - Real vs Proyección',
+                    text: 'Evolución Acumulada - Real vs Proyección' + (dividir.value ? ' (USD)' : ' (CLP)'),
                     font: { size: 16 }
                 },
                 legend: {
@@ -546,7 +595,7 @@ function createCumulativeChart() {
                             if (label) {
                                 label += ': ';
                             }
-                            label += '$' + context.parsed.y.toLocaleString('es-CL');
+                            label += '$' + context.parsed.y.toLocaleString('es-CL') + (dividir.value ? ' USD' : '');
                             return label;
                         }
                     }
@@ -557,7 +606,7 @@ function createCumulativeChart() {
                     beginAtZero: true,
                     ticks: {
                         callback: function(value) {
-                            return '$' + (value / 1000000).toFixed(1) + 'M';
+                            return '$' + (value / 1000000).toFixed(1) + 'M' + (dividir.value ? ' USD' : '');
                         }
                     }
                 }
@@ -584,7 +633,7 @@ function createCumulativeChart() {
                             </h5>
                         </div>
                         <div class="col-6 col-sm-auto ms-auto text-end ps-0">
-                            <div class="d-flex align-items-center gap-2">
+                            <div class="d-flex align-items-center gap-2 flex-wrap justify-content-end">
                                 <!-- Toggle maestro para inversiones -->
                                 <div class="form-check form-switch mb-0 d-flex align-items-center">
                                     <input 
@@ -604,6 +653,38 @@ function createCumulativeChart() {
                                         </span>
                                     </label>
                                 </div>
+                                
+                                <!-- Separador -->
+                                <div class="vr d-none d-md-block" style="height: 24px;"></div>
+                                
+                                <!-- Toggle para conversión USD -->
+                                <div class="form-check form-switch mb-0 d-flex align-items-center">
+                                    <input 
+                                        class="form-check-input" 
+                                        type="checkbox" 
+                                        id="dividir-switch" 
+                                        v-model="dividir"
+                                    >
+                                    <label class="form-check-label ms-2 mt-0 mb-0 small" for="dividir-switch">Ver en USD</label>
+                                </div>
+                                
+                                <!-- Slider de divisor (solo visible cuando dividir está activo) -->
+                                <template v-if="dividir">
+                                    <div class="d-flex align-items-center" style="min-width:220px;">
+                                        <label for="divisor-slider" class="form-label mb-0 me-2 small">Divisor:</label>
+                                        <input 
+                                            id="divisor-slider" 
+                                            type="range" 
+                                            class="form-range" 
+                                            v-model.number="divisor" 
+                                            :min="divisorMin" 
+                                            :max="divisorMax" 
+                                            :step="1" 
+                                            style="max-width:150px;" 
+                                        />
+                                        <span class="text-muted small ms-2"><b>{{ divisor }}</b></span>
+                                    </div>
+                                </template>
                             </div>
                         </div>
                     </div>
