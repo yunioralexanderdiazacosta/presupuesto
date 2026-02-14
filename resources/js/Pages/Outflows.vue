@@ -169,6 +169,7 @@ const editForm = ref({
   cost_center_ids: [],
   notes: '',
   quantity: '',
+  date: '',
   invoice_product_id: null,
   credit_debit_note_item_id: null,
   product_name: '',
@@ -279,6 +280,7 @@ async function openCard(outflow) {
     unit_price: outflow.unit_price || 0, // Precio unitario de la factura
     cost_center_ids: [],
     observations: '',
+    date: new Date().toISOString().split('T')[0], // Fecha actual por defecto (formato YYYY-MM-DD)
     level2_id: null, // Filtro helper (no se guarda)
     level3_id: null,
     product_id: outflow.product_id || null,
@@ -365,6 +367,7 @@ function handleSave() {
       product_name: sel.product_name,
       unit_name: sel.unit_name,
       quantity: sel.quantity,
+      date: sel.date,
       cost_center_ids: sel.cost_center_ids,
       notes: sel.observations, // Usar notes para el backend
       level3_id: sel.level3_id,
@@ -480,6 +483,7 @@ function editOutflow(outflow) {
         : [];
       editForm.value.notes = data.outflow.notes ?? '';
       editForm.value.quantity = data.outflow.quantity ?? '';
+      editForm.value.date = data.outflow.date ?? '';
       editForm.value.invoice_product_id = data.outflow.invoice_product_id ?? null;
       editForm.value.credit_debit_note_item_id = data.outflow.credit_debit_note_item_id ?? null;
       editForm.value.product_name = data.outflow.invoice_product?.product?.name || data.outflow.credit_debit_note_item?.product?.name || '';
@@ -926,6 +930,15 @@ function copyToAllCards(sourceCardId) {
                               "
                             />
                             <small v-if="Number(selected.quantity) > Number(selected.stock_original)" class="text-danger">No puede exceder el stock disponible ({{ selected.stock_original }})</small>
+                          </div>
+                          <div class="col-6 col-md-2">
+                            <label class="form-label">Fecha <span class="text-danger">*</span></label>
+                            <input
+                              v-model="selected.date"
+                              class="form-control form-control-sm w-100"
+                              type="date"
+                              required
+                            />
                           </div>
                           <div class="col-6 col-md-2">
                             <label class="form-label text-muted">Precio Unit.</label>

@@ -32,7 +32,7 @@ class StoreOutflowController extends Controller
                 'machinery_id' => $outflowData['machinery_id'] ?? null,
                 'quantity' => $outflowData['quantity'] ?? null,
                 'notes' => $outflowData['notes'] ?? null,
-                'date' => now(),
+                'date' => $outflowData['date'] ?? now(),
                 'level3_id' => $outflowData['level3_id'] ?? null,
             ];
             $outflow = \App\Models\Outflow::create($data);

@@ -124,6 +124,7 @@ const localForm = reactive({
   cost_center_ids: [],
   notes: '',
   quantity: '',
+  date: '',
   invoice_product_id: null,
   credit_debit_note_item_id: null,
   product_name: '',
@@ -141,6 +142,7 @@ watch(() => props.form, (val) => {
   localForm.cost_center_ids = Array.isArray(val.cost_center_ids) ? val.cost_center_ids.map(id => Number(id)) : [];
   localForm.notes = val.notes;
   localForm.quantity = val.quantity;
+  localForm.date = val.date;
   localForm.invoice_product_id = val.invoice_product_id;
   localForm.credit_debit_note_item_id = val.credit_debit_note_item_id;
   localForm.product_name = val.product_name;
@@ -186,6 +188,7 @@ function submit() {
     cost_center_ids: localForm.cost_center_ids,
     notes: localForm.notes,
     quantity: localForm.quantity,
+    date: localForm.date,
     level3_id: localForm.level3_id,
   };
   // Guardar con axios
@@ -265,6 +268,15 @@ function submit() {
                   required
                 />
                 <div class="form-text">Máximo permitido: {{ stockAvailable.toFixed(2) }}</div>
+              </div>
+              <div class="col-12 col-md-3">
+                <label class="form-label">Fecha <span class="text-danger">*</span></label>
+                <input
+                  type="date"
+                  class="form-control"
+                  v-model="localForm.date"
+                  required
+                />
               </div>
               <div class="col-12 col-md-3">
                 <label class="form-label">Proyecto</label>
