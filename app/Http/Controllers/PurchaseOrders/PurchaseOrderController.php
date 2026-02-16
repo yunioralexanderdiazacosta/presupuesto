@@ -12,6 +12,7 @@ use App\Models\Product;
 use App\Models\Unit;
 use App\Models\User;
 use Inertia\Inertia;
+use Spatie\Permission\Models\Role;
 
 class PurchaseOrderController extends Controller
 {
@@ -103,12 +104,15 @@ class PurchaseOrderController extends Controller
             ->get(['id', 'name'])
             ->map(fn($u) => ['value' => $u->id, 'label' => $u->name]);
 
-        // Obtener usuarios aprobadores del equipo
-        $approvers = User::role('Aprobador Compras')
-            ->where('team_id', $user->team_id)
-            ->orderBy('name')
-            ->get(['id', 'name'])
-            ->map(fn($a) => ['value' => $a->id, 'label' => $a->name]);
+        // Obtener usuarios aprobadores del equipo (verificar si el rol existe)
+        $approvers = collect([]);
+        if (Role::where('name', 'Aprobador Compras')->exists()) {
+            $approvers = User::role('Aprobador Compras')
+                ->where('team_id', $user->team_id)
+                ->orderBy('name')
+                ->get(['id', 'name'])
+                ->map(fn($a) => ['value' => $a->id, 'label' => $a->name]);
+        }
 
         return Inertia::render('PurchaseOrders/Index', [
             'purchaseOrders' => $purchaseOrders,
