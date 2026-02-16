@@ -63,13 +63,13 @@ class ShowPurchaseOrderController extends Controller
                 return [
                     'id' => $item->id,
                     'product' => [
-                        'id' => $item->product->id,
-                        'name' => $item->product->name,
+                        'id' => $item->product->id ?? null,
+                        'name' => $item->product->name ?? 'Producto no encontrado',
                     ],
                     'quantity' => $item->quantity,
                     'unit' => [
-                        'id' => $item->unit->id,
-                        'name' => $item->unit->name,
+                        'id' => $item->unit->id ?? null,
+                        'name' => $item->unit->name ?? 'Unidad no encontrada',
                     ],
                     'unit_price' => $item->unit_price,
                     'subtotal' => $item->subtotal,
