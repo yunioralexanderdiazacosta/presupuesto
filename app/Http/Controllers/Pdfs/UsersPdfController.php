@@ -16,7 +16,7 @@ class UsersPdfController extends Controller
 
         $users = User::where('team_id', $user->team_id)->when($request->term, function ($query, $search) {
             $query->where('name', 'like', '%'.$search.'%')->orWhere('email', 'like', '%'.$search.'%');
-        })->whereNot('id', $user->id)
+        })
         ->get()
         ->transform(function($value){
             return [

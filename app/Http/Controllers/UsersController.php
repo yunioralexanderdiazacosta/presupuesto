@@ -18,7 +18,7 @@ class UsersController extends Controller
 
         $users = User::where('team_id', $user->team_id)->when($request->term, function ($query, $search) {
             $query->where('name', 'like', '%'.$search.'%')->orWhere('email', 'like', '%'.$search.'%');
-        })->whereNot('id', $user->id)
+        })
         ->paginate(10)
         ->withQueryString()
         ->through(function($value){
