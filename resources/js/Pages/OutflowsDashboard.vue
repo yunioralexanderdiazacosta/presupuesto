@@ -230,7 +230,7 @@ const totalCompras = computed(() => {
     <AppLayout>
        
         
-        <div class="card mb-3 mt-2">
+        <div class="card my-3">
             <div class="card-header py-2">
                 <div class="row flex-between-end align-items-center">
                     <div class="col-auto align-self-center">

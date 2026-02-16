@@ -133,6 +133,32 @@ const consolidatedExcelData = computed(() => {
   }));
 });
 
+// Datos para exportar en formato pivot (mensual)
+const pivotExcelData = computed(() => {
+  return filteredDocuments.value.map(doc => {
+    const row = {
+      tipo: doc.tipo,
+      fecha: doc.fecha,
+      n_doc: doc.n_doc,
+      proveedor: doc.proveedor
+    };
+    
+    // Agregar columnas para cada mes
+    mesesPivot.forEach(mes => {
+      const mesDoc = getMes(doc.mes_contable);
+      if (mesDoc === mes) {
+        const monto = Number(doc.monto_total || 0);
+        const isCredito = doc.tipo === 'credito' || doc.tipo === 'Crédito';
+        row[mes] = isCredito ? -monto : monto;
+      } else {
+        row[mes] = null;
+      }
+    });
+    
+    return row;
+  });
+});
+
 function formatNumber(value, decimals = 2) {
   return new Intl.NumberFormat('es-ES', { style: 'decimal', minimumFractionDigits: decimals, maximumFractionDigits: decimals }).format(value ?? 0);
 }
@@ -449,6 +475,29 @@ const getDocTypeBadge = (tipo) => {
             <div class="row mb-3">
               <div class="col-md-4 col-12">
                 <SearchInput v-model="term" placeholder="Buscar por proveedor, número, razón social..." />
+              </div>
+              <div class="col-md-8 col-12 text-end d-flex flex-wrap justify-content-end gap-2">
+                <ExportExcelButton :data="pivotExcelData" :headers="[
+                  { label: 'Tipo', key: 'tipo' },
+                  { label: 'Fecha', key: 'fecha' },
+                  { label: 'N° Doc', key: 'n_doc' },
+                  { label: 'Proveedor', key: 'proveedor' },
+                  { label: 'Enero', key: 'Enero', type: 'number' },
+                  { label: 'Febrero', key: 'Febrero', type: 'number' },
+                  { label: 'Marzo', key: 'Marzo', type: 'number' },
+                  { label: 'Abril', key: 'Abril', type: 'number' },
+                  { label: 'Mayo', key: 'Mayo', type: 'number' },
+                  { label: 'Junio', key: 'Junio', type: 'number' },
+                  { label: 'Julio', key: 'Julio', type: 'number' },
+                  { label: 'Agosto', key: 'Agosto', type: 'number' },
+                  { label: 'Septiembre', key: 'Septiembre', type: 'number' },
+                  { label: 'Octubre', key: 'Octubre', type: 'number' },
+                  { label: 'Noviembre', key: 'Noviembre', type: 'number' },
+                  { label: 'Diciembre', key: 'Diciembre', type: 'number' }
+                ]" filename="consolidado_mensual.xlsx" class="btn btn-light-primary me-3">
+                  <span class="svg-icon svg-icon-2"></span>
+                  Exportar Excel
+                </ExportExcelButton>
               </div>
             </div>
             <div class="table-responsive mb-4" style="max-height:700px;overflow-y:auto;">

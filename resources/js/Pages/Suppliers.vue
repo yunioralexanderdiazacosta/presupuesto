@@ -130,7 +130,7 @@ const onDeleted = (id) => {
     <Head :title="title" />
     <AppLayout>
         <Breadcrumb :links="links" />
-        <div class="card mb-3 mt-2">
+        <div class="card my-3">
             <div class="card-header">
                 <div class="row flex-between-end">
                     <div class="col-auto align-self-center">

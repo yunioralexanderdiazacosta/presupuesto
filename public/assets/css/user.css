@@ -1,5 +1,61 @@
 /* -------------------------------------------------------------------------- */
 /*                                Falcon Button                               */
 /* -------------------------------------------------------------------------- */
+
+/* -------------------------------------------------------------------------- */
+/*                          Content Area Padding                              */
+/* -------------------------------------------------------------------------- */
+/* Agrega espaciado lateral al área de contenido */
+.content {
+  padding-left: 1.5rem !important;
+  padding-right: 1.5rem !important;
+}
+
+/* -------------------------------------------------------------------------- */
+/*                          Sidebar Width Customization                       */
+/* -------------------------------------------------------------------------- */
+/* Aumenta el ancho del sidebar en pantallas grandes */
+@media (min-width: 1200px) {
+  /* Ancho del sidebar expandido */
+  .navbar-vertical.navbar-expand-xl {
+    max-width: 15rem !important;
+  }
+  
+  .navbar-vertical.navbar-expand-xl .navbar-collapse {
+    width: 15rem !important;
+  }
+  
+  .navbar-vertical.navbar-expand-xl .navbar-vertical-content {
+    width: 15rem !important;
+  }
+  
+  /* Ajuste del contenido principal */
+  .navbar-vertical.navbar-expand-xl + .content {
+    margin-left: 15rem !important;
+  }
+  
+  /* Para variantes card/vibrant/inverted del navbar */
+  .navbar-vertical.navbar-expand-xl.navbar-card,
+  .navbar-vertical.navbar-expand-xl.navbar-vibrant,
+  .navbar-vertical.navbar-expand-xl.navbar-inverted {
+    max-width: 17rem !important;
+  }
+  
+  .navbar-vertical.navbar-expand-xl.navbar-card .navbar-collapse,
+  .navbar-vertical.navbar-expand-xl.navbar-card .navbar-vertical-content,
+  .navbar-vertical.navbar-expand-xl.navbar-vibrant .navbar-collapse,
+  .navbar-vertical.navbar-expand-xl.navbar-vibrant .navbar-vertical-content,
+  .navbar-vertical.navbar-expand-xl.navbar-inverted .navbar-collapse,
+  .navbar-vertical.navbar-expand-xl.navbar-inverted .navbar-vertical-content {
+    width: 17rem !important;
+  }
+  
+  .navbar-vertical.navbar-expand-xl.navbar-card + .content,
+  .navbar-vertical.navbar-expand-xl.navbar-vibrant + .content,
+  .navbar-vertical.navbar-expand-xl.navbar-inverted + .content {
+    margin-left: 17rem !important;
+  }
+}
+
 /* prettier-ignore */
 /*# sourceMappingURL=user.css.map */
