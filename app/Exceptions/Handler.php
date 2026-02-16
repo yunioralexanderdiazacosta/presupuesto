@@ -24,7 +24,17 @@ class Handler extends ExceptionHandler
     public function register(): void
     {
         $this->reportable(function (Throwable $e) {
-            //
+            // Registrar errores con contexto completo
+            \Log::error('Error capturado: ' . $e->getMessage(), [
+                'exception' => get_class($e),
+                'file' => $e->getFile(),
+                'line' => $e->getLine(),
+                'trace' => $e->getTraceAsString(),
+                'url' => request()->fullUrl(),
+                'method' => request()->method(),
+                'ip' => request()->ip(),
+                'user' => auth()->check() ? auth()->id() : 'guest',
+            ]);
         });
     }
 }
