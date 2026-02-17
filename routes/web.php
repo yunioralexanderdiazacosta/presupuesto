@@ -73,6 +73,8 @@ use App\Http\Controllers\Products2\DeleteProduct2Controller;
     use App\Http\Controllers\PurchaseOrders\DeletePurchaseOrderController;
     use App\Http\Controllers\PurchaseOrders\ShowPurchaseOrderController;
     use App\Http\Controllers\PurchaseOrders\UpdatePurchaseOrderStatusController;
+    use App\Http\Controllers\PurchaseOrders\ApprovePurchaseOrderController;
+    use App\Http\Controllers\PurchaseOrders\RejectPurchaseOrderController;
 
 use Illuminate\Foundation\Application;
 use Illuminate\Support\Facades\Route;
@@ -654,3 +656,51 @@ Route::middleware([
     // Consolidated Documents
     Route::get('/consolidated-documents', [ConsolidatedDocumentsController::class, 'index'])->name('consolidated-documents.index');
 });
+
+// Rutas firmadas para aprobación/rechazo de Purchase Orders (fuera de auth)
+Route::get('/purchase-orders/{purchaseOrder}/approve', ApprovePurchaseOrderController::class)
+    ->middleware('signed')
+    ->name('purchase-orders.approve');
+
+Route::match(['get', 'post'], '/purchase-orders/{purchaseOrder}/reject', RejectPurchaseOrderController::class)
+    ->middleware('signed')
+    ->name('purchase-orders.reject');
+
+// Ruta de prueba para emails (SOLO DESARROLLO - eliminar en producción)
+Route::get('/test-email/{purchaseOrder}', function(\App\Models\PurchaseOrder $purchaseOrder) {
+    // Probar email de pending approval
+    $mailable = new \App\Mail\PurchaseOrderPendingApproval($purchaseOrder);
+    
+    // Opción 1: Ver el HTML del email en el navegador
+    return $mailable->render();
+    
+    // Opción 2: Enviar email de prueba (descomentar para usar)
+    // \Illuminate\Support\Facades\Mail::to('test@example.com')->send($mailable);
+    // return 'Email enviado! Revisa storage/logs/laravel.log';
+})->name('test.email')->middleware('auth');
+
+// Panel de testing de emails (SOLO DESARROLLO)
+Route::get('/test-emails', \App\Http\Controllers\Testing\TestEmailController::class)
+    ->name('test.emails')
+    ->middleware('auth');
+
+Route::get('/test-emails/preview/{type}', [\App\Http\Controllers\Testing\TestEmailController::class, 'preview'])
+    ->name('test.email.preview')
+    ->middleware('auth');
+
+Route::get('/test-emails/send/{type}', [\App\Http\Controllers\Testing\TestEmailController::class, 'send'])
+    ->name('test.email.send')
+    ->middleware('auth');
+
+// Prueba rápida de SMTP (SOLO DESARROLLO - eliminar en producción)
+Route::get('/test-smtp', function() {
+    try {
+        \Illuminate\Support\Facades\Mail::raw('✅ Test email desde Laravel - SMTP funcionando correctamente', function($message) {
+            $message->to('gestion@gestionagricola.cl')
+                    ->subject('Test SMTP - Presupuesto');
+        });
+        return '<h1>✅ Email enviado exitosamente!</h1><p>Revisa tu bandeja de entrada en: gestion@gestionagricola.cl</p><p><strong>Nota:</strong> Si no llega, revisa la carpeta de SPAM.</p><p><a href="javascript:history.back()">← Volver</a></p>';
+    } catch (\Exception $e) {
+        return '<h1>❌ Error al enviar email</h1><pre style="background:#f8d7da;padding:20px;border-radius:5px;">' . $e->getMessage() . '</pre><hr><h3>Posibles soluciones:</h3><ul><li>Verificar que el host sea: <strong>mail.gestionagricola.cl</strong> o <strong>smtp.gestionagricola.cl</strong></li><li>Probar puerto 465 con SSL en lugar de 587 con TLS</li><li>Verificar usuario y contraseña</li></ul><p><a href="javascript:history.back()">← Volver</a></p>';
+    }
+})->middleware('auth');

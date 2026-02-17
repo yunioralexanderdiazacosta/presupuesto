@@ -4,8 +4,12 @@ namespace App\Http\Controllers\PurchaseOrders;
 
 use App\Http\Controllers\Controller;
 use App\Models\PurchaseOrder;
+use App\Models\User;
+use App\Mail\PurchaseOrderPendingApproval;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Mail;
+use Spatie\Permission\Models\Role;
 
 class UpdatePurchaseOrderStatusController extends Controller
 {
@@ -49,6 +53,22 @@ class UpdatePurchaseOrderStatusController extends Controller
         }
 
         $purchaseOrder->update($updateData);
+
+        // Enviar emails automáticamente según el estado
+        if ($newStatus === 'pending') {
+            // Enviar email a todos los aprobadores del equipo
+            if (Role::where('name', 'Aprobador Compras')->exists()) {
+                $approvers = User::role('Aprobador Compras')
+                    ->where('team_id', $user->team_id)
+                    ->whereNotNull('email')
+                    ->get();
+
+                foreach ($approvers as $approver) {
+                    Mail::to($approver->email)
+                        ->send(new PurchaseOrderPendingApproval($purchaseOrder));
+                }
+            }
+        }
 
         return redirect()->route('purchase-orders.index')->with('success', 'Estado actualizado exitosamente.');
     }
