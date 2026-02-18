@@ -13,8 +13,8 @@ class DeletePurchaseOrderController extends Controller
         $user = Auth::user();
         $season_id = session('season_id');
 
-        // Verificar pertenencia
-        if ($purchaseOrder->team_id !== $user->team_id || $purchaseOrder->season_id !== $season_id) {
+        // Verificar pertenencia (usar != para evitar problemas de tipo string vs int)
+        if ((int)$purchaseOrder->team_id != (int)$user->team_id || (int)$purchaseOrder->season_id != (int)$season_id) {
             return back()->withErrors(['error' => 'No tiene permisos para eliminar esta orden.']);
         }
 
