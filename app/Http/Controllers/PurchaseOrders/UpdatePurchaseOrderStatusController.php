@@ -18,8 +18,27 @@ class UpdatePurchaseOrderStatusController extends Controller
         $user = Auth::user();
         $season_id = session('season_id');
 
+        // DEBUGGING TEMPORAL - Remover después de debuggear
+        \Log::info('DEBUG UpdatePurchaseOrderStatus', [
+            'purchase_order_id' => $purchaseOrder->id,
+            'purchase_order_team_id' => $purchaseOrder->team_id,
+            'purchase_order_season_id' => $purchaseOrder->season_id,
+            'user_id' => $user->id,
+            'user_team_id' => $user->team_id,
+            'session_season_id' => $season_id,
+            'session_has_season_id' => session()->has('season_id'),
+            'all_session_data' => session()->all(),
+        ]);
+
         // Verificar pertenencia
         if ($purchaseOrder->team_id !== $user->team_id || $purchaseOrder->season_id !== $season_id) {
+            \Log::error('PERMISSION DENIED UpdatePurchaseOrderStatus', [
+                'reason' => $purchaseOrder->team_id !== $user->team_id ? 'team_id mismatch' : 'season_id mismatch',
+                'purchase_order_team_id' => $purchaseOrder->team_id,
+                'user_team_id' => $user->team_id,
+                'purchase_order_season_id' => $purchaseOrder->season_id,
+                'session_season_id' => $season_id,
+            ]);
             return back()->withErrors(['error' => 'No tiene permisos para modificar esta orden.']);
         }
 

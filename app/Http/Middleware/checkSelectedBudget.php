@@ -19,7 +19,8 @@ class checkSelectedBudget
         if(auth()->check() && auth()->user()->status == 1 && auth()->user()->hasRole('Admin')){
             $user = auth()->user();
 
-            if ($user && $user->team && $user->team->seasons()->count() > 0 && $request->session()->has('season_id') == null) {
+            // BUG FIX: has() devuelve boolean, no debería compararse con == null
+            if ($user && $user->team && $user->team->seasons()->count() > 0 && !$request->session()->has('season_id')) {
                 return Redirect::route('select.budget');
             }
         }
