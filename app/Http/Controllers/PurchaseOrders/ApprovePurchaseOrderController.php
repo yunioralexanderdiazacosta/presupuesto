@@ -35,8 +35,13 @@ class ApprovePurchaseOrderController extends Controller
 
         DB::beginTransaction();
         try {
+            // Obtener el nombre del aprobador desde el usuario asignado o usar valor por defecto
+            $approverName = 'Aprobador';
+            if ($purchaseOrder->assigned_to && $purchaseOrder->assignedTo) {
+                $approverName = $purchaseOrder->assignedTo->name;
+            }
+
             // Actualizar estado a aprobado
-            // No se registra quién aprobó porque el email ya identifica al aprobador
             $purchaseOrder->update([
                 'status' => 'approved',
                 'approved_by' => null, // El email enviado ya identifica al aprobador
@@ -45,7 +50,7 @@ class ApprovePurchaseOrderController extends Controller
             // Enviar email al solicitante notificando la aprobación
             if ($purchaseOrder->requestedBy && $purchaseOrder->requestedBy->email) {
                 Mail::to($purchaseOrder->requestedBy->email)
-                    ->send(new PurchaseOrderApproved($purchaseOrder));
+                    ->send(new PurchaseOrderApproved($purchaseOrder, $approverName));
             }
 
             DB::commit();

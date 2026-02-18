@@ -174,6 +174,11 @@ function getStatusBadgeClass(status) {
     };
     return classes[status] || 'bg-secondary text-white';
 }
+
+function getProductsList(order) {
+    if (!order.items || order.items.length === 0) return 'Sin productos';
+    return order.items.map(item => item.product?.name || '-').join(', ');
+}
 </script>
 
 <template>
@@ -274,6 +279,7 @@ function getStatusBadgeClass(status) {
                                 <th>N° Orden</th>
                                 <th>Fecha</th>
                                 <th>Proveedor</th>
+                                <th>Productos</th>
                                 <th>Total</th>
                                 <th>Estado</th>
                                 <th>Acciones</th>
@@ -281,7 +287,7 @@ function getStatusBadgeClass(status) {
                         </thead>
                         <tbody>
                             <tr v-if="purchaseOrders.data.length === 0">
-                                <td colspan="6" class="text-center text-muted">No hay órdenes de compra registradas</td>
+                                <td colspan="7" class="text-center text-muted">No hay órdenes de compra registradas</td>
                             </tr>
                             <tr v-for="order in purchaseOrders.data" :key="order.id">
                                 <td>
@@ -291,6 +297,20 @@ function getStatusBadgeClass(status) {
                                 </td>
                                 <td>{{ formatDate(order.order_date) }}</td>
                                 <td>{{ order.supplier?.name || '-' }}</td>
+                                <td>
+                                    <div class="text-truncate" style="max-width: 250px;" :title="getProductsList(order)">
+                                        <span v-if="order.items && order.items.length > 0">
+                                            <span v-if="order.items.length === 1">
+                                                {{ order.items[0].product?.name || '-' }}
+                                            </span>
+                                            <span v-else>
+                                                {{ order.items[0].product?.name || '-' }}
+                                                <span class="badge bg-secondary ms-1">+{{ order.items.length - 1 }}</span>
+                                            </span>
+                                        </span>
+                                        <span v-else class="text-muted">Sin productos</span>
+                                    </div>
+                                </td>
                                 <td class="text-end">${{ formatCurrency(order.total) }}</td>
                                 <td>
                                     <span :class="['badge', getStatusBadgeClass(order.status)]">

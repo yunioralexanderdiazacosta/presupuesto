@@ -15,15 +15,17 @@ class PurchaseOrderRejected extends Mailable
 
     public $purchaseOrder;
     public $rejectedBy;
+    public $rejectedByName;
     public $rejectionReason;
 
     /**
      * Create a new message instance.
      */
-    public function __construct(PurchaseOrder $purchaseOrder, $rejectionReason = null)
+    public function __construct(PurchaseOrder $purchaseOrder, $rejectionReason = null, $rejectedByName = null)
     {
         $this->purchaseOrder = $purchaseOrder;
         $this->rejectedBy = $purchaseOrder->approvedBy; // El campo se reutiliza para registrar quién rechazó
+        $this->rejectedByName = $rejectedByName ?? $this->rejectedBy?->name ?? 'Sistema';
         $this->rejectionReason = $rejectionReason;
     }
 

@@ -59,7 +59,7 @@ class UpdatePurchaseOrderStatusController extends Controller
             // Si hay un aprobador específico asignado, enviar solo a ese usuario
             if ($purchaseOrder->assigned_to && $purchaseOrder->assignedTo && $purchaseOrder->assignedTo->email) {
                 Mail::to($purchaseOrder->assignedTo->email)
-                    ->send(new PurchaseOrderPendingApproval($purchaseOrder));
+                    ->send(new PurchaseOrderPendingApproval($purchaseOrder, $purchaseOrder->assignedTo->name));
             } 
             // Si no hay aprobador asignado, enviar a todos los aprobadores del equipo
             elseif (Role::where('name', 'Aprobador Compras')->exists()) {
@@ -70,7 +70,7 @@ class UpdatePurchaseOrderStatusController extends Controller
 
                 foreach ($approvers as $approver) {
                     Mail::to($approver->email)
-                        ->send(new PurchaseOrderPendingApproval($purchaseOrder));
+                        ->send(new PurchaseOrderPendingApproval($purchaseOrder, $approver->name));
                 }
             }
         }

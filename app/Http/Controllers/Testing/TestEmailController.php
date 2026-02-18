@@ -31,9 +31,9 @@ class TestEmailController extends Controller
         return view('testing.email-previews', [
             'purchaseOrder' => $purchaseOrder,
             'emails' => [
-                'pending' => new PurchaseOrderPendingApproval($purchaseOrder),
-                'approved' => new PurchaseOrderApproved($purchaseOrder),
-                'rejected' => new PurchaseOrderRejected($purchaseOrder, 'Este es un motivo de prueba para el rechazo'),
+                'pending' => new PurchaseOrderPendingApproval($purchaseOrder, 'Juan Pérez'),
+                'approved' => new PurchaseOrderApproved($purchaseOrder, 'María González'),
+                'rejected' => new PurchaseOrderRejected($purchaseOrder, 'Este es un motivo de prueba para el rechazo', 'María González'),
             ]
         ]);
     }
@@ -53,9 +53,9 @@ class TestEmailController extends Controller
         }
 
         $mailable = match($type) {
-            'pending' => new PurchaseOrderPendingApproval($purchaseOrder),
-            'approved' => new PurchaseOrderApproved($purchaseOrder),
-            'rejected' => new PurchaseOrderRejected($purchaseOrder, 'Presupuesto insuficiente'),
+            'pending' => new PurchaseOrderPendingApproval($purchaseOrder, 'Juan Pérez'),
+            'approved' => new PurchaseOrderApproved($purchaseOrder, 'María González'),
+            'rejected' => new PurchaseOrderRejected($purchaseOrder, 'Presupuesto insuficiente', 'María González'),
             default => abort(404)
         };
 
@@ -77,9 +77,9 @@ class TestEmailController extends Controller
         }
 
         $mailable = match($type) {
-            'pending' => new PurchaseOrderPendingApproval($purchaseOrder),
-            'approved' => new PurchaseOrderApproved($purchaseOrder),
-            'rejected' => new PurchaseOrderRejected($purchaseOrder, 'Motivo de prueba'),
+            'pending' => new PurchaseOrderPendingApproval($purchaseOrder, 'Juan Pérez'),
+            'approved' => new PurchaseOrderApproved($purchaseOrder, 'María González'),
+            'rejected' => new PurchaseOrderRejected($purchaseOrder, 'Motivo de prueba', 'María González'),
             default => abort(404)
         };
 

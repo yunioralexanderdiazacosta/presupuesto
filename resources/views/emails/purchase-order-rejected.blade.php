@@ -93,7 +93,7 @@
             </div>
             <div class="detail-row">
                 <span class="detail-label">Rechazado por:</span>
-                <span class="detail-value">{{ $rejectedBy->name ?? 'N/A' }}</span>
+                <span class="detail-value">{{ $rejectedByName }}</span>
             </div>
             <div class="detail-row">
                 <span class="detail-label">Fecha de Rechazo:</span>

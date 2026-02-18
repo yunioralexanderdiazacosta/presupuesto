@@ -670,7 +670,8 @@ Route::match(['get', 'post'], '/purchase-orders/{purchaseOrder}/reject', RejectP
 // Ruta de prueba para emails (SOLO DESARROLLO - eliminar en producción)
 Route::get('/test-email/{purchaseOrder}', function(\App\Models\PurchaseOrder $purchaseOrder) {
     // Probar email de pending approval
-    $mailable = new \App\Mail\PurchaseOrderPendingApproval($purchaseOrder);
+    $approverName = auth()->user()?->name ?? 'Juan Pérez';
+    $mailable = new \App\Mail\PurchaseOrderPendingApproval($purchaseOrder, $approverName);
     
     // Opción 1: Ver el HTML del email en el navegador
     return $mailable->render();

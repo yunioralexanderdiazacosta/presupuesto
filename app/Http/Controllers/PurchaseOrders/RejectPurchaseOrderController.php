@@ -49,10 +49,13 @@ class RejectPurchaseOrderController extends Controller
                     'approved_by' => null,
                 ]);
 
+                // Obtener el nombre de quien rechaza (desde assigned_to)
+                $rejectedByName = $purchaseOrder->assignedTo?->name ?? 'Sistema';
+
                 // Enviar email al solicitante notificando el rechazo
                 if ($purchaseOrder->requestedBy && $purchaseOrder->requestedBy->email) {
                     Mail::to($purchaseOrder->requestedBy->email)
-                        ->send(new PurchaseOrderRejected($purchaseOrder, $request->rejection_reason));
+                        ->send(new PurchaseOrderRejected($purchaseOrder, $request->rejection_reason, $rejectedByName));
                 }
 
                 DB::commit();

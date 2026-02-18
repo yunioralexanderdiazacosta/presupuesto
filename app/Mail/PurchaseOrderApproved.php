@@ -15,14 +15,16 @@ class PurchaseOrderApproved extends Mailable
 
     public $purchaseOrder;
     public $approvedBy;
+    public $approvedByName;
 
     /**
      * Create a new message instance.
      */
-    public function __construct(PurchaseOrder $purchaseOrder)
+    public function __construct(PurchaseOrder $purchaseOrder, $approvedByName = null)
     {
         $this->purchaseOrder = $purchaseOrder;
         $this->approvedBy = $purchaseOrder->approvedBy;
+        $this->approvedByName = $approvedByName ?? $this->approvedBy?->name ?? 'Sistema';
     }
 
     /**

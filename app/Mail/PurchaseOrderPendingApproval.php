@@ -17,13 +17,15 @@ class PurchaseOrderPendingApproval extends Mailable
     public $purchaseOrder;
     public $approveUrl;
     public $rejectUrl;
+    public $approverName;
 
     /**
      * Create a new message instance.
      */
-    public function __construct(PurchaseOrder $purchaseOrder)
+    public function __construct(PurchaseOrder $purchaseOrder, $approverName = null)
     {
         $this->purchaseOrder = $purchaseOrder;
+        $this->approverName = $approverName ?? 'Aprobador';
         
         // Generar URLs firmadas que expiran en 48 horas
         $this->approveUrl = URL::temporarySignedRoute(

@@ -103,7 +103,7 @@
     </div>
 
     <div class="content">
-        <p>Hola,</p>
+        <p>Hola <strong>{{ $approverName }}</strong>,</p>
         <p>Se ha creado una nueva orden de compra que requiere tu aprobación:</p>
 
         <div class="order-details">

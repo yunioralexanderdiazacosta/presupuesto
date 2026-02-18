@@ -86,7 +86,7 @@
             </div>
             <div class="detail-row">
                 <span class="detail-label">Aprobado por:</span>
-                <span class="detail-value">{{ $approvedBy->name ?? 'N/A' }}</span>
+                <span class="detail-value">{{ $approvedByName }}</span>
             </div>
             <div class="detail-row">
                 <span class="detail-label">Fecha de Aprobación:</span>
