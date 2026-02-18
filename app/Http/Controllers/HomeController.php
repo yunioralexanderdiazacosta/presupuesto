@@ -15,6 +15,15 @@ class HomeController extends Controller
         $season_id = session('season_id');
         $team_id = $user->team_id;
 
+        \Log::info('═══ HOME CONTROLLER ═══', [
+            'user_id' => $user->id,
+            'user_email' => $user->email,
+            'team_id' => $team_id,
+            'session_season_id' => $season_id,
+            'has_session_season_id' => session()->has('season_id'),
+            'referer' => $request->header('referer'),
+        ]);
+
         // Obtener el nombre de la temporada desde la sesión o la base de datos
         $season_name = session('season_name');
         if (!$season_name && $season_id) {
