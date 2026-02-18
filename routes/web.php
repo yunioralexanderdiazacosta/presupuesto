@@ -704,3 +704,68 @@ Route::get('/test-smtp', function() {
         return '<h1>❌ Error al enviar email</h1><pre style="background:#f8d7da;padding:20px;border-radius:5px;">' . $e->getMessage() . '</pre><hr><h3>Posibles soluciones:</h3><ul><li>Verificar que el host sea: <strong>mail.gestionagricola.cl</strong> o <strong>smtp.gestionagricola.cl</strong></li><li>Probar puerto 465 con SSL en lugar de 587 con TLS</li><li>Verificar usuario y contraseña</li></ul><p><a href="javascript:history.back()">← Volver</a></p>';
     }
 })->middleware('auth');
+
+// Diagnóstico completo de SMTP (SOLO DESARROLLO)
+Route::get('/smtp-diagnostic', function() {
+    $configs = [
+        ['host' => 'mail.gestionagricola.cl', 'port' => 587, 'encryption' => 'tls'],
+        ['host' => 'mail.gestionagricola.cl', 'port' => 465, 'encryption' => 'ssl'],
+        ['host' => 'smtp.gestionagricola.cl', 'port' => 587, 'encryption' => 'tls'],
+        ['host' => 'smtp.gestionagricola.cl', 'port' => 465, 'encryption' => 'ssl'],
+        ['host' => 'mail.gestionagricola.cl', 'port' => 25, 'encryption' => null],
+    ];
+
+    $results = [];
+    foreach ($configs as $config) {
+        try {
+            // Configurar temporalmente
+            config([
+                'mail.mailers.smtp.host' => $config['host'],
+                'mail.mailers.smtp.port' => $config['port'],
+                'mail.mailers.smtp.encryption' => $config['encryption'],
+            ]);
+
+            // Intentar enviar
+            \Illuminate\Support\Facades\Mail::raw('Test', function($message) {
+                $message->to('gestion@gestionagricola.cl')->subject('Test');
+            });
+
+            $results[] = [
+                'config' => $config,
+                'status' => 'success',
+                'message' => 'Email enviado exitosamente'
+            ];
+            break; // Si uno funciona, salir
+        } catch (\Exception $e) {
+            $results[] = [
+                'config' => $config,
+                'status' => 'error',
+                'message' => $e->getMessage()
+            ];
+        }
+    }
+
+    // Mostrar resultados
+    $html = '<h1>🔍 Diagnóstico SMTP</h1><style>
+        body { font-family: Arial; padding: 20px; }
+        .success { background: #d4edda; padding: 15px; margin: 10px 0; border-left: 4px solid #28a745; }
+        .error { background: #f8d7da; padding: 15px; margin: 10px 0; border-left: 4px solid #dc3545; }
+        code { background: #f8f9fa; padding: 2px 8px; border-radius: 3px; }
+    </style>';
+
+    foreach ($results as $result) {
+        $class = $result['status'] === 'success' ? 'success' : 'error';
+        $icon = $result['status'] === 'success' ? '✅' : '❌';
+        
+        $html .= "<div class='$class'>";
+        $html .= "<strong>$icon Host:</strong> <code>{$result['config']['host']}</code> ";
+        $html .= "<strong>Puerto:</strong> <code>{$result['config']['port']}</code> ";
+        $html .= "<strong>Encryption:</strong> <code>" . ($result['config']['encryption'] ?: 'none') . "</code><br>";
+        $html .= "<strong>Resultado:</strong> {$result['message']}";
+        $html .= "</div>";
+    }
+
+    $html .= '<hr><p><a href="/test-smtp">← Volver a test simple</a></p>';
+    
+    return $html;
+})->middleware('auth');
