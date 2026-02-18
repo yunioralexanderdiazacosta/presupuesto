@@ -14,7 +14,8 @@ class RejectPurchaseOrderController extends Controller
 {
     public function __invoke(Request $request, PurchaseOrder $purchaseOrder)
     {
-        // Verificar que la orden esté en estado 'pending'
+        // El route model binding garantiza que se procese la orden correcta del URL
+        // Verificar que la orden esté en estado 'pending' (protección contra doble rechazo)
         if ($purchaseOrder->status !== 'pending') {
             $statusMessages = [
                 'approved' => 'Esta orden ya fue aprobada anteriormente.',
@@ -42,9 +43,10 @@ class RejectPurchaseOrderController extends Controller
             DB::beginTransaction();
             try {
                 // Actualizar estado a rechazado
+                // No se registra quién rechazó porque el email ya identifica al aprobador
                 $purchaseOrder->update([
                     'status' => 'rejected',
-                    'approved_by' => Auth::id() ?? null, // Registrar quién rechazó
+                    'approved_by' => null,
                 ]);
 
                 // Enviar email al solicitante notificando el rechazo
@@ -62,7 +64,7 @@ class RejectPurchaseOrderController extends Controller
 
             } catch (\Exception $e) {
                 DB::rollBack();
-                return redirect()->route('login')->with('error', 'Error al rechazar la orden: ' . $e->getMessage());
+                return back()->with('error', 'Error al rechazar la orden: ' . $e->getMessage());
             }
         }
 

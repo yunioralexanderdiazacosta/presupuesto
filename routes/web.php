@@ -657,7 +657,8 @@ Route::middleware([
     Route::get('/consolidated-documents', [ConsolidatedDocumentsController::class, 'index'])->name('consolidated-documents.index');
 });
 
-// Rutas firmadas para aprobación/rechazo de Purchase Orders (fuera de auth)
+// Rutas firmadas para aprobación/rechazo de Purchase Orders
+// El controller valida autenticación, rol y team_id internamente
 Route::get('/purchase-orders/{purchaseOrder}/approve', ApprovePurchaseOrderController::class)
     ->middleware('signed')
     ->name('purchase-orders.approve');

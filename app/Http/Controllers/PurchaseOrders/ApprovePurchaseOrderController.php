@@ -13,7 +13,8 @@ class ApprovePurchaseOrderController extends Controller
 {
     public function __invoke(PurchaseOrder $purchaseOrder)
     {
-        // Verificar que la orden esté en estado 'pending'
+        // El route model binding garantiza que se procese la orden correcta del URL
+        // Verificar que la orden esté en estado 'pending' (protección contra doble aprobación)
         if ($purchaseOrder->status !== 'pending') {
             $statusMessages = [
                 'approved' => 'Esta orden ya fue aprobada anteriormente.',
@@ -35,9 +36,10 @@ class ApprovePurchaseOrderController extends Controller
         DB::beginTransaction();
         try {
             // Actualizar estado a aprobado
+            // No se registra quién aprobó porque el email ya identifica al aprobador
             $purchaseOrder->update([
                 'status' => 'approved',
-                'approved_by' => Auth::id() ?? null, // Si está autenticado, registrar quién aprobó
+                'approved_by' => null, // El email enviado ya identifica al aprobador
             ]);
 
             // Enviar email al solicitante notificando la aprobación
@@ -55,7 +57,7 @@ class ApprovePurchaseOrderController extends Controller
 
         } catch (\Exception $e) {
             DB::rollBack();
-            return redirect()->route('login')->with('error', 'Error al aprobar la orden: ' . $e->getMessage());
+            return back()->with('error', 'Error al aprobar la orden: ' . $e->getMessage());
         }
     }
 }
