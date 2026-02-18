@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\Season;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Redirect;
+use Inertia\Inertia;
 
 class SaveSeasonController extends Controller
 {
@@ -22,5 +23,8 @@ class SaveSeasonController extends Controller
             'season_id' => $request->season_id,
             'season_name' => $season ? $season->name : 'Temporada'
         ]);
+
+        // Retornar sin hacer nada - el frontend maneja el redirect
+        return back();
     }
 }
