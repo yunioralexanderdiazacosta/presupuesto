@@ -16,6 +16,11 @@ class checkSelectedBudget
      */
     public function handle(Request $request, Closure $next): Response
     {
+        // Excluir las rutas de selección de temporada para evitar loops
+        if ($request->routeIs('select.budget') || $request->routeIs('select.seasons.save')) {
+            return $next($request);
+        }
+
         if(auth()->check() && auth()->user()->status == 1 && auth()->user()->hasRole('Admin')){
             $user = auth()->user();
 
