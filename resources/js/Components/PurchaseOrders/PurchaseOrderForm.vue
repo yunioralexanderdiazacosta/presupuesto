@@ -189,6 +189,9 @@ function submit() {
                     showConfirmButton: false,
                     timer: 1500
                 });
+                form.reset();
+                selectedCostCenters.value = [];
+                selectedGrouping.value = null;
                 emit('close');
             },
             onError: (errors) => {

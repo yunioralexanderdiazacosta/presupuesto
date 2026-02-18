@@ -56,8 +56,13 @@ class UpdatePurchaseOrderStatusController extends Controller
 
         // Enviar emails automáticamente según el estado
         if ($newStatus === 'pending') {
-            // Enviar email a todos los aprobadores del equipo
-            if (Role::where('name', 'Aprobador Compras')->exists()) {
+            // Si hay un aprobador específico asignado, enviar solo a ese usuario
+            if ($purchaseOrder->assigned_to && $purchaseOrder->assignedTo && $purchaseOrder->assignedTo->email) {
+                Mail::to($purchaseOrder->assignedTo->email)
+                    ->send(new PurchaseOrderPendingApproval($purchaseOrder));
+            } 
+            // Si no hay aprobador asignado, enviar a todos los aprobadores del equipo
+            elseif (Role::where('name', 'Aprobador Compras')->exists()) {
                 $approvers = User::role('Aprobador Compras')
                     ->where('team_id', $user->team_id)
                     ->whereNotNull('email')
