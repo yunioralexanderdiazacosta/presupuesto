@@ -27,27 +27,36 @@ class CostCentersController extends Controller
 
         $season = Season::select('name')->where('id', $season_id)->first();
 
-        $fruits = Fruit::where('team_id', $user->team_id)->get()->transform(function($fruit){
-            return [
-                'label' => $fruit->name,
-                'value' => $fruit->id
-            ];
-        });
+        $fruits = Fruit::where('team_id', $user->team_id)
+            ->orderBy('name')
+            ->get()
+            ->transform(function($fruit){
+                return [
+                    'label' => $fruit->name,
+                    'value' => $fruit->id
+                ];
+            });
 
+        $parcels = Parcel::where('team_id', $user->team_id)
+            ->whereNotNull('team_id')
+            ->orderBy('name')
+            ->get()
+            ->transform(function($parcel){
+                return [
+                    'label' => $parcel->name,
+                    'value' => $parcel->id
+                ];
+            });
 
-        $parcels = Parcel::where('team_id', $user->team_id)->get()->transform(function($company){
-            return [
-                'label' => $company->name,
-                'value' => $company->id
-            ];
-        });
-
-        $companyReasons = CompanyReason::where('team_id', $user->team_id)->get()->transform(function($company){
-            return [
-                'label' => $company->name,
-                'value' => $company->id
-            ];
-        });
+        $companyReasons = CompanyReason::where('team_id', $user->team_id)
+            ->orderBy('name')
+            ->get()
+            ->transform(function($company){
+                return [
+                    'label' => $company->name,
+                    'value' => $company->id
+                ];
+            });
 
 
 

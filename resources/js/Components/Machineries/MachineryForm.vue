@@ -1,123 +1,155 @@
 <script setup>
-	import TextInput from '@/Components/TextInput.vue';
-	import InputError from '@/Components/InputError.vue';
-    import Multiselect from '@vueform/multiselect';
+import InputError from '@/Components/InputError.vue';
 
-	defineProps({
-		form: Object
-	});
+defineProps({
+    form: Object
+});
 </script>
+
 <template>
-    <div class="fv-row">
-        <label for="type_machinery_id" class="col-form-label">Tipo Maquinaria</label>
-        <Multiselect
-            :placeholder="'Seleccione tipo de maquinaria'"
-            v-model="form.type_machinery_id"
-            :close-on-select="true"
-            :options="$page.props.typeMachineries"
-            class="multiselect-blue form-control"
-            :class="{'is-invalid': form.errors.type_machinery_id}"
-            :searchable="true"
-            :hide-selected="false"
-        />
-        <InputError class="mt-2" :message="form.errors.type_machinery_id" />
-    </div>
+    <div class="row g-3 mt-2">
+        <div class="col-md-6">
+            <div class="mb-3">
+                <label for="type_machinery_id" class="form-label small fw-bold">
+                    Tipo Maquinaria <span class="text-danger">*</span>
+                </label>
+                <select
+                    id="type_machinery_id"
+                    v-model="form.type_machinery_id"
+                    class="form-select form-select-sm"
+                    :class="{'is-invalid': form.errors.type_machinery_id}"
+                >
+                    <option :value="''" disabled>Seleccione tipo de maquinaria</option>
+                    <option v-for="type in $page.props.typeMachineries" :key="type.value" :value="type.value">
+                        {{ type.label }}
+                    </option>
+                </select>
+                <InputError class="mt-1" :message="form.errors.type_machinery_id" />
+            </div>
+        </div>
 
-    <div class="fv-row">
-        <label class="col-form-label">Código Maquinaria</label>
-        <TextInput
-            id="cod_machinery"
-            v-model="form.cod_machinery"
-            class="form-control form-control-solid"
-            type="text"
-            :class="{'is-invalid': form.errors.cod_machinery}"
-        />
-        <InputError class="mt-2" :message="form.errors.cod_machinery" />
-    </div>
+        <div class="col-md-6">
+            <div class="mb-3">
+                <label for="cod_machinery" class="form-label small fw-bold">
+                    Código Maquinaria <span class="text-danger">*</span>
+                </label>
+                <input
+                    id="cod_machinery"
+                    v-model="form.cod_machinery"
+                    type="text"
+                    class="form-control form-control-sm"
+                    :class="{'is-invalid': form.errors.cod_machinery}"
+                    placeholder="Ej: MAQ-001"
+                />
+                <InputError class="mt-1" :message="form.errors.cod_machinery" />
+            </div>
+        </div>
 
-    <div class="fv-row">
-        <label for="company_reason_id" class="col-form-label">Razón social</label>
-        <Multiselect
-            :placeholder="'Seleccione razón social'"
-            v-model="form.company_reason_id"
-            :close-on-select="true"
-            :options="$page.props.companyReasons"
-            class="multiselect-blue form-control"
-            :class="{'is-invalid': form.errors.company_reason_id}"
-            :searchable="true"
-            :hide-selected="false"
-        />
-        <InputError class="mt-2" :message="form.errors.company_reason_id" />
-    </div>
+        <div class="col-md-6">
+            <div class="mb-3">
+                <label for="company_reason_id" class="form-label small fw-bold">
+                    Razón Social <span class="text-danger">*</span>
+                </label>
+                <select
+                    id="company_reason_id"
+                    v-model="form.company_reason_id"
+                    class="form-select form-select-sm"
+                    :class="{'is-invalid': form.errors.company_reason_id}"
+                >
+                    <option :value="''" disabled>Seleccione razón social</option>
+                    <option v-for="company in $page.props.companyReasons" :key="company.value" :value="company.value">
+                        {{ company.label }}
+                    </option>
+                </select>
+                <InputError class="mt-1" :message="form.errors.company_reason_id" />
+            </div>
+        </div>
 
-    <div class="fv-row">
-        <label for="counter_id" class="col-form-label">Tipo de Contador</label>
-        <Multiselect
-            :placeholder="'Seleccione tipo de contador'"
-            v-model="form.counter_id"
-            :close-on-select="true"
-            :options="$page.props.counters"
-            class="multiselect-blue form-control"
-            :class="{'is-invalid': form.errors.counter_id}"
-            :searchable="true"
-            :hide-selected="false"
-        />
-        <InputError class="mt-2" :message="form.errors.counter_id" />
-    </div>
+        <div class="col-md-6">
+            <div class="mb-3">
+                <label for="counter_id" class="form-label small fw-bold">
+                    Tipo de Contador <span class="text-danger">*</span>
+                </label>
+                <select
+                    id="counter_id"
+                    v-model="form.counter_id"
+                    class="form-select form-select-sm"
+                    :class="{'is-invalid': form.errors.counter_id}"
+                >
+                    <option :value="''" disabled>Seleccione tipo de contador</option>
+                    <option v-for="counter in $page.props.counters" :key="counter.value" :value="counter.value">
+                        {{ counter.label }}
+                    </option>
+                </select>
+                <InputError class="mt-1" :message="form.errors.counter_id" />
+            </div>
+        </div>
 
+        <div class="col-md-6">
+            <div class="mb-3">
+                <label for="brand" class="form-label small fw-bold">
+                    Marca <span class="text-muted fw-normal">(Opcional)</span>
+                </label>
+                <input
+                    id="brand"
+                    v-model="form.brand"
+                    type="text"
+                    class="form-control form-control-sm"
+                    :class="{'is-invalid': form.errors.brand}"
+                    placeholder="Ej: John Deere"
+                />
+                <InputError class="mt-1" :message="form.errors.brand" />
+            </div>
+        </div>
 
-     <div class="fv-row">
-        <label for="volume" class="col-form-label">Volumen</label>
-        <TextInput
-            id="volume"
-            v-model="form.volume"
-            class="form-control form-control-solid"
-            type="number"
-            :class="{'is-invalid': form.errors.volume}"
-        />
-        <InputError class="mt-2" :message="form.errors.volume" />
-    </div>
+        <div class="col-md-6">
+            <div class="mb-3">
+                <label for="volume" class="form-label small fw-bold">
+                    Volumen <span class="text-muted fw-normal">(Opcional)</span>
+                </label>
+                <input
+                    id="volume"
+                    v-model="form.volume"
+                    type="number"
+                    step="0.01"
+                    class="form-control form-control-sm"
+                    :class="{'is-invalid': form.errors.volume}"
+                    placeholder="0.00"
+                />
+                <InputError class="mt-1" :message="form.errors.volume" />
+            </div>
+        </div>
 
-    <div class="fv-row">
-        <label class="col-form-label">Marca</label>
-            <TextInput
-                id="brand"
-                v-model="form.brand"
-                class="form-control form-control-solid"
-                type="text"
-                :class="{'is-invalid': form.errors.brand}"
-            />
-        <InputError class="mt-2" :message="form.errors.brand" />
-    </div>
+        <div class="col-md-12">
+            <div class="mb-3">
+                <label for="observations" class="form-label small fw-bold">
+                    Observaciones <span class="text-muted fw-normal">(Opcional)</span>
+                </label>
+                <textarea
+                    id="observations"
+                    v-model="form.observations"
+                    rows="3"
+                    class="form-control form-control-sm"
+                    :class="{'is-invalid': form.errors.observations}"
+                    placeholder="Observaciones adicionales..."
+                ></textarea>
+                <InputError class="mt-1" :message="form.errors.observations" />
+            </div>
+        </div>
 
-    <div class="fv-row mb-3">
-        <label for="observations" class="col-form-label">Observaciones</label>
-        <textarea v-model="form.observations" rows="3" class="form-control form-control-lg form-control-solid mb-3 mb-lg-0" :class="{'is-invalid': form.errors.observations }" ></textarea>
-        <InputError class="mt-2" :message="form.errors.observations" />
-    </div>
-
-    <div class="row">
-        <div class="col-lg-12">
-            <div class="form-check form-check-solid form-check-inline">
-                <input class="form-check-input" type="checkbox" v-model="form.is_active" id="is_active" value=true>
-                <label class="form-check-label fw-bold ps-2">Activo</label>
+        <div class="col-md-12">
+            <div class="form-check">
+                <input
+                    class="form-check-input"
+                    type="checkbox"
+                    v-model="form.is_active"
+                    id="is_active"
+                    :value="true"
+                />
+                <label class="form-check-label fw-bold" for="is_active">
+                    Activo
+                </label>
             </div>
         </div>
     </div>
 </template>
-<style src="@vueform/multiselect/themes/default.css"></style>
-<style>
-.multiselect-blue {
-    --ms-bg: var(--kt-input-solid-bg) !important;
-    --ms-border-color: var(--kt-input-solid-bg);
-    --ms-py: 3px !important;
-    --ms-tag-bg: #eee;
-    --ms-tag-color: var(--kt-primary);
-    --ms-option-bg-selected: var(--kt-primary);
-    --ms-option-bg-selected-pointed: var(--kt-primary);
-}
-
-.multiselect-tags-search, .multiselect-search{
-    background: var(--kt-input-solid-bg) !important;
-}
-</style>

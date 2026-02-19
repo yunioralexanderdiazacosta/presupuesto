@@ -93,7 +93,12 @@ const onDeleted = (id) => {
             router.delete(route('parcels.delete', id), {
                 preserveScroll: true,
                 onSuccess: () => {
-                    msgSuccess('Registro eliminado correctamente');
+                    const flash = usePage().props.flash;
+                    if (flash && flash.error) {
+                        Swal.fire('No se puede eliminar', flash.error, 'error');
+                    } else {
+                        msgSuccess('Registro eliminado correctamente');
+                    }
                 }
             });
         }

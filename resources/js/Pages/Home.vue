@@ -46,11 +46,13 @@ const links = [
                                     </div>
                                 </div>
                                 <p class="card-text">
-                                    Se mejora niveles, ahora se relacionan a cada producto.<br>
-                                    En los formularios de salidas ahora al hacer click en fila ya se puede editar..<br>
-                                La pestaña parametros estara por defecto cerrada para ocupar menos espacio en pantalla.<br>
-                                En facturas, la tabla se carga con icono warning cuando el producto no esta resgistrado.
-                                
+                                    <strong>Febrero 2026:</strong><br>
+                                    • Sistema de Órdenes de Compra con aprobación por email sin login<br>
+                                    • Emails personalizados mostrando nombre del aprobador/rechazador<br>
+                                    • Columna de productos en tabla de órdenes con badges<br>
+                                    • Sistema de Pagos de Facturas con búsqueda y tracking<br>
+                                    • Validación robusta de sesiones y filtrado por temporada<br>
+                                    • Mejoras en formularios con reset automático<br>
                                 </p>
                             </div>
                         </div>
@@ -93,9 +95,10 @@ const links = [
                                     </div>
                                 </div>
                                 <p class="card-text">
-                                   El sistema está organizado en dos módulos principales:
-<br><strong>Presupuesto:</strong> Permite planificar, asignar y controlar los recursos económicos de cada temporada y proyecto.
-<br><strong>Gestión:</strong> Facilita el registro, seguimiento y análisis de todas las operaciones, gastos y movimientos realizados.
+                                   El sistema está organizado en módulos especializados:<br><br>
+                                   <strong>Presupuesto:</strong> Estructura jerárquica de 4 niveles, inversiones, centros de costo y agrupaciones para planificación detallada.<br><br>
+                                   <strong>Gestión:</strong> Órdenes de compra, facturas, pagos, salidas de combustible, servicios, agroquímicos y aplicaciones de campo.<br><br>
+                                   <strong>Inventario:</strong> Control de stock en tiempo real con alertas de mínimos y tracking de movimientos.
                                 </p>
                             </div>
                         </div>
@@ -114,7 +117,13 @@ const links = [
                                     </div>
                                 </div>
                                 <p class="card-text">
-                                   Toda la configuración del sistema, incluyendo la gestión de usuarios, permisos, categorías, proveedores y otros parámetros esenciales, se encuentra en el módulo de Parametros.
+                                   El módulo <strong>Parámetros</strong> centraliza toda la configuración:<br>
+                                   • Gestión de usuarios, equipos y roles con permisos granulares<br>
+                                   • Catálogos de proveedores, productos y agroquímicos<br>
+                                   • Configuración de niveles jerárquicos (rubros, items, cuentas)<br>
+                                   • Centros de costo y agrupaciones presupuestarias<br>
+                                   • Temporadas agrícolas con fechas de inicio personalizables<br>
+                                   • Importación masiva de datos vía Excel
                                 </p>
                             </div>
                         </div>
@@ -133,8 +142,8 @@ const links = [
                                     </div>
                                 </div>
                                 <p class="card-text">
-                                    At vero eos et accusamus et iusto odio dignissimos ducimus qui blanditiis praesentium voluptatum deleniti atque corrupti.
-                                    Quos dolores et quas molestias excepturi sint occaecati cupiditate non provident.
+                                    El sistema está diseñado para trabajar en equipo de forma colaborativa. Cada usuario pertenece a un equipo específico y solo puede ver y gestionar la información correspondiente a su equipo.<br><br>
+                                    <strong>Roles disponibles:</strong> Administrador, Aprobador de Compras, Usuario Estándar, entre otros, cada uno con permisos específicos según sus responsabilidades.
                                 </p>
                             </div>
                         </div>
@@ -153,8 +162,12 @@ const links = [
                                     </div>
                                 </div>
                                 <p class="card-text">
-                                    Similique sunt in culpa qui officia deserunt mollitia animi, id est laborum et dolorum fuga.
-                                    Et harum quidem rerum facilis est et expedita distinctio nam libero tempore.
+                                    El sistema ofrece reportes detallados y exportación a Excel de toda la información:<br>
+                                    • Reportes de presupuestos por nivel y centro de costo<br>
+                                    • Análisis de salidas de combustible y servicios<br>
+                                    • Dashboard de órdenes de compra con estados<br>
+                                    • Exportación de facturas y pagos<br>
+                                    • Gráficos de ejecución presupuestaria
                                 </p>
                             </div>
                         </div>
