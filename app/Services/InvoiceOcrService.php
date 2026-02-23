@@ -91,6 +91,14 @@ class InvoiceOcrService
             'document_type' => $documentType,
         ]);
 
+        // Extraer líneas de productos
+        $productLines = $this->extractProductLines($fullText);
+
+        Log::info('Líneas de productos extraídas del PDF', [
+            'cantidad' => count($productLines),
+            'productos' => array_map(fn($p) => $p['name'] . ' (x' . $p['quantity'] . ')', $productLines),
+        ]);
+
         return [
             'invoice_number' => $invoiceNumber,
             'date' => $date,
@@ -101,6 +109,7 @@ class InvoiceOcrService
             'customer_tax_id' => $customerTaxId,
             'total_amount' => $totalAmount,
             'full_text' => trim($fullText),
+            'product_lines' => $productLines,
         ];
     }
 
@@ -455,5 +464,189 @@ class InvoiceOcrService
         $formatted = number_format($number, 0, '', '.');
         
         return $formatted . '-' . $verifier;
+    }
+
+    /**
+     * Extraer líneas de productos desde el texto del PDF.
+     * Busca patrones como: CODIGO DESCRIPCION\tUNIDAD CANTIDAD PRECIO_UNITARIO VALOR_NETO
+     * Compatible con facturas de Copeval, Anasac, y otros proveedores agrícolas chilenos.
+     *
+     * @param string $fullText Texto completo del PDF
+     * @return array Lista de productos con code, name, unit, quantity, unit_price, total
+     */
+    private function extractProductLines($fullText)
+    {
+        $products = [];
+
+        // Normalizar saltos de línea
+        $text = str_replace("\r\n", "\n", $fullText);
+        $text = str_replace("\r", "\n", $text);
+        $lines = explode("\n", $text);
+
+        // Detectar zona de productos: buscar encabezados típicos
+        $inProductZone = false;
+        $headerPatterns = [
+            '/C[oó]digo.*Descripci[oó]n.*(?:Cant|U\/M|Precio)/i',
+            '/Producto.*Cantidad.*Precio/i',
+            '/Item.*Descripci[oó]n.*(?:Cant|Qty)/i',
+            '/C[oó]d(?:igo)?\s+(?:NU\s+)?Descripci[oó]n/i',
+        ];
+
+        // Patrones para fin de zona de productos
+        $endPatterns = [
+            '/^(?:Sub\s*Total|SUBTOTAL|Total\s*Neto|TOTAL\s*NETO|Neto|NETO|Exento|EXENTO|IVA|I\.V\.A)/i',
+            '/^(?:Observaci[oó]n|OBSERVACI[OÓ]N|Condici[oó]n|CONDICI[OÓ]N|Forma\s+de\s+Pago)/i',
+            '/^Total\s*\$/i',
+        ];
+
+        // Patrón principal para líneas de producto con tab separador
+        // CODIGO DESCRIPCION\tUNIDAD CANTIDAD PRECIO_UNITARIO VALOR_NETO
+        $productPatternTab = '/^(\d{1,8})\s+(.+?)\t([A-Za-z]{1,5})\s+([\d.,]+)\s+([\d.,]+)\s+([\d.,]+)\s*$/';
+
+        // Patrón alternativo sin tab: CODIGO DESCRIPCION UNIDAD CANTIDAD PRECIO TOTAL
+        // Usado cuando el texto no tiene tabs
+        $productPatternNoTab = '/^(\d{1,8})\s+(.+?)\s{2,}([A-Za-z]{1,5})\s+([\d.,]+)\s+([\d.,]+)\s+([\d.,]+)\s*$/';
+
+        // Patrón simple: número al inicio, algún texto, y valores numéricos al final
+        $productPatternSimple = '/^(\d{1,8})\s+(.{5,80}?)\s+([A-Za-z]{1,5})\s+([\d.,]+)\s+([\d.,]+(?:[\d.,]*)?)\s+([\d.,]+)\s*$/';
+
+        foreach ($lines as $line) {
+            $trimmedLine = trim($line);
+
+            if (empty($trimmedLine)) {
+                continue;
+            }
+
+            // Detectar inicio de zona de productos
+            if (!$inProductZone) {
+                foreach ($headerPatterns as $hp) {
+                    if (preg_match($hp, $trimmedLine)) {
+                        $inProductZone = true;
+                        break;
+                    }
+                }
+                continue;
+            }
+
+            // Detectar fin de zona de productos
+            foreach ($endPatterns as $ep) {
+                if (preg_match($ep, $trimmedLine)) {
+                    $inProductZone = false;
+                    break 2; // Salir del foreach y del foreach principal
+                }
+            }
+
+            // Intentar parsear como línea de producto
+            $matched = false;
+            $patterns = [$productPatternTab, $productPatternNoTab, $productPatternSimple];
+
+            foreach ($patterns as $pattern) {
+                if (preg_match($pattern, $line, $m)) { // Usar $line (sin trim) para preservar tabs
+                    $rawName = trim($m[2]);
+                    $cleanName = $this->cleanProductName($rawName);
+
+                    $products[] = [
+                        'code' => $m[1],
+                        'raw_name' => $rawName,
+                        'name' => $cleanName,
+                        'unit' => strtoupper(trim($m[3])),
+                        'quantity' => $this->parseChileanNumber($m[4]),
+                        'unit_price' => $this->parseChileanNumber($m[5]),
+                        'total' => $this->parseChileanNumber($m[6]),
+                    ];
+                    $matched = true;
+                    break;
+                }
+            }
+        }
+
+        // Si no se encontraron productos con el enfoque de zona,
+        // intentar sin restricción de zona (para PDFs sin encabezado claro)
+        if (empty($products)) {
+            $products = $this->extractProductLinesFallback($lines);
+        }
+
+        return $products;
+    }
+
+    /**
+     * Fallback: extraer líneas de producto sin depender de zona de encabezado.
+     * Busca líneas que empiecen con código numérico y tengan valores al final.
+     */
+    private function extractProductLinesFallback($lines)
+    {
+        $products = [];
+        $pattern = '/^(\d{2,8})\s+(.{5,80}?)\s+([A-Za-z]{1,5})\s+([\d.,]+)\s+([\d.,]+(?:[\d.,]*)?)\s+([\d.,]+)\s*$/';
+        $patternTab = '/^(\d{2,8})\s+(.+?)\t([A-Za-z]{1,5})\s+([\d.,]+)\s+([\d.,]+)\s+([\d.,]+)\s*$/';
+
+        foreach ($lines as $line) {
+            if (preg_match($patternTab, $line, $m) || preg_match($pattern, trim($line), $m)) {
+                $rawName = trim($m[2]);
+                $cleanName = $this->cleanProductName($rawName);
+
+                // Validar que el nombre no sea una línea de totales o encabezado
+                if (preg_match('/^(Sub\s*Total|Total|Neto|IVA|Exento|Descuento)/i', $cleanName)) {
+                    continue;
+                }
+
+                $products[] = [
+                    'code' => $m[1],
+                    'raw_name' => $rawName,
+                    'name' => $cleanName,
+                    'unit' => strtoupper(trim($m[3])),
+                    'quantity' => $this->parseChileanNumber($m[4]),
+                    'unit_price' => $this->parseChileanNumber($m[5]),
+                    'total' => $this->parseChileanNumber($m[6]),
+                ];
+            }
+        }
+
+        return $products;
+    }
+
+    /**
+     * Limpiar nombre de producto: extraer la parte descriptiva relevante.
+     * Ej: "TERRASORB FOLIAR x 20 lt-FITOSANITARIOS(A)-NV - BI" → "TERRASORB FOLIAR"
+     * Ej: "UREA GRANULADA 25KG SB-FERTILIZANTES(B)-UREAS" → "UREA GRANULADA"
+     */
+    private function cleanProductName($rawName)
+    {
+        // Remover sufijos de categoría: -FITOSANITARIOS(...), -FERTILIZANTES(...), -MERCADERIAS(...), etc.
+        $name = preg_replace('/-[A-ZÁÉÍÓÚÑ]+\([^)]*\).*$/i', '', $rawName);
+
+        // Remover sufijo tipo " x 20 lt", " x 1 kg", etc. (presentación)
+        $name = preg_replace('/\s+x\s+\d+[\.,]?\d*\s*(?:lt|kg|ml|cc|gr|un|mt|m|l)\b.*$/i', '', $name);
+
+        // Remover peso/volumen tipo "25KG", "20LT", "1KG" al final
+        $name = preg_replace('/\s+\d+[\.,]?\d*\s*(?:KG|LT|ML|CC|GR|UN|MT|TM)\s*(?:SB|NB|NV)?\s*$/i', '', $name);
+
+        // Limpiar espacios extra
+        $name = preg_replace('/\s+/', ' ', trim($name));
+
+        return $name;
+    }
+
+    /**
+     * Parsear número con formato chileno (punto = miles, coma = decimal)
+     * Ej: "5.183,0222" → 5183.0222
+     * Ej: "518.302" → 518302
+     * Ej: "1,125" → 1.125
+     */
+    private function parseChileanNumber($str)
+    {
+        $str = trim($str);
+
+        // Si tiene coma, es decimal chileno
+        if (str_contains($str, ',')) {
+            // Remover puntos de miles
+            $str = str_replace('.', '', $str);
+            // Reemplazar coma decimal por punto
+            $str = str_replace(',', '.', $str);
+        } else {
+            // Sin coma: los puntos son separadores de miles
+            $str = str_replace('.', '', $str);
+        }
+
+        return (float) $str;
     }
 }

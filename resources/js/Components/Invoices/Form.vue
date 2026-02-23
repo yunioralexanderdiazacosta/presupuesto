@@ -83,6 +83,36 @@ const handleDataExtracted = (result) => {
     if (data.company_reason_id) props.form.company_reason_id = data.company_reason_id;
     if (data.payment_type) props.form.payment_type = data.payment_type;
     if (data.payment_term !== undefined) props.form.payment_term = data.payment_term;
+
+    // Autocompletar productos si se extrajeron del PDF
+    if (data.products && data.products.length > 0) {
+        // Limpiar líneas vacías existentes
+        props.form.products = props.form.products.filter(p => 
+            p.product_id || p.unit_price > 0 || (p.observations && p.observations.trim() !== '')
+        );
+
+        // Agregar productos extraídos
+        data.products.forEach(p => {
+            props.form.products.push({
+                product_id: p.product_id || '',
+                unit_id: p.unit_id || '',
+                unit_price: p.unit_price || 0,
+                amount: p.amount || 1,
+                observations: p.observations || '',
+            });
+        });
+
+        // Si no quedó ningún producto, agregar una línea vacía
+        if (props.form.products.length === 0) {
+            props.form.products.push({
+                product_id: '',
+                unit_id: '',
+                unit_price: 0,
+                amount: 1,
+                observations: '',
+            });
+        }
+    }
 };
 
 // Cuando no se encuentra el proveedor

@@ -60,6 +60,9 @@ const handlePdfUpload = async (file) => {
             }
 
             // Si todo está bien, mostrar SweetAlert de éxito
+            const productCount = result.data.products?.length || 0;
+            const matchedCount = result.data.products?.filter(p => p.matched).length || 0;
+
             Swal.fire({
                 icon: 'success',
                 title: '¡Datos extraídos!',
@@ -70,7 +73,8 @@ const handlePdfUpload = async (file) => {
                         <p class="mb-2"><strong>✓ Tipo Documento:</strong> ${result.data.type_document_id ? 'Detectado' : 'Por defecto'}</p>
                         <p class="mb-2"><strong>✓ Proveedor:</strong> ${result.data.supplier_id ? 'Encontrado' : 'No encontrado'}</p>
                         <p class="mb-2"><strong>✓ RUT Empresa:</strong> ${result.data.company_reason_id ? 'Encontrado' : 'No encontrado'}</p>
-                        <p class="mb-0"><strong>✓ Forma de Pago:</strong> <span class="badge ${result.raw.payment_detected === 'Contado' ? 'bg-success' : 'bg-warning'}">${result.raw.payment_detected}</span> ${result.data.payment_term > 0 ? `(${result.data.payment_term} días)` : ''}</p>
+                        <p class="mb-2"><strong>✓ Forma de Pago:</strong> <span class="badge ${result.raw.payment_detected === 'Contado' ? 'bg-success' : 'bg-warning'}">${result.raw.payment_detected}</span> ${result.data.payment_term > 0 ? `(${result.data.payment_term} días)` : ''}</p>
+                        ${productCount > 0 ? `<p class="mb-0"><strong>✓ Productos:</strong> ${matchedCount}/${productCount} identificados</p>` : '<p class="mb-0 text-muted"><em>No se detectaron líneas de productos</em></p>'}
                     </div>
                 `,
                 confirmButtonText: 'Continuar',
