@@ -2,171 +2,330 @@
 
 namespace App\Services;
 
-use Mindee\ClientV2;
-use Mindee\Input\InferenceParameters;
-use Mindee\Input\PathInput;
+use Smalot\PdfParser\Parser;
 use Illuminate\Support\Facades\Log;
 
 class InvoiceOcrService
 {
-    private $apiKey;
-    private $modelId = 'c2d7047a-afdd-468f-be0a-f5233b6afb5d';
-
     public function __construct()
     {
-        $this->apiKey = config('services.mindee.api_key');
+        // No requiere API key - procesamiento 100% local
     }
 
     public function extractFromPdf($file)
     {
         try {
-            Log::info('Iniciando extracción OCR con Mindee SDK', [
+            Log::info('Iniciando extracción PDF con smalot/pdfparser (local)', [
                 'filename' => $file->getClientOriginalName(),
                 'size' => $file->getSize(),
             ]);
 
-            // Inicializar cliente de Mindee
-            $mindeeClient = new ClientV2($this->apiKey);
+            // Parsear PDF localmente
+            $parser = new Parser();
+            $pdf = $parser->parseFile($file->getRealPath());
+            $fullText = $pdf->getText();
 
-            // Parámetros de inferencia
-            $inferenceParams = new InferenceParameters($this->modelId);
-
-            // Cargar archivo
-            $inputSource = new PathInput($file->getRealPath());
-
-            // Procesar con polling automático
-            $response = $mindeeClient->enqueueAndGetInference($inputSource, $inferenceParams);
-
-            Log::info('Respuesta exitosa de Mindee', [
-                'pages' => count($response->inference->pages ?? []),
-                'fields_raw' => json_encode($response->inference->result->fields ?? [])
+            Log::info('Texto extraído del PDF', [
+                'longitud' => strlen($fullText),
+                'primeros_500' => substr($fullText, 0, 500),
             ]);
 
-            return $this->normalizeData($response);
+            if (empty(trim($fullText))) {
+                throw new \Exception('No se pudo extraer texto del PDF. El archivo puede ser una imagen escaneada.');
+            }
+
+            return $this->extractFieldsFromText($fullText);
 
         } catch (\Exception $e) {
-            Log::error('OCR failed', ['error' => $e->getMessage()]);
+            Log::error('PDF parsing failed', ['error' => $e->getMessage()]);
             throw $e;
         }
     }
 
-    private function normalizeData($mindeeResponse)
+    /**
+     * Extraer todos los campos de la factura desde el texto plano del PDF
+     */
+    private function extractFieldsFromText($fullText)
     {
-        // Acceder a los campos extraídos
-        $fields = $mindeeResponse->inference->result->fields ?? [];
+        // Extraer RUT del proveedor (primer RUT encontrado = emisor)
+        $supplierTaxId = $this->extractSupplierRutFromText($fullText);
 
-        // Helper para extraer valor de campo Mindee
-        $getValue = function($field) {
-            if (is_object($field) && isset($field->value)) {
-                return $field->value;
-            }
-            if (is_array($field) && isset($field['value'])) {
-                return $field['value'];
-            }
-            if (is_array($field) && !empty($field)) {
-                // Para arrays como company_registrations
-                $first = $field[0] ?? null;
-                if (is_object($first) && isset($first->value)) {
-                    return $first->value;
-                }
-                if (is_array($first) && isset($first['value'])) {
-                    return $first['value'];
-                }
-            }
-            return $field;
-        };
+        // Extraer nombre/razón social del proveedor
+        $supplierName = $this->extractSupplierNameFromText($fullText, $supplierTaxId);
 
-        // Capturar todo el texto del PDF para detección de palabras clave
-        $fullText = '';
-        if (isset($mindeeResponse->inference->pages)) {
-            foreach ($mindeeResponse->inference->pages as $page) {
-                if (isset($page->prediction->raw_text)) {
-                    $fullText .= ' ' . $page->prediction->raw_text;
-                }
-            }
-        }
-        
-        // Si no hay texto en pages, intentar desde document
-        if (empty($fullText) && isset($mindeeResponse->document->inference->pages)) {
-            foreach ($mindeeResponse->document->inference->pages as $page) {
-                if (isset($page->raw_text)) {
-                    $fullText .= ' ' . $page->raw_text;
-                } elseif (isset($page->prediction->raw_text)) {
-                    $fullText .= ' ' . $page->prediction->raw_text;
-                }
-            }
-        }
-
-        // Obtener RUT del proveedor - Mindee lo devuelve en supplier_company_registration
-        $supplierTaxId = null;
-        
-        // Intentar desde supplier_company_registration (singular - formato estándar)
-        if (isset($fields['supplier_company_registration'])) {
-            $registration = $fields['supplier_company_registration'];
-            
-            // La estructura es: registration->items[0]->fields['number']->value
-            if (is_object($registration) && isset($registration->items) && !empty($registration->items)) {
-                $item = $registration->items[0];
-                if (isset($item->fields) && isset($item->fields['number'])) {
-                    $supplierTaxId = $item->fields['number']->value ?? null;
-                }
-            }
-        }
-        
-        // Si no, intentar supplier_company_registrations (plural)
-        if (empty($supplierTaxId) && isset($fields['supplier_company_registrations'])) {
-            $registration = $fields['supplier_company_registrations'];
-            if (is_object($registration) && isset($registration->items) && !empty($registration->items)) {
-                $item = $registration->items[0];
-                if (isset($item->fields) && isset($item->fields['number'])) {
-                    $supplierTaxId = $item->fields['number']->value ?? null;
-                }
-            }
-        }
-        
-        // Si Mindee no detectó el RUT del proveedor, intentar extraerlo del texto completo
-        if (!$supplierTaxId && $fullText) {
-            Log::info('Intentando extraer RUT desde texto completo', [
-                'longitud_texto' => strlen($fullText),
-                'primeros_500_chars' => substr($fullText, 0, 500)
-            ]);
-            $supplierTaxId = $this->extractSupplierRutFromText($fullText, $getValue($fields['supplier_name'] ?? null));
-        }
-
-        // Obtener nombre del proveedor - intentar extraer el nombre completo del texto
-        $supplierName = $getValue($fields['supplier_name'] ?? null);
-        
-        // Si tenemos RUT y texto completo, intentar extraer el nombre completo (razón social)
-        if ($supplierTaxId && $fullText) {
-            $fullSupplierName = $this->extractFullSupplierName($fullText, $supplierTaxId, $supplierName);
-            if ($fullSupplierName) {
-                $supplierName = $fullSupplierName;
-            }
-        }
-
-        // Obtener RUT del cliente
+        // Extraer RUTs - el segundo suele ser el cliente/receptor
+        $allRuts = $this->extractAllRuts($fullText);
         $customerTaxId = null;
-        if (isset($fields['customer_company_registrations'])) {
-            $registration = $fields['customer_company_registrations'];
-            if (is_object($registration) && isset($registration->items) && !empty($registration->items)) {
-                $item = $registration->items[0];
-                if (isset($item->fields) && isset($item->fields['number'])) {
-                    $customerTaxId = $item->fields['number']->value ?? null;
+        if (count($allRuts) >= 2) {
+            // El segundo RUT distinto es el receptor
+            foreach ($allRuts as $rut) {
+                if ($rut !== $supplierTaxId) {
+                    $customerTaxId = $rut;
+                    break;
                 }
             }
         }
 
-        return [
-            'invoice_number' => $getValue($fields['invoice_number'] ?? null),
-            'date' => $getValue($fields['date'] ?? null),
-            'document_type' => $getValue($fields['document_type'] ?? null), // Tipo de documento
+        // Extraer número de documento
+        $invoiceNumber = $this->extractInvoiceNumber($fullText);
+
+        // Extraer fecha
+        $date = $this->extractDate($fullText);
+
+        // Extraer monto total
+        $totalAmount = $this->extractTotalAmount($fullText);
+
+        // Detectar tipo de documento
+        $documentType = $this->detectDocumentType($fullText);
+
+        // Extraer nombre del cliente
+        $customerName = $this->extractCustomerName($fullText);
+
+        Log::info('Campos extraídos del PDF', [
             'supplier_name' => $supplierName,
             'supplier_tax_id' => $supplierTaxId,
-            'customer_name' => $getValue($fields['customer_name'] ?? null),
             'customer_tax_id' => $customerTaxId,
-            'total_amount' => $getValue($fields['total_amount'] ?? null),
-            'full_text' => trim($fullText), // Texto completo para análisis
+            'invoice_number' => $invoiceNumber,
+            'date' => $date,
+            'total_amount' => $totalAmount,
+            'document_type' => $documentType,
+        ]);
+
+        return [
+            'invoice_number' => $invoiceNumber,
+            'date' => $date,
+            'document_type' => $documentType,
+            'supplier_name' => $supplierName,
+            'supplier_tax_id' => $supplierTaxId,
+            'customer_name' => $customerName,
+            'customer_tax_id' => $customerTaxId,
+            'total_amount' => $totalAmount,
+            'full_text' => trim($fullText),
         ];
+    }
+
+    /**
+     * Extraer número de factura/documento
+     */
+    private function extractInvoiceNumber($text)
+    {
+        $patterns = [
+            // N° 12345 o Nº 12345 o N° Factura 12345
+            '/N[°º]\s*(?:Factura|Documento|Doc\.?)?\s*[:\s]*(\d{1,10})/i',
+            // Folio N° 12345 o Folio: 12345
+            '/Folio\s*(?:N[°º])?\s*[:\s]*(\d{1,10})/i',
+            // FACTURA ELECTRONICA N° 12345
+            '/FACTURA\s+(?:ELECTR[OÓ]NICA\s+)?N[°º]\s*(\d{1,10})/i',
+            // NOTA DE CREDITO ELECTRONICA N° 12345
+            '/NOTA\s+DE\s+(?:CR[EÉ]DITO|D[EÉ]BITO)\s+(?:ELECTR[OÓ]NICA\s+)?N[°º]\s*(\d{1,10})/i',
+            // BOLETA ELECTRONICA N° 12345
+            '/BOLETA\s+(?:ELECTR[OÓ]NICA\s+)?N[°º]\s*(\d{1,10})/i',
+            // Documento N° 12345
+            '/Documento\s*N[°º]\s*[:\s]*(\d{1,10})/i',
+        ];
+
+        foreach ($patterns as $pattern) {
+            if (preg_match($pattern, $text, $matches)) {
+                return $matches[1];
+            }
+        }
+
+        return null;
+    }
+
+    /**
+     * Extraer fecha del documento
+     */
+    private function extractDate($text)
+    {
+        $patterns = [
+            // Fecha Emisión: 15/01/2025 o 15-01-2025
+            '/Fecha\s*(?:de\s+)?(?:Emisi[oó]n|emisi[oó]n)\s*[:\s]*(\d{1,2}[\/-]\d{1,2}[\/-]\d{2,4})/i',
+            // Fecha: 15/01/2025
+            '/Fecha\s*[:\s]+(\d{1,2}[\/-]\d{1,2}[\/-]\d{2,4})/i',
+            // 15 de Enero de 2025
+            '/(\d{1,2})\s+de\s+(Enero|Febrero|Marzo|Abril|Mayo|Junio|Julio|Agosto|Septiembre|Octubre|Noviembre|Diciembre)\s+(?:de\s+)?(\d{4})/i',
+            // Formato ISO: 2025-01-15
+            '/Fecha\s*[:\s]*(\d{4}-\d{2}-\d{2})/i',
+            // Buscar cualquier fecha dd/mm/yyyy en el texto
+            '/\b(\d{2}[\/-]\d{2}[\/-]\d{4})\b/',
+        ];
+
+        $monthMap = [
+            'enero' => '01', 'febrero' => '02', 'marzo' => '03', 'abril' => '04',
+            'mayo' => '05', 'junio' => '06', 'julio' => '07', 'agosto' => '08',
+            'septiembre' => '09', 'octubre' => '10', 'noviembre' => '11', 'diciembre' => '12',
+        ];
+
+        foreach ($patterns as $i => $pattern) {
+            if (preg_match($pattern, $text, $matches)) {
+                // Formato "15 de Enero de 2025"
+                if ($i === 2) {
+                    $day = str_pad($matches[1], 2, '0', STR_PAD_LEFT);
+                    $month = $monthMap[strtolower($matches[2])] ?? '01';
+                    $year = $matches[3];
+                    return "{$year}-{$month}-{$day}";
+                }
+
+                $dateStr = $matches[1];
+
+                // Convertir dd/mm/yyyy o dd-mm-yyyy a yyyy-mm-dd
+                if (preg_match('/^(\d{1,2})[\/-](\d{1,2})[\/-](\d{4})$/', $dateStr, $parts)) {
+                    return "{$parts[3]}-" . str_pad($parts[2], 2, '0', STR_PAD_LEFT) . "-" . str_pad($parts[1], 2, '0', STR_PAD_LEFT);
+                }
+
+                // Si ya es ISO yyyy-mm-dd
+                if (preg_match('/^\d{4}-\d{2}-\d{2}$/', $dateStr)) {
+                    return $dateStr;
+                }
+
+                return $dateStr;
+            }
+        }
+
+        return null;
+    }
+
+    /**
+     * Extraer monto total
+     */
+    private function extractTotalAmount($text)
+    {
+        $patterns = [
+            // TOTAL $ 1.234.567 o Total: $1.234.567
+            '/TOTAL\s*\$?\s*[:\s]*\$?\s*([\d\.]+)/i',
+            // Monto Total: $1.234.567
+            '/Monto\s+Total\s*[:\s]*\$?\s*([\d\.]+)/i',
+            // Total a Pagar: $1.234.567
+            '/Total\s+a\s+Pagar\s*[:\s]*\$?\s*([\d\.]+)/i',
+            // VALOR TOTAL $ 1.234.567
+            '/VALOR\s+TOTAL\s*\$?\s*[:\s]*([\d\.]+)/i',
+        ];
+
+        foreach ($patterns as $pattern) {
+            if (preg_match($pattern, $text, $matches)) {
+                // Remover puntos de miles y convertir a número
+                $amount = str_replace('.', '', $matches[1]);
+                return (int) $amount;
+            }
+        }
+
+        return null;
+    }
+
+    /**
+     * Detectar tipo de documento desde el texto
+     */
+    private function detectDocumentType($text)
+    {
+        $textUpper = strtoupper($text);
+
+        if (str_contains($textUpper, 'NOTA DE CREDITO') || str_contains($textUpper, 'NOTA DE CRÉDITO')) {
+            return 'Nota de Crédito Electrónica';
+        }
+        if (str_contains($textUpper, 'NOTA DE DEBITO') || str_contains($textUpper, 'NOTA DE DÉBITO')) {
+            return 'Nota de Débito Electrónica';
+        }
+        if (str_contains($textUpper, 'GUIA DE DESPACHO') || str_contains($textUpper, 'GUÍA DE DESPACHO')) {
+            return 'Guía de Despacho Electrónica';
+        }
+        if (str_contains($textUpper, 'BOLETA ELECTRONICA') || str_contains($textUpper, 'BOLETA ELECTRÓNICA')) {
+            return 'Boleta Electrónica';
+        }
+        if (str_contains($textUpper, 'FACTURA ELECTRONICA') || str_contains($textUpper, 'FACTURA ELECTRÓNICA') || str_contains($textUpper, 'FACTURA')) {
+            return 'Factura Electrónica';
+        }
+
+        return null;
+    }
+
+    /**
+     * Extraer nombre del cliente/receptor
+     */
+    private function extractCustomerName($text)
+    {
+        $patterns = [
+            // Señor(es): NOMBRE o Sr(es): NOMBRE
+            '/Se[ñn]or(?:es)?\s*[:\s]+([A-ZÁÉÍÓÚÑ][A-Za-záéíóúñÁÉÍÓÚÑ\s\.\/&]+)/i',
+            // Razón Social Cliente: NOMBRE
+            '/Raz[oó]n\s+Social\s*[:\s]+([A-ZÁÉÍÓÚÑ][A-Za-záéíóúñÁÉÍÓÚÑ\s\.\/&]+)/i',
+            // Cliente: NOMBRE
+            '/Cliente\s*[:\s]+([A-ZÁÉÍÓÚÑ][A-Za-záéíóúñÁÉÍÓÚÑ\s\.\/&]+)/i',
+        ];
+
+        foreach ($patterns as $pattern) {
+            if (preg_match($pattern, $text, $matches)) {
+                $name = trim($matches[1]);
+                // Limpiar el nombre (remover texto extra después del nombre)
+                $name = preg_replace('/\s{2,}.*$/', '', $name);
+                return $name;
+            }
+        }
+
+        return null;
+    }
+
+    /**
+     * Extraer nombre/razón social del proveedor desde texto
+     */
+    private function extractSupplierNameFromText($text, $supplierTaxId)
+    {
+        // Si tenemos RUT, intentar extraer nombre completo cerca del RUT
+        if ($supplierTaxId) {
+            $fullName = $this->extractFullSupplierName($text, $supplierTaxId, '');
+            if ($fullName) {
+                return $fullName;
+            }
+        }
+
+        // Buscar patrones comunes de razón social del emisor
+        // En facturas chilenas, la razón social del emisor suele estar al inicio
+        $patterns = [
+            // Líneas con formato de razón social típica
+            '/^([A-ZÁÉÍÓÚÑ][A-ZÁÉÍÓÚÑ\s\.\/&]+(?:LIMITADA|LTDA|S\.?A\.?|SPA|EIRL|S\.?R\.?L\.?))/im',
+        ];
+
+        foreach ($patterns as $pattern) {
+            if (preg_match($pattern, $text, $matches)) {
+                $name = trim($matches[1]);
+                $name = preg_replace('/\s+/', ' ', $name);
+                if (strlen($name) >= 5 && strlen($name) <= 100) {
+                    return $name;
+                }
+            }
+        }
+
+        return null;
+    }
+
+    /**
+     * Extraer todos los RUTs encontrados en el texto (únicos, en orden de aparición)
+     */
+    private function extractAllRuts($text)
+    {
+        $patterns = [
+            '/RUT[:\s]+([0-9]{1,2}[\.\s]?[0-9]{3}[\.\s]?[0-9]{3}[-\s]?[0-9kK])/i',
+            '/R\.U\.T[:\s]+([0-9]{1,2}[\.\s]?[0-9]{3}[\.\s]?[0-9]{3}[-\s]?[0-9kK])/i',
+            '/\b([0-9]{1,2}\.[0-9]{3}\.[0-9]{3}-[0-9kK])\b/',
+            '/\b([0-9]{7,8}-[0-9kK])\b/',
+        ];
+
+        $foundRuts = [];
+        $seen = [];
+
+        foreach ($patterns as $pattern) {
+            if (preg_match_all($pattern, $text, $matches)) {
+                foreach ($matches[1] as $rut) {
+                    $cleanedRut = $this->cleanRut($rut);
+                    if (strlen($cleanedRut) >= 8 && strlen($cleanedRut) <= 9 && !in_array($cleanedRut, $seen)) {
+                        $foundRuts[] = $cleanedRut;
+                        $seen[] = $cleanedRut;
+                    }
+                }
+            }
+        }
+
+        return $foundRuts;
     }
 
     public function cleanRut($rut)
@@ -264,6 +423,11 @@ class InvoiceOcrService
                 
                 // Si el nombre extraído es significativamente más largo que el corto
                 if (strlen($fullName) > strlen($shortName) + 5) {
+                    return $fullName;
+                }
+                
+                // Si no hay nombre corto para comparar, aceptar si es razonable
+                if (empty($shortName) && strlen($fullName) >= 5) {
                     return $fullName;
                 }
             }

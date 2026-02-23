@@ -22,11 +22,23 @@ class FormSupplierRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'name'      => 'required',
-            'rut'       => 'required',
-            'email'     => 'nullable|email',
-            'contact'   => 'nullable',
-            'phone'     => 'nullable'
+            'name'      => 'required|string|max:255',
+            'rut'       => 'required|string|max:20',
+            'email'     => 'nullable|email|max:255',
+            'contact'   => 'nullable|string|max:255',
+            'phone'     => 'nullable|string|max:50'
+        ];
+    }
+
+    /**
+     * Mensajes de validación personalizados.
+     */
+    public function messages(): array
+    {
+        return [
+            'name.required'  => 'El nombre del proveedor es obligatorio.',
+            'rut.required'   => 'El RUT del proveedor es obligatorio.',
+            'email.email'    => 'El email ingresado no es válido.',
         ];
     }
 }

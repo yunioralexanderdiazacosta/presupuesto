@@ -91,16 +91,33 @@ class ExtractInvoiceFromPdfController extends Controller
             return null;
         }
 
-        return Supplier::where('team_id', $teamId)
-            ->where(function ($q) use ($ocrData) {
-                if ($ocrData['supplier_tax_id']) {
-                    $q->where('rut', $ocrData['supplier_tax_id']);
-                }
-                if ($ocrData['supplier_name']) {
-                    $q->orWhere('name', 'LIKE', '%' . $ocrData['supplier_name'] . '%');
-                }
-            })
-            ->first();
+        // Primero buscar por RUT (normalizado: sin puntos ni guiones)
+        if ($ocrData['supplier_tax_id']) {
+            $cleanRut = preg_replace('/[^0-9kK]/', '', $ocrData['supplier_tax_id']);
+            
+            // Buscar el proveedor cuyo RUT limpio coincida
+            $supplier = Supplier::where('team_id', $teamId)->get()->first(function ($s) use ($cleanRut) {
+                $dbRut = preg_replace('/[^0-9kK]/', '', strtolower($s->rut ?? ''));
+                return strtolower($cleanRut) === $dbRut;
+            });
+
+            if ($supplier) {
+                return $supplier;
+            }
+        }
+
+        // Si no encontró por RUT, buscar por nombre (LIKE, insensible a acentos en MySQL con collation)
+        if ($ocrData['supplier_name']) {
+            $supplier = Supplier::where('team_id', $teamId)
+                ->where('name', 'LIKE', '%' . $ocrData['supplier_name'] . '%')
+                ->first();
+
+            if ($supplier) {
+                return $supplier;
+            }
+        }
+
+        return null;
     }
 
     private function findCompanyReason($ocrData)
@@ -111,9 +128,13 @@ class ExtractInvoiceFromPdfController extends Controller
             return null;
         }
 
-        return CompanyReason::where('team_id', $teamId)
-            ->where('rut', $ocrData['customer_tax_id'])
-            ->first();
+        // Normalizar RUT del cliente para comparar
+        $cleanRut = preg_replace('/[^0-9kK]/', '', $ocrData['customer_tax_id']);
+
+        return CompanyReason::where('team_id', $teamId)->get()->first(function ($cr) use ($cleanRut) {
+            $dbRut = preg_replace('/[^0-9kK]/', '', strtolower($cr->rut ?? ''));
+            return strtolower($cleanRut) === $dbRut;
+        });
     }
 
     private function findTypeDocument($ocrData)
