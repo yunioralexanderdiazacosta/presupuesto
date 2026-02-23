@@ -23,8 +23,68 @@ let cumulativeChart = null;
 // Toggle ÚNICO para incluir/excluir inversiones en TODO el dashboard
 const includeInvestments = ref(false);
 
+// Toggle idioma ES/EN
+const isEnglish = ref(false);
+const t = computed(() => isEnglish.value ? {
+    budgeted: 'Budget',
+    invoiced: 'Invoiced',
+    consumed: 'Consumed',
+    difference: 'Difference',
+    execution: '% Execution',
+    budgetMinusInvoiced: 'Budget - Invoiced',
+    underBudget: '✅ Under Budget',
+    overBudget: '⚠️ Over Budget',
+    variance: 'Variance',
+    withInvestments: 'With investments',
+    withoutInvestments: 'Without investments',
+    investmentsBudgeted: 'Budgeted investments',
+    investmentsConsumed: 'Consumed investments',
+    // Gráfico mensual
+    monthlyTitle: 'Monthly Comparison: Budget vs Invoiced',
+    budgetedLabel: 'Budget',
+    budgetedWithInv: 'Budget (with investments)',
+    invoicedLabel: 'Invoiced',
+    // Gráfico acumulado
+    cumulativeTitle: 'Cumulative Evolution - Actual vs Projection',
+    cumBudget: 'Cumulative Budget (Full projection)',
+    cumBudgetWithInv: 'Cumulative Budget with Investments (Full projection)',
+    cumInvoiced: 'Cumulative Invoiced (Actual)',
+    cumConsumed: 'Cumulative Consumed (Actual)',
+    cumConsumedWithInv: 'Cumulative Consumed with Investments (Actual)',
+    cumulativeTableTitle: 'Cumulative Evolution - Monthly Data',
+    dashboardTitle: 'Comparative Dashboard',
+} : {
+    budgeted: 'Presupuestado',
+    invoiced: 'Facturado',
+    consumed: 'Consumido',
+    difference: 'Diferencia',
+    execution: '% Ejecución',
+    budgetMinusInvoiced: 'Presupuesto - Facturado',
+    underBudget: '✅ Bajo Presupuesto',
+    overBudget: '⚠️ Sobrepresupuesto',
+    variance: 'Variación',
+    withInvestments: 'Con inversiones',
+    withoutInvestments: 'Sin inversiones',
+    investmentsBudgeted: 'Inversiones presupuestadas',
+    investmentsConsumed: 'Inversiones consumidas',
+    // Gráfico mensual
+    monthlyTitle: 'Comparativo Mensual: Presupuesto vs Facturado',
+    budgetedLabel: 'Presupuestado',
+    budgetedWithInv: 'Presupuestado (con inversiones)',
+    invoicedLabel: 'Facturado',
+    // Gráfico acumulado
+    cumulativeTitle: 'Evolución Acumulada - Real vs Proyección',
+    cumBudget: 'Acumulado Presupuesto (Proyección completa)',
+    cumBudgetWithInv: 'Acumulado Presupuesto con Inversiones (Proyección completa)',
+    cumInvoiced: 'Acumulado Facturado (Real)',
+    cumConsumed: 'Acumulado Consumido (Real)',
+    cumConsumedWithInv: 'Acumulado Consumido con Inversiones (Real)',
+    cumulativeTableTitle: 'Evolución Acumulada - Datos Mensuales',
+    dashboardTitle: 'Dashboard Comparativo',
+});
+
 // Variables para conversión USD
-const divisor = ref(970);
+const divisor = ref(880);
 const divisorMin = 800;
 const divisorMax = 1100;
 const dividir = ref(false); // Por defecto desactivado
@@ -408,7 +468,7 @@ const excelData = computed(() => {
 });
 
 // Watch para actualizar gráficos cuando cambie el toggle o la conversión USD
-watch([includeInvestments, dividir, divisor], () => {
+watch([includeInvestments, dividir, divisor, isEnglish], () => {
     createMonthlyChart();
     createCumulativeChart();
 });
@@ -442,14 +502,14 @@ function createMonthlyChart() {
             labels: props.monthlyComparison.labels,
             datasets: [
                 {
-                    label: includeInvestments.value ? 'Presupuestado (con inversiones)' : 'Presupuestado',
+                    label: includeInvestments.value ? t.value.budgetedWithInv : t.value.budgetedLabel,
                     data: convertedBudgetData,
                     backgroundColor: 'rgba(54, 162, 235, 0.7)',
                     borderColor: 'rgba(54, 162, 235, 1)',
                     borderWidth: 1
                 },
                 {
-                    label: 'Facturado',
+                    label: t.value.invoicedLabel,
                     data: convertedRealData,
                     backgroundColor: 'rgba(75, 192, 192, 0.7)',
                     borderColor: 'rgba(75, 192, 192, 1)',
@@ -463,7 +523,7 @@ function createMonthlyChart() {
             plugins: {
                 title: {
                     display: true,
-                    text: 'Comparativo Mensual: Presupuesto vs Facturado' + (dividir.value ? ' (USD)' : ' (CLP)'),
+                    text: t.value.monthlyTitle + (dividir.value ? ' (USD)' : ' (CLP)'),
                     font: { size: 16 }
                 },
                 legend: {
@@ -535,8 +595,8 @@ function createCumulativeChart() {
             datasets: [
                 {
                     label: includeInvestments.value 
-                        ? 'Acumulado Presupuesto con Inversiones (Proyección completa)' 
-                        : 'Acumulado Presupuesto (Proyección completa)',
+                        ? t.value.cumBudgetWithInv 
+                        : t.value.cumBudget,
                     data: convertedBudgetCumulative,
                     borderColor: 'rgb(54, 162, 235)',
                     backgroundColor: 'rgba(54, 162, 235, 0.1)',
@@ -547,7 +607,7 @@ function createCumulativeChart() {
                     pointHoverRadius: 6
                 },
                 {
-                    label: 'Acumulado Facturado (Real)',
+                    label: t.value.cumInvoiced,
                     data: convertedRealCumulative,
                     borderColor: 'rgb(75, 192, 192)',
                     backgroundColor: 'rgba(75, 192, 192, 0.1)',
@@ -560,8 +620,8 @@ function createCumulativeChart() {
                 },
                 {
                     label: includeInvestments.value 
-                        ? 'Acumulado Consumido con Inversiones (Real)' 
-                        : 'Acumulado Consumido (Real)',
+                        ? t.value.cumConsumedWithInv 
+                        : t.value.cumConsumed,
                     data: convertedConsumedCumulative,
                     borderColor: 'rgb(255, 159, 64)',
                     backgroundColor: 'rgba(255, 159, 64, 0.1)',
@@ -580,7 +640,7 @@ function createCumulativeChart() {
             plugins: {
                 title: {
                     display: true,
-                    text: 'Evolución Acumulada - Real vs Proyección' + (dividir.value ? ' (USD)' : ' (CLP)'),
+                    text: t.value.cumulativeTitle + (dividir.value ? ' (USD)' : ' (CLP)'),
                     font: { size: 16 }
                 },
                 legend: {
@@ -629,7 +689,7 @@ function createCumulativeChart() {
                     <div class="row flex-between-center">
                         <div class="col-6 col-sm-auto d-flex align-items-center pe-0">
                             <h5 class="fs-9 mb-0 text-nowrap py-2 py-xl-0">
-                                <i class="fas fa-chart-line me-2"></i>Dashboard Comparativo
+                                <i class="fas fa-chart-line me-2"></i>{{ t.dashboardTitle }}
                             </h5>
                         </div>
                         <div class="col-6 col-sm-auto ms-auto text-end ps-0">
@@ -646,10 +706,10 @@ function createCumulativeChart() {
                                     >
                                     <label class="form-check-label text-muted small mb-0" for="includeInvestmentsToggle" style="cursor: pointer;">
                                         <span v-if="includeInvestments">
-                                            <i class="fas fa-check-circle text-success"></i> Con inversiones
+                                            <i class="fas fa-check-circle text-success"></i> {{ t.withInvestments }}
                                         </span>
                                         <span v-else>
-                                            <i class="fas fa-times-circle text-secondary"></i> Sin inversiones
+                                            <i class="fas fa-times-circle text-secondary"></i> {{ t.withoutInvestments }}
                                         </span>
                                     </label>
                                 </div>
@@ -666,6 +726,23 @@ function createCumulativeChart() {
                                         v-model="dividir"
                                     >
                                     <label class="form-check-label ms-2 mt-0 mb-0 small" for="dividir-switch">Ver en USD</label>
+                                </div>
+
+                                <!-- Separador -->
+                                <div class="vr d-none d-md-block" style="height: 24px;"></div>
+
+                                <!-- Toggle idioma ES/EN -->
+                                <div class="form-check form-switch mb-0 d-flex align-items-center">
+                                    <input 
+                                        class="form-check-input" 
+                                        type="checkbox" 
+                                        id="lang-switch" 
+                                        v-model="isEnglish"
+                                    >
+                                    <label class="form-check-label ms-2 mt-0 mb-0 small" for="lang-switch">
+                                        <span v-if="isEnglish">🇺🇸 EN</span>
+                                        <span v-else>🇨🇱 ES</span>
+                                    </label>
                                 </div>
                                 
                                 <!-- Slider de divisor (solo visible cuando dividir está activo) -->
@@ -697,7 +774,7 @@ function createCumulativeChart() {
                     <div class="card h-100">
                         <div class="card-body">
                             <div class="d-flex justify-content-between align-items-center mb-2">
-                                <h6 class="mb-0 text-muted">Presupuestado</h6>
+                                <h6 class="mb-0 text-muted">{{ t.budgeted }}</h6>
                                 <i class="fas fa-calculator text-primary fa-lg"></i>
                             </div>
                             <h3 class="mb-0 text-primary">{{ formatCLP(displayedBudget) }}</h3>
@@ -707,7 +784,7 @@ function createCumulativeChart() {
                             <div v-if="includeInvestments && summary.total_investments > 0" class="mt-3">
                                 <small class="text-info">
                                     <i class="fas fa-info-circle"></i>
-                                    Inversiones presupuestadas: {{ formatCLP(summary.total_investments) }}
+                                    {{ t.investmentsBudgeted }}: {{ formatCLP(summary.total_investments) }}
                                 </small>
                             </div>
                         </div>
@@ -718,7 +795,7 @@ function createCumulativeChart() {
                     <div class="card h-100">
                         <div class="card-body">
                             <div class="d-flex justify-content-between align-items-center mb-2">
-                                <h6 class="mb-0 text-muted">Facturado</h6>
+                                <h6 class="mb-0 text-muted">{{ t.invoiced }}</h6>
                                 <i class="fas fa-file-invoice-dollar text-success fa-lg"></i>
                             </div>
                             <h3 class="mb-0 text-success">{{ formatCLP(displayedInvoiced) }}</h3>
@@ -731,7 +808,7 @@ function createCumulativeChart() {
                     <div class="card h-100">
                         <div class="card-body">
                             <div class="d-flex justify-content-between align-items-center mb-2">
-                                <h6 class="mb-0 text-muted">Consumido</h6>
+                                <h6 class="mb-0 text-muted">{{ t.consumed }}</h6>
                                 <i class="fas fa-boxes text-warning fa-lg"></i>
                             </div>
                             <h3 class="mb-0 text-warning">{{ formatCLP(displayedConsumed) }}</h3>
@@ -741,7 +818,7 @@ function createCumulativeChart() {
                             <div v-if="includeInvestments && summary.consumed_investments_total > 0" class="mt-3">
                                 <small class="text-info">
                                     <i class="fas fa-info-circle"></i>
-                                    Inversiones consumidas: {{ formatCLP(summary.consumed_investments_total) }}
+                                    {{ t.investmentsConsumed }}: {{ formatCLP(summary.consumed_investments_total) }}
                                 </small>
                             </div>
                         </div>
@@ -752,15 +829,15 @@ function createCumulativeChart() {
                     <div class="card h-100">
                         <div class="card-body">
                             <div class="d-flex justify-content-between align-items-center mb-2">
-                                <h6 class="mb-0 text-muted">Diferencia</h6>
+                                <h6 class="mb-0 text-muted">{{ t.difference }}</h6>
                                 <i :class="['fas', displayedDifference >= 0 ? 'fa-arrow-down text-success' : 'fa-arrow-up text-danger']"></i>
                             </div>
                             <h3 class="mb-0" :class="displayedDifference >= 0 ? 'text-success' : 'text-danger'">
                                 {{ formatCLP(Math.abs(displayedDifference)) }}
                             </h3>
-                            <small class="text-muted d-block mb-2">Presupuesto - Facturado</small>
+                            <small class="text-muted d-block mb-2">{{ t.budgetMinusInvoiced }}</small>
                             <span :class="['badge', displayedDifference >= 0 ? 'bg-success' : 'bg-danger']">
-                                {{ displayedDifference >= 0 ? '✅ Bajo Presupuesto' : '⚠️ Sobrepresupuesto' }}
+                                {{ displayedDifference >= 0 ? t.underBudget : t.overBudget }}
                             </span>
                         </div>
                     </div>
@@ -770,12 +847,12 @@ function createCumulativeChart() {
                     <div class="card h-100">
                         <div class="card-body">
                             <div class="d-flex justify-content-between align-items-center mb-2">
-                                <h6 class="mb-0 text-muted">% Ejecución</h6>
+                                <h6 class="mb-0 text-muted">{{ t.execution }}</h6>
                                 <i class="fas fa-percent text-info fa-lg"></i>
                             </div>
                             <h3 class="mb-0 text-info">{{ formatPercent(displayedPercentageExecution) }}</h3>
                             <small class="text-muted">
-                                Variación: 
+                                {{ t.variance }}: 
                                 <span :class="displayedDifference < 0 ? 'text-danger' : 'text-success'">
                                     {{ displayedDifference < 0 ? '+' : '' }}{{ formatPercent((displayedDifference / displayedBudget) * 100) }}
                                 </span>
@@ -817,7 +894,7 @@ function createCumulativeChart() {
                         <div class="card-header">
                             <div class="d-flex justify-content-between align-items-center">
                                 <h6 class="mb-0">
-                                    <i class="fas fa-chart-line me-2"></i>Evolución Acumulada - Datos Mensuales
+                                    <i class="fas fa-chart-line me-2"></i>{{ t.cumulativeTableTitle }}
                                 </h6>
                                 <ExportExcelButton
                                     :data="cumulativeTableData"
