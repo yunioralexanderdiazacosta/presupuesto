@@ -343,8 +343,12 @@ class InvoiceOcrService
     }
 
     /**
-     * Extrae el RUT del proveedor desde el texto completo del PDF
-     * Busca patrones comunes en facturas chilenas
+     * Extrae el RUT del proveedor (emisor) desde el texto completo del PDF.
+     * En facturas chilenas el RUT del emisor aparece en el encabezado,
+     * justo ANTES de la línea "FACTURA ELECTRÓNICA" / "BOLETA" / "NOTA DE CRÉDITO".
+     * Patrón típico:
+     *   R.U.T.: 81.290.800-6
+     *   FACTURA ELECTRÓNICA
      */
     private function extractSupplierRutFromText($fullText, $supplierName = null)
     {
@@ -352,35 +356,71 @@ class InvoiceOcrService
             'supplier_name' => $supplierName,
             'texto_disponible' => !empty($fullText)
         ]);
-        
-        // Patrones comunes de RUT en facturas (formato chileno)
-        $patterns = [
-            // RUT: 12.345.678-9 o RUT 12.345.678-9
-            '/RUT[:\s]+([0-9]{1,2}[\.\s]?[0-9]{3}[\.\s]?[0-9]{3}[-\s]?[0-9kK])/i',
-            // R.U.T: 12.345.678-9
-            '/R\.U\.T[:\s]+([0-9]{1,2}[\.\s]?[0-9]{3}[\.\s]?[0-9]{3}[-\s]?[0-9kK])/i',
-            // Formato: 12.345.678-9 (sin prefijo, pero con formato completo)
-            '/\b([0-9]{1,2}\.[0-9]{3}\.[0-9]{3}-[0-9kK])\b/',
-            // Formato: 12345678-9 (sin puntos)
-            '/\b([0-9]{7,8}-[0-9kK])\b/',
+
+        // Patrón de RUT genérico (para capturar cualquier RUT)
+        $rutRegex = '([0-9]{1,2}[\.\s]?[0-9]{3}[\.\s]?[0-9]{3}[-\s]?[0-9kK])';
+
+        // ─── Estrategia 1: RUT que aparece justo antes de "FACTURA/BOLETA/NOTA DE" ───
+        // Este es el patrón más fiable en facturas chilenas.
+        $headerPatterns = [
+            // R.U.T.: 81.290.800-6 \n FACTURA ELECTRÓNICA
+            '/R\.?U\.?T\.?\s*[:\.]?\s*' . $rutRegex . '\s*\n\s*(?:FACTURA|BOLETA|NOTA\s+DE)/i',
+            // RUT: 81.290.800-6 \n FACTURA ELECTRÓNICA
+            '/RUT\s*[:\.]?\s*' . $rutRegex . '\s*\n\s*(?:FACTURA|BOLETA|NOTA\s+DE)/i',
+            // 81.290.800-6 \n FACTURA ELECTRÓNICA (sin prefijo RUT)
+            '/\b' . $rutRegex . '\s*\n\s*(?:FACTURA|BOLETA|NOTA\s+DE)/i',
         ];
 
-        $foundRuts = [];
-        
-        foreach ($patterns as $pattern) {
-            if (preg_match_all($pattern, $fullText, $matches)) {
-                foreach ($matches[1] as $rut) {
-                    $cleanedRut = $this->cleanRut($rut);
-                    if (strlen($cleanedRut) >= 8 && strlen($cleanedRut) <= 9) {
-                        $foundRuts[] = $cleanedRut;
-                    }
+        foreach ($headerPatterns as $pattern) {
+            if (preg_match($pattern, $fullText, $matches)) {
+                $cleanedRut = $this->cleanRut($matches[1]);
+                if (strlen($cleanedRut) >= 8 && strlen($cleanedRut) <= 9) {
+                    Log::info('✅ RUT proveedor encontrado en encabezado (antes de FACTURA)', [
+                        'rut' => $cleanedRut,
+                    ]);
+                    return $cleanedRut;
                 }
             }
         }
 
-        // Si encontramos RUTs, retornar el primero (usualmente es el del emisor/proveedor)
-        if (!empty($foundRuts)) {
-            return $foundRuts[0];
+        // ─── Estrategia 2: RUT etiquetado como "R.U.T." en el encabezado ───
+        // Buscar el primer RUT con prefijo R.U.T. o RUT en la primera porción del texto
+        $headerText = substr($fullText, 0, 800); // Solo encabezado
+        $labeledPatterns = [
+            '/R\.U\.T\.?\s*[:\.]?\s*' . $rutRegex . '/i',
+            '/RUT\s*[:\.]?\s*' . $rutRegex . '/i',
+        ];
+
+        foreach ($labeledPatterns as $pattern) {
+            if (preg_match($pattern, $headerText, $matches)) {
+                $cleanedRut = $this->cleanRut($matches[1]);
+                if (strlen($cleanedRut) >= 8 && strlen($cleanedRut) <= 9) {
+                    Log::info('✅ RUT proveedor encontrado con etiqueta en encabezado', [
+                        'rut' => $cleanedRut,
+                    ]);
+                    return $cleanedRut;
+                }
+            }
+        }
+
+        // ─── Estrategia 3 (fallback): primer RUT del texto completo ───
+        $fallbackPatterns = [
+            '/RUT[:\s]+' . $rutRegex . '/i',
+            '/R\.U\.T[:\s]+' . $rutRegex . '/i',
+            '/\b([0-9]{1,2}\.[0-9]{3}\.[0-9]{3}-[0-9kK])\b/',
+            '/\b([0-9]{7,8}-[0-9kK])\b/',
+        ];
+
+        foreach ($fallbackPatterns as $pattern) {
+            if (preg_match($pattern, $fullText, $matches)) {
+                $cleanedRut = $this->cleanRut($matches[1]);
+                if (strlen($cleanedRut) >= 8 && strlen($cleanedRut) <= 9) {
+                    Log::info('⚠️ RUT proveedor (fallback, primer encontrado)', [
+                        'rut' => $cleanedRut,
+                    ]);
+                    return $cleanedRut;
+                }
+            }
         }
         
         return null;
