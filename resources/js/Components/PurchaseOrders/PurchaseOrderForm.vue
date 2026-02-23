@@ -36,6 +36,15 @@ watch(selectedGrouping, (groupingId) => {
     }
 });
 
+// Nuevo item para agregar desde el card
+const newItem = ref({
+    product_id: '',
+    quantity: '',
+    unit_id: '',
+    unit_price: '',
+    notes: ''
+});
+
 // Form
 const form = useForm({
     supplier_id: props.order?.supplier.id || '',
@@ -59,17 +68,6 @@ watch(selectedCostCenters, (newVal) => {
     form.cost_center_ids = newVal;
 });
 
-// Si no hay items, agregar uno vacío
-if (form.items.length === 0) {
-    form.items.push({
-        product_id: '',
-        quantity: '',
-        unit_id: '',
-        unit_price: '',
-        notes: ''
-    });
-}
-
 function formatDateForInput(dateString) {
     if (!dateString) return '';
     
@@ -88,34 +86,65 @@ function formatDateForInput(dateString) {
 }
 
 // Agregar/Eliminar items
-function addItem() {
-    form.items.push({
+function addItemFromCard() {
+    if (!newItem.value.product_id) {
+        Swal.fire('Atención', 'Debe seleccionar un producto', 'warning');
+        return;
+    }
+    if (!newItem.value.quantity || newItem.value.quantity <= 0) {
+        Swal.fire('Atención', 'Debe ingresar la cantidad', 'warning');
+        return;
+    }
+    if (!newItem.value.unit_id) {
+        Swal.fire('Atención', 'Debe seleccionar la unidad', 'warning');
+        return;
+    }
+    if (newItem.value.unit_price === '' || newItem.value.unit_price < 0) {
+        Swal.fire('Atención', 'Debe ingresar el precio unitario', 'warning');
+        return;
+    }
+
+    form.items.push({ ...newItem.value });
+
+    // Resetear
+    newItem.value = {
         product_id: '',
         quantity: '',
         unit_id: '',
         unit_price: '',
         notes: ''
-    });
+    };
+}
+
+function onNewItemProductChange(productId) {
+    const product = props.products.find(p => p.value === productId);
+    if (product && product.unit_id) {
+        newItem.value.unit_id = product.unit_id;
+    }
+}
+
+function calculateNewItemSubtotal() {
+    const qty = parseFloat(newItem.value.quantity) || 0;
+    const price = parseFloat(newItem.value.unit_price) || 0;
+    return qty * price;
 }
 
 function removeItem(index) {
-    if (form.items.length > 1) {
-        form.items.splice(index, 1);
-    } else {
-        Swal.fire('Atención', 'Debe haber al menos un producto', 'warning');
-    }
+    form.items.splice(index, 1);
+}
+
+function getProductName(productId) {
+    const product = props.products.find(p => p.value === productId);
+    return product?.label || '';
+}
+
+function getUnitName(unitId) {
+    const unit = props.units.find(u => u.value === unitId);
+    return unit?.label || '';
 }
 
 // Cuando se selecciona un producto, auto-completar su unidad
-function onProductChange(index) {
-    const item = form.items[index];
-    const product = props.products.find(p => p.value === item.product_id);
-    if (product && product.unit_id) {
-        item.unit_id = product.unit_id;
-    }
-}
 
-// Calcular subtotales
 function calculateItemSubtotal(item) {
     const qty = parseFloat(item.quantity) || 0;
     const price = parseFloat(item.unit_price) || 0;
@@ -208,40 +237,111 @@ function formatCurrency(value) {
         maximumFractionDigits: 0
     }).format(value || 0);
 }
+
+// Exponer form y submit al componente padre (modal)
+defineExpose({ form, submit });
 </script>
 
 <template>
-    <form @submit.prevent="submit">
+    <div class="container-fluid">
         <!-- Información General -->
-        <div class="row g-3 mb-4">
-            <div class="col-md-6">
-                <label class="form-label small">Proveedor <span class="text-danger">*</span></label>
-                <select v-model="form.supplier_id" class="form-select form-select-sm" required>
-                    <option value="" disabled>Seleccione un proveedor</option>
-                    <option v-for="supplier in suppliers" :key="supplier.value" :value="supplier.value">
-                        {{ supplier.label }}
-                    </option>
-                </select>
+        <div class="row mb-2">
+            <div class="col-md-12">
+                <h6 class="text-primary border-bottom pb-1 mb-2">
+                    <i class="fas fa-info-circle me-1"></i>Información General
+                </h6>
+            </div>
+        </div>
+
+        <div class="row mb-2">
+            <div class="col-md-6 mb-2">
+                <label class="form-label small mb-1">Proveedor <span class="text-danger">*</span></label>
+                <Multiselect
+                    v-model="form.supplier_id"
+                    :options="suppliers"
+                    :searchable="true"
+                    :close-on-select="true"
+                    placeholder="Seleccione un proveedor..."
+                    class="multiselect-blue form-control-sm"
+                />
             </div>
 
-            <div class="col-md-6">
-                <label class="form-label small">
+            <div class="col-md-6 mb-2">
+                <label class="form-label small mb-1">
                     <i class="fas fa-user-check me-1"></i>Asignar Aprobador
                 </label>
-                <select v-model="form.assigned_to" class="form-select form-select-sm">
-                    <option value="">Sin asignar</option>
-                    <option v-for="approver in approvers" :key="approver.value" :value="approver.value">
-                        {{ approver.label }}
-                    </option>
-                </select>
+                <Multiselect
+                    v-model="form.assigned_to"
+                    :options="approvers"
+                    :searchable="true"
+                    :close-on-select="true"
+                    placeholder="Sin asignar"
+                    class="multiselect-blue form-control-sm"
+                />
                 <small class="text-muted d-block mt-1">
                     <i class="fas fa-info-circle me-1"></i>
                     Usuario que recibirá notificación para aprobar
                 </small>
             </div>
+        </div>
 
-            <div class="col-md-4" v-if="groupings && groupings.length > 0">
-                <label class="form-label small">
+        <div class="row mb-2">
+            <div class="col-md-4 mb-2">
+                <label class="form-label small mb-1">Fecha Orden <span class="text-danger">*</span></label>
+                <input 
+                    v-model="form.order_date" 
+                    type="date" 
+                    class="form-control form-control-sm" 
+                    required
+                >
+            </div>
+
+            <div class="col-md-4 mb-2">
+                <label class="form-label small mb-1">Fecha Entrega</label>
+                <input 
+                    v-model="form.delivery_date" 
+                    type="date" 
+                    class="form-control form-control-sm"
+                >
+            </div>
+
+            <div class="col-md-4 mb-2">
+                <label class="form-label small mb-1">Condiciones de Pago</label>
+                <input 
+                    v-model="form.payment_terms" 
+                    type="text" 
+                    class="form-control form-control-sm"
+                    placeholder="Ej: 30 días, contado"
+                >
+            </div>
+        </div>
+
+        <div class="row mb-2">
+            <div class="col-12 mb-2">
+                <label class="form-label small mb-1">Observaciones</label>
+                <textarea 
+                    v-model="form.notes" 
+                    class="form-control form-control-sm" 
+                    rows="2"
+                    placeholder="Notas adicionales..."
+                ></textarea>
+            </div>
+        </div>
+
+        <hr class="my-2">
+
+        <!-- Centros de Costo -->
+        <div class="row mb-2">
+            <div class="col-md-12">
+                <h6 class="text-primary border-bottom pb-1 mb-2">
+                    <i class="fas fa-map-marker-alt me-1"></i>Centros de Costo
+                </h6>
+            </div>
+        </div>
+
+        <div class="row mb-2">
+            <div class="col-md-4 mb-2" v-if="groupings && groupings.length > 0">
+                <label class="form-label small mb-1">
                     <i class="fas fa-layer-group me-1"></i>Agrupación (Preselección rápida)
                 </label>
                 <select 
@@ -259,8 +359,8 @@ function formatCurrency(value) {
                 </small>
             </div>
 
-            <div :class="groupings && groupings.length > 0 ? 'col-md-8' : 'col-md-12'">
-                <label class="form-label small">Centros de Costo (opcional)</label>
+            <div :class="groupings && groupings.length > 0 ? 'col-md-8' : 'col-md-12'" class="mb-2">
+                <label class="form-label small mb-1">Seleccionar Centros de Costo</label>
                 <Multiselect
                     v-model="selectedCostCenters"
                     :options="costCenters"
@@ -275,174 +375,157 @@ function formatCurrency(value) {
                     Puede seleccionar múltiples centros de costo o dejar vacío
                 </small>
             </div>
+        </div>
 
-            <div class="col-md-4">
-                <label class="form-label small">Fecha Orden <span class="text-danger">*</span></label>
-                <input 
-                    v-model="form.order_date" 
-                    type="date" 
-                    class="form-control form-control-sm" 
-                    required
-                >
-            </div>
+        <hr class="my-2">
 
-            <div class="col-md-4">
-                <label class="form-label small">Fecha Entrega</label>
-                <input 
-                    v-model="form.delivery_date" 
-                    type="date" 
-                    class="form-control form-control-sm"
-                >
-            </div>
-
-            <div class="col-md-4">
-                <label class="form-label small">Condiciones de Pago</label>
-                <input 
-                    v-model="form.payment_terms" 
-                    type="text" 
-                    class="form-control form-control-sm"
-                    placeholder="Ej: 30 días, contado"
-                >
-            </div>
-
-            <div class="col-12">
-                <label class="form-label small">Observaciones</label>
-                <textarea 
-                    v-model="form.notes" 
-                    class="form-control form-control-sm" 
-                    rows="2"
-                    placeholder="Notas adicionales..."
-                ></textarea>
+        <!-- Productos -->
+        <div class="row mb-2">
+            <div class="col-md-12">
+                <h6 class="text-primary border-bottom pb-1 mb-2">
+                    <i class="fas fa-boxes me-1"></i>Productos
+                </h6>
             </div>
         </div>
 
-        <!-- Items de la Orden -->
-        <div class="mb-3">
-            <div class="d-flex justify-content-between align-items-center mb-2">
-                <h6 class="mb-0">Productos</h6>
-                <button type="button" @click="addItem" class="btn btn-sm btn-falcon-default">
-                    <i class="fas fa-plus me-1"></i> Agregar Producto
-                </button>
+        <!-- Card para agregar productos -->
+        <div class="card mb-3 shadow-sm">
+            <div class="card-header py-2 bg-light">
+                <div class="d-flex justify-content-between align-items-center">
+                    <strong class="small">
+                        <i class="fas fa-plus-circle me-1"></i>Agregar Producto
+                    </strong>
+                </div>
             </div>
+            <div class="card-body py-2">
+                <div class="row mb-2">
+                    <div class="col-md-4 mb-2">
+                        <label class="form-label small mb-1">Producto <span class="text-danger">*</span></label>
+                        <select
+                            v-model="newItem.product_id"
+                            class="form-select form-select-sm"
+                            @change="onNewItemProductChange(newItem.product_id)"
+                        >
+                            <option value="" disabled selected>Seleccione un producto...</option>
+                            <option v-for="product in products" :key="product.value" :value="product.value">
+                                {{ product.label }}
+                            </option>
+                        </select>
+                    </div>
+                    <div class="col-md-2 mb-2">
+                        <label class="form-label small mb-1">Cantidad <span class="text-danger">*</span></label>
+                        <input 
+                            v-model="newItem.quantity" 
+                            type="number" 
+                            step="0.001"
+                            min="0.001"
+                            class="form-control form-control-sm text-end" 
+                            placeholder="0"
+                        >
+                    </div>
+                    <div class="col-md-2 mb-2">
+                        <label class="form-label small mb-1">Unidad <span class="text-danger">*</span></label>
+                        <select v-model="newItem.unit_id" class="form-select form-select-sm">
+                            <option value="" disabled selected>Unidad</option>
+                            <option v-for="unit in units" :key="unit.value" :value="unit.value">
+                                {{ unit.label }}
+                            </option>
+                        </select>
+                    </div>
+                    <div class="col-md-2 mb-2">
+                        <label class="form-label small mb-1">P. Unitario <span class="text-danger">*</span></label>
+                        <input 
+                            v-model="newItem.unit_price" 
+                            type="number" 
+                            step="1"
+                            min="0"
+                            class="form-control form-control-sm text-end" 
+                            placeholder="$"
+                        >
+                    </div>
+                    <div class="col-md-2 mb-2 d-flex align-items-end">
+                        <button type="button" @click="addItemFromCard" class="btn btn-sm btn-success w-100">
+                            <i class="fas fa-plus me-1"></i>Agregar
+                        </button>
+                    </div>
+                </div>
+                <div class="row mb-1" v-if="newItem.product_id && newItem.quantity && newItem.unit_price">
+                    <div class="col-md-12">
+                        <div class="alert alert-info py-1 mb-0">
+                            <small>
+                                <i class="fas fa-calculator me-1"></i>
+                                Subtotal: <strong>${{ formatCurrency(calculateNewItemSubtotal()) }}</strong>
+                            </small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
 
-            <div class="table-responsive">
-                <table class="table table-sm table-bordered">
-                    <thead class="bg-light">
-                        <tr>
-                            <th style="width: 35%">Producto</th>
-                            <th style="width: 12%">Cantidad</th>
-                            <th style="width: 12%">Unidad</th>
-                            <th style="width: 15%">P. Unitario</th>
-                            <th style="width: 18%">Subtotal</th>
-                            <th style="width: 8%"></th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        <tr v-for="(item, index) in form.items" :key="index">
-                            <td>
-                                <select 
-                                    v-model="item.product_id" 
-                                    @change="onProductChange(index)"
-                                    class="form-select form-select-sm"
-                                    required
-                                >
-                                    <option value="" disabled>Seleccione...</option>
-                                    <option v-for="product in products" :key="product.value" :value="product.value">
-                                        {{ product.label }}
-                                    </option>
-                                </select>
-                            </td>
-                            <td>
-                                <input 
-                                    v-model="item.quantity" 
-                                    type="number" 
-                                    step="0.001"
-                                    min="0.001"
-                                    class="form-control form-control-sm text-end" 
-                                    required
-                                >
-                            </td>
-                            <td>
-                                <select v-model="item.unit_id" class="form-select form-select-sm" required>
-                                    <option value="" disabled>Unidad</option>
-                                    <option v-for="unit in units" :key="unit.value" :value="unit.value">
-                                        {{ unit.label }}
-                                    </option>
-                                </select>
-                            </td>
-                            <td>
-                                <input 
-                                    v-model="item.unit_price" 
-                                    type="number" 
-                                    step="1"
-                                    min="0"
-                                    class="form-control form-control-sm text-end" 
-                                    placeholder="$"
-                                    required
-                                >
-                            </td>
-                            <td class="text-end align-middle">
-                                ${{ formatCurrency(calculateItemSubtotal(item)) }}
-                            </td>
-                            <td class="text-center">
-                                <button 
-                                    type="button" 
-                                    @click="removeItem(index)"
-                                    class="btn btn-sm btn-light-danger"
-                                    :disabled="form.items.length === 1"
-                                >
-                                    <i class="fas fa-trash"></i>
-                                </button>
-                            </td>
-                        </tr>
-                        <tr v-if="form.items.length === 0">
-                            <td colspan="6" class="text-center text-muted">No hay productos agregados</td>
-                        </tr>
-                    </tbody>
-                </table>
-            </div>
+        <!-- Tabla de productos agregados -->
+        <div v-if="form.items.length > 0" class="table-responsive mb-3">
+            <table class="table table-sm table-bordered mb-0">
+                <thead class="table-light">
+                    <tr>
+                        <th class="small" style="width: 35%">Producto</th>
+                        <th class="small text-end" style="width: 12%">Cantidad</th>
+                        <th class="small" style="width: 12%">Unidad</th>
+                        <th class="small text-end" style="width: 15%">P. Unitario</th>
+                        <th class="small text-end" style="width: 18%">Subtotal</th>
+                        <th class="small text-center" style="width: 8%">Acción</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr v-for="(item, index) in form.items" :key="index">
+                        <td class="small align-middle">{{ getProductName(item.product_id) }}</td>
+                        <td class="small text-end align-middle">{{ parseFloat(item.quantity).toLocaleString('es-ES', {minimumFractionDigits: 0, maximumFractionDigits: 3}) }}</td>
+                        <td class="small align-middle">{{ getUnitName(item.unit_id) }}</td>
+                        <td class="small text-end align-middle">${{ formatCurrency(item.unit_price) }}</td>
+                        <td class="small text-end align-middle fw-semibold">${{ formatCurrency(calculateItemSubtotal(item)) }}</td>
+                        <td class="text-center align-middle">
+                            <button 
+                                type="button" 
+                                @click="removeItem(index)"
+                                class="btn btn-sm btn-light-danger"
+                                title="Eliminar"
+                            >
+                                <i class="fas fa-trash"></i>
+                            </button>
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+
+        <div v-else class="text-center text-muted py-3 border rounded mb-3">
+            <i class="fas fa-box-open fa-2x mb-2 d-block opacity-50"></i>
+            <small>No hay productos agregados. Use el formulario de arriba para agregar.</small>
         </div>
 
         <!-- Totales -->
         <div class="row justify-content-end mb-3">
             <div class="col-md-5">
-                <table class="table table-sm table-borderless">
-                    <tr>
-                        <td class="text-end fw-semibold">Subtotal:</td>
-                        <td class="text-end">${{ formatCurrency(subtotal) }}</td>
-                    </tr>
-                    <tr>
-                        <td class="text-end fw-semibold">IVA (19%):</td>
-                        <td class="text-end">${{ formatCurrency(tax) }}</td>
-                    </tr>
-                    <tr class="border-top">
-                        <td class="text-end fw-bold">TOTAL:</td>
-                        <td class="text-end fw-bold fs-5">${{ formatCurrency(total) }}</td>
-                    </tr>
-                </table>
+                <div class="card shadow-sm">
+                    <div class="card-body py-2 px-3">
+                        <table class="table table-sm table-borderless mb-0">
+                            <tr>
+                                <td class="text-end fw-semibold small">Subtotal:</td>
+                                <td class="text-end small">${{ formatCurrency(subtotal) }}</td>
+                            </tr>
+                            <tr>
+                                <td class="text-end fw-semibold small">IVA (19%):</td>
+                                <td class="text-end small">${{ formatCurrency(tax) }}</td>
+                            </tr>
+                            <tr class="border-top">
+                                <td class="text-end fw-bold">TOTAL:</td>
+                                <td class="text-end fw-bold fs-5 text-primary">${{ formatCurrency(total) }}</td>
+                            </tr>
+                        </table>
+                    </div>
+                </div>
             </div>
         </div>
-
-        <!-- Botones -->
-        <div class="d-flex justify-content-end gap-2">
-            <button 
-                type="button" 
-                @click="emit('close')" 
-                class="btn btn-secondary btn-sm"
-                :disabled="form.processing"
-            >
-                Cancelar
-            </button>
-            <button 
-                type="submit" 
-                class="btn btn-primary btn-sm"
-                :disabled="form.processing"
-            >
-                <span v-if="form.processing" class="spinner-border spinner-border-sm me-1"></span>
-                {{ isEditing ? 'Actualizar Orden' : 'Crear Orden' }}
-            </button>
-        </div>
-    </form>
+    </div>
 </template>
 
 <style src="@vueform/multiselect/themes/default.css"></style>

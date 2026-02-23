@@ -1,5 +1,5 @@
 <script setup>
-import { ref, watch } from 'vue';
+import { ref, watch, onMounted } from 'vue';
 import PurchaseOrderForm from './PurchaseOrderForm.vue';
 
 const props = defineProps({
@@ -14,6 +14,7 @@ const props = defineProps({
 });
 
 const emit = defineEmits(['close']);
+const formRef = ref(null);
 
 watch(() => props.show, (newVal) => {
     if (newVal) {
@@ -23,8 +24,24 @@ watch(() => props.show, (newVal) => {
     }
 });
 
+onMounted(() => {
+    $('#editPurchaseOrderModal').on('hidden.bs.modal', () => {
+        emit('close');
+    });
+});
+
 function handleClose() {
-    emit('close');
+    $('#editPurchaseOrderModal').modal('hide');
+    setTimeout(() => {
+        $('.modal-backdrop').remove();
+        $('body').removeClass('modal-open').css('overflow', '');
+    }, 300);
+}
+
+function save() {
+    if (formRef.value) {
+        formRef.value.submit();
+    }
 }
 </script>
 
@@ -36,9 +53,9 @@ function handleClose() {
         data-bs-backdrop="static"
         data-bs-keyboard="false"
     >
-        <div class="modal-dialog modal-xl modal-dialog-centered modal-dialog-scrollable">
+        <div class="modal-dialog modal-xl modal-dialog-scrollable">
             <div class="modal-content">
-                <div class="modal-header bg-light">
+                <div class="modal-header bg-warning text-dark">
                     <h5 class="modal-title">
                         <i class="fas fa-edit me-2"></i>Editar Orden de Compra
                     </h5>
@@ -52,6 +69,7 @@ function handleClose() {
                 <div class="modal-body">
                     <PurchaseOrderForm 
                         v-if="order"
+                        ref="formRef"
                         :order="order"
                         :suppliers="suppliers"
                         :costCenters="costCenters"
@@ -66,6 +84,21 @@ function handleClose() {
                         <i class="fas fa-spinner fa-spin fa-2x"></i>
                         <p class="mt-2">Cargando...</p>
                     </div>
+                </div>
+
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" @click="handleClose">
+                        <i class="fas fa-times me-1"></i>Cancelar
+                    </button>
+                    <button
+                        type="button"
+                        class="btn btn-warning"
+                        @click="save"
+                        :disabled="formRef?.form?.processing"
+                    >
+                        <i class="fas fa-save me-1"></i>
+                        {{ formRef?.form?.processing ? 'Guardando...' : 'Actualizar Orden' }}
+                    </button>
                 </div>
             </div>
         </div>

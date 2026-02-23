@@ -1,5 +1,5 @@
 <script setup>
-import { ref, watch } from 'vue';
+import { ref, watch, onMounted } from 'vue';
 import PurchaseOrderForm from './PurchaseOrderForm.vue';
 
 const props = defineProps({
@@ -13,6 +13,7 @@ const props = defineProps({
 });
 
 const emit = defineEmits(['close']);
+const formRef = ref(null);
 
 watch(() => props.show, (newVal) => {
     if (newVal) {
@@ -22,8 +23,24 @@ watch(() => props.show, (newVal) => {
     }
 });
 
+onMounted(() => {
+    $('#createPurchaseOrderModal').on('hidden.bs.modal', () => {
+        emit('close');
+    });
+});
+
 function handleClose() {
-    emit('close');
+    $('#createPurchaseOrderModal').modal('hide');
+    setTimeout(() => {
+        $('.modal-backdrop').remove();
+        $('body').removeClass('modal-open').css('overflow', '');
+    }, 300);
+}
+
+function save() {
+    if (formRef.value) {
+        formRef.value.submit();
+    }
 }
 </script>
 
@@ -35,21 +52,22 @@ function handleClose() {
         data-bs-backdrop="static"
         data-bs-keyboard="false"
     >
-        <div class="modal-dialog modal-xl modal-dialog-centered modal-dialog-scrollable">
+        <div class="modal-dialog modal-xl modal-dialog-scrollable">
             <div class="modal-content">
-                <div class="modal-header bg-light">
+                <div class="modal-header bg-primary text-white">
                     <h5 class="modal-title">
                         <i class="fas fa-plus-circle me-2"></i>Nueva Orden de Compra
                     </h5>
                     <button 
                         type="button" 
-                        class="btn-close" 
+                        class="btn-close btn-close-white" 
                         @click="handleClose"
                     ></button>
                 </div>
                 
                 <div class="modal-body">
                     <PurchaseOrderForm 
+                        ref="formRef"
                         :suppliers="suppliers"
                         :costCenters="costCenters"
                         :groupings="groupings"
@@ -58,6 +76,21 @@ function handleClose() {
                         :approvers="approvers"
                         @close="handleClose"
                     />
+                </div>
+
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" @click="handleClose">
+                        <i class="fas fa-times me-1"></i>Cancelar
+                    </button>
+                    <button
+                        type="button"
+                        class="btn btn-primary"
+                        @click="save"
+                        :disabled="formRef?.form?.processing"
+                    >
+                        <i class="fas fa-save me-1"></i>
+                        {{ formRef?.form?.processing ? 'Guardando...' : 'Crear Orden' }}
+                    </button>
                 </div>
             </div>
         </div>
