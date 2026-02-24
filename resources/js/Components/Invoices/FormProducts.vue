@@ -9,8 +9,17 @@ import { usePage } from '@inertiajs/vue3';
 const $page = usePage().props;
 
 const props = defineProps({
-    form: Object
+    form: Object,
+    protectedProductIds: {
+        type: Array,
+        default: () => []
+    }
 })
+
+// Verifica si un producto está protegido (tiene salidas asociadas)
+const isProtected = (productId) => {
+    return props.protectedProductIds.includes(productId);
+}
 // Opciones de tipo documento desde Inertia (label, value)
 const typeDocuments = $page.typeDocuments || [];
 // Mostrar IVA solo si el documento es 'factura'
@@ -93,6 +102,16 @@ const add = () => {
 }
 
 const onDeleted = (index) => {
+	const product = props.form.products[index];
+	if (isProtected(product.product_id)) {
+		Swal.fire({
+			icon: 'warning',
+			title: 'Producto protegido',
+			text: 'Este producto no se puede eliminar porque tiene salidas asociadas.',
+			confirmButtonColor: '#3085d6',
+		});
+		return;
+	}
 	props.form.products.splice(index, 1);
 	showProductOptions.value.splice(index, 1);
 }
@@ -162,9 +181,14 @@ watch(
 			<!--end::Table head-->
 			<!--begin::Table body-->
 			<tbody>
-				   <tr class="border-bottom border-bottom-dashed align-top" v-for="(product, index) in form.products" :key="index" data-kt-element="item" style="vertical-align: top;">
+				   <tr class="border-bottom border-bottom-dashed align-top" v-for="(product, index) in form.products" :key="index" data-kt-element="item" style="vertical-align: top;" :class="{'bg-light': isProtected(product.product_id)}">
 						<td class="ps-0 text-start pe-0" style="width:250px; min-width:250px; max-width:250px;">
+							<div v-if="isProtected(product.product_id)" class="d-flex align-items-center gap-1">
+								<i class="fas fa-lock text-warning" style="font-size:0.7rem;" v-tooltip="'Producto con salidas asociadas'"></i>
+								<span class="form-control form-control-solid bg-light" style="font-size:0.75rem; height:26px; min-height:26px; cursor:not-allowed; opacity:0.8;">{{ productOptions.find(p => p.value === product.product_id)?.label || product.product_id }}</span>
+							</div>
 							<Multiselect
+								v-if="!isProtected(product.product_id)"
 									:taggable="true"
 									:create-tag="newTag"
 									placeholder="Seleccione o escriba producto"
@@ -178,7 +202,7 @@ watch(
 									required
 									:class="{'is-invalid': showProductValidation && !product.product_id}"
 								/>
-								<span v-if="showProductValidation && !product.product_id" class="text-danger" style="font-size:0.7em;">Campo obligatorio</span>
+							<span v-if="!isProtected(product.product_id) && showProductValidation && !product.product_id" class="text-danger" style="font-size:0.7em;">Campo obligatorio</span>
 					   </td>
                      
 					   <!-- Columna Unidad -->
@@ -194,29 +218,30 @@ watch(
 							:hide-selected="false"
 							class="multiselect-blue form-control"
 							required
+							:disabled="isProtected(product.product_id)"
 							:class="{'is-invalid': showProductValidation && !product.unit_id}"
 						/>
 						<span v-if="showProductValidation && !product.unit_id" class="text-danger" style="font-size:0.7em;">Campo obligatorio</span>
 					   </td>
 					<td class="ps-0 pe-1" style="width:120px; min-width:100px; max-width:100px;">
-					<input class="form-control form-control-solid" style="width:55px; min-width:120px; max-width:100px; font-size:0.93em;" type="number" min="1" v-model="product.amount" value="1" data-kt-element="quantity" required
+					<input class="form-control form-control-solid" :class="{'is-invalid': showProductValidation && (!product.amount || product.amount < 1), 'bg-light': isProtected(product.product_id)}" style="width:55px; min-width:120px; max-width:100px; font-size:0.93em;" type="number" min="1" v-model="product.amount" value="1" data-kt-element="quantity" required
 							step="0.01"
-							:class="{'is-invalid': showProductValidation && (!product.amount || product.amount < 1)}" />
+							:disabled="isProtected(product.product_id)" />
 						<span v-if="showProductValidation && (!product.amount || product.amount < 1)" class="text-danger" style="font-size:0.7em;">Campo obligatorio</span>
 					</td>
 					<td class="ps-0 pe-0" style="width:120px; min-width:100px; max-width:100px;">
-					<input type="number" class="form-control form-control-solid unit_price" style="width:120px; min-width:120px; max-width:100px; font-size:0.93em;" v-model="product.unit_price" value="0" step="0.01" required
-						:class="{'is-invalid': showProductValidation && (!product.unit_price || product.unit_price <= 0)}" />
+					<input type="number" class="form-control form-control-solid unit_price" :class="{'is-invalid': showProductValidation && (!product.unit_price || product.unit_price <= 0), 'bg-light': isProtected(product.product_id)}" style="width:120px; min-width:120px; max-width:100px; font-size:0.93em;" v-model="product.unit_price" value="0" step="0.01" required
+						:disabled="isProtected(product.product_id)" />
 						<span v-if="showProductValidation && (!product.unit_price || product.unit_price <= 0)" class="text-danger" style="font-size:0.7em;">Campo obligatorio</span>
 					</td>
 					  <td class="ps-0 pe-0" style="width:150px; min-width:150px; max-width:150px;">
-                           <input type="text" class="form-control form-control-solid" v-model="product.observations" placeholder="Observaciones..." />
+                           <input type="text" class="form-control form-control-solid" :class="{'bg-light': isProtected(product.product_id)}" v-model="product.observations" :disabled="isProtected(product.product_id)" placeholder="Observaciones..." />
                        </td>
 					<td class="text-end text-nowrap align-middle" style="width:100px; min-width:100px; max-width:100px; margin:0; padding-right:2px;">
 	$<span data-kt-element="total">{{ (product.unit_price * product.amount).toLocaleString('es-ES') }}</span>
 </td>
 <td class="text-end align-middle" style="width:40px; min-width:40px; max-width:50px; margin:0; padding:0;">
-    <button type="button" @click="onDeleted(index)" class="btn btn-sm btn-icon btn-active-color-primary m-0 p-0" style="margin:0; padding:0;" data-kt-element="remove-item">
+    <button v-if="!isProtected(product.product_id)" type="button" @click="onDeleted(index)" class="btn btn-sm btn-icon btn-active-color-primary m-0 p-0" style="margin:0; padding:0;" data-kt-element="remove-item">
         <!--begin::Svg Icon | path: icons/duotune/general/gen027.svg-->
         <span class="svg-icon svg-icon-3">
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -227,6 +252,9 @@ watch(
         </span>
         <!--end::Svg Icon-->
     </button>
+    <span v-else class="text-warning" v-tooltip="'Producto protegido: tiene salidas asociadas'" style="font-size:0.75rem;">
+        <i class="fas fa-lock"></i>
+    </span>
 </td>
 				</tr>
 			</tbody>

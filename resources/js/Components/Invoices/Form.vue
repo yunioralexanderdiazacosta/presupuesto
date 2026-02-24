@@ -14,6 +14,10 @@ import Swal from 'sweetalert2';
 
 const props = defineProps({
     form: Object,
+    protectedProductIds: {
+        type: Array,
+        default: () => []
+    },
 });
 
 const page = usePage();
@@ -458,7 +462,7 @@ const storeSupplier = () => {
         </div>
         <!--end::Row-->
 
-        <FormProducts :form="form" />
+        <FormProducts :form="form" :protectedProductIds="props.protectedProductIds" />
     </div>
     <!--end::Wrapper-->
 </template>

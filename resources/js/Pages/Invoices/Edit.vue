@@ -13,7 +13,11 @@ const links = [{ title: 'Tablero', link: 'dashboard' }, { title: 'Facturas', lin
 
 const props = defineProps({
 	invoice: Object,
-	invoiceProducts: Array
+	invoiceProducts: Array,
+	protectedProductIds: {
+		type: Array,
+		default: () => []
+	}
 })
 
 // Mostrar mensaje de error si existe
@@ -135,7 +139,7 @@ const msgSuccess = (msg) => {
             <div class="card-body bg-body-tertiary">
 				<form id="kt_invoice_form" @submit.prevent="update()">
 					<!--begin::Form-->
-					<FormInvoice :form="form" />
+					<FormInvoice :form="form" :protectedProductIds="props.protectedProductIds" />
 					<!--end::Form-->
 					<div class="mt-4 d-flex justify-content-end gap-2">
 						<button @click="router.get(route('invoices.index'))" type="button" class="btn btn-secondary">

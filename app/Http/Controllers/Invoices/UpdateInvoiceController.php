@@ -12,35 +12,51 @@ class UpdateInvoiceController extends Controller
 {
     public function __invoke(Invoice $invoice, FormInvoiceRequest $request)
     {
-        // Verificar si la factura tiene salidas (outflows) asociadas
-        // Buscar en invoice_product los registros de esta factura
-        $invoiceProductIds = DB::table('invoice_products')
+        // Identificar qué invoice_products tienen salidas (outflows) asociadas
+        $allInvoiceProductIds = DB::table('invoice_products')
             ->where('invoice_id', $invoice->id)
             ->pluck('id');
 
-        Log::info('UpdateInvoice - Invoice ID: ' . $invoice->id);
-        Log::info('UpdateInvoice - Invoice Product IDs: ' . $invoiceProductIds->toJson());
+        $protectedInvoiceProductIds = collect();
+        $protectedProductIds = collect();
 
-        if ($invoiceProductIds->isNotEmpty()) {
-            $outflows = \App\Models\Outflow::whereIn('invoice_product_id', $invoiceProductIds)->get();
-            
-            Log::info('UpdateInvoice - Has Outflows: ' . ($outflows->isNotEmpty() ? 'YES' : 'NO'));
-            
-            if ($outflows->isNotEmpty()) {
-                Log::info('UpdateInvoice - BLOCKING EDIT - has outflows');
-                
-                $outflowIds = $outflows->pluck('id')->join(', #');
-                $count = $outflows->count();
-                $message = $count === 1 
-                    ? "No se puede editar esta factura porque ya tiene una salida de producto asociada (Salida #{$outflowIds})."
-                    : "No se puede editar esta factura porque ya tiene {$count} salidas de productos asociadas (Salidas #{$outflowIds}).";
-                
-                return redirect()->back()->with('error', $message);
+        if ($allInvoiceProductIds->isNotEmpty()) {
+            $protectedInvoiceProductIds = \App\Models\Outflow::whereIn('invoice_product_id', $allInvoiceProductIds)
+                ->pluck('invoice_product_id')
+                ->unique();
+
+            $protectedProductIds = DB::table('invoice_products')
+                ->whereIn('id', $protectedInvoiceProductIds)
+                ->pluck('product_id');
+        }
+
+        // Verificar que no se hayan eliminado productos protegidos del listado
+        if ($protectedProductIds->isNotEmpty()) {
+            $submittedProductIds = collect($request->products)
+                ->pluck('product_id')
+                ->filter(fn($id) => is_numeric($id))
+                ->map(fn($id) => (int) $id);
+
+            $missingProtected = $protectedProductIds->diff($submittedProductIds);
+
+            if ($missingProtected->isNotEmpty()) {
+                $productNames = \App\Models\Product::whereIn('id', $missingProtected)->pluck('name')->join(', ');
+                $outflowIds = \App\Models\Outflow::whereIn('invoice_product_id',
+                    DB::table('invoice_products')
+                        ->where('invoice_id', $invoice->id)
+                        ->whereIn('product_id', $missingProtected)
+                        ->pluck('id')
+                )->pluck('id')->join(', #');
+
+                return redirect()->back()->with('error',
+                    "No se puede eliminar el producto \"{$productNames}\" porque tiene salidas asociadas (Salidas #{$outflowIds})."
+                );
             }
         }
 
-        Log::info('UpdateInvoice - ALLOWING EDIT - no outflows');
+        Log::info('UpdateInvoice - Invoice ID: ' . $invoice->id);
 
+        // Actualizar campos de cabecera de la factura
         $invoice->payment_term      = $request->payment_term;
         $invoice->payment_type      = $request->payment_type;
         $invoice->petty_cash        = $request->petty_cash;
@@ -53,15 +69,22 @@ class UpdateInvoiceController extends Controller
         $invoice->due_date          = $request->due_date;
         $invoice->save();
 
-        // Eliminar productos actuales
-        $invoice->products()->detach();
-        // Agregar cada línea de producto
+        // Eliminar solo los productos que NO tienen salidas asociadas
+        DB::table('invoice_products')
+            ->where('invoice_id', $invoice->id)
+            ->whereNotIn('id', $protectedInvoiceProductIds->toArray())
+            ->delete();
+
+        // Re-agregar solo los productos que no están protegidos
+        $protectedProductIdsArray = $protectedProductIds->toArray();
         foreach ($this->products($request->products) as $productAttach) {
-            $invoice->products()->attach($productAttach['product_id'], [
-                'unit_price'   => $productAttach['unit_price'],
-                'amount'       => $productAttach['amount'],
-                'observations' => $productAttach['observations'],
-            ]);
+            if (!in_array((int) $productAttach['product_id'], $protectedProductIdsArray)) {
+                $invoice->products()->attach($productAttach['product_id'], [
+                    'unit_price'   => $productAttach['unit_price'],
+                    'amount'       => $productAttach['amount'],
+                    'observations' => $productAttach['observations'],
+                ]);
+            }
         }
 
         return redirect()->route('invoices.index')->with('success', 'Factura actualizada correctamente');

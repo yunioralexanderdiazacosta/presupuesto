@@ -10,6 +10,8 @@ use App\Models\Supplier;
 use App\Models\CompanyReason;
 use App\Models\Month;
 use App\Models\Product;
+use App\Models\Outflow;
+use Illuminate\Support\Facades\DB;
 use Inertia\Inertia;
 
 class EditInvoiceController extends Controller
@@ -73,6 +75,24 @@ class EditInvoiceController extends Controller
             ];
         });
 
+        // Identificar productos protegidos (con salidas asociadas)
+        $invoiceProductIds = DB::table('invoice_products')
+            ->where('invoice_id', $invoice->id)
+            ->pluck('id');
+
+        $protectedProductIds = [];
+        if ($invoiceProductIds->isNotEmpty()) {
+            $protectedInvoiceProductIds = Outflow::whereIn('invoice_product_id', $invoiceProductIds)
+                ->pluck('invoice_product_id')
+                ->unique();
+
+            $protectedProductIds = DB::table('invoice_products')
+                ->whereIn('id', $protectedInvoiceProductIds)
+                ->pluck('product_id')
+                ->values()
+                ->toArray();
+        }
+
         return Inertia::render('Invoices/Edit', compact(
             'invoice',
             'invoiceProducts',
@@ -81,7 +101,8 @@ class EditInvoiceController extends Controller
             'typeDocuments',
             'suppliers',
             'companyReasons',
-            'months'
+            'months',
+            'protectedProductIds'
         ));
     }
 }
