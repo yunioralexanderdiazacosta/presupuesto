@@ -163,6 +163,9 @@ watch(() => props.form, (val) => {
 // Variable para manejar la agrupación seleccionada
 const selectedGrouping = ref(null);
 
+// Estado para expandir/colapsar tags de CC
+const expandedCC = ref(false);
+
 // Watch para aplicar agrupación automáticamente
 watch(selectedGrouping, (groupingId) => {
   if (!groupingId) return;
@@ -359,7 +362,23 @@ function submit() {
                 </select>
               </div>
               <div class="col-12 col-md-8">
-                <label class="form-label">Centros de Costo</label>
+                <div class="d-flex align-items-center justify-content-between mb-0">
+                  <label class="form-label mb-0">Centros de Costo
+                    <span v-if="localForm.cost_center_ids && localForm.cost_center_ids.length > 0" class="badge bg-primary ms-1" style="font-size: 0.6rem; vertical-align: middle;">
+                      {{ localForm.cost_center_ids.length }}
+                    </span>
+                  </label>
+                  <button
+                    v-if="localForm.cost_center_ids && localForm.cost_center_ids.length > 5"
+                    type="button"
+                    @click="expandedCC = !expandedCC"
+                    class="btn btn-link btn-sm p-0 text-muted"
+                    style="font-size: 0.65rem; text-decoration: none;"
+                  >
+                    <i class="fas" :class="expandedCC ? 'fa-compress-alt' : 'fa-expand-alt'" style="font-size: 0.6rem;"></i>
+                    {{ expandedCC ? 'Colapsar' : 'Ver todos' }}
+                  </button>
+                </div>
                 <Multiselect
                   mode="tags"
                   v-model="localForm.cost_center_ids"
@@ -368,7 +387,7 @@ function submit() {
                   option-value="value"
                   placeholder="Seleccione centros de costo"
                   :searchable="true"
-                  class="multiselect-blue"
+                  :class="['multiselect-blue multiselect-tags-limited', { 'multiselect-tags-expanded': expandedCC }]"
                 />
               </div>
               <div class="col-12">
@@ -452,6 +471,43 @@ label {
     z-index: 2050;
 }
 
+/* Limitar tags visibles en el multiselect de centros de costo */
+.multiselect-tags-limited .multiselect-tags {
+    max-height: 32px !important;
+    overflow: hidden !important;
+    flex-wrap: wrap;
+    transition: max-height 0.3s ease;
+}
+
+/* Estado expandido */
+.multiselect-tags-expanded .multiselect-tags {
+    max-height: 200px !important;
+    overflow-y: auto !important;
+    overflow-x: hidden !important;
+}
+
+/* Scrollbar discreto para los tags expandidos */
+.multiselect-tags-expanded .multiselect-tags::-webkit-scrollbar {
+    width: 4px;
+}
+.multiselect-tags-expanded .multiselect-tags::-webkit-scrollbar-thumb {
+    background: rgba(0,0,0,0.2);
+    border-radius: 4px;
+}
+.multiselect-tags-expanded .multiselect-tags::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+.multiselect-blue.multiselect-tags-limited {
+    height: auto !important;
+    max-height: 38px !important;
+    min-height: 26px !important;
+    transition: max-height 0.3s ease;
+}
+
+.multiselect-blue.multiselect-tags-expanded {
+    max-height: 210px !important;
+}
 
 input::placeholder,
 textarea::placeholder {

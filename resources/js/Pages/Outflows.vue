@@ -547,6 +547,9 @@ function handleEditModalUpdated() {
 // Estado para agrupación seleccionada por cada card
 const selectedGroupings = ref({});
 
+// Estado para expandir/colapsar tags de CC por card
+const expandedCCCards = ref({});
+
 // Computed para filtrar levels3 según el level2 seleccionado en cada card
 const getFilteredLevels3 = (cardId) => {
   const card = selectedOutflows.value.find(sel => sel.id === cardId);
@@ -585,7 +588,7 @@ function copyToAllCards(sourceCardId) {
   
   // Verificar que al menos uno de los campos tenga valor (diferente de null, undefined y '')
   const hasData = sourceCard.operation_id || sourceCard.machinery_id || sourceCard.project_id || 
-      sourceCard.level2_id || sourceCard.level3_id;
+      sourceCard.level2_id || sourceCard.level3_id || sourceCard.date;
   
   if (!hasData) {
     Swal.fire({
@@ -619,6 +622,7 @@ function copyToAllCards(sourceCardId) {
     card.project_id = sourceCard.project_id;
     card.level2_id = sourceCard.level2_id;
     card.level3_id = sourceCard.level3_id;
+    card.date = sourceCard.date;
     // Resetear el flag de sugerencia automática ya que ahora es manual
     card.suggested_level3 = false;
   });
@@ -1052,7 +1056,23 @@ function copyToAllCards(sourceCardId) {
                             </select>
                           </div>
                           <div class="col-12 col-md-5">
-                            <label class="form-label">Centro de Costo</label>
+                            <div class="d-flex align-items-center justify-content-between mb-0">
+                              <label class="form-label mb-0">Centro de Costo
+                                <span v-if="selected.cost_center_ids.length > 0" class="badge bg-primary ms-1" style="font-size: 0.6rem; vertical-align: middle;">
+                                  {{ selected.cost_center_ids.length }}
+                                </span>
+                              </label>
+                              <button
+                                v-if="selected.cost_center_ids.length > 5"
+                                type="button"
+                                @click="expandedCCCards[selected.id] = !expandedCCCards[selected.id]"
+                                class="btn btn-link btn-sm p-0 text-muted"
+                                style="font-size: 0.65rem; text-decoration: none;"
+                              >
+                                <i class="fas" :class="expandedCCCards[selected.id] ? 'fa-compress-alt' : 'fa-expand-alt'" style="font-size: 0.6rem;"></i>
+                                {{ expandedCCCards[selected.id] ? 'Colapsar' : 'Ver todos' }}
+                              </button>
+                            </div>
                             <Multiselect
                               mode="tags"
                               placeholder="Centro de Costo"
@@ -1063,7 +1083,7 @@ function copyToAllCards(sourceCardId) {
                               option-value="value"
                               :searchable="true"
                               :hide-selected="false"
-                              class="multiselect-blue form-control-sm"
+                              :class="['multiselect-blue form-control-sm multiselect-tags-limited', { 'multiselect-tags-expanded': expandedCCCards[selected.id] }]"
                             />
                           </div>
                           <div class="col-12 col-md-4">
@@ -1076,7 +1096,7 @@ function copyToAllCards(sourceCardId) {
                             <div 
                               class="copy-icon-wrapper d-inline-flex me-2"
                               @click="copyToAllCards(selected.id)"
-                              title="Copiar operación, maquinaria, proyecto y clasificación a todos los cards"
+                              title="Copiar fecha, operación, maquinaria, proyecto y clasificación a todos los cards"
                             >
                               <i class="fas fa-clone" style="color: #ffffff;"></i>
                             </div>
@@ -1305,6 +1325,46 @@ th {
   font-size: 0.75rem !important;
   min-height: 29px !important;
   height: 29px !important;
+}
+
+/* Limitar tags visibles en el multiselect de centros de costo */
+.multiselect-tags-limited .multiselect-tags {
+    max-height: 32px !important;
+    overflow: hidden !important;
+    flex-wrap: wrap;
+    transition: max-height 0.3s ease;
+}
+
+/* Estado expandido */
+.multiselect-tags-expanded .multiselect-tags {
+    max-height: 200px !important;
+    overflow-y: auto !important;
+    overflow-x: hidden !important;
+}
+
+/* Scrollbar discreto para los tags expandidos */
+.multiselect-tags-expanded .multiselect-tags::-webkit-scrollbar {
+    width: 4px;
+}
+.multiselect-tags-expanded .multiselect-tags::-webkit-scrollbar-thumb {
+    background: rgba(0,0,0,0.2);
+    border-radius: 4px;
+}
+.multiselect-tags-expanded .multiselect-tags::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+/* Ajuste para el multiselect limitado: permitir auto-height */
+.outflow-cards .multiselect-blue.multiselect-tags-limited {
+    height: auto !important;
+    max-height: 38px !important;
+    min-height: 29px !important;
+    transition: max-height 0.3s ease;
+}
+
+/* Estado expandido del contenedor */
+.outflow-cards .multiselect-blue.multiselect-tags-expanded {
+    max-height: 210px !important;
 }
 
 /* Ícono de copiar/clonar con efecto hover */
