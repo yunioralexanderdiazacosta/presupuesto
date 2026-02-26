@@ -260,8 +260,8 @@ function formatCurrency(value) {
                             <tr v-for="payment in payments.data" :key="payment.id">
                                 <td>{{ payment.payment_date }}</td>
                                 <td>{{ payment.invoice.number_document }}</td>
-                                <td>{{ payment.invoice.supplier }}</td>
-                                <td>{{ payment.invoice.type_document }}</td>
+                                <td>{{ payment.invoice.supplier?.name ?? '-' }}</td>
+                                <td>{{ payment.invoice.type_document?.name ?? '-' }}</td>
                                 <td class="text-end">$ {{ formatCurrency(payment.amount) }}</td>
                                 <td>
                                     <span 
@@ -277,7 +277,7 @@ function formatCurrency(value) {
                                 </td>
                                 <td>{{ payment.bank ? payment.bank.name : '-' }}</td>
                                 <td>{{ payment.transaction_number || '-' }}</td>
-                                <td>{{ payment.user }}</td>
+                                <td>{{ payment.user?.name ?? '-' }}</td>
                                 <td class="text-center">
                                     <button 
                                         @click="openEditModal(payment)" 
