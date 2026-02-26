@@ -48,8 +48,8 @@ const logout = () => {
 </script>
 
 <template>
-  <div class="d-flex">
-    <nav class="navbar navbar-light navbar-vertical navbar-expand-xl position-fixed start-0 top-0 vh-100 ms-4">
+  <div>
+    <nav class="navbar navbar-light navbar-vertical navbar-expand-xl position-fixed start-0 top-0 vh-100">
         <div class="d-flex align-items-center">
             <div class="toggle-icon-wrapper">
               <button class="btn navbar-toggler-humburger-icon navbar-vertical-toggle" data-bs-toggle="tooltip" data-bs-placement="left" title="Toggle Navigation"><span class="navbar-toggle-icon"><span class="toggle-line"></span></span></button>
@@ -534,7 +534,7 @@ const logout = () => {
         </div>
         </div>
     </nav>
-  <div class="content flex-grow-1 w-100" style="margin-left: 240px; margin-right: 0; max-width: 100vw;">
+  <div class="content">
       <nav class="navbar navbar-light navbar-glass navbar-top navbar-expand">
 
         <button class="btn navbar-toggler-humburger-icon navbar-toggler me-1 me-sm-3" type="button" data-bs-toggle="collapse" data-bs-target="#navbarVerticalCollapse" aria-controls="navbarVerticalCollapse" aria-expanded="false" aria-label="Toggle Navigation"><span class="navbar-toggle-icon"><span class="toggle-line"></span></span></button>
