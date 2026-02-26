@@ -27,11 +27,24 @@ const selectedProduct = ref(null);
 const editingProductIndex = ref(null);
 const newProduct = ref({
     product_id: '',
+    unit_id: '',
     tipo_dosis: 'por_hectarea',
     dosis_por_100: '',
     dosis_por_hectarea: '',
     carencia: '',
     reingreso: '',
+});
+
+// Watch para auto-asignar unit_id cuando se selecciona un producto
+watch(() => newProduct.value.product_id, (productId) => {
+    if (productId) {
+        const product = productsOptions.value.find(p => p.value === productId);
+        if (product) {
+            newProduct.value.unit_id = product.unit_id || '';
+        }
+    } else {
+        newProduct.value.unit_id = '';
+    }
 });
 
 const refreshProducts = async () => {
@@ -147,6 +160,7 @@ function addProduct() {
     // Resetear form
     newProduct.value = {
         product_id: '',
+        unit_id: '',
         tipo_dosis: 'por_hectarea',
         dosis_por_100: '',
         dosis_por_hectarea: '',
@@ -162,6 +176,7 @@ function editProduct(index) {
     
     newProduct.value = {
         product_id: product.product_id,
+        unit_id: product.unit_id || '',
         tipo_dosis: product.tipo_dosis,
         dosis_por_100: product.dosis_por_100,
         dosis_por_hectarea: product.dosis_por_hectarea,
@@ -179,6 +194,7 @@ function cancelEditProduct() {
     editingProductIndex.value = null;
     newProduct.value = {
         product_id: '',
+        unit_id: '',
         tipo_dosis: 'por_hectarea',
         dosis_por_100: '',
         dosis_por_hectarea: '',
@@ -198,6 +214,11 @@ function getProductName(productId) {
 }
 
 function getProductUnitName(productId) {
+    const product = productsOptions.value.find(p => p.value === productId);
+    return product?.unit_name || '';
+}
+
+function getProductUnit(productId) {
     const product = productsOptions.value.find(p => p.value === productId);
     return product?.unit_name || '';
 }

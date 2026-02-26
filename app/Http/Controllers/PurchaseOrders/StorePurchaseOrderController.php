@@ -18,13 +18,15 @@ class StorePurchaseOrderController extends Controller
 
         DB::beginTransaction();
         try {
-            // Generar número de orden correlativo
-            $lastOrder = PurchaseOrder::where('team_id', $user->team_id)
-                ->where('season_id', $season_id)
-                ->latest('id')
+            // Generar número de orden correlativo (global para evitar duplicados)
+            $prefix = 'PO-' . date('Y') . '-';
+            $lastOrder = PurchaseOrder::where('order_number', 'like', $prefix . '%')
+                ->orderByRaw('CAST(SUBSTRING(order_number, -5) AS UNSIGNED) DESC')
+                ->lockForUpdate()
                 ->first();
 
-            $orderNumber = 'PO-' . date('Y') . '-' . str_pad(($lastOrder ? intval(substr($lastOrder->order_number, -5)) + 1 : 1), 5, '0', STR_PAD_LEFT);
+            $nextNumber = $lastOrder ? intval(substr($lastOrder->order_number, -5)) + 1 : 1;
+            $orderNumber = $prefix . str_pad($nextNumber, 5, '0', STR_PAD_LEFT);
 
             // Calcular totales
             $subtotal = 0;
