@@ -777,8 +777,8 @@ function createCumulativeChart() {
                                 <h6 class="mb-0 text-muted">{{ t.budgeted }}</h6>
                                 <i class="fas fa-calculator text-primary fa-lg"></i>
                             </div>
-                            <h3 class="mb-0 text-primary">{{ formatCLP(displayedBudget) }}</h3>
-                            <small class="text-muted">{{ formatCLP(displayedBudgetPerHectare) }}/ha</small>
+                            <h4 class="mb-0 text-primary text-nowrap" style="font-size: 1.15rem;">{{ formatCLP(displayedBudget) }}</h4>
+                            <small class="text-muted" style="font-size: 0.75rem;">{{ formatCLP(displayedBudgetPerHectare) }}/ha</small>
                             
                             <!-- Indicador de inversiones presupuestadas -->
                             <div v-if="includeInvestments && summary.total_investments > 0" class="mt-3">
@@ -798,8 +798,8 @@ function createCumulativeChart() {
                                 <h6 class="mb-0 text-muted">{{ t.invoiced }}</h6>
                                 <i class="fas fa-file-invoice-dollar text-success fa-lg"></i>
                             </div>
-                            <h3 class="mb-0 text-success">{{ formatCLP(displayedInvoiced) }}</h3>
-                            <small class="text-muted">{{ formatCLP(displayedInvoicedPerHectare) }}/ha</small>
+                            <h4 class="mb-0 text-success text-nowrap" style="font-size: 1.15rem;">{{ formatCLP(displayedInvoiced) }}</h4>
+                            <small class="text-muted" style="font-size: 0.75rem;">{{ formatCLP(displayedInvoicedPerHectare) }}/ha</small>
                         </div>
                     </div>
                 </div>
@@ -811,8 +811,8 @@ function createCumulativeChart() {
                                 <h6 class="mb-0 text-muted">{{ t.consumed }}</h6>
                                 <i class="fas fa-boxes text-warning fa-lg"></i>
                             </div>
-                            <h3 class="mb-0 text-warning">{{ formatCLP(displayedConsumed) }}</h3>
-                            <small class="text-muted">{{ formatCLP(displayedConsumedPerHectare) }}/ha</small>
+                            <h4 class="mb-0 text-warning text-nowrap" style="font-size: 1.15rem;">{{ formatCLP(displayedConsumed) }}</h4>
+                            <small class="text-muted" style="font-size: 0.75rem;">{{ formatCLP(displayedConsumedPerHectare) }}/ha</small>
                             
                             <!-- Indicador de inversiones consumidas -->
                             <div v-if="includeInvestments && summary.consumed_investments_total > 0" class="mt-3">
@@ -832,9 +832,9 @@ function createCumulativeChart() {
                                 <h6 class="mb-0 text-muted">{{ t.difference }}</h6>
                                 <i :class="['fas', displayedDifference >= 0 ? 'fa-arrow-down text-success' : 'fa-arrow-up text-danger']"></i>
                             </div>
-                            <h3 class="mb-0" :class="displayedDifference >= 0 ? 'text-success' : 'text-danger'">
+                            <h4 class="mb-0 text-nowrap" style="font-size: 1.15rem;" :class="displayedDifference >= 0 ? 'text-success' : 'text-danger'">
                                 {{ formatCLP(Math.abs(displayedDifference)) }}
-                            </h3>
+                            </h4>
                             <small class="text-muted d-block mb-2">{{ t.budgetMinusInvoiced }}</small>
                             <span :class="['badge', displayedDifference >= 0 ? 'bg-success' : 'bg-danger']">
                                 {{ displayedDifference >= 0 ? t.underBudget : t.overBudget }}
@@ -850,7 +850,7 @@ function createCumulativeChart() {
                                 <h6 class="mb-0 text-muted">{{ t.execution }}</h6>
                                 <i class="fas fa-percent text-info fa-lg"></i>
                             </div>
-                            <h3 class="mb-0 text-info">{{ formatPercent(displayedPercentageExecution) }}</h3>
+                            <h4 class="mb-0 text-info text-nowrap" style="font-size: 1.15rem;">{{ formatPercent(displayedPercentageExecution) }}</h4>
                             <small class="text-muted">
                                 {{ t.variance }}: 
                                 <span :class="displayedDifference < 0 ? 'text-danger' : 'text-success'">
@@ -918,7 +918,7 @@ function createCumulativeChart() {
                         </div>
                         <div class="card-body p-0">
                             <div class="table-responsive">
-                                <table class="table table-sm table-hover mb-0">
+                                <table class="table table-sm table-hover mb-0" style="font-size: 0.8rem;">
                                     <thead class="table-light">
                                         <tr>
                                             <th style="width: 10%;">Mes</th>
@@ -1095,7 +1095,7 @@ function createCumulativeChart() {
                         
                         <div class="card-body">
                             <div class="table-responsive">
-                                <table class="table table-striped table-hover">
+                                <table class="table table-striped table-hover table-sm" style="font-size: 0.8rem;">
                                     <thead>
                                         <tr>
                                             <th style="width: 40px;">
@@ -1253,8 +1253,7 @@ function createCumulativeChart() {
     padding: 1.25rem;
 }
 
-h3 {
-    font-size: 1.75rem;
+h4 {
     font-weight: 600;
 }
 
