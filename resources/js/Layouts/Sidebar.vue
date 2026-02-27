@@ -297,7 +297,8 @@ const items = [
     {
         title: 'Accesos',
         icon: `<i class="bi bi-clock-history"></i>`,
-        link: 'login-logs.index',
+        link: '/login-logs',
+        directLink: true,
         subitems: [],
         role: 'Super Admin'
     }

@@ -20,7 +20,7 @@ const change = (position) => {
 <template>
     <div class="menu-item" v-if="item.subitems.length == 0" v-role:any="item.role">
         <!--begin:Menu link-->
-        <Link class="menu-link" :href="route(item.link)">
+        <Link class="menu-link" :href="item.directLink ? item.link : route(item.link)">
             <span class="menu-icon">
                 <span class="svg-icon svg-icon-2" v-html="item.icon"></span>
             </span>
