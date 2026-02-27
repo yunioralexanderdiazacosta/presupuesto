@@ -13,7 +13,7 @@ const lifetime = computed(() =>usePage().props.lifetime);
 const path = '';
 
  let timeoutId;
-  const inactivityTime = lifetime.value * 60 * 1000; // 30 minutos en milisegundos
+  const inactivityTime = (lifetime.value || 30) * 60 * 1000; // Minutos en milisegundos (default 30 min)
 
    
 
