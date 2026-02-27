@@ -45,6 +45,15 @@ const path = '';
 const logout = () => {
     router.post(route('logout'));
 };
+
+// Helper para rutas que pueden no estar en Ziggy (ej. en producción sin cache)
+const safeRoute = (name, params) => {
+    try {
+        return route(name, params);
+    } catch (e) {
+        return '#';
+    }
+};
 </script>
 
 <template>
@@ -101,7 +110,7 @@ const logout = () => {
             <span class="nav-link-text ps-1">Productos2</span>
           </div>
         </Link>
-        <Link class="nav-link" :href="route('login-logs.index')" role="button">
+        <Link class="nav-link" :href="safeRoute('login-logs.index')" role="button">
           <div class="d-flex align-items-center">
             <span class="nav-link-icon">
               <span class="fas fa-clock"></span>
