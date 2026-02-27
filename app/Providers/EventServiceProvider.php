@@ -20,6 +20,7 @@ class EventServiceProvider extends ServiceProvider
         ],
         \Illuminate\Auth\Events\Login::class => [
             \App\Listeners\InitializeSeason::class,
+            \App\Listeners\LogSuccessfulLogin::class,
         ],
         \Illuminate\Auth\Events\Logout::class => [
             \App\Listeners\ClearSessionOnLogout::class,

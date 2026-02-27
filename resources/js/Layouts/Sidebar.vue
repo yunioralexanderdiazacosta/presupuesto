@@ -292,6 +292,14 @@ const items = [
         link: 'teams.index',
         subitems: [],
         role: 'Super Admin'
+    },
+
+    {
+        title: 'Accesos',
+        icon: `<i class="bi bi-clock-history"></i>`,
+        link: 'login-logs.index',
+        subitems: [],
+        role: 'Super Admin'
     }
 ];
 

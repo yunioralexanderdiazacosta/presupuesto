@@ -84,6 +84,7 @@ use App\Http\Controllers\TechnicalPanelController;
 use App\Http\Controllers\AgrochemicalsController;
 use App\Http\Controllers\FertilizersController;
 use App\Http\Controllers\TeamsController;
+use App\Http\Controllers\LoginLogController;
 use App\Http\Controllers\BudgetsController;
 use App\Http\Controllers\CostCentersController;
 use App\Http\Controllers\SelectBudgetController;
@@ -325,6 +326,7 @@ Route::middleware([
 
 
     Route::get('/teams', TeamsController::class)->name('teams.index');
+    Route::get('/login-logs', LoginLogController::class)->name('login-logs.index');
     Route::get('/budgets', BudgetsController::class)->name('budgets.index');
     Route::get('/suppliers', SuppliersController::class)->name('suppliers.index');
     Route::get('/products', ProductsController::class)->name('products.index');
