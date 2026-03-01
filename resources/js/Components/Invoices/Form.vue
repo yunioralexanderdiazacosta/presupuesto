@@ -98,7 +98,10 @@ const handleDataExtracted = (result) => {
         // Agregar productos extraídos
         data.products.forEach(p => {
             props.form.products.push({
-                product_id: p.product_id || '',
+                // Si el producto no matcheó en la BD, usar el nombre del PDF como valor
+                // El Multiselect taggable lo aceptará como tag nuevo
+                // y StoreInvoiceController lo creará automáticamente al guardar
+                product_id: p.product_id || (p.pdf_name ? p.pdf_name.trim() : ''),
                 unit_id: p.unit_id || '',
                 unit_price: p.unit_price || 0,
                 amount: p.amount || 1,

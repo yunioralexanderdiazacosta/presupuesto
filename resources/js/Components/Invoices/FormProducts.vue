@@ -34,23 +34,44 @@ const productOptions = reactive([...(($page.products || []).map(p => ({ value: p
 
 // Al montar, asegurar que todos los productos de la factura estén en las opciones
 onMounted(() => {
-	if (props.form && Array.isArray(props.form.products)) {
-		props.form.products.forEach(p => {
-			if (
-				p.product_id &&
-				!productOptions.some(opt => opt.value === p.product_id)
-			) {
-				// Buscar nombre en $page.products o usar el id como label fallback
+	syncProductOptionsFromForm();
+});
+
+/**
+ * Sincroniza los product_id del formulario con productOptions.
+ * Si un product_id es un string (nombre nuevo del PDF o escrito a mano)
+ * y no existe en las opciones, lo agrega como tag.
+ */
+function syncProductOptionsFromForm() {
+	if (!props.form || !Array.isArray(props.form.products)) return;
+	props.form.products.forEach(p => {
+		if (
+			p.product_id &&
+			!productOptions.some(opt => opt.value === p.product_id)
+		) {
+			// Si es numérico, buscar el label en los productos de la página
+			if (typeof p.product_id === 'number' || /^\d+$/.test(p.product_id)) {
 				let label = p.product_name || p.label;
 				if (!label) {
 					const found = ($page.products || []).find(prod => (prod.id || prod.value) === p.product_id);
 					label = found ? (found.label || found.name) : p.product_id;
 				}
 				productOptions.push({ value: p.product_id, label });
+			} else {
+				// Es un nombre de producto (string) del PDF → agregar como tag nuevo
+				productOptions.push({ value: p.product_id, label: p.product_id });
 			}
-		});
+		}
+	});
+}
+
+// Watcher: cuando se agregan productos al form (ej. desde PDF), sincronizar opciones
+watch(
+	() => props.form.products.length,
+	() => {
+		syncProductOptionsFromForm();
 	}
-});
+);
 
 // Bandera para mostrar validación solo tras submit
 const showProductValidation = ref(false);
