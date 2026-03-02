@@ -43,7 +43,7 @@ class InvoiceOcrService
 
         $httpClient = new \GuzzleHttp\Client($httpOptions);
 
-        return \OpenAI::factory()
+        return (new \OpenAI\Factory())
             ->withApiKey($apiKey)
             ->withHttpClient($httpClient)
             ->make();
