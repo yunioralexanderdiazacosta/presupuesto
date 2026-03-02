@@ -10,7 +10,7 @@ const presupuestos = ['/dashboard','/technicalpanel','/budgets', '/agrochemicals
 
 const parametros = ['/cost-centers', '/levels', '/users', '/company-reasons', '/fruits', '/varieties', '/parcels', '/seasons'];
 
-const gestion = ['/suppliers','/estimates', '/products', '/invoices', '/credit_debit_notes', '/machineries', '/type-machineries', '/application-orders', '/invoice-payments', '/irrigation-pumps', '/fertilizer-orders', '/fertilizer-outflows'];
+const gestion = ['/suppliers','/estimates', '/products', '/invoices', '/credit_debit_notes', '/machineries', '/type-machineries', '/application-orders', '/invoice-payments', '/expense-reports', '/irrigation-pumps', '/fertilizer-orders', '/fertilizer-outflows'];
 
 var active = ref(0);
 var active2 = ref('');
@@ -225,6 +225,12 @@ const items = [
                 title: 'Pagos de Facturas',
                 icon: `<i class="bi bi-card-checklist"></i>`,
                 link: 'invoice-payments.index',
+                subitems: []
+            },
+            {
+                title: 'Rendiciones de Gastos',
+                icon: `<i class="bi bi-receipt"></i>`,
+                link: 'expense-reports.index',
                 subitems: []
             },
             {

@@ -8,6 +8,7 @@ use App\Http\Requests\FormInvoiceRequest;
 use App\Models\Invoice;
 use App\Models\Product;
 use App\Models\Unit;
+use App\Models\ExpenseReportItem;
 use Illuminate\Support\Facades\DB;
 
 class StoreInvoiceController extends Controller
@@ -41,6 +42,19 @@ class StoreInvoiceController extends Controller
                     'amount'       => $productAttach['amount'],
                     'observations' => $productAttach['observations'],
                 ]);
+            }
+
+            // Si viene de una rendición de gastos, vincular el item
+            if ($request->expense_item_id) {
+                $item = ExpenseReportItem::whereNull('invoice_id')
+                    ->whereHas('expenseReport', function ($q) use ($user) {
+                        $q->where('team_id', $user->team_id);
+                    })
+                    ->find($request->expense_item_id);
+
+                if ($item) {
+                    $item->update(['invoice_id' => $invoice->id]);
+                }
             }
         });
     }

@@ -264,6 +264,11 @@ const logout = () => {
                         <div class="d-flex align-items-center"><span class="nav-link-text ps-4">Notas de Crédito/Débito</span></div>
                       </Link>
                     </li>
+                    <li class="nav-item">
+                      <Link class="nav-link" :href="route('expense-reports.index')">
+                        <div class="d-flex align-items-center"><span class="nav-link-text ps-4">Rendiciones de Gastos</span></div>
+                      </Link>
+                    </li>
                    
                   </ul>
                 </li>

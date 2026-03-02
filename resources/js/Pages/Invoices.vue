@@ -2,6 +2,7 @@
 import { computed, ref } from "vue";
 import { Link, router, Head, usePage, useForm } from "@inertiajs/vue3";
 import Swal from "sweetalert2";
+import axios from "axios";
 import AppLayout from "@/Layouts/AppLayout.vue";
 import Table from "@/Components/Table.vue";
 import Empty from "@/Components/Empty.vue";
@@ -103,6 +104,34 @@ const onFilter = () => {
         preserveState: true,
     });
 };
+
+// ─── Importar desde Rendición ───────────────
+const pendingItems = ref([]);
+const loadingPending = ref(false);
+
+const openImportModal = async () => {
+    loadingPending.value = true;
+    pendingItems.value = [];
+    $('#importRendicionModal').modal('show');
+    try {
+        const response = await axios.get(route('api.pending-expense-items'));
+        pendingItems.value = response.data;
+    } catch (error) {
+        console.error('Error al cargar items:', error);
+        Swal.fire('Error', 'No se pudieron cargar los items pendientes', 'error');
+    } finally {
+        loadingPending.value = false;
+    }
+};
+
+const importItem = (item) => {
+    $('#importRendicionModal').modal('hide');
+    router.get(route('invoices.create', { expense_item_id: item.id }));
+};
+
+const formatCurrency = (value) => {
+    return '$ ' + Math.round(value).toLocaleString('es-CL');
+};
 </script>
 <template>
 
@@ -121,10 +150,16 @@ const onFilter = () => {
                         </h5>
                         </div>
                     <div class="col-6 col-sm-auto ms-auto text-end ps-0">
-                        <Link class="btn btn-falcon-default btn-sm" :href="route('invoices.create')">
-                        <span class="fas fa-plus" data-fa-transform="shrink-3 down-2"></span>
-                        <span class="d-none d-sm-inline-block ms-1">Nuevo</span>
-                        </Link>
+                        <div class="d-flex align-items-center gap-2 justify-content-end">
+                            <button class="btn btn-falcon-default btn-sm" @click="openImportModal">
+                                <span class="fas fa-file-import" data-fa-transform="shrink-3 down-2"></span>
+                                <span class="d-none d-sm-inline-block ms-1">Importar Rendición</span>
+                            </button>
+                            <Link class="btn btn-falcon-default btn-sm" :href="route('invoices.create')">
+                                <span class="fas fa-plus" data-fa-transform="shrink-3 down-2"></span>
+                                <span class="d-none d-sm-inline-block ms-1">Nuevo</span>
+                            </Link>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -296,6 +331,136 @@ invoice, index
                             </template>
                             <!--end::Table body-->
                         </Table>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Modal: Importar desde Rendición -->
+        <div class="modal fade" id="importRendicionModal" tabindex="-1" aria-labelledby="importRendicionModalLabel" aria-hidden="true">
+            <div class="modal-dialog modal-xl modal-dialog-scrollable">
+                <div class="modal-content">
+                    <div class="modal-header py-2 border-bottom">
+                        <div class="d-flex align-items-center gap-2">
+                            <span class="bg-primary text-white rounded-circle d-flex align-items-center justify-content-center" 
+                                  style="width: 38px; height: 38px; font-size: 1.2rem;">
+                                <i class="fas fa-file-import"></i>
+                            </span>
+                            <span>
+                                <span class="fw-bold" style="font-size: 1.1rem; color: #2d3748;">
+                                    Importar desde Rendición de Gastos
+                                </span>
+                                <br>
+                                <span class="text-muted" style="font-size: 0.8rem;">
+                                    Seleccione un item para crear su factura con datos pre-cargados
+                                </span>
+                            </span>
+                        </div>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                    </div>
+                    <div class="modal-body">
+                        <!-- Loading -->
+                        <div v-if="loadingPending" class="text-center py-5">
+                            <div class="spinner-border text-primary" role="status">
+                                <span class="visually-hidden">Cargando...</span>
+                            </div>
+                            <p class="mt-2 text-muted small">Cargando items pendientes...</p>
+                        </div>
+
+                        <!-- Sin items -->
+                        <div v-else-if="pendingItems.length === 0" class="text-center py-5">
+                            <i class="fas fa-check-circle text-success fa-3x mb-3"></i>
+                            <p class="text-muted mb-0">No hay items pendientes de contabilizar</p>
+                            <small class="text-muted">Todos los items de rendiciones aprobadas ya tienen factura asociada</small>
+                        </div>
+
+                        <!-- Lista de items -->
+                        <div v-else>
+                            <!-- Resumen -->
+                            <div class="row g-3 mb-3">
+                                <div class="col-md-4">
+                                    <div class="card border-start border-primary border-3 h-100">
+                                        <div class="card-body py-2 px-3">
+                                            <small class="text-muted d-block">Items Pendientes</small>
+                                            <strong class="fs-7">{{ pendingItems.length }}</strong>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="col-md-4">
+                                    <div class="card border-start border-warning border-3 h-100">
+                                        <div class="card-body py-2 px-3">
+                                            <small class="text-muted d-block">Monto Total Pendiente</small>
+                                            <strong class="fs-7">{{ formatCurrency(pendingItems.reduce((sum, i) => sum + i.amount, 0)) }}</strong>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="col-md-4">
+                                    <div class="card border-start border-info border-3 h-100">
+                                        <div class="card-body py-2 px-3">
+                                            <small class="text-muted d-block">Rendiciones</small>
+                                            <strong class="fs-7">{{ [...new Set(pendingItems.map(i => i.expense_report_number))].length }}</strong>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Tabla -->
+                            <div class="table-responsive" style="max-height: calc(100vh - 380px); overflow-y: auto;">
+                                <table class="table table-hover mb-0" style="font-size: 0.82rem;">
+                                    <thead class="bg-200 position-sticky top-0">
+                                        <tr>
+                                            <th style="min-width: 100px;">Rendición</th>
+                                            <th style="min-width: 90px;">Fecha</th>
+                                            <th style="min-width: 180px;">Proveedor</th>
+                                            <th style="min-width: 150px;">Producto</th>
+                                            <th style="min-width: 180px;">Descripción</th>
+                                            <th class="text-end" style="min-width: 110px;">Monto</th>
+                                            <th class="text-center" style="min-width: 50px;">Doc.</th>
+                                            <th class="text-center" style="min-width: 130px;">Acción</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <tr v-for="item in pendingItems" :key="item.id" class="align-middle">
+                                            <td>
+                                                <span class="badge bg-soft-info text-info">{{ item.expense_report_number }}</span>
+                                            </td>
+                                            <td>{{ item.date }}</td>
+                                            <td>
+                                                <div class="text-truncate" style="max-width: 200px;" :title="item.supplier_name">
+                                                    {{ item.supplier_name }}
+                                                </div>
+                                            </td>
+                                            <td>
+                                                <div class="text-truncate" style="max-width: 170px;" :title="item.product_name">
+                                                    {{ item.product_name || '—' }}
+                                                </div>
+                                            </td>
+                                            <td>
+                                                <div class="text-truncate text-muted" style="max-width: 200px;" :title="item.description">
+                                                    {{ item.description || '—' }}
+                                                </div>
+                                            </td>
+                                            <td class="text-end fw-semibold">{{ formatCurrency(item.amount) }}</td>
+                                            <td class="text-center">
+                                                <i v-if="item.has_receipt" class="fas fa-paperclip text-success" v-tooltip="'Tiene comprobante'"></i>
+                                                <span v-else class="text-muted">—</span>
+                                            </td>
+                                            <td class="text-center">
+                                                <button class="btn btn-sm btn-primary py-1 px-3" 
+                                                    @click="importItem(item)">
+                                                    <i class="fas fa-file-invoice me-1"></i>Crear Factura
+                                                </button>
+                                            </td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="modal-footer py-2 bg-light">
+                        <button type="button" class="btn btn-sm btn-falcon-default" data-bs-dismiss="modal">
+                            <i class="fas fa-times me-1"></i>Cerrar
+                        </button>
                     </div>
                 </div>
             </div>

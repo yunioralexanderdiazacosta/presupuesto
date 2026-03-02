@@ -43,6 +43,7 @@ class FormInvoiceRequest extends FormRequest
             'products.*.unit_price' => ['required', 'numeric', 'gt:0'],
             'products.*.amount' => ['required', 'numeric'],
             'products.*.observations' => ['nullable', 'string'],
+            'expense_item_id' => ['nullable', 'integer', 'exists:expense_report_items,id'],
         ];
 
         return $rules;

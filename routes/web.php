@@ -32,6 +32,7 @@ use App\Http\Controllers\Products2\DeleteProduct2Controller;
 
 // Rutas API
     use App\Http\Controllers\Api\GetProductsController;
+    use App\Http\Controllers\Api\GetPendingExpenseReportItemsController;
 
 // Rutas para Irrigation Pumps
     use App\Http\Controllers\IrrigationPumpsController;
@@ -65,6 +66,17 @@ use App\Http\Controllers\Products2\DeleteProduct2Controller;
     use App\Http\Controllers\InvoicePayments\StoreInvoicePaymentController;
     use App\Http\Controllers\InvoicePayments\UpdateInvoicePaymentController;
     use App\Http\Controllers\InvoicePayments\DeleteInvoicePaymentController;
+
+// Rutas para Rendiciones de Gastos
+    use App\Http\Controllers\ExpenseReports\ExpenseReportController;
+    use App\Http\Controllers\ExpenseReports\StoreExpenseReportController;
+    use App\Http\Controllers\ExpenseReports\ShowExpenseReportController;
+    use App\Http\Controllers\ExpenseReports\DeleteExpenseReportController;
+    use App\Http\Controllers\ExpenseReports\StoreExpenseReportItemController;
+    use App\Http\Controllers\ExpenseReports\DeleteExpenseReportItemController;
+    use App\Http\Controllers\ExpenseReports\UpdateExpenseReportStatusController;
+    use App\Http\Controllers\ExpenseReports\ApproveExpenseReportController;
+    use App\Http\Controllers\ExpenseReports\RejectExpenseReportController;
 
 // Rutas para Purchase Orders
     use App\Http\Controllers\PurchaseOrders\PurchaseOrderController;
@@ -308,6 +320,7 @@ Route::middleware([
 
     // API para refrescar selects
     Route::get('/api/products', GetProductsController::class)->name('api.products');
+    Route::get('/api/pending-expense-items', GetPendingExpenseReportItemsController::class)->name('api.pending-expense-items');
 
     // Products2 estilo teams: vista única y controladores separados para acciones
 
@@ -647,6 +660,15 @@ Route::middleware([
     Route::put('/invoice-payments/{payment}', UpdateInvoicePaymentController::class)->name('invoice-payments.update');
     Route::delete('/invoice-payments/{payment}', DeleteInvoicePaymentController::class)->name('invoice-payments.delete');
 
+    // Rendiciones de Gastos
+    Route::get('/expense-reports', [ExpenseReportController::class, 'index'])->name('expense-reports.index');
+    Route::post('/expense-reports', StoreExpenseReportController::class)->name('expense-reports.store');
+    Route::get('/expense-reports/{expenseReport}', ShowExpenseReportController::class)->name('expense-reports.show');
+    Route::delete('/expense-reports/{expenseReport}', DeleteExpenseReportController::class)->name('expense-reports.delete');
+    Route::patch('/expense-reports/{expenseReport}/status', UpdateExpenseReportStatusController::class)->name('expense-reports.update-status');
+    Route::post('/expense-reports/{expenseReport}/items', StoreExpenseReportItemController::class)->name('expense-reports.items.store');
+    Route::delete('/expense-report-items/{item}', DeleteExpenseReportItemController::class)->name('expense-reports.items.delete');
+
     // Purchase Orders
     Route::get('/purchase-orders', [PurchaseOrderController::class, 'index'])->name('purchase-orders.index');
     Route::post('/purchase-orders', StorePurchaseOrderController::class)->name('purchase-orders.store');
@@ -658,6 +680,15 @@ Route::middleware([
     // Consolidated Documents
     Route::get('/consolidated-documents', [ConsolidatedDocumentsController::class, 'index'])->name('consolidated-documents.index');
 });
+
+// Rutas firmadas para aprobación/rechazo de Rendiciones de Gastos
+Route::get('/expense-reports/{expenseReport}/approve', ApproveExpenseReportController::class)
+    ->middleware('signed')
+    ->name('expense-reports.approve');
+
+Route::match(['get', 'post'], '/expense-reports/{expenseReport}/reject', RejectExpenseReportController::class)
+    ->middleware('signed')
+    ->name('expense-reports.reject');
 
 // Rutas firmadas para aprobación/rechazo de Purchase Orders
 // El controller valida autenticación, rol y team_id internamente

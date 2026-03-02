@@ -5,27 +5,38 @@ import AppLayout from '@/Layouts/AppLayout.vue';
 import FormInvoice from '@/Components/Invoices/Form.vue';
 import Breadcrumb from '@/Components/Breadcrumb.vue';
 
-const title = 'Ingresar Factura';
+const props = defineProps({
+	typeDocuments: Array,
+	suppliers: Array,
+	companyReasons: Array,
+	products: Array,
+	units: Array,
+	months: Array,
+	prefill: Object,
+});
+
+const title = props.prefill ? 'Factura desde Rendición ' + props.prefill.expense_report_number : 'Ingresar Factura';
 
 const links = [{ title: 'Tablero', link: 'dashboard' }, { title: 'Facturas', link: 'invoices.index' }, { title: title, active: true }];
 
 const form = useForm({
-	date: '',
+	date: props.prefill?.date || '',
 	due_date: '',
 	month_id: null,
 	payment_term: '',
 	payment_type: '',
 	petty_cash: false,
-	supplier_id: '',
+	supplier_id: props.prefill?.supplier_id || '',
 	company_reason_id: '',
 	type_document_id: '',
 	number_document: '',
+	expense_item_id: props.prefill?.expense_item_id || null,
 	products: [
 		{
-			product_id: '',
-			unit_price: 0.00,
+			product_id: props.prefill?.product_id || '',
+			unit_price: props.prefill?.amount || 0.00,
 			amount: 1,
-			observations: ''
+			observations: props.prefill?.description || ''
 		}
 	]
 });
@@ -83,6 +94,14 @@ const msgSuccess = (msg) => {
               </div>
             </div>
             <div class="card-body bg-body-tertiary">
+				<!-- Banner cuando viene de rendición -->
+				<div v-if="prefill" class="alert alert-info d-flex align-items-center mb-3 py-2">
+					<i class="fas fa-info-circle me-2"></i>
+					<div>
+						<strong>Importando desde {{ prefill.expense_report_number }}</strong> — 
+						Proveedor y monto pre-cargados. Complete los campos faltantes y guarde.
+					</div>
+				</div>
             	<form id="kt_invoice_form" @submit.prevent="save()">
 					<!--begin::Form-->
 					<FormInvoice :form="form" />

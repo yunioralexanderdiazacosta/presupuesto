@@ -12,10 +12,11 @@ use App\Models\Product;
 use App\Models\Unit;
 use Inertia\Inertia;
 use App\Models\Month;
+use App\Models\ExpenseReportItem;
 
 class CreateInvoiceController extends Controller
 {
-    public function __invoke()
+    public function __invoke(Request $request)
     {
         $user = Auth::user();
 
@@ -62,6 +63,31 @@ class CreateInvoiceController extends Controller
             ];
         });
 
-        return Inertia::render('Invoices/Create', compact('typeDocuments', 'suppliers', 'companyReasons', 'products', 'units', 'months'));
+        // Pre-llenado desde item de rendición de gastos
+        $prefill = null;
+        if ($request->has('expense_item_id')) {
+            $item = ExpenseReportItem::with(['supplier:id,name', 'product:id,name,unit_id', 'expenseReport:id,number'])
+                ->whereHas('expenseReport', function ($q) use ($user) {
+                    $q->where('team_id', $user->team_id)
+                        ->whereIn('status', ['aprobada', 'pagada']);
+                })
+                ->find($request->expense_item_id);
+
+            if ($item) {
+                $prefill = [
+                    'expense_item_id' => $item->id,
+                    'expense_report_number' => $item->expenseReport->number ?? '',
+                    'supplier_id' => $item->supplier_id,
+                    'date' => $item->date->format('Y-m-d'),
+                    'product_id' => $item->product_id,
+                    'product_name' => $item->product->name ?? '',
+                    'unit_id' => $item->product->unit_id ?? null,
+                    'amount' => (float) $item->amount,
+                    'description' => $item->description,
+                ];
+            }
+        }
+
+        return Inertia::render('Invoices/Create', compact('typeDocuments', 'suppliers', 'companyReasons', 'products', 'units', 'months', 'prefill'));
     }
 }
