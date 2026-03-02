@@ -1,3 +1,20 @@
+/* ==========================================================================
+   FIX: Navbar vertical bloquea clicks en mobile (< 1200px)
+   El navbar-vertical tiene position:fixed + width:100% + z-index:1019
+   lo que crea una capa invisible sobre todo el contenido en mobile.
+   Solución: pointer-events:none en el nav, auto solo en elementos visibles.
+   ========================================================================== */
+@media (max-width: 1199.98px) {
+  .navbar-vertical {
+    pointer-events: none;
+  }
+  .navbar-vertical .d-flex.align-items-center,
+  .navbar-vertical .navbar-collapse.show,
+  .navbar-vertical .navbar-collapse.collapsing,
+  .navbar-vertical .navbar-toggler {
+    pointer-events: auto;
+  }
+}
 
  #kt_table_2 {
 

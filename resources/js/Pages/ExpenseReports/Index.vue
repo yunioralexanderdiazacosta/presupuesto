@@ -2,7 +2,6 @@
 import { ref, computed } from 'vue';
 import { Link, useForm, router } from '@inertiajs/vue3';
 import AppLayout from '@/Layouts/AppLayout.vue';
-import Modal from '@/Components/Modal.vue';
 import Swal from 'sweetalert2';
 
 const props = defineProps({
@@ -235,35 +234,42 @@ const statusOptions = [
         </div>
 
         <!-- Modal Crear Rendición -->
-        <Modal id="createExpenseReportModal" maxWidth="md">
-            <template #header>
-                <h5 class="mb-0">Nueva Rendición</h5>
-            </template>
-            <template #body>
-                <form @submit.prevent="submitCreate">
-                    <div class="mb-3">
-                        <label class="form-label small">Descripción (opcional)</label>
-                        <textarea 
-                            v-model="createForm.description" 
-                            class="form-control form-control-sm" 
-                            rows="2"
-                            placeholder="Ej: Gastos operación semana 9..."
-                        ></textarea>
+        <div class="modal fade" id="createExpenseReportModal" tabindex="-1" aria-hidden="true">
+            <div class="modal-dialog modal-dialog-centered modal-fullscreen-sm-down">
+                <div class="modal-content">
+                    <div class="modal-header py-2 border-bottom">
+                        <h6 class="modal-title d-flex align-items-center gap-2 mb-0">
+                            <i class="fas fa-plus-circle text-primary"></i>Nueva Rendición
+                        </h6>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                     </div>
-                </form>
-            </template>
-            <template #footer>
-                <button type="button" class="btn btn-sm btn-secondary" data-bs-dismiss="modal">Cancelar</button>
-                <button 
-                    type="button" 
-                    class="btn btn-sm btn-primary" 
-                    @click="submitCreate"
-                    :disabled="createForm.processing"
-                >
-                    <i class="fas fa-plus me-1"></i>
-                    {{ createForm.processing ? 'Creando...' : 'Crear Rendición' }}
-                </button>
-            </template>
-        </Modal>
+                    <div class="modal-body">
+                        <form @submit.prevent="submitCreate">
+                            <div class="mb-3">
+                                <label class="form-label small">Descripción (opcional)</label>
+                                <textarea 
+                                    v-model="createForm.description" 
+                                    class="form-control form-control-sm" 
+                                    rows="3"
+                                    placeholder="Ej: Gastos operación semana 9..."
+                                ></textarea>
+                            </div>
+                        </form>
+                    </div>
+                    <div class="modal-footer py-2">
+                        <button type="button" class="btn btn-sm btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                        <button 
+                            type="button" 
+                            class="btn btn-sm btn-primary" 
+                            @click="submitCreate"
+                            :disabled="createForm.processing"
+                        >
+                            <i class="fas fa-plus me-1"></i>
+                            {{ createForm.processing ? 'Creando...' : 'Crear Rendición' }}
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
     </AppLayout>
 </template>

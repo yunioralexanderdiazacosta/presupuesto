@@ -2,7 +2,6 @@
 import { ref, computed } from 'vue';
 import { Link, useForm, router } from '@inertiajs/vue3';
 import AppLayout from '@/Layouts/AppLayout.vue';
-import Modal from '@/Components/Modal.vue';
 import Swal from 'sweetalert2';
 
 const props = defineProps({
@@ -416,85 +415,94 @@ const pendingAmount = computed(() => formatCurrency(props.report.pending_amount)
             </div>
         </div>
 
-        <!-- Modal Agregar Item -->
-        <Modal id="addItemModal" maxWidth="lg">
-            <template #header>
-                <h5 class="mb-0">Agregar Documento</h5>
-            </template>
-            <template #body>
-                <form @submit.prevent="submitItem">
-                    <div class="row g-3">
-                        <!-- Fecha -->
-                        <div class="col-md-4">
-                            <label class="form-label small mb-1">Fecha <span class="text-danger">*</span></label>
-                            <input type="date" v-model="itemForm.date" class="form-control form-control-sm" required>
+        <!-- Modal Agregar Item (teleported to body to avoid z-index issues with Falcon layout) -->
+        <Teleport to="body">
+            <div class="modal fade" id="addItemModal" tabindex="-1" aria-hidden="true">
+                <div class="modal-dialog modal-dialog-scrollable modal-lg modal-fullscreen-sm-down">
+                    <div class="modal-content">
+                        <div class="modal-header py-2 border-bottom">
+                            <h6 class="modal-title d-flex align-items-center gap-2 mb-0">
+                                <i class="fas fa-plus-circle text-primary"></i>Agregar Documento
+                            </h6>
+                            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                         </div>
+                        <div class="modal-body">
+                            <form @submit.prevent="submitItem">
+                                <div class="row g-3">
+                                    <!-- Fecha -->
+                                    <div class="col-6 col-md-4">
+                                        <label class="form-label small mb-1">Fecha <span class="text-danger">*</span></label>
+                                        <input type="date" v-model="itemForm.date" class="form-control form-control-sm" required>
+                                    </div>
 
-                        <!-- Monto -->
-                        <div class="col-md-4">
-                            <label class="form-label small mb-1">Monto ($) <span class="text-danger">*</span></label>
-                            <input type="number" v-model="itemForm.amount" class="form-control form-control-sm" min="1" required placeholder="0">
+                                    <!-- Monto -->
+                                    <div class="col-6 col-md-4">
+                                        <label class="form-label small mb-1">Monto ($) <span class="text-danger">*</span></label>
+                                        <input type="number" v-model="itemForm.amount" class="form-control form-control-sm" min="1" required placeholder="0">
+                                    </div>
+
+                                    <!-- Proveedor -->
+                                    <div class="col-12 col-md-4">
+                                        <label class="form-label small mb-1">Proveedor <span class="text-danger">*</span></label>
+                                        <select v-model="itemForm.supplier_id" class="form-select form-select-sm">
+                                            <option value="" disabled selected>Seleccione...</option>
+                                            <option v-for="s in suppliers" :key="s.value" :value="s.value">{{ s.label }}</option>
+                                        </select>
+                                    </div>
+
+                                    <!-- Producto -->
+                                    <div class="col-12 col-md-6">
+                                        <label class="form-label small mb-1">Producto (opcional)</label>
+                                        <select v-model="itemForm.product_id" class="form-select form-select-sm">
+                                            <option value="" selected>Seleccione...</option>
+                                            <option v-for="p in products" :key="p.value" :value="p.value">{{ p.label }}</option>
+                                        </select>
+                                    </div>
+
+                                    <!-- Descripción -->
+                                    <div class="col-12 col-md-6">
+                                        <label class="form-label small mb-1">Descripción</label>
+                                        <input type="text" v-model="itemForm.description" class="form-control form-control-sm" placeholder="Detalle del gasto...">
+                                    </div>
+
+                                    <!-- Comprobante (foto/PDF) -->
+                                    <div class="col-12 col-md-6">
+                                        <label class="form-label small mb-1">Comprobante (foto o PDF)</label>
+                                        <input 
+                                            type="file" 
+                                            ref="fileInput"
+                                            class="form-control form-control-sm" 
+                                            accept="image/*,application/pdf"
+                                            capture="environment"
+                                            @change="onFileChange"
+                                        >
+                                        <small class="text-muted">Máx 5 MB. JPG, PNG o PDF</small>
+                                    </div>
+
+                                    <!-- Notas -->
+                                    <div class="col-12 col-md-6">
+                                        <label class="form-label small mb-1">Notas</label>
+                                        <input type="text" v-model="itemForm.notes" class="form-control form-control-sm" placeholder="Observaciones...">
+                                    </div>
+                                </div>
+                            </form>
                         </div>
-
-                        <!-- Proveedor -->
-                        <div class="col-md-4">
-                            <label class="form-label small mb-1">Proveedor <span class="text-danger">*</span></label>
-                            <select v-model="itemForm.supplier_id" class="form-select form-select-sm">
-                                <option value="" disabled selected>Seleccione...</option>
-                                <option v-for="s in suppliers" :key="s.value" :value="s.value">{{ s.label }}</option>
-                            </select>
-                        </div>
-
-                        <!-- Producto -->
-                        <div class="col-md-6">
-                            <label class="form-label small mb-1">Producto (opcional)</label>
-                            <select v-model="itemForm.product_id" class="form-select form-select-sm">
-                                <option value="" selected>Seleccione...</option>
-                                <option v-for="p in products" :key="p.value" :value="p.value">{{ p.label }}</option>
-                            </select>
-                        </div>
-
-                        <!-- Descripción -->
-                        <div class="col-md-6">
-                            <label class="form-label small mb-1">Descripción</label>
-                            <input type="text" v-model="itemForm.description" class="form-control form-control-sm" placeholder="Detalle del gasto...">
-                        </div>
-
-                        <!-- Comprobante (foto/PDF) -->
-                        <div class="col-md-6">
-                            <label class="form-label small mb-1">Comprobante (foto o PDF)</label>
-                            <input 
-                                type="file" 
-                                ref="fileInput"
-                                class="form-control form-control-sm" 
-                                accept="image/*,application/pdf"
-                                capture="environment"
-                                @change="onFileChange"
+                        <div class="modal-footer py-2">
+                            <button type="button" class="btn btn-sm btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                            <button 
+                                type="button" 
+                                class="btn btn-sm btn-primary" 
+                                @click="submitItem"
+                                :disabled="itemForm.processing || !itemForm.supplier_id || !itemForm.amount"
                             >
-                            <small class="text-muted">Máx 5 MB. JPG, PNG o PDF</small>
-                        </div>
-
-                        <!-- Notas -->
-                        <div class="col-md-6">
-                            <label class="form-label small mb-1">Notas</label>
-                            <input type="text" v-model="itemForm.notes" class="form-control form-control-sm" placeholder="Observaciones...">
+                                <i class="fas fa-plus me-1"></i>
+                                {{ itemForm.processing ? 'Guardando...' : 'Agregar' }}
+                            </button>
                         </div>
                     </div>
-                </form>
-            </template>
-            <template #footer>
-                <button type="button" class="btn btn-sm btn-secondary" data-bs-dismiss="modal">Cancelar</button>
-                <button 
-                    type="button" 
-                    class="btn btn-sm btn-primary" 
-                    @click="submitItem"
-                    :disabled="itemForm.processing || !itemForm.supplier_id || !itemForm.amount"
-                >
-                    <i class="fas fa-plus me-1"></i>
-                    {{ itemForm.processing ? 'Guardando...' : 'Agregar' }}
-                </button>
-            </template>
-        </Modal>
+                </div>
+            </div>
+        </Teleport>
     </AppLayout>
 </template>
 
