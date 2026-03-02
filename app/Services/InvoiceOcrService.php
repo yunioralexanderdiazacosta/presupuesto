@@ -3,23 +3,26 @@
 namespace App\Services;
 
 use Illuminate\Support\Facades\Log;
+use GuzzleHttp\Client as HttpClient;
 
 class InvoiceOcrService
 {
     /**
-     * Crear cliente OpenAI con certificados SSL configurados.
-     * Necesario en MAMP/Windows donde php.ini no siempre
-     * tiene los certificados CA correctos para Apache.
+     * Crear cliente HTTP configurado para la API de OpenAI.
+     * Usa Guzzle directo (ya incluido en Laravel) — sin dependencias extra.
      */
-    private function makeOpenAiClient(): \OpenAI\Client
+    private function makeHttpClient(): HttpClient
     {
-        $apiKey = config('openai.api_key');
-        if (empty($apiKey)) {
-            throw new \Exception('La API key de OpenAI no está configurada. Revisa OPENAI_API_KEY en .env');
-        }
+        $options = [
+            'base_uri' => 'https://api.openai.com/v1/',
+            'timeout' => (int) config('openai.request_timeout', 60),
+            'headers' => [
+                'Authorization' => 'Bearer ' . config('openai.api_key'),
+                'Content-Type' => 'application/json',
+            ],
+        ];
 
-        // Buscar cacert.pem en ubicaciones conocidas
-        $caBundle = null;
+        // En MAMP/Windows, buscar cacert.pem para SSL
         $possiblePaths = [
             base_path('cacert.pem'),
             'C:\\MAMP\\bin\\php\\php8.1.0\\extras\\ssl\\cacert.pem',
@@ -28,25 +31,12 @@ class InvoiceOcrService
         ];
         foreach ($possiblePaths as $path) {
             if ($path && file_exists($path)) {
-                $caBundle = $path;
+                $options['verify'] = $path;
                 break;
             }
         }
 
-        $httpOptions = [
-            'timeout' => (int) config('openai.request_timeout', 60),
-        ];
-
-        if ($caBundle) {
-            $httpOptions['verify'] = $caBundle;
-        }
-
-        $httpClient = new \GuzzleHttp\Client($httpOptions);
-
-        return (new \OpenAI\Factory())
-            ->withApiKey($apiKey)
-            ->withHttpClient($httpClient)
-            ->make();
+        return new HttpClient($options);
     }
 
     /**
@@ -110,32 +100,42 @@ class InvoiceOcrService
 
     /**
      * Enviar texto de factura a GPT-4o-mini para extracción estructurada.
+     * Usa Guzzle directo contra la API REST de OpenAI.
      */
     private function callOpenAi(string $pdfText, string $filename): array
     {
-        $client = $this->makeOpenAiClient();
+        $apiKey = config('openai.api_key');
+        if (empty($apiKey)) {
+            throw new \Exception('La API key de OpenAI no está configurada. Revisa OPENAI_API_KEY en .env');
+        }
+
         $prompt = $this->buildPrompt();
 
         // Limitar texto a ~8000 chars para no exceder tokens
         $text = mb_substr($pdfText, 0, 8000);
 
-        $response = $client->chat()->create([
-            'model' => 'gpt-4o-mini',
-            'messages' => [
-                [
-                    'role' => 'system',
-                    'content' => 'Eres un experto en extracción de datos de facturas chilenas. Siempre respondes en formato JSON válido, sin markdown ni bloques de código.',
+        $client = $this->makeHttpClient();
+
+        $response = $client->post('chat/completions', [
+            'json' => [
+                'model' => 'gpt-4o-mini',
+                'messages' => [
+                    [
+                        'role' => 'system',
+                        'content' => 'Eres un experto en extracción de datos de facturas chilenas. Siempre respondes en formato JSON válido, sin markdown ni bloques de código.',
+                    ],
+                    [
+                        'role' => 'user',
+                        'content' => $prompt . "\n\n--- TEXTO DE LA FACTURA ---\n" . $text,
+                    ],
                 ],
-                [
-                    'role' => 'user',
-                    'content' => $prompt . "\n\n--- TEXTO DE LA FACTURA ---\n" . $text,
-                ],
+                'max_tokens' => 4096,
+                'temperature' => 0.1,
             ],
-            'max_tokens' => 4096,
-            'temperature' => 0.1,
         ]);
 
-        $content = $response->choices[0]->message->content;
+        $body = json_decode($response->getBody()->getContents(), true);
+        $content = $body['choices'][0]['message']['content'] ?? '';
 
         Log::info('📝 Respuesta raw de OpenAI', ['content' => substr($content, 0, 500)]);
 
