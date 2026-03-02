@@ -52,7 +52,7 @@ class HandleInertiaRequests extends Middleware
         }
 
         return array_merge(parent::share($request), [
-            'public_path' => env('APP_URL'),
+            'public_path' => config('app.url'),
             'price'       => $price,
             'temporada'   => $season ? strtoupper($season->name) : '',
             'auth' => [
