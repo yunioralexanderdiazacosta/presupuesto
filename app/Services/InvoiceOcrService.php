@@ -85,6 +85,16 @@ class InvoiceOcrService
                 'product_lines' => count($result['product_lines']),
             ]);
 
+            // Log detallado de productos con cantidades para debug
+            foreach ($result['product_lines'] as $i => $line) {
+                Log::info("📦 Producto #{$i}: {$line['name']}", [
+                    'quantity' => $line['quantity'],
+                    'unit' => $line['unit'],
+                    'unit_price' => $line['unit_price'],
+                    'total' => $line['total'],
+                ]);
+            }
+
             return $result;
 
         } catch (\Exception $e) {
@@ -137,7 +147,7 @@ class InvoiceOcrService
         $body = json_decode($response->getBody()->getContents(), true);
         $content = $body['choices'][0]['message']['content'] ?? '';
 
-        Log::info('📝 Respuesta raw de OpenAI', ['content' => substr($content, 0, 500)]);
+        Log::info('📝 Respuesta raw de OpenAI', ['content' => substr($content, 0, 2000)]);
 
         // Parsear JSON de la respuesta
         $data = $this->parseJsonResponse($content);
@@ -186,15 +196,26 @@ REGLAS IMPORTANTES:
 4. Para product_lines: extrae TODAS las líneas de detalle de productos/servicios
 5. Si un campo no se puede detectar, usar null (no inventar)
 6. El tipo de pago: detecta si dice "contado", "efectivo", "cash" → type="contado". Si dice "crédito" o tiene plazo → type="credito" con los días
-7. LIMPIEZA DE NOMBRES DE PRODUCTOS (MUY IMPORTANTE):
+7. CANTIDAD (quantity) - MUY IMPORTANTE:
+   - La quantity SIEMPRE debe ser el valor de la columna "Cant", "Cantidad" o "Qty" de la factura.
+   - Es la cantidad de unidades compradas en esa línea de la factura.
+   - NO confundir con el envase/presentación que aparece en el nombre del producto (ej: "x 20 lt" = envase de 20 litros, NO es la cantidad comprada).
+   - unit_price es el precio unitario de la columna "P. Unit", "Precio" o similar.
+   - total es el valor de la columna "Total" o "Monto" de esa línea.
+   - Ejemplo: Si la línea dice "DEFENDER POTASIO x 20 lt" con Cant=3, P.Unit=50000, Total=150000 → quantity: 3 (NO 20)
+8. LIMPIEZA DE NOMBRES DE PRODUCTOS (MUY IMPORTANTE):
    - Elimina sufijos de categoría: "-FITOSANITARIOS(A)-NV", "-FERTILIZANTES(B)-UREAS", etc.
-   - Elimina la presentación/envase del nombre: "x 20 lt", "x 10 LT", "X 5 KG", "x 1 UN", etc. Esa info va en quantity y unit
+   - Elimina la presentación/envase del nombre: "x 20 lt", "x 10 LT", "X 5 KG", "x 1 UN", etc. Eso es la presentación, NO la cantidad.
    - Elimina la marca del fabricante si aparece al final: "SYNGENTA", "BAYER", "BASF", "ANASAC", "ARYSTA", "FMC", "SUMMIT AGRO", "UPL", "NUFARM", "CORTEVA", "AGROSPEC", "STOLLER", etc.
-   - Ejemplo: "STIMPLEX X 10 LT SYNGENTA" → name: "STIMPLEX", quantity: 10, unit: "LT"
-   - Ejemplo: "FOSFIMAX 40 - 20 x 20 lt" → name: "FOSFIMAX 40 - 20", quantity: 20, unit: "LT"
-   - Ejemplo: "DEFENDER POTASIO x 20 lt" → name: "DEFENDER POTASIO", quantity: 20, unit: "LT"
+   - Ejemplo: "STIMPLEX X 10 LT SYNGENTA" con Cant=2 → name: "STIMPLEX", quantity: 2, unit: "UN"
+   - Ejemplo: "FOSFIMAX 40 - 20 x 20 lt" con Cant=5 → name: "FOSFIMAX 40 - 20", quantity: 5, unit: "UN"
+   - Ejemplo: "DEFENDER POTASIO x 20 lt" con Cant=3 → name: "DEFENDER POTASIO", quantity: 3, unit: "UN"
    - El nombre debe quedar SOLO con el nombre comercial del producto
-8. Si la unidad aparece como "LT", "KG", "UN", "MT", "GL", "CC", "ML", "GR", "HA", "HR", "SC", "BL", "TM", mantener esa abreviatura
+9. UNIDAD DE MEDIDA (unit):
+   - Usa la unidad de medida de la columna "Unidad" o "U.M." de la factura si existe.
+   - Si la factura no tiene columna de unidad, usar "UN" (unidades) por defecto.
+   - Si la unidad aparece como "LT", "KG", "UN", "MT", "GL", "CC", "ML", "GR", "HA", "HR", "SC", "BL", "TM", mantener esa abreviatura.
+   - NO usar la unidad del envase del nombre del producto (ej: "x 20 lt" → la unidad NO es LT, es UN)
 
 Responde SOLO con el JSON, sin explicaciones ni bloques de código markdown.
 PROMPT;
