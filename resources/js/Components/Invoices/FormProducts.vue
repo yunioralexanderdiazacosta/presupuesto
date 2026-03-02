@@ -111,6 +111,47 @@ const newTag = (input) => {
 	return newProduct;
 };
 
+/**
+ * Verifica si un product_id es un tag de texto (no numérico = no viene de la BD).
+ */
+const isStringTag = (productId) => {
+	return productId && typeof productId === 'string' && !/^\d+$/.test(productId);
+};
+
+/**
+ * Permite editar el nombre de un producto tag (escrito a mano o del PDF).
+ * Abre un SweetAlert con input pre-rellenado para corregir.
+ */
+const editProductName = async (index) => {
+	const product = props.form.products[index];
+	const currentName = product.product_id;
+
+	const { value: newName } = await Swal.fire({
+		title: 'Editar nombre de producto',
+		input: 'text',
+		inputValue: currentName,
+		showCancelButton: true,
+		confirmButtonText: 'Guardar',
+		cancelButtonText: 'Cancelar',
+		inputValidator: (value) => {
+			if (!value || !value.trim()) return 'El nombre no puede estar vacío';
+		}
+	});
+
+	if (newName && newName.trim() !== currentName) {
+		const trimmed = newName.trim();
+		// Remover la opción vieja del array de opciones
+		const oldIndex = productOptions.findIndex(p => p.value === currentName);
+		if (oldIndex !== -1) {
+			productOptions.splice(oldIndex, 1);
+		}
+		// Agregar la nueva opción
+		productOptions.push({ value: trimmed, label: trimmed });
+		// Actualizar el valor en el formulario
+		product.product_id = trimmed;
+	}
+};
+
 const add = () => {
 	props.form.products.push({
 		product_id: '',
@@ -208,8 +249,8 @@ watch(
 								<i class="fas fa-lock text-warning" style="font-size:0.7rem;" v-tooltip="'Producto con salidas asociadas'"></i>
 								<span class="form-control form-control-solid bg-light" style="font-size:0.75rem; height:26px; min-height:26px; cursor:not-allowed; opacity:0.8;">{{ productOptions.find(p => p.value === product.product_id)?.label || product.product_id }}</span>
 							</div>
-							<Multiselect
-								v-if="!isProtected(product.product_id)"
+							<div v-if="!isProtected(product.product_id)" class="d-flex align-items-center gap-1">
+								<Multiselect
 									:taggable="true"
 									:create-tag="newTag"
 									placeholder="Seleccione o escriba producto"
@@ -218,11 +259,26 @@ watch(
 									:searchable="true"
 									:close-on-select="true"
 									:hide-selected="false"
+									:canClear="true"
+									:canDeselect="true"
+									:allowAbsent="true"
 									:showOptions="showProductOptions[index] !== false"
 									class="multiselect-blue form-control"
+									style="flex: 1;"
 									required
 									:class="{'is-invalid': showProductValidation && !product.product_id}"
 								/>
+								<button
+									v-if="product.product_id && isStringTag(product.product_id)"
+									type="button"
+									@click="editProductName(index)"
+									class="btn btn-sm btn-light-primary p-0 d-flex align-items-center justify-content-center"
+									style="width:24px; height:24px; min-width:24px; flex-shrink:0;"
+									v-tooltip="'Editar nombre'"
+								>
+									<i class="fas fa-pencil-alt" style="font-size:0.65rem;"></i>
+								</button>
+							</div>
 							<span v-if="!isProtected(product.product_id) && showProductValidation && !product.product_id" class="text-danger" style="font-size:0.7em;">Campo obligatorio</span>
 					   </td>
                      
