@@ -39,13 +39,17 @@ class ComparativeOutflowsDashboardController extends Controller
         // Generar array de 12 meses desde el mes de inicio
         $months = $this->generateMonthsArray($startMonthId);
 
+        // Calcular una sola vez y reutilizar (evita queries duplicadas)
+        $monthlyComparison = $this->getMonthlyComparison($season_id, $team_id, $months);
+        $comparisonByLevel1 = $this->getComparisonByLevel1($season_id, $team_id);
+
         return Inertia::render('ComparativeOutflowsDashboard', [
             'summary' => $this->getSummaryComparison($season_id, $team_id),
-            'monthlyComparison' => $this->getMonthlyComparison($season_id, $team_id, $months),
-            'cumulativeComparison' => $this->getCumulativeComparison($season_id, $team_id, $months),
-            'comparisonByLevel1' => $this->getComparisonByLevel1($season_id, $team_id),
-            'comparisonByLevel2' => $this->getComparisonByLevel2($season_id, $team_id),
-            'detailedTable' => $this->getDetailedComparisonTable($season_id, $team_id),
+            'monthlyComparison' => $monthlyComparison,
+            'cumulativeComparison' => $this->buildCumulativeFromMonthly($monthlyComparison, $months),
+            'comparisonByLevel1' => $comparisonByLevel1,
+            'comparisonByLevel2' => [],
+            'detailedTable' => $comparisonByLevel1,
             'months' => $months,
             'seasonStartMonth' => $startMonthId,
         ]);
@@ -108,85 +112,67 @@ class ComparativeOutflowsDashboardController extends Controller
             // Total General = Total Neto + Inversiones
             $budgetTotalWithInvestments = $budgetTotal + $totalInvestments;
 
-            // Total Facturado (desde invoices + notas de crédito/débito)
-            // Replicando lógica del InvoicePaymentDashboardController y ConsolidatedDocuments
-            $invoicesTotal = Invoice::where('team_id', $team_id)
-                ->where('season_id', $season_id)
-                ->with(['invoiceProducts'])
-                ->get()
-                ->sum(function($invoice) {
-                    return $invoice->invoiceProducts->sum(function($ip) {
-                        return $ip->unit_price * $ip->amount;
-                    });
-                });
+            // Total Facturado - SQL aggregation (reemplaza Eloquent + eager + PHP sum)
+            $invoicesTotal = (float) (DB::table('invoices as i')
+                ->join('invoice_products as ip', 'i.id', '=', 'ip.invoice_id')
+                ->where('i.team_id', $team_id)
+                ->where('i.season_id', $season_id)
+                ->sum(DB::raw('ip.unit_price * ip.amount')) ?? 0);
 
-            // Notas de crédito/débito
-            $notesTotal = CreditDebitNote::where('team_id', $team_id)
-                ->where('season_id', $season_id)
-                ->with(['items'])
-                ->get()
-                ->sum(function($note) {
-                    $monto = $note->items->sum(function($item) {
-                        return $item->unit_price * $item->quantity;
-                    });
-                    
-                    // Si es nota de crédito, restar
-                    $type = strtolower($note->type);
-                    if ($type === 'credito' || $type === 'nc') {
-                        return -$monto;
-                    }
-                    // Si es nota de débito, sumar
-                    return $monto;
-                });
+            // Notas de crédito (se restan)
+            $creditNotesTotal = (float) (DB::table('credit_debit_notes as cdn')
+                ->join('credit_debit_note_items as cdni', 'cdn.id', '=', 'cdni.credit_debit_note_id')
+                ->where('cdn.team_id', $team_id)
+                ->where('cdn.season_id', $season_id)
+                ->whereRaw('LOWER(cdn.type) IN (?, ?)', ['credito', 'nc'])
+                ->sum(DB::raw('cdni.unit_price * cdni.quantity')) ?? 0);
+
+            // Notas de débito (se suman)
+            $debitNotesTotal = (float) (DB::table('credit_debit_notes as cdn')
+                ->join('credit_debit_note_items as cdni', 'cdn.id', '=', 'cdni.credit_debit_note_id')
+                ->where('cdn.team_id', $team_id)
+                ->where('cdn.season_id', $season_id)
+                ->whereRaw('LOWER(cdn.type) NOT IN (?, ?)', ['credito', 'nc'])
+                ->sum(DB::raw('cdni.unit_price * cdni.quantity')) ?? 0);
+
+            $notesTotal = $debitNotesTotal - $creditNotesTotal;
 
             $invoicedTotal = floatval($invoicesTotal + $notesTotal);
             Log::info("getSummaryComparison - Budget: $budgetTotal, Facturado: $invoicedTotal (Invoices: $invoicesTotal + Notes: $notesTotal)");
 
-            // Total Consumido - Calcular ambas versiones (con y sin inversiones)
-            // Usar whereHas para filtrar correctamente por operación (igual que OutflowsDashboardController)
-            
+            // Total Consumido - SQL aggregation (reemplaza 2 Eloquent queries + eager + PHP sum)
             // Consumido CON inversiones (todos los outflows)
-            $allOutflows = Outflow::where('season_id', $season_id)
-                ->where('team_id', $team_id)
-                ->with(['invoiceProduct', 'creditDebitNoteItem'])
-                ->get();
+            $consumedTotalWithInvestments = (float) (DB::table('outflows as o')
+                ->leftJoin('invoice_products as ip', 'o.invoice_product_id', '=', 'ip.id')
+                ->leftJoin('credit_debit_note_items as cdni', 'o.credit_debit_note_item_id', '=', 'cdni.id')
+                ->where('o.season_id', $season_id)
+                ->where('o.team_id', $team_id)
+                ->selectRaw('SUM(CASE
+                    WHEN o.invoice_product_id IS NOT NULL AND ip.id IS NOT NULL THEN o.quantity * ip.unit_price
+                    WHEN o.credit_debit_note_item_id IS NOT NULL AND cdni.id IS NOT NULL THEN o.quantity * cdni.unit_price
+                    ELSE 0
+                END) as total')
+                ->value('total') ?? 0);
 
-            $consumedTotalWithInvestments = $allOutflows->sum(function($outflow) {
-                if ($outflow->invoice_product_id && $outflow->invoiceProduct) {
-                    return $outflow->quantity * $outflow->invoiceProduct->unit_price;
-                }
-                if ($outflow->credit_debit_note_item_id && $outflow->creditDebitNoteItem) {
-                    return $outflow->quantity * $outflow->creditDebitNoteItem->unit_price;
-                }
-                return 0;
-            });
-
-            // Consumido SOLO inversiones (usando whereHas igual que OutflowsDashboardController)
-            $investmentOutflows = Outflow::where('season_id', $season_id)
-                ->where('team_id', $team_id)
-                ->whereHas('operation', function($query) {
-                    $query->whereRaw('LOWER(name) LIKE ?', ['%inversion%']);
-                })
-                ->with(['invoiceProduct', 'creditDebitNoteItem'])
-                ->get();
-
-            $consumedInvestmentsTotal = $investmentOutflows->sum(function($outflow) {
-                if ($outflow->invoice_product_id && $outflow->invoiceProduct) {
-                    return $outflow->quantity * $outflow->invoiceProduct->unit_price;
-                }
-                if ($outflow->credit_debit_note_item_id && $outflow->creditDebitNoteItem) {
-                    return $outflow->quantity * $outflow->creditDebitNoteItem->unit_price;
-                }
-                return 0;
-            });
+            // Consumido SOLO inversiones
+            $consumedInvestmentsTotal = (float) (DB::table('outflows as o')
+                ->leftJoin('invoice_products as ip', 'o.invoice_product_id', '=', 'ip.id')
+                ->leftJoin('credit_debit_note_items as cdni', 'o.credit_debit_note_item_id', '=', 'cdni.id')
+                ->join('operations as op', 'o.operation_id', '=', 'op.id')
+                ->where('o.season_id', $season_id)
+                ->where('o.team_id', $team_id)
+                ->whereRaw('LOWER(op.name) LIKE ?', ['%inversion%'])
+                ->selectRaw('SUM(CASE
+                    WHEN o.invoice_product_id IS NOT NULL AND ip.id IS NOT NULL THEN o.quantity * ip.unit_price
+                    WHEN o.credit_debit_note_item_id IS NOT NULL AND cdni.id IS NOT NULL THEN o.quantity * cdni.unit_price
+                    ELSE 0
+                END) as total')
+                ->value('total') ?? 0);
 
             // Consumido SIN inversiones = Total - Inversiones
             $consumedTotal = $consumedTotalWithInvestments - $consumedInvestmentsTotal;
 
-            Log::info("getSummaryComparison - Total Outflows: " . $allOutflows->count());
-            Log::info("getSummaryComparison - Consumido (sin inversiones): $consumedTotal");
-            Log::info("getSummaryComparison - Consumido (con inversiones): $consumedTotalWithInvestments");
-            Log::info("getSummaryComparison - Inversiones consumidas: $consumedInvestmentsTotal");
+            Log::info("getSummaryComparison - Consumido: $consumedTotal (con inv: $consumedTotalWithInvestments, inv: $consumedInvestmentsTotal)");
 
             // Usar facturado para cálculos principales
             $realTotal = $invoicedTotal;
@@ -296,6 +282,10 @@ class ComparativeOutflowsDashboardController extends Controller
             $consumedByMonth = [];
             $consumedWithInvestmentsByMonth = [];
 
+            // Batch: obtener facturado y consumido de TODOS los meses en pocas queries
+            $allInvoicedByMonth = $this->getAllInvoicedByMonth($season_id, $team_id);
+            $allConsumedByMonth = $this->getAllConsumedByMonth($season_id, $team_id);
+
             foreach ($months as $month) {
                 $monthId = $month['id'];
                 
@@ -316,21 +306,15 @@ class ComparativeOutflowsDashboardController extends Controller
                 $investmentMonth = $monthsInvestments[$monthId] ?? 0;
                 $budgetWithInvestmentsByMonth[] = floatval($budgetMonth + $investmentMonth);
 
-                // Facturado del mes (usando fecha de factura)
-                $invoicedMonth = $this->getInvoicedForMonth($season_id, $team_id, $monthId);
-                $realByMonth[] = floatval($invoicedMonth);
+                // Facturado del mes (pre-calculado en batch)
+                $realByMonth[] = floatval($allInvoicedByMonth[$monthId] ?? 0);
 
-                // Consumido del mes (desde outflows)
-                $consumedData = $this->getConsumedForMonth($season_id, $team_id, $monthId);
-                $consumedByMonth[] = floatval($consumedData['total']);
-                $consumedWithInvestmentsByMonth[] = floatval($consumedData['total_with_investments']);
-
-                Log::info("Mes {$month['name']} (ID: $monthId) - Budget: $budgetMonth, Con Inv: " . ($budgetMonth + $investmentMonth) . ", Facturado: $invoicedMonth, Consumido: {$consumedData['total']}, Consumido con Inv: {$consumedData['total_with_investments']}");
+                // Consumido del mes (pre-calculado en batch)
+                $consumedByMonth[] = floatval($allConsumedByMonth[$monthId]['total'] ?? 0);
+                $consumedWithInvestmentsByMonth[] = floatval($allConsumedByMonth[$monthId]['total_with_investments'] ?? 0);
             }
 
-            Log::info('Monthly Comparison - Budget Total: ' . array_sum($budgetByMonth));
-            Log::info('Monthly Comparison - Budget with Investments Total: ' . array_sum($budgetWithInvestmentsByMonth));
-            Log::info('Monthly Comparison - Facturado Total: ' . array_sum($realByMonth));
+            Log::info('Monthly Comparison - Budget: ' . array_sum($budgetByMonth) . ', BudgetInv: ' . array_sum($budgetWithInvestmentsByMonth) . ', Facturado: ' . array_sum($realByMonth));
 
             return [
                 'labels' => array_column($months, 'short_name'),
@@ -355,11 +339,9 @@ class ComparativeOutflowsDashboardController extends Controller
     /**
      * Comparación acumulada mes a mes
      */
-    private function getCumulativeComparison($season_id, $team_id, $months)
+    private function buildCumulativeFromMonthly($monthlyData, $months)
     {
         try {
-            $monthlyData = $this->getMonthlyComparison($season_id, $team_id, $months);
-            
             $budgetCumulative = [];
             $budgetWithInvestmentsCumulative = [];
             $realCumulative = [];
@@ -416,13 +398,7 @@ class ComparativeOutflowsDashboardController extends Controller
                 }
             }
 
-            Log::info('Cumulative Comparison - Last month with data: ' . $lastMonthWithData);
-            Log::info('Cumulative Comparison - Last month with consumed data: ' . $lastMonthWithConsumedData);
-            Log::info('Cumulative Comparison - Budget: ' . json_encode($budgetCumulative));
-            Log::info('Cumulative Comparison - Budget with Investments: ' . json_encode($budgetWithInvestmentsCumulative));
-            Log::info('Cumulative Comparison - Real: ' . json_encode($realCumulative));
-            Log::info('Cumulative Comparison - Consumed: ' . json_encode($consumedCumulative));
-            Log::info('Cumulative Comparison - Consumed with Investments: ' . json_encode($consumedWithInvestmentsCumulative));
+            Log::info('Cumulative Comparison - Last month with data: ' . $lastMonthWithData . ', consumed: ' . $lastMonthWithConsumedData);
 
             return [
                 'labels' => $monthlyData['labels'],
@@ -436,7 +412,7 @@ class ComparativeOutflowsDashboardController extends Controller
             ];
 
         } catch (\Exception $e) {
-            Log::error('Error en ComparativeDashboard getCumulativeComparison: ' . $e->getMessage());
+            Log::error('Error en ComparativeDashboard buildCumulativeFromMonthly: ' . $e->getMessage());
             return [
                 'labels' => array_column($months, 'short_name'),
                 'budget_cumulative' => array_fill(0, 12, 0),
@@ -688,6 +664,116 @@ class ComparativeOutflowsDashboardController extends Controller
         }
 
         return floatval($total);
+    }
+
+    /**
+     * Obtener total facturado de TODOS los meses en 2 queries (invoices + notas).
+     * Reemplaza 12× getInvoicedForMonth() → 24 queries por 2 queries.
+     * @return array [month_id => total]
+     */
+    private function getAllInvoicedByMonth($season_id, $team_id)
+    {
+        // Inicializar todos los meses en 0
+        $result = array_fill(1, 12, 0.0);
+
+        try {
+            // Query 1: Todas las facturas agrupadas por mes
+            $invoicesByMonth = DB::table('invoices as i')
+                ->join('invoice_products as ip', 'i.id', '=', 'ip.invoice_id')
+                ->where('i.team_id', $team_id)
+                ->where('i.season_id', $season_id)
+                ->select(
+                    DB::raw('MONTH(i.date) as month_id'),
+                    DB::raw('SUM(ip.unit_price * ip.amount) as total')
+                )
+                ->groupBy(DB::raw('MONTH(i.date)'))
+                ->pluck('total', 'month_id');
+
+            foreach ($invoicesByMonth as $monthId => $total) {
+                $result[$monthId] = floatval($total);
+            }
+
+            // Query 2: Todas las notas agrupadas por mes y tipo
+            $notesByMonth = DB::table('credit_debit_notes as cdn')
+                ->join('credit_debit_note_items as cdni', 'cdn.id', '=', 'cdni.credit_debit_note_id')
+                ->where('cdn.team_id', $team_id)
+                ->where('cdn.season_id', $season_id)
+                ->select(
+                    DB::raw('MONTH(cdn.date) as month_id'),
+                    'cdn.type',
+                    DB::raw('SUM(cdni.unit_price * cdni.quantity) as total')
+                )
+                ->groupBy(DB::raw('MONTH(cdn.date)'), 'cdn.type')
+                ->get();
+
+            foreach ($notesByMonth as $note) {
+                $monto = floatval($note->total);
+                $type = strtolower($note->type);
+                if ($type === 'credito' || $type === 'nc') {
+                    $result[$note->month_id] -= $monto;
+                } else {
+                    $result[$note->month_id] += $monto;
+                }
+            }
+        } catch (\Exception $e) {
+            Log::error('Error en getAllInvoicedByMonth: ' . $e->getMessage());
+        }
+
+        return $result;
+    }
+
+    /**
+     * Obtener consumido de TODOS los meses en 1 carga (outflows + eager loading).
+     * Reemplaza 12× getConsumedForMonth() → 24-48 queries por ~4 queries.
+     * @return array [month_id => ['total' => float, 'total_with_investments' => float]]
+     */
+    private function getAllConsumedByMonth($season_id, $team_id)
+    {
+        // Inicializar todos los meses
+        $result = [];
+        for ($m = 1; $m <= 12; $m++) {
+            $result[$m] = ['total' => 0.0, 'total_with_investments' => 0.0];
+        }
+
+        try {
+            // Cargar TODOS los outflows de la temporada una sola vez
+            $allOutflows = Outflow::where('season_id', $season_id)
+                ->where('team_id', $team_id)
+                ->with([
+                    'invoiceProduct.invoice:id,date',
+                    'creditDebitNoteItem.creditDebitNote:id,date',
+                    'operation:id,name'
+                ])
+                ->get();
+
+            foreach ($allOutflows as $outflow) {
+                $monthId = null;
+                $amount = 0;
+
+                // Determinar mes y monto desde la factura o nota
+                if ($outflow->invoice_product_id && $outflow->invoiceProduct && $outflow->invoiceProduct->invoice) {
+                    $monthId = (int) date('n', strtotime($outflow->invoiceProduct->invoice->date));
+                    $amount = $outflow->quantity * $outflow->invoiceProduct->unit_price;
+                } elseif ($outflow->credit_debit_note_item_id && $outflow->creditDebitNoteItem && $outflow->creditDebitNoteItem->creditDebitNote) {
+                    $monthId = (int) date('n', strtotime($outflow->creditDebitNoteItem->creditDebitNote->date));
+                    $amount = $outflow->quantity * $outflow->creditDebitNoteItem->unit_price;
+                }
+
+                if (!$monthId || $amount == 0) continue;
+
+                // Verificar si es inversión
+                $isInvestment = $outflow->operation && stripos($outflow->operation->name, 'inversion') !== false;
+
+                $result[$monthId]['total_with_investments'] += $amount;
+                if (!$isInvestment) {
+                    $result[$monthId]['total'] += $amount;
+                }
+            }
+        } catch (\Exception $e) {
+            Log::error('Error en getAllConsumedByMonth: ' . $e->getMessage());
+        }
+
+        return $result;
     }
 
     /**
@@ -1106,28 +1192,7 @@ class ComparativeOutflowsDashboardController extends Controller
         }
     }
 
-    /**
-     * Comparación por Level2 (top 10)
-     */
-    private function getComparisonByLevel2($season_id, $team_id)
-    {
-        try {
-            // Similar a Level1 pero agrupando por Level2
-            // Implementación simplificada
-            return [];
-        } catch (\Exception $e) {
-            Log::error('Error en ComparativeDashboard getComparisonByLevel2: ' . $e->getMessage());
-            return [];
-        }
-    }
-
-    /**
-     * Tabla detallada para exportar
-     */
-    private function getDetailedComparisonTable($season_id, $team_id)
-    {
-        return $this->getComparisonByLevel1($season_id, $team_id);
-    }
+    // getComparisonByLevel2 y getDetailedComparisonTable eliminados: se calculan una sola vez en index()
 
     /**
      * Obtiene los totales de presupuesto agrupados por Level1 y Level2
@@ -1181,6 +1246,21 @@ class ComparativeOutflowsDashboardController extends Controller
             ->groupBy('a.id', 'l1.id', 'l1.name', 'l2.id', 'l2.name', 'ai.cost_center_id')
             ->get();
 
+        // Pre-cargar existencia de items en UNA sola query (reemplaza N×12 queries individuales)
+        $agroItemIndex = [];
+        if ($agrochemicals->isNotEmpty()) {
+            $agroItemBatch = DB::table('agrochemical_items')
+                ->select('agrochemical_id', 'cost_center_id', 'month_id')
+                ->whereIn('agrochemical_id', $agrochemicals->pluck('id')->unique())
+                ->whereIn('cost_center_id', $costCenters->keys())
+                ->whereIn('month_id', $months)
+                ->groupBy('agrochemical_id', 'cost_center_id', 'month_id')
+                ->get();
+            foreach ($agroItemBatch as $item) {
+                $agroItemIndex[$item->agrochemical_id][$item->cost_center_id][$item->month_id] = true;
+            }
+        }
+
         foreach ($agrochemicals as $a) {
             $amount = 0;
             $cc = $costCenters->get($a->cost_center_id);
@@ -1199,12 +1279,8 @@ class ComparativeOutflowsDashboardController extends Controller
             $amountFirst = round($a->price * $quantityFirst, 2);
             
             foreach ($months as $month) {
-                $count = DB::table('agrochemical_items')
-                    ->where('agrochemical_id', $a->id)
-                    ->where('month_id', $month)
-                    ->where('cost_center_id', $a->cost_center_id)
-                    ->count();
-                $amount += ($count > 0 ? $amountFirst : 0);
+                $exists = isset($agroItemIndex[$a->id][$a->cost_center_id][$month]);
+                $amount += ($exists ? $amountFirst : 0);
             }
             
             $addTotal($a->level1_id, $a->level1_name, $a->level2_id, $a->level2_name, $amount);
@@ -1223,6 +1299,21 @@ class ComparativeOutflowsDashboardController extends Controller
             ->groupBy('f.id', 'l1.id', 'l1.name', 'l2.id', 'l2.name', 'fi.cost_center_id')
             ->get();
 
+        // Pre-cargar items fertilizantes en batch
+        $fertItemIndex = [];
+        if ($fertilizers->isNotEmpty()) {
+            $fertItemBatch = DB::table('fertilizer_items')
+                ->select('fertilizer_id', 'cost_center_id', 'month_id')
+                ->whereIn('fertilizer_id', $fertilizers->pluck('id')->unique())
+                ->whereIn('cost_center_id', $costCenters->keys())
+                ->whereIn('month_id', $months)
+                ->groupBy('fertilizer_id', 'cost_center_id', 'month_id')
+                ->get();
+            foreach ($fertItemBatch as $item) {
+                $fertItemIndex[$item->fertilizer_id][$item->cost_center_id][$item->month_id] = true;
+            }
+        }
+
         foreach ($fertilizers as $f) {
             $amount = 0;
             $cc = $costCenters->get($f->cost_center_id);
@@ -1233,12 +1324,8 @@ class ComparativeOutflowsDashboardController extends Controller
             $amountFirst = round($f->price * $quantityFirst, 2);
             
             foreach ($months as $month) {
-                $count = DB::table('fertilizer_items')
-                    ->where('fertilizer_id', $f->id)
-                    ->where('month_id', $month)
-                    ->where('cost_center_id', $f->cost_center_id)
-                    ->count();
-                $amount += ($count > 0 ? $amountFirst : 0);
+                $exists = isset($fertItemIndex[$f->id][$f->cost_center_id][$month]);
+                $amount += ($exists ? $amountFirst : 0);
             }
             
             $addTotal($f->level1_id, $f->level1_name, $f->level2_id, $f->level2_name, $amount);
@@ -1257,6 +1344,21 @@ class ComparativeOutflowsDashboardController extends Controller
             ->groupBy('mp.id', 'l1.id', 'l1.name', 'l2.id', 'l2.name', 'mpi.cost_center_id')
             ->get();
 
+        // Pre-cargar items mano de obra en batch
+        $mpItemIndex = [];
+        if ($manpowers->isNotEmpty()) {
+            $mpItemBatch = DB::table('manpower_items')
+                ->select('man_power_id', 'cost_center_id', 'month_id')
+                ->whereIn('man_power_id', $manpowers->pluck('id')->unique())
+                ->whereIn('cost_center_id', $costCenters->keys())
+                ->whereIn('month_id', $months)
+                ->groupBy('man_power_id', 'cost_center_id', 'month_id')
+                ->get();
+            foreach ($mpItemBatch as $item) {
+                $mpItemIndex[$item->man_power_id][$item->cost_center_id][$item->month_id] = true;
+            }
+        }
+
         foreach ($manpowers as $mp) {
             $amount = 0;
             $cc = $costCenters->get($mp->cost_center_id);
@@ -1266,12 +1368,8 @@ class ComparativeOutflowsDashboardController extends Controller
             $amountFirst = round($mp->price * $quantityFirst, 2);
             
             foreach ($months as $month) {
-                $count = DB::table('manpower_items')
-                    ->where('man_power_id', $mp->id)
-                    ->where('month_id', $month)
-                    ->where('cost_center_id', $mp->cost_center_id)
-                    ->count();
-                $amount += ($count > 0 ? $amountFirst : 0);
+                $exists = isset($mpItemIndex[$mp->id][$mp->cost_center_id][$month]);
+                $amount += ($exists ? $amountFirst : 0);
             }
             
             $addTotal($mp->level1_id, $mp->level1_name, $mp->level2_id, $mp->level2_name, $amount);
@@ -1290,6 +1388,21 @@ class ComparativeOutflowsDashboardController extends Controller
             ->groupBy('s.id', 'l1.id', 'l1.name', 'l2.id', 'l2.name', 'si.cost_center_id')
             ->get();
 
+        // Pre-cargar items insumos en batch
+        $supItemIndex = [];
+        if ($supplies->isNotEmpty()) {
+            $supItemBatch = DB::table('supply_items')
+                ->select('supply_id', 'cost_center_id', 'month_id')
+                ->whereIn('supply_id', $supplies->pluck('id')->unique())
+                ->whereIn('cost_center_id', $costCenters->keys())
+                ->whereIn('month_id', $months)
+                ->groupBy('supply_id', 'cost_center_id', 'month_id')
+                ->get();
+            foreach ($supItemBatch as $item) {
+                $supItemIndex[$item->supply_id][$item->cost_center_id][$item->month_id] = true;
+            }
+        }
+
         foreach ($supplies as $s) {
             $amount = 0;
             $cc = $costCenters->get($s->cost_center_id);
@@ -1300,12 +1413,8 @@ class ComparativeOutflowsDashboardController extends Controller
             $amountFirst = round($s->price * $quantityFirst, 2);
             
             foreach ($months as $month) {
-                $count = DB::table('supply_items')
-                    ->where('supply_id', $s->id)
-                    ->where('month_id', $month)
-                    ->where('cost_center_id', $s->cost_center_id)
-                    ->count();
-                $amount += ($count > 0 ? $amountFirst : 0);
+                $exists = isset($supItemIndex[$s->id][$s->cost_center_id][$month]);
+                $amount += ($exists ? $amountFirst : 0);
             }
             
             $addTotal($s->level1_id, $s->level1_name, $s->level2_id, $s->level2_name, $amount);
@@ -1324,6 +1433,21 @@ class ComparativeOutflowsDashboardController extends Controller
             ->groupBy('srv.id', 'l1.id', 'l1.name', 'l2.id', 'l2.name', 'si.cost_center_id')
             ->get();
 
+        // Pre-cargar items servicios en batch
+        $srvItemIndex = [];
+        if ($services->isNotEmpty()) {
+            $srvItemBatch = DB::table('service_items')
+                ->select('service_id', 'cost_center_id', 'month_id')
+                ->whereIn('service_id', $services->pluck('id')->unique())
+                ->whereIn('cost_center_id', $costCenters->keys())
+                ->whereIn('month_id', $months)
+                ->groupBy('service_id', 'cost_center_id', 'month_id')
+                ->get();
+            foreach ($srvItemBatch as $item) {
+                $srvItemIndex[$item->service_id][$item->cost_center_id][$item->month_id] = true;
+            }
+        }
+
         foreach ($services as $srv) {
             $amount = 0;
             $cc = $costCenters->get($srv->cost_center_id);
@@ -1333,12 +1457,8 @@ class ComparativeOutflowsDashboardController extends Controller
             $amountFirst = round($srv->price * $quantityFirst, 2);
             
             foreach ($months as $month) {
-                $count = DB::table('service_items')
-                    ->where('service_id', $srv->id)
-                    ->where('month_id', $month)
-                    ->where('cost_center_id', $srv->cost_center_id)
-                    ->count();
-                $amount += ($count > 0 ? $amountFirst : 0);
+                $exists = isset($srvItemIndex[$srv->id][$srv->cost_center_id][$month]);
+                $amount += ($exists ? $amountFirst : 0);
             }
             
             $addTotal($srv->level1_id, $srv->level1_name, $srv->level2_id, $srv->level2_name, $amount);
@@ -1357,6 +1477,21 @@ class ComparativeOutflowsDashboardController extends Controller
             ->groupBy('h.id', 'l1.id', 'l1.name', 'l2.id', 'l2.name', 'hi.cost_center_id')
             ->get();
 
+        // Pre-cargar items cosecha en batch
+        $harvItemIndex = [];
+        if ($harvests->isNotEmpty()) {
+            $harvItemBatch = DB::table('harvest_items')
+                ->select('harvest_id', 'cost_center_id', 'month_id')
+                ->whereIn('harvest_id', $harvests->pluck('id')->unique())
+                ->whereIn('cost_center_id', $costCenters->keys())
+                ->whereIn('month_id', $months)
+                ->groupBy('harvest_id', 'cost_center_id', 'month_id')
+                ->get();
+            foreach ($harvItemBatch as $item) {
+                $harvItemIndex[$item->harvest_id][$item->cost_center_id][$item->month_id] = true;
+            }
+        }
+
         foreach ($harvests as $h) {
             $amount = 0;
             $cc = $costCenters->get($h->cost_center_id);
@@ -1366,12 +1501,8 @@ class ComparativeOutflowsDashboardController extends Controller
             $amountFirst = round($h->price * $quantityFirst, 2);
             
             foreach ($months as $month) {
-                $count = DB::table('harvest_items')
-                    ->where('harvest_id', $h->id)
-                    ->where('month_id', $month)
-                    ->where('cost_center_id', $h->cost_center_id)
-                    ->count();
-                $amount += ($count > 0 ? $amountFirst : 0);
+                $exists = isset($harvItemIndex[$h->id][$h->cost_center_id][$month]);
+                $amount += ($exists ? $amountFirst : 0);
             }
             
             $addTotal($h->level1_id, $h->level1_name, $h->level2_id, $h->level2_name, $amount);
@@ -1396,14 +1527,16 @@ class ComparativeOutflowsDashboardController extends Controller
             ->where('a.team_id', $team_id)
             ->get();
 
+        // Pre-cargar meses activos de administración en batch
+        $adminMonthCounts = DB::table('administration_items')
+            ->select('administration_id', DB::raw('COUNT(DISTINCT month_id) as month_count'))
+            ->whereIn('administration_id', $administrations->pluck('administration_id'))
+            ->whereIn('month_id', $months)
+            ->groupBy('administration_id')
+            ->pluck('month_count', 'administration_id');
+
         foreach ($administrations as $adm) {
-            $activeMonths = DB::table('administration_items')
-                ->where('administration_id', $adm->administration_id)
-                ->whereIn('month_id', $months)
-                ->distinct('month_id')
-                ->pluck('month_id');
-            
-            $countMonths = $activeMonths->count();
+            $countMonths = $adminMonthCounts[$adm->administration_id] ?? 0;
             if ($countMonths > 0) {
                 $quantity = ($adm->quantity !== null && ($adm->quantity > 0)) ? ((in_array($adm->unit_id ?? null, [2, 4])) ? ($adm->quantity / 1000) : $adm->quantity) : 0;
                 $amount = round($adm->price * $quantity * $countMonths, 2);
@@ -1430,14 +1563,16 @@ class ComparativeOutflowsDashboardController extends Controller
             ->where('f.team_id', $team_id)
             ->get();
 
+        // Pre-cargar meses activos de fields en batch
+        $fieldMonthCounts = DB::table('field_items')
+            ->select('field_id', DB::raw('COUNT(DISTINCT month_id) as month_count'))
+            ->whereIn('field_id', $fields->pluck('field_id'))
+            ->whereIn('month_id', $months)
+            ->groupBy('field_id')
+            ->pluck('month_count', 'field_id');
+
         foreach ($fields as $fld) {
-            $activeMonths = DB::table('field_items')
-                ->where('field_id', $fld->field_id)
-                ->whereIn('month_id', $months)
-                ->distinct('month_id')
-                ->pluck('month_id');
-            
-            $countMonths = $activeMonths->count();
+            $countMonths = $fieldMonthCounts[$fld->field_id] ?? 0;
             if ($countMonths > 0) {
                 $quantity = ($fld->quantity !== null && ($fld->quantity > 0)) ? ((in_array($fld->unit_id ?? null, [2, 4])) ? ($fld->quantity / 1000) : $fld->quantity) : 0;
                 $amount = round($fld->price * $quantity * $countMonths, 2);
@@ -1792,24 +1927,28 @@ class ComparativeOutflowsDashboardController extends Controller
             $months[] = $id;
         }
         $result = array_fill_keys($months, 0);
-        $administrations = DB::table('administrations as a')
-            ->select('a.id', 'a.price', 'a.quantity', 'a.unit_id')
-            ->where('a.season_id', $season_id);
+
+        // Batch: JOIN administrations con items agrupados por mes (1 query en vez de N)
+        $query = DB::table('administrations as a')
+            ->join('administration_items as ai', 'a.id', '=', 'ai.administration_id')
+            ->select(
+                'ai.month_id',
+                DB::raw('SUM(ROUND(a.price * CASE
+                    WHEN a.quantity IS NOT NULL AND a.quantity > 0 THEN
+                        CASE WHEN a.unit_id IN (2, 4) THEN a.quantity / 1000 ELSE a.quantity END
+                    ELSE 0
+                END, 2)) as total')
+            )
+            ->where('a.season_id', $season_id)
+            ->whereIn('ai.month_id', $months);
         if ($team_id) {
-            $administrations->where('a.team_id', $team_id);
+            $query->where('a.team_id', $team_id);
         }
-        $administrations = $administrations->get();
-        foreach ($administrations as $adm) {
-            $items = DB::table('administration_items')
-                ->where('administration_id', $adm->id)
-                ->whereIn('month_id', $months)
-                ->get();
-            foreach ($items as $item) {
-                $quantity = ($adm->quantity !== null && ($adm->quantity > 0)) ? ((in_array($adm->unit_id ?? null, [2,4])) ? ($adm->quantity / 1000) : $adm->quantity) : 0;
-                $amount = round($adm->price * $quantity, 2);
-                if (isset($result[$item->month_id])) {
-                    $result[$item->month_id] += $amount;
-                }
+        $monthlyTotals = $query->groupBy('ai.month_id')->pluck('total', 'month_id');
+
+        foreach ($monthlyTotals as $monthId => $total) {
+            if (isset($result[$monthId])) {
+                $result[$monthId] = floatval($total);
             }
         }
         return $result;
@@ -1826,24 +1965,28 @@ class ComparativeOutflowsDashboardController extends Controller
             $months[] = $id;
         }
         $result = array_fill_keys($months, 0);
-        $fields = DB::table('fields as a')
-            ->select('a.id', 'a.price', 'a.quantity', 'a.unit_id')
-            ->where('a.season_id', $season_id);
+
+        // Batch: JOIN fields con items agrupados por mes (1 query en vez de N)
+        $query = DB::table('fields as f')
+            ->join('field_items as fi', 'f.id', '=', 'fi.field_id')
+            ->select(
+                'fi.month_id',
+                DB::raw('SUM(ROUND(f.price * CASE
+                    WHEN f.quantity IS NOT NULL AND f.quantity > 0 THEN
+                        CASE WHEN f.unit_id IN (2, 4) THEN f.quantity / 1000 ELSE f.quantity END
+                    ELSE 0
+                END, 2)) as total')
+            )
+            ->where('f.season_id', $season_id)
+            ->whereIn('fi.month_id', $months);
         if ($team_id) {
-            $fields->where('a.team_id', $team_id);
+            $query->where('f.team_id', $team_id);
         }
-        $fields = $fields->get();
-        foreach ($fields as $adm) {
-            $items = DB::table('field_items')
-                ->where('field_id', $adm->id)
-                ->whereIn('month_id', $months)
-                ->get();
-            foreach ($items as $item) {
-                $quantity = ($adm->quantity !== null && ($adm->quantity > 0)) ? ((in_array($adm->unit_id ?? null, [2,4])) ? ($adm->quantity / 1000) : $adm->quantity) : 0;
-                $amount = round($adm->price * $quantity, 2);
-                if (isset($result[$item->month_id])) {
-                    $result[$item->month_id] += $amount;
-                }
+        $monthlyTotals = $query->groupBy('fi.month_id')->pluck('total', 'month_id');
+
+        foreach ($monthlyTotals as $monthId => $total) {
+            if (isset($result[$monthId])) {
+                $result[$monthId] = floatval($total);
             }
         }
         return $result;
