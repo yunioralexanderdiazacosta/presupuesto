@@ -17,7 +17,11 @@ class UsersController extends Controller
         $term = $request->term ?? ''; 
 
         $users = User::where('team_id', $user->team_id)->when($request->term, function ($query, $search) {
-            $query->where('name', 'like', '%'.$search.'%')->orWhere('email', 'like', '%'.$search.'%');
+            $query->where(function($q) use ($search) {
+                $q->where('name', 'like', '%'.$search.'%')
+                  ->orWhere('username', 'like', '%'.$search.'%')
+                  ->orWhere('email', 'like', '%'.$search.'%');
+            });
         })
         ->paginate(10)
         ->withQueryString()
@@ -25,6 +29,7 @@ class UsersController extends Controller
             return [
                 'id' => $value->id,
                 'name' => $value->name,
+                'username' => $value->username,
                 'email' => $value->email,
                 'roles' => $value->getRoleNames()->toArray(),
                 'status' => $value->status,

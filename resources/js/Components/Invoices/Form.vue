@@ -11,6 +11,7 @@ import PdfUploader from "./PdfUploader.vue";
 import CreateSupplierModal from '@/Components/Suppliers/CreateSupplierModal.vue';
 import { useForm } from '@inertiajs/vue3';
 import Swal from 'sweetalert2';
+import axios from 'axios';
 
 const props = defineProps({
     form: Object,
@@ -21,6 +22,9 @@ const props = defineProps({
 });
 
 const page = usePage();
+
+// Lista reactiva de proveedores (copia local para poder agregar nuevos sin perder datos del form)
+const supplierOptions = ref([...(page.props.suppliers || [])]);
 
 const paymentTypes = [
     { id: 1, label: "Credito" },
@@ -90,24 +94,14 @@ const handleDataExtracted = (result) => {
 
     // Autocompletar productos si se extrajeron del PDF
     if (data.products && data.products.length > 0) {
-        // Limpiar líneas vacías existentes
-        props.form.products = props.form.products.filter(p => 
-            p.product_id || p.unit_price > 0 || (p.observations && p.observations.trim() !== '')
-        );
-
-        // Agregar productos extraídos
-        data.products.forEach(p => {
-            props.form.products.push({
-                // Si el producto no matcheó en la BD, usar el nombre del PDF como valor
-                // El Multiselect taggable lo aceptará como tag nuevo
-                // y StoreInvoiceController lo creará automáticamente al guardar
-                product_id: p.product_id || (p.pdf_name ? p.pdf_name.trim() : ''),
-                unit_id: p.unit_id || '',
-                unit_price: p.unit_price || 0,
-                amount: p.amount || 1,
-                observations: p.observations || '',
-            });
-        });
+        // Reemplazar todos los productos con los nuevos del PDF
+        props.form.products = data.products.map(p => ({
+            product_id: p.product_id || (p.pdf_name ? p.pdf_name.trim() : ''),
+            unit_id: p.unit_id || '',
+            unit_price: p.unit_price || 0,
+            amount: p.amount || 1,
+            observations: p.observations || '',
+        }));
 
         // Si no quedó ningún producto, agregar una línea vacía
         if (props.form.products.length === 0) {
@@ -171,70 +165,67 @@ const openCreateSupplierModal = () => {
     });
 };
 
-// Guardar proveedor nuevo
-const storeSupplier = () => {
+// Guardar proveedor nuevo vía API (sin redirect, sin perder datos del formulario)
+const storeSupplier = async () => {
     console.log('💾 Guardando proveedor:', supplierForm.data());
-    supplierForm.post(route('suppliers.store'), {
-        preserveScroll: true,
-        onSuccess: (response) => {
-            console.log('✅ Proveedor creado, response:', response);
-            console.log('✅ Flash supplier:', response.props.flash?.supplier);
-            
-            // Cerrar modal con Bootstrap
-            $('#createSupplierModal').modal('hide');
-            
-            // Obtener el proveedor recién creado desde la respuesta
-            const newSupplier = response.props.flash?.supplier;
-            
-            if (newSupplier) {
-                // Agregar a la lista de proveedores disponibles (crear nuevo array para reactividad)
-                page.props.suppliers = [
-                    ...page.props.suppliers,
-                    {
-                        label: newSupplier.name,
-                        value: newSupplier.id
-                    }
-                ];
-                
-                // Seleccionar automáticamente el proveedor
-                props.form.supplier_id = newSupplier.id;
-                
-                Swal.fire({
-                    icon: 'success',
-                    title: 'Proveedor creado',
-                    text: 'Se ha seleccionado automáticamente',
-                    timer: 2000,
-                    showConfirmButton: false
-                });
+    
+    try {
+        const response = await axios.post(route('api.suppliers.store'), supplierForm.data());
+        const newSupplier = response.data.supplier;
+        
+        console.log('✅ Proveedor creado:', newSupplier);
+        
+        // Cerrar modal
+        $('#createSupplierModal').modal('hide');
+        
+        // Agregar a la lista local de proveedores
+        supplierOptions.value = [
+            ...supplierOptions.value,
+            {
+                label: newSupplier.name,
+                value: newSupplier.id
             }
-            
-            // Resetear form
-            supplierForm.reset();
-            showCreateSupplierModal.value = false;
-        },
-        onError: (errors) => {
-            console.log('❌ Error al crear proveedor:', errors);
-            const errorMessages = Object.entries(errors).map(([field, messages]) => {
-                const fieldNames = {
-                    name: 'Nombre',
-                    rut: 'RUT',
-                    email: 'Email',
-                    contact: 'Contacto',
-                    phone: 'Teléfono'
-                };
-                const fieldName = fieldNames[field] || field;
-                const message = Array.isArray(messages) ? messages[0] : messages;
-                return `${fieldName}: ${message}`;
-            });
-            
-            Swal.fire({
-                icon: 'error',
-                title: 'Error al crear proveedor',
-                html: `<div class="text-start">${errorMessages.join('<br>')}</div>`,
-                confirmButtonColor: '#d33'
-            });
-        }
-    });
+        ];
+        
+        // Seleccionar automáticamente el proveedor recién creado
+        props.form.supplier_id = newSupplier.id;
+        
+        Swal.fire({
+            icon: 'success',
+            title: 'Proveedor creado',
+            text: 'Se ha seleccionado automáticamente',
+            timer: 2000,
+            showConfirmButton: false
+        });
+        
+        // Resetear form del modal
+        supplierForm.reset();
+        showCreateSupplierModal.value = false;
+        
+    } catch (error) {
+        console.log('❌ Error al crear proveedor:', error.response?.data);
+        
+        const errors = error.response?.data?.errors || {};
+        const errorMessages = Object.entries(errors).map(([field, messages]) => {
+            const fieldNames = {
+                name: 'Nombre',
+                rut: 'RUT',
+                email: 'Email',
+                contact: 'Contacto',
+                phone: 'Teléfono'
+            };
+            const fieldName = fieldNames[field] || field;
+            const message = Array.isArray(messages) ? messages[0] : messages;
+            return `${fieldName}: ${message}`;
+        });
+        
+        Swal.fire({
+            icon: 'error',
+            title: 'Error al crear proveedor',
+            html: `<div class="text-start">${errorMessages.join('<br>')}</div>`,
+            confirmButtonColor: '#d33'
+        });
+    }
 };
 </script>
 <template>
@@ -323,7 +314,7 @@ const storeSupplier = () => {
                         :placeholder="'Seleccione proveedor'"
                         v-model="form.supplier_id"
                         :close-on-select="true"
-                        :options="$page.props.suppliers"
+                        :options="supplierOptions"
                         class="multiselect-blue form-control"
                         :class="{ 'is-invalid': form.errors.supplier_id }"
                         :searchable="true"

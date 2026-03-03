@@ -33,6 +33,7 @@ use App\Http\Controllers\Products2\DeleteProduct2Controller;
 // Rutas API
     use App\Http\Controllers\Api\GetProductsController;
     use App\Http\Controllers\Api\GetPendingExpenseReportItemsController;
+    use App\Http\Controllers\Api\StoreSupplierApiController;
 
 // Rutas para Irrigation Pumps
     use App\Http\Controllers\IrrigationPumpsController;
@@ -321,6 +322,7 @@ Route::middleware([
     // API para refrescar selects
     Route::get('/api/products', GetProductsController::class)->name('api.products');
     Route::get('/api/pending-expense-items', GetPendingExpenseReportItemsController::class)->name('api.pending-expense-items');
+    Route::post('/api/suppliers', StoreSupplierApiController::class)->name('api.suppliers.store');
 
     // Products2 estilo teams: vista única y controladores separados para acciones
 

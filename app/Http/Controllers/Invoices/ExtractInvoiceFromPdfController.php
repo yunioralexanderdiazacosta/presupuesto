@@ -57,6 +57,7 @@ class ExtractInvoiceFromPdfController extends Controller
                 'success' => true,
                 'data' => [
                     'date' => $ocrData['date'],
+                    'due_date' => $ocrData['due_date'] ?? null,
                     'number_document' => $ocrData['invoice_number'],
                     'type_document_id' => $typeDocument?->id,
                     'supplier_id' => $supplier?->id,
@@ -146,30 +147,48 @@ class ExtractInvoiceFromPdfController extends Controller
     private function findTypeDocument($ocrData)
     {
         $documentType = $ocrData['document_type'] ?? '';
+        $documentTypeLower = strtolower(trim($documentType));
         
-        // Mapear texto detectado a códigos SII Chile
-        $typeMap = [
-            'factura electronica' => '33',
-            'factura' => '33',
-            'boleta electronica' => '39',
-            'boleta' => '39',
-            'nota de credito' => '61',
-            'nota credito' => '61',
-            'nota de debito' => '56',
-            'nota debito' => '56',
+        if (empty($documentTypeLower)) {
+            // Por defecto: Factura (id=1)
+            return TypeDocument::find(1);
+        }
+
+        // Mapeo directo: texto detectado por IA → ID en la tabla type_documents
+        // Orden importa: patrones más específicos primero
+        $nameMap = [
+            'factura exenta'            => 2,
+            'factura no afecta'         => 2,
+            'boleta honorarios exenta'  => 4,
+            'boleta honorarios afecta'  => 5,
+            'boleta de honorarios'      => 4, // Por defecto exenta si no especifica
+            'boleta honorarios'         => 4,
+            'rendicion de gastos'       => 3,
+            'rendicion'                 => 3,
+            'remuneraciones'            => 7,
+            'remuneracion'              => 7,
+            'boleta electronica'        => 6,
+            'boleta de venta'           => 6,
+            'boleta'                    => 6,
+            'factura electronica'       => 1,
+            'factura afecta'            => 1,
+            'factura'                   => 1,
+            'nota de credito'           => 1, // Se registra como factura
+            'nota de debito'            => 1,
+            'guia de despacho'          => 1,
         ];
 
-        $documentTypeLower = strtolower($documentType);
-        
-        // Buscar coincidencia en el mapa
-        foreach ($typeMap as $pattern => $code) {
+        foreach ($nameMap as $pattern => $id) {
             if (str_contains($documentTypeLower, $pattern)) {
-                return TypeDocument::where('code', $code)->first();
+                return TypeDocument::find($id);
             }
         }
 
-        // Si no se detectó, intentar por defecto "Factura"
-        return TypeDocument::where('code', '33')->first();
+        // Fallback: buscar por nombre similar en la BD
+        $found = TypeDocument::whereRaw('LOWER(name) LIKE ?', ["%{$documentTypeLower}%"])->first();
+        
+        // Si nada matchea, devolver Factura por defecto
+        return $found ?? TypeDocument::find(1);
     }
 
     private function detectPaymentType($ocrData)

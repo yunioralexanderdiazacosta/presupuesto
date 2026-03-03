@@ -12,6 +12,7 @@ class UpdateUserController extends Controller
     public function __invoke(User $user, UpdateUserRequest $request)
     {
         $user->name = $request->name;
+        $user->username = $request->username;
         $user->email = $request->email;
         if($request->password != ''){
             $user->password = Hash::make($request->password);

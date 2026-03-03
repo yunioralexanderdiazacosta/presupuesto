@@ -53,7 +53,11 @@ class InvoiceOcrService
 
         // Paso 1: Extraer texto del PDF con smalot/pdfparser
         try {
-            $parser = new \Smalot\PdfParser\Parser();
+            $config = new \Smalot\PdfParser\Config();
+            $config->setRetainImageContent(false);
+            $config->setIgnoreEncryption(true); // Permitir PDFs protegidos (owner-password del SII)
+            $parser = new \Smalot\PdfParser\Parser([], $config);
+            
             $pdf = $parser->parseFile($file->getRealPath());
             $fullText = $pdf->getText();
         } catch (\Exception $e) {
@@ -167,7 +171,8 @@ Analiza esta factura chilena y extrae TODOS los datos en formato JSON con esta e
 {
     "invoice_number": "número de factura/documento (solo el número, sin texto)",
     "date": "fecha de emisión en formato YYYY-MM-DD",
-    "document_type": "tipo de documento (ej: Factura Electrónica, Boleta Electrónica, Nota de Crédito Electrónica, Guía de Despacho)",
+    "due_date": "fecha de vencimiento en formato YYYY-MM-DD (buscar 'Fecha Vencimiento', 'Vencimiento', 'Fecha de Pago', 'Vence' o similar. Si no se encuentra, usar null)",
+    "document_type": "tipo de documento. Usar EXACTAMENTE uno de estos valores: Factura, Factura exenta, Boleta, Boleta honorarios exenta, Boleta honorarios afecta. Reglas: si dice 'Factura Electrónica' o 'Factura Afecta' → 'Factura'. Si dice 'Factura Exenta' o 'Factura No Afecta' → 'Factura exenta'. Si dice 'Boleta Electrónica' o 'Boleta de Venta' → 'Boleta'. Si dice 'Boleta de Honorarios' y tiene IVA → 'Boleta honorarios afecta'. Si dice 'Boleta de Honorarios' sin IVA o exenta → 'Boleta honorarios exenta'. Si dice 'Nota de Crédito' o 'Nota de Débito' → 'Factura'",
     "supplier_name": "nombre o razón social del emisor/proveedor",
     "supplier_tax_id": "RUT del emisor/proveedor (solo dígitos y k, sin puntos ni guión, ej: 812908006)",
     "customer_name": "nombre o razón social del receptor/cliente",
@@ -191,7 +196,7 @@ Analiza esta factura chilena y extrae TODOS los datos en formato JSON con esta e
 
 REGLAS IMPORTANTES:
 1. Los RUTs chilenos deben extraerse sin puntos ni guión (ej: "76.543.210-K" → "76543210k")
-2. La fecha SIEMPRE en formato YYYY-MM-DD
+2. La fecha SIEMPRE en formato YYYY-MM-DD (tanto date como due_date)
 3. Los montos y precios son números, NO strings
 4. Para product_lines: extrae TODAS las líneas de detalle de productos/servicios
 5. Si un campo no se puede detectar, usar null (no inventar)
@@ -296,6 +301,7 @@ PROMPT;
         return [
             'invoice_number' => $data['invoice_number'] ?? null,
             'date' => $data['date'] ?? null,
+            'due_date' => $data['due_date'] ?? null,
             'document_type' => $data['document_type'] ?? null,
             'supplier_name' => $data['supplier_name'] ?? null,
             'supplier_tax_id' => $supplierTaxId,
@@ -322,6 +328,7 @@ PROMPT;
             'invoice_number' => $this->extractWithRegex($fullText, '/N[°º]\s*(?:Factura|Documento)?\s*[:\s]*(\d{1,10})/i')
                 ?? $this->extractWithRegex($fullText, '/Folio\s*(?:N[°º])?\s*[:\s]*(\d{1,10})/i'),
             'date' => $this->extractDateFromText($fullText),
+            'due_date' => $this->extractDueDateFromText($fullText),
             'document_type' => $this->detectDocumentTypeFromText($fullText),
             'supplier_name' => null,
             'supplier_tax_id' => $this->extractFirstRut($fullText),
@@ -397,9 +404,43 @@ PROMPT;
     private function detectDocumentTypeFromText(string $text): ?string
     {
         $textUpper = strtoupper($text);
-        if (str_contains($textUpper, 'NOTA DE CREDITO') || str_contains($textUpper, 'NOTA DE CRÉDITO')) return 'Nota de Crédito Electrónica';
-        if (str_contains($textUpper, 'BOLETA')) return 'Boleta Electrónica';
-        if (str_contains($textUpper, 'FACTURA')) return 'Factura Electrónica';
+        // Orden específico: patrones más específicos primero
+        if (str_contains($textUpper, 'BOLETA DE HONORARIOS') || str_contains($textUpper, 'BOLETA HONORARIOS')) {
+            if (str_contains($textUpper, 'EXENTA') || !str_contains($textUpper, 'IVA')) {
+                return 'Boleta honorarios exenta';
+            }
+            return 'Boleta honorarios afecta';
+        }
+        if (str_contains($textUpper, 'FACTURA EXENTA') || str_contains($textUpper, 'FACTURA NO AFECTA')) return 'Factura exenta';
+        if (str_contains($textUpper, 'NOTA DE CREDITO') || str_contains($textUpper, 'NOTA DE CRÉDITO')) return 'Factura';
+        if (str_contains($textUpper, 'NOTA DE DEBITO') || str_contains($textUpper, 'NOTA DE DÉBITO')) return 'Factura';
+        if (str_contains($textUpper, 'BOLETA')) return 'Boleta';
+        if (str_contains($textUpper, 'FACTURA')) return 'Factura';
         return null;
     }
+
+    /**
+     * Extraer fecha de vencimiento del texto del PDF.
+     */
+    private function extractDueDateFromText(string $text): ?string
+    {
+        // Buscar patrones: "Fecha Vencimiento", "Vencimiento", "Fecha de Pago", "Vence"
+        $patterns = [
+            '/Fecha\s*(?:de\s+)?Vencimiento\s*[:\s]*(\d{1,2}[\/-]\d{1,2}[\/-]\d{2,4})/i',
+            '/Vencimiento\s*[:\s]*(\d{1,2}[\/-]\d{1,2}[\/-]\d{2,4})/i',
+            '/Fecha\s*(?:de\s+)?Pago\s*[:\s]*(\d{1,2}[\/-]\d{1,2}[\/-]\d{2,4})/i',
+            '/Vence\s*[:\s]*(\d{1,2}[\/-]\d{1,2}[\/-]\d{2,4})/i',
+        ];
+
+        foreach ($patterns as $pattern) {
+            if (preg_match($pattern, $text, $m)) {
+                if (preg_match('/^(\d{1,2})[\/-](\d{1,2})[\/-](\d{4})$/', $m[1], $parts)) {
+                    return "{$parts[3]}-" . str_pad($parts[2], 2, '0', STR_PAD_LEFT) . "-" . str_pad($parts[1], 2, '0', STR_PAD_LEFT);
+                }
+            }
+        }
+
+        return null;
+    }
+
 }
