@@ -72,6 +72,11 @@ class PurchaseOrder extends Model
         return $this->belongsTo(User::class, 'assigned_to');
     }
 
+    public function invoices()
+    {
+        return $this->hasMany(Invoice::class);
+    }
+
     public function items()
     {
         return $this->hasMany(PurchaseOrderItem::class);

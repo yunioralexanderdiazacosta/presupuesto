@@ -1,29 +1,62 @@
 <script setup>
-import { ref, computed } from 'vue';
-import { Head, Link } from '@inertiajs/vue3';
+import { ref, computed, watch } from 'vue';
+import { Head, Link, router } from '@inertiajs/vue3';
 import AppLayout from '@/Layouts/AppLayout.vue';
 import CardHeader from '@/Components/CardHeader.vue';
-import SearchInput from '@/Components/SearchInput.vue';
 import ExportExcelButton from '@/Components/ExportExcelButton.vue';
 import Breadcrumb from '@/Components/Breadcrumb.vue';
 
 const props = defineProps({
     outflows: Object,
-    term: String,
+    filters: Object,
+    totals: Object,
 });
 
 const title = 'Consolidado de Salidas';
-const term = ref('');
 
 const links = [
     { title: 'Gestión', url: null },
     { title: 'Consolidado de Salidas', active: true }
 ];
 
-// Estado para ordenamiento
-const sortBy = ref('outflow_id');
-const sortDesc = ref(true);
+// Estado reactivo inicializado desde filtros del servidor
+const term = ref(props.filters?.term || '');
+const sortBy = ref(props.filters?.sort_by || 'outflow_id');
+const sortDesc = ref(props.filters?.sort_desc ?? true);
+const perPage = ref(props.filters?.per_page || 50);
+const isLoading = ref(false);
 
+// Debounce timer
+let searchTimeout = null;
+
+// Función para hacer request al servidor
+function fetchData(extraParams = {}) {
+    isLoading.value = true;
+    router.get(route('consolidated-outflows.index'), {
+        term: term.value,
+        sort_by: sortBy.value,
+        sort_desc: sortDesc.value ? 'true' : 'false',
+        per_page: perPage.value,
+        ...extraParams,
+    }, {
+        preserveState: true,
+        replace: true,
+        onFinish: () => {
+            isLoading.value = false;
+        },
+    });
+}
+
+// Búsqueda con debounce (300ms) - busca en TODOS los registros
+function onSearch(value) {
+    term.value = value;
+    clearTimeout(searchTimeout);
+    searchTimeout = setTimeout(() => {
+        fetchData({ page: 1 }); // Siempre volver a página 1 al buscar
+    }, 400);
+}
+
+// Ordenamiento server-side
 function setSort(field) {
     if (sortBy.value === field) {
         sortDesc.value = !sortDesc.value;
@@ -31,55 +64,8 @@ function setSort(field) {
         sortBy.value = field;
         sortDesc.value = false;
     }
+    fetchData({ page: 1 });
 }
-
-// Filtrado en frontend
-const filteredOutflows = computed(() => {
-    if (!props.outflows || !props.outflows.data) return [];
-    if (!term.value) return props.outflows.data;
-    
-    const search = term.value.toLowerCase();
-    return props.outflows.data.filter(item => {
-        return (
-            (item.product_name && item.product_name.toLowerCase().includes(search)) ||
-            (item.supplier && item.supplier.toLowerCase().includes(search)) ||
-            (item.number_document && String(item.number_document).toLowerCase().includes(search)) ||
-            (item.project && item.project.toLowerCase().includes(search)) ||
-            (item.cost_center_name && item.cost_center_name.toLowerCase().includes(search)) ||
-            (item.level1_name && item.level1_name.toLowerCase().includes(search)) ||
-            (item.level2_name && item.level2_name.toLowerCase().includes(search)) ||
-            (item.level3_name && item.level3_name.toLowerCase().includes(search)) ||
-            (item.operation && item.operation.toLowerCase().includes(search)) ||
-            (item.machinery && item.machinery.toLowerCase().includes(search))
-        );
-    });
-});
-
-const sortedOutflows = computed(() => {
-    const arr = [...filteredOutflows.value];
-    arr.sort((a, b) => {
-        let aVal = a[sortBy.value];
-        let bVal = b[sortBy.value];
-        
-        // Manejar campos numéricos
-        if (['outflow_id', 'quantity_total', 'surface', 'cantidad_asignada', 'unit_price', 'total', 'cantidad_por_ha'].includes(sortBy.value)) {
-            aVal = Number(aVal) || 0;
-            bVal = Number(bVal) || 0;
-        }
-        
-        // Ordenar strings
-        if (typeof aVal === 'string') {
-            aVal = aVal.toLowerCase();
-            bVal = (bVal || '').toLowerCase();
-        }
-        
-        if (sortDesc.value) {
-            return aVal < bVal ? 1 : aVal > bVal ? -1 : 0;
-        }
-        return aVal > bVal ? 1 : aVal < bVal ? -1 : 0;
-    });
-    return arr;
-});
 
 const sortClass = (field) => ({
     sortable: true,
@@ -87,36 +73,16 @@ const sortClass = (field) => ({
     'sorted-desc': sortBy.value === field && sortDesc.value,
 });
 
-// Totales basados en datos filtrados
-const totalGeneral = computed(() => {
-    return filteredOutflows.value.reduce((sum, item) => sum + (Number(item.total) || 0), 0);
-});
-
-const totalCantidad = computed(() => {
-    return filteredOutflows.value.reduce((sum, item) => sum + (Number(item.cantidad_asignada) || 0), 0);
-});
-
-const totalSuperficie = computed(() => {
-    // Sumar superficies únicas (evitar duplicados por outflow_id)
-    const superficies = {};
-    filteredOutflows.value.forEach(item => {
-        if (item.cost_center_id) {
-            superficies[item.cost_center_id] = item.surface;
-        }
-    });
-    return Object.values(superficies).reduce((sum, s) => sum + s, 0);
-});
-
 // Formateo de números
 function formatNumber(value, decimals = 2) {
-    return new Intl.NumberFormat('es-ES', { 
-        style: 'decimal', 
-        minimumFractionDigits: decimals, 
-        maximumFractionDigits: decimals 
+    return new Intl.NumberFormat('es-ES', {
+        style: 'decimal',
+        minimumFractionDigits: decimals,
+        maximumFractionDigits: decimals
     }).format(value ?? 0);
 }
 
-// Datos para exportar a Excel
+// Datos para exportar a Excel (exporta la página actual visible)
 const excelData = computed(() => {
     if (!props.outflows || !props.outflows.data) return [];
     return props.outflows.data.map(item => ({
@@ -157,10 +123,16 @@ const excelData = computed(() => {
                 <!-- Filtros y búsqueda -->
                 <div class="row mb-3">
                     <div class="col-md-4 col-12">
-                        <SearchInput 
-                            v-model="term" 
-                            placeholder="Buscar por producto, proveedor, proyecto, centro de costo..." 
+                        <input
+                            :value="term"
+                            @input="onSearch($event.target.value)"
+                            placeholder="Buscar por producto, proveedor, proyecto, centro de costo..."
+                            class="form-control form-control-sm mb-2"
+                            style="max-width: 400px;"
                         />
+                        <small class="text-muted" v-if="isLoading">
+                            <i class="fas fa-spinner fa-spin me-1"></i>Buscando...
+                        </small>
                     </div>
                     <div class="col-md-8 col-12 text-end d-flex flex-wrap justify-content-end gap-2">
                         <ExportExcelButton 
@@ -207,7 +179,7 @@ const excelData = computed(() => {
                             </div>
                             <div class="card-body d-flex flex-column justify-content-end py-1 px-2">
                                 <p class="font-sans-serif lh-1 mb-1 fs-10 small-card-number">
-                                    {{ filteredOutflows.length }}
+                                    {{ totals?.total_count ?? 0 }}
                                 </p>
                             </div>
                         </div>
@@ -219,15 +191,32 @@ const excelData = computed(() => {
                             </div>
                             <div class="card-body d-flex flex-column justify-content-end py-1 px-2">
                                 <p class="font-sans-serif lh-1 mb-1 fs-10 small-card-number">
-                                    {{ formatNumber(totalGeneral, 0) }}
+                                    {{ formatNumber(totals?.total_general ?? 0, 0) }}
                                 </p>
                             </div>
                         </div>
                     </div>
                 </div>
 
+                <!-- Info de paginación -->
+                <div class="d-flex justify-content-between align-items-center mb-2" v-if="outflows?.total">
+                    <small class="text-muted">
+                        Mostrando {{ outflows.from ?? 0 }}-{{ outflows.to ?? 0 }} de {{ outflows.total }} registros
+                        <span v-if="filters?.term"> (filtrados por: "{{ filters.term }}")</span>
+                    </small>
+                    <div class="d-flex align-items-center gap-2">
+                        <small class="text-muted">Por página:</small>
+                        <select class="form-select form-select-sm" style="width: 75px;" :value="perPage" @change="perPage = Number($event.target.value); fetchData({ page: 1 })">
+                            <option :value="25">25</option>
+                            <option :value="50">50</option>
+                            <option :value="100">100</option>
+                            <option :value="200">200</option>
+                        </select>
+                    </div>
+                </div>
+
                 <!-- Tabla -->
-                <div class="table-responsive mb-4" style="max-height:600px;overflow-y:auto;">
+                <div class="table-responsive mb-2" style="max-height:600px;overflow-y:auto;">
                     <table class="table table-bordered table-striped table-hover table-sm fs-10 mb-0">
                         <thead class="table-primary" style="position: sticky; top: 0; z-index: 10;">
                             <tr>
@@ -250,10 +239,13 @@ const excelData = computed(() => {
                             </tr>
                         </thead>
                         <tbody>
-                            <tr v-if="sortedOutflows.length === 0">
-                                <td colspan="16" class="text-center py-4">No hay registros para mostrar</td>
+                            <tr v-if="!outflows?.data?.length">
+                                <td colspan="16" class="text-center py-4">
+                                    <span v-if="isLoading"><i class="fas fa-spinner fa-spin me-2"></i>Cargando...</span>
+                                    <span v-else>No hay registros para mostrar</span>
+                                </td>
                             </tr>
-                            <tr v-for="(item, idx) in sortedOutflows" :key="idx">
+                            <tr v-for="(item, idx) in outflows.data" :key="idx">
                                 <td>{{ item.outflow_id }}</td>
                                 <td style="white-space:nowrap;">{{ item.date }}</td>
                                 <td style="max-width:150px; overflow:hidden; text-overflow:ellipsis;">{{ item.supplier }}</td>
@@ -273,6 +265,29 @@ const excelData = computed(() => {
                             </tr>
                         </tbody>
                     </table>
+                </div>
+
+                <!-- Paginación -->
+                <div v-if="outflows?.links && outflows.links.length > 3" class="d-flex justify-content-center mt-3">
+                    <nav>
+                        <ul class="pagination pagination-sm">
+                            <li
+                                v-for="(link, index) in outflows.links"
+                                :key="index"
+                                class="page-item"
+                                :class="{ 'active': link.active, 'disabled': !link.url }"
+                            >
+                                <Link
+                                    v-if="link.url"
+                                    :href="link.url"
+                                    class="page-link"
+                                    v-html="link.label"
+                                    preserve-state
+                                />
+                                <span v-else class="page-link" v-html="link.label"></span>
+                            </li>
+                        </ul>
+                    </nav>
                 </div>
             </div>
         </div>

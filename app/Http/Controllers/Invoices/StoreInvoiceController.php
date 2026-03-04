@@ -24,7 +24,6 @@ class StoreInvoiceController extends Controller
             $invoice = Invoice::create([
                 'payment_term'      => $request->payment_term,
                 'payment_type'      => $request->payment_type,
-                'petty_cash'        => $request->petty_cash,
                 'team_id'           => $user->team_id,
                 'supplier_id'       => $request->supplier_id,
                 'company_reason_id' => $request->company_reason_id,
@@ -34,6 +33,7 @@ class StoreInvoiceController extends Controller
                 'due_date'          => $request->due_date,
                 'season_id'         => $season_id,
                 'month_id'          => $request->month_id,
+                'purchase_order_id' => $request->purchase_order_id,
             ]);
 
             foreach ($this->products($request->products) as $productAttach) {
@@ -44,7 +44,7 @@ class StoreInvoiceController extends Controller
                 ]);
             }
 
-            // Si viene de una rendición de gastos, vincular el item
+            // Si viene de una rendición de gastos, vincular el item y guardar la referencia
             if ($request->expense_item_id) {
                 $item = ExpenseReportItem::whereNull('invoice_id')
                     ->whereHas('expenseReport', function ($q) use ($user) {
@@ -54,6 +54,7 @@ class StoreInvoiceController extends Controller
 
                 if ($item) {
                     $item->update(['invoice_id' => $invoice->id]);
+                    $invoice->update(['expense_report_id' => $item->expense_report_id]);
                 }
             }
         });

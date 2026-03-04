@@ -13,6 +13,7 @@ const props = defineProps({
 	units: Array,
 	months: Array,
 	prefill: Object,
+	purchaseOrders: Array,
 });
 
 const title = props.prefill ? 'Factura desde Rendición ' + props.prefill.expense_report_number : 'Ingresar Factura';
@@ -25,12 +26,12 @@ const form = useForm({
 	month_id: null,
 	payment_term: '',
 	payment_type: '',
-	petty_cash: false,
 	supplier_id: props.prefill?.supplier_id || '',
 	company_reason_id: '',
 	type_document_id: '',
 	number_document: '',
 	expense_item_id: props.prefill?.expense_item_id || null,
+	purchase_order_id: null,
 	products: [
 		{
 			product_id: props.prefill?.product_id || '',

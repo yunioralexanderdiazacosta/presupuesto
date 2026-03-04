@@ -10,6 +10,8 @@ class ShowInvoiceController extends Controller
 {
     public function __invoke(Invoice $invoice)
     {
+        $invoice->load(['expenseReport:id,number', 'purchaseOrder:id,order_number']);
+
         $invoiceProducts = $invoice->products()->get()->transform(function($product){
             return [
                 'product_id'    => $product->id,

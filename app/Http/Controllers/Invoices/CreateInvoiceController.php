@@ -13,6 +13,7 @@ use App\Models\Unit;
 use Inertia\Inertia;
 use App\Models\Month;
 use App\Models\ExpenseReportItem;
+use App\Models\PurchaseOrder;
 
 class CreateInvoiceController extends Controller
 {
@@ -88,6 +89,21 @@ class CreateInvoiceController extends Controller
             }
         }
 
-        return Inertia::render('Invoices/Create', compact('typeDocuments', 'suppliers', 'companyReasons', 'products', 'units', 'months', 'prefill'));
+        // Ordenes de compra aprobadas/enviadas/completadas del equipo y temporada
+        $purchaseOrders = PurchaseOrder::where('team_id', $user->team_id)
+            ->where('season_id', session('season_id'))
+            ->whereIn('status', ['approved', 'sent', 'received_partial', 'completed'])
+            ->with('supplier:id,name')
+            ->orderBy('order_date', 'desc')
+            ->get()
+            ->transform(function($po) {
+                return [
+                    'label' => $po->order_number . ' - ' . ($po->supplier->name ?? 'Sin proveedor') . ' ($' . number_format($po->total, 0, ',', '.') . ')',
+                    'value' => $po->id,
+                    'supplier_id' => $po->supplier_id,
+                ];
+            });
+
+        return Inertia::render('Invoices/Create', compact('typeDocuments', 'suppliers', 'companyReasons', 'products', 'units', 'months', 'prefill', 'purchaseOrders'));
     }
 }

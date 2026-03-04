@@ -24,7 +24,6 @@ class InvoiceFactory extends Factory
         return [
             'payment_term'      => 30,
             'payment_type'      => 1,
-            'petty_cash'        => $this->faker->boolean(),
             'team_id'           => 1,
             'supplier_id'       => Supplier::where('team_id', 1)->get()->random()->id,
             'company_reason_id' => CompanyReason::where('team_id', 1)->get()->random()->id,

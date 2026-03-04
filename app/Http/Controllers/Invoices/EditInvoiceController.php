@@ -11,6 +11,7 @@ use App\Models\CompanyReason;
 use App\Models\Month;
 use App\Models\Product;
 use App\Models\Outflow;
+use App\Models\PurchaseOrder;
 use Illuminate\Support\Facades\DB;
 use Inertia\Inertia;
 
@@ -19,6 +20,9 @@ class EditInvoiceController extends Controller
     public function __invoke(Invoice $invoice)
     {
         $user = Auth::user();
+
+        // Cargar relación de rendición si existe
+        $invoice->load('expenseReport:id,number');
 
         $typeDocuments = TypeDocument::get()->transform(function($type){
             return [
@@ -93,6 +97,21 @@ class EditInvoiceController extends Controller
                 ->toArray();
         }
 
+        // Ordenes de compra aprobadas/enviadas/completadas del equipo y temporada
+        $purchaseOrders = PurchaseOrder::where('team_id', $user->team_id)
+            ->where('season_id', session('season_id'))
+            ->whereIn('status', ['approved', 'sent', 'received_partial', 'completed'])
+            ->with('supplier:id,name')
+            ->orderBy('order_date', 'desc')
+            ->get()
+            ->transform(function($po) {
+                return [
+                    'label' => $po->order_number . ' - ' . ($po->supplier->name ?? 'Sin proveedor') . ' ($' . number_format($po->total, 0, ',', '.') . ')',
+                    'value' => $po->id,
+                    'supplier_id' => $po->supplier_id,
+                ];
+            });
+
         return Inertia::render('Invoices/Edit', compact(
             'invoice',
             'invoiceProducts',
@@ -102,7 +121,8 @@ class EditInvoiceController extends Controller
             'suppliers',
             'companyReasons',
             'months',
-            'protectedProductIds'
+            'protectedProductIds',
+            'purchaseOrders'
         ));
     }
 }

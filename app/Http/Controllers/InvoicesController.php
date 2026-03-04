@@ -23,7 +23,8 @@ class InvoicesController extends Controller
             'companyReason:id,name', 
             'typeDocument:id,name',
             'month:id,name',
-            'invoiceProducts.product:id,name,level1_id'
+            'invoiceProducts.product:id,name,level1_id',
+            'expenseReport:id,number'
         ])
         ->where('team_id', $user->team_id)
         ->where('season_id', $season_id)
@@ -92,7 +93,8 @@ class InvoicesController extends Controller
                         'has_level1' => $ip->product && $ip->product->level1_id ? true : false
                     ];
                 }),
-                'total'             => '$' . number_format($total, 0, ',', '.')
+                'total'             => '$' . number_format($total, 0, ',', '.'),
+                'expense_report'    => $invoice->expenseReport ? $invoice->expenseReport->number : null,
             ];
         });
 

@@ -385,17 +385,24 @@ const logout = () => {
                  
                 
               
-                <li class="nav-item"><Link class="nav-link" :href="route('machineries.index')">
+                <li class="nav-item"><a class="nav-link dropdown-indicator" href="#machineryMenu" role="button" data-bs-toggle="collapse" aria-expanded="false" aria-controls="machineryMenu">
                     <div class="d-flex align-items-center"><span class="nav-link-text ps-3">Maquinarias</span>
                     </div>
-                  </Link>
-                  <!-- more inner pages-->
-                </li>
-                <li class="nav-item"><Link class="nav-link" :href="route('type.machineries.index')">
-                    <div class="d-flex align-items-center"><span class="nav-link-text ps-3">Tipo de Maquinarias</span>
-                    </div>
-                  </Link>
-                  <!-- more inner pages-->
+                  </a>
+                  <ul class="nav collapse" id="machineryMenu">
+                    <li class="nav-item"><Link class="nav-link" :href="route('machineries.index')">
+                        <div class="d-flex align-items-center"><span class="nav-link-text ps-4">Maquinarias</span></div>
+                      </Link>
+                    </li>
+                    <li class="nav-item"><Link class="nav-link" :href="route('type.machineries.index')">
+                        <div class="d-flex align-items-center"><span class="nav-link-text ps-4">Tipo de Maquinarias</span></div>
+                      </Link>
+                    </li>
+                    <li class="nav-item"><Link class="nav-link" :href="route('operators.index')">
+                        <div class="d-flex align-items-center"><span class="nav-link-text ps-4">Operarios</span></div>
+                      </Link>
+                    </li>
+                  </ul>
                 </li>
                 <li class="nav-item"><Link class="nav-link" :href="route('irrigation-pumps.index')">
                     <div class="d-flex align-items-center"><span class="nav-link-text ps-3">Equipos de Riego</span>

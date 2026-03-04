@@ -1,7 +1,7 @@
 
 
 <script setup>
-import { ref, watch, nextTick } from 'vue';
+import { ref, watch, nextTick, computed } from 'vue';
 import { usePage } from '@inertiajs/vue3';
 import Multiselect from "@vueform/multiselect";
 import TextInput from "@/Components/TextInput.vue";
@@ -52,6 +52,27 @@ watch(
             props.form.payment_type = 2; // Contado
         } else {
             props.form.payment_type = 1; // Crédito
+        }
+    }
+);
+
+// Ordenes de compra filtradas por proveedor seleccionado
+const filteredPurchaseOrders = computed(() => {
+    const allOrders = page.props.purchaseOrders || [];
+    if (!props.form.supplier_id) return allOrders;
+    return allOrders.filter(po => po.supplier_id === props.form.supplier_id);
+});
+
+// Cuando cambia el proveedor, limpiar la OC si no corresponde al nuevo proveedor
+watch(
+    () => props.form.supplier_id,
+    (newSupplierId) => {
+        if (props.form.purchase_order_id) {
+            const allOrders = page.props.purchaseOrders || [];
+            const currentPO = allOrders.find(po => po.value === props.form.purchase_order_id);
+            if (currentPO && currentPO.supplier_id !== newSupplierId) {
+                props.form.purchase_order_id = null;
+            }
         }
     }
 );
@@ -348,6 +369,34 @@ const storeSupplier = async () => {
                     />
                 </div>
             </div>
+            <div class="col-lg-6">
+                <div class="fv-row">
+                    <label class="col-form-label">
+                        Orden de Compra
+                        <small class="text-muted">(opcional)</small>
+                    </label>
+                    <Multiselect
+                        :placeholder="form.supplier_id ? 'Seleccione OC...' : 'Seleccione proveedor primero'"
+                        v-model="form.purchase_order_id"
+                        :close-on-select="true"
+                        :options="filteredPurchaseOrders"
+                        class="multiselect-blue form-control"
+                        :class="{ 'is-invalid': form.errors.purchase_order_id }"
+                        :searchable="true"
+                        :hide-selected="false"
+                        :disabled="!form.supplier_id"
+                        :canClear="true"
+                    />
+                    <InputError
+                        class="mt-2"
+                        :message="form.errors.purchase_order_id"
+                    />
+                </div>
+            </div>
+        </div>
+        <!--end::Row-->
+        <!--begin::Row-->
+        <div class="row">
             <div class="col-lg-3">
                 <div class="fv-row">
                     <label for="typeDocument" class="col-form-label"
@@ -385,34 +434,30 @@ const storeSupplier = async () => {
                     />
                 </div>
             </div>
-            <!--end::Col-->
-        </div>
-        <!--end::Row-->
-        <!--begin::Row-->
-        <div class="row">
-            <div class="col-lg-3">
-                <label for="paymentTerm" class="col-form-label"
-                    >Plazo de pago</label
-                >
-                <Multiselect
-                    :placeholder="'Plazo de pago'"
-                    v-model="form.payment_term"
-                    :close-on-select="true"
-                    :options="[0, 30, 60, 90, 120]"
-                    class="multiselect-blue form-control"
-                    :class="{ 'is-invalid': form.errors.payment_term }"
-                    :searchable="true"
-                    :hide-selected="false"
-                />
-                <InputError class="mt-2" :message="form.errors.payment_term" />
-            </div>
-            <div class="col-lg-3">
+            <div class="col-lg-2">
                 <div class="fv-row">
-                    <label for="unit" class="col-form-label">Tipo de pago</label
-                    ><br />
-                    <div class="d-flex align-items-center gap-3">
+                    <label for="paymentTerm" class="col-form-label"
+                        >Plazo de pago</label
+                    >
+                    <Multiselect
+                        :placeholder="'Plazo'"
+                        v-model="form.payment_term"
+                        :close-on-select="true"
+                        :options="[0, 30, 60, 90, 120]"
+                        class="multiselect-blue form-control"
+                        :class="{ 'is-invalid': form.errors.payment_term }"
+                        :searchable="true"
+                        :hide-selected="false"
+                    />
+                    <InputError class="mt-2" :message="form.errors.payment_term" />
+                </div>
+            </div>
+            <div class="col-lg-2">
+                <div class="fv-row">
+                    <label class="col-form-label">Tipo de pago</label>
+                    <div class="d-flex align-items-center gap-3 mt-2">
                         <template v-for="value in paymentTypes">
-                            <div class="form-check form-check-solid form-check-inline d-flex align-items-center gap-2 mb-1">
+                            <div class="form-check form-check-solid form-check-inline d-flex align-items-center gap-1 mb-0">
                                 <input
                                     class="form-check-input"
                                     type="radio"
@@ -428,31 +473,8 @@ const storeSupplier = async () => {
                             </div>
                         </template>
                     </div>
-                    <small
-                        class="text-danger mt-2"
-                        :v-if="form.errors.unit_id"
-                        >{{ form.errors.unit_id }}</small
-                    >
                 </div>
-                </div>
-
-                <div class="col-lg-3">
-                    <div
-                        class="form-check form-check-solid form-check-inline mb-3 mt-3"
-                    >
-                        <input
-                            class="form-check-input"
-                            type="checkbox"
-                            v-model="form.petty_cash"
-                            id="petty"
-                            value="true"
-                        />
-                        <label class="form-check-label fw-bold ps-1"
-                            >Caja chica</label
-                        >
-                    </div>
-                </div>
-            
+            </div>
         </div>
         <!--end::Row-->
 

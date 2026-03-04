@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
+use Illuminate\Pagination\LengthAwarePaginator;
 use App\Models\Outflow;
 use Inertia\Inertia;
 use Illuminate\Support\Facades\Auth;
@@ -22,24 +23,40 @@ class ConsolidatedOutflowsController extends Controller
         $user = Auth::user();
         $season_id = session('season_id');
         $term = $request->term ?? '';
+        $sortBy = $request->sort_by ?? 'outflow_id';
+        $sortDesc = filter_var($request->sort_desc ?? 'true', FILTER_VALIDATE_BOOLEAN);
+        $perPage = (int) ($request->per_page ?? 50);
 
-        // Consulta optimizada con eager loading
+        // Eager loading optimizado: solo columnas necesarias
         $query = Outflow::with([
-            'invoiceProduct.product.unit',
-            'invoiceProduct.invoice.supplier',
-            'invoiceProduct.invoice.typeDocument',
-            'creditDebitNoteItem.product.unit',
-            'creditDebitNoteItem.creditDebitNote.supplier',
-            'project',
-            'operation',
-            'machinery',
-            'costCenters.costCenter.developmentState',
-            'level3.level2.level1'
+            'invoiceProduct:id,invoice_id,product_id,unit_price',
+            'invoiceProduct.product:id,name,unit_id',
+            'invoiceProduct.product.unit:id,name',
+            'invoiceProduct.invoice:id,supplier_id,number_document,type_document_id',
+            'invoiceProduct.invoice.supplier:id,name',
+            'invoiceProduct.invoice.typeDocument:id,name',
+            'creditDebitNoteItem:id,credit_debit_note_id,product_id,unit_price',
+            'creditDebitNoteItem.product:id,name,unit_id',
+            'creditDebitNoteItem.product.unit:id,name',
+            'creditDebitNoteItem.creditDebitNote:id,supplier_id,number',
+            'creditDebitNoteItem.creditDebitNote.supplier:id,name',
+            'project:id,name',
+            'operation:id,name',
+            'machinery:id,name',
+            'costCenters:id,outflow_id,cost_center_id,observations',
+            'costCenters.costCenter:id,name,surface,development_state_id',
+            'costCenters.costCenter.developmentState:id,name',
+            'level3:id,name,level2_id',
+            'level3.level2:id,name,level1_id',
+            'level3.level2.level1:id,name',
         ])
+        ->select(['id', 'invoice_product_id', 'credit_debit_note_item_id', 'project_id',
+                   'operation_id', 'machinery_id', 'quantity', 'notes', 'date',
+                   'team_id', 'season_id', 'level3_id'])
         ->where('team_id', $user->team_id)
         ->where('season_id', $season_id);
 
-        // Filtro de búsqueda
+        // Búsqueda server-side: busca en TODOS los registros de la BD
         if ($term) {
             $query->where(function($q) use ($term) {
                 $q->whereHas('invoiceProduct.product', function($subQ) use ($term) {
@@ -59,41 +76,47 @@ class ConsolidatedOutflowsController extends Controller
                 })
                 ->orWhereHas('costCenters.costCenter', function($subQ) use ($term) {
                     $subQ->where('name', 'like', '%' . $term . '%');
+                })
+                ->orWhereHas('level3', function($subQ) use ($term) {
+                    $subQ->where('name', 'like', '%' . $term . '%');
+                })
+                ->orWhereHas('level3.level2', function($subQ) use ($term) {
+                    $subQ->where('name', 'like', '%' . $term . '%');
+                })
+                ->orWhereHas('level3.level2.level1', function($subQ) use ($term) {
+                    $subQ->where('name', 'like', '%' . $term . '%');
                 });
             });
         }
 
-        // Obtener outflows y expandir por centro de costo
         $outflows = $query->orderBy('id', 'desc')->get();
 
-        // Transformar datos: expandir cada outflow por sus centros de costo
+        // Expandir cada outflow por sus centros de costo
         $expandedData = [];
-        
+
         foreach ($outflows as $outflow) {
-            // Determinar origen (factura o nota débito)
             $isInvoice = !is_null($outflow->invoice_product_id);
-            
-            // Datos comunes de la salida
+
             $commonData = [
                 'outflow_id' => $outflow->id,
                 'date' => $outflow->date ? \Carbon\Carbon::parse($outflow->date)->format('d-m-Y') : null,
-                'supplier' => $isInvoice 
+                'supplier' => $isInvoice
                     ? ($outflow->invoiceProduct->invoice->supplier->name ?? '-')
                     : ($outflow->creditDebitNoteItem->creditDebitNote->supplier->name ?? '-'),
-                'number_document' => $isInvoice 
+                'number_document' => $isInvoice
                     ? ($outflow->invoiceProduct->invoice->number_document ?? '-')
                     : ($outflow->creditDebitNoteItem->creditDebitNote->number ?? '-'),
-                'tipo_documento' => $isInvoice 
+                'tipo_documento' => $isInvoice
                     ? ($outflow->invoiceProduct->invoice->typeDocument->name ?? 'Factura')
                     : 'Nota Débito',
-                'product_name' => $isInvoice 
+                'product_name' => $isInvoice
                     ? ($outflow->invoiceProduct->product->name ?? '-')
                     : ($outflow->creditDebitNoteItem->product->name ?? '-'),
-                'unit_name' => $isInvoice 
+                'unit_name' => $isInvoice
                     ? ($outflow->invoiceProduct->product->unit->name ?? '-')
                     : ($outflow->creditDebitNoteItem->product->unit->name ?? '-'),
                 'quantity_total' => $outflow->quantity,
-                'unit_price' => $isInvoice 
+                'unit_price' => $isInvoice
                     ? ($outflow->invoiceProduct->unit_price ?? 0)
                     : ($outflow->creditDebitNoteItem->unit_price ?? 0),
                 'project' => $outflow->project->name ?? null,
@@ -105,17 +128,14 @@ class ConsolidatedOutflowsController extends Controller
                 'level3_name' => $outflow->level3->name ?? null,
             ];
 
-            // Calcular superficie total de los CC asociados
             $totalSuperficie = $outflow->costCenters->sum(function($occ) {
                 return $occ->costCenter->surface ?? 0;
             });
 
-            // Calcular cantidad por hectárea
-            $cantidadPorHa = $totalSuperficie > 0 
-                ? $outflow->quantity / $totalSuperficie 
+            $cantidadPorHa = $totalSuperficie > 0
+                ? $outflow->quantity / $totalSuperficie
                 : 0;
 
-            // Si no hay centros de costo, agregar una fila sin CC
             if ($outflow->costCenters->isEmpty()) {
                 $expandedData[] = array_merge($commonData, [
                     'cost_center_id' => null,
@@ -130,17 +150,13 @@ class ConsolidatedOutflowsController extends Controller
                 continue;
             }
 
-            // Expandir: una fila por cada centro de costo
             foreach ($outflow->costCenters as $occ) {
                 $superficie = $occ->costCenter->surface ?? 0;
-                
-                // Calcular cantidad asignada y total
+
                 if ($superficie == 0) {
-                    // Si no hay superficie, se asigna toda la cantidad (no hay prorrateo)
                     $cantidadAsignada = $outflow->quantity;
                     $totalCalculado = $outflow->quantity * $commonData['unit_price'];
                 } else {
-                    // Si hay superficie, se prorratea
                     $cantidadAsignada = $superficie * $cantidadPorHa;
                     $totalCalculado = $cantidadAsignada * $commonData['unit_price'];
                 }
@@ -148,7 +164,7 @@ class ConsolidatedOutflowsController extends Controller
                 $expandedData[] = array_merge($commonData, [
                     'cost_center_id' => $occ->costCenter->id,
                     'cost_center_name' => $occ->costCenter->name,
-                    'surface' => $superficie, // Mostrar el valor real (puede ser 0)
+                    'surface' => $superficie,
                     'cantidad_asignada' => round($cantidadAsignada, 2),
                     'development_state' => $occ->costCenter->developmentState->name ?? null,
                     'total_superficie' => $totalSuperficie,
@@ -159,13 +175,52 @@ class ConsolidatedOutflowsController extends Controller
             }
         }
 
-        // Sin paginación - mostrar todos los resultados
+        // Totales globales (sobre TODOS los datos filtrados, antes de paginar)
+        $totalGeneral = array_sum(array_column($expandedData, 'total'));
+        $totalCount = count($expandedData);
+
+        // Ordenamiento server-side
+        $numericFields = ['outflow_id', 'quantity_total', 'surface', 'cantidad_asignada', 'unit_price', 'total', 'cantidad_por_ha', 'total_superficie'];
+        usort($expandedData, function($a, $b) use ($sortBy, $sortDesc, $numericFields) {
+            $aVal = $a[$sortBy] ?? '';
+            $bVal = $b[$sortBy] ?? '';
+
+            if (in_array($sortBy, $numericFields)) {
+                $aVal = (float) $aVal;
+                $bVal = (float) $bVal;
+            } else {
+                $aVal = strtolower((string) $aVal);
+                $bVal = strtolower((string) $bVal);
+            }
+
+            $result = $aVal <=> $bVal;
+            return $sortDesc ? -$result : $result;
+        });
+
+        // Paginación server-side (después de búsqueda y ordenamiento)
+        $page = max(1, (int) $request->input('page', 1));
+        $paginatedItems = array_slice($expandedData, ($page - 1) * $perPage, $perPage);
+
+        $paginator = new LengthAwarePaginator(
+            array_values($paginatedItems),
+            $totalCount,
+            $perPage,
+            $page,
+            ['path' => $request->url(), 'query' => $request->query()]
+        );
+
         return Inertia::render('ConsolidatedOutflows', [
-            'outflows' => [
-                'data' => $expandedData,
-                'total' => count($expandedData),
+            'outflows' => $paginator,
+            'filters' => [
+                'term' => $term,
+                'sort_by' => $sortBy,
+                'sort_desc' => $sortDesc,
+                'per_page' => $perPage,
             ],
-            'term' => $term,
+            'totals' => [
+                'total_general' => round($totalGeneral, 0),
+                'total_count' => $totalCount,
+            ],
         ]);
     }
 }

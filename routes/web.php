@@ -22,6 +22,12 @@ use App\Http\Controllers\Products2\DeleteProduct2Controller;
     use App\Http\Controllers\FuelOutflows\UpdateFuelOutflowController;
     use App\Http\Controllers\FuelOutflows\DeleteFuelOutflowController;
 
+// Rutas para Operators
+    use App\Http\Controllers\OperatorsController;
+    use App\Http\Controllers\Operators\StoreOperatorController;
+    use App\Http\Controllers\Operators\UpdateOperatorController;
+    use App\Http\Controllers\Operators\DeleteOperatorController;
+
 // Rutas para Application Orders
     use App\Http\Controllers\ApplicationOrdersController;
     use App\Http\Controllers\ApplicationOrders\StoreApplicationOrderController;
@@ -619,6 +625,12 @@ Route::middleware([
     Route::get('/fuel-outflows/{fuelOutFlow}/edit', EditFuelOutflowController::class)->name('fuel-outflows.edit');
     Route::put('/fuel-outflows/{fuelOutFlow}', UpdateFuelOutflowController::class)->name('fuel-outflows.update');
     Route::delete('/fuel-outflows/{fuelOutFlow}', DeleteFuelOutflowController::class)->name('fuel-outflows.delete');
+
+    // Operators
+    Route::get('/operators', OperatorsController::class)->name('operators.index');
+    Route::post('/operators/store', StoreOperatorController::class)->name('operators.store');
+    Route::post('/operators/{operator}/update', UpdateOperatorController::class)->name('operators.update');
+    Route::delete('/operators/{operator}/delete', DeleteOperatorController::class)->name('operators.delete');
 
     // Application Orders
     Route::get('/application-orders', [ApplicationOrdersController::class, 'index'])->name('application-orders.index');

@@ -59,12 +59,12 @@ class UpdateInvoiceController extends Controller
         // Actualizar campos de cabecera de la factura
         $invoice->payment_term      = $request->payment_term;
         $invoice->payment_type      = $request->payment_type;
-        $invoice->petty_cash        = $request->petty_cash;
         $invoice->supplier_id       = $request->supplier_id;
         $invoice->company_reason_id = $request->company_reason_id;
         $invoice->type_document_id  = $request->type_document_id;
         $invoice->number_document   = $request->number_document;
         $invoice->month_id          = $request->month_id;
+        $invoice->purchase_order_id = $request->purchase_order_id;
         $invoice->date              = $request->date;
         $invoice->due_date          = $request->due_date;
         $invoice->save();

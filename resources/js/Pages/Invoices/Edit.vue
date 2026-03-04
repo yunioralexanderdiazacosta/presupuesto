@@ -49,12 +49,12 @@ const form = useForm({
 	due_date: props.invoice.due_date,
 	payment_term: props.invoice.payment_term,
 	payment_type: props.invoice.payment_type,
-	petty_cash: props.invoice.petty_cash,
 	supplier_id: props.invoice.supplier_id,
 	month_id: props.invoice.month_id,
 	company_reason_id: props.invoice.company_reason_id,
 	type_document_id: props.invoice.type_document_id,
 	number_document: props.invoice.number_document,
+	purchase_order_id: props.invoice.purchase_order_id || null,
 	products: props.invoiceProducts
 });
 
@@ -137,6 +137,12 @@ const msgSuccess = (msg) => {
               </div>
             </div>
             <div class="card-body bg-body-tertiary">
+				<!-- Badge informativo de rendición -->
+				<div v-if="invoice.expense_report" class="alert alert-info d-flex align-items-center py-2 px-3 mb-3" role="alert">
+					<i class="fas fa-receipt me-2"></i>
+					<small>Esta factura fue importada desde la rendición <strong>{{ invoice.expense_report.number }}</strong></small>
+				</div>
+
 				<form id="kt_invoice_form" @submit.prevent="update()">
 					<!--begin::Form-->
 					<FormInvoice :form="form" :protectedProductIds="props.protectedProductIds" />

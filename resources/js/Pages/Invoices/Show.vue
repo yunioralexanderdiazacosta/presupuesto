@@ -155,10 +155,16 @@ const formatDate = (dateString) => {
                                             <small class="text-muted d-block">Plazo</small>
                                             <span>{{ invoice.payment_term || '-' }}</span>
                                         </div>
-                                        <div class="col-6">
-                                            <small class="text-muted d-block">Caja Chica</small>
-                                            <span :class="['badge', invoice.petty_cash ? 'bg-success' : 'bg-secondary']">
-                                                {{ invoice.petty_cash ? 'Sí' : 'No' }}
+                                        <div class="col-6" v-if="invoice.expense_report">
+                                            <small class="text-muted d-block">Rendición</small>
+                                            <span class="badge bg-info">
+                                                <i class="fas fa-receipt me-1"></i>{{ invoice.expense_report.number }}
+                                            </span>
+                                        </div>
+                                        <div class="col-6" v-if="invoice.purchase_order">
+                                            <small class="text-muted d-block">Orden de Compra</small>
+                                            <span class="badge bg-warning text-dark">
+                                                <i class="fas fa-shopping-cart me-1"></i>{{ invoice.purchase_order.order_number }}
                                             </span>
                                         </div>
                                     </div>

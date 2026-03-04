@@ -24,7 +24,10 @@ class IndexFuelOutflowController extends Controller
 
 
         $machineries = Machinery::all(['id', 'cod_machinery']);
-        $operators = Operator::all(['id', 'name']);
+        $operators = Operator::where('team_id', $user->team_id)
+            ->where('season_id', $season_id)
+            ->orderBy('name')
+            ->get(['id', 'name']);
         $costCenters = CostCenter::where('season_id', $season_id)
             ->whereHas('season', function($q) use ($user) {
                 $q->where('team_id', $user->team_id);
