@@ -43,6 +43,10 @@ class DashboardController extends Controller
     public $monthsServices = [];
     public $monthsHarvests = [];
 
+    // Cache de cost centers para evitar queries repetidas
+    protected $cachedCostCenters = null;
+    protected $cachedSurfaces = null;
+
     /**
      * Acción principal: Renderiza el dashboard con todos los datos agregados y procesados.
      * - Calcula totales por rubro y por mes.
@@ -59,40 +63,28 @@ class DashboardController extends Controller
      */
     public static function getEntityCounts($season_id, $team_id)
     {
-        $agrochemicals = \App\Models\Agrochemical::where('season_id', $season_id)
-            ->where('team_id', $team_id)
-            ->count();
-        $fertilizers = \App\Models\Fertilizer::where('season_id', $season_id)
-            ->where('team_id', $team_id)
-            ->count();
-        $manpowers = \App\Models\ManPower::where('season_id', $season_id)
-            ->where('team_id', $team_id)
-            ->count();
-        $supplies = \App\Models\Supply::where('season_id', $season_id)
-            ->where('team_id', $team_id)
-            ->count();
-        $services = \App\Models\Service::where('season_id', $season_id)
-            ->where('team_id', $team_id)
-            ->count();
-        $fields = \App\Models\Field::where('season_id', $season_id)
-            ->where('team_id', $team_id)
-            ->count();
-        $harvests = \App\Models\Harvest::where('season_id', $season_id)
-            ->where('team_id', $team_id)
-            ->count();
-        $administrations = \App\Models\Administration::where('season_id', $season_id)
-            ->where('team_id', $team_id)
-            ->count();
-        return [
-            'agrochemicals' => $agrochemicals,
-            'fertilizers' => $fertilizers,
-            'manpowers' => $manpowers,
-            'supplies' => $supplies,
-            'services' => $services,
-            'fields' => $fields,
-            'harvests' => $harvests,
-            'administrations' => $administrations,
-        ];
+        $counts = DB::selectOne("
+            SELECT
+                (SELECT COUNT(*) FROM agrochemicals WHERE season_id = ? AND team_id = ?) as agrochemicals,
+                (SELECT COUNT(*) FROM fertilizers WHERE season_id = ? AND team_id = ?) as fertilizers,
+                (SELECT COUNT(*) FROM man_powers WHERE season_id = ? AND team_id = ?) as manpowers,
+                (SELECT COUNT(*) FROM supplies WHERE season_id = ? AND team_id = ?) as supplies,
+                (SELECT COUNT(*) FROM services WHERE season_id = ? AND team_id = ?) as services,
+                (SELECT COUNT(*) FROM fields WHERE season_id = ? AND team_id = ?) as fields,
+                (SELECT COUNT(*) FROM harvests WHERE season_id = ? AND team_id = ?) as harvests,
+                (SELECT COUNT(*) FROM administrations WHERE season_id = ? AND team_id = ?) as administrations
+        ", [
+            $season_id, $team_id,
+            $season_id, $team_id,
+            $season_id, $team_id,
+            $season_id, $team_id,
+            $season_id, $team_id,
+            $season_id, $team_id,
+            $season_id, $team_id,
+            $season_id, $team_id,
+        ]);
+
+        return (array) $counts;
     }
 
     /**
@@ -185,12 +177,20 @@ class DashboardController extends Controller
                 ];
             });
             $costCentersId = $costCenters->pluck('value');
-            $this->getAgrochemicalProducts($costCentersId);
-            $this->getFertilizerProducts($costCentersId);
-            $this->getManPowerProducts($costCentersId);
-            $this->getServicesProducts($costCentersId);
-            $this->getSuppliesProducts($costCentersId);
-            $this->getHarvestsProducts($costCentersId);
+
+            // OPTIMIZACIÓN: Cachear cost centers con superficie y dev state (evita cientos de queries repetidas)
+            $this->cachedCostCenters = CostCenter::whereIn('id', $costCentersId)
+                ->select('id', 'development_state_id', 'surface', 'fruit_id')
+                ->get();
+            $this->cachedSurfaces = $this->cachedCostCenters->pluck('surface', 'id');
+
+            // OPTIMIZACIÓN: Reusar los productos consultados (evita queries duplicadas por rubro)
+            $agrochemicalProducts = $this->getAgrochemicalProducts($costCentersId);
+            $fertilizerProducts = $this->getFertilizerProducts($costCentersId);
+            $manPowerProducts = $this->getManPowerProducts($costCentersId);
+            $serviceProducts = $this->getServicesProducts($costCentersId);
+            $supplyProducts = $this->getSuppliesProducts($costCentersId);
+            $harvestProducts = $this->getHarvestsProducts($costCentersId);
             $pieLabels = ['Agroquimicos', 'Fertilizantes', 'Mano de obra', 'Servicios', 'Insumos', 'Cosecha'];
             $pieDatasets = [
                 [
@@ -200,9 +200,11 @@ class DashboardController extends Controller
                     "cutout" => 0
                 ]
             ];
-            // Calcular totales de administración y fields
-            $totalAdministration = $this->getAdministrationTotalsByLevel12($user->team_id)->sum('total_amount');
-            $totalFields = $this->getFieldTotalsByLevel12($user->team_id)->sum('total_amount');
+            // OPTIMIZACIÓN: Calcular totales de administración y fields UNA sola vez (se reusan más abajo)
+            $administrationTotalsByLevel12 = $this->getAdministrationTotalsByLevel12($user->team_id);
+            $fieldTotalsByLevel12 = $this->getFieldTotalsByLevel12($user->team_id);
+            $totalAdministration = $administrationTotalsByLevel12->sum('total_amount');
+            $totalFields = $fieldTotalsByLevel12->sum('total_amount');
             $totalSeason = number_format(($this->totalAgrochemical + $this->totalFertilizer + $this->totalManPower + $this->totalServices + $this->totalSupplies + $this->totalHarvests + $totalAdministration + $totalFields), 0, ',', '.');
             $totalAgrochemical = number_format($this->totalAgrochemical, 0, ',', '.');
             $totalFertilizer = number_format($this->totalFertilizer, 0, ',', '.');
@@ -267,14 +269,12 @@ class DashboardController extends Controller
             
 
             // Calcular costos prorrateados de administración y fields por especie (fruit)
+            // OPTIMIZACIÓN: Reusar cachedCostCenters y totales ya calculados
             $fruits = \App\Models\Fruit::all();
-            $costCenters = \App\Models\CostCenter::where('season_id', $season_id)->get(['id', 'fruit_id', 'surface']);
-            $totalSurface = $costCenters->sum('surface');
-            $totalAdministration = $this->getAdministrationTotalsByLevel12($user->team_id)->sum('total_amount');
-            $totalFields = $this->getFieldTotalsByLevel12($user->team_id)->sum('total_amount');
+            $totalSurface = $this->cachedCostCenters->sum('surface');
             $totalAdminFields = $totalAdministration + $totalFields;
             // Agrupar superficie por fruit_id
-            $surfaceByFruit = $costCenters->groupBy('fruit_id')->map(function($group) {
+            $surfaceByFruit = $this->cachedCostCenters->groupBy('fruit_id')->map(function($group) {
                 return $group->sum('surface');
             });
             $adminFieldsByFruit = [];
@@ -298,16 +298,10 @@ class DashboardController extends Controller
 
 
 
+            // OPTIMIZACIÓN: Reusar los productos ya consultados por getXProducts()
             // Calcular totales de agroquímicos por estado de desarrollo
             $agrochemicalByDevState = [];
-            $agrochemicals = Agrochemical::from('agrochemicals as a')
-                ->join('agrochemical_items as ai', 'a.id', 'ai.agrochemical_id')
-                ->leftJoin('units as u', 'a.unit_id_price', 'u.id')
-                ->select('a.id', 'a.price', 'a.dose_type_id', 'a.dose', 'a.unit_id', 'a.unit_id_price', 'a.mojamiento')
-                ->whereIn('ai.cost_center_id', $costCentersId)
-                ->groupBy('a.id', 'a.price', 'a.dose_type_id', 'a.dose', 'a.unit_id', 'a.unit_id_price', 'a.mojamiento')
-                ->get();
-            foreach ($agrochemicals as $agrochemical) {
+            foreach ($agrochemicalProducts as $agrochemical) {
                 $byDev = $this->getAgrochemicalResultByDevelopmentState($agrochemical, $costCentersId);
                 foreach ($byDev as $devStateId => $amount) {
                     if (!isset($agrochemicalByDevState[$devStateId])) {
@@ -318,7 +312,7 @@ class DashboardController extends Controller
             }
             // Calcular gasto por hectárea de agroquímicos por estado de desarrollo
             $agrochemicalExpensePerHectare = [];
-            foreach ($agrochemicals as $agrochemical) {
+            foreach ($agrochemicalProducts as $agrochemical) {
                 $byDev = $this->getAgrochemicalExpensePerHectareByDevelopmentState($agrochemical, $costCentersId);
                 foreach ($byDev as $devStateId => $amount) {
                     if (!isset($agrochemicalExpensePerHectare[$devStateId])) {
@@ -329,14 +323,7 @@ class DashboardController extends Controller
             }
             // Calcular totales de fertilizantes por estado de desarrollo
             $fertilizerByDevState = [];
-            $fertilizers = Fertilizer::from('fertilizers as f')
-                ->join('fertilizer_items as fi', 'f.id', 'fi.fertilizer_id')
-                ->leftJoin('units as u', 'f.unit_id_price', 'u.id')
-                ->select('f.id', 'f.price', 'f.dose', 'f.unit_id', 'f.unit_id_price')
-                ->whereIn('fi.cost_center_id', $costCentersId)
-                ->groupBy('f.id', 'f.price', 'f.dose', 'f.unit_id', 'f.unit_id_price')
-                ->get();
-            foreach ($fertilizers as $fertilizer) {
+            foreach ($fertilizerProducts as $fertilizer) {
                 $byDev = $this->getFertilizerResultByDevelopmentState($fertilizer, $costCentersId);
                 foreach ($byDev as $devStateId => $amount) {
                     if (!isset($fertilizerByDevState[$devStateId])) {
@@ -347,7 +334,7 @@ class DashboardController extends Controller
             }
             // Calcular gasto por hectárea de fertilizantes por estado de desarrollo
             $fertilizerExpensePerHectare = [];
-            foreach ($fertilizers as $fertilizer) {
+            foreach ($fertilizerProducts as $fertilizer) {
                 $byDev = $this->getFertilizerExpensePerHectareByDevelopmentState($fertilizer, $costCentersId);
                 foreach ($byDev as $devStateId => $amount) {
                     if (!isset($fertilizerExpensePerHectare[$devStateId])) {
@@ -358,13 +345,7 @@ class DashboardController extends Controller
             }
             // Calcular totales de mano de obra por estado de desarrollo
             $manPowerByDevState = [];
-            $manPowers = ManPower::from('man_powers as mp')
-                ->join('manpower_items as mpi', 'mp.id', 'mpi.man_power_id')
-                ->select('mp.id', 'mp.price', 'mp.workday')
-                ->whereIn('mpi.cost_center_id', $costCentersId)
-                ->groupBy('mp.id', 'mp.price', 'mp.workday')
-                ->get();
-            foreach ($manPowers as $manPower) {
+            foreach ($manPowerProducts as $manPower) {
                 $byDev = $this->getManPowerResultByDevelopmentState($manPower, $costCentersId);
                 foreach ($byDev as $devStateId => $amount) {
                     if (!isset($manPowerByDevState[$devStateId])) {
@@ -375,7 +356,7 @@ class DashboardController extends Controller
             }
             // Calcular gasto por hectárea de mano de obra por estado de desarrollo
             $manPowerExpensePerHectare = [];
-            foreach ($manPowers as $manPower) {
+            foreach ($manPowerProducts as $manPower) {
                 $byDev = $this->getManPowerExpensePerHectareByDevelopmentState($manPower, $costCentersId);
                 foreach ($byDev as $devStateId => $amount) {
                     if (!isset($manPowerExpensePerHectare[$devStateId])) {
@@ -388,20 +369,6 @@ class DashboardController extends Controller
 
 
 
-// Justo antes de calcular el total de inversiones
-Log::info('DashboardController', [
-    'season_id' => $season_id,
-    'team_id' => $user->team_id,
-    'season_exists' => \App\Models\Season::where('id', $season_id)->where('team_id', $user->team_id)->exists(),
-    'investments_count' => \App\Models\Investment::where('season_id', $season_id)->count()
-]);
-
-
-
-
-
-            
-
 // Calcular el total de inversiones para el equipo y temporada actual
 $totalInvestments = \App\Models\Investment::where('season_id', $season_id)
     ->whereHas('season', function($q) use ($user) {
@@ -412,13 +379,7 @@ $totalInvestments = \App\Models\Investment::where('season_id', $season_id)
 
             // Calcular totales de servicios por estado de desarrollo
             $servicesByDevState = [];
-            $services = Service::from('services as s')
-                ->join('service_items as si', 's.id', 'si.service_id')
-                ->select('s.id', 's.price', 's.quantity', 's.unit_id', 's.unit_id_price')
-                ->whereIn('si.cost_center_id', $costCentersId)
-                ->groupBy('s.id', 's.price', 's.quantity', 's.unit_id', 's.unit_id_price')
-                ->get();
-            foreach ($services as $service) {
+            foreach ($serviceProducts as $service) {
                 $byDev = $this->getServiceResultByDevelopmentState($service, $costCentersId);
                 foreach ($byDev as $devStateId => $amount) {
                     if (!isset($servicesByDevState[$devStateId])) {
@@ -429,7 +390,7 @@ $totalInvestments = \App\Models\Investment::where('season_id', $season_id)
             }
             // Calcular gasto por hectárea de servicios por estado de desarrollo
             $servicesExpensePerHectare = [];
-            foreach ($services as $service) {
+            foreach ($serviceProducts as $service) {
                 $byDev = $this->getServiceExpensePerHectareByDevelopmentState($service, $costCentersId);
                 foreach ($byDev as $devStateId => $amount) {
                     if (!isset($servicesExpensePerHectare[$devStateId])) {
@@ -446,13 +407,7 @@ $totalInvestments = \App\Models\Investment::where('season_id', $season_id)
 
             // Calcular totales de cosecha por estado de desarrollo
             $harvestsByDevState = [];
-            $harvests = Harvest::from('harvests as s')
-                ->join('harvest_items as si', 's.id', 'si.harvest_id')
-                ->select('s.id', 's.price', 's.quantity', 's.unit_id', 's.unit_id_price')
-                ->whereIn('si.cost_center_id', $costCentersId)
-                ->groupBy('s.id', 's.price', 's.quantity', 's.unit_id', 's.unit_id_price')
-                ->get();
-            foreach ($harvests as $harvest) {
+            foreach ($harvestProducts as $harvest) {
                 $byDev = $this->getHarvestResultByDevelopmentState($harvest, $costCentersId);
                 foreach ($byDev as $devStateId => $amount) {
                     if (!isset($harvestsByDevState[$devStateId])) {
@@ -463,7 +418,7 @@ $totalInvestments = \App\Models\Investment::where('season_id', $season_id)
             }
             // Calcular gasto por hectárea de cosecha por estado de desarrollo
             $harvestsExpensePerHectare = [];
-            foreach ($harvests as $harvest) {
+            foreach ($harvestProducts as $harvest) {
                 $byDev = $this->getHarvestExpensePerHectareByDevelopmentState($harvest, $costCentersId);
                 foreach ($byDev as $devStateId => $amount) {
                     if (!isset($harvestsExpensePerHectare[$devStateId])) {
@@ -479,13 +434,7 @@ $totalInvestments = \App\Models\Investment::where('season_id', $season_id)
 
             // Calcular totales de insumos por estado de desarrollo
             $suppliesByDevState = [];
-            $supplies = Supply::from('supplies as s')
-                ->join('supply_items as si', 's.id', 'si.supply_id')
-                ->select('s.id', 's.price', 's.quantity', 's.unit_id', 's.unit_id_price')
-                ->whereIn('si.cost_center_id', $costCentersId)
-                ->groupBy('s.id', 's.price', 's.quantity', 's.unit_id', 's.unit_id_price')
-                ->get();
-            foreach ($supplies as $supply) {
+            foreach ($supplyProducts as $supply) {
                 $byDev = $this->getSupplyResultByDevelopmentState($supply, $costCentersId);
                 foreach ($byDev as $devStateId => $amount) {
                     if (!isset($suppliesByDevState[$devStateId])) {
@@ -496,7 +445,7 @@ $totalInvestments = \App\Models\Investment::where('season_id', $season_id)
             }
             // Calcular gasto por hectárea de insumos por estado de desarrollo
             $suppliesExpensePerHectare = [];
-            foreach ($supplies as $supply) {
+            foreach ($supplyProducts as $supply) {
                 $byDev = $this->getSupplyExpensePerHectareByDevelopmentState($supply, $costCentersId);
                 foreach ($byDev as $devStateId => $amount) {
                     if (!isset($suppliesExpensePerHectare[$devStateId])) {
@@ -515,13 +464,10 @@ $totalInvestments = \App\Models\Investment::where('season_id', $season_id)
             // Obtener nombres de estados de desarrollo
             $devStates = \App\Models\DevelopmentState::all(['id', 'name'])->keyBy('id')->toArray();
 
-            // Obtener totales de administración por Level1 y Level2 (sin season_id)
-            $administrationTotalsByLevel12 = $this->getAdministrationTotalsByLevel12($user->team_id);
-            $fieldTotalsByLevel12 = $this->getFieldTotalsByLevel12($user->team_id);
+            // OPTIMIZACIÓN: administrationTotalsByLevel12 y fieldTotalsByLevel12 ya calculados arriba
             $totalsByLevel12 = $this->getTotalsByLevel12($user->team_id);
 
-            // Calcular el total de superficie de todos los cost centers de la temporada
-            $totalSurface = \App\Models\CostCenter::where('season_id', $season_id)->sum('surface');
+            // OPTIMIZACIÓN: totalSurface ya calculado arriba con cachedCostCenters
             $entityCounts = self::getEntityCounts($season_id, $user->team_id);
             // Calcular los totales y porcentajes de cada rubro principal
             $mainTotalsAndPercents = $this->getMainBudgetTotalsAndPercents($season_id, $user->team_id);
@@ -594,7 +540,7 @@ $totalInvestments = \App\Models\Investment::where('season_id', $season_id)
             ->get();
 
         // Obtener superficies de todos los cost centers de una sola vez
-        $costCenters = CostCenter::whereIn('id', $costCentersId)->pluck('surface', 'id');
+        $costCenters = $this->cachedSurfaces ?? CostCenter::whereIn('id', $costCentersId)->pluck('surface', 'id');
 
         // Obtener todos los meses del ciclo
         $currentMonth = $this->month_id;
@@ -664,7 +610,7 @@ $totalInvestments = \App\Models\Investment::where('season_id', $season_id)
             ->get();
 
         // Obtener superficies de todos los cost centers de una sola vez
-        $costCenters = CostCenter::whereIn('id', $costCentersId)->pluck('surface', 'id');
+        $costCenters = $this->cachedSurfaces ?? CostCenter::whereIn('id', $costCentersId)->pluck('surface', 'id');
 
         // Obtener todos los meses del ciclo
         $currentMonth = $this->month_id;
@@ -728,7 +674,7 @@ $totalInvestments = \App\Models\Investment::where('season_id', $season_id)
             ->get();
 
         // Obtener superficies de todos los cost centers de una sola vez
-        $costCenters = CostCenter::whereIn('id', $costCentersId)->pluck('surface', 'id');
+        $costCenters = $this->cachedSurfaces ?? CostCenter::whereIn('id', $costCentersId)->pluck('surface', 'id');
 
         // Obtener todos los meses del ciclo
         $currentMonth = $this->month_id;
@@ -779,45 +725,7 @@ $totalInvestments = \App\Models\Investment::where('season_id', $season_id)
      * Calcula el monto total de mano de obra en todos los cost centers y meses.
      * Actualiza los acumuladores globales.
      */
-    private function getManPowerResult($value, $costCentersId)
-    {
-        $totalAmount = 0;
-        $currentMonth = $this->month_id;
-        foreach ($costCentersId as $costCenter) {
-            $first = CostCenter::select('surface')->where('id', $costCenter)->first();
-
-            $surface = $first->surface;
-            $quantityFirst = round($value->workday * $surface, 2);
-            $amountFirst = round($value->price * $quantityFirst, 2);
-
-            $data = array();
-
-            for ($x = $currentMonth; $x < $currentMonth + 12; $x++) {
-                $id = date('n', mktime(0, 0, 0, $x, 1));
-                array_push($data, $id);
-            }
-
-            $totalAmountCostCenter = 0;
-            foreach ($data as $month) {
-                $count = DB::table('manpower_items')
-                    ->select('man_power_id')
-                    ->where('man_power_id', $value->id)
-                    ->where('month_id', $month)
-                    ->where('cost_center_id', $costCenter)
-                    ->count();
-
-                $amountMonth = $count > 0 ? $amountFirst : 0;
-                $totalAmountCostCenter += $amountMonth;
-                if (!isset($this->monthsManPower[$month])) {
-                    $this->monthsManPower[$month] = 0;
-                }
-                $this->monthsManPower[$month] += $amountMonth;
-            }
-            $totalAmount += $totalAmountCostCenter;
-        }
-
-        $this->totalManPower += $totalAmount;
-    }
+    // ELIMINADO: getManPowerResult() - código muerto, nunca era invocado
 
 
     /**
@@ -836,7 +744,7 @@ $totalInvestments = \App\Models\Investment::where('season_id', $season_id)
             ->get();
 
         // Obtener superficies de todos los cost centers de una sola vez
-        $costCenters = CostCenter::whereIn('id', $costCentersId)->pluck('surface', 'id');
+        $costCenters = $this->cachedSurfaces ?? CostCenter::whereIn('id', $costCentersId)->pluck('surface', 'id');
 
         // Obtener todos los meses del ciclo
         $currentMonth = $this->month_id;
@@ -899,7 +807,7 @@ $totalInvestments = \App\Models\Investment::where('season_id', $season_id)
             ->get();
 
         // Obtener superficies de todos los cost centers de una sola vez
-        $costCenters = CostCenter::whereIn('id', $costCentersId)->pluck('surface', 'id');
+        $costCenters = $this->cachedSurfaces ?? CostCenter::whereIn('id', $costCentersId)->pluck('surface', 'id');
 
         // Obtener todos los meses del ciclo
         $currentMonth = $this->month_id;
@@ -958,94 +866,10 @@ $totalInvestments = \App\Models\Investment::where('season_id', $season_id)
      * Calcula el monto total de un servicio en todos los cost centers y meses.
      * Actualiza los acumuladores globales.
      */
-    private function getServicesResult($value, $costCentersId)
-    {
-        $totalAmount = 0;
-        $currentMonth = $this->month_id;
-        foreach ($costCentersId as $costCenter) {
-            $first = CostCenter::select('surface')->where('id', $costCenter)->first();
-
-            $quantity = (($value->unit_id == 4 && $value->unit_id_price == 3) || ($value->unit_id == 2 && $value->unit_id_price == 1)) ? ($value->quantity / 1000) : $value->quantity;
-
-            $surface = $first->surface;
-            $quantityFirst = round($quantity * $surface, 2);
-            $amountFirst = round($value->price * $quantityFirst, 2);
-
-            $data = array();
-
-            for ($x = $currentMonth; $x < $currentMonth + 12; $x++) {
-                $id = date('n', mktime(0, 0, 0, $x, 1));
-                array_push($data, $id);
-            }
-
-            $totalAmountCostCenter = 0;
-            foreach ($data as $month) {
-                $count = DB::table('service_items')
-                    ->select('service_id')
-                    ->where('service_id', $value->id)
-                    ->where('month_id', $month)
-                    ->where('cost_center_id', $costCenter)
-                    ->count();
-
-                $amountMonth = $count > 0 ? $amountFirst : 0;
-                $totalAmountCostCenter += $amountMonth;
+    // ELIMINADO: getServicesResult() - código muerto, nunca era invocado
 
 
-                if (!isset($this->monthsServices[$month])) {
-                    $this->monthsServices[$month] = 0;
-                }
-                $this->monthsServices[$month] += $amountMonth;
-            }
-            $totalAmount += $totalAmountCostCenter;
-        }
-
-        $this->totalServices += $totalAmount;
-    }
-
-
-    private function getHarvestsResult($value, $costCentersId)
-    {
-        $totalAmount = 0;
-        $currentMonth = $this->month_id;
-        foreach ($costCentersId as $costCenter) {
-            $first = CostCenter::select('surface')->where('id', $costCenter)->first();
-
-            $quantity = (($value->unit_id == 4 && $value->unit_id_price == 3) || ($value->unit_id == 2 && $value->unit_id_price == 1)) ? ($value->quantity / 1000) : $value->quantity;
-
-            $surface = $first->surface;
-            $quantityFirst = round($quantity * $surface, 2);
-            $amountFirst = round($value->price * $quantityFirst, 2);
-
-            $data = array();
-
-            for ($x = $currentMonth; $x < $currentMonth + 12; $x++) {
-                $id = date('n', mktime(0, 0, 0, $x, 1));
-                array_push($data, $id);
-            }
-
-            $totalAmountCostCenter = 0;
-            foreach ($data as $month) {
-                $count = DB::table('harvest_items')
-                    ->select('harvest_id')
-                    ->where('harvest_id', $value->id)
-                    ->where('month_id', $month)
-                    ->where('cost_center_id', $costCenter)
-                    ->count();
-
-                $amountMonth = $count > 0 ? $amountFirst : 0;
-                $totalAmountCostCenter += $amountMonth;
-
-
-                if (!isset($this->monthsHarvests[$month])) {
-                    $this->monthsHarvests[$month] = 0;
-                }
-                $this->monthsHarvests[$month] += $amountMonth;
-            }
-            $totalAmount += $totalAmountCostCenter;
-        }
-
-        $this->totalHarvests += $totalAmount;
-    }
+    // ELIMINADO: getHarvestsResult() - código muerto, nunca era invocado
 
 
 
@@ -1065,7 +889,7 @@ $totalInvestments = \App\Models\Investment::where('season_id', $season_id)
             ->get();
 
         // Obtener superficies de todos los cost centers de una sola vez
-        $costCenters = CostCenter::whereIn('id', $costCentersId)->pluck('surface', 'id');
+        $costCenters = $this->cachedSurfaces ?? CostCenter::whereIn('id', $costCentersId)->pluck('surface', 'id');
 
         // Obtener todos los meses del ciclo
         $currentMonth = $this->month_id;
@@ -1117,48 +941,7 @@ $totalInvestments = \App\Models\Investment::where('season_id', $season_id)
      * Calcula el monto total de un insumo en todos los cost centers y meses.
      * Actualiza los acumuladores globales.
      */
-    private function getSuppliesResult($value, $costCentersId)
-    {
-        $totalAmount = 0;
-        $currentMonth = $this->month_id;
-        foreach ($costCentersId as $costCenter) {
-            $first = CostCenter::select('surface')->where('id', $costCenter)->first();
-
-            $quantity = (($value->unit_id == 4 && $value->unit_id_price == 3) || ($value->unit_id == 2 && $value->unit_id_price == 1)) ? ($value->quantity / 1000) : $value->quantity;
-
-            $surface = $first->surface;
-            $quantityFirst = round($quantity * $surface, 2);
-            $amountFirst = round($value->price * $quantityFirst, 2);
-
-            $data = array();
-
-            for ($x = $currentMonth; $x < $currentMonth + 12; $x++) {
-                $id = date('n', mktime(0, 0, 0, $x, 1));
-                array_push($data, $id);
-            }
-
-            $totalAmountCostCenter = 0;
-            foreach ($data as $month) {
-                $count = DB::table('supply_items')
-                    ->select('supply_id')
-                    ->where('supply_id', $value->id)
-                    ->where('month_id', $month)
-                    ->where('cost_center_id', $costCenter)
-                    ->count();
-
-                $amountMonth = $count > 0 ? $amountFirst : 0;
-                $totalAmountCostCenter += $amountMonth;
-
-                if (!isset($this->monthsSupplies[$month])) {
-                    $this->monthsSupplies[$month] = 0;
-                }
-                $this->monthsSupplies[$month] += $amountMonth;
-            }
-            $totalAmount += $totalAmountCostCenter;
-        }
-
-        $this->totalSupplies += $totalAmount;
-    }
+    // ELIMINADO: getSuppliesResult() - código muerto, nunca era invocado
 
     /**
      * Calcula el total de agroquímicos por estado de desarrollo.
@@ -1169,18 +952,9 @@ $totalInvestments = \App\Models\Investment::where('season_id', $season_id)
         $result = [];
         $currentMonth = $this->month_id;
         // Obtener todos los cost centers con su development_state_id y surface
-        $costCenters = \App\Models\CostCenter::whereIn('id', $costCentersId)
+        $costCenters = $this->cachedCostCenters ?? \App\Models\CostCenter::whereIn('id', $costCentersId)
             ->select('id', 'development_state_id', 'surface')
             ->get();
-
-        // Mapear cost_center_id a development_state_id y surface
-        $costCenterDevMap = [];
-        foreach ($costCenters as $center) {
-            $costCenterDevMap[$center->id] = [
-                'dev' => $center->development_state_id,
-                'surface' => $center->surface
-            ];
-        }
 
         // Obtener todos los meses del ciclo
         $months = [];
@@ -1236,9 +1010,29 @@ $totalInvestments = \App\Models\Investment::where('season_id', $season_id)
         $result = [];
         $currentMonth = $this->month_id;
         // Obtener todos los cost centers con su development_state_id
-        $costCenters = \App\Models\CostCenter::whereIn('id', $costCentersId)
+        $costCenters = $this->cachedCostCenters ?? \App\Models\CostCenter::whereIn('id', $costCentersId)
             ->select('id', 'development_state_id', 'surface')
             ->get();
+
+        // Obtener todos los meses del ciclo
+        $months = [];
+        for ($x = $currentMonth; $x < $currentMonth + 12; $x++) {
+            $id = date('n', mktime(0, 0, 0, $x, 1));
+            $months[] = $id;
+        }
+
+        // Obtener todos los conteos de agrochemical_items de una sola vez
+        $itemCounts = DB::table('agrochemical_items')
+            ->select('agrochemical_id', 'cost_center_id', 'month_id', DB::raw('COUNT(*) as total'))
+            ->where('agrochemical_id', $value->id)
+            ->whereIn('cost_center_id', $costCentersId)
+            ->whereIn('month_id', $months)
+            ->groupBy('agrochemical_id', 'cost_center_id', 'month_id')
+            ->get()
+            ->groupBy(function ($row) {
+                return $row->cost_center_id . '-' . $row->month_id;
+            });
+
         foreach ($costCenters->groupBy('development_state_id') as $devStateId => $centers) {
             $totalAmountDev = 0;
             $totalSurface = 0;
@@ -1253,18 +1047,9 @@ $totalInvestments = \App\Models\Investment::where('season_id', $season_id)
                     $quantityFirst = 0;
                 }
                 $amountFirst = round($value->price * $quantityFirst, 2);
-                $data = [];
-                for ($x = $currentMonth; $x < $currentMonth + 12; $x++) {
-                    $id = date('n', mktime(0, 0, 0, $x, 1));
-                    array_push($data, $id);
-                }
-                foreach ($data as $month) {
-                    $count = DB::table('agrochemical_items')
-                        ->select('agrochemical_id')
-                        ->where('agrochemical_id', $value->id)
-                        ->where('month_id', $month)
-                        ->where('cost_center_id', $center->id)
-                        ->count();
+                foreach ($months as $month) {
+                    $key = $center->id . '-' . $month;
+                    $count = isset($itemCounts[$key]) && $itemCounts[$key][0]->total > 0 ? $itemCounts[$key][0]->total : 0;
                     $amountMonth = $count > 0 ? $amountFirst : 0;
                     $totalAmountDev += $amountMonth;
                 }
@@ -1285,18 +1070,9 @@ $totalInvestments = \App\Models\Investment::where('season_id', $season_id)
         $result = [];
         $currentMonth = $this->month_id;
         // Obtener todos los cost centers con su development_state_id y surface
-        $costCenters = \App\Models\CostCenter::whereIn('id', $costCentersId)
+        $costCenters = $this->cachedCostCenters ?? \App\Models\CostCenter::whereIn('id', $costCentersId)
             ->select('id', 'development_state_id', 'surface')
             ->get();
-
-        // Mapear cost_center_id a development_state_id y surface
-        $costCenterDevMap = [];
-        foreach ($costCenters as $center) {
-            $costCenterDevMap[$center->id] = [
-                'dev' => $center->development_state_id,
-                'surface' => $center->surface
-            ];
-        }
 
         // Obtener todos los meses del ciclo
         $months = [];
@@ -1347,18 +1123,9 @@ $totalInvestments = \App\Models\Investment::where('season_id', $season_id)
         $result = [];
         $currentMonth = $this->month_id;
         // Obtener todos los cost centers con su development_state_id y surface
-        $costCenters = \App\Models\CostCenter::whereIn('id', $costCentersId)
+        $costCenters = $this->cachedCostCenters ?? \App\Models\CostCenter::whereIn('id', $costCentersId)
             ->select('id', 'development_state_id', 'surface')
             ->get();
-
-        // Mapear cost_center_id a development_state_id y surface
-        $costCenterDevMap = [];
-        foreach ($costCenters as $center) {
-            $costCenterDevMap[$center->id] = [
-                'dev' => $center->development_state_id,
-                'surface' => $center->surface
-            ];
-        }
 
         // Obtener todos los meses del ciclo
         $months = [];
@@ -1411,18 +1178,9 @@ $totalInvestments = \App\Models\Investment::where('season_id', $season_id)
         $result = [];
         $currentMonth = $this->month_id;
         // Obtener todos los cost centers con su development_state_id y surface
-        $costCenters = \App\Models\CostCenter::whereIn('id', $costCentersId)
+        $costCenters = $this->cachedCostCenters ?? \App\Models\CostCenter::whereIn('id', $costCentersId)
             ->select('id', 'development_state_id', 'surface')
             ->get();
-
-        // Mapear cost_center_id a development_state_id y surface
-        $costCenterDevMap = [];
-        foreach ($costCenters as $center) {
-            $costCenterDevMap[$center->id] = [
-                'dev' => $center->development_state_id,
-                'surface' => $center->surface
-            ];
-        }
 
         // Obtener todos los meses del ciclo
         $months = [];
@@ -1472,18 +1230,9 @@ $totalInvestments = \App\Models\Investment::where('season_id', $season_id)
         $result = [];
         $currentMonth = $this->month_id;
         // Obtener todos los cost centers con su development_state_id y surface
-        $costCenters = \App\Models\CostCenter::whereIn('id', $costCentersId)
+        $costCenters = $this->cachedCostCenters ?? \App\Models\CostCenter::whereIn('id', $costCentersId)
             ->select('id', 'development_state_id', 'surface')
             ->get();
-
-        // Mapear cost_center_id a development_state_id y surface
-        $costCenterDevMap = [];
-        foreach ($costCenters as $center) {
-            $costCenterDevMap[$center->id] = [
-                'dev' => $center->development_state_id,
-                'surface' => $center->surface
-            ];
-        }
 
         // Obtener todos los meses del ciclo
         $months = [];
@@ -1535,18 +1284,9 @@ $totalInvestments = \App\Models\Investment::where('season_id', $season_id)
         $result = [];
         $currentMonth = $this->month_id;
         // Obtener todos los cost centers con su development_state_id y surface
-        $costCenters = \App\Models\CostCenter::whereIn('id', $costCentersId)
+        $costCenters = $this->cachedCostCenters ?? \App\Models\CostCenter::whereIn('id', $costCentersId)
             ->select('id', 'development_state_id', 'surface')
             ->get();
-
-        // Mapear cost_center_id a development_state_id y surface
-        $costCenterDevMap = [];
-        foreach ($costCenters as $center) {
-            $costCenterDevMap[$center->id] = [
-                'dev' => $center->development_state_id,
-                'surface' => $center->surface
-            ];
-        }
 
         // Obtener todos los meses del ciclo
         $months = [];
@@ -1599,18 +1339,9 @@ $totalInvestments = \App\Models\Investment::where('season_id', $season_id)
         $result = [];
         $currentMonth = $this->month_id;
         // Obtener todos los cost centers con su development_state_id y surface
-        $costCenters = \App\Models\CostCenter::whereIn('id', $costCentersId)
+        $costCenters = $this->cachedCostCenters ?? \App\Models\CostCenter::whereIn('id', $costCentersId)
             ->select('id', 'development_state_id', 'surface')
             ->get();
-
-        // Mapear cost_center_id a development_state_id y surface
-        $costCenterDevMap = [];
-        foreach ($costCenters as $center) {
-            $costCenterDevMap[$center->id] = [
-                'dev' => $center->development_state_id,
-                'surface' => $center->surface
-            ];
-        }
 
         // Obtener todos los meses del ciclo
         $months = [];
@@ -1674,18 +1405,9 @@ $totalInvestments = \App\Models\Investment::where('season_id', $season_id)
         $result = [];
         $currentMonth = $this->month_id;
         // Obtener todos los cost centers con su development_state_id y surface
-        $costCenters = \App\Models\CostCenter::whereIn('id', $costCentersId)
+        $costCenters = $this->cachedCostCenters ?? \App\Models\CostCenter::whereIn('id', $costCentersId)
             ->select('id', 'development_state_id', 'surface')
             ->get();
-
-        // Mapear cost_center_id a development_state_id y surface
-        $costCenterDevMap = [];
-        foreach ($costCenters as $center) {
-            $costCenterDevMap[$center->id] = [
-                'dev' => $center->development_state_id,
-                'surface' => $center->surface
-            ];
-        }
 
         // Obtener todos los meses del ciclo
         $months = [];
@@ -1735,18 +1457,9 @@ $totalInvestments = \App\Models\Investment::where('season_id', $season_id)
         $result = [];
         $currentMonth = $this->month_id;
         // Obtener todos los cost centers con su development_state_id y surface
-        $costCenters = \App\Models\CostCenter::whereIn('id', $costCentersId)
+        $costCenters = $this->cachedCostCenters ?? \App\Models\CostCenter::whereIn('id', $costCentersId)
             ->select('id', 'development_state_id', 'surface')
             ->get();
-
-        // Mapear cost_center_id a development_state_id y surface
-        $costCenterDevMap = [];
-        foreach ($costCenters as $center) {
-            $costCenterDevMap[$center->id] = [
-                'dev' => $center->development_state_id,
-                'surface' => $center->surface
-            ];
-        }
 
         // Obtener todos los meses del ciclo
         $months = [];
@@ -1810,18 +1523,9 @@ $totalInvestments = \App\Models\Investment::where('season_id', $season_id)
         $result = [];
         $currentMonth = $this->month_id;
         // Obtener todos los cost centers con su development_state_id y surface
-        $costCenters = \App\Models\CostCenter::whereIn('id', $costCentersId)
+        $costCenters = $this->cachedCostCenters ?? \App\Models\CostCenter::whereIn('id', $costCentersId)
             ->select('id', 'development_state_id', 'surface')
             ->get();
-
-        // Mapear cost_center_id a development_state_id y surface
-        $costCenterDevMap = [];
-        foreach ($costCenters as $center) {
-            $costCenterDevMap[$center->id] = [
-                'dev' => $center->development_state_id,
-                'surface' => $center->surface
-            ];
-        }
 
         // Obtener todos los meses del ciclo
         $months = [];
@@ -1872,18 +1576,9 @@ $totalInvestments = \App\Models\Investment::where('season_id', $season_id)
         $result = [];
         $currentMonth = $this->month_id;
         // Obtener todos los cost centers con su development_state_id y surface
-        $costCenters = \App\Models\CostCenter::whereIn('id', $costCentersId)
+        $costCenters = $this->cachedCostCenters ?? \App\Models\CostCenter::whereIn('id', $costCentersId)
             ->select('id', 'development_state_id', 'surface')
             ->get();
-
-        // Mapear cost_center_id a development_state_id y surface
-        $costCenterDevMap = [];
-        foreach ($costCenters as $center) {
-            $costCenterDevMap[$center->id] = [
-                'dev' => $center->development_state_id,
-                'surface' => $center->surface
-            ];
-        }
 
         // Obtener todos los meses del ciclo
         $months = [];
@@ -2093,7 +1788,8 @@ $totalInvestments = \App\Models\Investment::where('season_id', $season_id)
                 $query->where('team_id', $team_id);
             });
         }
-        $costCenters = $costCentersQuery->get(['id', 'fruit_id'])->keyBy('id');
+        // OPTIMIZACIÓN: incluir surface en la query inicial para evitar N+1
+        $costCenters = $costCentersQuery->get(['id', 'fruit_id', 'surface'])->keyBy('id');
         // Pre-cargar los nombres de fruta
         $fruitIds = $costCenters->pluck('fruit_id')->unique()->filter();
         $fruits = $fruitIds->count() ? \App\Models\Fruit::whereIn('id', $fruitIds)->pluck('name', 'id') : collect();
@@ -2123,11 +1819,22 @@ $totalInvestments = \App\Models\Investment::where('season_id', $season_id)
             ->whereIn('ai.cost_center_id', $costCenters->keys())
             ->groupBy('a.id', 'l1.id', 'l1.name', 'l2.id', 'l2.name', 'ai.cost_center_id')
             ->get();
+        // OPTIMIZACIÓN: Batch query para conteos de agrochemical_items
+        $agroItemCounts = DB::table('agrochemical_items')
+            ->select('agrochemical_id', 'cost_center_id', 'month_id', DB::raw('COUNT(*) as total'))
+            ->whereIn('agrochemical_id', $agrochemicals->pluck('id')->unique())
+            ->whereIn('cost_center_id', $costCenters->keys())
+            ->whereIn('month_id', $months)
+            ->groupBy('agrochemical_id', 'cost_center_id', 'month_id')
+            ->get()
+            ->groupBy(function ($row) {
+                return $row->agrochemical_id . '-' . $row->cost_center_id . '-' . $row->month_id;
+            });
         foreach ($agrochemicals as $a) {
             $amount = 0;
-            $first = \App\Models\CostCenter::select('surface', 'fruit_id')->where('id', $a->cost_center_id)->first();
-            $surface = $first ? $first->surface : 0;
-            $fruit_id = $first ? $first->fruit_id : null;
+            $cc = $costCenters->get($a->cost_center_id);
+            $surface = $cc ? $cc->surface : 0;
+            $fruit_id = $cc ? $cc->fruit_id : null;
             $fruit_name = $fruit_id && isset($fruits[$fruit_id]) ? $fruits[$fruit_id] : null;
             $dose = (($a->unit_id == 4 && $a->unit_id_price == 3) || ($a->unit_id == 2 && $a->unit_id_price == 1)) ? ($a->dose / 1000) : $a->dose;
             if ($a->dose_type_id == 1) {
@@ -2139,11 +1846,8 @@ $totalInvestments = \App\Models\Investment::where('season_id', $season_id)
             }
             $amountFirst = round($a->price * $quantityFirst, 2);
             foreach ($months as $month) {
-                $count = DB::table('agrochemical_items')
-                    ->where('agrochemical_id', $a->id)
-                    ->where('month_id', $month)
-                    ->where('cost_center_id', $a->cost_center_id)
-                    ->count();
+                $key = $a->id . '-' . $a->cost_center_id . '-' . $month;
+                $count = isset($agroItemCounts[$key]) && $agroItemCounts[$key][0]->total > 0 ? $agroItemCounts[$key][0]->total : 0;
                 $amount += ($count > 0 ? $amountFirst : 0);
             }
             $addTotal($a->level1_id, $a->level1_name, $a->level2_id, $a->level2_name, $fruit_id, $fruit_name, $amount);
@@ -2158,21 +1862,29 @@ $totalInvestments = \App\Models\Investment::where('season_id', $season_id)
             ->whereIn('fi.cost_center_id', $costCenters->keys())
             ->groupBy('f.id', 'l1.id', 'l1.name', 'l2.id', 'l2.name', 'fi.cost_center_id')
             ->get();
+        // OPTIMIZACIÓN: Batch query para conteos de fertilizer_items
+        $fertItemCounts = DB::table('fertilizer_items')
+            ->select('fertilizer_id', 'cost_center_id', 'month_id', DB::raw('COUNT(*) as total'))
+            ->whereIn('fertilizer_id', $fertilizers->pluck('id')->unique())
+            ->whereIn('cost_center_id', $costCenters->keys())
+            ->whereIn('month_id', $months)
+            ->groupBy('fertilizer_id', 'cost_center_id', 'month_id')
+            ->get()
+            ->groupBy(function ($row) {
+                return $row->fertilizer_id . '-' . $row->cost_center_id . '-' . $row->month_id;
+            });
         foreach ($fertilizers as $f) {
             $amount = 0;
-            $first = \App\Models\CostCenter::select('surface', 'fruit_id')->where('id', $f->cost_center_id)->first();
-            $surface = $first ? $first->surface : 0;
-            $fruit_id = $first ? $first->fruit_id : null;
+            $cc = $costCenters->get($f->cost_center_id);
+            $surface = $cc ? $cc->surface : 0;
+            $fruit_id = $cc ? $cc->fruit_id : null;
             $fruit_name = $fruit_id && isset($fruits[$fruit_id]) ? $fruits[$fruit_id] : null;
             $dose = (($f->unit_id == 4 && $f->unit_id_price == 3) || ($f->unit_id == 2 && $f->unit_id_price == 1)) ? ($f->dose / 1000) : $f->dose;
             $quantityFirst = round($dose * $surface, 2);
             $amountFirst = round($f->price * $quantityFirst, 2);
             foreach ($months as $month) {
-                $count = DB::table('fertilizer_items')
-                    ->where('fertilizer_id', $f->id)
-                    ->where('month_id', $month)
-                    ->where('cost_center_id', $f->cost_center_id)
-                    ->count();
+                $key = $f->id . '-' . $f->cost_center_id . '-' . $month;
+                $count = isset($fertItemCounts[$key]) && $fertItemCounts[$key][0]->total > 0 ? $fertItemCounts[$key][0]->total : 0;
                 $amount += ($count > 0 ? $amountFirst : 0);
             }
             $addTotal($f->level1_id, $f->level1_name, $f->level2_id, $f->level2_name, $fruit_id, $fruit_name, $amount);
@@ -2187,20 +1899,28 @@ $totalInvestments = \App\Models\Investment::where('season_id', $season_id)
             ->whereIn('mpi.cost_center_id', $costCenters->keys())
             ->groupBy('mp.id', 'l1.id', 'l1.name', 'l2.id', 'l2.name', 'mpi.cost_center_id')
             ->get();
+        // OPTIMIZACIÓN: Batch query para conteos de manpower_items
+        $mpItemCounts = DB::table('manpower_items')
+            ->select('man_power_id', 'cost_center_id', 'month_id', DB::raw('COUNT(*) as total'))
+            ->whereIn('man_power_id', $manpowers->pluck('id')->unique())
+            ->whereIn('cost_center_id', $costCenters->keys())
+            ->whereIn('month_id', $months)
+            ->groupBy('man_power_id', 'cost_center_id', 'month_id')
+            ->get()
+            ->groupBy(function ($row) {
+                return $row->man_power_id . '-' . $row->cost_center_id . '-' . $row->month_id;
+            });
         foreach ($manpowers as $mp) {
             $amount = 0;
-            $first = \App\Models\CostCenter::select('surface', 'fruit_id')->where('id', $mp->cost_center_id)->first();
-            $surface = $first ? $first->surface : 0;
-            $fruit_id = $first ? $first->fruit_id : null;
+            $cc = $costCenters->get($mp->cost_center_id);
+            $surface = $cc ? $cc->surface : 0;
+            $fruit_id = $cc ? $cc->fruit_id : null;
             $fruit_name = $fruit_id && isset($fruits[$fruit_id]) ? $fruits[$fruit_id] : null;
             $quantityFirst = round($mp->workday * $surface, 2);
             $amountFirst = round($mp->price * $quantityFirst, 2);
             foreach ($months as $month) {
-                $count = DB::table('manpower_items')
-                    ->where('man_power_id', $mp->id)
-                    ->where('month_id', $month)
-                    ->where('cost_center_id', $mp->cost_center_id)
-                    ->count();
+                $key = $mp->id . '-' . $mp->cost_center_id . '-' . $month;
+                $count = isset($mpItemCounts[$key]) && $mpItemCounts[$key][0]->total > 0 ? $mpItemCounts[$key][0]->total : 0;
                 $amount += ($count > 0 ? $amountFirst : 0);
             }
             $addTotal($mp->level1_id, $mp->level1_name, $mp->level2_id, $mp->level2_name, $fruit_id, $fruit_name, $amount);
@@ -2215,28 +1935,33 @@ $totalInvestments = \App\Models\Investment::where('season_id', $season_id)
             ->whereIn('si.cost_center_id', $costCenters->keys())
             ->groupBy('s.id', 'l1.id', 'l1.name', 'l2.id', 'l2.name', 'si.cost_center_id')
             ->get();
+        // OPTIMIZACIÓN: Batch query para conteos de service_items
+        $svcItemCounts = DB::table('service_items')
+            ->select('service_id', 'cost_center_id', 'month_id', DB::raw('COUNT(*) as total'))
+            ->whereIn('service_id', $services->pluck('id')->unique())
+            ->whereIn('cost_center_id', $costCenters->keys())
+            ->whereIn('month_id', $months)
+            ->groupBy('service_id', 'cost_center_id', 'month_id')
+            ->get()
+            ->groupBy(function ($row) {
+                return $row->service_id . '-' . $row->cost_center_id . '-' . $row->month_id;
+            });
         foreach ($services as $s) {
             $amount = 0;
-            $first = \App\Models\CostCenter::select('surface', 'fruit_id')->where('id', $s->cost_center_id)->first();
-            $surface = $first ? $first->surface : 0;
-            $fruit_id = $first ? $first->fruit_id : null;
+            $cc = $costCenters->get($s->cost_center_id);
+            $surface = $cc ? $cc->surface : 0;
+            $fruit_id = $cc ? $cc->fruit_id : null;
             $fruit_name = $fruit_id && isset($fruits[$fruit_id]) ? $fruits[$fruit_id] : null;
             $quantity = (($s->unit_id == 4 && $s->unit_id_price == 3) || ($s->unit_id == 2 && $s->unit_id_price == 1)) ? ($s->quantity / 1000) : $s->quantity;
             $quantityFirst = round($quantity * $surface, 2);
             $amountFirst = round($s->price * $quantityFirst, 2);
             foreach ($months as $month) {
-                $count = DB::table('service_items')
-                    ->where('service_id', $s->id)
-                    ->where('month_id', $month)
-                    ->where('cost_center_id', $s->cost_center_id)
-                    ->count();
+                $key = $s->id . '-' . $s->cost_center_id . '-' . $month;
+                $count = isset($svcItemCounts[$key]) && $svcItemCounts[$key][0]->total > 0 ? $svcItemCounts[$key][0]->total : 0;
                 $amount += ($count > 0 ? $amountFirst : 0);
             }
             $addTotal($s->level1_id, $s->level1_name, $s->level2_id, $s->level2_name, $fruit_id, $fruit_name, $amount);
         }
-
-
-
         // HARVESTS
         $harvests = \App\Models\Harvest::from('harvests as h')
             ->join('harvest_items as hi', 'h.id', 'hi.harvest_id')
@@ -2247,29 +1972,33 @@ $totalInvestments = \App\Models\Investment::where('season_id', $season_id)
             ->whereIn('hi.cost_center_id', $costCenters->keys())
             ->groupBy('h.id', 'l1.id', 'l1.name', 'l2.id', 'l2.name', 'hi.cost_center_id')
             ->get();
+        // OPTIMIZACIÓN: Batch query para conteos de harvest_items
+        $hvstItemCounts = DB::table('harvest_items')
+            ->select('harvest_id', 'cost_center_id', 'month_id', DB::raw('COUNT(*) as total'))
+            ->whereIn('harvest_id', $harvests->pluck('id')->unique())
+            ->whereIn('cost_center_id', $costCenters->keys())
+            ->whereIn('month_id', $months)
+            ->groupBy('harvest_id', 'cost_center_id', 'month_id')
+            ->get()
+            ->groupBy(function ($row) {
+                return $row->harvest_id . '-' . $row->cost_center_id . '-' . $row->month_id;
+            });
         foreach ($harvests as $h) {
             $amount = 0;
-            $first = \App\Models\CostCenter::select('surface', 'fruit_id')->where('id', $h->cost_center_id)->first();
-            $surface = $first ? $first->surface : 0;
-            $fruit_id = $first ? $first->fruit_id : null;
+            $cc = $costCenters->get($h->cost_center_id);
+            $surface = $cc ? $cc->surface : 0;
+            $fruit_id = $cc ? $cc->fruit_id : null;
             $fruit_name = $fruit_id && isset($fruits[$fruit_id]) ? $fruits[$fruit_id] : null;
             $quantity = (($h->unit_id == 4 && $h->unit_id_price == 3) || ($h->unit_id == 2 && $h->unit_id_price == 1)) ? ($h->quantity / 1000) : $h->quantity;
             $quantityFirst = round($quantity * $surface, 2);
             $amountFirst = round($h->price * $quantityFirst, 2);
             foreach ($months as $month) {
-                $count = DB::table('harvest_items')
-                    ->where('harvest_id', $h->id)
-                    ->where('month_id', $month)
-                    ->where('cost_center_id', $h->cost_center_id)
-                    ->count();
+                $key = $h->id . '-' . $h->cost_center_id . '-' . $month;
+                $count = isset($hvstItemCounts[$key]) && $hvstItemCounts[$key][0]->total > 0 ? $hvstItemCounts[$key][0]->total : 0;
                 $amount += ($count > 0 ? $amountFirst : 0);
             }
             $addTotal($h->level1_id, $h->level1_name, $h->level2_id, $h->level2_name, $fruit_id, $fruit_name, $amount);
         }
-
-
-
-
         // SUPPLIES
         $supplies = \App\Models\Supply::from('supplies as s')
             ->join('supply_items as si', 's.id', 'si.supply_id')
@@ -2280,21 +2009,29 @@ $totalInvestments = \App\Models\Investment::where('season_id', $season_id)
             ->whereIn('si.cost_center_id', $costCenters->keys())
             ->groupBy('s.id', 'l1.id', 'l1.name', 'l2.id', 'l2.name', 'si.cost_center_id')
             ->get();
+        // OPTIMIZACIÓN: Batch query para conteos de supply_items
+        $supItemCounts = DB::table('supply_items')
+            ->select('supply_id', 'cost_center_id', 'month_id', DB::raw('COUNT(*) as total'))
+            ->whereIn('supply_id', $supplies->pluck('id')->unique())
+            ->whereIn('cost_center_id', $costCenters->keys())
+            ->whereIn('month_id', $months)
+            ->groupBy('supply_id', 'cost_center_id', 'month_id')
+            ->get()
+            ->groupBy(function ($row) {
+                return $row->supply_id . '-' . $row->cost_center_id . '-' . $row->month_id;
+            });
         foreach ($supplies as $s) {
             $amount = 0;
-            $first = \App\Models\CostCenter::select('surface', 'fruit_id')->where('id', $s->cost_center_id)->first();
-            $surface = $first ? $first->surface : 0;
-            $fruit_id = $first ? $first->fruit_id : null;
+            $cc = $costCenters->get($s->cost_center_id);
+            $surface = $cc ? $cc->surface : 0;
+            $fruit_id = $cc ? $cc->fruit_id : null;
             $fruit_name = $fruit_id && isset($fruits[$fruit_id]) ? $fruits[$fruit_id] : null;
             $quantity = (($s->unit_id == 4 && $s->unit_id_price == 3) || ($s->unit_id == 2 && $s->unit_id_price == 1)) ? ($s->quantity / 1000) : $s->quantity;
             $quantityFirst = round($quantity * $surface, 2);
             $amountFirst = round($s->price * $quantityFirst, 2);
             foreach ($months as $month) {
-                $count = DB::table('supply_items')
-                    ->where('supply_id', $s->id)
-                    ->where('month_id', $month)
-                    ->where('cost_center_id', $s->cost_center_id)
-                    ->count();
+                $key = $s->id . '-' . $s->cost_center_id . '-' . $month;
+                $count = isset($supItemCounts[$key]) && $supItemCounts[$key][0]->total > 0 ? $supItemCounts[$key][0]->total : 0;
                 $amount += ($count > 0 ? $amountFirst : 0);
             }
             $addTotal($s->level1_id, $s->level1_name, $s->level2_id, $s->level2_name, $fruit_id, $fruit_name, $amount);

@@ -2,6 +2,7 @@
 // Estado para agrupación seleccionada
 // (Importación única ya presente arriba)
 const selectedGrouping = ref("");
+const expandedCC = ref(false);
 
 // Watch para autocompletar cost centers al seleccionar agrupación
 watch(selectedGrouping, (newGroupingId) => {
@@ -314,11 +315,25 @@ const onProduct2Select = (item) => {
         </div>
         <div class="col-sm-8">
 
-            <label for="cc" class="col-form-label mb-0">CC</label>
-            <div class="input-group mb-2">
-                <span class="input-group-text"
-                    ><i class="fas fa-sitemap"></i
-                ></span>
+            <div class="d-flex align-items-center justify-content-between">
+                <label for="cc" class="col-form-label mb-0"><i class="fas fa-sitemap me-1"></i>CC</label>
+                <div class="d-flex align-items-center gap-1">
+                    <span v-if="form.cc && form.cc.length > 0" class="badge bg-soft-primary text-primary" style="font-size: 0.7rem;">
+                        {{ form.cc.length }} seleccionados
+                    </span>
+                    <button
+                        v-if="form.cc && form.cc.length > 5"
+                        type="button"
+                        @click="expandedCC = !expandedCC"
+                        class="btn btn-sm btn-light-primary d-flex align-items-center gap-1 py-0 px-2"
+                        style="font-size: 0.7rem;"
+                    >
+                        <i class="fas" :class="expandedCC ? 'fa-compress-alt' : 'fa-expand-alt'" style="font-size: 0.65rem;"></i>
+                        {{ expandedCC ? 'Colapsar' : 'Ver todos' }}
+                    </button>
+                </div>
+            </div>
+            <div class="cc-multiselect-wrapper mb-2">
                 <Multiselect
                     mode="tags"
                     tagClass="small-tag"
@@ -326,8 +341,8 @@ const onProduct2Select = (item) => {
                     v-model="form.cc"
                     :close-on-select="false"
                     :options="$page.props.costCenters"
-                    class="form-control" style="height:52px;"
-                    :class="{ 'is-invalid': form.errors.cc }"
+                    class="form-control multiselect-tags-limited"
+                    :class="{ 'is-invalid': form.errors.cc, 'multiselect-tags-expanded': expandedCC }"
                     :searchable="true"
                     :hide-selected="false"
                 />
@@ -865,6 +880,34 @@ label {
 
 .input-group .form-control {
     border-radius: 0.25rem !important;
+}
+
+/* CC expand/collapse */
+.cc-multiselect-wrapper {
+    position: relative;
+}
+.cc-multiselect-wrapper .multiselect,
+.cc-multiselect-wrapper .multiselect.form-control {
+    height: auto !important;
+    min-height: 32px !important;
+    max-height: none !important;
+}
+.multiselect-tags-limited .multiselect-tags {
+    max-height: 32px;
+    overflow: hidden;
+    transition: max-height 0.3s ease;
+}
+.multiselect-tags-expanded .multiselect-tags {
+    max-height: 200px;
+    overflow-y: auto;
+    overflow-x: hidden;
+}
+.multiselect-tags-expanded .multiselect-tags::-webkit-scrollbar {
+    width: 4px;
+}
+.multiselect-tags-expanded .multiselect-tags::-webkit-scrollbar-thumb {
+    background-color: rgba(0,0,0,0.2);
+    border-radius: 4px;
 }
 
 

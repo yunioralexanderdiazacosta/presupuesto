@@ -32,6 +32,7 @@ const form = localForm;
 
 const selectedPump = ref(null);
 const selectedGrouping = ref(null);
+const expandedCC = ref(false);
 
 // Inicializar selectedPump si estamos en modo edición
 if (props.fertilizerOrder && props.fertilizerOrder.irrigation_pump_id) {
@@ -311,7 +312,24 @@ onMounted(() => {
                     </small>
                 </div>
                 <div class="col-md-8">
-                    <label class="form-label small mb-1">Centros de Costo</label>
+                    <div class="d-flex align-items-center justify-content-between mb-1">
+                        <label class="form-label small mb-0">Centros de Costo</label>
+                        <div class="d-flex align-items-center gap-1">
+                            <span v-if="form.cost_centers.length > 0" class="badge bg-soft-primary text-primary" style="font-size: 0.7rem;">
+                                {{ form.cost_centers.length }} seleccionados
+                            </span>
+                            <button
+                                v-if="form.cost_centers.length > 5"
+                                type="button"
+                                @click="expandedCC = !expandedCC"
+                                class="btn btn-sm btn-light-primary d-flex align-items-center gap-1 py-0 px-2"
+                                style="font-size: 0.7rem;"
+                            >
+                                <i class="fas" :class="expandedCC ? 'fa-compress-alt' : 'fa-expand-alt'" style="font-size: 0.65rem;"></i>
+                                {{ expandedCC ? 'Colapsar' : 'Ver todos' }}
+                            </button>
+                        </div>
+                    </div>
                     <Multiselect
                         v-model="form.cost_centers"
                         :options="props.costCenters"
@@ -321,7 +339,8 @@ onMounted(() => {
                         placeholder="Seleccionar centros de costo"
                         label="label"
                         value-prop="value"
-                        class="form-control-sm"
+                        class="form-control-sm multiselect-tags-limited"
+                        :class="{ 'multiselect-tags-expanded': expandedCC }"
                     />
                 </div>
             </div>
@@ -460,3 +479,23 @@ onMounted(() => {
 </template>
 
 <style src="@vueform/multiselect/themes/default.css"></style>
+
+<style scoped>
+.multiselect-tags-limited :deep(.multiselect-tags) {
+    max-height: 32px;
+    overflow: hidden;
+    transition: max-height 0.3s ease;
+}
+.multiselect-tags-expanded :deep(.multiselect-tags) {
+    max-height: 200px;
+    overflow-y: auto;
+    overflow-x: hidden;
+}
+.multiselect-tags-expanded :deep(.multiselect-tags)::-webkit-scrollbar {
+    width: 4px;
+}
+.multiselect-tags-expanded :deep(.multiselect-tags)::-webkit-scrollbar-thumb {
+    background-color: rgba(0,0,0,0.2);
+    border-radius: 4px;
+}
+</style>

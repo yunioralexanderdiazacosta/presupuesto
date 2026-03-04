@@ -78,6 +78,7 @@ use App\Http\Controllers\Products2\DeleteProduct2Controller;
     use App\Http\Controllers\ExpenseReports\UpdateExpenseReportStatusController;
     use App\Http\Controllers\ExpenseReports\ApproveExpenseReportController;
     use App\Http\Controllers\ExpenseReports\RejectExpenseReportController;
+    use App\Http\Controllers\ExpenseReports\ExportExpenseReportsController;
 
 // Rutas para Purchase Orders
     use App\Http\Controllers\PurchaseOrders\PurchaseOrderController;
@@ -670,6 +671,7 @@ Route::middleware([
     Route::patch('/expense-reports/{expenseReport}/status', UpdateExpenseReportStatusController::class)->name('expense-reports.update-status');
     Route::post('/expense-reports/{expenseReport}/items', StoreExpenseReportItemController::class)->name('expense-reports.items.store');
     Route::delete('/expense-report-items/{item}', DeleteExpenseReportItemController::class)->name('expense-reports.items.delete');
+    Route::get('/expense-reports-export', ExportExpenseReportsController::class)->name('expense-reports.export');
 
     // Purchase Orders
     Route::get('/purchase-orders', [PurchaseOrderController::class, 'index'])->name('purchase-orders.index');

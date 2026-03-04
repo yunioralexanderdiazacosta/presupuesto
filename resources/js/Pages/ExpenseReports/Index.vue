@@ -105,6 +105,10 @@ const statusOptions = [
                     </div>
                     <div class="col-6 col-sm-auto ms-auto text-end ps-0">
                         <div class="d-flex align-items-center gap-2">
+                            <a :href="route('expense-reports.export')" class="btn btn-falcon-default btn-sm">
+                                <span class="fas fa-file-excel" data-fa-transform="shrink-3 down-2"></span>
+                                <span class="d-none d-sm-inline-block ms-1">Excel</span>
+                            </a>
                             <button class="btn btn-falcon-default btn-sm" @click="openCreateModal">
                                 <span class="fas fa-plus" data-fa-transform="shrink-3 down-2"></span>
                                 <span class="d-none d-sm-inline-block ms-1">Nueva Rendición</span>

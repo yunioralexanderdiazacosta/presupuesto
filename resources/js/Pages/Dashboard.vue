@@ -501,7 +501,7 @@ onMounted(() => {
                 <div class="row">
                   <div class="col">
                     <p class="font-sans-serif lh-1 mb-1 fs-6">
-                    <span class="fs-6">{{ totalSurface }}</span>
+                    <span class="fs-6">{{ parseFloat(totalSurface).toFixed(1) }}</span>
                     <span class="fs-8"> Hectáreas</span>
                     </p>
                   </div>

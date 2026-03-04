@@ -4,7 +4,13 @@
 
 <script setup>
 import { ref, watch, onMounted, onBeforeUnmount } from 'vue';
-import * as echarts from 'echarts';
+// Importar solo los módulos necesarios de ECharts (reduce de ~1MB a ~200KB)
+import * as echarts from 'echarts/core';
+import { BarChart } from 'echarts/charts';
+import { TooltipComponent, GridComponent } from 'echarts/components';
+import { CanvasRenderer } from 'echarts/renderers';
+
+echarts.use([BarChart, TooltipComponent, GridComponent, CanvasRenderer]);
 
 const props = defineProps({
   barLabels: {

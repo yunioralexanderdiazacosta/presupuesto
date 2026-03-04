@@ -19,6 +19,7 @@
     });
     // Agrupación para autocompletar CC
     const selectedGrouping = ref('');
+    const expandedCC = ref(false);
     // Watch para llenar form.cc según agrupación
     watch(selectedGrouping, (newId) => {
         if (!newId) return;
@@ -34,15 +35,32 @@
     <div class="row">
         <div class="col-lg-6">
             <div class="fv-row">
-                <label for="cc" class="col-form-label">CC</label>
+                <div class="d-flex align-items-center justify-content-between">
+                    <label for="cc" class="col-form-label mb-0">CC</label>
+                    <div class="d-flex align-items-center gap-1">
+                        <span v-if="form.cc && form.cc.length > 0" class="badge bg-soft-primary text-primary" style="font-size: 0.7rem;">
+                            {{ form.cc.length }} seleccionados
+                        </span>
+                        <button
+                            v-if="form.cc && form.cc.length > 5"
+                            type="button"
+                            @click="expandedCC = !expandedCC"
+                            class="btn btn-sm btn-light-primary d-flex align-items-center gap-1 py-0 px-2"
+                            style="font-size: 0.7rem;"
+                        >
+                            <i class="fas" :class="expandedCC ? 'fa-compress-alt' : 'fa-expand-alt'" style="font-size: 0.65rem;"></i>
+                            {{ expandedCC ? 'Colapsar' : 'Ver todos' }}
+                        </button>
+                    </div>
+                </div>
                 <Multiselect
                     mode="tags"
                     :placeholder="'Seleccione CC'"
                     v-model="form.cc"
                     :close-on-select="false"
                     :options="$page.props.costCenters"
-                    class="multiselect-blue form-control"
-                    :class="{'is-invalid': form.errors.cc}"
+                    class="multiselect-blue form-control multiselect-tags-limited"
+                    :class="{'is-invalid': form.errors.cc, 'multiselect-tags-expanded': expandedCC}"
                     :searchable="true"
                     :hide-selected="false"
                 />
@@ -225,5 +243,23 @@
 .multiselect-tags-search, .multiselect-search{
     background: var(--kt-input-solid-bg) !important;
 }
-
+</style>
+<style scoped>
+.multiselect-tags-limited :deep(.multiselect-tags) {
+    max-height: 32px;
+    overflow: hidden;
+    transition: max-height 0.3s ease;
+}
+.multiselect-tags-expanded :deep(.multiselect-tags) {
+    max-height: 200px;
+    overflow-y: auto;
+    overflow-x: hidden;
+}
+.multiselect-tags-expanded :deep(.multiselect-tags)::-webkit-scrollbar {
+    width: 4px;
+}
+.multiselect-tags-expanded :deep(.multiselect-tags)::-webkit-scrollbar-thumb {
+    background-color: rgba(0,0,0,0.2);
+    border-radius: 4px;
+}
 </style>

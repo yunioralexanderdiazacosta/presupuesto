@@ -253,6 +253,9 @@ const selectedCostCenters = computed({
 // ==== AGRUPACIÓN ====
 const selectedGrouping = ref(null);
 
+// Estado para expandir/colapsar tags de CC
+const expandedCC = ref(false);
+
 // ==== FILTRADO DE ETAPAS FENOLÓGICAS ====
 const selectedFruit = ref(null); // Solo para filtrar, NO se guarda
 
@@ -492,7 +495,23 @@ function getSimplifiedQuantity(product) {
                 </small>
             </div>
             <div class="col-md-8">
-                <label class="form-label small mb-1">Seleccionar Centros de Costo <span class="text-danger">*</span></label>
+                <div class="d-flex align-items-center justify-content-between mb-0">
+                    <label class="form-label small mb-0">Seleccionar Centros de Costo <span class="text-danger">*</span>
+                        <span v-if="selectedCostCenters.length > 0" class="badge bg-primary ms-1" style="font-size: 0.6rem; vertical-align: middle;">
+                            {{ selectedCostCenters.length }}
+                        </span>
+                    </label>
+                    <button
+                        v-if="selectedCostCenters.length > 5"
+                        type="button"
+                        @click="expandedCC = !expandedCC"
+                        class="btn btn-link btn-sm p-0 text-muted"
+                        style="font-size: 0.65rem; text-decoration: none;"
+                    >
+                        <i class="fas" :class="expandedCC ? 'fa-compress-alt' : 'fa-expand-alt'" style="font-size: 0.6rem;"></i>
+                        {{ expandedCC ? 'Colapsar' : 'Ver todos' }}
+                    </button>
+                </div>
                 <Multiselect
                     v-model="selectedCostCenters"
                     :options="costCenters"
@@ -500,8 +519,7 @@ function getSimplifiedQuantity(product) {
                     :searchable="true"
                     :close-on-select="false"
                     placeholder="Seleccione centros de costo..."
-                    class="multiselect-blue form-control-sm"
-                    :class="{'is-invalid': form.errors.cost_centers}"
+                    :class="['multiselect-blue form-control-sm multiselect-tags-limited', { 'multiselect-tags-expanded': expandedCC }, {'is-invalid': form.errors.cost_centers}]"
                 />
                 <InputError :message="form.errors.cost_centers" />
             </div>
@@ -766,5 +784,43 @@ function getSimplifiedQuantity(product) {
     --ms-tag-color: var(--kt-primary);
     --ms-option-bg-selected: var(--kt-primary);
     --ms-option-bg-selected-pointed: var(--kt-primary);
+}
+
+/* Limitar tags visibles en el multiselect de centros de costo */
+.multiselect-tags-limited .multiselect-tags {
+    max-height: 32px !important;
+    overflow: hidden !important;
+    flex-wrap: wrap;
+    transition: max-height 0.3s ease;
+}
+
+/* Estado expandido */
+.multiselect-tags-expanded .multiselect-tags {
+    max-height: 200px !important;
+    overflow-y: auto !important;
+    overflow-x: hidden !important;
+}
+
+/* Scrollbar discreto para los tags expandidos */
+.multiselect-tags-expanded .multiselect-tags::-webkit-scrollbar {
+    width: 4px;
+}
+.multiselect-tags-expanded .multiselect-tags::-webkit-scrollbar-thumb {
+    background: rgba(0,0,0,0.2);
+    border-radius: 4px;
+}
+.multiselect-tags-expanded .multiselect-tags::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+.multiselect-blue.multiselect-tags-limited {
+    height: auto !important;
+    max-height: 38px !important;
+    min-height: 29px !important;
+    transition: max-height 0.3s ease;
+}
+
+.multiselect-blue.multiselect-tags-expanded {
+    max-height: 210px !important;
 }
 </style>
