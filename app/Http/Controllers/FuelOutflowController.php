@@ -120,13 +120,19 @@ class FuelOutflowController extends Controller
         // 4. Traer líneas de facturas de combustibles
         $availableFuelStocks = [];
         
-        $invoices = Invoice::with(['supplier', 'typeDocument', 'products.unit', 'products.level3'])
+        $invoices = Invoice::with(['supplier', 'typeDocument', 'invoiceProducts.product.unit', 'invoiceProducts.product.level3'])
             ->where('team_id', $user->team_id)
             ->where('season_id', $season_id)
             ->get();
         
         foreach ($invoices as $invoice) {
-            foreach ($invoice->products as $product) {
+            foreach ($invoice->invoiceProducts as $invoiceProduct) {
+                $product = $invoiceProduct->product;
+                
+                if (!$product) {
+                    continue;
+                }
+
                 // Filtrar solo productos de combustible
                 if ($combustibleProductIds->isEmpty() || !$combustibleProductIds->contains($product->id)) {
                     continue;
@@ -136,16 +142,16 @@ class FuelOutflowController extends Controller
                 $hasCreditNote = DB::table('credit_debit_note_items')
                     ->join('credit_debit_notes', 'credit_debit_note_items.credit_debit_note_id', '=', 'credit_debit_notes.id')
                     ->where('credit_debit_notes.type', 'credito')
-                    ->where('credit_debit_note_items.invoice_product_id', $product->pivot->id)
+                    ->where('credit_debit_note_items.invoice_product_id', $invoiceProduct->id)
                     ->exists();
                 
                 if ($hasCreditNote) {
                     continue;
                 }
                 
-                $consumido = $fuelOutflowsByInvoiceProduct[$product->pivot->id] ?? 0;
-                $devuelto = $creditNotesReturns[$product->pivot->id] ?? 0;
-                $cantidadOriginal = $product->pivot->amount ?? 0;
+                $consumido = $fuelOutflowsByInvoiceProduct[$invoiceProduct->id] ?? 0;
+                $devuelto = $creditNotesReturns[$invoiceProduct->id] ?? 0;
+                $cantidadOriginal = $invoiceProduct->amount ?? 0;
                 $stockDisponible = $cantidadOriginal - $consumido - $devuelto;
                 
                 if ($stockDisponible <= 0) {
@@ -154,7 +160,7 @@ class FuelOutflowController extends Controller
                 
                 $availableFuelStocks[] = [
                     'origen' => $invoice->typeDocument?->name ?? 'factura',
-                    'invoice_product_id' => $product->pivot->id,
+                    'invoice_product_id' => $invoiceProduct->id,
                     'credit_debit_note_item_id' => null,
                     'number_document' => $invoice->number_document,
                     'supplier' => $invoice->supplier->name ?? '-',
@@ -163,7 +169,7 @@ class FuelOutflowController extends Controller
                     'unit' => $product->unit->name ?? '-',
                     'cantidad_original' => $cantidadOriginal,
                     'stock_disponible' => $stockDisponible,
-                    'unit_price' => $product->pivot->unit_price ?? 0,
+                    'unit_price' => $invoiceProduct->unit_price ?? 0,
                     'date' => $invoice->date instanceof \Carbon\Carbon ? $invoice->date->format('Y-m-d') : $invoice->date,
                 ];
             }

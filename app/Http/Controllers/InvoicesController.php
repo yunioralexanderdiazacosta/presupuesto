@@ -90,7 +90,9 @@ class InvoicesController extends Controller
                     return [
                         'id' => $ip->product ? $ip->product->id : null,
                         'product_name' => $ip->product ? $ip->product->name : 'Producto eliminado',
-                        'has_level1' => $ip->product && $ip->product->level1_id ? true : false
+                        'has_level1' => $ip->product && $ip->product->level1_id ? true : false,
+                        'amount' => $ip->amount,
+                        'unit_price' => $ip->unit_price,
                     ];
                 }),
                 'total'             => '$' . number_format($total, 0, ',', '.'),
