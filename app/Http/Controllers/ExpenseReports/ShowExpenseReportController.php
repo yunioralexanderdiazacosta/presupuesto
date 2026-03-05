@@ -6,7 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\ExpenseReport;
 use App\Models\ExpenseReportItem;
 use App\Models\Supplier;
-use App\Models\Product;
+use App\Models\TypeDocument;
 use App\Models\User;
 use Illuminate\Support\Facades\Auth;
 use Inertia\Inertia;
@@ -28,8 +28,8 @@ class ShowExpenseReportController extends Controller
             'approvedBy:id,name',
             'assignedTo:id,name',
             'items.supplier:id,name,rut',
-            'items.product:id,name',
             'items.invoice:id,number_document,date',
+            'items.typeDocument:id,name',
         ]);
 
         $report = [
@@ -57,9 +57,10 @@ class ShowExpenseReportController extends Controller
                     'date_formatted' => $item->date->format('d/m/Y'),
                     'supplier_id' => $item->supplier_id,
                     'supplier_name' => $item->supplier->name ?? '',
+                    'type_document_id' => $item->type_document_id,
+                    'type_document_name' => $item->typeDocument->name ?? '',
                     'document_number' => $item->document_number,
-                    'product_id' => $item->product_id,
-                    'product_name' => $item->product->name ?? '',
+                    'product_name' => $item->product_name ?? '',
                     'description' => $item->description,
                     'amount' => (float) $item->amount,
                     'receipt_path' => $item->receipt_path,
@@ -77,10 +78,9 @@ class ShowExpenseReportController extends Controller
             ->get(['id', 'name', 'rut'])
             ->map(fn($s) => ['value' => $s->id, 'label' => $s->name . ($s->rut ? " ({$s->rut})" : '')]);
 
-        $products = Product::where('team_id', $user->team_id)
-            ->orderBy('name')
+        $typeDocuments = TypeDocument::orderBy('name')
             ->get(['id', 'name'])
-            ->map(fn($p) => ['value' => $p->id, 'label' => $p->name]);
+            ->map(fn($t) => ['value' => $t->id, 'label' => $t->name]);
 
         // Aprobadores
         $approvers = collect([]);
@@ -95,7 +95,7 @@ class ShowExpenseReportController extends Controller
         return Inertia::render('ExpenseReports/Show', [
             'report' => $report,
             'suppliers' => $suppliers,
-            'products' => $products,
+            'typeDocuments' => $typeDocuments,
             'approvers' => $approvers,
             'authUserId' => $user->id,
         ]);

@@ -42,7 +42,6 @@ class ExpenseReportsExport implements FromCollection, WithHeadings, ShouldAutoSi
                 'user:id,name',
                 'assignedTo:id,name',
                 'items.supplier:id,name',
-                'items.product:id,name',
                 'items.invoice:id,number_document',
             ])
             ->orderByDesc('created_at')
@@ -78,7 +77,7 @@ class ExpenseReportsExport implements FromCollection, WithHeadings, ShouldAutoSi
                         'fecha_creacion' => $report->created_at->format('d/m/Y'),
                         'fecha_item' => $item->date->format('d/m/Y'),
                         'proveedor' => $item->supplier->name ?? '',
-                        'producto' => $item->product->name ?? '',
+                        'producto' => $item->product_name ?? '',
                         'descripcion' => $item->description ?? '',
                         'monto' => (float) $item->amount,
                         'contabilizado' => $item->is_contabilized ? 'Sí' : 'No',

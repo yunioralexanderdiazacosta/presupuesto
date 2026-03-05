@@ -80,7 +80,7 @@ class UpdateExpenseReportStatusController extends Controller
 
         // Enviar email al aprobador asignado
         if ($newStatus === 'enviada' && $expenseReport->assigned_to) {
-            $expenseReport->load(['user', 'items.supplier', 'items.product', 'assignedTo']);
+            $expenseReport->load(['user', 'items.supplier', 'assignedTo']);
             $approver = $expenseReport->assignedTo;
             if ($approver && $approver->email) {
                 Mail::to($approver->email)

@@ -7,7 +7,7 @@ import Swal from 'sweetalert2';
 const props = defineProps({
     report: Object,
     suppliers: Array,
-    products: Array,
+    typeDocuments: Array,
     approvers: Array,
     authUserId: Number,
 });
@@ -23,8 +23,9 @@ const isAssignedApprover = computed(() => props.report.assigned_to === props.aut
 const itemForm = useForm({
     date: new Date().toISOString().split('T')[0],
     supplier_id: '',
+    type_document_id: '',
     document_number: '',
-    product_id: '',
+    product_name: '',
     description: '',
     amount: '',
     receipt: null,
@@ -48,8 +49,9 @@ const submitItem = () => {
     const formData = new FormData();
     formData.append('date', itemForm.date);
     formData.append('supplier_id', itemForm.supplier_id);
+    if (itemForm.type_document_id) formData.append('type_document_id', itemForm.type_document_id);
     if (itemForm.document_number) formData.append('document_number', itemForm.document_number);
-    if (itemForm.product_id) formData.append('product_id', itemForm.product_id);
+    if (itemForm.product_name) formData.append('product_name', itemForm.product_name);
     if (itemForm.description) formData.append('description', itemForm.description);
     formData.append('amount', itemForm.amount);
     if (itemForm.receipt) formData.append('receipt', itemForm.receipt);
@@ -482,6 +484,15 @@ const pendingAmount = computed(() => formatCurrency(props.report.pending_amount)
                                         </select>
                                     </div>
 
+                                    <!-- Tipo Documento -->
+                                    <div class="col-6 col-md-4">
+                                        <label class="form-label small mb-1">Tipo Documento</label>
+                                        <select v-model="itemForm.type_document_id" class="form-select form-select-sm">
+                                            <option value="">Sin especificar</option>
+                                            <option v-for="t in typeDocuments" :key="t.value" :value="t.value">{{ t.label }}</option>
+                                        </select>
+                                    </div>
+
                                     <!-- Nº Documento -->
                                     <div class="col-6 col-md-4">
                                         <label class="form-label small mb-1">Nº Documento</label>
@@ -490,11 +501,8 @@ const pendingAmount = computed(() => formatCurrency(props.report.pending_amount)
 
                                     <!-- Producto -->
                                     <div class="col-6 col-md-4">
-                                        <label class="form-label small mb-1">Producto (opcional)</label>
-                                        <select v-model="itemForm.product_id" class="form-select form-select-sm">
-                                            <option value="" selected>Seleccione...</option>
-                                            <option v-for="p in products" :key="p.value" :value="p.value">{{ p.label }}</option>
-                                        </select>
+                                        <label class="form-label small mb-1">Producto / Concepto</label>
+                                        <input type="text" v-model="itemForm.product_name" class="form-control form-control-sm" placeholder="Ej: Herbicida, Repuesto...">
                                     </div>
 
                                     <!-- Descripción -->

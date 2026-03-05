@@ -228,15 +228,15 @@ const items = [
                 subitems: []
             },
             {
-                title: 'Rendiciones de Gastos',
-                icon: `<i class="bi bi-receipt"></i>`,
-                link: 'expense-reports.index',
-                subitems: []
-            },
-            {
                 title: 'Notas de Crédito/Débito',
                 icon: `<i class="bi bi-card-checklist"></i>`,
                 link: 'credit_debit_notes.index',
+                subitems: []
+            },
+            {
+                title: 'Rendiciones de Gastos',
+                icon: `<i class="bi bi-receipt"></i>`,
+                link: 'expense-reports.index',
                 subitems: []
             },
 

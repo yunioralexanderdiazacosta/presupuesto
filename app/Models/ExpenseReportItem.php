@@ -13,8 +13,9 @@ class ExpenseReportItem extends Model
         'expense_report_id',
         'date',
         'supplier_id',
+        'type_document_id',
         'document_number',
-        'product_id',
+        'product_name',
         'description',
         'amount',
         'receipt_path',
@@ -41,9 +42,9 @@ class ExpenseReportItem extends Model
         return $this->belongsTo(\App\Models\Supplier::class);
     }
 
-    public function product()
+    public function typeDocument()
     {
-        return $this->belongsTo(\App\Models\Product::class);
+        return $this->belongsTo(\App\Models\TypeDocument::class);
     }
 
     public function invoice()

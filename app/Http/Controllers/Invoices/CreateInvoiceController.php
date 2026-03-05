@@ -67,7 +67,7 @@ class CreateInvoiceController extends Controller
         // Pre-llenado desde item de rendición de gastos
         $prefill = null;
         if ($request->has('expense_item_id')) {
-            $item = ExpenseReportItem::with(['supplier:id,name', 'product:id,name,unit_id', 'expenseReport:id,number'])
+            $item = ExpenseReportItem::with(['supplier:id,name', 'expenseReport:id,number'])
                 ->whereHas('expenseReport', function ($q) use ($user) {
                     $q->where('team_id', $user->team_id)
                         ->whereIn('status', ['aprobada', 'pagada']);
@@ -76,15 +76,16 @@ class CreateInvoiceController extends Controller
 
             if ($item) {
                 $prefill = [
-                    'expense_item_id' => $item->id,
+                    'expense_item_id'       => $item->id,
                     'expense_report_number' => $item->expenseReport->number ?? '',
-                    'supplier_id' => $item->supplier_id,
-                    'date' => $item->date->format('Y-m-d'),
-                    'product_id' => $item->product_id,
-                    'product_name' => $item->product->name ?? '',
-                    'unit_id' => $item->product->unit_id ?? null,
-                    'amount' => (float) $item->amount,
-                    'description' => $item->description,
+                    'supplier_id'           => $item->supplier_id,
+                    'date'                  => $item->date->format('Y-m-d'),
+                    'type_document_id'      => $item->type_document_id,
+                    'number_document'       => $item->document_number ?? '',
+                    'product_name'          => $item->product_name ?? '',
+                    'unit_id'               => null,
+                    'amount'                => (float) $item->amount,
+                    'description'           => $item->description,
                 ];
             }
         }

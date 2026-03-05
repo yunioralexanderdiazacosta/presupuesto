@@ -262,16 +262,6 @@ const logout = () => {
                       </Link>
                     </li>
                     <li class="nav-item">
-                      <Link class="nav-link" :href="route('purchase-orders.index')">
-                        <div class="d-flex align-items-center"><span class="nav-link-text ps-4">Órdenes de Compra</span></div>
-                      </Link>
-                    </li>
-                    <li class="nav-item">
-                      <Link class="nav-link" :href="route('consolidated-documents.index')">
-                        <div class="d-flex align-items-center"><span class="nav-link-text ps-4">Consolidado de Documentos</span></div>
-                      </Link>
-                    </li>
-                    <li class="nav-item">
                       <Link class="nav-link" :href="route('credit_debit_notes.index')">
                         <div class="d-flex align-items-center"><span class="nav-link-text ps-4">Notas de Crédito/Débito</span></div>
                       </Link>
@@ -279,6 +269,16 @@ const logout = () => {
                     <li class="nav-item">
                       <Link class="nav-link" :href="route('expense-reports.index')">
                         <div class="d-flex align-items-center"><span class="nav-link-text ps-4">Rendiciones de Gastos</span></div>
+                      </Link>
+                    </li>
+                    <li class="nav-item">
+                      <Link class="nav-link" :href="route('purchase-orders.index')">
+                        <div class="d-flex align-items-center"><span class="nav-link-text ps-4">Órdenes de Compra</span></div>
+                      </Link>
+                    </li>
+                    <li class="nav-item">
+                      <Link class="nav-link" :href="route('consolidated-documents.index')">
+                        <div class="d-flex align-items-center"><span class="nav-link-text ps-4">Consolidado de Documentos</span></div>
                       </Link>
                     </li>
                    
@@ -729,5 +729,49 @@ const logout = () => {
     </div>
   </div>
 </template>
+
+<style>
+/* ── Punto centrado antes de cada subítem del menú ─────────── */
+.navbar-vertical .nav.collapse .nav.collapse .nav-link-text::before {
+    content: '·';
+    margin-right: 0.4rem;
+    font-size: 1.1em;
+    line-height: 1;
+    vertical-align: middle;
+}
+
+/* ── Menú lateral más grande en móvil ──────────────────────── */
+@media (max-width: 1199.98px) {
+    /* Área táctil de cada enlace */
+    .navbar-vertical .nav-link {
+        padding-top: 0.65rem !important;
+        padding-bottom: 0.65rem !important;
+        font-size: 1rem !important;
+    }
+
+    /* Texto de los ítems del menú */
+    .navbar-vertical .nav-link-text {
+        font-size: 1rem !important;
+    }
+
+    /* Ícono del menú */
+    .navbar-vertical .nav-link-icon {
+        font-size: 1.1rem !important;
+        width: 1.5rem;
+    }
+
+    /* Ítems de segundo nivel (submenús) */
+    .navbar-vertical .nav .nav-link {
+        padding-top: 0.55rem !important;
+        padding-bottom: 0.55rem !important;
+        font-size: 0.95rem !important;
+    }
+
+    /* Separación entre grupos del menú */
+    .navbar-vertical .navbar-nav > .nav-item {
+        margin-bottom: 0.1rem;
+    }
+}
+</style>
 
 

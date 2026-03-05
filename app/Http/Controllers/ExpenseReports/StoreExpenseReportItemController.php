@@ -27,8 +27,9 @@ class StoreExpenseReportItemController extends Controller
         $request->validate([
             'date' => 'required|date',
             'supplier_id' => 'required|exists:suppliers,id',
+            'type_document_id' => 'nullable|exists:type_documents,id',
             'document_number' => 'nullable|string|max:50',
-            'product_id' => 'nullable|exists:products,id',
+            'product_name' => 'nullable|string|max:255',
             'description' => 'nullable|string|max:500',
             'amount' => 'required|numeric|min:1',
             'receipt' => 'nullable|file|mimes:jpg,jpeg,png,pdf|max:5120', // 5MB
@@ -47,8 +48,9 @@ class StoreExpenseReportItemController extends Controller
             'expense_report_id' => $expenseReport->id,
             'date' => $request->date,
             'supplier_id' => $request->supplier_id,
+            'type_document_id' => $request->type_document_id,
             'document_number' => $request->document_number,
-            'product_id' => $request->product_id,
+            'product_name' => $request->product_name,
             'description' => $request->description,
             'amount' => $request->amount,
             'receipt_path' => $receiptPath,

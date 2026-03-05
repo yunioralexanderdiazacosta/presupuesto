@@ -22,7 +22,6 @@ class GetPendingExpenseReportItemsController extends Controller
             ->with([
                 'expenseReport:id,number,status',
                 'supplier:id,name',
-                'product:id,name',
             ])
             ->orderBy('date', 'desc')
             ->get()
@@ -35,8 +34,7 @@ class GetPendingExpenseReportItemsController extends Controller
                     'date_raw' => $item->date->format('Y-m-d'),
                     'supplier_id' => $item->supplier_id,
                     'supplier_name' => $item->supplier->name ?? '',
-                    'product_id' => $item->product_id,
-                    'product_name' => $item->product->name ?? '',
+                    'product_name' => $item->product_name ?? '',
                     'description' => $item->description,
                     'amount' => (float) $item->amount,
                     'has_receipt' => !empty($item->receipt_path),

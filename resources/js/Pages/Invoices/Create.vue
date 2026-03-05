@@ -28,8 +28,8 @@ const form = useForm({
 	payment_type: '',
 	supplier_id: props.prefill?.supplier_id || '',
 	company_reason_id: '',
-	type_document_id: '',
-	number_document: '',
+	type_document_id: props.prefill?.type_document_id || '',
+	number_document: props.prefill?.number_document || '',
 	expense_item_id: props.prefill?.expense_item_id || null,
 	purchase_order_id: null,
 	products: [

@@ -23,9 +23,9 @@ const links = [
             <div class="card-header">
                 <div class="row flex-between-end">
                     <div class="col-auto align-self-center">
-                        <h5 class="fs-9 mb-0 text-nowrap py-2 py-xl-0">
+                        <h5 class="fs-9 mb-0 py-2 py-xl-0">
                             <i class="fas fa-home text-primary me-2"></i>
-                            Bienvenido al Sistema de Gestión Presupuestaria
+                            Bienvenido al Sistema de Gestión Agrícola
                         </h5>
                     </div>
                 </div>
