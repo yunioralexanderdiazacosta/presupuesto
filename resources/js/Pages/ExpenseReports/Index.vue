@@ -106,11 +106,11 @@ const statusOptions = [
                     <div class="col-6 col-sm-auto ms-auto text-end ps-0">
                         <div class="d-flex align-items-center gap-2">
                             <a :href="route('expense-reports.export')" class="btn btn-falcon-default btn-sm">
-                                <span class="fas fa-file-excel" data-fa-transform="shrink-3 down-2"></span>
+                                <span class="fas fa-file-excel" data-fa-transform="shrink-3"></span>
                                 <span class="d-none d-sm-inline-block ms-1">Excel</span>
                             </a>
                             <button class="btn btn-falcon-default btn-sm" @click="openCreateModal">
-                                <span class="fas fa-plus" data-fa-transform="shrink-3 down-2"></span>
+                                <i class="fas fa-plus"></i>
                                 <span class="d-none d-sm-inline-block ms-1">Nueva Rendición</span>
                             </button>
                         </div>
@@ -239,7 +239,7 @@ const statusOptions = [
 
         <!-- Modal Crear Rendición -->
         <div class="modal fade" id="createExpenseReportModal" tabindex="-1" aria-hidden="true">
-            <div class="modal-dialog modal-dialog-centered modal-fullscreen-sm-down">
+            <div class="modal-dialog modal-dialog-centered modal-fullscreen-md-down">
                 <div class="modal-content">
                     <div class="modal-header py-2 border-bottom">
                         <h6 class="modal-title d-flex align-items-center gap-2 mb-0">

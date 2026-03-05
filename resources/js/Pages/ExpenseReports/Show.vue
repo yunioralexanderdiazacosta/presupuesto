@@ -215,7 +215,7 @@ const pendingAmount = computed(() => formatCurrency(props.report.pending_amount)
 <template>
     <AppLayout :title="'Rendición ' + report.number">
         <!-- Header card -->
-        <div class="card my-3">
+        <div class="card my-3" :class="{'mb-5 pb-2': isBorrador || isEnviada || isAprobada || isRechazada}">
             <div class="card-header">
                 <div class="row flex-between-center">
                     <div class="col-6 col-sm-auto d-flex align-items-center pe-0">
@@ -226,14 +226,14 @@ const pendingAmount = computed(() => formatCurrency(props.report.pending_amount)
                             {{ report.status_label }}
                         </span>
                     </div>
-                    <div class="col-6 col-sm-auto ms-auto text-end ps-0">
-                        <div class="d-flex align-items-center gap-2 flex-wrap justify-content-end">
+                    <div class="col-auto ms-auto text-end ps-0">
+                        <div class="d-flex align-items-center gap-2">
                             <Link :href="route('expense-reports.index')" class="btn btn-falcon-default btn-sm">
-                                <span class="fas fa-arrow-left" data-fa-transform="shrink-3 down-2"></span>
+                                <i class="fas fa-arrow-left"></i>
                                 <span class="d-none d-sm-inline-block ms-1">Volver</span>
                             </Link>
                             <button v-if="isBorrador" class="btn btn-falcon-default btn-sm" @click="openAddItemModal">
-                                <span class="fas fa-plus" data-fa-transform="shrink-3 down-2"></span>
+                                <i class="fas fa-plus"></i>
                                 <span class="d-none d-sm-inline-block ms-1">Agregar Doc</span>
                             </button>
                         </div>
@@ -419,20 +419,48 @@ const pendingAmount = computed(() => formatCurrency(props.report.pending_amount)
             </div>
         </div>
 
+        <!-- Barra de acciones fija en móvil -->
+        <div
+            v-if="isBorrador || isEnviada || isAprobada || isRechazada"
+            class="d-md-none fixed-bottom py-2 px-3 bg-white border-top shadow-sm"
+            style="z-index: 100;"
+        >
+            <div class="d-flex gap-2">
+                <button v-if="isBorrador" class="btn btn-sm btn-falcon-default flex-fill" @click="openAddItemModal">
+                    <i class="fas fa-plus me-1"></i>Agregar Doc
+                </button>
+                <button v-if="isBorrador && report.items.length > 0" class="btn btn-sm btn-primary flex-fill" @click="sendForApproval">
+                    <i class="fas fa-paper-plane me-1"></i>Enviar
+                </button>
+                <button v-if="isEnviada && isAssignedApprover" class="btn btn-sm btn-success flex-fill" @click="changeStatus('aprobada')">
+                    <i class="fas fa-check me-1"></i>Aprobar
+                </button>
+                <button v-if="isEnviada && isAssignedApprover" class="btn btn-sm btn-danger flex-fill" @click="changeStatus('rechazada')">
+                    <i class="fas fa-times me-1"></i>Rechazar
+                </button>
+                <button v-if="isAprobada" class="btn btn-sm btn-primary flex-fill" @click="changeStatus('pagada')">
+                    <i class="fas fa-dollar-sign me-1"></i>Marcar Pagada
+                </button>
+                <button v-if="isRechazada" class="btn btn-sm btn-secondary flex-fill" @click="changeStatus('borrador')">
+                    <i class="fas fa-undo me-1"></i>Volver a Borrador
+                </button>
+            </div>
+        </div>
+
         <!-- Modal Agregar Item (teleported to body to avoid z-index issues with Falcon layout) -->
         <Teleport to="body">
             <div class="modal fade" id="addItemModal" tabindex="-1" aria-hidden="true">
-                <div class="modal-dialog modal-dialog-scrollable modal-lg modal-fullscreen-sm-down">
-                    <div class="modal-content">
+                <div class="modal-dialog modal-dialog-scrollable modal-lg" style="max-width: min(800px, 95vw); margin: 5vh auto;">
+                    <div class="modal-content" style="max-height: 88vh;">
                         <div class="modal-header py-2 border-bottom">
                             <h6 class="modal-title d-flex align-items-center gap-2 mb-0">
                                 <i class="fas fa-plus-circle text-primary"></i>Agregar Documento
                             </h6>
                             <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                         </div>
-                        <div class="modal-body">
+                        <div class="modal-body p-2 p-md-3">
                             <form @submit.prevent="submitItem">
-                                <div class="row g-3">
+                                <div class="row g-2">
                                     <!-- Fecha -->
                                     <div class="col-6 col-md-4">
                                         <label class="form-label small mb-1">Fecha <span class="text-danger">*</span></label>
@@ -461,7 +489,7 @@ const pendingAmount = computed(() => formatCurrency(props.report.pending_amount)
                                     </div>
 
                                     <!-- Producto -->
-                                    <div class="col-12 col-md-6">
+                                    <div class="col-6 col-md-4">
                                         <label class="form-label small mb-1">Producto (opcional)</label>
                                         <select v-model="itemForm.product_id" class="form-select form-select-sm">
                                             <option value="" selected>Seleccione...</option>
@@ -470,14 +498,16 @@ const pendingAmount = computed(() => formatCurrency(props.report.pending_amount)
                                     </div>
 
                                     <!-- Descripción -->
-                                    <div class="col-12 col-md-6">
+                                    <div class="col-12 col-md-4">
                                         <label class="form-label small mb-1">Descripción</label>
                                         <input type="text" v-model="itemForm.description" class="form-control form-control-sm" placeholder="Detalle del gasto...">
                                     </div>
 
                                     <!-- Comprobante (foto/PDF) -->
                                     <div class="col-12 col-md-6">
-                                        <label class="form-label small mb-1">Comprobante (foto o PDF)</label>
+                                        <label class="form-label small mb-1">
+                                            <i class="fas fa-camera me-1 text-muted"></i>Comprobante (foto o PDF)
+                                        </label>
                                         <input 
                                             type="file" 
                                             ref="fileInput"
@@ -497,16 +527,18 @@ const pendingAmount = computed(() => formatCurrency(props.report.pending_amount)
                                 </div>
                             </form>
                         </div>
-                        <div class="modal-footer py-2">
-                            <button type="button" class="btn btn-sm btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                        <div class="modal-footer py-2 gap-2">
+                            <button type="button" class="btn btn-sm btn-secondary flex-fill flex-md-grow-0" data-bs-dismiss="modal">
+                                <i class="fas fa-times me-1"></i>Cancelar
+                            </button>
                             <button 
                                 type="button" 
-                                class="btn btn-sm btn-primary" 
+                                class="btn btn-sm btn-primary flex-fill flex-md-grow-0" 
                                 @click="submitItem"
                                 :disabled="itemForm.processing || !itemForm.supplier_id || !itemForm.amount"
                             >
                                 <i class="fas fa-plus me-1"></i>
-                                {{ itemForm.processing ? 'Guardando...' : 'Agregar' }}
+                                {{ itemForm.processing ? 'Guardando...' : 'Agregar Documento' }}
                             </button>
                         </div>
                     </div>
