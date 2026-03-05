@@ -493,6 +493,9 @@ Route::middleware([
     Route::post('/seasons/{season}/update', UpdateSeasonController::class)->name('seasons.update');
     Route::delete('/seasons/{season}/delete', DeleteSeasonController::class)->name('seasons.delete');
 
+    // Guía del Sistema (fuera de check.selected.budget porque no requiere temporada)
+    Route::get('/system-guide', SystemGuideController::class)->name('system-guide');
+
     Route::middleware(['check.selected.budget'])->group(function () {
         Route::get('/', HomeController::class)->name('home');
         Route::get('/home', HomeController::class)->name('home.index');
@@ -697,8 +700,6 @@ Route::middleware([
     // Consolidated Documents
     Route::get('/consolidated-documents', [ConsolidatedDocumentsController::class, 'index'])->name('consolidated-documents.index');
 
-    // Guía del Sistema
-    Route::get('/system-guide', SystemGuideController::class)->name('system-guide');
 });
 
 // Rutas firmadas para aprobación/rechazo de Rendiciones de Gastos
