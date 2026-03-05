@@ -76,6 +76,18 @@ const logout = () => {
         </Link>
       </li>
 
+      <!-- Guía del Sistema -->
+      <li class="nav-item">
+        <a class="nav-link" :href="route('system-guide')" target="_blank">
+          <div class="d-flex align-items-center">
+            <span class="nav-link-icon">
+              <span class="fas fa-map-signs"></span>
+            </span>
+            <span class="nav-link-text ps-1">Guía del Sistema</span>
+          </div>
+        </a>
+      </li>
+
       <li class="nav-item" v-role="'Super Admin'">
         <Link class="nav-link" :href="route('dashboard')" role="button">
           <div class="d-flex align-items-center">

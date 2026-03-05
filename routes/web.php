@@ -100,6 +100,7 @@ use Illuminate\Foundation\Application;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\HomeController;
 use App\Http\Controllers\DashboardController;
+use App\Http\Controllers\SystemGuideController;
 use App\Http\Controllers\TechnicalPanelController;
 use App\Http\Controllers\AgrochemicalsController;
 use App\Http\Controllers\FertilizersController;
@@ -695,6 +696,9 @@ Route::middleware([
 
     // Consolidated Documents
     Route::get('/consolidated-documents', [ConsolidatedDocumentsController::class, 'index'])->name('consolidated-documents.index');
+
+    // Guía del Sistema
+    Route::get('/system-guide', SystemGuideController::class)->name('system-guide');
 });
 
 // Rutas firmadas para aprobación/rechazo de Rendiciones de Gastos

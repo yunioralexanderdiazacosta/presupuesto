@@ -285,6 +285,13 @@ const items = [
     }, 
 
     {
+        title: 'Guía del Sistema',
+        icon: `<i class="bi bi-map"></i>`,
+        link: 'system-guide',
+        subitems: []
+    },
+
+    {
         title: 'Tablero',
         icon: `<i class="bi bi-speedometer2"></i>`,
         link: 'dashboard',
