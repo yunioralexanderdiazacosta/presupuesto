@@ -24,6 +24,9 @@ class ExpenseReport extends Model
 
     protected $casts = [
         'approved_at' => 'datetime',
+        'assigned_to' => 'integer',
+        'approved_by' => 'integer',
+        'user_id' => 'integer',
     ];
 
     // ─── Relaciones ──────────────────────────────
