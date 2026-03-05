@@ -57,6 +57,7 @@ class ShowExpenseReportController extends Controller
                     'date_formatted' => $item->date->format('d/m/Y'),
                     'supplier_id' => $item->supplier_id,
                     'supplier_name' => $item->supplier->name ?? '',
+                    'document_number' => $item->document_number,
                     'product_id' => $item->product_id,
                     'product_name' => $item->product->name ?? '',
                     'description' => $item->description,

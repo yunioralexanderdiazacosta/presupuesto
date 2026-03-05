@@ -13,6 +13,7 @@ class ExpenseReportItem extends Model
         'expense_report_id',
         'date',
         'supplier_id',
+        'document_number',
         'product_id',
         'description',
         'amount',

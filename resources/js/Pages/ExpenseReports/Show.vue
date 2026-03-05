@@ -23,6 +23,7 @@ const isAssignedApprover = computed(() => props.report.assigned_to === props.aut
 const itemForm = useForm({
     date: new Date().toISOString().split('T')[0],
     supplier_id: '',
+    document_number: '',
     product_id: '',
     description: '',
     amount: '',
@@ -47,6 +48,7 @@ const submitItem = () => {
     const formData = new FormData();
     formData.append('date', itemForm.date);
     formData.append('supplier_id', itemForm.supplier_id);
+    if (itemForm.document_number) formData.append('document_number', itemForm.document_number);
     if (itemForm.product_id) formData.append('product_id', itemForm.product_id);
     if (itemForm.description) formData.append('description', itemForm.description);
     formData.append('amount', itemForm.amount);
@@ -323,6 +325,7 @@ const pendingAmount = computed(() => formatCurrency(props.report.pending_amount)
                             <tr>
                                 <th>Fecha</th>
                                 <th>Proveedor</th>
+                                <th>Nº Doc.</th>
                                 <th>Producto</th>
                                 <th>Descripción</th>
                                 <th class="text-end">Monto</th>
@@ -335,6 +338,7 @@ const pendingAmount = computed(() => formatCurrency(props.report.pending_amount)
                             <tr v-for="item in report.items" :key="item.id">
                                 <td>{{ item.date_formatted }}</td>
                                 <td>{{ item.supplier_name }}</td>
+                                <td>{{ item.document_number || '—' }}</td>
                                 <td>{{ item.product_name || '—' }}</td>
                                 <td class="text-truncate" style="max-width: 200px;">{{ item.description || '—' }}</td>
                                 <td class="text-end">{{ formatCurrency(item.amount) }}</td>
@@ -359,14 +363,14 @@ const pendingAmount = computed(() => formatCurrency(props.report.pending_amount)
                                 </td>
                             </tr>
                             <tr v-if="report.items.length === 0">
-                                <td :colspan="isBorrador ? 8 : 7" class="text-center text-muted py-4">
+                                <td :colspan="isBorrador ? 9 : 8" class="text-center text-muted py-4">
                                     No hay documentos. Haz clic en "Agregar Doc" para comenzar.
                                 </td>
                             </tr>
                         </tbody>
                         <tfoot v-if="report.items.length > 0">
                             <tr class="fw-bold bg-100">
-                                <td colspan="4" class="text-end">Total:</td>
+                                <td colspan="5" class="text-end">Total:</td>
                                 <td class="text-end">{{ totalAmount }}</td>
                                 <td colspan="3"></td>
                             </tr>
@@ -381,7 +385,7 @@ const pendingAmount = computed(() => formatCurrency(props.report.pending_amount)
                             <div class="d-flex justify-content-between align-items-start mb-1">
                                 <div>
                                     <strong>{{ item.supplier_name }}</strong>
-                                    <div class="text-muted small">{{ item.date_formatted }}</div>
+                                    <div class="text-muted small">{{ item.date_formatted }}<span v-if="item.document_number"> · Doc: {{ item.document_number }}</span></div>
                                 </div>
                                 <span class="fw-bold">{{ formatCurrency(item.amount) }}</span>
                             </div>
@@ -448,6 +452,12 @@ const pendingAmount = computed(() => formatCurrency(props.report.pending_amount)
                                             <option value="" disabled selected>Seleccione...</option>
                                             <option v-for="s in suppliers" :key="s.value" :value="s.value">{{ s.label }}</option>
                                         </select>
+                                    </div>
+
+                                    <!-- Nº Documento -->
+                                    <div class="col-6 col-md-4">
+                                        <label class="form-label small mb-1">Nº Documento</label>
+                                        <input type="text" v-model="itemForm.document_number" class="form-control form-control-sm" placeholder="Ej: 001-12345">
                                     </div>
 
                                     <!-- Producto -->
