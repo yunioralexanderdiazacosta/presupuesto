@@ -3,6 +3,8 @@ require 'vendor/autoload.php';
 $app = require 'bootstrap/app.php';
 $app->make('Illuminate\Contracts\Console\Kernel')->bootstrap();
 
+use Illuminate\Support\Facades\DB;
+
 $teamId = 2;
 
 // Solo PETROLEO (no bencina)

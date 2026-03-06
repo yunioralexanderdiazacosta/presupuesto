@@ -16,30 +16,36 @@ const props = defineProps({
 	purchaseOrders: Array,
 });
 
-const title = props.prefill ? 'Factura desde Rendición ' + props.prefill.expense_report_number : 'Ingresar Factura';
+const title = props.prefill?.is_duplicate
+	? 'Duplicar Factura #' + props.prefill.original_id
+	: props.prefill?.expense_report_number
+		? 'Factura desde Rendición ' + props.prefill.expense_report_number
+		: 'Ingresar Factura';
 
 const links = [{ title: 'Tablero', link: 'dashboard' }, { title: 'Facturas', link: 'invoices.index' }, { title: title, active: true }];
 
 const form = useForm({
 	date: props.prefill?.date || '',
 	due_date: '',
-	month_id: null,
-	payment_term: '',
-	payment_type: '',
+	month_id: props.prefill?.month_id || null,
+	payment_term: props.prefill?.payment_term || '',
+	payment_type: props.prefill?.payment_type || '',
 	supplier_id: props.prefill?.supplier_id || '',
-	company_reason_id: '',
+	company_reason_id: props.prefill?.company_reason_id || '',
 	type_document_id: props.prefill?.type_document_id || '',
 	number_document: props.prefill?.number_document || '',
 	expense_item_id: props.prefill?.expense_item_id || null,
 	purchase_order_id: null,
-	products: [
-		{
-			product_id: props.prefill?.product_id || '',
-			unit_price: props.prefill?.amount || 0.00,
-			amount: 1,
-			observations: props.prefill?.description || ''
-		}
-	]
+	products: props.prefill?.products?.length
+		? props.prefill.products
+		: [
+			{
+				product_id: props.prefill?.product_id || '',
+				unit_price: props.prefill?.amount || 0.00,
+				amount: 1,
+				observations: props.prefill?.description || ''
+			}
+		]
 });
 
 const save = () => {
@@ -96,7 +102,14 @@ const msgSuccess = (msg) => {
             </div>
             <div class="card-body bg-body-tertiary">
 				<!-- Banner cuando viene de rendición -->
-				<div v-if="prefill" class="alert alert-info d-flex align-items-center mb-3 py-2">
+                <div v-if="prefill?.is_duplicate" class="alert alert-warning d-flex align-items-center mb-3 py-2">
+					<i class="fas fa-copy me-2"></i>
+					<div>
+						<strong>Copia de Factura #{{ prefill.original_id }}</strong> —
+						Todos los datos fueron pre-cargados. Ingrese el nuevo N° de documento y ajuste lo que corresponda.
+					</div>
+				</div>
+				<div v-else-if="prefill" class="alert alert-info d-flex align-items-center mb-3 py-2">
 					<i class="fas fa-info-circle me-2"></i>
 					<div>
 						<strong>Importando desde {{ prefill.expense_report_number }}</strong> — 

@@ -372,6 +372,13 @@ invoice, index
                                                 <i class="fas fa-edit" style="font-size:0.65rem;"></i>
                                                 </Link>
                                                 <!--end::Update-->
+                                                <!--begin::Duplicate-->
+                                                <Link v-tooltip="'Duplicar factura'"
+                                                    class="btn btn-icon btn-active-light-primary w-20px h-20px me-1 p-1"
+                                                    :href="route('invoices.duplicate', invoice.id)">
+                                                    <i class="fas fa-copy" style="font-size:0.65rem;"></i>
+                                                </Link>
+                                                <!--end::Duplicate-->
                                                 <!--begin::Delete-->
                                                 <button type="button" v-tooltip="'Eliminar'" @click="
                                                     onDeleted(invoice.id)

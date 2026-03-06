@@ -165,6 +165,7 @@ use App\Http\Controllers\Invoices\ShowInvoiceController;
 use App\Http\Controllers\Invoices\EditInvoiceController;
 use App\Http\Controllers\Invoices\UpdateInvoiceController;
 use App\Http\Controllers\Invoices\DeleteInvoiceController;
+use App\Http\Controllers\Invoices\DuplicateInvoiceController;
 use App\Http\Controllers\Invoices\ExtractInvoiceFromPdfController;
 use App\Http\Controllers\Level2s\GetLevel2Controller;
 use App\Http\Controllers\Level3s\GetLevel3Controller;
@@ -411,6 +412,7 @@ Route::middleware([
     Route::get('/invoices/{invoice}/edit', EditInvoiceController::class)->name('invoices.edit');
     Route::post('/invoices/{invoice}/update', UpdateInvoiceController::class)->name('invoices.update');
     Route::delete('/invoices/{invoice}/delete', DeleteInvoiceController::class)->name('invoices.delete');
+    Route::get('/invoices/{invoice}/duplicate', DuplicateInvoiceController::class)->name('invoices.duplicate');
 
 
     Route::get('/credit-debit-notes', CreditDebitNotesController::class)->name('credit_debit_notes.index');
