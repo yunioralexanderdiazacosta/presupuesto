@@ -103,11 +103,134 @@ const links = [
     { title: 'Dashboard Outflows', active: true }
 ];
 
+// Toggle idioma ES/EN
+const isEnglish = ref(false);
+const t = computed(() => isEnglish.value ? {
+    dashboardTitle: 'Consumption & Billing Analysis Dashboard',
+    viewInUSD: 'View in USD',
+    divisor: 'Divisor',
+    // Sección consumos
+    sectionConsumed: 'Consumption Analysis',
+    totalConsumed: 'Total Consumed',
+    totalInvestments: 'Total Investments',
+    totalExpenses: 'Total Expenses',
+    records: 'records',
+    // Sección compras
+    sectionPurchases: 'Purchase Detail',
+    totalInvoices: 'Total Invoices',
+    invoices: 'invoices',
+    debitNotes: 'Debit Notes',
+    creditNotes: 'Credit Notes',
+    notes: 'notes',
+    totalPurchases: 'Total Purchases',
+    invoiceFormula: 'Invoices + Debit - Credit',
+    // Sección estados desarrollo
+    sectionDevStates: 'Consumption by Development State',
+    withInvestments: 'Summary with Investments',
+    withoutInvestments: 'Without Investments',
+    noDevStateData: 'No development state data available',
+    noData: 'No data available',
+    noDataYet: 'No outflows recorded to display in chart',
+    noExpensesByProject: 'No expenses by project recorded',
+    noOutflows: 'No outflows recorded',
+    // Card costo kilo
+    costoKiloTitle: 'Accumulated Cost per Kilo',
+    prodKilosLabel: 'Production / Estimated Kilos',
+    incluirAdminTooltip: 'Include administration costs in cost/kg',
+    totalCosts: 'Total Costs',
+    totalCostsProdAdmin: '(Prod. + Admin)',
+    totalCostsProd: 'Production',
+    adminLabel: 'Admin',
+    totalKilos: 'Total Estimated Kilos',
+    costoKiloLabel: 'Accumulated Cost / Kilo',
+    noKilos: 'No kilo estimates recorded.',
+    noProduction: 'No production expenses recorded.',
+    // Gráficos
+    chartLevel2Bar: 'Classification by Level 2',
+    chartLevel2Table: 'Detailed Summary by Level 2',
+    colLevel1: 'Level 1',
+    colLevel2: 'Level 2',
+    colTotal: 'Total Amount',
+    colPct: '% of Total',
+    total: 'TOTAL',
+    chartProjectBar: 'Total Amount Spent by Project',
+    chartProjectPie: 'Percentage Distribution by Project',
+    chartLevel1Bar: 'Classification by Product and Level 1',
+    chartLevel1Pie: 'Percentage Distribution by Level 1',
+} : {
+    dashboardTitle: 'Dashboard de Análisis de Consumos y Facturación.',
+    viewInUSD: 'Ver en USD',
+    divisor: 'Divisor',
+    // Sección consumos
+    sectionConsumed: 'Análisis de Consumos',
+    totalConsumed: 'Total Consumido',
+    totalInvestments: 'Total Inversiones',
+    totalExpenses: 'Total Gastos',
+    records: 'registros',
+    // Sección compras
+    sectionPurchases: 'Detalle de Compras',
+    totalInvoices: 'Total Facturas',
+    invoices: 'facturas',
+    debitNotes: 'Notas de Débito',
+    creditNotes: 'Notas de Crédito',
+    notes: 'notas',
+    totalPurchases: 'Total Compras',
+    invoiceFormula: 'Facturas + Débito - Crédito',
+    // Sección estados desarrollo
+    sectionDevStates: 'Consumos por Estado de Desarrollo',
+    withInvestments: 'Resumen con Inversiones',
+    withoutInvestments: 'Sin Inversiones',
+    noDevStateData: 'No hay datos de estados de desarrollo disponibles',
+    noData: 'No hay datos disponibles',
+    noDataYet: 'Aún no hay salidas registradas para mostrar en el gráfico',
+    noExpensesByProject: 'Aún no hay gastos por proyecto registrados',
+    noOutflows: 'Aún no hay salidas registradas',
+    // Card costo kilo
+    costoKiloTitle: 'Costo Kilo Acumulado',
+    prodKilosLabel: 'Producción / Kilos Estimados',
+    incluirAdminTooltip: 'Incluir gastos de administración en el costo/kg',
+    totalCosts: 'Total Costos',
+    totalCostsProdAdmin: '(Prod. + Admin)',
+    totalCostsProd: 'Producción',
+    adminLabel: 'Admin',
+    totalKilos: 'Total Kilos Estimados',
+    costoKiloLabel: 'Costo / Kilo Acumulado',
+    noKilos: 'No hay estimaciones de kilos registradas.',
+    noProduction: 'No hay gastos de producción registrados.',
+    // Gráficos
+    chartLevel2Bar: 'Clasificación por Nivel 2',
+    chartLevel2Table: 'Resumen Detallado por Nivel 2',
+    colLevel1: 'Nivel 1',
+    colLevel2: 'Nivel 2',
+    colTotal: 'Monto Total',
+    colPct: '% del Total',
+    total: 'TOTAL',
+    chartProjectBar: 'Monto Total Gastado por Proyecto',
+    chartProjectPie: 'Distribución Porcentual por Proyecto',
+    chartLevel1Bar: 'Clasificación por producto y Nivel 1',
+    chartLevel1Pie: 'Distribución Porcentual por Nivel 1',
+});
+
 // Variables para conversión USD
 const divisor = ref(970);
 const divisorMin = 800;
 const divisorMax = 1100;
 const dividir = ref(false); // Por defecto desactivado
+const incluirAdmin = ref(false);
+// Leer el monto de "Administración" desde byLevel1 (ya calculado y pasado al frontend)
+const totalAdministracion = computed(() => {
+    if (!props.byLevel1?.labels?.length) return 0;
+    const idx = props.byLevel1.labels.findIndex(l =>
+        l.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').includes('administracion')
+    );
+    return idx !== -1 ? (props.byLevel1.data[idx] ?? 0) : 0;
+});
+const totalProduccionEfectivo = computed(() =>
+    props.costoKiloAcumulado.totalProduccion + (incluirAdmin.value ? totalAdministracion.value : 0)
+);
+const costoKiloEfectivo = computed(() =>
+    props.costoKiloAcumulado.totalKilos > 0 ? totalProduccionEfectivo.value / props.costoKiloAcumulado.totalKilos : 0
+);
 
 // Formatear números con separador de miles (sin decimales)
 const formatNumber = (number) => {
@@ -236,18 +359,22 @@ const totalCompras = computed(() => {
                     <div class="col-auto align-self-center">
                         <h6 class="mb-0 text-nowrap">
                             <i class="fas fa-chart-line text-primary me-2"></i>
-                            Dashboard de Análisis de Consumos y Facturación.
+                            {{ t.dashboardTitle }}
                         </h6>
                     </div>
                     <div class="col-auto ms-auto">
                         <div class="d-flex flex-wrap align-items-center gap-2">
+                            <div class="form-check form-switch d-flex align-items-center mb-0 me-1">
+                                <input class="form-check-input" type="checkbox" id="lang-switch" v-model="isEnglish">
+                                <label class="form-check-label ms-2 mt-0 mb-0 small fw-semibold" for="lang-switch" style="cursor:pointer;">EN</label>
+                            </div>
                             <div class="form-check form-switch d-flex align-items-center mb-0">
                                 <input class="form-check-input" type="checkbox" id="dividir-switch" v-model="dividir">
-                                <label class="form-check-label ms-2 mt-0 mb-0 small" for="dividir-switch">Ver en USD</label>
+                                <label class="form-check-label ms-2 mt-0 mb-0 small" for="dividir-switch">{{ t.viewInUSD }}</label>
                             </div>
                             <template v-if="dividir">
                                 <div class="d-flex align-items-center" style="min-width:220px;">
-                                    <label for="divisor-slider" class="form-label mb-0 me-2 small">Divisor:</label>
+                                    <label for="divisor-slider" class="form-label mb-0 me-2 small">{{ t.divisor }}:</label>
                                     <input id="divisor-slider" type="range" class="form-range" 
                                            v-model.number="divisor" :min="divisorMin" :max="divisorMax" :step="1" 
                                            style="max-width:150px;" />
@@ -263,7 +390,7 @@ const totalCompras = computed(() => {
                 <!-- Título Sección Consumos -->
                 <h6 class="text-secondary mb-2 d-flex align-items-center">
                     <i class="fas fa-chart-line me-2 fs-8"></i>
-                    <span>Análisis de Consumos</span>
+                    <span>{{ t.sectionConsumed }}</span>
                 </h6>
 
                 <!-- KPI Cards Fila 1: Consumos -->
@@ -274,12 +401,12 @@ const totalCompras = computed(() => {
                             <div class="card-body py-2 px-3">
                                 <div class="d-flex align-items-center justify-content-between">
                                     <div>
-                                        <small class="text-muted text-uppercase d-block mb-1">Total Consumido</small>
+                                        <small class="text-muted text-uppercase d-block mb-1">{{ t.totalConsumed }}</small>
                                         <h4 class="mb-0 text-primary fw-bold">
                                             {{ formatNumber(dividir && divisor ? (summary?.total_amount || 0) / divisor : (summary?.total_amount || 0)) }} {{ dividir ? 'USD' : 'CLP' }}
                                         </h4>
                                         <small class="text-muted fs-10">
-                                            {{ formatNumber(summary?.total_count || 0) }} registros
+                                            {{ formatNumber(summary?.total_count || 0) }} {{ t.records }}
                                         </small>
                                     </div>
                                     <div class="text-primary">
@@ -296,12 +423,12 @@ const totalCompras = computed(() => {
                             <div class="card-body py-2 px-3">
                                 <div class="d-flex align-items-center justify-content-between">
                                     <div>
-                                        <small class="text-muted text-uppercase d-block mb-1">Total Inversiones</small>
+                                        <small class="text-muted text-uppercase d-block mb-1">{{ t.totalInvestments }}</small>
                                         <h4 class="mb-0 text-primary fw-bold">
                                             {{ formatNumber(dividir && divisor ? (investments?.total || 0) / divisor : (investments?.total || 0)) }} {{ dividir ? 'USD' : 'CLP' }}
                                         </h4>
                                         <small class="text-muted fs-10">
-                                            {{ formatNumber(investments?.count || 0) }} registros
+                                            {{ formatNumber(investments?.count || 0) }} {{ t.records }}
                                         </small>
                                     </div>
                                     <div class="text-primary">
@@ -318,12 +445,12 @@ const totalCompras = computed(() => {
                             <div class="card-body py-2 px-3">
                                 <div class="d-flex align-items-center justify-content-between">
                                     <div>
-                                        <small class="text-muted text-uppercase d-block mb-1">Total Gastos</small>
+                                        <small class="text-muted text-uppercase d-block mb-1">{{ t.totalExpenses }}</small>
                                         <h4 class="mb-0 text-primary fw-bold">
                                             {{ formatNumber(dividir && divisor ? (expenses?.total || 0) / divisor : (expenses?.total || 0)) }} {{ dividir ? 'USD' : 'CLP' }}
                                         </h4>
                                         <small class="text-muted fs-10">
-                                            {{ formatNumber(expenses?.count || 0) }} registros
+                                            {{ formatNumber(expenses?.count || 0) }} {{ t.records }}
                                         </small>
                                     </div>
                                     <div class="text-primary">
@@ -345,7 +472,7 @@ const totalCompras = computed(() => {
                 <!-- Título Sección Compras -->
                 <h6 class="text-secondary mb-2 d-flex align-items-center">
                     <i class="fas fa-shopping-cart me-2 fs-8"></i>
-                    <span>Detalle de Compras</span>
+                    <span>{{ t.sectionPurchases }}</span>
                 </h6>
 
                 <!-- KPI Cards Fila 2: Compras -->
@@ -356,12 +483,12 @@ const totalCompras = computed(() => {
                             <div class="card-body py-2 px-3">
                                 <div class="d-flex align-items-center justify-content-between">
                                     <div>
-                                        <small class="text-muted text-uppercase d-block mb-1">Total Facturas</small>
+                                        <small class="text-muted text-uppercase d-block mb-1">{{ t.totalInvoices }}</small>
                                         <h4 class="mb-0 fw-bold" style="color: #6FB550;">
                                             {{ formatNumber(dividir && divisor ? (invoices?.total || 0) / divisor : (invoices?.total || 0)) }} {{ dividir ? 'USD' : 'CLP' }}
                                         </h4>
                                         <small class="text-muted fs-10">
-                                            {{ formatNumber(invoices?.count || 0) }} facturas
+                                            {{ formatNumber(invoices?.count || 0) }} {{ t.invoices }}
                                         </small>
                                     </div>
                                     <div style="color: #6FB550;">
@@ -378,12 +505,12 @@ const totalCompras = computed(() => {
                             <div class="card-body py-2 px-3">
                                 <div class="d-flex align-items-center justify-content-between">
                                     <div>
-                                        <small class="text-muted text-uppercase d-block mb-1">Notas de Débito</small>
+                                        <small class="text-muted text-uppercase d-block mb-1">{{ t.debitNotes }}</small>
                                         <h4 class="mb-0 fw-bold" style="color: #6FB550;">
                                             {{ formatNumber(dividir && divisor ? (debitNotes?.total || 0) / divisor : (debitNotes?.total || 0)) }} {{ dividir ? 'USD' : 'CLP' }}
                                         </h4>
                                         <small class="text-muted fs-10">
-                                            {{ formatNumber(debitNotes?.count || 0) }} notas
+                                            {{ formatNumber(debitNotes?.count || 0) }} {{ t.notes }}
                                         </small>
                                     </div>
                                     <div style="color: #6FB550;">
@@ -400,12 +527,12 @@ const totalCompras = computed(() => {
                             <div class="card-body py-2 px-3">
                                 <div class="d-flex align-items-center justify-content-between">
                                     <div>
-                                        <small class="text-muted text-uppercase d-block mb-1">Notas de Crédito</small>
+                                        <small class="text-muted text-uppercase d-block mb-1">{{ t.creditNotes }}</small>
                                         <h4 class="mb-0 fw-bold" style="color: #6FB550;">
                                             {{ formatNumber(dividir && divisor ? (creditNotes?.total || 0) / divisor : (creditNotes?.total || 0)) }} {{ dividir ? 'USD' : 'CLP' }}
                                         </h4>
                                         <small class="text-muted fs-10">
-                                            {{ formatNumber(creditNotes?.count || 0) }} notas
+                                            {{ formatNumber(creditNotes?.count || 0) }} {{ t.notes }}
                                         </small>
                                     </div>
                                     <div style="color: #6FB550;">
@@ -422,12 +549,12 @@ const totalCompras = computed(() => {
                             <div class="card-body py-2 px-3">
                                 <div class="d-flex align-items-center justify-content-between">
                                     <div>
-                                        <small class="text-muted text-uppercase d-block mb-1">Total Compras</small>
+                                        <small class="text-muted text-uppercase d-block mb-1">{{ t.totalPurchases }}</small>
                                         <h4 class="mb-0 fw-bold" style="color: #60A145;">
                                             {{ formatNumber(dividir && divisor ? totalCompras / divisor : totalCompras) }} {{ dividir ? 'USD' : 'CLP' }}
                                         </h4>
                                         <small class="text-muted fs-10">
-                                            Facturas + Débito - Crédito
+                                            {{ t.invoiceFormula }}
                                         </small>
                                     </div>
                                     <div style="color: #60A145;">
@@ -449,7 +576,7 @@ const totalCompras = computed(() => {
                 <!-- Título Sección Estados de Desarrollo -->
                 <h6 class="text-secondary mb-2 d-flex align-items-center">
                     <i class="fas fa-layer-group me-2 fs-8"></i>
-                    <span>Consumos por Estado de Desarrollo</span>
+                    <span>{{ t.sectionDevStates }}</span>
                 </h6>
 
                 <!-- Card Totales por Estado de Desarrollo -->
@@ -459,7 +586,7 @@ const totalCompras = computed(() => {
                             <div class="card-header bg-transparent py-2">
                                 <h6 class="mb-0 text-info">
                                     <i class="fas fa-seedling me-2"></i>
-                                    Resumen con Inversiones
+                                    {{ t.withInvestments }}
                                 </h6>
                             </div>
                             <div class="card-body p-0">
@@ -480,7 +607,7 @@ const totalCompras = computed(() => {
                                 </div>
                                 <div v-else class="text-center py-4">
                                     <i class="fas fa-info-circle fa-2x text-muted mb-2"></i>
-                                    <p class="text-muted mb-0">No hay datos de estados de desarrollo disponibles</p>
+                                    <p class="text-muted mb-0">{{ t.noDevStateData }}</p>
                                 </div>
                             </div>
                         </div>
@@ -492,7 +619,7 @@ const totalCompras = computed(() => {
                             <div class="card-header bg-transparent py-2">
                                 <h6 class="mb-0 text-warning">
                                     <i class="fas fa-filter me-2"></i>
-                                    Sin Inversiones
+                                    {{ t.withoutInvestments }}
                                 </h6>
                             </div>
                             <div class="card-body p-0">
@@ -513,7 +640,7 @@ const totalCompras = computed(() => {
                                 </div>
                                 <div v-else class="text-center py-4">
                                     <i class="fas fa-info-circle fa-2x text-muted mb-2"></i>
-                                    <p class="text-muted mb-0">No hay datos disponibles</p>
+                                    <p class="text-muted mb-0">{{ t.noData }}</p>
                                 </div>
                             </div>
                         </div>
@@ -528,9 +655,17 @@ const totalCompras = computed(() => {
                                 <div class="d-flex align-items-center justify-content-between">
                                     <h6 class="mb-0 text-success">
                                         <i class="fas fa-calculator me-2"></i>
-                                        Costo Kilo Acumulado
+                                        {{ t.costoKiloTitle }}
                                     </h6>
-                                    <small class="text-muted">Producción / Kilos Estimados</small>
+                                    <div class="d-flex align-items-center gap-3">
+                                        <div class="form-check form-switch mb-0" :title="t.incluirAdminTooltip">
+                                            <input class="form-check-input" type="checkbox" id="toggleAdmin" v-model="incluirAdmin" style="cursor:pointer;">
+                                            <label class="form-check-label small text-muted" for="toggleAdmin" style="cursor:pointer;">
+                                                + Admin
+                                            </label>
+                                        </div>
+                                        <small class="text-muted">{{ t.prodKilosLabel }}</small>
+                                    </div>
                                 </div>
                             </div>
                             <div class="card-body">
@@ -539,11 +674,14 @@ const totalCompras = computed(() => {
                                     <div class="col-md-4">
                                         <div class="text-center p-3 bg-light rounded">
                                             <small class="text-uppercase text-muted d-block mb-2" style="font-size: 0.75rem; font-weight: 600;">
-                                                Total Costos Producción
+                                                {{ t.totalCosts }} {{ incluirAdmin ? t.totalCostsProdAdmin : t.totalCostsProd }}
                                             </small>
                                             <div class="fs-7">
-                                                {{ formatNumber(dividir && divisor ? costoKiloAcumulado.totalProduccion / divisor : costoKiloAcumulado.totalProduccion) }} <small class="text-secondary">{{ dividir ? 'USD' : 'CLP' }}</small>
+                                                {{ formatNumber(dividir && divisor ? totalProduccionEfectivo / divisor : totalProduccionEfectivo) }} <small class="text-secondary">{{ dividir ? 'USD' : 'CLP' }}</small>
                                             </div>
+                                            <small v-if="incluirAdmin" class="text-muted" style="font-size:0.7rem;">
+                                                {{ t.adminLabel }}: {{ formatNumber(dividir && divisor ? totalAdministracion / divisor : totalAdministracion) }}
+                                            </small>
                                         </div>
                                     </div>
 
@@ -551,7 +689,7 @@ const totalCompras = computed(() => {
                                     <div class="col-md-4">
                                         <div class="text-center p-3 bg-light rounded">
                                             <small class="text-uppercase text-muted d-block mb-2" style="font-size: 0.75rem; font-weight: 600;">
-                                                Total Kilos Estimados
+                                                {{ t.totalKilos }}
                                             </small>
                                             <div class="fs-7">
                                                 {{ formatNumber(costoKiloAcumulado.totalKilos) }} <small class="text-secondary">Kg</small>
@@ -563,10 +701,10 @@ const totalCompras = computed(() => {
                                     <div class="col-md-4">
                                         <div class="text-center p-3 bg-success bg-opacity-10 rounded border border-success">
                                             <small class="text-uppercase text-success d-block mb-2" style="font-size: 0.75rem; font-weight: 700;">
-                                                <i class="fas fa-star me-1"></i> Costo / Kilo Acumulado
+                                                <i class="fas fa-star me-1"></i> {{ t.costoKiloLabel }}
                                             </small>
                                             <div class="fs-7 text-success">
-                                                {{ formatCostoKilo(dividir && divisor ? costoKiloAcumulado.costoKilo / divisor : costoKiloAcumulado.costoKilo) }} <small class="text-success fw-medium">{{ dividir ? 'USD' : 'CLP' }}/Kg</small>
+                                                {{ formatCostoKilo(dividir && divisor ? costoKiloEfectivo / divisor : costoKiloEfectivo) }} <small class="text-success fw-medium">{{ dividir ? 'USD' : 'CLP' }}/Kg</small>
                                             </div>
                                         </div>
                                     </div>
@@ -576,8 +714,8 @@ const totalCompras = computed(() => {
                                 <div v-if="!costoKiloAcumulado.totalKilos || !costoKiloAcumulado.totalProduccion" class="alert alert-warning mt-3 mb-0 py-2">
                                     <i class="fas fa-exclamation-triangle me-2"></i>
                                     <small>
-                                        <span v-if="!costoKiloAcumulado.totalKilos">No hay estimaciones de kilos registradas. </span>
-                                        <span v-if="!costoKiloAcumulado.totalProduccion">No hay gastos de producción registrados.</span>
+                                        <span v-if="!costoKiloAcumulado.totalKilos">{{ t.noKilos }} </span>
+                                        <span v-if="!costoKiloAcumulado.totalProduccion">{{ t.noProduction }}</span>
                                     </small>
                                 </div>
                             </div>
@@ -596,7 +734,7 @@ const totalCompras = computed(() => {
                                     <div class="card-header">
                                         <h6 class="mb-0">
                                             <i class="fas fa-chart-bar text-info me-2"></i>
-                                            Clasificación por Nivel 2
+                                            {{ t.chartLevel2Bar }}
                                         </h6>
                                     </div>
                                     <div class="card-body">
@@ -609,9 +747,9 @@ const totalCompras = computed(() => {
                                         />
                                         <div v-else class="text-center py-5">
                                             <i class="fas fa-chart-bar fa-4x text-muted mb-3"></i>
-                                            <h5 class="text-muted">No hay datos disponibles</h5>
+                                            <h5 class="text-muted">{{ t.noData }}</h5>
                                             <p class="text-muted mb-0">
-                                                Aún no hay salidas registradas para mostrar en el gráfico
+                                                {{ t.noDataYet }}
                                             </p>
                                         </div>
                                     </div>
@@ -626,7 +764,7 @@ const totalCompras = computed(() => {
                             <div class="card-header">
                                 <h6 class="mb-0">
                                     <i class="fas fa-table text-info me-2"></i>
-                                    Resumen Detallado por Nivel 2
+                                    {{ t.chartLevel2Table }}
                                 </h6>
                             </div>
                             <div class="card-body">
@@ -635,16 +773,16 @@ const totalCompras = computed(() => {
                                         <thead class="bg-light">
                                             <tr>
                                                 <th class="border-0 py-2">
-                                                    <small class="text-uppercase fw-bold">Nivel 1</small>
+                                                    <small class="text-uppercase fw-bold">{{ t.colLevel1 }}</small>
                                                 </th>
                                                 <th class="border-0 py-2">
-                                                    <small class="text-uppercase fw-bold">Nivel 2</small>
+                                                    <small class="text-uppercase fw-bold">{{ t.colLevel2 }}</small>
                                                 </th>
                                                 <th class="border-0 py-2 text-end">
-                                                    <small class="text-uppercase fw-bold">Monto Total</small>
+                                                    <small class="text-uppercase fw-bold">{{ t.colTotal }}</small>
                                                 </th>
                                                 <th class="border-0 py-2 text-end">
-                                                    <small class="text-uppercase fw-bold">% del Total</small>
+                                                    <small class="text-uppercase fw-bold">{{ t.colPct }}</small>
                                                 </th>
                                             </tr>
                                         </thead>
@@ -671,7 +809,7 @@ const totalCompras = computed(() => {
                                                 </td>
                                             </tr>
                                             <tr class="table-primary fw-bold">
-                                                <td class="py-2" colspan="2">TOTAL</td>
+                                                <td class="py-2" colspan="2">{{ t.total }}</td>
                                                 <td class="py-2 text-end">
                                                     {{ formatNumber(dividir && divisor ? byLevel2.data.reduce((a, b) => a + b, 0) / divisor : byLevel2.data.reduce((a, b) => a + b, 0)) }}
                                                     <small class="text-secondary ms-1">{{ dividir ? 'USD' : 'CLP' }}</small>
@@ -695,7 +833,7 @@ const totalCompras = computed(() => {
                                     <div class="card-header">
                                         <h6 class="mb-0">
                                             <i class="fas fa-chart-bar text-success me-2"></i>
-                                            Monto Total Gastado por Proyecto
+                                            {{ t.chartProjectBar }}
                                         </h6>
                                     </div>
                                     <div class="card-body">
@@ -708,9 +846,9 @@ const totalCompras = computed(() => {
                                         />
                                         <div v-else class="text-center py-5">
                                             <i class="fas fa-chart-bar fa-4x text-muted mb-3"></i>
-                                            <h5 class="text-muted">No hay datos disponibles</h5>
+                                            <h5 class="text-muted">{{ t.noData }}</h5>
                                             <p class="text-muted mb-0">
-                                                Aún no hay gastos por proyecto registrados
+                                                {{ t.noExpensesByProject }}
                                             </p>
                                         </div>
                                     </div>
@@ -723,7 +861,7 @@ const totalCompras = computed(() => {
                                     <div class="card-header">
                                         <h6 class="mb-0">
                                             <i class="fas fa-chart-pie text-info me-2"></i>
-                                            Distribución Porcentual por Proyecto
+                                            {{ t.chartProjectPie }}
                                         </h6>
                                     </div>
                                     <div class="card-body">
@@ -735,9 +873,9 @@ const totalCompras = computed(() => {
                                         />
                                         <div v-else class="text-center py-5">
                                             <i class="fas fa-chart-pie fa-4x text-muted mb-3"></i>
-                                            <h5 class="text-muted">No hay datos disponibles</h5>
+                                            <h5 class="text-muted">{{ t.noData }}</h5>
                                             <p class="text-muted mb-0">
-                                                Aún no hay gastos por proyecto registrados
+                                                {{ t.noExpensesByProject }}
                                             </p>
                                         </div>
                                     </div>
@@ -754,7 +892,7 @@ const totalCompras = computed(() => {
                                     <div class="card-header">
                                         <h6 class="mb-0">
                                             <i class="fas fa-chart-bar text-primary me-2"></i>
-                                            Clasificación por producto y Nivel 1
+                                            {{ t.chartLevel1Bar }}
                                         </h6>
                                     </div>
                                     <div class="card-body">
@@ -767,9 +905,9 @@ const totalCompras = computed(() => {
                                         />
                                         <div v-else class="text-center py-5">
                                             <i class="fas fa-chart-bar fa-4x text-muted mb-3"></i>
-                                            <h5 class="text-muted">No hay datos disponibles</h5>
+                                            <h5 class="text-muted">{{ t.noData }}</h5>
                                             <p class="text-muted mb-0">
-                                                Aún no hay salidas registradas para mostrar en el gráfico
+                                                {{ t.noDataYet }}
                                             </p>
                                         </div>
                                     </div>
@@ -782,7 +920,7 @@ const totalCompras = computed(() => {
                                     <div class="card-header">
                                         <h6 class="mb-0">
                                             <i class="fas fa-chart-pie text-primary me-2"></i>
-                                            Distribución Porcentual por Nivel 1
+                                            {{ t.chartLevel1Pie }}
                                         </h6>
                                     </div>
                                     <div class="card-body">
@@ -794,9 +932,9 @@ const totalCompras = computed(() => {
                                         />
                                         <div v-else class="text-center py-5">
                                             <i class="fas fa-chart-pie fa-4x text-muted mb-3"></i>
-                                            <h5 class="text-muted">No hay datos disponibles</h5>
+                                            <h5 class="text-muted">{{ t.noData }}</h5>
                                             <p class="text-muted mb-0">
-                                                Aún no hay salidas registradas
+                                                {{ t.noOutflows }}
                                             </p>
                                         </div>
                                     </div>

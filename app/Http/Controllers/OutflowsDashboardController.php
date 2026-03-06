@@ -623,28 +623,20 @@ class OutflowsDashboardController extends Controller
 
             return [
                 'totalProduccion' => floatval($totalProduccion),
-                'totalKilos' => floatval($totalKilos),
-                'costoKilo' => floatval($costoKilo),
+                'totalKilos'      => floatval($totalKilos),
+                'costoKilo'       => floatval($costoKilo),
             ];
 
         } catch (\Exception $e) {
             Log::error('Error en OutflowsDashboard getCostoKiloAcumulado: ' . $e->getMessage());
             return [
                 'totalProduccion' => 0,
-                'totalKilos' => 0,
-                'costoKilo' => 0,
+                'totalKilos'      => 0,
+                'costoKilo'       => 0,
             ];
         }
     }
 
-    /**
-     * Obtiene el total de gastos de producción
-     * Replica la función getTotalsByDevelopmentStateWithoutInvestments pero filtrando por "producción"
-     * 
-     * @param int $season_id
-     * @param int $team_id
-     * @return float
-     */
     private function getTotalProduccion($season_id, $team_id)
     {
         try {
