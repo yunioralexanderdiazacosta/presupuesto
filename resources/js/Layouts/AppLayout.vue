@@ -732,12 +732,17 @@ const logout = () => {
 
 <style>
 /* ── Punto centrado antes de cada subítem del menú ─────────── */
-.navbar-vertical .nav.collapse .nav.collapse .nav-link-text::before {
+.navbar-vertical .nav.collapse .nav.collapse .nav-link-text::before,
+.navbar-vertical .nav.collapse .nav.collapsing .nav-link-text::before {
     content: '·';
     margin-right: 0.4rem;
-    font-size: 1.1em;
+    font-size: 1.5em;
     line-height: 1;
     vertical-align: middle;
+}
+.navbar-vertical .nav.collapse .nav.collapse .nav-link-text,
+.navbar-vertical .nav.collapse .nav.collapsing .nav-link-text {
+    padding-left: 0.5rem !important;
 }
 
 /* ── Menú lateral más grande en móvil ──────────────────────── */
