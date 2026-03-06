@@ -25,7 +25,7 @@ const title = props.prefill?.is_duplicate
 const links = [{ title: 'Tablero', link: 'dashboard' }, { title: 'Facturas', link: 'invoices.index' }, { title: title, active: true }];
 
 const form = useForm({
-	date: props.prefill?.date || '',
+	date: props.prefill?.date || new Date().toISOString().slice(0, 10),
 	due_date: '',
 	month_id: props.prefill?.month_id || null,
 	payment_term: props.prefill?.payment_term || '',

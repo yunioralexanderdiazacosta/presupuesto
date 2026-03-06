@@ -70,8 +70,11 @@ const totalFacturasFormatted = computed(() => {
 
 // Vista expandida: una fila por cada producto de cada factura
 const termDetalles = ref('');
+const activeTab = ref('resumen'); // controla qué pestaña está activa
 
 const expandedInvoices = computed(() => {
+    // Solo calcular cuando la pestaña de detalles está activa
+    if (activeTab.value !== 'detalles') return [];
     const source = filteredInvoices.value;
     const rows = [];
     source.forEach(invoice => {
@@ -236,10 +239,10 @@ const formatCurrency = (value) => {
                                 <span class="fas fa-file-import" data-fa-transform="shrink-3 down-2"></span>
                                 <span class="d-none d-sm-inline-block ms-1">Importar Rendición</span>
                             </button>
-                            <Link class="btn btn-falcon-default btn-sm" :href="route('invoices.create')">
+                            <button class="btn btn-falcon-default btn-sm" @click="router.visit(route('invoices.create'), { preserveState: false })">
                                 <span class="fas fa-plus" data-fa-transform="shrink-3 down-2"></span>
                                 <span class="d-none d-sm-inline-block ms-1">Nuevo</span>
-                            </Link>
+                            </button>
                         </div>
                     </div>
                 </div>
@@ -249,21 +252,20 @@ const formatCurrency = (value) => {
                 <div class="d-flex align-items-center justify-content-between mb-2">
                     <ul class="nav nav-pills nav-pills-sm" id="pill-myTab" role="tablist" style="font-size: 0.75rem;">
                         <li class="nav-item">
-                            <a class="nav-link active py-1 px-2" id="pill-resumen" data-bs-toggle="tab" href="#pill-tab-resumen"
-                                role="tab" aria-controls="pill-tab-resumen" aria-selected="true">Resumen</a>
+                            <a class="nav-link py-1 px-2" :class="{ active: activeTab === 'resumen' }" id="pill-resumen"
+                                href="#pill-tab-resumen" role="tab" @click.prevent="activeTab = 'resumen'">Resumen</a>
                         </li>
                         <li class="nav-item">
-                            <a class="nav-link py-1 px-2" id="pill-detalles" data-bs-toggle="tab" href="#pill-tab-detalles" role="tab"
-                                aria-controls="pill-tab-detalles" aria-selected="false">Detalles</a>
+                            <a class="nav-link py-1 px-2" :class="{ active: activeTab === 'detalles' }" id="pill-detalles"
+                                href="#pill-tab-detalles" role="tab" @click.prevent="activeTab = 'detalles'">Detalles</a>
                         </li>
                         <li class="nav-item">
-                            <a class="nav-link py-1 px-2" id="pill-gastos" data-bs-toggle="tab" href="#pill-tab-gastos" role="tab"
-                                aria-controls="pill-tab-gastos" aria-selected="false">Gastos x Ha</a>
+                            <a class="nav-link py-1 px-2" :class="{ active: activeTab === 'gastos' }" id="pill-gastos"
+                                href="#pill-tab-gastos" role="tab" @click.prevent="activeTab = 'gastos'">Gastos x Ha</a>
                         </li>
                         <li class="nav-item">
-                            <a class="nav-link py-1 px-2" id="pill-detalles-compra" data-bs-toggle="tab"
-                                href="#pill-tab-detalles-compra" role="tab" aria-controls="pill-tab-detalles-compra"
-                                aria-selected="false">Det. compra</a>
+                            <a class="nav-link py-1 px-2" :class="{ active: activeTab === 'detalles-compra' }" id="pill-detalles-compra"
+                                href="#pill-tab-detalles-compra" role="tab" @click.prevent="activeTab = 'detalles-compra'">Det. compra</a>
                         </li>
                     </ul>
                     <!-- Cards de totales alineados a la derecha -->
@@ -302,8 +304,7 @@ const formatCurrency = (value) => {
                 </div>
 
                 <div class="tab-content border p-3 mt-3" id="pill-myTabContent">
-                    <div class="tab-pane fade show active" id="pill-tab-resumen" role="tabpanel"
-                        aria-labelledby="resumen-tab">
+                    <div v-show="activeTab === 'resumen'" id="pill-tab-resumen" role="tabpanel">
                         <div class="row align-items-center mb-3">
                             <div class="col-md-6 col-12 mb-2 mb-md-0">
                                 <SearchInput v-model="term" placeholder="Buscar por proveedor, número, razón social..."
@@ -429,7 +430,7 @@ invoice, index
                     <!-- end::Tab Resumen -->
 
                     <!-- begin::Tab Detalles -->
-                    <div class="tab-pane fade" id="pill-tab-detalles" role="tabpanel" aria-labelledby="pill-detalles">
+                    <div v-show="activeTab === 'detalles'" id="pill-tab-detalles" role="tabpanel">
                         <div class="row align-items-center mb-3">
                             <div class="col-md-6 col-12 mb-2 mb-md-0">
                                 <SearchInput v-model="termDetalles" placeholder="Buscar por proveedor, N° doc, producto..." />

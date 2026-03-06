@@ -25,36 +25,32 @@ class DuplicateInvoiceController extends Controller
             abort(403);
         }
 
-        $typeDocuments = TypeDocument::get()->transform(fn($t) => [
-            'label' => $t->name,
-            'value' => $t->id,
-        ]);
+        $typeDocuments = TypeDocument::select('id', 'name')->get()
+            ->map(fn($t) => ['label' => $t->name, 'value' => $t->id]);
 
-        $suppliers = Supplier::where('team_id', $user->team_id)->get()->transform(fn($s) => [
-            'label' => $s->name,
-            'value' => $s->id,
-        ]);
+        $suppliers = Supplier::where('team_id', $user->team_id)
+            ->select('id', 'name')
+            ->orderBy('name')
+            ->get()
+            ->map(fn($s) => ['label' => $s->name, 'value' => $s->id]);
 
-        $companyReasons = CompanyReason::where('team_id', $user->team_id)->get()->transform(fn($c) => [
-            'label' => $c->name,
-            'value' => $c->id,
-        ]);
+        $companyReasons = CompanyReason::where('team_id', $user->team_id)
+            ->select('id', 'name')
+            ->orderBy('name')
+            ->get()
+            ->map(fn($c) => ['label' => $c->name, 'value' => $c->id]);
 
-        $products = Product::where('team_id', $user->team_id)->get()->transform(fn($p) => [
-            'label'   => $p->name,
-            'value'   => $p->id,
-            'unit_id' => $p->unit_id,
-        ]);
+        $products = Product::where('team_id', $user->team_id)
+            ->select('id', 'name', 'unit_id')
+            ->orderBy('name')
+            ->get()
+            ->map(fn($p) => ['label' => $p->name, 'value' => $p->id, 'unit_id' => $p->unit_id]);
 
-        $units = Unit::get()->transform(fn($u) => [
-            'label' => $u->name,
-            'value' => $u->id,
-        ]);
+        $units = Unit::select('id', 'name')->get()
+            ->map(fn($u) => ['label' => $u->name, 'value' => $u->id]);
 
-        $months = Month::orderBy('id')->get()->transform(fn($m) => [
-            'label' => $m->name,
-            'value' => $m->id,
-        ]);
+        $months = Month::select('id', 'name')->orderBy('id')->get()
+            ->map(fn($m) => ['label' => $m->name, 'value' => $m->id]);
 
         $purchaseOrders = PurchaseOrder::where('team_id', $user->team_id)
             ->where('season_id', session('season_id'))
@@ -68,7 +64,7 @@ class DuplicateInvoiceController extends Controller
                 'supplier_id' => $po->supplier_id,
             ]);
 
-        $invoice->load('invoiceProducts');
+        $invoice->load('invoiceProducts.product');
 
         $prefill = [
             'is_duplicate'      => true,
@@ -83,6 +79,7 @@ class DuplicateInvoiceController extends Controller
             'date'              => now()->format('Y-m-d'),
             'products'          => $invoice->invoiceProducts->map(fn($ip) => [
                 'product_id'   => $ip->product_id,
+                'unit_id'      => $ip->product->unit_id ?? '',
                 'unit_price'   => $ip->unit_price,
                 'amount'       => $ip->amount,
                 'observations' => $ip->observations ?? '',

@@ -44,16 +44,40 @@ const supplierForm = useForm({
     phone: '',
 });
 
-// Si plazo de pago es 0, tipo de pago debe ser 'Contado' (id=2)
+// Sincronización bidireccional entre plazo y tipo de pago
+// Si plazo = 0 → Contado automático; si tipo = Contado → plazo = 0
 watch(
     () => props.form.payment_term,
     (newVal) => {
         if (newVal === 0 || newVal === '0') {
             props.form.payment_type = 2; // Contado
-        } else {
+        } else if (newVal) {
             props.form.payment_type = 1; // Crédito
         }
     }
+);
+
+watch(
+    () => props.form.payment_type,
+    (newVal) => {
+        if (newVal === 2 || newVal === '2') {
+            props.form.payment_term = 0; // Contado → plazo 0
+        } else if ((newVal === 1 || newVal === '1') && (props.form.payment_term === 0 || props.form.payment_term === '0' || !props.form.payment_term)) {
+            props.form.payment_term = 30; // Crédito → sugerir 30 días si estaba en 0
+        }
+    }
+);
+
+// Al cambiar la fecha, auto-asignar el mes contable (id = número de mes)
+watch(
+    () => props.form.date,
+    (newDate) => {
+        if (newDate) {
+            const month = parseInt(newDate.split('-')[1], 10);
+            props.form.month_id = month;
+        }
+    },
+    { immediate: true }
 );
 
 // Ordenes de compra filtradas por proveedor seleccionado

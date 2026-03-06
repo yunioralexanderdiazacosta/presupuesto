@@ -21,48 +21,32 @@ class CreateInvoiceController extends Controller
     {
         $user = Auth::user();
 
-        $typeDocuments = TypeDocument::get()->transform(function($type){
-            return [
-                'label' => $type->name,
-                'value' => $type->id
-            ];
-        });
+        $typeDocuments = TypeDocument::select('id', 'name')->get()
+            ->map(fn($t) => ['label' => $t->name, 'value' => $t->id]);
 
-        $suppliers = Supplier::where('team_id', $user->team_id)->get()->transform(function($supplier){
-            return [
-                'label' => $supplier->name,
-                'value' => $supplier->id
-            ];
-         });
+        $suppliers = Supplier::where('team_id', $user->team_id)
+            ->select('id', 'name')
+            ->orderBy('name')
+            ->get()
+            ->map(fn($s) => ['label' => $s->name, 'value' => $s->id]);
 
-        $companyReasons = CompanyReason::where('team_id', $user->team_id)->get()->transform(function($companyReason){
-            return [
-                'label' => $companyReason->name,
-                'value' => $companyReason->id
-            ];
-         });
+        $companyReasons = CompanyReason::where('team_id', $user->team_id)
+            ->select('id', 'name')
+            ->orderBy('name')
+            ->get()
+            ->map(fn($c) => ['label' => $c->name, 'value' => $c->id]);
 
-        $products = Product::where('team_id', $user->team_id)->get()->transform(function($product){
-            return [
-                'label'   => $product->name,
-                'value'   => $product->id,
-                'unit_id' => $product->unit_id,
-            ];
-        });
-        // Unidades disponibles para productos
-        $units = Unit::get()->transform(function($unit){
-            return [
-                'label' => $unit->name,
-                'value' => $unit->id
-            ];
-        });
+        $products = Product::where('team_id', $user->team_id)
+            ->select('id', 'name', 'unit_id')
+            ->orderBy('name')
+            ->get()
+            ->map(fn($p) => ['label' => $p->name, 'value' => $p->id, 'unit_id' => $p->unit_id]);
 
-        $months = Month::orderBy('id')->get()->transform(function($month){
-            return [
-                'label' => $month->name,
-                'value' => $month->id
-            ];
-        });
+        $units = Unit::select('id', 'name')->get()
+            ->map(fn($u) => ['label' => $u->name, 'value' => $u->id]);
+
+        $months = Month::select('id', 'name')->orderBy('id')->get()
+            ->map(fn($m) => ['label' => $m->name, 'value' => $m->id]);
 
         // Pre-llenado desde item de rendición de gastos
         $prefill = null;

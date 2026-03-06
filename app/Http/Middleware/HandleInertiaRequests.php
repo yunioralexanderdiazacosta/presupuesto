@@ -55,7 +55,7 @@ class HandleInertiaRequests extends Middleware
             'public_path' => config('app.url'),
             'price'       => $price,
             'temporada'   => $season ? strtoupper($season->name) : '',
-            'auth' => [
+            'auth' => fn () => [
                 'user' => Auth::user() ? Auth::user()->load('team') : null,
             ],
             'gates' => function() {
