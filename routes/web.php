@@ -40,6 +40,7 @@ use App\Http\Controllers\Products2\DeleteProduct2Controller;
     use App\Http\Controllers\Api\GetProductsController;
     use App\Http\Controllers\Api\GetPendingExpenseReportItemsController;
     use App\Http\Controllers\Api\StoreSupplierApiController;
+    use App\Http\Controllers\Api\GetCostCenterVarietiesController;
 
 // Rutas para Irrigation Pumps
     use App\Http\Controllers\IrrigationPumpsController;
@@ -197,6 +198,16 @@ use App\Http\Controllers\Varieties\GetVarietyController;
 use App\Http\Controllers\Varieties\StoreVarietyController;
 use App\Http\Controllers\Varieties\UpdateVarietyController;
 use App\Http\Controllers\Varieties\DeleteVarietyController;
+// Rutas para Rootstocks (portainjertos)
+use App\Http\Controllers\Rootstocks\RootstockController;
+use App\Http\Controllers\Rootstocks\StoreRootstockController;
+use App\Http\Controllers\Rootstocks\UpdateRootstockController;
+use App\Http\Controllers\Rootstocks\DeleteRootstockController;
+// Rutas para CostCenterVarieties (variedades por cuartel)
+use App\Http\Controllers\CostCenterVarieties\CostCenterVarietyController;
+use App\Http\Controllers\CostCenterVarieties\StoreCostCenterVarietyController;
+use App\Http\Controllers\CostCenterVarieties\UpdateCostCenterVarietyController;
+use App\Http\Controllers\CostCenterVarieties\DeleteCostCenterVarietyController;
 use App\Http\Controllers\Parcels\StoreParcelController;
 use App\Http\Controllers\Parcels\UpdateParcelController;
 use App\Http\Controllers\Parcels\DeleteParcelController;
@@ -332,6 +343,7 @@ Route::middleware([
     Route::get('/api/products', GetProductsController::class)->name('api.products');
     Route::get('/api/pending-expense-items', GetPendingExpenseReportItemsController::class)->name('api.pending-expense-items');
     Route::post('/api/suppliers', StoreSupplierApiController::class)->name('api.suppliers.store');
+    Route::get('/api/cost-center-varieties/{costCenterId}', GetCostCenterVarietiesController::class)->name('api.cost-center-varieties');
 
     // Products2 estilo teams: vista única y controladores separados para acciones
 
@@ -481,6 +493,16 @@ Route::middleware([
     Route::post('/varieties/store', StoreVarietyController::class)->name('varieties.store');
     Route::post('/varieties/{variety}/update', UpdateVarietyController::class)->name('varieties.update');
     Route::delete('/varieties/{variety}/delete', DeleteVarietyController::class)->name('varieties.delete');
+
+    Route::get('/rootstocks', RootstockController::class)->name('rootstocks.index');
+    Route::post('/rootstocks/store', StoreRootstockController::class)->name('rootstocks.store');
+    Route::post('/rootstocks/{rootstock}/update', UpdateRootstockController::class)->name('rootstocks.update');
+    Route::delete('/rootstocks/{rootstock}/delete', DeleteRootstockController::class)->name('rootstocks.delete');
+
+    Route::get('/cost-center-varieties', CostCenterVarietyController::class)->name('cost-center-varieties.index');
+    Route::post('/cost-center-varieties/store', StoreCostCenterVarietyController::class)->name('cost-center-varieties.store');
+    Route::post('/cost-center-varieties/{costCenterVariety}/update', UpdateCostCenterVarietyController::class)->name('cost-center-varieties.update');
+    Route::delete('/cost-center-varieties/{costCenterVariety}/delete', DeleteCostCenterVarietyController::class)->name('cost-center-varieties.delete');
 
     Route::get('/parcels/pdf', ParcelsPdfController::class)->name('parcels.pdf');
     Route::get('/parcels/excel', ParcelsExcelController::class)->name('parcels.excel');

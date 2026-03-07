@@ -8,15 +8,15 @@ class Estimate extends Model
     protected $fillable = [
         'estimate_status_id',
         'kilos_ha',
-        'cost_center_id',
+        'cost_center_variety_id',
         'observations',
         'season_id',
         'team_id',
     ];
 
-    public function costCenter()
+    public function costCenterVariety()
     {
-        return $this->belongsTo(CostCenter::class);
+        return $this->belongsTo(CostCenterVariety::class);
     }
     public function season()
     {

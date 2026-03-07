@@ -23,9 +23,9 @@ class StoreEstimateRequest extends FormRequest
     {
         return [
             '*.estimate_status_id' => 'required|exists:estimate_status,id',
-            '*.kilos_ha' => 'required|integer',
-            '*.cost_center_id' => 'required|exists:cost_centers,id',
-            '*.observations' => 'nullable|string', // No es obligatorio
+            '*.kilos_ha' => 'required|integer|min:0',
+            '*.cost_center_variety_id' => 'required|exists:cost_center_varieties,id',
+            '*.observations' => 'nullable|string',
         ];
     }
 }

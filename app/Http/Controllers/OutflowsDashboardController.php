@@ -610,7 +610,11 @@ class OutflowsDashboardController extends Controller
 
             // 2. Obtener total de kilos estimados (última estimación)
             $totalEstimatedKilosData = $this->getTotalEstimatedKilos($season_id, $team_id);
-            $kilosByFruit = $totalEstimatedKilosData['kilosByFruit'] ?? [];
+            $kilosByEstimate = $totalEstimatedKilosData['kilosByEstimate'] ?? [];
+            $defaultStatusId = $totalEstimatedKilosData['defaultEstimateStatusId'] ?? null;
+            $kilosByFruit = ($defaultStatusId && isset($kilosByEstimate[$defaultStatusId]))
+                ? $kilosByEstimate[$defaultStatusId]
+                : [];
             
             // Sumar todos los kilos de todas las frutas
             $totalKilos = array_sum($kilosByFruit);
@@ -625,6 +629,10 @@ class OutflowsDashboardController extends Controller
                 'totalProduccion' => floatval($totalProduccion),
                 'totalKilos'      => floatval($totalKilos),
                 'costoKilo'       => floatval($costoKilo),
+                'kilosByEstimate' => $kilosByEstimate,
+                'estimateOptions' => $totalEstimatedKilosData['estimateOptions'] ?? [],
+                'fruitNames'      => $totalEstimatedKilosData['fruitNames'] ?? [],
+                'defaultEstimateStatusId' => $defaultStatusId,
             ];
 
         } catch (\Exception $e) {

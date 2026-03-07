@@ -350,57 +350,67 @@ trait BudgetTotalsTrait
      */
     public function getTotalEstimatedKilos($season_id, $team_id)
     {
-        // Obtener todas las estimaciones de la temporada/equipo
         $estimates = \App\Models\Estimate::where('season_id', $season_id)
             ->where('team_id', $team_id)
+            ->with(['estimateStatus', 'costCenterVariety'])
             ->get();
 
-        if ($estimates->isEmpty()) return [];
+        if ($estimates->isEmpty()) return [
+            'kilosByEstimate' => [],
+            'estimateOptions' => [],
+            'fruitNames' => [],
+            'defaultEstimateStatusId' => null,
+        ];
 
-
-        // Agrupar estimates por fruta (vía estimate_status)
+        // Agrupar por fruit_id (vía estimateStatus)
         $estimatesByFruit = [];
         foreach ($estimates as $estimate) {
-            $estimateStatus = $estimate->estimateStatus;
-            $fruitId = $estimateStatus ? $estimateStatus->fruit_id : null;
+            $fruitId = $estimate->estimateStatus->fruit_id ?? null;
             if (!$fruitId) continue;
-            if (!isset($estimatesByFruit[$fruitId])) {
-                $estimatesByFruit[$fruitId] = [];
-            }
             $estimatesByFruit[$fruitId][] = $estimate;
         }
 
-        $kilosByFruit = [];
-        $fruitIds = array_keys($estimatesByFruit);
+        // Recopilar todos los estimate_status_ids únicos con nombre
+        $allStatusIds = $estimates->pluck('estimate_status_id')->unique();
+        $estimateOptions = \App\Models\EstimateStatus::whereIn('id', $allStatusIds)
+            ->get(['id', 'name', 'fruit_id'])
+            ->map(fn($s) => ['id' => $s->id, 'name' => $s->name, 'fruit_id' => $s->fruit_id])
+            ->values()
+            ->toArray();
 
-        // Para cada fruta, tomar los estimates con el mayor estimate_status_id y sumar los kilos
+        // Calcular kilos por cada estimate_status_id, agrupado por fruta
+        $kilosByEstimate = []; // [statusId => [fruitId => totalKilos]]
+        $maxStatusByFruit = [];
+
         foreach ($estimatesByFruit as $fruitId => $estimatesGroup) {
-            // Encontrar el último estimate_status_id para esta fruta
-            $maxStatusId = collect($estimatesGroup)->max('estimate_status_id');
-            // Filtrar los estimates con ese status
-            $latestEstimates = collect($estimatesGroup)->where('estimate_status_id', $maxStatusId);
-            $totalKilos = 0;
-            foreach ($latestEstimates as $estimate) {
-                $surface = $estimate->costCenter ? $estimate->costCenter->surface : 0;
-                $kilos = ($estimate->kilos_ha ?? 0) * $surface;
-                $totalKilos += $kilos;
+            $grouped = collect($estimatesGroup)->groupBy('estimate_status_id');
+            foreach ($grouped as $statusId => $statusEstimates) {
+                $totalKilos = 0;
+                foreach ($statusEstimates as $estimate) {
+                    $surface = $estimate->costCenterVariety ? $estimate->costCenterVariety->surface : 0;
+                    $totalKilos += ($estimate->kilos_ha ?? 0) * $surface;
+                }
+                $kilosByEstimate[$statusId][$fruitId] = $totalKilos;
             }
-            $kilosByFruit[$fruitId] = $totalKilos;
+            // Guardar el max status para default
+            $maxStatusByFruit[$fruitId] = collect($estimatesGroup)->max('estimate_status_id');
         }
 
-        // Obtener nombres de las frutas
+        // Obtener nombres de frutas
+        $fruitIds = array_keys($estimatesByFruit);
         $fruitNames = [];
         if (!empty($fruitIds)) {
-            $fruits = \App\Models\Fruit::whereIn('id', $fruitIds)->pluck('name', 'id');
-            foreach ($fruits as $id => $name) {
-                $fruitNames[$id] = $name;
-            }
+            $fruitNames = \App\Models\Fruit::whereIn('id', $fruitIds)->pluck('name', 'id')->toArray();
         }
 
-        // Retornar ambos
+        // Default: el status_id más alto entre todas las frutas
+        $defaultEstimateStatusId = !empty($maxStatusByFruit) ? max($maxStatusByFruit) : null;
+
         return [
-            'kilosByFruit' => $kilosByFruit,
-            'fruitNames' => $fruitNames
+            'kilosByEstimate' => $kilosByEstimate,
+            'estimateOptions' => $estimateOptions,
+            'fruitNames' => $fruitNames,
+            'defaultEstimateStatusId' => $defaultEstimateStatusId,
         ];
     }
 

@@ -59,4 +59,9 @@ public function consumptions()
     {
         return $this->belongsToMany(Consumption::class, 'consumption_cost_center');
     }
+
+    public function costCenterVarieties()
+    {
+        return $this->hasMany(CostCenterVariety::class);
+    }
 }

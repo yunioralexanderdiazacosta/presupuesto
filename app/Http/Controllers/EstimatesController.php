@@ -3,7 +3,11 @@ namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
 use App\Models\Estimate;
+use App\Models\CostCenterVariety;
+use App\Models\Fruit;
+use App\Models\EstimateStatus;
 use Illuminate\Support\Facades\Auth;
+use Inertia\Inertia;
 
 class EstimatesController extends Controller
 {
@@ -19,8 +23,7 @@ class EstimatesController extends Controller
             'fruit_id' => 'required|exists:fruits,id',
         ]);
 
-        // Validar que la fruta pertenezca al equipo del usuario
-        $fruit = \App\Models\Fruit::where('id', $request->fruit_id)
+        $fruit = Fruit::where('id', $request->fruit_id)
             ->where('team_id', $user->team_id)
             ->first();
 
@@ -28,7 +31,7 @@ class EstimatesController extends Controller
             return response()->json(['error' => 'Fruta no válida para este equipo.'], 403);
         }
 
-        $status = \App\Models\EstimateStatus::create([
+        $status = EstimateStatus::create([
             'name' => $request->name,
             'fruit_id' => $request->fruit_id,
         ]);
@@ -41,37 +44,23 @@ class EstimatesController extends Controller
         $user = Auth::user();
         $season_id = session('season_id');
 
-        $costcenters = \App\Models\CostCenter::where('season_id', $season_id)
-            ->with('variety')
-            ->get();
-
-        $fruitId = $request->input('fruit_id');
-        $estimateStatusId = $request->input('estimate_status_id');
-        $estimates = Estimate::query()
-            // Filtrar por temporada y por el equipo del usuario
-            ->where('season_id', $season_id)
+        // Cargar variedades por cuartel con relaciones
+        $costCenterVarieties = CostCenterVariety::where('season_id', $season_id)
             ->where('team_id', $user->team_id)
-            ->when($fruitId, function ($query) use ($fruitId) {
-                $query->whereHas('costcenter', function ($q) use ($fruitId) {
-                    $q->where('fruit_id', $fruitId);
-                });
-            })
-            ->when($estimateStatusId, function ($query) use ($estimateStatusId) {
-                $query->where('estimate_status_id', $estimateStatusId);
-            })
-            // Cargar relaciones para evitar consultas adicionales en la vista
-            ->with(['costcenter.variety', 'estimateStatus'])
+            ->with(['costCenter', 'variety', 'fruit', 'rootstock', 'developmentState'])
             ->get();
 
-        // Frutas relacionadas al team (por costcenters del team)
-        // Frutas relacionadas al team directamente por campo team_id en fruits
-        $fruits = \App\Models\Fruit::where('team_id', $user->team_id)->get();
+        // Estimaciones con relaciones actualizadas
+        $estimates = Estimate::where('season_id', $season_id)
+            ->where('team_id', $user->team_id)
+            ->with(['costCenterVariety.costCenter', 'costCenterVariety.variety', 'costCenterVariety.fruit', 'estimateStatus'])
+            ->get();
 
-        // Estados relacionados a la fruta seleccionada
-        $estimate_statuses = \App\Models\EstimateStatus::whereIn('fruit_id', $fruits->pluck('id'))->get();
+        $fruits = Fruit::where('team_id', $user->team_id)->get();
+        $estimate_statuses = EstimateStatus::whereIn('fruit_id', $fruits->pluck('id'))->get();
 
-        return \Inertia\Inertia::render('Estimates', [
-            'costcenters' => $costcenters,
+        return Inertia::render('Estimates', [
+            'costCenterVarieties' => $costCenterVarieties,
             'estimates' => $estimates,
             'estimate_statuses' => $estimate_statuses,
             'fruits' => $fruits,

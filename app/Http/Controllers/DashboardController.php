@@ -458,8 +458,15 @@ $totalInvestments = \App\Models\Investment::where('season_id', $season_id)
 
             //obtener total estimacion en kilos
             $totalEstimatedKilosData = $this->getTotalEstimatedKilos($season_id, $user->team_id);
-            $kilosByFruit = $totalEstimatedKilosData['kilosByFruit'] ?? [];
+            $kilosByEstimate = $totalEstimatedKilosData['kilosByEstimate'] ?? [];
+            $estimateOptions = $totalEstimatedKilosData['estimateOptions'] ?? [];
             $fruitNames = $totalEstimatedKilosData['fruitNames'] ?? [];
+            $defaultEstimateStatusId = $totalEstimatedKilosData['defaultEstimateStatusId'] ?? null;
+
+            // Compatibilidad: kilosByFruit usa el default (último status)
+            $kilosByFruit = $defaultEstimateStatusId && isset($kilosByEstimate[$defaultEstimateStatusId])
+                ? $kilosByEstimate[$defaultEstimateStatusId]
+                : [];
 
             // Obtener nombres de estados de desarrollo
             $devStates = \App\Models\DevelopmentState::all(['id', 'name'])->keyBy('id')->toArray();
@@ -515,6 +522,9 @@ $totalInvestments = \App\Models\Investment::where('season_id', $season_id)
                 'mainTotalsAndPercents', // <-- nuevo prop para los gauges
                 'totalEstimatedKilosData', // <-- nuevo prop para total estimado en kilos
                 'kilosByFruit',
+                'kilosByEstimate',
+                'estimateOptions',
+                'defaultEstimateStatusId',
                 'fruitNames',
                 'adminFieldsByFruit',
                 'totalHarvestByFruit',

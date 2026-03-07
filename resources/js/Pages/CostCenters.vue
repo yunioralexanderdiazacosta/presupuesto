@@ -10,10 +10,10 @@ import Breadcrumb from '@/Components/Breadcrumb.vue';
 import TitleBudget from '@/Components/Budgets/TitleBudget.vue';
 import CreateCostCenterModal from '@/Components/CostCenters/CreateCostCenterModal.vue';
 import EditCostCenterModal from '@/Components/CostCenters/EditCostCenterModal.vue';
+import CostCenterVarietiesDetailModal from '@/Components/CostCenters/CostCenterVarietiesDetailModal.vue';
 import SearchInput from '@/Components/SearchInput.vue';
 import ExportExcelButton from '@/Components/ExportExcelButton.vue';
 import ExportPdfButton from '@/Components/ExportPdfButton.vue';
-import axios from 'axios';
 
 const props = defineProps({
     costCenters: Object,
@@ -29,11 +29,10 @@ const form = useForm({
     fruit_id: '',
     variety_id: '',
     parcel_id: '',
-    varieties: [],
     status: true,
     year_plantation: '',
     development_state_id: '',
-    company_reason_id: ''   
+    company_reason_id: ''
 });
 
 const path = computed(() =>usePage().props.public_path);
@@ -60,17 +59,7 @@ const openEdit = (costCenter) => {
     form.development_state_id = costCenter.development_state_id;
     form.year_plantation = costCenter.year_plantation;
     form.company_reason_id = costCenter.company_reason_id;
-    form.variety_id = costCenter.variety_id; // Asignar ANTES de cargar variedades
-    
-    // Cargar variedades si hay fruit_id
-    if (form.fruit_id) {
-        axios.get(route('varieties.get', form.fruit_id))
-            .then(response => {
-                form.varieties = response.data;
-                // No es necesario volver a asignar variety_id aquí
-            }).catch(error => console.log(error));
-    }
-    
+    form.variety_id = costCenter.variety_id;
     $('#editCostCenterModal').modal('show');
 }
 
@@ -84,15 +73,6 @@ const storeCostCenter = () => {
         }
     });
 }
-
- const getVarieties = (frutal_id) => {
-        if(frutal_id && frutal_id != ""){
-            axios.get(route('varieties.get', frutal_id))
-            .then(response => {
-                form.varieties = response.data;
-            }).catch(error => console.log(error));
-        }
-    }
 
 const updateCostCenter = () => {
    form.post(route('cost.centers.update', form.id), {
@@ -170,6 +150,18 @@ const importExcel = async () => {
       Swal.fire('Error al importar', e.response?.data?.message || 'Revisa el archivo', 'error');
     }
   }
+};
+
+// ── Modal de detalle de variedades por cuartel ────────────────────────────────
+const selectedCostCenter = ref(null);
+
+const openVarietyModal = (costCenterId = null) => {
+    $('#createCostCenterModal').modal('hide');
+    $('#editCostCenterModal').modal('hide');
+    selectedCostCenter.value = costCenterId
+        ? (props.costCenters.data.find(cc => cc.id === costCenterId) ?? null)
+        : null;
+    $('#costCenterVarietiesDetailModal').modal('show');
 };
 </script>
 <template>
@@ -326,6 +318,7 @@ const importExcel = async () => {
                 </div>
         </div>
         <CreateCostCenterModal @store="storeCostCenter" :form="form" />
-        <EditCostCenterModal @update="updateCostCenter" :form="form" />
+        <EditCostCenterModal @update="updateCostCenter" @open-variety="openVarietyModal" :form="form" />
+        <CostCenterVarietiesDetailModal :costCenter="selectedCostCenter" />
     </AppLayout>
 </template>

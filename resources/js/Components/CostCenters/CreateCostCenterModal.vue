@@ -18,7 +18,7 @@ defineEmits(['store']);
                 <span>
                     <span class="fw-bold" style="font-size: 1.2rem; color: #2d3748; letter-spacing: 0.5px;">Agregar Centro de Costo</span>
                     <br>
-                    <span class="text-muted" style="font-size: 0.85rem;">Completa los datos del centro de costo a registrar</span>
+                    <span class="text-muted" style="font-size: 0.85rem;">Completa los datos generales del cuartel. El detalle de variedades podrás agregarlo después desde la opción Editar.</span>
                 </span>
             </div>
         </template>

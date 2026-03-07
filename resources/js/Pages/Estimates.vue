@@ -1,298 +1,518 @@
 <script setup>
 import { ref, computed, watch } from 'vue';
-import CreateEstimateModal from '@/Components/Estimates/CreateEstimateModal.vue';
-import { usePage } from '@inertiajs/vue3';
+import { usePage, router } from '@inertiajs/vue3';
 import AppLayout from '@/Layouts/AppLayout.vue';
-import Table from '@/Components/Table.vue';
-import Breadcrumb from '@/Components/Breadcrumb.vue';
+import Multiselect from '@vueform/multiselect';
+import Swal from 'sweetalert2';
 
 const page = usePage();
-const costcenters = computed(() => page.props.costcenters);
-const estimates = computed(() => page.props.estimates);
-const estimate_statuses = computed(() => page.props.estimate_statuses);
-const fruits = computed(() => page.props.fruits);
+const costCenterVarieties = computed(() => page.props.costCenterVarieties || []);
+const estimates = computed(() => page.props.estimates || []);
+const estimate_statuses = computed(() => page.props.estimate_statuses || []);
+const fruits = computed(() => page.props.fruits || []);
 const season_id = computed(() => page.props.season_id);
 
-const fruitOptions = computed(() => {
-  const list = fruits.value;
-  if (!list) return [];
-  return list.map(f => ({ id: f.id, name: f.name }));
+// ── Opciones para selects ──
+const fruitOptions = computed(() =>
+    fruits.value.map(f => ({ value: f.id, label: f.name }))
+);
+
+const selectedFruitId = ref(fruitOptions.value.length ? fruitOptions.value[0].value : '');
+
+const estimateStatusOptions = computed(() =>
+    estimate_statuses.value
+        .filter(s => s.fruit_id == selectedFruitId.value)
+        .map(s => ({ value: s.id, label: s.name }))
+);
+
+const selectedEstimateStatusId = ref('');
+
+// Inicializar estimate status cuando cambia fruta
+watch(selectedFruitId, () => {
+    const opts = estimateStatusOptions.value;
+    selectedEstimateStatusId.value = opts.length ? opts[0].value : '';
 });
+// Inicializar al montar
+watch(estimateStatusOptions, (opts) => {
+    if (opts.length && !selectedEstimateStatusId.value) {
+        selectedEstimateStatusId.value = opts[0].value;
+    }
+}, { immediate: true });
 
-const selectedFruit = ref('');
+// ── Crear EstimateStatus ──
+const showStatusModal = ref(false);
+const nuevoNombre = ref('');
+const nuevoFruitId = ref('');
 
-// Reiniciar centro de costo y variedad al cambiar fruta
-watch(selectedFruit, () => {
-  selectedCostCenter.value = '';
-  selectedVariety.value = '';
-});
-
-const estimateStatusOptions = computed(() => {
-  const statuses = estimate_statuses.value;
-  if (!statuses) return [];
-  // Mostrar solo estados relacionados al fruit_id seleccionado
-  return statuses
-    .filter(s => s.fruit_id == selectedFruit.value)
-    .map(s => ({ id: s.id, name: s.name }));
-});
-
-const selectedEstimateStatus = ref(estimateStatusOptions.value[0]?.id || '');
-
-const selectedCostCenter = ref('');
-const selectedVariety = ref('');
-
-const filteredCostCenters = computed(() => {
-  const list = costcenters.value;
-  if (!selectedFruit.value) return list;
-  // Mostrar todos los centros de costo de la temporada que tengan el fruit_id seleccionado
-  return list.filter(cc => cc.fruit_id == selectedFruit.value);
-});
-
-const filteredVarieties = computed(() => {
-  // Si no hay centro de costo seleccionado, mostrar todas las variedades únicas de los costcenters filtrados por fruta
-  const list = filteredCostCenters.value;
-  if (!selectedCostCenter.value) {
-    const seen = new Set();
-    return list
-      .map(cc => cc.variety)
-      .filter(v => {
-        if (!v || seen.has(v.id)) return false;
-        seen.add(v.id);
-        return true;
-      });
-  }
-  // Si hay centro de costo seleccionado, mostrar solo la variedad de ese costcenter
-  const cc = costcenters.value.find(c => c.id == selectedCostCenter.value);
-  return cc && cc.variety ? [cc.variety] : [];
-});
-
-const form = ref({ season_id });
-
-function openAdd() {
-  // Usar Bootstrap modal
-  const modal = document.getElementById('createEstimateModal');
-  if (modal) {
-    const modalInstance = window.bootstrap ? window.bootstrap.Modal.getOrCreateInstance(modal) : null;
-    if (modalInstance) modalInstance.show();
-    else modal.classList.add('show');
-  }
+function openStatusModal() {
+    nuevoFruitId.value = selectedFruitId.value;
+    nuevoNombre.value = '';
+    showStatusModal.value = true;
 }
 
-const filteredEstimates = computed(() => {
-  return estimates.value.filter(e =>
-    (selectedEstimateStatus.value ? e.estimate_status_id === selectedEstimateStatus.value : true) &&
-    (selectedFruit.value ? e.fruit_id == selectedFruit.value : true)
-  );
-});
+function guardarEstimateStatus() {
+    if (!nuevoNombre.value || !nuevoFruitId.value) return;
+    fetch(route('estimate-status.store'), {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content'),
+            'Accept': 'application/json',
+        },
+        body: JSON.stringify({ name: nuevoNombre.value, fruit_id: nuevoFruitId.value })
+    })
+    .then(res => res.json())
+    .then(data => {
+        if (data && data.id) {
+            showStatusModal.value = false;
+            Swal.fire({ icon: 'success', title: 'Nombre de estimación creado', showConfirmButton: false, timer: 1200 });
+            router.reload({ only: ['estimate_statuses'] });
+        } else {
+            Swal.fire('Error', data.error || 'Error al guardar', 'error');
+        }
+    })
+    .catch(() => Swal.fire('Error', 'Error al guardar', 'error'));
+}
 
-// Nueva lógica: la tabla se llena con combinaciones de fruta, estado de estimación, centro de costo y variedad
+// ── Tabla editable ──
+const kilosInputs = ref({});
+const observationsInputs = ref({});
+const modifiedRows = ref({});
+
+function markAsModified(ccvId) {
+    modifiedRows.value[ccvId] = true;
+}
+
 const rows = computed(() => {
-  // La tabla solo se llena si el usuario ha seleccionado fruta y estado de estimación
-  if (!selectedFruit.value || !selectedEstimateStatus.value) return [];
-  let result = [];
-  fruits.value.forEach(fruit => {
-    if (fruit.id != selectedFruit.value) return;
-    estimate_statuses.value.forEach(status => {
-      if (status.fruit_id == fruit.id && status.id == selectedEstimateStatus.value) {
-        costcenters.value.forEach(cc => {
-          if (cc.fruit_id == fruit.id && cc.variety) {
-            // Buscar estimate para esta combinación (solo por costcenter y estado)
-            const estimate = estimates.value.find(e =>
-              e.estimate_status_id == status.id &&
-              e.cost_center_id == cc.id
+    if (!selectedFruitId.value || !selectedEstimateStatusId.value) return [];
+
+    return costCenterVarieties.value
+        .filter(ccv => ccv.fruit_id == selectedFruitId.value)
+        .map(ccv => {
+            const estimate = estimates.value.find(
+                e => e.cost_center_variety_id == ccv.id && e.estimate_status_id == selectedEstimateStatusId.value
             );
-            // Parse surface and kilos as numbers for calculation
-            const surfaceNum = cc.surface ? Number(cc.surface) : 0;
-            const kilosNum = estimate ? Number(estimate.kilos_ha) : 0;
-            result.push({
-              fruit: fruit.name,
-              fruitId: fruit.id,
-              estimateStatus: status.name,
-              estimateStatusId: status.id,
-              costcenter: cc.name,
-              costcenterId: cc.id,
-              variety: cc.variety.name,
-              varietyId: cc.variety.id,
-              surface: surfaceNum ? surfaceNum.toLocaleString('es-ES') : '',
-              kilos: kilosNum ? kilosNum.toLocaleString('es-ES') : '',
-              kilosTotal: surfaceNum && kilosNum ? (surfaceNum * kilosNum).toLocaleString('es-ES') : '',
+
+            const currentKilos = kilosInputs.value[ccv.id] !== undefined
+                ? kilosInputs.value[ccv.id]
+                : (estimate ? estimate.kilos_ha : '');
+
+            const currentObs = observationsInputs.value[ccv.id] !== undefined
+                ? observationsInputs.value[ccv.id]
+                : (estimate ? estimate.observations || '' : '');
+
+            const surfaceNum = ccv.surface ? Number(ccv.surface) : 0;
+            const kilosNum = currentKilos ? Number(currentKilos) : 0;
+
+            return {
+                id: estimate ? estimate.id : null,
+                ccvId: ccv.id,
+                costCenterName: ccv.cost_center?.name || '-',
+                varietyName: ccv.variety?.name || '-',
+                rootstockName: ccv.rootstock?.name || '-',
+                devStateName: ccv.development_state?.name || '-',
+                surface: surfaceNum,
+                kilos: currentKilos,
+                observation: currentObs,
+                kilosTotal: surfaceNum * kilosNum,
+                isExisting: !!estimate,
+                isModified: !!modifiedRows.value[ccv.id]
+            };
+        })
+        .sort((a, b) => a.costCenterName.localeCompare(b.costCenterName));
+});
+
+function updateKilos(ccvId, value) {
+    kilosInputs.value[ccvId] = value;
+    markAsModified(ccvId);
+}
+function updateObservation(ccvId, value) {
+    observationsInputs.value[ccvId] = value;
+    markAsModified(ccvId);
+}
+
+// Resetear inputs al cambiar filtros
+watch([selectedFruitId, selectedEstimateStatusId], () => {
+    kilosInputs.value = {};
+    observationsInputs.value = {};
+    modifiedRows.value = {};
+});
+
+// ── Contadores ──
+const countNewRows = computed(() => rows.value.filter(r => !r.isExisting && r.kilos && r.kilos !== '').length);
+const countModifiedRows = computed(() => rows.value.filter(r => r.isExisting && r.isModified).length);
+
+// ── KPIs ──
+const totalKilos = computed(() => rows.value.reduce((sum, r) => sum + r.kilosTotal, 0));
+const totalSurface = computed(() => rows.value.reduce((sum, r) => sum + r.surface, 0));
+const averageKilosHa = computed(() => totalSurface.value ? Math.round(totalKilos.value / totalSurface.value) : 0);
+
+// ── Guardar ──
+async function handleSave() {
+    const newRecords = rows.value
+        .filter(r => !r.isExisting && r.kilos && r.kilos !== '')
+        .map(r => ({
+            cost_center_variety_id: r.ccvId,
+            kilos_ha: r.kilos,
+            estimate_status_id: selectedEstimateStatusId.value,
+            observations: r.observation || ''
+        }));
+
+    const modifiedRecords = rows.value
+        .filter(r => r.isExisting && r.isModified)
+        .map(r => ({
+            id: r.id,
+            cost_center_variety_id: r.ccvId,
+            kilos_ha: r.kilos,
+            estimate_status_id: selectedEstimateStatusId.value,
+            observations: r.observation || ''
+        }));
+
+    if (!newRecords.length && !modifiedRecords.length) return;
+
+    let hasErrors = false;
+
+    if (newRecords.length > 0) {
+        await new Promise((resolve) => {
+            router.post(route('estimates.store'), newRecords, {
+                preserveState: true,
+                preserveScroll: true,
+                onSuccess: () => resolve(),
+                onError: (errors) => {
+                    hasErrors = true;
+                    Swal.fire({ icon: 'error', title: 'Error al guardar nuevos', text: errors.error || 'Revisa los datos.', showConfirmButton: true });
+                    resolve();
+                }
             });
-          }
         });
-      }
+    }
+
+    if (modifiedRecords.length > 0) {
+        for (const record of modifiedRecords) {
+            await new Promise((resolve) => {
+                router.post(`/estimates/${record.id}/update`, record, {
+                    preserveState: true,
+                    preserveScroll: true,
+                    onSuccess: () => resolve(),
+                    onError: () => {
+                        hasErrors = true;
+                        Swal.fire({ icon: 'error', title: 'Error al actualizar', showConfirmButton: true });
+                        resolve();
+                    }
+                });
+            });
+        }
+    }
+
+    if (!hasErrors) {
+        kilosInputs.value = {};
+        observationsInputs.value = {};
+        modifiedRows.value = {};
+        Swal.fire({
+            icon: 'success',
+            title: 'Guardado correctamente',
+            text: `${newRecords.length} nuevo(s), ${modifiedRecords.length} modificado(s)`,
+            showConfirmButton: false,
+            timer: 2000
+        });
+        router.reload({ only: ['estimates'] });
+    }
+}
+
+// ── Eliminar ──
+function handleDelete(row) {
+    if (!row.id) return;
+    Swal.fire({
+        title: '¿Eliminar esta estimación?',
+        text: `${row.costCenterName} - ${row.varietyName}`,
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonText: 'Sí, eliminar',
+        cancelButtonText: 'Cancelar'
+    }).then((result) => {
+        if (result.isConfirmed) {
+            router.delete(`/estimates/${row.id}/delete`, {
+                preserveState: true,
+                preserveScroll: true,
+                onSuccess: () => {
+                    Swal.fire({ icon: 'success', title: 'Eliminada', showConfirmButton: false, timer: 1200 });
+                    router.reload({ only: ['estimates'] });
+                }
+            });
+        }
     });
-  });
-  return result;
-});
-
-const filteredRows = computed(() => {
-  return rows.value.filter(row => {
-    const fruitFilter = selectedFruit.value ? row.fruitId == selectedFruit.value : true;
-    const statusFilter = selectedEstimateStatus.value ? row.estimateStatusId == selectedEstimateStatus.value : true;
-    const ccFilter = selectedCostCenter.value ? row.costcenterId == selectedCostCenter.value : true;
-    const varietyFilter = selectedVariety.value ? row.varietyId == selectedVariety.value : true;
-    return fruitFilter && statusFilter && ccFilter && varietyFilter;
-  });
-});
-
-const averageKilosPerHa = computed(() => {
-  const totalKilos = filteredRows.value.reduce((sum, row) => {
-    const val = row.kilosTotal ? Number(row.kilosTotal.replace(/\./g,'').replace(',','.')) : 0;
-    return sum + val;
-  }, 0);
-  const totalSurface = filteredRows.value.reduce((sum, row) => {
-    const val = row.surface ? Number(row.surface.replace(/\./g,'').replace(',','.')) : 0;
-    return sum + val;
-  }, 0);
-  if (!totalSurface) return 0;
-  return Math.floor(totalKilos / totalSurface);
-});
+}
 </script>
+
 <template>
-  <Head :title="title" />
-    <AppLayout>
-    <!--begin::Breadcrumb-->
-    <Breadcrumb :links="links" />
-    <!--end::Breadcrumb-->
-
- <div class="card my-1">
-        <div class="card-header">
-            <div class="row flex-between-center">
-                <div class="col-6 col-sm-auto d-flex align-items-center pe-0">
-                  <h5 class="fs-9 mb-0 text-nowrap py-2 py-xl-0"><i class="fas fa-people-carry text-primary me-2"></i>Estimaciones</h5>
+    <AppLayout title="Estimaciones">
+        <div class="card my-3">
+            <div class="card-header">
+                <div class="row flex-between-center">
+                    <div class="col-6 col-sm-auto d-flex align-items-center pe-0">
+                        <h5 class="fs-9 mb-0 text-nowrap py-2 py-xl-0">
+                            <i class="fas fa-chart-line me-2"></i>Estimaciones
+                        </h5>
+                    </div>
+                    <div class="col-6 col-sm-auto ms-auto text-end ps-0">
+                        <div class="d-flex align-items-center gap-2">
+                            <button class="btn btn-falcon-default btn-sm" @click="openStatusModal">
+                                <span class="fas fa-tag" data-fa-transform="shrink-3 down-2"></span>
+                                <span class="d-none d-sm-inline-block ms-1">Nombre Estimación</span>
+                            </button>
+                        </div>
+                    </div>
                 </div>
-                <div class="col-6 col-sm-auto ms-auto text-end ps-0">
-                  <div id="table-purchases-replace-element">
-                    <button class="btn btn-falcon-default btn-sm" type="button" @click="openAdd()">
-                      <span class="fas fa-plus" data-fa-transform="shrink-3 down-2"></span>
-                      <span class="d-none d-sm-inline-block ms-1">Nuevo</span>
+            </div>
+
+            <div class="card-body bg-body-tertiary">
+                <!-- Filtros -->
+                <div class="row g-2 align-items-end mb-3">
+                    <div class="col-md-5">
+                        <label class="form-label fw-bold mb-1"><i class="fas fa-seedling me-1"></i> Especie</label>
+                        <Multiselect
+                            v-model="selectedFruitId"
+                            :options="fruitOptions"
+                            placeholder="Seleccione especie..."
+                            :searchable="true"
+                            :can-clear="false"
+                            class="multiselect-blue"
+                        />
+                    </div>
+                    <div class="col-md-5">
+                        <label class="form-label fw-bold mb-1"><i class="fas fa-clipboard-list me-1"></i> Nombre Estimación</label>
+                        <Multiselect
+                            v-model="selectedEstimateStatusId"
+                            :options="estimateStatusOptions"
+                            placeholder="Seleccione estimación..."
+                            :searchable="true"
+                            :can-clear="false"
+                            class="multiselect-blue"
+                        />
+                    </div>
+                    <div class="col-md-2 d-flex align-items-end">
+                        <button
+                            class="btn btn-falcon-default btn-sm w-100"
+                            @click="handleSave"
+                            :disabled="countNewRows === 0 && countModifiedRows === 0"
+                        >
+                            <i class="fas fa-save me-1"></i> Guardar
+                            <span v-if="countNewRows + countModifiedRows > 0" class="badge bg-primary ms-1">{{ countNewRows + countModifiedRows }}</span>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- KPIs -->
+                <div class="row mb-3 g-2" v-if="rows.length > 0">
+                    <div class="col-md-3">
+                        <div class="card h-100 p-1 border">
+                            <div class="card-body py-2 px-3 text-center">
+                                <div class="text-muted small">Total Kilos</div>
+                                <div class="fs-7 fw-bold">{{ totalKilos.toLocaleString('es-CL') }}</div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="card h-100 p-1 border">
+                            <div class="card-body py-2 px-3 text-center">
+                                <div class="text-muted small">Promedio kg/ha</div>
+                                <div class="fs-7 fw-bold">{{ averageKilosHa.toLocaleString('es-CL') }}</div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="card h-100 p-1 border">
+                            <div class="card-body py-2 px-3 text-center">
+                                <div class="text-muted small">Superficie Total</div>
+                                <div class="fs-7 fw-bold">{{ totalSurface.toLocaleString('es-CL', { minimumFractionDigits: 2 }) }} ha</div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="card h-100 p-1 border">
+                            <div class="card-body py-2 px-3 text-center">
+                                <div class="text-muted small">Registros</div>
+                                <div class="fs-7 fw-bold">{{ rows.length }}</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Leyenda -->
+                <div class="alert alert-light border mb-3 py-2" v-if="rows.length > 0">
+                    <small class="d-flex flex-wrap gap-3 mb-0">
+                        <span><span class="badge bg-secondary me-1">Vacío</span> Sin datos</span>
+                        <span><span class="badge bg-success me-1">Nuevo</span> Se creará al guardar</span>
+                        <span><span class="badge bg-info me-1">Guardado</span> Ya existe</span>
+                        <span><span class="badge bg-warning text-dark me-1">Modificado</span> Cambios sin guardar</span>
+                    </small>
+                </div>
+
+                <!-- Mensaje sin selección -->
+                <div v-if="!selectedFruitId || !selectedEstimateStatusId" class="alert alert-warning text-center">
+                    <i class="fas fa-info-circle me-2"></i>Selecciona una <strong>especie</strong> y un <strong>nombre de estimación</strong> para ver las variedades disponibles.
+                </div>
+
+                <!-- Mensaje sin variedades -->
+                <div v-else-if="rows.length === 0" class="alert alert-info text-center">
+                    <i class="fas fa-exclamation-triangle me-2"></i>No hay variedades por cuartel registradas para esta especie. Crea primero las variedades en el módulo <strong>Variedades por Cuartel</strong>.
+                </div>
+
+                <!-- Tabla editable -->
+                <div v-else class="table-responsive">
+                    <table class="table table-bordered table-hover table-sm fs-10 mb-0">
+                        <thead class="table-light">
+                            <tr>
+                                <th style="width: 90px">Estado</th>
+                                <th>Cuartel</th>
+                                <th>Variedad</th>
+                                <th>Portainjerto</th>
+                                <th class="text-end" style="width: 100px">Superficie</th>
+                                <th style="width: 130px">Kilos/ha</th>
+                                <th class="text-end" style="width: 120px">Kilos Total</th>
+                                <th style="width: 200px">Observaciones</th>
+                                <th style="width: 60px"></th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr v-for="row in rows" :key="row.ccvId"
+                                :class="{
+                                    'table-success': !row.isExisting && row.kilos,
+                                    'table-warning': row.isExisting && row.isModified
+                                }">
+                                <td>
+                                    <span v-if="!row.isExisting && row.kilos" class="badge bg-success">Nuevo</span>
+                                    <span v-else-if="row.isExisting && row.isModified" class="badge bg-warning text-dark">Modificado</span>
+                                    <span v-else-if="row.isExisting" class="badge bg-info">Guardado</span>
+                                    <span v-else class="badge bg-secondary">Vacío</span>
+                                </td>
+                                <td>{{ row.costCenterName }}</td>
+                                <td>{{ row.varietyName }}</td>
+                                <td>{{ row.rootstockName }}</td>
+                                <td class="text-end">{{ row.surface ? row.surface.toLocaleString('es-CL', { minimumFractionDigits: 2 }) : '-' }}</td>
+                                <td>
+                                    <input
+                                        type="number"
+                                        class="form-control form-control-sm"
+                                        :value="row.kilos"
+                                        @input="updateKilos(row.ccvId, $event.target.value)"
+                                        min="0"
+                                        placeholder="0"
+                                        :class="{
+                                            'border-warning border-2': row.isExisting && row.isModified,
+                                            'border-success border-2': !row.isExisting && row.kilos
+                                        }"
+                                    />
+                                </td>
+                                <td class="text-end fw-bold">{{ row.kilosTotal ? row.kilosTotal.toLocaleString('es-CL') : '-' }}</td>
+                                <td>
+                                    <input
+                                        type="text"
+                                        class="form-control form-control-sm"
+                                        :value="row.observation"
+                                        @input="updateObservation(row.ccvId, $event.target.value)"
+                                        placeholder="Opcional"
+                                        :class="{
+                                            'border-warning border-2': row.isExisting && row.isModified
+                                        }"
+                                    />
+                                </td>
+                                <td class="text-center">
+                                    <button
+                                        v-if="row.isExisting"
+                                        type="button"
+                                        @click="handleDelete(row)"
+                                        class="btn btn-sm btn-light-danger p-1"
+                                        v-tooltip="'Eliminar'"
+                                    >
+                                        <i class="fas fa-trash-alt fa-xs"></i>
+                                    </button>
+                                </td>
+                            </tr>
+                        </tbody>
+                        <tfoot class="table-light fw-bold">
+                            <tr>
+                                <td colspan="4" class="text-end">Totales:</td>
+                                <td class="text-end">{{ totalSurface.toLocaleString('es-CL', { minimumFractionDigits: 2 }) }}</td>
+                                <td class="text-end">{{ averageKilosHa.toLocaleString('es-CL') }} prom.</td>
+                                <td class="text-end">{{ totalKilos.toLocaleString('es-CL') }}</td>
+                                <td colspan="2"></td>
+                            </tr>
+                        </tfoot>
+                    </table>
+                </div>
+
+                <!-- Resumen y botón guardar inferior -->
+                <div class="mt-3 d-flex justify-content-between align-items-center" v-if="rows.length > 0">
+                    <div class="text-muted small">
+                        <i class="fas fa-info-circle me-1"></i>
+                        <span v-if="countNewRows > 0 || countModifiedRows > 0">
+                            Se guardarán <strong>{{ countNewRows }}</strong> nuevo(s) y <strong>{{ countModifiedRows }}</strong> modificado(s)
+                        </span>
+                        <span v-else>No hay cambios para guardar</span>
+                    </div>
+                    <button
+                        type="button"
+                        class="btn btn-falcon-default btn-sm"
+                        @click="handleSave"
+                        :disabled="countNewRows === 0 && countModifiedRows === 0"
+                    >
+                        <i class="fas fa-save me-1"></i> Guardar todo
+                        <span v-if="countNewRows + countModifiedRows > 0" class="badge bg-primary ms-2">{{ countNewRows + countModifiedRows }}</span>
                     </button>
-                  </div>
                 </div>
             </div>
         </div>
-           <div class="card-body bg-body-tertiary">
-            <ul class="nav nav-pills" id="pill-myTab" role="tablist">
-               
-            </ul>
 
-
-        <div class="tab-content border p-3 mt-1" id="pill-myTabContent">
-      <!-- Card de Total Kilos -->
-      <div class="row mb-3">
-        <div class="col-md-4">
-          <div class="card h-100 p-1 small-card">
-            <div class="card-header pb-0 pt-1 px-2">
-              <h6 class="mb-0 mt-1 fs-8 d-flex align-items-center small-card-title">Total Kilos</h6>
-            </div>
-            <div class="card-body d-flex flex-column justify-content-end py-1 px-2">
-              <div class="row">
-                <div class="col">
-                  <p class="font-sans-serif lh-1 mb-1 fs-8 small-card-number">
-                    {{
-                      filteredRows.reduce((sum, row) => {
-                        // Parse kilosTotal from string to number
-                        const val = row.kilosTotal ? Number(row.kilosTotal.replace(/\./g,'').replace(',','.')) : 0;
-                        return sum + val;
-                      }, 0).toLocaleString('es-ES')
-                    }}
-                  </p>
+        <!-- Modal para crear nombre de estimación -->
+        <div v-if="showStatusModal" class="modal fade show d-block" tabindex="-1" style="background: rgba(0,0,0,0.4); z-index: 1050;">
+            <div class="modal-dialog modal-dialog-centered">
+                <div class="modal-content border-0 shadow">
+                    <div class="modal-header bg-body-tertiary">
+                        <h5 class="modal-title"><i class="fas fa-tag me-2"></i>Nuevo nombre de estimación</h5>
+                        <button type="button" class="btn-close" @click="showStatusModal = false"></button>
+                    </div>
+                    <div class="modal-body">
+                        <div class="mb-3">
+                            <label class="form-label fw-bold">Nombre</label>
+                            <input v-model="nuevoNombre" class="form-control" placeholder="Ej: Estimación Marzo" />
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label fw-bold">Especie</label>
+                            <Multiselect
+                                v-model="nuevoFruitId"
+                                :options="fruitOptions"
+                                placeholder="Seleccione especie..."
+                                :searchable="true"
+                                :can-clear="false"
+                                class="multiselect-blue"
+                            />
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button class="btn btn-secondary btn-sm" @click="showStatusModal = false">Cancelar</button>
+                        <button class="btn btn-falcon-default btn-sm" @click="guardarEstimateStatus" :disabled="!nuevoNombre || !nuevoFruitId">
+                            <i class="fas fa-save me-1"></i> Guardar
+                        </button>
+                    </div>
                 </div>
-              </div>
             </div>
-          </div>
         </div>
-        <div class="col-md-4">
-          <div class="card h-100 p-1 small-card">
-            <div class="card-header pb-0 pt-1 px-2">
-              <h6 class="mb-0 mt-1 fs-8 d-flex align-items-center small-card-title">Promedio kg/ha</h6>
-            </div>
-            <div class="card-body d-flex flex-column justify-content-end py-1 px-2">
-              <div class="row">
-                <div class="col">
-                  <p class="font-sans-serif lh-1 mb-1 fs-8 small-card-number">
-                    {{ averageKilosPerHa.toLocaleString('es-ES') }}
-                  </p>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-      <div class="row g-2 align-items-end mb-3">
-        <div class="col-md-4">
-          <label class="form-label mb-1">Especie</label>
-          <select v-model="selectedFruit" class="form-select form-select-sm">
-            <option v-for="fruit in fruitOptions" :key="fruit.id" :value="fruit.id">{{ fruit.name }}</option>
-          </select>
-        </div>
-        <div class="col-md-4">
-          <label class="form-label mb-1">Estado de la estimación</label>
-          <select v-model="selectedEstimateStatus" class="form-select form-select-sm">
-            <option v-for="status in estimateStatusOptions" :key="status.id" :value="status.id">{{ status.name }}</option>
-          </select>
-        </div>
-        <div class="col-md-4">
-          <label class="form-label mb-1">Centro de Costo</label>
-          <select v-model="selectedCostCenter" class="form-select form-select-sm">
-            <option value="">Todos</option>
-            <option v-for="cc in filteredCostCenters" :key="cc.id" :value="cc.id">{{ cc.name }}</option>
-          </select>
-        </div>
-        <div class="col-md-4">
-          <label class="form-label mb-1">Variedad</label>
-          <select v-model="selectedVariety" class="form-select form-select-sm">
-            <option value="">Todas</option>
-            <option v-for="v in filteredVarieties" :key="v.id" :value="v.id">{{ v.name }}</option>
-          </select>
-        </div>
-      </div>
-      <div class="mt-0">
-        <div class="card my-3 border shadow-sm">
-        <div class="card-body p-0 px-4">
-            <Table sticky-header :id="'estimates'" :total="filteredRows.length">
-              <template #header>
-                <th scope="col">Fruta</th>
-                <th scope="col">Estado de estimación</th>
-                <th scope="col">Centro de Costo</th>
-                <th scope="col">Variedad</th>
-                <th scope="col">Superficie</th>
-                <th scope="col">Kilos/ha</th>
-                <th scope="col">Kilos total</th>
-              </template>
-              <template #body>
-                <template v-if="filteredRows.length === 0">
-                  <tr>
-                    <td colspan="7" class="text-center">Sin datos</td>
-                  </tr>
-                </template>
-                <template v-else>
-                  <tr v-for="(row, idx) in filteredRows" :key="idx">
-                    <td>{{ row.fruit }}</td>
-                    <td>{{ row.estimateStatus }}</td>
-                    <td>{{ row.costcenter }}</td>
-                    <td>{{ row.variety }}</td>
-                    <td>{{ row.surface }}</td>
-                    <td>{{ row.kilos }}</td>
-                    <td>{{ row.kilosTotal }}</td>
-                  </tr>
-                </template>
-              </template>
-            </Table>
-          </div>
-        </div>
-      </div>
- </div>
-  <CreateEstimateModal
-    :form="form"
-    :costcenters="costcenters"
-    :estimates="estimates"
-    :estimate_statuses="estimate_statuses"
-    :fruits="fruits"
-    :season_id="season_id"
-    @store="() => {}"
-  />
- </div>
- </div>
-</AppLayout>
+    </AppLayout>
 </template>
+
+<style src="@vueform/multiselect/themes/default.css"></style>
+<style>
+.multiselect-blue {
+    --ms-tag-bg: #DBEAFE;
+    --ms-tag-color: #1E40AF;
+    --ms-ring-color: #93C5FD40;
+    --ms-radius: 0.375rem;
+    --ms-py: 0.3rem;
+    --ms-px: 0.75rem;
+    --ms-option-bg-selected: #2563EB;
+    --ms-option-bg-selected-pointed: #1D4ED8;
+    --ms-font-size: 0.85rem;
+    --ms-line-height: 1.3;
+}
+</style>

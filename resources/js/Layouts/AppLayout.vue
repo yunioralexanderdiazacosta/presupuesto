@@ -453,6 +453,13 @@ const logout = () => {
                         </div>
                       </Link>
                     </li>
+                    <li class="nav-item">
+                      <Link class="nav-link" :href="route('cost-center-varieties.index')">
+                        <div class="d-flex align-items-center">
+                          <span class="nav-link-text ps-4">Variedades por Cuartel</span>
+                        </div>
+                      </Link>
+                    </li>
                   </ul>
                 </li>
 
@@ -528,6 +535,13 @@ const logout = () => {
                     </div>
                   </Link>
                   <!-- more inner pages-->
+                </li>
+                <li class="nav-item">
+                  <Link class="nav-link" :href="route('rootstocks.index')">
+                    <div class="d-flex align-items-center">
+                      <span class="nav-link-text ps-3">Portainjertos</span>
+                    </div>
+                  </Link>
                 </li>
                 <li class="nav-item">
                   <Link class="nav-link" :href="route('parcels.index')">

@@ -10,6 +10,8 @@ use App\Models\CostCenter;
 use App\Models\Fruit;
 use App\Models\Parcel;
 use App\Models\DevelopmentState;
+use App\Models\Rootstock;
+use App\Models\Variety;
 use Inertia\Inertia;
 use App\Exports\CostCentersTemplateExport;
 use Maatwebsite\Excel\Facades\Excel;
@@ -79,7 +81,24 @@ class CostCentersController extends Controller
             ];
         });
 
-        return Inertia::render('CostCenters', compact('costCenters', 'season', 'parcels', 'developmentStates', 'fruits', 'term','companyReasons'));
+        $varieties = Variety::where('team_id', $user->team_id)
+            ->orderBy('name')
+            ->get(['id', 'name', 'fruit_id'])
+            ->map(fn($v) => ['label' => $v->name, 'value' => $v->id, 'fruit_id' => $v->fruit_id]);
+
+        $rootstocks = Rootstock::where('team_id', $user->team_id)
+            ->orderBy('name')
+            ->get(['id', 'name'])
+            ->map(fn($r) => ['label' => $r->name, 'value' => $r->id]);
+
+        // Lista de cuarteles formateada para el select del modal de variedades
+        $costCentersSelect = CostCenter::where('season_id', $season_id)
+            ->whereHas('season', fn($q) => $q->where('team_id', $user->team_id))
+            ->orderBy('name')
+            ->get(['id', 'name', 'surface'])
+            ->map(fn($c) => ['label' => $c->name, 'value' => $c->id, 'surface' => (float) $c->surface]);
+
+        return Inertia::render('CostCenters', compact('costCenters', 'season', 'parcels', 'developmentStates', 'fruits', 'term', 'companyReasons', 'varieties', 'rootstocks', 'costCentersSelect'));
     }   
 
     public function import(Request $request)

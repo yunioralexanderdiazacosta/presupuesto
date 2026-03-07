@@ -6,7 +6,12 @@ const props = defineProps({
     form: Object
 });
 
-defineEmits(['update']);
+const emit = defineEmits(['update', 'open-variety']);
+
+const goToVarieties = () => {
+    $('#editCostCenterModal').modal('hide');
+    emit('open-variety', props.form.id);
+};
 </script>
 <template>
     <Modal :maxWidth="'xl'" :id="'editCostCenterModal'">
@@ -27,6 +32,13 @@ defineEmits(['update']);
         </template>
         <template #footer>
             <button type="button" id="kt_modal_update_cost_center_cancel" data-bs-dismiss="modal" class="btn btn-light me-3">Cerrar</button>
+            <a @click.prevent="goToVarieties"
+               href="#"
+               class="btn btn-falcon-default btn-sm me-auto d-flex align-items-center gap-1"
+               v-tooltip="'Ir a asignar variedades por cuartel'">
+                <i class="fas fa-seedling"></i>
+                <span>Detalle de Variedades</span>
+            </a>
             <button type="button" @click="$emit('update')" :disabled="form.processing" id="kt_modal_cost_center_submit" class="btn btn-primary">
                 <span class="indicator-label">Actualizar</span>
             </button>

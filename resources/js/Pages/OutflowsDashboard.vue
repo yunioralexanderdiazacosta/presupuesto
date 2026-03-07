@@ -217,6 +217,17 @@ const divisorMin = 800;
 const divisorMax = 1100;
 const dividir = ref(false); // Por defecto desactivado
 const incluirAdmin = ref(false);
+
+// Select de estimación para Costo Kilo Acumulado
+const selectedEstimateStatusId = ref(props.costoKiloAcumulado?.defaultEstimateStatusId ?? null);
+const activeTotalKilos = computed(() => {
+    const data = props.costoKiloAcumulado?.kilosByEstimate;
+    if (data && selectedEstimateStatusId.value && data[selectedEstimateStatusId.value]) {
+        return Object.values(data[selectedEstimateStatusId.value]).reduce((sum, k) => sum + Number(k), 0);
+    }
+    return props.costoKiloAcumulado?.totalKilos ?? 0;
+});
+
 // Leer el monto de "Administración" desde byLevel1 (ya calculado y pasado al frontend)
 const totalAdministracion = computed(() => {
     if (!props.byLevel1?.labels?.length) return 0;
@@ -229,7 +240,7 @@ const totalProduccionEfectivo = computed(() =>
     props.costoKiloAcumulado.totalProduccion + (incluirAdmin.value ? totalAdministracion.value : 0)
 );
 const costoKiloEfectivo = computed(() =>
-    props.costoKiloAcumulado.totalKilos > 0 ? totalProduccionEfectivo.value / props.costoKiloAcumulado.totalKilos : 0
+    activeTotalKilos.value > 0 ? totalProduccionEfectivo.value / activeTotalKilos.value : 0
 );
 
 // Formatear números con separador de miles (sin decimales)
@@ -651,25 +662,26 @@ const totalCompras = computed(() => {
                 <div class="row g-2 mb-3">
                     <div class="col-12">
                         <div class="card border-start border-success border-3 shadow-sm">
-                            <div class="card-header bg-transparent py-2">
+                            <div class="card-header bg-transparent pt-2 pb-1">
                                 <div class="d-flex align-items-center justify-content-between">
-                                    <h6 class="mb-0 text-success">
-                                        <i class="fas fa-calculator me-2"></i>
-                                        {{ t.costoKiloTitle }}
-                                    </h6>
-                                    <div class="d-flex align-items-center gap-3">
-                                        <div class="form-check form-switch mb-0" :title="t.incluirAdminTooltip">
-                                            <input class="form-check-input" type="checkbox" id="toggleAdmin" v-model="incluirAdmin" style="cursor:pointer;">
-                                            <label class="form-check-label small text-muted" for="toggleAdmin" style="cursor:pointer;">
-                                                + Admin
-                                            </label>
-                                        </div>
-                                        <small class="text-muted">{{ t.prodKilosLabel }}</small>
+                                    <div class="d-flex align-items-center gap-2">
+                                        <h6 class="mb-0 text-success">
+                                            <i class="fas fa-calculator me-2"></i>
+                                            {{ t.costoKiloTitle }}
+                                        </h6>
+                                        <select v-if="costoKiloAcumulado.estimateOptions && costoKiloAcumulado.estimateOptions.length" v-model="selectedEstimateStatusId" class="form-select form-select-sm py-0" style="width:auto;max-width:200px;font-size:0.75rem;">
+                                            <option v-for="opt in costoKiloAcumulado.estimateOptions" :key="opt.id" :value="opt.id">{{ opt.name }}</option>
+                                        </select>
+                                        <label class="d-flex align-items-center gap-1 mb-0 small text-muted border rounded px-2 py-0" :title="t.incluirAdminTooltip" style="cursor:pointer;background:#f8f9fa;font-size:0.75rem;">
+                                            <input class="form-check-input m-0" type="checkbox" id="toggleAdmin" v-model="incluirAdmin" style="cursor:pointer;">
+                                            + Admin
+                                        </label>
                                     </div>
+                                    <small class="text-muted mb-0" style="font-size:0.75rem;">{{ t.prodKilosLabel }}</small>
                                 </div>
                             </div>
-                            <div class="card-body">
-                                <div class="row g-3">
+                            <div class="card-body pt-2 pb-3">
+                                <div class="row g-2">
                                     <!-- Total Producción -->
                                     <div class="col-md-4">
                                         <div class="text-center p-3 bg-light rounded">
@@ -692,7 +704,7 @@ const totalCompras = computed(() => {
                                                 {{ t.totalKilos }}
                                             </small>
                                             <div class="fs-7">
-                                                {{ formatNumber(costoKiloAcumulado.totalKilos) }} <small class="text-secondary">Kg</small>
+                                                {{ formatNumber(activeTotalKilos) }} <small class="text-secondary">Kg</small>
                                             </div>
                                         </div>
                                     </div>
@@ -711,10 +723,10 @@ const totalCompras = computed(() => {
                                 </div>
 
                                 <!-- Mensaje si no hay datos -->
-                                <div v-if="!costoKiloAcumulado.totalKilos || !costoKiloAcumulado.totalProduccion" class="alert alert-warning mt-3 mb-0 py-2">
+                                <div v-if="!activeTotalKilos || !costoKiloAcumulado.totalProduccion" class="alert alert-warning mt-3 mb-0 py-2">
                                     <i class="fas fa-exclamation-triangle me-2"></i>
                                     <small>
-                                        <span v-if="!costoKiloAcumulado.totalKilos">{{ t.noKilos }} </span>
+                                        <span v-if="!activeTotalKilos">{{ t.noKilos }} </span>
                                         <span v-if="!costoKiloAcumulado.totalProduccion">{{ t.noProduction }}</span>
                                     </small>
                                 </div>

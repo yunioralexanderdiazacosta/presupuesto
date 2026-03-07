@@ -1,292 +1,202 @@
 <script setup>
-import { ref } from 'vue';
-import Multiselect from "@vueform/multiselect";
+import { computed, watch } from 'vue';
+import { usePage } from '@inertiajs/vue3';
 import TextInput from "@/Components/TextInput.vue";
 import InputError from "@/Components/InputError.vue";
 import Checkbox from "@/Components/Checkbox.vue";
-import axios from 'axios';
 
 const props = defineProps({
     form: Object,
 });
 
-const loadingVarieties = ref(false);
-let debounceTimer = null;
+const page = usePage();
 
-const getVarieties = (fruitId) => {
-    // Limpiar timer anterior
-    if (debounceTimer) {
-        clearTimeout(debounceTimer);
+const filteredVarieties = computed(() => {
+    if (!props.form.fruit_id) return [];
+    return (page.props.varieties || []).filter(v => v.fruit_id === props.form.fruit_id);
+});
+
+watch(() => props.form.fruit_id, (newVal, oldVal) => {
+    if (newVal !== oldVal) {
+        props.form.variety_id = '';
     }
-    
-    // Debounce de 300ms
-    debounceTimer = setTimeout(() => {
-        if (fruitId && fruitId !== "") {
-            loadingVarieties.value = true;
-            
-            // Guardar el variety_id actual si existe
-            const currentVarietyId = props.form.variety_id;
-            
-            axios
-                .get(route("varieties.get", fruitId))
-                .then((response) => {
-                    props.form.varieties = response.data;
-                    
-                    // Solo resetear variety_id si no está en las nuevas opciones
-                    if (currentVarietyId) {
-                        const varietyExists = response.data.some(v => v.value === currentVarietyId);
-                        if (!varietyExists) {
-                            props.form.variety_id = "";
-                        }
-                    } else {
-                        props.form.variety_id = "";
-                    }
-                })
-                .catch((error) => {
-                    console.error('Error cargando variedades:', error);
-                    props.form.varieties = [];
-                    props.form.variety_id = "";
-                })
-                .finally(() => {
-                    loadingVarieties.value = false;
-                });
-        } else {
-            props.form.varieties = [];
-            props.form.variety_id = "";
-        }
-    }, 300);
-};
+});
 </script>
+
 <template>
-    <div class="row">
+    <div class="mb-3">
+        <div class="alert alert-info d-flex align-items-center py-2 mb-3" role="alert">
+            <i class="fas fa-info-circle me-2"></i>
+            <small>Ingresa los datos generales del cuartel. Los campos con <span class="text-danger">*</span> son obligatorios.</small>
+        </div>
+    </div>
+
+    <div class="row g-3">
+        <!-- Nombre -->
         <div class="col-lg-4">
-            <label class="col-form-label">Nombre del centro de costo</label>
+            <label class="col-form-label fw-bold">
+                <i class="fas fa-map-marker-alt text-primary me-1"></i>Nombre <span class="text-danger">*</span>
+            </label>
             <TextInput
-                id="name"
                 v-model="form.name"
                 class="form-control form-control-solid"
                 type="text"
+                placeholder="Ej: Cuartel Norte Sector A"
                 :class="{ 'is-invalid': form.errors.name }"
             />
-            <InputError class="mt-2" :message="form.errors.name" />
+            <InputError class="mt-1" :message="form.errors.name" />
         </div>
 
+        <!-- Superficie -->
         <div class="col-lg-2">
-            <label class="col-form-label">Superficie</label>
+            <label class="col-form-label fw-bold">
+                <i class="fas fa-ruler-combined text-primary me-1"></i>Superficie (ha) <span class="text-danger">*</span>
+            </label>
             <TextInput
-                id="surface"
                 v-model="form.surface"
                 class="form-control form-control-solid"
                 type="number"
-                step="0.00"
+                step="0.01"
+                placeholder="0.00"
                 :class="{ 'is-invalid': form.errors.surface }"
             />
-            <InputError class="mt-2" :message="form.errors.surface" />
+            <InputError class="mt-1" :message="form.errors.surface" />
         </div>
 
+        <!-- Frutal -->
         <div class="col-lg-3">
-            <label for="fruit" class="col-form-label">Frutal</label>
-            <div class="input-group">
-                <span class="input-group-text"
-                    ><i class="fas fa-apple-alt"></i
-                ></span>
-                <Multiselect
-                    :placeholder="'Seleccione el frutal'"
-                    v-model="form.fruit_id"
-                    :close-on-select="true"
-                    :options="$page.props.fruits"
-                    class="multiselect-blue form-control"
-                    :class="{ 'is-invalid': form.errors.fruit_id }"
-                    :searchable="true"
-                    @change="getVarieties"
-                />
-            </div>
-            <InputError class="mt-2" :message="form.errors.fruit_id" />
+            <label class="col-form-label fw-bold">
+                <i class="fas fa-apple-alt text-primary me-1"></i>Frutal <span class="text-danger">*</span>
+            </label>
+            <select
+                v-model="form.fruit_id"
+                class="form-select form-select-solid"
+                :class="{ 'is-invalid': form.errors.fruit_id }"
+            >
+                <option value="">Seleccione el frutal</option>
+                <option v-for="f in $page.props.fruits" :key="f.value" :value="f.value">
+                    {{ f.label }}
+                </option>
+            </select>
+            <InputError class="mt-1" :message="form.errors.fruit_id" />
         </div>
-        <div class="col-lg-3">
-                <label for="variety" class="col-form-label">
-                    Variedad
-                    <span v-if="loadingVarieties" class="spinner-border spinner-border-sm ms-2" role="status">
-                        <span class="visually-hidden">Cargando...</span>
-                    </span>
-                </label>
-                  <div class="input-group">
-                    <span class="input-group-text"><i class="fas fa-flask"></i></span>
-                <Multiselect
-                    :placeholder="loadingVarieties ? 'Cargando variedades...' : 'Seleccione variedad'"
-                    v-model="form.variety_id"
-                    :close-on-select="true"
-                    :options="form.varieties"
-                    class="multiselect-blue form-control"
-                    :class="{ 'is-invalid': form.errors.variety_id }"
-                    :searchable="true"
-                    :disabled="loadingVarieties || !form.fruit_id"
-                    :loading="loadingVarieties"
-                />
-                </div>
-                <InputError class="mt-2" :message="form.errors.variety_id" />
-            </div>
-       
-      </div>
 
-    <div class="row">
+        <!-- Variedad -->
+        <div class="col-lg-3">
+            <label class="col-form-label fw-bold">
+                <i class="fas fa-leaf text-primary me-1"></i>Variedad <span class="text-danger">*</span>
+            </label>
+            <select
+                v-model="form.variety_id"
+                class="form-select form-select-solid"
+                :class="{ 'is-invalid': form.errors.variety_id }"
+                :disabled="!form.fruit_id"
+            >
+                <option value="">{{ form.fruit_id ? "Seleccione variedad" : "Seleccione frutal primero" }}</option>
+                <option v-for="v in filteredVarieties" :key="v.value" :value="v.value">
+                    {{ v.label }}
+                </option>
+            </select>
+            <InputError class="mt-1" :message="form.errors.variety_id" />
+        </div>
+
+        <!-- Parcela -->
         <div class="col-lg-4">
-            <label for="fruit" class="col-form-label">Parcela</label>
-            <div class="input-group">
-                <span class="input-group-text"
-                    ><i class="fas fa-layer-group"></i
-                ></span>
-                <Multiselect
-                    :placeholder="'parcela'"
-                    v-model="form.parcel_id"
-                    :close-on-select="true"
-                    :options="$page.props.parcels"
-                    class="multiselect-blue form-control"
-                    :class="{ 'is-invalid': form.errors.parcel_id }"
-                    :searchable="true"
-                />
-            </div>
-            <InputError class="mt-2" :message="form.errors.parcel_id" />
+            <label class="col-form-label fw-bold">
+                <i class="fas fa-th-large text-primary me-1"></i>Parcela
+            </label>
+            <select
+                v-model="form.parcel_id"
+                class="form-select form-select-solid"
+                :class="{ 'is-invalid': form.errors.parcel_id }"
+            >
+                <option value="">Seleccione parcela</option>
+                <option v-for="p in $page.props.parcels" :key="p.value" :value="p.value">
+                    {{ p.label }}
+                </option>
+            </select>
+            <InputError class="mt-1" :message="form.errors.parcel_id" />
         </div>
-   
-    <div class="col-lg-4">
-            <label for="fruit" class="col-form-label"
-                >Estado de desarrollo</label>
-             <div class="input-group">
-                        <span class="input-group-text"><i class="fas fa-ruler-combined"></i></span>
-            <Multiselect
-                :placeholder="'estado de desarrollo'"
+
+        <!-- Estado de desarrollo -->
+        <div class="col-lg-4">
+            <label class="col-form-label fw-bold">
+                <i class="fas fa-chart-line text-primary me-1"></i>Estado de desarrollo
+            </label>
+            <select
                 v-model="form.development_state_id"
-                :close-on-select="true"
-                :options="$page.props.developmentStates"
-                class="multiselect-blue form-control"
+                class="form-select form-select-solid"
                 :class="{ 'is-invalid': form.errors.development_state_id }"
-                :searchable="true"
-            />
-            <InputError
-                class="mt-2"
-                :message="form.errors.development_state_id"
-            />
+            >
+                <option value="">Seleccione estado</option>
+                <option v-for="d in $page.props.developmentStates" :key="d.value" :value="d.value">
+                    {{ d.label }}
+                </option>
+            </select>
+            <InputError class="mt-1" :message="form.errors.development_state_id" />
         </div>
-    </div>
-    <div class="col-lg-4">
-        <div class="fv-row">
-            <label class="col-form-label">Año plantación</label>
+
+        <!-- Año plantación -->
+        <div class="col-lg-4">
+            <label class="col-form-label fw-bold">
+                <i class="fas fa-calendar-alt text-primary me-1"></i>Año plantación
+            </label>
             <TextInput
-                id="ano_plantacion"
                 v-model="form.year_plantation"
                 class="form-control form-control-solid"
                 type="number"
                 min="1900"
                 max="3000"
                 step="1"
-                :class="{ 'is-invalid': form.errors.year_plantacion }"
+                placeholder="Ej: 2018"
+                :class="{ 'is-invalid': form.errors.year_plantation }"
             />
-            <InputError class="mt-2" :message="form.errors.year_plantacion" />
+            <InputError class="mt-1" :message="form.errors.year_plantation" />
         </div>
-    </div>
 
-     </div>
-
-    <div class="row">
+        <!-- Razón social -->
         <div class="col-lg-4">
-            <label for="companyreason" class="col-form-label"
-                >Razon social</label
-            >
-            <Multiselect
-                :placeholder="'Seleccione la razon social'"
+            <label class="col-form-label fw-bold">
+                <i class="fas fa-briefcase text-primary me-1"></i>Razón social
+            </label>
+            <select
                 v-model="form.company_reason_id"
-                :close-on-select="true"
-                :options="$page.props.companyReasons"
-                class="multiselect-blue form-control"
+                class="form-select form-select-solid"
                 :class="{ 'is-invalid': form.errors.company_reason_id }"
-                :searchable="true"
-            />
-            <InputError class="mt-2" :message="form.errors.company_reason_id" />
+            >
+                <option value="">Seleccione razón social</option>
+                <option v-for="c in $page.props.companyReasons" :key="c.value" :value="c.value">
+                    {{ c.label }}
+                </option>
+            </select>
+            <InputError class="mt-1" :message="form.errors.company_reason_id" />
         </div>
 
+        <!-- Observaciones -->
         <div class="col-lg-8">
-            <label for="observations" class="col-form-label"
-                >Observaciones</label
-            >
+            <label class="col-form-label fw-bold">
+                <i class="fas fa-sticky-note text-primary me-1"></i>Observaciones
+            </label>
             <textarea
                 v-model="form.observations"
                 rows="3"
-                class="form-control form-control-lg form-control-solid mb-3 mb-lg-0"
+                class="form-control form-control-solid"
+                placeholder="Notas adicionales sobre el cuartel..."
                 :class="{ 'is-invalid': form.errors.observations }"
             ></textarea>
-            <InputError class="mt-2" :message="form.errors.observations" />
+            <InputError class="mt-1" :message="form.errors.observations" />
+        </div>
+
+        <!-- Activo -->
+        <div class="col-12">
+            <label class="form-check form-check-inline">
+                <Checkbox
+                    class="form-check-input"
+                    v-model:checked="form.status"
+                    name="status"
+                />
+                <span class="form-check-label fw-semibold text-gray-700 fs-base ms-1">Activo</span>
+            </label>
         </div>
     </div>
-
-    <div class="fv-row">
-        <label class="form-check form-check-inline">
-            <Checkbox
-                class="form-check-input"
-                v-model:checked="form.status"
-                name="status"
-            />
-            <span
-                class="form-check-label fw-semibold text-gray-700 fs-base ms-1"
-                >Activo</span
-            >
-        </label>
-    </div>
-</template> 
-<style src="@vueform/multiselect/themes/default.css"></style>
-<style>
-/* Forzar el alto de los vueform/multiselect en este archivo */
-.multiselect-blue {
-    min-height: 26px !important;
-    height: 26px !important;
-    max-height: 26px !important;
-    font-size: 0.7
-    rem !important;
-    padding-top: 2px !important;
-    padding-bottom: 2px !important;
-    line-height: 22px !important;
-    placeholder {
-        font-size: 0.1rem !important;
-        opacity: 0.7 !important;
-    }
-}
-/* Ajustes para inputs nativos */
-input.form-control:not([role="combobox"]),
-select.form-control {
-    height: 26px;
-    min-height: 26px;
-    font-size: 0.95rem;
-    padding-top: 2px;
-    padding-bottom: 2px;
-}
-/* Checkboxes */
-.form-check-input[type="checkbox"] {
-    width: 0.8em;
-    height: 0.8em;
-    vertical-align: middle;
-}
-/* Group icon alignment */
-.input-group-text {
-    font-size: 0.8rem;
-    display: flex;
-    align-items: center;
-}
-/* Labels */
-.col-form-label,
-label {
-    font-size: 0.8rem;
-}
-/* Placeholder del multiselect */
-.multiselect__placeholder {
-    font-size: 0.5rem !important;
-    opacity: 0.7 !important;
-}
-/* Opciones del multiselect */
-.multiselect__option {
-    font-size: 0.7rem;
-}
-/* Asegura z-index adecuado para dropdown */
-.multiselect__content {
-    z-index: 2050;
-}
-</style>
+</template>

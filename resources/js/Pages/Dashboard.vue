@@ -88,13 +88,24 @@ const props = defineProps({
   entityCounts: Object,
   totalAdministration: Number,
   mainTotalsAndPercents: Array,
-  kilosByFruit: Object, // <-- nuevo prop para kilos por fruta
-  fruitNames: Object, // <-- nuevo prop para nombres de fruta
+  kilosByFruit: Object,
+  fruitNames: Object,
+  kilosByEstimate: Object,
+  estimateOptions: Array,
+  defaultEstimateStatusId: Number,
   adminFieldsByFruit: Object, // <-- nuevo prop para admin+fields prorrateado por especie
   totalHarvestByFruit: Object, // <-- nuevo prop para total de cosecha por especie
   totalInvestments: Number
 });
- 
+
+// Select de estimación
+const selectedEstimateStatusId = ref(props.defaultEstimateStatusId);
+const activeKilosByFruit = computed(() => {
+  if (props.kilosByEstimate && selectedEstimateStatusId.value) {
+    return props.kilosByEstimate[selectedEstimateStatusId.value] || {};
+  }
+  return props.kilosByFruit || {};
+});
 
 // Calcular el total por fruta usando totalsByLevel12 (sin dividir aquí, solo suma cruda)
 const totalByFruit = computed(() => {
@@ -568,18 +579,23 @@ onMounted(() => {
 
           <div class="card ecommerce-card-min-width mb-3 mt-2">
             <div class="card-header pb-2 bg-info bg-opacity-10">
-              <h5 class="mb-0 mt-1 d-flex align-items-center fs-10">Ultima Estimación de kilos por Especie
-                <span class="ms-1 text-400" data-bs-toggle="tooltip" data-bs-placement="top" title="Kilos estimados agrupados por fruta">
-                  <span class="far fa-question-circle" data-fa-transform="shrink-1"></span>
-                </span>
-              </h5>
+              <div class="d-flex align-items-center justify-content-between">
+                <h5 class="mb-0 mt-1 d-flex align-items-center fs-10">Estimación de kilos por Especie
+                  <span class="ms-1 text-400" data-bs-toggle="tooltip" data-bs-placement="top" title="Kilos estimados agrupados por fruta">
+                    <span class="far fa-question-circle" data-fa-transform="shrink-1"></span>
+                  </span>
+                </h5>
+                <select v-if="estimateOptions && estimateOptions.length" v-model="selectedEstimateStatusId" class="form-select form-select-sm" style="width:auto;max-width:200px;font-size:0.75rem;">
+                  <option v-for="opt in estimateOptions" :key="opt.id" :value="opt.id">{{ opt.name }}</option>
+                </select>
+              </div>
             </div>
             <div class="card-body d-flex flex-column justify-content-end py-1 align-items-center">
-              <div v-if="kilosByFruit && Object.keys(kilosByFruit).length" class="d-flex flex-wrap gap-1 align-items-center">
-                <div v-for="(kilos, fruitId, idx) in kilosByFruit" :key="fruitId" class="d-flex align-items-center">
+              <div v-if="Object.keys(activeKilosByFruit).length" class="d-flex flex-wrap gap-1 align-items-center">
+                <div v-for="(kilos, fruitId, idx) in activeKilosByFruit" :key="fruitId" class="d-flex align-items-center">
                   <span class="fs-9 text-secondary me-1">{{ fruitNames && fruitNames[fruitId] ? fruitNames[fruitId] : ('Fruta ' + fruitId) }}:</span>
                   <span class="lh-1 fs-9 text-primary">{{ Number(kilos).toLocaleString('es-CL', { maximumFractionDigits: 0 }) }} <span class="text-secondary">Kg</span></span>
-                  <span v-if="idx < Object.keys(kilosByFruit).length - 1" class="mx-4" style="border-left:1px solid #bbb;height:60px;"></span>
+                  <span v-if="idx < Object.keys(activeKilosByFruit).length - 1" class="mx-4" style="border-left:1px solid #bbb;height:60px;"></span>
                 </div>
               </div>
               <div v-else>
@@ -598,8 +614,8 @@ onMounted(() => {
               </h5>
             </div>
             <div class="card-body d-flex flex-column justify-content-end py-1 align-items-center">
-              <div v-if="kilosByFruit && Object.keys(kilosByFruit).length && totalByFruit && Object.keys(totalByFruit).length" class="d-flex flex-wrap gap-1 align-items-center">
-                <div v-for="(kilos, fruitId, idx) in kilosByFruit" :key="'costo-kilo-' + fruitId" class="d-flex align-items-center">
+              <div v-if="Object.keys(activeKilosByFruit).length && totalByFruit && Object.keys(totalByFruit).length" class="d-flex flex-wrap gap-1 align-items-center">
+                <div v-for="(kilos, fruitId, idx) in activeKilosByFruit" :key="'costo-kilo-' + fruitId" class="d-flex align-items-center">
                   <span class="fs-9 text-secondary me-1">{{ fruitNames && fruitNames[fruitId] ? fruitNames[fruitId] : ('Fruta ' + fruitId) }}:</span>
                   <span class="lh-1 fs-9 text-primary">{{ (() => {
                     // Usar el totalHarvest por especie si existe
@@ -614,7 +630,7 @@ onMounted(() => {
                     const costoKilo = total / kilosNum;
                     return costoKilo.toLocaleString('es-CL', { maximumFractionDigits: 2 });
                   })() }} <span class="text-secondary">{{ dividir ? 'USD/Kg' : 'CLP/Kg' }}</span></span>
-                  <span v-if="idx < Object.keys(kilosByFruit).length - 1" class="mx-4" style="border-left:1px solid #bbb;height:60px;"></span>
+                  <span v-if="idx < Object.keys(activeKilosByFruit).length - 1" class="mx-4" style="border-left:1px solid #bbb;height:60px;"></span>
                 </div>
               </div>
               <div v-else>
@@ -633,8 +649,8 @@ onMounted(() => {
               </h5>
             </div>
             <div class="card-body d-flex flex-column justify-content-end py-1 align-items-center">
-              <div v-if="kilosByFruit && Object.keys(kilosByFruit).length && totalByFruit && Object.keys(totalByFruit).length && adminFieldsByFruit && Object.keys(adminFieldsByFruit).length" class="d-flex flex-wrap gap-1 align-items-center">
-                <div v-for="(kilos, fruitId, idx) in kilosByFruit" :key="'costo-kilo-total-' + fruitId" class="d-flex align-items-center">
+              <div v-if="Object.keys(activeKilosByFruit).length && totalByFruit && Object.keys(totalByFruit).length && adminFieldsByFruit && Object.keys(adminFieldsByFruit).length" class="d-flex flex-wrap gap-1 align-items-center">
+                <div v-for="(kilos, fruitId, idx) in activeKilosByFruit" :key="'costo-kilo-total-' + fruitId" class="d-flex align-items-center">
                   <span class="fs-9 text-secondary me-1">{{ fruitNames && fruitNames[fruitId] ? fruitNames[fruitId] : ('Fruta ' + fruitId) }}:</span>
                   <span class="lh-1 fs-9 text-primary">{{ (() => {
                     let total = 0;
@@ -652,7 +668,7 @@ onMounted(() => {
                     const costoKilo = total / kilosNum;
                     return costoKilo.toLocaleString('es-CL', { maximumFractionDigits: 2 });
                   })() }} <span class="text-secondary">{{ dividir ? 'USD/Kg' : 'CLP/Kg' }}</span></span>
-                  <span v-if="idx < Object.keys(kilosByFruit).length - 1" class="mx-4" style="border-left:1px solid #bbb;height:60px;"></span>
+                  <span v-if="idx < Object.keys(activeKilosByFruit).length - 1" class="mx-4" style="border-left:1px solid #bbb;height:60px;"></span>
                 </div>
               </div>
               <div v-else>
