@@ -167,7 +167,7 @@ const excelData = computed(() => {
                             <span class="svg-icon svg-icon-2"></span>
                             Exportar Página
                         </ExportExcelButton>
-                        <a :href="route('consolidated-outflows.export', { term: term })" class="btn btn-falcon-default btn-sm">
+                        <a :href="'/consolidated-outflows/export' + (term ? '?term=' + encodeURIComponent(term) : '')" class="btn btn-falcon-default btn-sm" target="_blank">
                             <span class="fas fa-file-excel" data-fa-transform="shrink-3 down-2"></span>
                             <span class="d-none d-sm-inline-block ms-1">Exportar Todo ({{ totals.total_count }})</span>
                         </a>
