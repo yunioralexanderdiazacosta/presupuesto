@@ -49,11 +49,11 @@ const remainingSurface = computed(() =>
 
 const filteredVarietiesNew = computed(() => {
     if (!newRow.value.fruit_id) return [];
-    return (props.varieties ?? []).filter(v => v.fruit_id === newRow.value.fruit_id);
+    return (props.varieties ?? []).filter(v => String(v.fruit_id) === String(newRow.value.fruit_id));
 });
 const filteredVarietiesEdit = computed(() => {
     if (!editRow.value.fruit_id) return [];
-    return (props.varieties ?? []).filter(v => v.fruit_id === editRow.value.fruit_id);
+    return (props.varieties ?? []).filter(v => String(v.fruit_id) === String(editRow.value.fruit_id));
 });
 
 // ── Watchers ──────────────────────────────────────────────────────────────────
