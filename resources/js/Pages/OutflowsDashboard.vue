@@ -228,13 +228,13 @@ const activeTotalKilos = computed(() => {
     return props.costoKiloAcumulado?.totalKilos ?? 0;
 });
 
-// Leer el monto de "Administración" desde byLevel1 (ya calculado y pasado al frontend)
+// Leer el monto de "Administración" desde byDevelopmentStateWithoutInvestments (con prorrateo por superficie)
 const totalAdministracion = computed(() => {
-    if (!props.byLevel1?.labels?.length) return 0;
-    const idx = props.byLevel1.labels.findIndex(l =>
-        l.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').includes('administracion')
+    if (!props.byDevelopmentStateWithoutInvestments?.length) return 0;
+    const adminState = props.byDevelopmentStateWithoutInvestments.find(s =>
+        s.name.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').includes('administracion')
     );
-    return idx !== -1 ? (props.byLevel1.data[idx] ?? 0) : 0;
+    return adminState ? adminState.total : 0;
 });
 const totalProduccionEfectivo = computed(() =>
     props.costoKiloAcumulado.totalProduccion + (incluirAdmin.value ? totalAdministracion.value : 0)
