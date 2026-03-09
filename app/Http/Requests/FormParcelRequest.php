@@ -23,8 +23,6 @@ class FormParcelRequest extends FormRequest
     {
         return [
             'name' => 'required',
-            //'company_reason_id' => 'required',
-            'season_id' => 'required'
         ];
     }
 }

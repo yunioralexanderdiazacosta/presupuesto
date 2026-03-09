@@ -24,7 +24,7 @@ class CostCentersImport implements ToModel, WithHeadingRow, WithValidation
         // Buscar IDs por nombre
         $fruit_id = Fruit::where('name', $row['frutal'] ?? '')->where('team_id', $user->team_id)->value('id');
         $variety_id = Variety::where('name', $row['variedad'] ?? '')->where('team_id', $user->team_id)->value('id');
-        $parcel_id = Parcel::where('name', $row['parcela'] ?? '')->where('team_id', $user->team_id)->value('id');
+        $parcel_id = Parcel::where('name', $row['parcela'] ?? '')->where('team_id', $user->team_id)->where('season_id', $season_id)->value('id');
         $development_state_id = DevelopmentState::where('name', $row['estado_de_desarrollo'] ?? '')->value('id');
         $company_reason_id = CompanyReason::where('name', $row['razon_social'] ?? '')->where('team_id', $user->team_id)->value('id');
 
@@ -69,9 +69,9 @@ class CostCentersImport implements ToModel, WithHeadingRow, WithValidation
                     $fail("La variedad '{$value}' no existe.");
                 }
             }],
-            'parcela' => ['required', function($attribute, $value, $fail) use ($teamId) {
-                if (!Parcel::where('name', $value)->where('team_id', $teamId)->exists()) {
-                    $fail("La parcela '{$value}' no existe.");
+            'parcela' => ['required', function($attribute, $value, $fail) use ($teamId, $seasonId) {
+                if (!Parcel::where('name', $value)->where('team_id', $teamId)->where('season_id', $seasonId)->exists()) {
+                    $fail("La parcela '{$value}' no existe en esta temporada.");
                 }
             }],
             'estado_de_desarrollo' => ['required', function($attribute, $value, $fail) {

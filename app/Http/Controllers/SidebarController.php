@@ -107,7 +107,10 @@ class SidebarController extends Controller
         $teamId = $user ? $user->team_id : null;
         $exists = false;
         if ($teamId) {
-            $exists = \App\Models\Parcel::where('team_id', $teamId)->exists();
+            $seasonId = session('season_id');
+            $exists = $seasonId
+                ? \App\Models\Parcel::where('team_id', $teamId)->where('season_id', $seasonId)->exists()
+                : false;
         }
         return response()->json(['exists' => $exists]);
     }

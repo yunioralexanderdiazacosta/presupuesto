@@ -40,7 +40,7 @@ class CostCentersController extends Controller
             });
 
         $parcels = Parcel::where('team_id', $user->team_id)
-            ->whereNotNull('team_id')
+            ->where('season_id', $season_id)
             ->orderBy('name')
             ->get()
             ->transform(function($parcel){

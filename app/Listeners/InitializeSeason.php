@@ -18,10 +18,17 @@ class InitializeSeason
     {
         $user = $event->user;
 
-        // Obtener la última temporada del equipo como predeterminada
+        // Primero buscar temporada marcada como predeterminada
         $seasonId = Season::where('team_id', $user->team_id)
-            ->latest('id')
+            ->where('is_default', true)
             ->value('id');
+
+        // Si no hay predeterminada, usar la última
+        if (!$seasonId) {
+            $seasonId = Season::where('team_id', $user->team_id)
+                ->latest('id')
+                ->value('id');
+        }
 
         if ($seasonId) {
             Session::put('season_id', $seasonId);

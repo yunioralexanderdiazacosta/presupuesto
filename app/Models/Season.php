@@ -9,7 +9,11 @@ class Season extends Model
 {
     use HasFactory;
 
-    protected $fillable = ['name', 'team_id', 'month_id', 'observations'];
+    protected $fillable = ['name', 'team_id', 'month_id', 'observations', 'is_default'];
+
+    protected $casts = [
+        'is_default' => 'boolean',
+    ];
 
     public function month()
     {

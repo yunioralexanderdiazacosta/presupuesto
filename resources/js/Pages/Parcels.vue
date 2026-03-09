@@ -2,6 +2,7 @@
 import { computed, ref } from 'vue';
 import { Link, router, Head, usePage, useForm } from '@inertiajs/vue3';
 import Swal from 'sweetalert2';
+import axios from 'axios';
 import AppLayout from '@/Layouts/AppLayout.vue';
 import Table from '@/Components/Table.vue';
 import Empty from '@/Components/Empty.vue';
@@ -15,16 +16,18 @@ import ExportPdfButton from '@/Components/ExportPdfButton.vue';
 
 const props = defineProps({
     parcels: Object,
-    term: String
+    term: String,
+    pendingTransferCount: Number,
+    previousSeasonName: String
 });
 
 const form = useForm({
     id: '',
     name: '',
     observations: '',
-    //company_reason_id: '',
-    season_id: ''
 });
+
+const isTransferring = ref(false);
 
 const title = 'Parcelas';
 
@@ -42,8 +45,6 @@ const openEdit = (parcel) => {
     form.id = parcel.id;
     form.name = parcel.name;
     form.observations = parcel.observations;
-    //form.company_reason_id = parcel.company_reason_id;
-    form.season_id = parcel.season_id; 
     $('#editParcelModal').modal('show');
 }
 
@@ -108,6 +109,55 @@ const onDeleted = (id) => {
 const onFilter = () => {
   router.get(route('parcels.index', {term: term.value}), { preserveState: true});  
 }
+
+const transferParcels = async () => {
+    // Obtener nombre de temporada anterior desde el backend
+    let seasonText = 'Se copiarán las parcelas desde la temporada anterior a la temporada actual.';
+    try {
+        const response = await axios.get(route('parcels.previous-season'));
+        if (response.data && response.data.name) {
+            seasonText = `Se copiarán las parcelas desde "${response.data.name}" a la temporada actual.`;
+        }
+        if (response.data && response.data.count === 0) {
+            Swal.fire('Info', 'La temporada anterior no tiene parcelas para traspasar.', 'info');
+            return;
+        }
+    } catch (e) {
+        // Si falla, usar texto genérico
+    }
+    Swal.fire({
+        title: '¿Traspasar parcelas?',
+        text: seasonText,
+        icon: 'question',
+        showCancelButton: true,
+        confirmButtonColor: 'rgb(0, 158, 247)',
+        cancelButtonColor: '#6e6e6e',
+        cancelButtonText: 'Cancelar',
+        confirmButtonText: 'Traspasar',
+    }).then((result) => {
+        if (result.isConfirmed) {
+            isTransferring.value = true;
+            router.post(route('parcels.transfer'), {}, {
+                preserveScroll: true,
+                onSuccess: () => {
+                    isTransferring.value = false;
+                    const flash = usePage().props.flash;
+                    if (flash && flash.error) {
+                        Swal.fire('Error', flash.error, 'error');
+                    } else if (flash && flash.info) {
+                        Swal.fire('Info', flash.info, 'info');
+                    } else {
+                        msgSuccess(flash?.success || 'Parcelas traspasadas correctamente');
+                    }
+                },
+                onError: () => {
+                    isTransferring.value = false;
+                    Swal.fire('Error', 'No se pudieron traspasar las parcelas', 'error');
+                }
+            });
+        }
+    });
+}
 </script>
 <template>
     <Head :title="title" />
@@ -123,7 +173,14 @@ const onFilter = () => {
                     <div class="col-auto ms-auto">
                         <div class="d-flex justify-content-end" data-kt-customer-table-toolbar="base">
                             
-                             
+                             <button v-if="pendingTransferCount > 0" class="btn btn-falcon-default btn-sm me-2" type="button" :disabled="isTransferring" @click="transferParcels()">
+                                <span class="fas fa-exchange-alt" data-fa-transform="shrink-3 down-2"></span>
+                                <span class="d-none d-sm-inline-block ms-1">Traspasar de temporada anterior ({{ pendingTransferCount }})</span>
+                             </button>
+                             <button v-else-if="previousSeasonName && pendingTransferCount === 0" class="btn btn-falcon-default btn-sm me-2" type="button" disabled>
+                                <span class="fas fa-check" data-fa-transform="shrink-3 down-2"></span>
+                                <span class="d-none d-sm-inline-block ms-1">Ya traspasadas</span>
+                             </button>
                              <button class="btn btn-falcon-default btn-sm" type="button" @click="openAdd()"><span class="fas fa-plus" data-fa-transform="shrink-3 down-2"></span><span class="d-none d-sm-inline-block ms-1">Nuevo</span></button>   
                         </div>
                     </div>

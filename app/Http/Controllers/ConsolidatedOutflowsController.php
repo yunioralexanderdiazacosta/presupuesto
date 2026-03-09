@@ -7,6 +7,8 @@ use Illuminate\Pagination\LengthAwarePaginator;
 use App\Models\Outflow;
 use Inertia\Inertia;
 use Illuminate\Support\Facades\Auth;
+use App\Exports\ConsolidatedOutflowsExport;
+use Maatwebsite\Excel\Facades\Excel;
 
 class ConsolidatedOutflowsController extends Controller
 {
@@ -42,7 +44,7 @@ class ConsolidatedOutflowsController extends Controller
             'creditDebitNoteItem.creditDebitNote.supplier:id,name',
             'project:id,name',
             'operation:id,name',
-            'machinery:id,name',
+            'machinery:id,cod_machinery,brand',
             'costCenters:id,outflow_id,cost_center_id,observations',
             'costCenters.costCenter:id,name,surface,development_state_id',
             'costCenters.costCenter.developmentState:id,name',
@@ -121,7 +123,7 @@ class ConsolidatedOutflowsController extends Controller
                     : ($outflow->creditDebitNoteItem->unit_price ?? 0),
                 'project' => $outflow->project->name ?? null,
                 'operation' => $outflow->operation->name ?? null,
-                'machinery' => $outflow->machinery->name ?? null,
+                'machinery' => $outflow->machinery ? trim($outflow->machinery->cod_machinery . ' - ' . $outflow->machinery->brand) : null,
                 'notes' => $outflow->notes,
                 'level1_name' => $outflow->level3->level2->level1->name ?? null,
                 'level2_name' => $outflow->level3->level2->name ?? null,
@@ -222,5 +224,11 @@ class ConsolidatedOutflowsController extends Controller
                 'total_count' => $totalCount,
             ],
         ]);
+    }
+
+    public function export(Request $request)
+    {
+        $term = $request->term ?? '';
+        return Excel::download(new ConsolidatedOutflowsExport($term), 'consolidado_salidas.xlsx');
     }
 }

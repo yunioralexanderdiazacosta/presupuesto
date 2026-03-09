@@ -15,6 +15,14 @@ const props = defineProps({
     term: String
 });
 
+const defaultSeasonId = ref(
+    props.seasons.data.find(s => s.is_default)?.id ?? null
+);
+
+const isDefault = (seasonId) => {
+    return defaultSeasonId.value != null && Number(defaultSeasonId.value) === Number(seasonId);
+};
+
 const form = useForm({
     id: '',
     name: '',
@@ -114,6 +122,23 @@ const openSeason = (id) => {
 const onFilter = () => {
   router.get(route('seasons.index', {term: term.value}), { preserveState: true});  
 }
+
+const setDefault = (seasonId) => {
+    if (Number(seasonId) === Number(defaultSeasonId.value)) return;
+    defaultSeasonId.value = seasonId;
+    router.post(route('seasons.set-default', seasonId), {}, {
+        preserveScroll: true,
+        onSuccess: () => {
+            Swal.fire({
+                icon: 'success',
+                title: 'Temporada predeterminada actualizada',
+                text: 'Al iniciar sesión nuevamente se abrirá esta temporada automáticamente.',
+                confirmButtonColor: 'rgb(0, 158, 247)',
+                confirmButtonText: 'Entendido',
+            });
+        }
+    });
+}
 </script>
 <template>
     <Head :title="title" />
@@ -175,6 +200,7 @@ const onFilter = () => {
                     <template #header>
                         <!--begin::Table row-->
                         <th width="min-w-150px">Nombre</th>
+                        <th width="min-w-50px" class="text-center">Predeterminada</th>
                         <th width="min-w-150px">Mes de inicio</th>
                         <th width="min-w-150px" class="text-end">Acciones</th>
                         <!--end::Table row-->
@@ -183,11 +209,16 @@ const onFilter = () => {
                     <!--begin::Table body-->
                     <template #body>
                         <template v-if="seasons.total == 0">
-                            <Empty colspan="3" />
+                            <Empty colspan="4" />
                         </template>
                         <template v-else>
-                            <tr v-for="(season, index) in seasons.data" :key="index">
+                            <tr v-for="(season, index) in seasons.data" :key="season.id">
                                 <td>{{season.name}}</td>
+                                <td class="text-center">
+                                    <button type="button" @click="setDefault(season.id)" class="btn btn-sm p-0" v-tooltip="isDefault(season.id) ? 'Es la predeterminada' : 'Establecer como predeterminada'">
+                                        <i class="fas fa-star" :style="{ color: isDefault(season.id) ? '#f5803e' : '#d8d8d8', fontSize: '1.1rem' }"></i>
+                                    </button>
+                                </td>
                                 <td>{{season.month.name}}</td>
                                 <td class="text-end">
                                     <!--begin::View-->

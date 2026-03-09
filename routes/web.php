@@ -139,6 +139,7 @@ use App\Http\Controllers\Budgets\StoreBudgetController;
 use App\Http\Controllers\Budgets\UpdateBudgetController;
 use App\Http\Controllers\Budgets\DeleteBudgetController;
 use App\Http\Controllers\Seasons\SaveSeasonController;
+use App\Http\Controllers\Seasons\SetDefaultSeasonController;
 use App\Http\Controllers\CostCenters\StoreCostCenterController;
 use App\Http\Controllers\CostCenters\UpdateCostCenterController;
 use App\Http\Controllers\CostCenters\DeleteCostCenterController;
@@ -211,6 +212,7 @@ use App\Http\Controllers\CostCenterVarieties\DeleteCostCenterVarietyController;
 use App\Http\Controllers\Parcels\StoreParcelController;
 use App\Http\Controllers\Parcels\UpdateParcelController;
 use App\Http\Controllers\Parcels\DeleteParcelController;
+use App\Http\Controllers\Parcels\TransferParcelsController;
 use App\Http\Controllers\Seasons\StoreSeasonController;
 use App\Http\Controllers\Seasons\UpdateSeasonController;
 use App\Http\Controllers\Seasons\DeleteSeasonController;
@@ -510,12 +512,15 @@ Route::middleware([
     Route::post('/parcels/store', StoreParcelController::class)->name('parcels.store');
     Route::post('/parcels/{parcel}/update', UpdateParcelController::class)->name('parcels.update');
     Route::delete('/parcels/{parcel}/delete', DeleteParcelController::class)->name('parcels.delete');
+    Route::post('/parcels/transfer', TransferParcelsController::class)->name('parcels.transfer');
+    Route::get('/parcels/previous-season', [ParcelsController::class, 'previousSeason'])->name('parcels.previous-season');
 
     Route::get('/seasons/pdf', SeasonsPdfController::class)->name('seasons.pdf');
     Route::get('/seasons/excel', SeasonsExcelController::class)->name('seasons.excel');
     Route::post('/seasons/store', StoreSeasonController::class)->name('seasons.store');
     Route::post('/seasons/{season}/update', UpdateSeasonController::class)->name('seasons.update');
     Route::delete('/seasons/{season}/delete', DeleteSeasonController::class)->name('seasons.delete');
+    Route::post('/seasons/{season}/set-default', SetDefaultSeasonController::class)->name('seasons.set-default');
 
     // Guía del Sistema (fuera de check.selected.budget porque no requiere temporada)
     Route::get('/system-guide', SystemGuideController::class)->name('system-guide');
@@ -636,6 +641,7 @@ Route::middleware([
     
     // Consolidado de Outflows
     Route::get('/consolidated-outflows', [ConsolidatedOutflowsController::class, 'index'])->name('consolidated-outflows.index');
+    Route::get('/consolidated-outflows/export', [ConsolidatedOutflowsController::class, 'export'])->name('consolidated-outflows.export');
 
     // Inventario
     Route::get('/inventory', [InventoryController::class, 'index'])->name('inventory');

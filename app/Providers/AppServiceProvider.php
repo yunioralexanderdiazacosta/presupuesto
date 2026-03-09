@@ -48,7 +48,11 @@ class AppServiceProvider extends ServiceProvider
             'hasFruit' => fn() => Auth::check() && Fruit::where('team_id', Auth::user()->team_id)->exists(),
             'hasCompanyReason' => fn() => Auth::check() && CompanyReason::where('team_id', Auth::user()->team_id)->exists(),
             'hasSeason' => fn() => Auth::check() && Season::where('team_id', Auth::user()->team_id)->exists(),
-            'hasParcel' => fn() => Auth::check() && Parcel::where('team_id', Auth::user()->team_id)->exists(),
+            'hasParcel' => function () {
+                if (!Auth::check()) return false;
+                $seasonId = session('season_id');
+                return $seasonId && Parcel::where('team_id', Auth::user()->team_id)->where('season_id', $seasonId)->exists();
+            },
             'hasLevel3' => function () {
                 if (!Auth::check()) return false;
                 $teamId = Auth::user()->team_id;

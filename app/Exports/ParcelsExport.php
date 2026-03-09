@@ -21,9 +21,11 @@ class ParcelsExport implements FromView, ShouldAutoSize
     {
         $user = Auth::user();
 
+        $season_id = session('season_id');
+
         $parcels = Parcel::with(['companyReason:id,name', 'season:id,name'])->when($this->term, function ($query, $search) {
             $query->where('name', 'like', '%'.$search.'%');
-        })->where('team_id', $user->team_id)->get();
+        })->where('team_id', $user->team_id)->where('season_id', $season_id)->get();
 
          return view('excels.parcels', [
             'parcels' => $parcels
