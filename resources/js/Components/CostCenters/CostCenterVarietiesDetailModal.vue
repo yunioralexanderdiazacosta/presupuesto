@@ -50,12 +50,12 @@ const developmentStates = computed(() => page.props.developmentStates ?? []);
 
 const filteredVarietiesNew = computed(() => {
     if (!newRow.value.fruit_id) return [];
-    return allVarieties.value.filter(v => v.fruit_id === newRow.value.fruit_id);
+    return allVarieties.value.filter(v => String(v.fruit_id) === String(newRow.value.fruit_id));
 });
 
 const filteredVarietiesEdit = computed(() => {
     if (!editRow.value.fruit_id) return [];
-    return allVarieties.value.filter(v => v.fruit_id === editRow.value.fruit_id);
+    return allVarieties.value.filter(v => String(v.fruit_id) === String(editRow.value.fruit_id));
 });
 
 const totalSurface = computed(() => parseFloat(props.costCenter?.surface ?? 0));
