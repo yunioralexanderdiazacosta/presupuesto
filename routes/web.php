@@ -209,6 +209,39 @@ use App\Http\Controllers\CostCenterVarieties\CostCenterVarietyController;
 use App\Http\Controllers\CostCenterVarieties\StoreCostCenterVarietyController;
 use App\Http\Controllers\CostCenterVarieties\UpdateCostCenterVarietyController;
 use App\Http\Controllers\CostCenterVarieties\DeleteCostCenterVarietyController;
+// Rutas para Production Dispatches (despachos de producción)
+use App\Http\Controllers\ProductionDispatches\ProductionDispatchController;
+use App\Http\Controllers\ProductionDispatches\StoreProductionDispatchController;
+use App\Http\Controllers\ProductionDispatches\UpdateProductionDispatchController;
+use App\Http\Controllers\ProductionDispatches\DeleteProductionDispatchController;
+use App\Http\Controllers\ProductionDispatches\ProcessProductionDispatchController;
+// Rutas para Exporters (exportadoras)
+use App\Http\Controllers\Exporters\StoreExporterController;
+use App\Http\Controllers\Exporters\UpdateExporterController;
+use App\Http\Controllers\Exporters\DeleteExporterController;
+// Rutas para Packing Houses
+use App\Http\Controllers\PackingHouses\StorePackingHouseController;
+use App\Http\Controllers\PackingHouses\UpdatePackingHouseController;
+use App\Http\Controllers\PackingHouses\DeletePackingHouseController;
+// Rutas para Bin Types
+use App\Http\Controllers\BinTypes\StoreBinTypeController;
+use App\Http\Controllers\BinTypes\UpdateBinTypeController;
+use App\Http\Controllers\BinTypes\DeleteBinTypeController;
+// Rutas para Box Types
+use App\Http\Controllers\BoxTypes\StoreBoxTypeController;
+use App\Http\Controllers\BoxTypes\UpdateBoxTypeController;
+use App\Http\Controllers\BoxTypes\DeleteBoxTypeController;
+// Rutas para Carriers (Transportistas)
+use App\Http\Controllers\Carriers\StoreCarrierController;
+use App\Http\Controllers\Carriers\UpdateCarrierController;
+use App\Http\Controllers\Carriers\DeleteCarrierController;
+// API para refrescar selects de producción
+use App\Http\Controllers\Api\GetExportersController;
+use App\Http\Controllers\Api\GetPackingHousesController;
+use App\Http\Controllers\Api\GetBinTypesController;
+use App\Http\Controllers\Api\GetBoxTypesController;
+use App\Http\Controllers\Api\GetCarriersController;
+use App\Http\Controllers\Api\FruitClassificationController;
 use App\Http\Controllers\Parcels\StoreParcelController;
 use App\Http\Controllers\Parcels\UpdateParcelController;
 use App\Http\Controllers\Parcels\DeleteParcelController;
@@ -729,6 +762,48 @@ Route::middleware([
 
     // Consolidated Documents
     Route::get('/consolidated-documents', [ConsolidatedDocumentsController::class, 'index'])->name('consolidated-documents.index');
+
+    // Production Dispatches (Despachos de Producción)
+    Route::get('/production-dispatches', [ProductionDispatchController::class, 'index'])->name('production-dispatches.index');
+    Route::post('/production-dispatches', StoreProductionDispatchController::class)->name('production-dispatches.store');
+    Route::put('/production-dispatches/{productionDispatch}', UpdateProductionDispatchController::class)->name('production-dispatches.update');
+    Route::delete('/production-dispatches/{productionDispatch}', DeleteProductionDispatchController::class)->name('production-dispatches.delete');
+    Route::put('/production-dispatches/{productionDispatch}/process', ProcessProductionDispatchController::class)->name('production-dispatches.process');
+
+    // Exporters (Exportadoras)
+    Route::post('/exporters', StoreExporterController::class)->name('exporters.store');
+    Route::put('/exporters/{exporter}', UpdateExporterController::class)->name('exporters.update');
+    Route::delete('/exporters/{exporter}', DeleteExporterController::class)->name('exporters.delete');
+
+    // Packing Houses
+    Route::post('/packing-houses', StorePackingHouseController::class)->name('packing-houses.store');
+    Route::put('/packing-houses/{packingHouse}', UpdatePackingHouseController::class)->name('packing-houses.update');
+    Route::delete('/packing-houses/{packingHouse}', DeletePackingHouseController::class)->name('packing-houses.delete');
+
+    // Bin Types (Tipos de Bins)
+    Route::post('/bin-types', StoreBinTypeController::class)->name('bin-types.store');
+    Route::put('/bin-types/{binType}', UpdateBinTypeController::class)->name('bin-types.update');
+    Route::delete('/bin-types/{binType}', DeleteBinTypeController::class)->name('bin-types.delete');
+
+    // Box Types (Tipos de Cajas)
+    Route::post('/box-types', StoreBoxTypeController::class)->name('box-types.store');
+    Route::put('/box-types/{boxType}', UpdateBoxTypeController::class)->name('box-types.update');
+    Route::delete('/box-types/{boxType}', DeleteBoxTypeController::class)->name('box-types.delete');
+
+    // Carriers (Transportistas)
+    Route::post('/carriers', StoreCarrierController::class)->name('carriers.store');
+    Route::put('/carriers/{carrier}', UpdateCarrierController::class)->name('carriers.update');
+    Route::delete('/carriers/{carrier}', DeleteCarrierController::class)->name('carriers.delete');
+
+    // API - Refrescar selects de producción
+    Route::get('/api/exporters', GetExportersController::class)->name('api.exporters');
+    Route::get('/api/packing-houses', GetPackingHousesController::class)->name('api.packing-houses');
+    Route::get('/api/bin-types', GetBinTypesController::class)->name('api.bin-types');
+    Route::get('/api/box-types', GetBoxTypesController::class)->name('api.box-types');
+    Route::get('/api/carriers', GetCarriersController::class)->name('api.carriers');
+    Route::get('/api/fruit-classifications', [FruitClassificationController::class, 'index'])->name('api.fruit-classifications.index');
+    Route::post('/api/fruit-classifications', [FruitClassificationController::class, 'store'])->name('api.fruit-classifications.store');
+    Route::delete('/api/fruit-classifications/{fruitClassificationType}', [FruitClassificationController::class, 'destroy'])->name('api.fruit-classifications.delete');
 
 });
 

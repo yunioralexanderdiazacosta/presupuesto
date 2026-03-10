@@ -374,6 +374,11 @@ const logout = () => {
                       </Link>
                       <!-- more inner pages-->
                     </li>
+                    <li class="nav-item"><Link class="nav-link" :href="route('production-dispatches.index')">
+                        <div class="d-flex align-items-center"><span class="nav-link-text ps-3">Despachos de Producción</span>
+                        </div>
+                      </Link>
+                    </li>
 
                 <li class="nav-item">
                   <a class="nav-link" :href="route('suppliers.index')" target="_blank" rel="noopener">
