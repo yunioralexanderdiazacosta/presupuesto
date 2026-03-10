@@ -88,6 +88,7 @@ const expandedInvoices = computed(() => {
                     product_name: prod.product_name,
                     product_amount: prod.amount || 0,
                     product_unit_price: prod.unit_price || 0,
+                    product_original_unit_price: prod.original_unit_price || null,
                     product_subtotal: subtotal,
                     product_iva: iva,
                     product_total: subtotal + iva,
@@ -419,7 +420,14 @@ invoice, index
                                             </span>
                                             <span v-else class="text-muted">—</span>
                                         </td>
-                                        <td class="text-end">{{ invoice.total }}</td>
+                                        <td class="text-end">
+                                            {{ invoice.total }}
+                                            <span v-if="invoice.products && invoice.products.some(p => p.original_unit_price)"
+                                                v-tooltip="'Original: $' + Math.round(invoice.products.reduce((s, p) => s + (p.original_unit_price || p.unit_price) * p.amount, 0)).toLocaleString('es-ES') + ' — Desc. NC: $' + Math.round(invoice.products.reduce((s, p) => s + (p.original_unit_price ? (p.original_unit_price - p.unit_price) * p.amount : 0), 0)).toLocaleString('es-ES')"
+                                                class="badge bg-soft-warning text-warning ms-1" style="font-size: 0.6rem; cursor: help;">
+                                                <i class="fas fa-receipt fa-xs"></i> NC
+                                            </span>
+                                        </td>
                                     </tr>
                                 </template>
                             </template>
@@ -517,7 +525,14 @@ invoice, index
                                             <td style="white-space:nowrap;">{{ row.date }}</td>
                                             <td style="white-space:nowrap; max-width:220px; overflow:hidden; text-overflow:ellipsis;">{{ row.product_name }}</td>
                                             <td class="text-end" style="white-space:nowrap;">{{ row.product_amount.toLocaleString('es-ES') }}</td>
-                                            <td class="text-end" style="white-space:nowrap;">${{ Math.round(row.product_unit_price).toLocaleString('es-ES') }}</td>
+                                            <td class="text-end" style="white-space:nowrap;">
+                                                ${{ Math.round(row.product_unit_price).toLocaleString('es-ES') }}
+                                                <span v-if="row.product_original_unit_price" 
+                                                    v-tooltip="'Precio original: $' + Math.round(row.product_original_unit_price).toLocaleString('es-ES') + ' — Desc. NC: $' + Math.round(row.product_original_unit_price - row.product_unit_price).toLocaleString('es-ES')"
+                                                    class="badge bg-soft-warning text-warning ms-1" style="font-size: 0.6rem; cursor: help;">
+                                                    <i class="fas fa-receipt fa-xs"></i> NC
+                                                </span>
+                                            </td>
                                             <td class="text-end" style="white-space:nowrap;">${{ Math.round(row.product_subtotal).toLocaleString('es-ES') }}</td>
                                             <td class="text-end" style="white-space:nowrap;">${{ Math.round(row.product_iva).toLocaleString('es-ES') }}</td>
                                             <td class="text-end" style="white-space:nowrap;">${{ Math.round(row.product_total).toLocaleString('es-ES') }}</td>

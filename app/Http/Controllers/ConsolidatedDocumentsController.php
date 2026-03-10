@@ -64,8 +64,9 @@ class ConsolidatedDocumentsController extends Controller
                 // Normalizar tipo para visualización
                 $tipo = $note->type;
                 $es_credito = false;
-                if ($tipo === 'ND') $tipo = 'Débito';
-                else if ($tipo === 'NC') {
+                if (in_array($tipo, ['ND', 'debito'])) {
+                    $tipo = 'Débito';
+                } elseif (in_array($tipo, ['NC', 'credito'])) {
                     $tipo = 'Crédito';
                     $es_credito = true;
                 }
@@ -79,6 +80,9 @@ class ConsolidatedDocumentsController extends Controller
                 if ($es_credito) {
                     $iva = -$iva;
                 }
+
+                // NC financiera: affects_inventory=0 y tipo crédito → ya descontada del precio
+                $isFinancial = !$note->affects_inventory && $es_credito;
                 
                 return [
                     'tipo' => $tipo,
@@ -89,6 +93,7 @@ class ConsolidatedDocumentsController extends Controller
                     'n_doc' => $note->number,
                     'monto_total' => $monto_total,
                     'iva' => $iva,
+                    'is_financial' => $isFinancial,
                 ];
             });
 

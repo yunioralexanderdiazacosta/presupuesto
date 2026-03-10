@@ -69,6 +69,7 @@ const filteredDocuments = computed(() => {
 const totalGeneral = computed(() => {
   let total = 0;
   filteredDocuments.value.forEach(doc => {
+    if (doc.is_financial) return; // NC financiera ya descontada del precio
     if (doc.tipo === 'debito' || doc.tipo === 'Débito') {
       total += Number(doc.monto_total);
     } else if (doc.tipo === 'credito' || doc.tipo === 'Crédito') {
@@ -92,8 +93,13 @@ const totalNetoND = computed(() => {
 });
 const totalNetoNC = computed(() => {
   return filteredDocuments.value
-    .filter(doc => doc.tipo === 'credito' || doc.tipo === 'Crédito')
+    .filter(doc => (doc.tipo === 'credito' || doc.tipo === 'Crédito') && !doc.is_financial)
     .reduce((sum, doc) => sum + Number(doc.monto_total), 0);
+});
+
+// NCs financieras (ya aplicadas al precio unitario)
+const financialNCs = computed(() => {
+  return filteredDocuments.value.filter(doc => doc.is_financial);
 });
 
 // Agrupar documentos por tipo
@@ -109,9 +115,10 @@ const documentsByType = computed(() => {
   return groups;
 });
 
-// Calcular subtotales por tipo
+// Calcular subtotales por tipo (excluye NC financieras)
 const getSubtotalByType = (docs, field) => {
   return docs.reduce((sum, doc) => {
+    if (doc.is_financial) return sum; // NC financiera ya descontada del precio
     const value = Number(doc[field] || 0);
     // Para notas de crédito, todos los valores van en negativo (incluido IVA)
     const isCredito = doc.tipo === 'credito' || doc.tipo === 'Crédito';
@@ -178,6 +185,7 @@ const totalPorMes = computed(() => {
   const totales = {};
   mesesPivot.forEach(mes => { totales[mes] = 0; });
   filteredDocuments.value.forEach(doc => {
+    if (doc.is_financial) return; // NC financiera ya descontada del precio
     const mes = getMes(doc.mes_contable);
     if (mes && totales.hasOwnProperty(mes)) {
       if (doc.tipo === 'credito' || doc.tipo === 'Crédito') {
@@ -294,6 +302,14 @@ const getDocTypeBadge = (tipo) => {
                 </ExportExcelButton>
               </div>
             </div>
+            <div v-if="financialNCs.length > 0" class="alert alert-warning d-flex align-items-start py-2 px-3 mb-3" role="alert" style="font-size: 0.78rem;">
+              <i class="fas fa-info-circle text-warning me-2 mt-1"></i>
+              <div>
+                <strong>{{ financialNCs.length }} NC financiera{{ financialNCs.length > 1 ? 's' : '' }}</strong>: 
+                su descuento ya fue aplicado al precio unitario de la factura. 
+                No se incluye{{ financialNCs.length > 1 ? 'n' : '' }} en los totales de esta tabla.
+              </div>
+            </div>
             <div class="table-responsive mb-4">
               <table class="table table-bordered table-striped table-hover table-sm fs-10 mb-0">
                 <thead class="table-primary">
@@ -326,11 +342,13 @@ const getDocTypeBadge = (tipo) => {
                     <td class="text-end fw-bold">{{ sortedDocuments.length }}</td>
                     <td class="text-end fw-bold">{{ formatNumber(totalGeneral, 0) }}</td>
                     <td class="text-end fw-bold">{{ formatNumber(sortedDocuments.reduce((sum, doc) => {
+                      if (doc.is_financial) return sum;
                       const iva = Number(doc.iva || 0);
                       const isCredito = doc.tipo === 'credito' || doc.tipo === 'Crédito';
                       return sum + (isCredito ? -iva : iva);
                     }, 0), 0) }}</td>
                     <td class="text-end fw-bold">{{ formatNumber(totalGeneral + sortedDocuments.reduce((sum, doc) => {
+                      if (doc.is_financial) return sum;
                       const iva = Number(doc.iva || 0);
                       const isCredito = doc.tipo === 'credito' || doc.tipo === 'Crédito';
                       return sum + (isCredito ? -iva : iva);
@@ -405,6 +423,15 @@ const getDocTypeBadge = (tipo) => {
                 </div>
               </div>
             </div>
+            <div v-if="financialNCs.length > 0" class="alert alert-warning d-flex align-items-start py-2 px-3 mb-3" role="alert" style="font-size: 0.78rem;">
+              <i class="fas fa-info-circle text-warning me-2 mt-1"></i>
+              <div>
+                <strong>{{ financialNCs.length }} Nota{{ financialNCs.length > 1 ? 's' : '' }} de Crédito financiera{{ financialNCs.length > 1 ? 's' : '' }}</strong> 
+                (marcada{{ financialNCs.length > 1 ? 's' : '' }} como <span class="badge bg-soft-warning text-warning" style="font-size: 0.65rem;">Aplicada</span>) 
+                ya {{ financialNCs.length > 1 ? 'fueron descontadas' : 'fue descontada' }} directamente del precio unitario de su factura original. 
+                Por ello, {{ financialNCs.length > 1 ? 'aparecen' : 'aparece' }} atenuada{{ financialNCs.length > 1 ? 's' : '' }} y <strong>no se {{ financialNCs.length > 1 ? 'suman' : 'suma' }} en los totales</strong> para evitar doble descuento.
+              </div>
+            </div>
             <div class="table-responsive mb-4" style="max-height:440px;overflow-y:auto;">
               <table class="table table-bordered table-striped table-hover table-sm fs-10 mb-0">
                 <thead class="table-primary" style="position: sticky; top: 0; z-index: 10;">
@@ -423,9 +450,10 @@ const getDocTypeBadge = (tipo) => {
                 <tbody>
                   <template v-for="(docs, tipo) in documentsByType" :key="tipo">
                     <!-- Documentos del tipo -->
-                    <tr v-for="(doc, idx) in docs" :key="tipo + '-' + idx">
+                    <tr v-for="(doc, idx) in docs" :key="tipo + '-' + idx" :style="doc.is_financial ? 'opacity: 0.5;' : ''">
                       <td style="max-width:70px; min-width:50px; width:60px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">
                         <span :class="'badge ' + getDocTypeBadge(doc.tipo).class">{{ getDocTypeBadge(doc.tipo).text }}</span>
+                        <span v-if="doc.is_financial" v-tooltip="'NC financiera: ya descontada del precio unitario de la factura. No suma en totales.'" class="badge bg-soft-warning text-warning ms-1" style="font-size: 0.55rem; cursor: help;"><i class="fas fa-info-circle fa-xs"></i> Aplicada</span>
                       </td>
                       <td class="text-lowercase" style="max-width:100px; min-width:100px; width:100px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">{{ doc.razon_social }}</td>
                       <td style="max-width:100px; min-width:100px; width:100px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">{{ doc.mes_contable }}</td>
@@ -456,11 +484,13 @@ const getDocTypeBadge = (tipo) => {
                     <td colspan="6" class="text-end fw-bold">Total general</td>
                     <td class="text-end fw-bold">{{ formatNumber(totalGeneral, 0) }}</td>
                     <td class="text-end fw-bold">{{ formatNumber(sortedDocuments.reduce((sum, doc) => {
+                      if (doc.is_financial) return sum;
                       const iva = Number(doc.iva || 0);
                       const isCredito = doc.tipo === 'credito' || doc.tipo === 'Crédito';
                       return sum + (isCredito ? -iva : iva);
                     }, 0), 0) }}</td>
                     <td class="text-end fw-bold">{{ formatNumber(totalGeneral + sortedDocuments.reduce((sum, doc) => {
+                      if (doc.is_financial) return sum;
                       const iva = Number(doc.iva || 0);
                       const isCredito = doc.tipo === 'credito' || doc.tipo === 'Crédito';
                       return sum + (isCredito ? -iva : iva);

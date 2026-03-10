@@ -195,7 +195,14 @@ const formatDate = (dateString) => {
                                         <tr v-for="(product, index) in invoiceProducts" :key="index">
                                             <td class="text-start">{{ product.product_name || '-' }}</td>
                                             <td class="text-center">{{ formatNumber(product.amount) }}</td>
-                                            <td class="text-end">{{ formatCLP(product.unit_price) }}</td>
+                                            <td class="text-end">
+                                                {{ formatCLP(product.unit_price) }}
+                                                <span v-if="product.original_unit_price" 
+                                                    v-tooltip="'Precio original: ' + formatCLP(product.original_unit_price) + ' — Desc. NC: ' + formatCLP(product.original_unit_price - product.unit_price)"
+                                                    class="badge bg-soft-warning text-warning ms-1" style="font-size: 0.6rem; cursor: help;">
+                                                    <i class="fas fa-receipt fa-xs"></i> NC
+                                                </span>
+                                            </td>
                                             <td class="text-end fw-bold">{{ formatCLP(product.amount * product.unit_price) }}</td>
                                         </tr>
                                         <tr v-if="!invoiceProducts || invoiceProducts.length === 0">

@@ -12,13 +12,14 @@ class ShowInvoiceController extends Controller
     {
         $invoice->load(['expenseReport:id,number', 'purchaseOrder:id,order_number']);
 
-        $invoiceProducts = $invoice->products()->get()->transform(function($product){
+        $invoiceProducts = $invoice->invoiceProducts()->with('product')->get()->transform(function($ip){
             return [
-                'product_id'    => $product->id,
-                'product_name'  => $product->name,
-                'unit_price'    => $product->pivot->unit_price,
-                'amount'        => $product->pivot->amount,
-                'observations'  => $product->pivot->observations
+                'product_id'    => $ip->product ? $ip->product->id : null,
+                'product_name'  => $ip->product ? $ip->product->name : 'Producto eliminado',
+                'unit_price'    => $ip->unit_price,
+                'original_unit_price' => $ip->original_unit_price,
+                'amount'        => $ip->amount,
+                'observations'  => $ip->observations
             ];  
         });
 
