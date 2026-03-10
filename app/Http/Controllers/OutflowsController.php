@@ -21,12 +21,13 @@ class OutflowsController extends Controller
         $season_id = session('season_id');
         $term = $request->term ?? '';
 
-        // Precalcular devoluciones por invoice_product_id en notas de crédito
+        // Precalcular devoluciones por invoice_product_id en notas de crédito (solo que afectan inventario)
         $creditNotesReturns = DB::table('credit_debit_note_items')
             ->join('credit_debit_notes', 'credit_debit_note_items.credit_debit_note_id', '=', 'credit_debit_notes.id')
             ->where('credit_debit_notes.team_id', $user->team_id)
             ->where('credit_debit_notes.season_id', $season_id)
             ->where('credit_debit_notes.type', 'credito')
+            ->where('credit_debit_notes.affects_inventory', 1)
             ->whereNotNull('credit_debit_note_items.invoice_product_id')
             ->select('credit_debit_note_items.invoice_product_id', DB::raw('SUM(credit_debit_note_items.quantity) as total_devuelto'))
             ->groupBy('credit_debit_note_items.invoice_product_id')
@@ -56,6 +57,18 @@ class OutflowsController extends Controller
             ->groupBy('credit_debit_note_item_id')
             ->pluck('total_consumido', 'credit_debit_note_item_id');
 
+        // Precalcular NC financieras (affects_inventory=0) por invoice_product
+        $financialNCsByIP = DB::table('credit_debit_note_items')
+            ->join('credit_debit_notes', 'credit_debit_note_items.credit_debit_note_id', '=', 'credit_debit_notes.id')
+            ->where('credit_debit_notes.team_id', $user->team_id)
+            ->where('credit_debit_notes.season_id', $season_id)
+            ->where('credit_debit_notes.type', 'credito')
+            ->where('credit_debit_notes.affects_inventory', 0)
+            ->whereNotNull('credit_debit_note_items.invoice_product_id')
+            ->select('credit_debit_note_items.invoice_product_id', DB::raw('SUM(credit_debit_note_items.quantity * credit_debit_note_items.unit_price) as nc_total'))
+            ->groupBy('credit_debit_note_items.invoice_product_id')
+            ->pluck('nc_total', 'credit_debit_note_items.invoice_product_id');
+
         $rows = [];
         foreach ($invoices as $invoice) {
             foreach ($invoice->invoiceProducts as $invoiceProduct) {
@@ -65,7 +78,7 @@ class OutflowsController extends Controller
                 $consumido = $outflowsByInvoiceProduct[$invoiceProduct->id] ?? 0;
                 $devuelto = $creditNotesReturns[$invoiceProduct->id] ?? 0;
                 $cantidadOriginal = $invoiceProduct->quantity ?? $invoiceProduct->amount ?? 0;
-                $stockLinea = $cantidadOriginal - $consumido - $devuelto;
+                $stockLinea = round($cantidadOriginal - $consumido - $devuelto, 2);
 
                 // Excluir líneas con stock cero o negativo
                 if ($stockLinea <= 0) {
@@ -96,6 +109,12 @@ class OutflowsController extends Controller
                         ];
                     })->values();
                 }
+                $unitPrice = $invoiceProduct->unit_price ?? 0;
+                $ncFinanciero = $financialNCsByIP[$invoiceProduct->id] ?? 0;
+                $effectiveUnitPrice = $cantidadOriginal > 0
+                    ? round($unitPrice - ($ncFinanciero / $cantidadOriginal), 2)
+                    : $unitPrice;
+
                 $rows[] = [
                     'origen'            => $invoice->typeDocument?->name ?? 'factura',
                     'document_id'       => $invoice->id,
@@ -105,7 +124,8 @@ class OutflowsController extends Controller
                     'unit'              => $invoiceProduct->product->unit->name ?? '-',
                     'quantity'          => $cantidadOriginal,
                     'invoice_product_id'=> $invoiceProduct->id,
-                    'unit_price'        => $invoiceProduct->unit_price ?? null,
+                    'unit_price'        => $unitPrice,
+                    'effective_unit_price' => $effectiveUnitPrice,
                     'stock'             => $stockLinea,
                     'has_credit_note'   => ($devuelto > 0),
                     'credit_note_info'  => $creditNoteInfo,
@@ -128,7 +148,7 @@ class OutflowsController extends Controller
                 }
                 $consumido = $outflowsByDebitNoteItem[$item->id] ?? 0;
                 $cantidadOriginal = $item->quantity ?? 0;
-                $stockLinea = $cantidadOriginal - $consumido;
+                $stockLinea = round($cantidadOriginal - $consumido, 2);
                 // Excluir líneas con stock cero o negativo
                 if ($stockLinea <= 0) {
                     continue;

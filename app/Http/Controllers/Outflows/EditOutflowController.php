@@ -58,17 +58,17 @@ class EditOutflowController extends Controller
                         })->toArray(),
                     ];
                 })->values();
-                // Sumar la cantidad devuelta
-                $returned = $creditNotes->flatMap->items->sum('quantity');
+                // Sumar la cantidad devuelta solo de NCs que afectan inventario
+                $returned = $creditNotes->where('affects_inventory', 1)->flatMap->items->sum('quantity');
             }
-            $stockAvailable = $original - $consumed - $returned;
+            $stockAvailable = round($original - $consumed - $returned, 2);
         } else if ($outflow->credit_debit_note_item_id) {
             $item = $outflow->creditDebitNoteItem;
             $original = $item->quantity ?? 0;
             $consumed = \App\Models\Outflow::where('credit_debit_note_item_id', $item->id)
                 ->where('id', '<>', $outflow->id)
                 ->sum('quantity');
-            $stockAvailable = $original - $consumed;
+            $stockAvailable = round($original - $consumed, 2);
         }
         $data = [
             'outflow' => array_merge(

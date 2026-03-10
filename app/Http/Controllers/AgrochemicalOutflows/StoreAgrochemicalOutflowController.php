@@ -47,7 +47,7 @@ class StoreAgrochemicalOutflowController
                 ->where('invoice_product_id', $invoiceProductId)
                 ->sum('quantity');
                 
-                $stockDisponible = $cantidadOriginal - $consumido - $devuelto;
+                $stockDisponible = round($cantidadOriginal - $consumido - $devuelto, 2);
                 
                 if ($quantity > $stockDisponible) {
                     $productName = Product::find($productData['product_id'])->name ?? 'Producto';

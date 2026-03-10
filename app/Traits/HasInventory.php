@@ -194,16 +194,29 @@ trait HasInventory
             ->groupBy('invoice_product_id')
             ->pluck('total_consumido', 'invoice_product_id');
 
-        // Devoluciones (notas de crédito)
+        // Devoluciones (notas de crédito que afectan inventario)
         $creditNotesReturns = DB::table('credit_debit_note_items')
             ->join('credit_debit_notes', 'credit_debit_note_items.credit_debit_note_id', '=', 'credit_debit_notes.id')
             ->where('credit_debit_notes.team_id', $teamId)
             ->where('credit_debit_notes.season_id', $seasonId)
             ->where('credit_debit_notes.type', 'credito')
+            ->where('credit_debit_notes.affects_inventory', 1)
             ->whereNotNull('credit_debit_note_items.invoice_product_id')
             ->select('credit_debit_note_items.invoice_product_id', DB::raw('SUM(credit_debit_note_items.quantity) as total_devuelto'))
             ->groupBy('credit_debit_note_items.invoice_product_id')
             ->pluck('total_devuelto', 'credit_debit_note_items.invoice_product_id');
+
+        // Precalcular NC financieras (affects_inventory=0) por invoice_product
+        $financialNCsByIP = DB::table('credit_debit_note_items')
+            ->join('credit_debit_notes', 'credit_debit_note_items.credit_debit_note_id', '=', 'credit_debit_notes.id')
+            ->where('credit_debit_notes.team_id', $teamId)
+            ->where('credit_debit_notes.season_id', $seasonId)
+            ->where('credit_debit_notes.type', 'credito')
+            ->where('credit_debit_notes.affects_inventory', 0)
+            ->whereNotNull('credit_debit_note_items.invoice_product_id')
+            ->select('credit_debit_note_items.invoice_product_id', DB::raw('SUM(credit_debit_note_items.quantity * credit_debit_note_items.unit_price) as nc_total'))
+            ->groupBy('credit_debit_note_items.invoice_product_id')
+            ->pluck('nc_total', 'credit_debit_note_items.invoice_product_id');
 
         // Traer facturas con productos
         $stocksByProduct = [];
@@ -215,21 +228,23 @@ trait HasInventory
 
         foreach ($invoices as $invoice) {
             foreach ($invoice->products as $product) {
-                // Excluir si tiene nota de crédito
-                $hasCreditNote = DB::table('credit_debit_note_items')
+                // Excluir si tiene nota de crédito de anulación que afecta inventario
+                $hasAnnulmentNote = DB::table('credit_debit_note_items')
                     ->join('credit_debit_notes', 'credit_debit_note_items.credit_debit_note_id', '=', 'credit_debit_notes.id')
                     ->where('credit_debit_notes.type', 'credito')
+                    ->where('credit_debit_notes.is_annulment', 1)
+                    ->where('credit_debit_notes.affects_inventory', 1)
                     ->where('credit_debit_note_items.invoice_product_id', $product->pivot->id)
                     ->exists();
 
-                if ($hasCreditNote) {
+                if ($hasAnnulmentNote) {
                     continue;
                 }
 
                 $consumido = $consumosByInvoiceProduct[$product->pivot->id] ?? 0;
                 $devuelto = $creditNotesReturns[$product->pivot->id] ?? 0;
                 $cantidadOriginal = $product->pivot->amount ?? 0;
-                $stockDisponible = $cantidadOriginal - $consumido - $devuelto;
+                $stockDisponible = round($cantidadOriginal - $consumido - $devuelto, 2);
 
                 if ($stockDisponible <= 0) {
                     continue;
@@ -240,6 +255,12 @@ trait HasInventory
                     $stocksByProduct[$product->id] = [];
                 }
 
+                $unitPrice = $product->pivot->unit_price ?? 0;
+                $ncFinanciero = $financialNCsByIP[$product->pivot->id] ?? 0;
+                $effectiveUnitPrice = $cantidadOriginal > 0
+                    ? round($unitPrice - ($ncFinanciero / $cantidadOriginal), 2)
+                    : $unitPrice;
+
                 $stocksByProduct[$product->id][] = [
                     'invoice_product_id' => $product->pivot->id,
                     'number_document' => $invoice->number_document,
@@ -247,7 +268,8 @@ trait HasInventory
                     'cantidad_original' => $cantidadOriginal,
                     'stock_disponible' => $stockDisponible,
                     'unit' => $product->unit->name ?? '-',
-                    'unit_price' => $product->pivot->unit_price ?? 0,
+                    'unit_price' => $unitPrice,
+                    'effective_unit_price' => $effectiveUnitPrice,
                     'date' => $invoice->date instanceof \Carbon\Carbon ? $invoice->date->format('Y-m-d') : $invoice->date,
                 ];
             }

@@ -66,6 +66,7 @@ class ProductStockLinesController extends Controller
                 ->where('credit_debit_notes.team_id', $user->team_id)
                 ->where('credit_debit_notes.season_id', $season_id)
                 ->where('credit_debit_notes.type', 'credito')
+                ->where('credit_debit_notes.affects_inventory', 1)
                 ->whereNotNull('credit_debit_note_items.invoice_product_id')
                 ->select('credit_debit_note_items.invoice_product_id', DB::raw('SUM(credit_debit_note_items.quantity) as total_devuelto'))
                 ->groupBy('credit_debit_note_items.invoice_product_id')
@@ -84,7 +85,7 @@ class ProductStockLinesController extends Controller
             foreach ($invoiceLines as $line) {
                 $consumido = $outflowsByInvoiceProduct[$line->line_id] ?? 0;
                 $devuelto = $creditNotesReturns[$line->line_id] ?? 0;
-                $stock = ($line->cantidad_original ?? 0) - $consumido - $devuelto;
+                $stock = round(($line->cantidad_original ?? 0) - $consumido - $devuelto, 2);
                 if ($stock > 0) {
                     $result->push([
                         'line_id' => $line->line_id,
@@ -98,7 +99,7 @@ class ProductStockLinesController extends Controller
             }
             foreach ($debitNoteLines as $line) {
                 $consumido = $outflowsByDebitNoteItem[$line->line_id] ?? 0;
-                $stock = ($line->cantidad_original ?? 0) - $consumido;
+                $stock = round(($line->cantidad_original ?? 0) - $consumido, 2);
                 if ($stock > 0) {
                     $result->push([
                         'line_id' => $line->line_id,

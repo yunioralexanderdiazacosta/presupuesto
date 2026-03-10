@@ -106,17 +106,30 @@ class FuelOutflowController extends Controller
             ->groupBy('credit_debit_note_item_id')
             ->pluck('total_consumido', 'credit_debit_note_item_id');
         
-        // 3. Precalcular devoluciones (notas de crédito)
+        // 3. Precalcular devoluciones (notas de crédito que afectan inventario)
         $creditNotesReturns = DB::table('credit_debit_note_items')
             ->join('credit_debit_notes', 'credit_debit_note_items.credit_debit_note_id', '=', 'credit_debit_notes.id')
             ->where('credit_debit_notes.team_id', $user->team_id)
-            ->where('credit_debit_notes.season_id', $season_id)
+            ->where('credit_debit_notes.season_id', $session_id)
             ->where('credit_debit_notes.type', 'credito')
+            ->where('credit_debit_notes.affects_inventory', 1)
             ->whereNotNull('credit_debit_note_items.invoice_product_id')
             ->select('credit_debit_note_items.invoice_product_id', DB::raw('SUM(credit_debit_note_items.quantity) as total_devuelto'))
             ->groupBy('credit_debit_note_items.invoice_product_id')
             ->pluck('total_devuelto', 'credit_debit_note_items.invoice_product_id');
         
+        // Precalcular NC financieras (affects_inventory=0) por invoice_product
+        $financialNCsByIP = DB::table('credit_debit_note_items')
+            ->join('credit_debit_notes', 'credit_debit_note_items.credit_debit_note_id', '=', 'credit_debit_notes.id')
+            ->where('credit_debit_notes.team_id', $user->team_id)
+            ->where('credit_debit_notes.season_id', $season_id)
+            ->where('credit_debit_notes.type', 'credito')
+            ->where('credit_debit_notes.affects_inventory', 0)
+            ->whereNotNull('credit_debit_note_items.invoice_product_id')
+            ->select('credit_debit_note_items.invoice_product_id', DB::raw('SUM(credit_debit_note_items.quantity * credit_debit_note_items.unit_price) as nc_total'))
+            ->groupBy('credit_debit_note_items.invoice_product_id')
+            ->pluck('nc_total', 'credit_debit_note_items.invoice_product_id');
+
         // 4. Traer líneas de facturas de combustibles
         $availableFuelStocks = [];
         
@@ -138,26 +151,34 @@ class FuelOutflowController extends Controller
                     continue;
                 }
                 
-                // Excluir si tiene nota de crédito
-                $hasCreditNote = DB::table('credit_debit_note_items')
+                // Excluir solo si tiene nota de crédito de anulación que afecta inventario
+                $hasAnnulmentNote = DB::table('credit_debit_note_items')
                     ->join('credit_debit_notes', 'credit_debit_note_items.credit_debit_note_id', '=', 'credit_debit_notes.id')
                     ->where('credit_debit_notes.type', 'credito')
+                    ->where('credit_debit_notes.is_annulment', 1)
+                    ->where('credit_debit_notes.affects_inventory', 1)
                     ->where('credit_debit_note_items.invoice_product_id', $invoiceProduct->id)
                     ->exists();
                 
-                if ($hasCreditNote) {
+                if ($hasAnnulmentNote) {
                     continue;
                 }
                 
                 $consumido = $fuelOutflowsByInvoiceProduct[$invoiceProduct->id] ?? 0;
                 $devuelto = $creditNotesReturns[$invoiceProduct->id] ?? 0;
                 $cantidadOriginal = $invoiceProduct->amount ?? 0;
-                $stockDisponible = $cantidadOriginal - $consumido - $devuelto;
+                $stockDisponible = round($cantidadOriginal - $consumido - $devuelto, 2);
                 
                 if ($stockDisponible <= 0) {
                     continue;
                 }
                 
+                $unitPrice = $invoiceProduct->unit_price ?? 0;
+                $ncFinanciero = $financialNCsByIP[$invoiceProduct->id] ?? 0;
+                $effectiveUnitPrice = $cantidadOriginal > 0
+                    ? round($unitPrice - ($ncFinanciero / $cantidadOriginal), 2)
+                    : $unitPrice;
+
                 $availableFuelStocks[] = [
                     'origen' => $invoice->typeDocument?->name ?? 'factura',
                     'invoice_product_id' => $invoiceProduct->id,
@@ -169,7 +190,8 @@ class FuelOutflowController extends Controller
                     'unit' => $product->unit->name ?? '-',
                     'cantidad_original' => $cantidadOriginal,
                     'stock_disponible' => $stockDisponible,
-                    'unit_price' => $invoiceProduct->unit_price ?? 0,
+                    'unit_price' => $unitPrice,
+                    'effective_unit_price' => $effectiveUnitPrice,
                     'date' => $invoice->date instanceof \Carbon\Carbon ? $invoice->date->format('Y-m-d') : $invoice->date,
                 ];
             }
@@ -191,7 +213,7 @@ class FuelOutflowController extends Controller
                 
                 $consumido = $fuelOutflowsByDebitNote[$item->id] ?? 0;
                 $cantidadOriginal = $item->quantity ?? 0;
-                $stockDisponible = $cantidadOriginal - $consumido;
+                $stockDisponible = round($cantidadOriginal - $consumido, 2);
                 
                 if ($stockDisponible <= 0) {
                     continue;

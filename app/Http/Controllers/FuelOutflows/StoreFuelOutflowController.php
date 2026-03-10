@@ -41,13 +41,13 @@ class StoreFuelOutflowController
             ->where('invoice_product_id', $invoiceProductId)
             ->sum('quantity');
             
-            $stockDisponible = $cantidadOriginal - $consumido - $devuelto;
+            $stockDisponible = round($cantidadOriginal - $consumido - $devuelto, 2);
             
         } elseif ($creditDebitNoteItemId) {
             $item = CreditDebitNoteItem::findOrFail($creditDebitNoteItemId);
             $cantidadOriginal = $item->quantity ?? 0;
             $consumido = FuelOutflow::where('credit_debit_note_item_id', $creditDebitNoteItemId)->sum('liters');
-            $stockDisponible = $cantidadOriginal - $consumido;
+            $stockDisponible = round($cantidadOriginal - $consumido, 2);
         }
         
         // Validar que no exceda el stock
