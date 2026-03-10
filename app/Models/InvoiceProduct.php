@@ -15,6 +15,7 @@ class InvoiceProduct extends Model
         'invoice_id',
         'product_id',
         'unit_price',
+        'original_unit_price',
         'amount',
         'observations',
     ];

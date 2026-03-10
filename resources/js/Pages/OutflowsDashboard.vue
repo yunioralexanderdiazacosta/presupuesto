@@ -170,11 +170,14 @@ const t = computed(() => isEnglish.value ? {
     // Sección compras
     sectionPurchases: 'Detalle de Compras',
     totalInvoices: 'Total Facturas',
+    totalInvoicesTooltip: 'El precio unitario de las facturas ya incluye el descuento de las NC financieras aplicadas.',
     invoices: 'facturas',
     debitNotes: 'Notas de Débito',
     creditNotes: 'Notas de Crédito',
+    creditNotesTooltip: 'Solo NC que afectan inventario. Las NC financieras (descuentos de precio) ya están descontadas directamente del precio unitario de la factura.',
     notes: 'notas',
     totalPurchases: 'Total Compras',
+    totalPurchasesTooltip: 'Las facturas ya reflejan el descuento de las NC financieras en su precio unitario.',
     invoiceFormula: 'Facturas + Débito - Crédito',
     // Sección estados desarrollo
     sectionDevStates: 'Consumos por Estado de Desarrollo',
@@ -490,11 +493,11 @@ const totalCompras = computed(() => {
                 <div class="row g-2 mb-3">
                     <!-- Total Facturas Card -->
                     <div class="col-md-3">
-                        <div class="card h-100 border-start border-3" style="border-color: #6FB550 !important;">
+                        <div class="card h-100 border-start border-3" style="border-color: #6FB550 !important;" v-tooltip="t.totalInvoicesTooltip">
                             <div class="card-body py-2 px-3">
                                 <div class="d-flex align-items-center justify-content-between">
                                     <div>
-                                        <small class="text-muted text-uppercase d-block mb-1">{{ t.totalInvoices }}</small>
+                                        <small class="text-muted text-uppercase d-block mb-1">{{ t.totalInvoices }} <i class="fas fa-info-circle fa-xs text-muted opacity-50"></i></small>
                                         <h4 class="mb-0 fw-bold" style="color: #6FB550;">
                                             {{ formatNumber(dividir && divisor ? (invoices?.total || 0) / divisor : (invoices?.total || 0)) }} {{ dividir ? 'USD' : 'CLP' }}
                                         </h4>
@@ -534,11 +537,11 @@ const totalCompras = computed(() => {
 
                     <!-- Total Notas de Crédito Card -->
                     <div class="col-md-3">
-                        <div class="card h-100 border-start border-3" style="border-color: #6FB550 !important;">
+                        <div class="card h-100 border-start border-3" style="border-color: #6FB550 !important;" v-tooltip="t.creditNotesTooltip">
                             <div class="card-body py-2 px-3">
                                 <div class="d-flex align-items-center justify-content-between">
                                     <div>
-                                        <small class="text-muted text-uppercase d-block mb-1">{{ t.creditNotes }}</small>
+                                        <small class="text-muted text-uppercase d-block mb-1">{{ t.creditNotes }} <i class="fas fa-info-circle fa-xs text-muted opacity-50"></i></small>
                                         <h4 class="mb-0 fw-bold" style="color: #6FB550;">
                                             {{ formatNumber(dividir && divisor ? (creditNotes?.total || 0) / divisor : (creditNotes?.total || 0)) }} {{ dividir ? 'USD' : 'CLP' }}
                                         </h4>
@@ -556,11 +559,11 @@ const totalCompras = computed(() => {
 
                     <!-- Total Compras Card -->
                     <div class="col-md-3">
-                        <div class="card h-100 border-start border-3" style="border-color: #60A145 !important;">
+                        <div class="card h-100 border-start border-3" style="border-color: #60A145 !important;" v-tooltip="t.totalPurchasesTooltip">
                             <div class="card-body py-2 px-3">
                                 <div class="d-flex align-items-center justify-content-between">
                                     <div>
-                                        <small class="text-muted text-uppercase d-block mb-1">{{ t.totalPurchases }}</small>
+                                        <small class="text-muted text-uppercase d-block mb-1">{{ t.totalPurchases }} <i class="fas fa-info-circle fa-xs text-muted opacity-50"></i></small>
                                         <h4 class="mb-0 fw-bold" style="color: #60A145;">
                                             {{ formatNumber(dividir && divisor ? totalCompras / divisor : totalCompras) }} {{ dividir ? 'USD' : 'CLP' }}
                                         </h4>

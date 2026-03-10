@@ -193,10 +193,11 @@ class OutflowsDashboardController extends Controller
     private function getCreditNotesTotal($season_id, $team_id)
     {
         try {
-            // Obtener todas las notas de crédito con sus items
+            // Solo NCs que afectan inventario (las financieras ya ajustaron el unit_price)
             $notes = CreditDebitNote::where('season_id', $season_id)
                 ->where('team_id', $team_id)
                 ->where('type', 'credito')
+                ->where('affects_inventory', 1)
                 ->with('items')
                 ->get();
 
@@ -225,10 +226,11 @@ class OutflowsDashboardController extends Controller
     private function getDebitNotesTotal($season_id, $team_id)
     {
         try {
-            // Obtener todas las notas de débito con sus items
+            // Solo NDs que afectan inventario (las financieras ya ajustaron el unit_price)
             $notes = CreditDebitNote::where('season_id', $season_id)
                 ->where('team_id', $team_id)
                 ->where('type', 'debito')
+                ->where('affects_inventory', 1)
                 ->with('items')
                 ->get();
 

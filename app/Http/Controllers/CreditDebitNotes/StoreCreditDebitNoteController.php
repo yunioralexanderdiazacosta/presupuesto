@@ -10,6 +10,7 @@ use Illuminate\Support\Facades\DB;
 use App\Http\Requests\FormCreditDebitNoteRequest;
 use App\Models\CreditDebitNote;
 use App\Models\CreditDebitNoteItem;
+use App\Models\InvoiceProduct;
 use Illuminate\Http\Request;
 
 
@@ -35,6 +36,9 @@ class StoreCreditDebitNoteController extends Controller
                 'is_annulment'      => $request->is_annulment ?? false,
             ]);
 
+            $isFinancialCredit = !($request->affects_inventory ?? false)
+                && in_array(strtolower($request->type), ['credito', 'nc']);
+
             foreach ($request->items as $item) {
                 $note->items()->create([
                     'product_id' => $item['product_id'],
@@ -43,10 +47,24 @@ class StoreCreditDebitNoteController extends Controller
                     'unit_price' => $item['unit_price'],
                     'invoice_product_id' => $item['invoice_product_id'] ?? null,
                 ]);
+
+                // NC financiera: ajustar unit_price del invoice_product
+                if ($isFinancialCredit && !empty($item['invoice_product_id'])) {
+                    $ip = InvoiceProduct::find($item['invoice_product_id']);
+                    if ($ip && $ip->amount > 0) {
+                        // Guardar precio original solo la primera vez
+                        if (is_null($ip->original_unit_price)) {
+                            $ip->original_unit_price = $ip->unit_price;
+                        }
+                        // Descuento por unidad = (monto NC del item) / cantidad facturada
+                        $adjustmentPerUnit = round(($item['unit_price'] * $item['quantity']) / $ip->amount, 2);
+                        $ip->unit_price = round($ip->unit_price - $adjustmentPerUnit, 2);
+                        $ip->save();
+                    }
+                }
             }
         });
 
-        // Invalidar caché de Inertia para que Outflows se refresque cuando el usuario la visite
         return back()->with('success', 'Nota de crédito/débito guardada correctamente');
     }
 }

@@ -119,19 +119,22 @@ class ComparativeOutflowsDashboardController extends Controller
                 ->where('i.season_id', $season_id)
                 ->sum(DB::raw('ip.unit_price * ip.amount')) ?? 0);
 
-            // Notas de crédito (se restan)
+            // Notas de crédito (se restan) — solo las que afectan inventario
+            // Las NC financieras (affects_inventory=0) ya ajustaron el unit_price del invoice_product
             $creditNotesTotal = (float) (DB::table('credit_debit_notes as cdn')
                 ->join('credit_debit_note_items as cdni', 'cdn.id', '=', 'cdni.credit_debit_note_id')
                 ->where('cdn.team_id', $team_id)
                 ->where('cdn.season_id', $season_id)
+                ->where('cdn.affects_inventory', 1)
                 ->whereRaw('LOWER(cdn.type) IN (?, ?)', ['credito', 'nc'])
                 ->sum(DB::raw('cdni.unit_price * cdni.quantity')) ?? 0);
 
-            // Notas de débito (se suman)
+            // Notas de débito (se suman) — solo las que afectan inventario
             $debitNotesTotal = (float) (DB::table('credit_debit_notes as cdn')
                 ->join('credit_debit_note_items as cdni', 'cdn.id', '=', 'cdni.credit_debit_note_id')
                 ->where('cdn.team_id', $team_id)
                 ->where('cdn.season_id', $season_id)
+                ->where('cdn.affects_inventory', 1)
                 ->whereRaw('LOWER(cdn.type) NOT IN (?, ?)', ['credito', 'nc'])
                 ->sum(DB::raw('cdni.unit_price * cdni.quantity')) ?? 0);
 
@@ -693,11 +696,13 @@ class ComparativeOutflowsDashboardController extends Controller
                 $result[$monthId] = floatval($total);
             }
 
-            // Query 2: Todas las notas agrupadas por mes y tipo
+            // Query 2: Notas agrupadas por mes y tipo (solo affects_inventory=1)
+            // Las NC financieras ya ajustaron el unit_price del invoice_product
             $notesByMonth = DB::table('credit_debit_notes as cdn')
                 ->join('credit_debit_note_items as cdni', 'cdn.id', '=', 'cdni.credit_debit_note_id')
                 ->where('cdn.team_id', $team_id)
                 ->where('cdn.season_id', $season_id)
+                ->where('cdn.affects_inventory', 1)
                 ->select(
                     DB::raw('MONTH(cdn.date) as month_id'),
                     'cdn.type',
@@ -796,9 +801,10 @@ class ComparativeOutflowsDashboardController extends Controller
                     });
                 });
 
-            // Total de notas de crédito/débito del mes
+            // Total de notas de crédito/débito del mes (solo affects_inventory=1)
             $notesTotal = CreditDebitNote::where('team_id', $team_id)
                 ->where('season_id', $season_id)
+                ->where('affects_inventory', 1)
                 ->whereRaw('MONTH(date) = ?', [$month_id])
                 ->with(['items'])
                 ->get()
@@ -1043,7 +1049,7 @@ class ComparativeOutflowsDashboardController extends Controller
                 $categories[$fullName]['invoiced'] += floatval($row->total);
             }
 
-            // Notas de Crédito/Débito
+            // Notas de Crédito/Débito (solo affects_inventory=1)
             $notesByLevel2 = DB::table('credit_debit_notes as cdn')
                 ->join('credit_debit_note_items as cdni', 'cdn.id', '=', 'cdni.credit_debit_note_id')
                 ->join('products as p', 'cdni.product_id', '=', 'p.id')
@@ -1052,6 +1058,7 @@ class ComparativeOutflowsDashboardController extends Controller
                 ->leftJoin('level1s as l1', 'l2.level1_id', '=', 'l1.id')
                 ->where('cdn.team_id', $team_id)
                 ->where('cdn.season_id', $season_id)
+                ->where('cdn.affects_inventory', 1)
                 ->select(
                     DB::raw('COALESCE(l1.name, "Sin Clasificar") as level1_name'),
                     DB::raw('COALESCE(l2.name, "Sin Clasificar") as level2_name'),
