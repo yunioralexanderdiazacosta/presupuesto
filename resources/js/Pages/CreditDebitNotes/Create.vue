@@ -137,12 +137,17 @@ const msgSuccess = (msg) => {
     <Breadcrumb :links="links" />
     <div class="card my-1 mx-1 px-1">
       <div class="card-header">
-        <div class="row flex-between-end">
-          <div class="col-auto align-self-center">
-            <h5 class="mb-0 d-flex align-items-center gap-2" data-anchor="data-anchor" :id="title">
-              <i class="fas fa-file-invoice text-primary"></i>
-              {{title}}
+        <div class="row flex-between-center">
+          <div class="col-6 col-sm-auto d-flex align-items-center pe-0">
+            <h5 class="fs-9 mb-0 text-nowrap py-2 py-xl-0">
+              <i class="fas fa-file-invoice me-2"></i>{{title}}
             </h5>
+          </div>
+          <div class="col-6 col-sm-auto ms-auto text-end ps-0">
+            <a :href="route('credit_debit_notes.index')" class="btn btn-falcon-default btn-sm">
+              <span class="fas fa-arrow-left" data-fa-transform="shrink-3 down-2"></span>
+              <span class="d-none d-sm-inline-block ms-1">Volver</span>
+            </a>
           </div>
         </div>
       </div>
