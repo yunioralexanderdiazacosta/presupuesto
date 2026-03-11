@@ -96,11 +96,36 @@ const invoiceTotal = computed(() => {
   });
   return t;
 });
+
+// Validar si el monto de la nota excede el total de la factura
+const exceedsInvoiceTotal = computed(() => {
+  if (props.type !== 'credito') return false;
+  return Math.abs(total.value) > invoiceTotal.value && invoiceTotal.value > 0;
+});
+
+// Obtener la cantidad máxima permitida para un item (basada en la línea de factura)
+const getMaxQuantity = (item) => {
+  if (props.type !== 'credito' || !item.invoice_product_id) return null;
+  const line = props.products.find(p => p.value === item.invoice_product_id);
+  return line ? (line.amount || line.quantity || null) : null;
+};
+
+// Verificar si un item excede la cantidad facturada
+const exceedsQuantity = (item) => {
+  const max = getMaxQuantity(item);
+  if (max === null) return false;
+  return Number(item.quantity) > Number(max);
+};
 </script>
 
 <template>
   <div>
-    <h5 class="mt-4 ms-3">Items</h5>
+    <div class="d-flex align-items-center justify-content-between mt-4 ms-3 me-3">
+      <h5 class="mb-0">Items</h5>
+      <div v-if="type === 'credito' && invoiceTotal > 0" class="text-muted" style="font-size: 0.75rem;">
+        <i class="fas fa-file-invoice me-1"></i>Total factura: <strong>{{ invoiceTotal.toLocaleString('es-CL', { style: 'currency', currency: 'CLP', minimumFractionDigits: 0 }) }}</strong>
+      </div>
+    </div>
     <table class="table">
       <thead>
         <tr>
@@ -112,7 +137,7 @@ const invoiceTotal = computed(() => {
         </tr>
       </thead>
       <tbody>
-        <tr v-for="(item, idx) in items" :key="idx">
+        <tr v-for="(item, idx) in items" :key="idx" :class="exceedsQuantity(item) ? 'table-danger' : ''">
           <td>
             <select v-if="type === 'credito'" v-model="item.invoice_product_id" class="form-control">
               <option value="" disabled>Seleccione línea</option>
@@ -134,15 +159,20 @@ const invoiceTotal = computed(() => {
               type="number"
               v-model="item.quantity"
               class="form-control"
+              :class="exceedsQuantity(item) ? 'is-invalid' : ''"
               :min="type === 'debito' && affects_inventory === false ? 0.01 : 0"
+              :max="getMaxQuantity(item) || undefined"
               step="0.01"
-              :title="type === 'debito' && affects_inventory === false ? 'Indique la cantidad a la que aplica el nuevo precio (debe ser mayor a cero)' : ''"
             />
+            <div v-if="type === 'credito' && getMaxQuantity(item)" style="font-size: 0.65rem;" :class="exceedsQuantity(item) ? 'text-danger fw-bold' : 'text-muted'">
+              Máx: {{ getMaxQuantity(item) }}
+            </div>
           </td>
           <td><input type="number" v-model="item.unit_price" class="form-control" min="0" step="0.01" /></td>
           <td>
             <input v-if="type === 'credito' && products.length && products.find(p => p.value === item.product_id) && products.find(p => p.value === item.product_id).id" type="hidden" v-model="item.invoice_product_id" />
-            <button class="btn btn-danger btn-sm" @click.prevent="remove(idx)">-</button>
+            <button class="btn btn-danger btn-sm" @click.prevent="remove(idx)"
+              :disabled="is_annulment || (!affects_inventory && type === 'credito')">-</button>
           </td>
         </tr>
       </tbody>
@@ -151,6 +181,16 @@ const invoiceTotal = computed(() => {
       :disabled="is_annulment || (type === 'credito' && Math.abs(total) >= invoiceTotal) || (type === 'debito' && affects_inventory === false)">
       Agregar línea
     </button>
+
+    <!-- Alerta si el monto excede la factura -->
+    <div v-if="exceedsInvoiceTotal" class="alert alert-danger d-flex align-items-center py-2 px-3 mt-2" style="font-size: 0.78rem;">
+      <i class="fas fa-exclamation-triangle me-2"></i>
+      <div>
+        <strong>El monto de la nota (${{ Math.abs(total).toLocaleString('es-CL') }}) excede el total de la factura (${{ invoiceTotal.toLocaleString('es-CL') }}).</strong>
+        Verifique las cantidades y precios ingresados.
+      </div>
+    </div>
+
     <div class="text-end mt-2 mb-4 me-4">
       <strong>
         Total de la nota
@@ -159,6 +199,9 @@ const invoiceTotal = computed(() => {
         :
         <span :class="type === 'credito' ? 'text-danger' : 'text-success'">
           {{ total.toLocaleString('es-CL', { style: 'currency', currency: 'CLP', minimumFractionDigits: 0 }) }}
+        </span>
+        <span v-if="type === 'credito' && invoiceTotal > 0" class="text-muted ms-2" style="font-size: 0.75rem;">
+          ({{ Math.min(100, (Math.abs(total) / invoiceTotal * 100)).toFixed(1) }}% de la factura)
         </span>
       </strong>
     </div>

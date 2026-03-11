@@ -202,7 +202,7 @@ watch(
     <!-- Ambos checkboxes en cards, en la misma fila -->
     <div class="row mb-3 mt-3">
       <div class="col-lg-6">
-        <div class="card h-100">
+        <div class="card h-100" :class="!form.affects_inventory ? 'border-warning' : ''">
           <div class="card-body p-3">
             <div class="form-check">
               <input
@@ -212,34 +212,48 @@ watch(
                 v-model="form.affects_inventory"
                 :disabled="form.type === 'credito' && form.is_annulment"
               />
-                            <label
-                                class="form-check-label mt-1 mb-1"
-                                for="affects_inventory"
-                                title="Al estar la casilla desmarcada, solo afectará el precio, no el stock"
-                            >
-                                Afecta inventario
-                            </label>
+              <label
+                class="form-check-label mt-1 mb-1"
+                for="affects_inventory"
+              >
+                <strong>Afecta inventario</strong>
+              </label>
             </div>
-            <small class="text-muted mb-0 mt-0">
-              Desmarcado → solo ajusta precio sin mover stock
-            </small>
+            <div v-if="form.affects_inventory" class="mt-2">
+              <small class="text-success"><i class="fas fa-boxes me-1"></i>Se moverá stock (entrada o salida según tipo)</small>
+            </div>
+            <div v-else class="alert alert-warning py-1 px-2 mb-0 mt-2" style="font-size: 0.75rem;">
+              <i class="fas fa-exclamation-triangle me-1"></i>
+              <strong>NC Financiera:</strong> No moverá stock. El descuento se aplicará directamente al precio unitario de la factura.
+              <br><small class="text-muted">Los items se autocompletarán con las líneas de la factura.</small>
+            </div>
           </div>
         </div>
       </div>
       <div class="col-lg-6">
-        <div class="card h-100">
+        <div class="card h-100" :class="form.is_annulment ? 'border-danger' : ''">
           <div class="card-body p-3">
             <div class="form-check">
               <input
-                class="form-check-input mt-3"
+                class="form-check-input mt-2"
                 type="checkbox"
                 v-model="form.is_annulment"
                 id="is_annulment"
                 :disabled="form.type !== 'credito'"
               />
-              <label class="form-check-label mt-3" for="is_annulment">
-                Anula factura completa
+              <label class="form-check-label mt-1 mb-1" for="is_annulment">
+                <strong>Anula factura completa</strong>
               </label>
+            </div>
+            <div v-if="form.is_annulment && form.type === 'credito'" class="alert alert-danger py-1 px-2 mb-0 mt-2" style="font-size: 0.75rem;">
+              <i class="fas fa-undo me-1"></i>
+              Se revertirá TODO el stock y montos de la factura. Los items se autocompletarán.
+            </div>
+            <div v-else-if="form.type !== 'credito'" class="mt-2">
+              <small class="text-muted"><i class="fas fa-info-circle me-1"></i>Solo disponible para notas de crédito</small>
+            </div>
+            <div v-else class="mt-2">
+              <small class="text-muted"><i class="fas fa-info-circle me-1"></i>Marcar si la NC anula la factura por completo</small>
             </div>
           </div>
         </div>
@@ -250,6 +264,33 @@ watch(
     <div class="mb-3 mt-4">
         <label>Motivo</label>
         <textarea v-model="form.reason" class="form-control"></textarea>
+    </div>
+
+    <!-- Resumen de acción -->
+    <div v-if="form.type && form.invoice_id && form.items.length > 0" class="alert d-flex align-items-start py-2 px-3 mb-3" 
+      :class="form.type === 'credito' ? (form.affects_inventory ? 'alert-info' : 'alert-warning') : 'alert-info'" 
+      style="font-size: 0.8rem;" role="alert">
+      <i class="fas fa-clipboard-check me-2 mt-1"></i>
+      <div>
+        <strong>Resumen de lo que ocurrirá al guardar:</strong>
+        <ul class="mb-0 mt-1 ps-3">
+          <li v-if="form.type === 'credito' && form.is_annulment">
+            <i class="fas fa-undo text-danger me-1"></i>Se <strong>anulará completamente</strong> la factura: se revertirá el stock de {{ form.items.length }} producto{{ form.items.length > 1 ? 's' : '' }}.
+          </li>
+          <li v-else-if="form.type === 'credito' && form.affects_inventory">
+            <i class="fas fa-arrow-left text-primary me-1"></i>Se <strong>devolverá stock</strong> de {{ form.items.length }} producto{{ form.items.length > 1 ? 's' : '' }} al inventario.
+          </li>
+          <li v-else-if="form.type === 'credito' && !form.affects_inventory">
+            <i class="fas fa-tag text-warning me-1"></i>Se <strong>ajustará el precio unitario</strong> en la factura de {{ form.items.length }} producto{{ form.items.length > 1 ? 's' : '' }}. <strong>No se moverá stock.</strong>
+          </li>
+          <li v-else-if="form.type === 'debito' && form.affects_inventory">
+            <i class="fas fa-arrow-right text-success me-1"></i>Se <strong>agregará stock</strong> de {{ form.items.length }} producto{{ form.items.length > 1 ? 's' : '' }}.
+          </li>
+          <li v-else-if="form.type === 'debito' && !form.affects_inventory">
+            <i class="fas fa-tag text-warning me-1"></i>Se <strong>ajustará el precio</strong> de {{ form.items.length }} producto{{ form.items.length > 1 ? 's' : '' }}. <strong>No se moverá stock.</strong>
+          </li>
+        </ul>
+      </div>
     </div>
 
     <!-- Items -->
