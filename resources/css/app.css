@@ -31,8 +31,8 @@ overflow-y: auto;
 /* Margen lateral del contenedor principal - solo cuando hay sidebar (usuario autenticado) */
 @media (min-width: 1200px) {
   .container-fluid[data-layout="container"]:has(.navbar-vertical) {
-    padding-left: clamp(2rem, 5vw, 6rem) !important;
-    padding-right: clamp(2rem, 5vw, 6rem) !important;
+    padding-left: clamp(2rem, 5vw, 4rem) !important;
+    padding-right: clamp(2rem, 5vw, 4rem) !important;
   }
 }
 
@@ -41,6 +41,11 @@ overflow-y: auto;
   max-width: 1600px;
   margin-left: auto;
   margin-right: auto;
+}
+
+/* Tamaño de texto global para tablas */
+.table {
+  font-size: 0.75rem; /* ~12px */
 }
 
 /* ====== Login Page ====== */

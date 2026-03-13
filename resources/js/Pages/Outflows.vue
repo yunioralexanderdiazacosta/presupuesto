@@ -1228,10 +1228,6 @@ textarea::placeholder {
 }
 
 
-/* Fuente más pequeña para la tabla de edición */
-#pill-tab-edicion .table {
-  font-size: 0.62rem !important;
-}
 /* Header fijo para todas las tablas de Outflows */
 .table-responsive, .outflows-table-scroll {
   max-height: 450px;
@@ -1246,6 +1242,18 @@ th {
   z-index: 2;
   white-space: nowrap;
 }
+
+/* Celdas de tabla: no apilar, ocultar con ellipsis, alto de fila compacto */
+#pill-tab-edicion .table td {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 150px;
+  padding-top: 0.25rem;
+  padding-bottom: 0.25rem;
+  line-height: 1.2;
+}
+
 .td-supplier {
   max-width:140px;
   min-width:100px;
