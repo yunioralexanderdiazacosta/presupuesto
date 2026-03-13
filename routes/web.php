@@ -235,6 +235,18 @@ use App\Http\Controllers\BoxTypes\DeleteBoxTypeController;
 use App\Http\Controllers\Carriers\StoreCarrierController;
 use App\Http\Controllers\Carriers\UpdateCarrierController;
 use App\Http\Controllers\Carriers\DeleteCarrierController;
+// Rutas para Employees (Colaboradores - Remuneraciones)
+use App\Http\Controllers\Employees\EmployeeController;
+use App\Http\Controllers\Employees\StoreEmployeeController;
+use App\Http\Controllers\Employees\UpdateEmployeeController;
+use App\Http\Controllers\Employees\DeleteEmployeeController;
+// Rutas para Contracts (Contratos - Remuneraciones)
+use App\Http\Controllers\Contracts\ContractController;
+use App\Http\Controllers\Contracts\StoreContractController;
+use App\Http\Controllers\Contracts\UpdateContractController;
+use App\Http\Controllers\Contracts\DeleteContractController;
+use App\Http\Controllers\Api\ScheduleApiController;
+use App\Http\Controllers\Api\CityApiController;
 // API para refrescar selects de producción
 use App\Http\Controllers\Api\GetExportersController;
 use App\Http\Controllers\Api\GetPackingHousesController;
@@ -801,6 +813,28 @@ Route::middleware([
     Route::get('/api/bin-types', GetBinTypesController::class)->name('api.bin-types');
     Route::get('/api/box-types', GetBoxTypesController::class)->name('api.box-types');
     Route::get('/api/carriers', GetCarriersController::class)->name('api.carriers');
+    // Employees (Colaboradores - Remuneraciones)
+    Route::get('/employees', [EmployeeController::class, 'index'])->name('employees.index');
+    Route::post('/employees', StoreEmployeeController::class)->name('employees.store');
+    Route::put('/employees/{employee}', UpdateEmployeeController::class)->name('employees.update');
+    Route::delete('/employees/{employee}', DeleteEmployeeController::class)->name('employees.delete');
+
+    // Contracts (Contratos - Remuneraciones)
+    Route::get('/contracts', [ContractController::class, 'index'])->name('contracts.index');
+    Route::post('/contracts', StoreContractController::class)->name('contracts.store');
+    Route::put('/contracts/{contract}', UpdateContractController::class)->name('contracts.update');
+    Route::delete('/contracts/{contract}', DeleteContractController::class)->name('contracts.delete');
+
+    // API Schedules (Horarios)
+    Route::get('/api/schedules', [ScheduleApiController::class, 'index'])->name('api.schedules');
+    Route::post('/api/schedules', [ScheduleApiController::class, 'store'])->name('api.schedules.store');
+    Route::delete('/api/schedules/{schedule}', [ScheduleApiController::class, 'destroy'])->name('api.schedules.delete');
+
+    // API Cities (Ciudades)
+    Route::get('/api/cities', [CityApiController::class, 'index'])->name('api.cities');
+    Route::post('/api/cities', [CityApiController::class, 'store'])->name('api.cities.store');
+    Route::delete('/api/cities/{city}', [CityApiController::class, 'destroy'])->name('api.cities.delete');
+
     Route::get('/api/fruit-classifications', [FruitClassificationController::class, 'index'])->name('api.fruit-classifications.index');
     Route::post('/api/fruit-classifications', [FruitClassificationController::class, 'store'])->name('api.fruit-classifications.store');
     Route::delete('/api/fruit-classifications/{fruitClassificationType}', [FruitClassificationController::class, 'destroy'])->name('api.fruit-classifications.delete');

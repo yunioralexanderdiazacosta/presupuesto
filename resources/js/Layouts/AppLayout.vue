@@ -428,6 +428,22 @@ const logout = () => {
                   <!-- more inner pages-->
                 </li>
               </ul>
+              <!-- Remuneraciones --><a class="nav-link dropdown-indicator" href="#remuneraciones" role="button" data-bs-toggle="collapse" aria-expanded="false" aria-controls="remuneraciones">
+                <div class="d-flex align-items-center"><span class="nav-link-icon"><span class="fas fa-money-check-alt"></span></span><span class="nav-link-text text-dark ps-1">Remuneraciones</span>
+                </div>
+              </a>
+              <ul class="nav collapse" id="remuneraciones">
+                <li class="nav-item"><Link class="nav-link" :href="route('employees.index')">
+                    <div class="d-flex align-items-center"><span class="nav-link-text ps-3">Colaboradores</span>
+                    </div>
+                  </Link>
+                </li>
+                <li class="nav-item"><Link class="nav-link" :href="route('contracts.index')">
+                    <div class="d-flex align-items-center"><span class="nav-link-text ps-3">Contratos</span>
+                    </div>
+                  </Link>
+                </li>
+              </ul>
               <!-- parent pages--><a class="nav-link dropdown-indicator" href="#user" role="button" data-bs-toggle="collapse" aria-expanded="false" aria-controls="user">
                 <div class="d-flex align-items-center"><span class="nav-link-icon"><span class="fas fa-user"></span></span><span class="nav-link-text text-dark ps-1">Parametros</span>
                 </div>
