@@ -47,21 +47,12 @@ const links = [
                                 </div>
                                 <p class="card-text">
                                     <strong>Marzo 2026:</strong><br>
-                                    • Nuevo diseño de página de login con gradiente y mejor UX<br>
-                                    • Despachos de producción: matriz de clasificación por tipo<br>
-                                    • Modal de detalle para despachos procesados<br>
-                                    • Badge de validación de clasificación en tabla de despachos<br>
-                                    • Notificaciones por email al aprobar/rechazar rendiciones desde la UI<br>
-                                    • Tabla de pagos de facturas: saldo, estado de pago, vencimiento<br>
-                                    • Layout responsive con mayor ancho en vistas con sidebar<br>
-                                    <br>
-                                    <strong>Febrero 2026:</strong><br>
-                                    • Sistema de Órdenes de Compra con aprobación por email sin login<br>
-                                    • Emails personalizados mostrando nombre del aprobador/rechazador<br>
-                                    • Columna de productos en tabla de órdenes con badges<br>
-                                    • Sistema de Pagos de Facturas con búsqueda y tracking<br>
-                                    • Validación robusta de sesiones y filtrado por temporada<br>
-                                    • Mejoras en formularios con reset automático<br>
+                                    • Nueva página de inicio de sesión con diseño renovado<br>
+                                    • Despachos de producción ahora con clasificación por tipo de fruta<br>
+                                    • Se puede ver el detalle de cada despacho procesado<br>
+                                    • Se reciben notificaciones por email al aprobar o rechazar rendiciones<br>
+                                    • Pagos de facturas ahora muestran saldo pendiente, estado y vencimiento<br>
+                                    • Mejor visualización en pantallas grandes<br>
                                 </p>
                             </div>
                         </div>

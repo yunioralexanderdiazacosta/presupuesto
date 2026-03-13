@@ -124,11 +124,11 @@ const logout = () => {
       </li>
             <li class="nav-item" v-role="'Admin'">
           
-              <!-- parent pages--><a class="nav-link dropdown-indicator" href="#authentication" role="button" data-bs-toggle="collapse" aria-expanded="true" aria-controls="authentication">
+              <!-- parent pages--><a class="nav-link dropdown-indicator" href="#authentication" role="button" data-bs-toggle="collapse" aria-expanded="false" aria-controls="authentication">
                 <div class="d-flex align-items-center"><span class="nav-link-icon"><span class="fas fa-lock"></span></span><span class="nav-link-text text-dark ps-1">Presupuestos</span>
                 </div>
               </a>
-              <ul class="nav collapse show" id="authentication">
+              <ul class="nav collapse" id="authentication">
                 <li class="nav-item"><Link class="nav-link" :href="route('dashboard')">
                     <div class="d-flex align-items-center"><span class="nav-link-text ps-3">Dashboard</span>
                     </div>
@@ -220,11 +220,11 @@ const logout = () => {
                   <!-- more inner pages-->
                 </li>
               </ul>
-              <!-- parent pages--><a class="nav-link dropdown-indicator" href="#pricing" role="button" data-bs-toggle="collapse" aria-expanded="true" aria-controls="pricing">
+              <!-- parent pages--><a class="nav-link dropdown-indicator" href="#pricing" role="button" data-bs-toggle="collapse" aria-expanded="false" aria-controls="pricing">
                 <div class="d-flex align-items-center"><span class="nav-link-icon"><span class="fas fa-tags"></span></span><span class="nav-link-text text-dark ps-1">Gestión</span>
                 </div>
               </a>
-              <ul class="nav collapse show" id="pricing">
+              <ul class="nav collapse" id="pricing">
 
                     <li class="nav-item">
                       <Link class="nav-link" :href="route('outflows.dashboard')">
@@ -440,6 +440,11 @@ const logout = () => {
                 </li>
                 <li class="nav-item"><Link class="nav-link" :href="route('contracts.index')">
                     <div class="d-flex align-items-center"><span class="nav-link-text ps-3">Contratos</span>
+                    </div>
+                  </Link>
+                </li>
+                <li class="nav-item"><Link class="nav-link" :href="route('contract-templates.index')">
+                    <div class="d-flex align-items-center"><span class="nav-link-text ps-3">Plantillas de Contrato</span>
                     </div>
                   </Link>
                 </li>

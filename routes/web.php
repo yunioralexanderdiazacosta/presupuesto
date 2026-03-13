@@ -245,6 +245,11 @@ use App\Http\Controllers\Contracts\ContractController;
 use App\Http\Controllers\Contracts\StoreContractController;
 use App\Http\Controllers\Contracts\UpdateContractController;
 use App\Http\Controllers\Contracts\DeleteContractController;
+// Rutas para ContractTemplates (Plantillas de Contrato)
+use App\Http\Controllers\ContractTemplates\ContractTemplateController;
+use App\Http\Controllers\ContractTemplates\StoreContractTemplateController;
+use App\Http\Controllers\ContractTemplates\DeleteContractTemplateController;
+use App\Http\Controllers\ContractTemplates\GenerateContractController;
 use App\Http\Controllers\Api\ScheduleApiController;
 use App\Http\Controllers\Api\CityApiController;
 // API para refrescar selects de producción
@@ -824,6 +829,12 @@ Route::middleware([
     Route::post('/contracts', StoreContractController::class)->name('contracts.store');
     Route::put('/contracts/{contract}', UpdateContractController::class)->name('contracts.update');
     Route::delete('/contracts/{contract}', DeleteContractController::class)->name('contracts.delete');
+
+    // Contract Templates (Plantillas de Contrato)
+    Route::get('/contract-templates', [ContractTemplateController::class, 'index'])->name('contract-templates.index');
+    Route::post('/contract-templates', StoreContractTemplateController::class)->name('contract-templates.store');
+    Route::delete('/contract-templates/{contractTemplate}', DeleteContractTemplateController::class)->name('contract-templates.delete');
+    Route::post('/contract-templates/{contractTemplate}/generate', GenerateContractController::class)->name('contract-templates.generate');
 
     // API Schedules (Horarios)
     Route::get('/api/schedules', [ScheduleApiController::class, 'index'])->name('api.schedules');
