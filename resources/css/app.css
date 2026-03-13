@@ -28,6 +28,21 @@ height: 400px;
 overflow-y: auto;
 } 
 
+/* Margen lateral del contenedor principal - solo cuando hay sidebar (usuario autenticado) */
+@media (min-width: 1200px) {
+  .container-fluid[data-layout="container"]:has(.navbar-vertical) {
+    padding-left: clamp(2rem, 5vw, 6rem) !important;
+    padding-right: clamp(2rem, 5vw, 6rem) !important;
+  }
+}
+
+/* Páginas sin sidebar (login, register): limitar ancho como container estándar */
+.container-fluid[data-layout="container"]:not(:has(.navbar-vertical)) {
+  max-width: 1600px;
+  margin-left: auto;
+  margin-right: auto;
+}
+
  input{
     text-transform: lowercase;
 } 

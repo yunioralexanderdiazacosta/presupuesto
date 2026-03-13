@@ -10,15 +10,15 @@ const props = defineProps({
 const statusConfig = {
     pending: {
         label: 'Pendiente',
-        class: 'badge-danger'
+        class: 'bg-danger text-white'
     },
     partial: {
         label: 'Parcial',
-        class: 'badge-warning'
+        class: 'bg-info text-white'
     },
     paid: {
         label: 'Pagado',
-        class: 'badge-success'
+        class: 'bg-success text-white'
     }
 };
 </script>

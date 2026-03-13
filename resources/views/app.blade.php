@@ -42,7 +42,7 @@
     </head>
     <body>
         <main class="main" id="top">
-            <div class="container" data-layout="container">
+            <div class="container-fluid" data-layout="container">
                 @inertia
             </div>
         </main>

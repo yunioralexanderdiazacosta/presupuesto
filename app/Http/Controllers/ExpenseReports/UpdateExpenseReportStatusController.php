@@ -5,7 +5,9 @@ namespace App\Http\Controllers\ExpenseReports;
 use App\Http\Controllers\Controller;
 use App\Models\ExpenseReport;
 use App\Models\User;
+use App\Mail\ExpenseReportApproved;
 use App\Mail\ExpenseReportPendingApproval;
+use App\Mail\ExpenseReportRejected;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Mail;
@@ -85,6 +87,24 @@ class UpdateExpenseReportStatusController extends Controller
             if ($approver && $approver->email) {
                 Mail::to($approver->email)
                     ->send(new ExpenseReportPendingApproval($expenseReport, $approver->name));
+            }
+        }
+
+        // Enviar email de confirmación al creador cuando se aprueba desde la UI
+        if ($newStatus === 'aprobada') {
+            $expenseReport->load('user');
+            if ($expenseReport->user && $expenseReport->user->email) {
+                Mail::to($expenseReport->user->email)
+                    ->send(new ExpenseReportApproved($expenseReport, $user->name));
+            }
+        }
+
+        // Enviar email de rechazo al creador cuando se rechaza desde la UI
+        if ($newStatus === 'rechazada') {
+            $expenseReport->load('user');
+            if ($expenseReport->user && $expenseReport->user->email) {
+                Mail::to($expenseReport->user->email)
+                    ->send(new ExpenseReportRejected($expenseReport, $request->rejection_notes, $user->name));
             }
         }
 

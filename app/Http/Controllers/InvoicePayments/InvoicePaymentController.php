@@ -31,7 +31,7 @@ class InvoicePaymentController extends Controller
         $bankId = $request->bank_id ?? '';
 
         // Obtener pagos con búsqueda y filtros
-        $payments = InvoicePayment::with(['invoice.supplier', 'invoice.typeDocument', 'bank', 'user'])
+        $payments = InvoicePayment::with(['invoice.supplier', 'invoice.typeDocument', 'invoice.invoiceProducts', 'invoice.payments', 'bank', 'user'])
             ->where('team_id', $user->team_id)
             ->where('season_id', $season_id)
             ->when($term, function ($query, $search) {
@@ -63,7 +63,13 @@ class InvoicePaymentController extends Controller
                 $query->where('bank_id', $id);
             })
             ->latest('payment_date')
-            ->paginate(50);
+            ->paginate(50)
+            ->through(function ($payment) {
+                if ($payment->invoice) {
+                    $payment->invoice->append(['total_invoice', 'total_paid', 'balance', 'payment_status']);
+                }
+                return $payment;
+            });
 
         // Obtener bancos activos
         $banks = Bank::where('active', true)

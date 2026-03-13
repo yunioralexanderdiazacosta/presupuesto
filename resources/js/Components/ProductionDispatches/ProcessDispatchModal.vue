@@ -1,5 +1,5 @@
 <script setup>
-import { ref, watch } from 'vue';
+import { ref, watch, nextTick } from 'vue';
 import { useForm } from '@inertiajs/vue3';
 import Swal from 'sweetalert2';
 import ProcessForm from './ProcessForm.vue';
@@ -27,23 +27,14 @@ const form = useForm({
 
 watch(() => props.show, (val) => {
     if (val && props.dispatch) {
-        // Si ya fue procesado, cargar datos existentes para re-editar
-        if (props.dispatch.status === 'processed') {
-            form.process_date = props.dispatch.process_date || '';
-            form.kg_received = props.dispatch.kg_received || '';
-            form.kg_exported = props.dispatch.kg_exported || '';
-            form.kg_national = props.dispatch.kg_national || '';
-            form.kg_industrial = props.dispatch.kg_industrial || '';
-            form.kg_waste = props.dispatch.kg_waste || '';
-            form.items = (props.dispatch.items || []).map(item => ({
-                classification_type: item.classification_type,
-                classification_value: item.classification_value,
-                kg: item.kg,
-                boxes: item.boxes,
-            }));
-        } else {
-            form.reset();
-        }
+        // Reset form - ProcessForm se encarga de cargar datos existentes en onMounted
+        form.process_date = '';
+        form.kg_received = '';
+        form.kg_exported = '';
+        form.kg_national = '';
+        form.kg_industrial = '';
+        form.kg_waste = '';
+        form.items = [];
     }
 });
 

@@ -103,6 +103,45 @@ function formatCurrency(value) {
         maximumFractionDigits: 0
     }).format(value || 0);
 }
+
+function formatDate(dateStr) {
+    if (!dateStr) return '-';
+    const date = new Date(dateStr);
+    return date.toLocaleDateString('es-CL');
+}
+
+function getDueDateStatus(payment) {
+    if (!payment.invoice?.due_date) return null;
+    if (payment.invoice?.payment_status === 'paid') return 'paid';
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const due = new Date(payment.invoice.due_date);
+    due.setHours(0, 0, 0, 0);
+    const diffDays = Math.ceil((due - today) / (1000 * 60 * 60 * 24));
+    if (diffDays < 0) return 'overdue';
+    if (diffDays <= 7) return 'soon';
+    return 'ok';
+}
+
+function getDueDateDays(payment) {
+    if (!payment.invoice?.due_date) return '';
+    if (payment.invoice?.payment_status === 'paid') return '';
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const due = new Date(payment.invoice.due_date);
+    due.setHours(0, 0, 0, 0);
+    const diffDays = Math.ceil((due - today) / (1000 * 60 * 60 * 24));
+    if (diffDays < 0) return `${Math.abs(diffDays)}d atraso`;
+    if (diffDays === 0) return 'Hoy';
+    return `${diffDays}d`;
+}
+
+const dueDateConfig = {
+    overdue: { label: 'Vencida', class: 'bg-danger text-white' },
+    soon: { label: 'Por vencer', class: 'bg-warning text-dark' },
+    ok: { label: 'Vigente', class: 'bg-success text-white' },
+    paid: { label: 'Saldada', class: 'bg-secondary text-white' },
+};
 </script>
 
 <template>
@@ -248,7 +287,12 @@ function formatCurrency(value) {
                                 <th>Factura</th>
                                 <th>Proveedor</th>
                                 <th>Tipo Doc.</th>
-                                <th>Monto</th>
+                                <th class="text-end">Total Factura</th>
+                                <th class="text-end">Monto Pagado</th>
+                                <th class="text-end">Saldo</th>
+                                <th class="text-center">Estado Pago</th>
+                                <th>Vencimiento</th>
+                                <th class="text-center">Estado Vcto.</th>
                                 <th>Método</th>
                                 <th>Banco</th>
                                 <th>Nro. Transacción</th>
@@ -258,11 +302,30 @@ function formatCurrency(value) {
                         </thead>
                         <tbody>
                             <tr v-for="payment in payments.data" :key="payment.id">
-                                <td>{{ payment.payment_date }}</td>
+                                <td>{{ formatDate(payment.payment_date) }}</td>
                                 <td>{{ payment.invoice.number_document }}</td>
                                 <td>{{ payment.invoice.supplier?.name ?? '-' }}</td>
                                 <td>{{ payment.invoice.type_document?.name ?? '-' }}</td>
+                                <td class="text-end">$ {{ formatCurrency(payment.invoice?.total_invoice) }}</td>
                                 <td class="text-end">$ {{ formatCurrency(payment.amount) }}</td>
+                                <td class="text-end">$ {{ formatCurrency(payment.invoice?.balance) }}</td>
+                                <td class="text-center">
+                                    <PaymentStatusBadge :status="payment.invoice?.payment_status ?? 'pending'" />
+                                </td>
+                                <td class="text-nowrap">
+                                    {{ formatDate(payment.invoice?.due_date) }}
+                                </td>
+                                <td class="text-center text-nowrap">
+                                    <template v-if="getDueDateStatus(payment)">
+                                        <span class="badge" :class="dueDateConfig[getDueDateStatus(payment)].class">
+                                            {{ dueDateConfig[getDueDateStatus(payment)].label }}
+                                        </span>
+                                        <small v-if="getDueDateDays(payment)" class="d-block text-muted mt-1" style="font-size: 0.7rem;">
+                                            {{ getDueDateDays(payment) }}
+                                        </small>
+                                    </template>
+                                    <span v-else>-</span>
+                                </td>
                                 <td>
                                     <span 
                                         class="badge" 
@@ -296,7 +359,7 @@ function formatCurrency(value) {
                                 </td>
                             </tr>
                             <tr v-if="payments.data.length === 0">
-                                <td colspan="10" class="text-center text-muted py-4">
+                                <td colspan="15" class="text-center text-muted py-4">
                                     No hay pagos registrados
                                 </td>
                             </tr>

@@ -8,6 +8,7 @@ import CreateDispatchModal from '@/Components/ProductionDispatches/CreateDispatc
 import EditDispatchModal from '@/Components/ProductionDispatches/EditDispatchModal.vue';
 import ProcessDispatchModal from '@/Components/ProductionDispatches/ProcessDispatchModal.vue';
 import ManageCatalogsModal from '@/Components/ProductionDispatches/ManageCatalogsModal.vue';
+import ViewDispatchDetailModal from '@/Components/ProductionDispatches/ViewDispatchDetailModal.vue';
 
 const props = defineProps({
     dispatches: Object,
@@ -83,6 +84,8 @@ const showProcessModal = ref(false);
 const showCatalogsModal = ref(false);
 const editingDispatch = ref(null);
 const processingDispatch = ref(null);
+const viewingDispatch = ref(null);
+const showViewDetailModal = ref(false);
 
 function openCreateModal() { showCreateModal.value = true; }
 function closeCreateModal() { showCreateModal.value = false; }
@@ -107,6 +110,15 @@ function closeProcessModal() {
 
 function openCatalogsModal() { showCatalogsModal.value = true; }
 function closeCatalogsModal() { showCatalogsModal.value = false; }
+
+function openViewDetailModal(dispatch) {
+    viewingDispatch.value = dispatch;
+    showViewDetailModal.value = true;
+}
+function closeViewDetailModal() {
+    showViewDetailModal.value = false;
+    viewingDispatch.value = null;
+}
 
 function reloadAfterSave() {
     closeCreateModal();
@@ -150,6 +162,26 @@ function statusLabel(status) {
 
 function statusClass(status) {
     return status === 'processed' ? 'badge bg-success' : 'badge bg-warning text-dark';
+}
+
+function getClassificationStatus(item) {
+    if (item.status !== 'processed' || !item.items || item.items.length === 0) return null;
+    const kgExported = Number(item.kg_exported) || 0;
+    if (kgExported === 0) return null;
+
+    const totalsByType = {};
+    item.items.forEach(i => {
+        if (i.classification_type) {
+            totalsByType[i.classification_type] = (totalsByType[i.classification_type] || 0) + Number(i.kg || 0);
+        }
+    });
+
+    const types = Object.keys(totalsByType);
+    if (types.length === 0) return null;
+
+    const mismatched = types.filter(t => Math.abs(totalsByType[t] - kgExported) > 0.01);
+    if (mismatched.length > 0) return 'mismatch';
+    return 'ok';
 }
 </script>
 
@@ -279,7 +311,8 @@ function statusClass(status) {
                                 <th class="text-end">Kg Desp.</th>
                                 <th class="text-end">Kg Export.</th>
                                 <th class="text-end">Kg Desc.</th>
-                                <th style="width: 120px;">Acciones</th>
+                                <th class="text-center">Clasif.</th>
+                                <th style="width: 140px;">Acciones</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -289,12 +322,7 @@ function statusClass(status) {
                                 </td>
                                 <td>{{ item.dispatch_date ? new Date(item.dispatch_date).toLocaleDateString('es-CL') : '-' }}</td>
                                 <td>{{ item.cost_center_variety?.cost_center?.name || '-' }}</td>
-                                <td>
-                                    {{ item.cost_center_variety?.variety?.name || '-' }}
-                                    <small class="text-muted" v-if="item.cost_center_variety?.fruit">
-                                        ({{ item.cost_center_variety.fruit.name }})
-                                    </small>
-                                </td>
+                                <td>{{ item.cost_center_variety?.variety?.name || '-' }}</td>
                                 <td>{{ item.exporter?.name || '-' }}</td>
                                 <td>{{ item.packing_house?.name || '-' }}</td>
                                 <td>{{ item.guide_number }}</td>
@@ -302,8 +330,20 @@ function statusClass(status) {
                                 <td class="text-end">{{ formatNumber(item.kg_dispatched) }}</td>
                                 <td class="text-end">{{ formatNumber(item.kg_exported) }}</td>
                                 <td class="text-end">{{ formatNumber(item.kg_waste) }}</td>
+                                <td class="text-center">
+                                    <span v-if="getClassificationStatus(item) === 'ok'" class="badge bg-success" title="Clasificaciones cuadradas">
+                                        <i class="fas fa-check"></i>
+                                    </span>
+                                    <span v-else-if="getClassificationStatus(item) === 'mismatch'" class="badge bg-danger" title="Clasificaciones no cuadran con Kg Exportados">
+                                        <i class="fas fa-exclamation-triangle"></i>
+                                    </span>
+                                    <span v-else class="text-muted">-</span>
+                                </td>
                                 <td>
                                     <div class="d-flex gap-1 justify-content-center">
+                                        <button v-if="item.status === 'processed'" @click="openViewDetailModal(item)" class="btn btn-sm btn-falcon-default p-1" title="Ver detalle" style="width: 28px; height: 28px; display: flex; align-items: center; justify-content: center;">
+                                            <i class="fas fa-eye text-info"></i>
+                                        </button>
                                         <button @click="openProcessModal(item)" class="btn btn-sm btn-falcon-default p-1" :title="item.status === 'processed' ? 'Re-procesar' : 'Procesar'" style="width: 28px; height: 28px; display: flex; align-items: center; justify-content: center;">
                                             <i class="fas fa-industry" :class="item.status === 'processed' ? 'text-success' : 'text-warning'"></i>
                                         </button>
@@ -317,7 +357,7 @@ function statusClass(status) {
                                 </td>
                             </tr>
                             <tr v-if="filteredRows.length === 0">
-                                <td colspan="12" class="text-center text-muted">No hay despachos registrados.</td>
+                                <td colspan="13" class="text-center text-muted">No hay despachos registrados.</td>
                             </tr>
                         </tbody>
                     </table>
@@ -379,6 +419,14 @@ function statusClass(status) {
             :show="showCatalogsModal"
             :fruits="props.fruits"
             @close="closeCatalogsModal"
+        />
+
+        <ViewDispatchDetailModal
+            :show="showViewDetailModal"
+            :dispatch="viewingDispatch"
+            :classifications="props.classifications"
+            :costCenterVarieties="props.costCenterVarieties"
+            @close="closeViewDetailModal"
         />
     </AppLayout>
 </template>
