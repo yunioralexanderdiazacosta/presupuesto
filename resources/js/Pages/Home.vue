@@ -46,6 +46,15 @@ const links = [
                                     </div>
                                 </div>
                                 <p class="card-text">
+                                    <strong>Marzo 2026:</strong><br>
+                                    • Nuevo diseño de página de login con gradiente y mejor UX<br>
+                                    • Despachos de producción: matriz de clasificación por tipo<br>
+                                    • Modal de detalle para despachos procesados<br>
+                                    • Badge de validación de clasificación en tabla de despachos<br>
+                                    • Notificaciones por email al aprobar/rechazar rendiciones desde la UI<br>
+                                    • Tabla de pagos de facturas: saldo, estado de pago, vencimiento<br>
+                                    • Layout responsive con mayor ancho en vistas con sidebar<br>
+                                    <br>
                                     <strong>Febrero 2026:</strong><br>
                                     • Sistema de Órdenes de Compra con aprobación por email sin login<br>
                                     • Emails personalizados mostrando nombre del aprobador/rechazador<br>

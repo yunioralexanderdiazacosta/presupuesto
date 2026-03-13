@@ -43,6 +43,35 @@ overflow-y: auto;
   margin-right: auto;
 }
 
+/* ====== Login Page ====== */
+.login-bg {
+  background: #d8e2ef;
+  min-height: 100vh;
+  width: 100vw;
+  position: fixed;
+  top: 0;
+  left: 0;
+  z-index: 1;
+  overflow-y: auto;
+}
+
+.login-card {
+  border-radius: 0.75rem;
+  overflow: hidden;
+  animation: fadeInUp 0.5s ease-out;
+}
+
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
  input{
     text-transform: lowercase;
 } 
