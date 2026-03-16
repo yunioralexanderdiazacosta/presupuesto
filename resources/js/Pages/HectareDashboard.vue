@@ -820,7 +820,7 @@ watch(monthlyChartRef, (val) => {
                                 </div>
                             </div>
                             <div class="card-body p-0">
-                                <div v-if="filteredLevel2.length" class="table-responsive">
+                                <div v-if="filteredLevel2.length" class="table-responsive" style="max-height: 370px; overflow-y: auto;">
                                     <table class="table table-sm table-hover mb-0">
                                         <thead class="bg-light">
                                             <tr>
@@ -912,7 +912,7 @@ watch(monthlyChartRef, (val) => {
                                 </div>
                             </div>
                             <div class="card-body p-0">
-                                <div v-if="filteredVarietyDetail.length" class="table-responsive">
+                                <div v-if="filteredVarietyDetail.length" class="table-responsive" style="max-height: 370px; overflow-y: auto;">
                                     <table class="table table-sm table-hover mb-0">
                                         <thead class="bg-light">
                                             <tr>
@@ -1045,7 +1045,7 @@ watch(monthlyChartRef, (val) => {
                                 </div>
                             </div>
                             <div class="card-body p-0">
-                                <div v-if="filteredCCDetail.length" class="table-responsive">
+                                <div v-if="filteredCCDetail.length" class="table-responsive" style="max-height: 370px; overflow-y: auto;">
                                     <table class="table table-sm table-hover mb-0">
                                         <thead class="bg-light">
                                             <tr>
