@@ -17,11 +17,12 @@ const props = defineProps({
     costPerHaByLevel1: { type: Object, default: () => ({ total_surface: 0, data: [] }) },
     costPerHaByLevel2: { type: Array, default: () => [] },
     monthlyCostPerHa: { type: Object, default: () => ({ labels: [], monthly_costs: [], cumulative_costs: [], cumulative_per_ha: [], total_surface: 0 }) },
-    topCostCenters: { type: Array, default: () => [] },
     surfaceByVariety: { type: Array, default: () => [] },
     costPerHaByVariety: { type: Array, default: () => [] },
     costByVarietyLevel2: { type: Array, default: () => [] },
     varietyDevStates: { type: Array, default: () => [] },
+    costPerHaByCC: { type: Array, default: () => [] },
+    costByCCLevel2: { type: Array, default: () => [] },
 });
 
 // Formato números
@@ -39,27 +40,74 @@ const chartColors = ['#2c7be5', '#00d97e', '#e63757', '#f5803e', '#6b5eae', '#39
 const highlightDevState = ref(null);
 const highlightFruit = ref(null);
 const highlightLevel1 = ref(null);
-const onBarClickDevState = (e) => { highlightDevState.value = highlightDevState.value === e.name ? null : e.name; };
-const onBarClickFruit = (e) => { highlightFruit.value = highlightFruit.value === e.name ? null : e.name; };
-const onBarClickLevel1 = (e) => { highlightLevel1.value = highlightLevel1.value === e.name ? null : e.name; };
+const onBarClickDevState = (e) => { highlightDevState.value = e.name; };
+const onBarClickFruit = (e) => { highlightFruit.value = e.name; };
+const onBarClickLevel1 = (e) => { highlightLevel1.value = e.name; };
+const showLevel2Subcat = ref(false);
+const showLevel2Level3 = ref(false);
 
 // Level2 filtrado por Level1 seleccionado y por estado
 const filteredLevel2 = computed(() => {
-    if (!highlightLevel1.value) return [];
-    let items = props.costPerHaByLevel2.filter(l => l.level1 === highlightLevel1.value);
+    let items = props.costPerHaByLevel2;
+    if (highlightLevel1.value) {
+        items = items.filter(l => l.level1 === highlightLevel1.value);
+    }
     if (selectedVarietyState.value) {
         items = items.filter(l => Number(l.state_id) === Number(selectedVarietyState.value));
     }
-    // Agrupar por subcategoría (sumar estados si es "Todos")
+    // Agrupar por level1 + subcategoría + level3 (sumar estados si es "Todos")
     const grouped = {};
     items.forEach(l => {
-        if (!grouped[l.name]) grouped[l.name] = { level1: l.level1, name: l.name, total_cost: 0 };
-        grouped[l.name].total_cost += l.total_cost;
+        const key = l.level1 + '||' + l.name + '||' + (l.level3 || '');
+        if (!grouped[key]) grouped[key] = { level1: l.level1, name: l.name, level3: l.level3 || '', total_cost: 0 };
+        grouped[key].total_cost += l.total_cost;
     });
     const surface = level1Surface.value;
     return Object.values(grouped).map(g => ({
         ...g, cost_per_ha: surface > 0 ? g.total_cost / surface : 0,
-    })).sort((a, b) => b.total_cost - a.total_cost);
+    })).sort((a, b) => a.level1.localeCompare(b.level1) || a.name.localeCompare(b.name) || b.total_cost - a.total_cost);
+});
+
+// Datos colapsados nivel 2: agrupa por level1×level2 sumando level3
+const collapsedLevel2SubcatOnly = computed(() => {
+    const map = {};
+    filteredLevel2.value.forEach(item => {
+        const key = item.level1 + '||' + item.name;
+        if (!map[key]) map[key] = { ...item, total_cost: 0, cost_per_ha: 0 };
+        map[key].total_cost += item.total_cost;
+        map[key].cost_per_ha += item.cost_per_ha;
+    });
+    return Object.values(map).sort((a, b) => a.level1.localeCompare(b.level1) || b.total_cost - a.total_cost);
+});
+
+// Datos colapsados nivel 1: agrupa por level1 sumando subcategorías
+const collapsedLevel2CatOnly = computed(() => {
+    const map = {};
+    filteredLevel2.value.forEach(item => {
+        const key = item.level1;
+        if (!map[key]) map[key] = { ...item, name: item.level1, total_cost: 0, cost_per_ha: 0 };
+        map[key].total_cost += item.total_cost;
+        map[key].cost_per_ha += item.cost_per_ha;
+    });
+    return Object.values(map).sort((a, b) => b.total_cost - a.total_cost);
+});
+
+// Rowspan para Level2
+const groupedLevel2Rows = computed(() => {
+    const rows = [];
+    let lastCat = null;
+    let lastSub = null;
+    const items = !showLevel2Subcat.value ? collapsedLevel2CatOnly.value : (showLevel2Level3.value ? filteredLevel2.value : collapsedLevel2SubcatOnly.value);
+    items.forEach((item) => {
+        const isFirstCat = item.level1 !== lastCat;
+        const isFirstSub = (item.level1 + '||' + item.name) !== (lastCat + '||' + lastSub);
+        const catSpan = isFirstCat ? items.filter(i => i.level1 === item.level1).length : 0;
+        const subSpan = isFirstSub ? items.filter(i => i.level1 === item.level1 && i.name === item.name).length : 0;
+        rows.push({ ...item, isFirstOfCategory: isFirstCat, rowspan: catSpan, isFirstOfSub: isFirstSub, subRowspan: subSpan });
+        lastCat = item.level1;
+        lastSub = item.name;
+    });
+    return rows;
 });
 
 // ── KPI resumen global ──
@@ -193,48 +241,80 @@ const varietyBarData = computed(() => filteredCostByVariety.value.map(v => Math.
 
 // ── Click en barra de variedad: detalle por Level 2 ──
 const highlightVariety = ref(null);
-const onBarClickVariety = (e) => { highlightVariety.value = highlightVariety.value === e.name ? null : e.name; };
+const onBarClickVariety = (e) => { highlightVariety.value = e.name; };
+const showVarietySubcat = ref(false);
+const showVarietyLevel3 = ref(false);
 
-// Reset selecciones al cambiar estado de desarrollo
-watch(selectedVarietyState, () => {
-    highlightLevel1.value = null;
-    highlightVariety.value = null;
-});
 const highlightVarietySurface = computed(() => {
     if (!highlightVariety.value) return 0;
     const v = filteredCostByVariety.value.find(v => v.name === highlightVariety.value);
     return v?.surface ?? 0;
 });
 const filteredVarietyDetail = computed(() => {
-    if (!highlightVariety.value) return [];
-    const surface = highlightVarietySurface.value;
-    let items = props.costByVarietyLevel2.filter(v => v.variety === highlightVariety.value);
+    let items = props.costByVarietyLevel2;
+    if (highlightVariety.value) {
+        items = items.filter(v => v.variety === highlightVariety.value);
+    }
     if (selectedVarietyState.value) {
         items = items.filter(v => Number(v.state_id) === Number(selectedVarietyState.value));
     } else {
-        // Agrupar por level2 sumando todos los estados
+        // Agrupar por variety+level2+level3 sumando todos los estados
         const grouped = {};
         items.forEach(v => {
-            if (!grouped[v.name]) grouped[v.name] = { variety: v.variety, category: v.category, name: v.name, total_cost: 0 };
-            grouped[v.name].total_cost += v.total_cost;
+            const key = v.variety + '||' + v.category + '||' + v.name + '||' + (v.level3 || '');
+            if (!grouped[key]) grouped[key] = { variety: v.variety, category: v.category, name: v.name, level3: v.level3 || '', total_cost: 0 };
+            grouped[key].total_cost += v.total_cost;
         });
         items = Object.values(grouped);
     }
+    const surface = highlightVariety.value ? highlightVarietySurface.value : filteredCostByVariety.value.reduce((s, v) => s + v.surface, 0);
     return items
         .map(v => ({ ...v, cost_per_ha: surface > 0 ? v.total_cost / surface : 0 }))
-        .sort((a, b) => a.category.localeCompare(b.category) || b.total_cost - a.total_cost);
+        .sort((a, b) => a.variety.localeCompare(b.variety) || a.category.localeCompare(b.category) || a.name.localeCompare(b.name) || b.total_cost - a.total_cost);
 });
 
-// Filas con rowspan calculado para agrupar por categoría
+// Datos colapsados nivel 2: agrupa por variedad×categoría×subcategoría sumando level3
+const collapsedVarietySubcatOnly = computed(() => {
+    const map = {};
+    filteredVarietyDetail.value.forEach(item => {
+        const key = item.variety + '||' + item.category + '||' + item.name;
+        if (!map[key]) map[key] = { ...item, total_cost: 0, cost_per_ha: 0 };
+        map[key].total_cost += item.total_cost;
+        map[key].cost_per_ha += item.cost_per_ha;
+    });
+    return Object.values(map).sort((a, b) => a.variety.localeCompare(b.variety) || a.category.localeCompare(b.category) || b.total_cost - a.total_cost);
+});
+
+// Datos colapsados nivel 1: agrupa por variedad×categoría sumando subcategorías
+const collapsedVarietyDetail = computed(() => {
+    const map = {};
+    filteredVarietyDetail.value.forEach(item => {
+        const key = item.variety + '||' + item.category;
+        if (!map[key]) map[key] = { ...item, name: item.category, total_cost: 0, cost_per_ha: 0 };
+        map[key].total_cost += item.total_cost;
+        map[key].cost_per_ha += item.cost_per_ha;
+    });
+    return Object.values(map).sort((a, b) => a.variety.localeCompare(b.variety) || b.total_cost - a.total_cost);
+});
+
+// Filas con rowspan calculado para agrupar por variedad y categoría
 const groupedVarietyRows = computed(() => {
     const rows = [];
+    let lastVar = null;
     let lastCat = null;
-    const items = filteredVarietyDetail.value;
-    items.forEach((item, idx) => {
-        const isFirst = item.category !== lastCat;
-        const span = isFirst ? items.filter(i => i.category === item.category).length : 0;
-        rows.push({ ...item, isFirstOfCategory: isFirst, rowspan: span });
+    let lastSub = null;
+    const items = !showVarietySubcat.value ? collapsedVarietyDetail.value : (showVarietyLevel3.value ? filteredVarietyDetail.value : collapsedVarietySubcatOnly.value);
+    items.forEach((item) => {
+        const isFirstVar = item.variety !== lastVar;
+        const isFirstCat = (item.variety + '||' + item.category) !== (lastVar + '||' + lastCat);
+        const isFirstSub = (item.variety + '||' + item.category + '||' + item.name) !== (lastVar + '||' + lastCat + '||' + lastSub);
+        const varSpan = isFirstVar ? items.filter(i => i.variety === item.variety).length : 0;
+        const catSpan = isFirstCat ? items.filter(i => i.variety === item.variety && i.category === item.category).length : 0;
+        const subSpan = isFirstSub ? items.filter(i => i.variety === item.variety && i.category === item.category && i.name === item.name).length : 0;
+        rows.push({ ...item, isFirstOfVariety: isFirstVar, varRowspan: varSpan, isFirstOfCategory: isFirstCat, rowspan: catSpan, isFirstOfSub: isFirstSub, subRowspan: subSpan });
+        lastVar = item.variety;
         lastCat = item.category;
+        lastSub = item.name;
     });
     return rows;
 });
@@ -253,6 +333,104 @@ const getCrossCostPerHa = (d) => {
     if (d.surface > 0) return d.cost_per_ha;
     return productiveSurface.value > 0 ? d.total_cost / productiveSurface.value : 0;
 };
+
+// ── Costo/ha por Centro de Costo (filtrado por estado) ──
+const filteredCostByCC = computed(() => {
+    let data = props.costPerHaByCC;
+    if (selectedVarietyState.value) {
+        data = data.filter(d => Number(d.state_id) === Number(selectedVarietyState.value));
+    }
+    return data.filter(d => d.surface > 0).sort((a, b) => b.cost_per_ha - a.cost_per_ha);
+});
+
+const ccBarLabels = computed(() => filteredCostByCC.value.map(d => d.name));
+const ccBarData = computed(() => filteredCostByCC.value.map(d => Math.round(d.cost_per_ha)));
+
+// ── Click en barra de CC: detalle por Level2 ──
+const highlightCC = ref(null);
+const onBarClickCC = (e) => { highlightCC.value = e.name; };
+const showCCLevel3 = ref(false);
+const showCCSubcat = ref(false);
+
+const highlightCCSurface = computed(() => {
+    if (!highlightCC.value) return filteredCostByCC.value.reduce((s, c) => s + c.surface, 0);
+    const cc = filteredCostByCC.value.find(c => c.name === highlightCC.value);
+    return cc?.surface ?? 0;
+});
+
+const filteredCCDetail = computed(() => {
+    let items = props.costByCCLevel2;
+    if (highlightCC.value) {
+        const cc = filteredCostByCC.value.find(c => c.name === highlightCC.value);
+        if (!cc) return [];
+        items = items.filter(v => v.cc_id === cc.cc_id);
+    }
+    // Filtrar por estado si aplica
+    if (selectedVarietyState.value) {
+        // costByCCLevel2 no tiene state_id, filtrar via cc_ids del estado
+        const validCCIds = filteredCostByCC.value.map(c => c.cc_id);
+        items = items.filter(v => validCCIds.includes(v.cc_id));
+    }
+    const surface = highlightCCSurface.value;
+    return items
+        .map(v => {
+            const ccName = highlightCC.value || (filteredCostByCC.value.find(c => c.cc_id === v.cc_id)?.name ?? '');
+            return { ...v, cc_name: ccName, cost_per_ha: surface > 0 ? v.total_cost / surface : 0 };
+        })
+        .sort((a, b) => a.cc_name.localeCompare(b.cc_name) || a.category.localeCompare(b.category) || a.name.localeCompare(b.name) || b.total_cost - a.total_cost);
+});
+
+// Datos colapsados nivel 3: agrupa por CC×Level1×Level2 sumando Level3
+const collapsedCCLevel3 = computed(() => {
+    const map = {};
+    filteredCCDetail.value.forEach(item => {
+        const key = (item.cc_name || '') + '||' + item.category + '||' + item.name;
+        if (!map[key]) map[key] = { ...item, total_cost: 0, cost_per_ha: 0 };
+        map[key].total_cost += item.total_cost;
+        map[key].cost_per_ha += item.cost_per_ha;
+    });
+    return Object.values(map);
+});
+
+// Datos colapsados nivel 2: agrupa por CC×Level1 sumando subcategorías
+const collapsedCCSubcat = computed(() => {
+    const map = {};
+    filteredCCDetail.value.forEach(item => {
+        const key = (item.cc_name || '') + '||' + item.category;
+        if (!map[key]) map[key] = { ...item, name: item.category, total_cost: 0, cost_per_ha: 0 };
+        map[key].total_cost += item.total_cost;
+        map[key].cost_per_ha += item.cost_per_ha;
+    });
+    return Object.values(map).sort((a, b) => a.cc_name.localeCompare(b.cc_name) || b.total_cost - a.total_cost);
+});
+
+const groupedCCRows = computed(() => {
+    const rows = [];
+    let lastCC = null;
+    let lastCat = null;
+    let lastSub = null;
+    const items = !showCCSubcat.value ? collapsedCCSubcat.value : (showCCLevel3.value ? filteredCCDetail.value : collapsedCCLevel3.value);
+    items.forEach((item) => {
+        const isFirstCC = item.cc_name !== lastCC;
+        const isFirstCat = (item.cc_name + '||' + item.category) !== (lastCC + '||' + lastCat);
+        const isFirstSub = (item.cc_name + '||' + item.category + '||' + item.name) !== (lastCC + '||' + lastCat + '||' + lastSub);
+        const ccSpan = isFirstCC ? items.filter(i => i.cc_name === item.cc_name).length : 0;
+        const catSpan = isFirstCat ? items.filter(i => i.cc_name === item.cc_name && i.category === item.category).length : 0;
+        const subSpan = isFirstSub ? items.filter(i => i.cc_name === item.cc_name && i.category === item.category && i.name === item.name).length : 0;
+        rows.push({ ...item, isFirstOfCC: isFirstCC, ccRowspan: ccSpan, isFirstOfCategory: isFirstCat, rowspan: catSpan, isFirstOfSub: isFirstSub, subRowspan: subSpan });
+        lastCC = item.cc_name;
+        lastCat = item.category;
+        lastSub = item.name;
+    });
+    return rows;
+});
+
+// Reset CC al cambiar estado
+watch(selectedVarietyState, () => {
+    highlightLevel1.value = null;
+    highlightVariety.value = null;
+    highlightCC.value = null;
+});
 
 // ── Gráfico mensual (Chart.js) ──
 const monthlyChartRef = ref(null);
@@ -327,6 +505,11 @@ const createMonthlyChart = () => {
 
 onMounted(() => { nextTick(() => createMonthlyChart()); });
 onUnmounted(() => { if (monthlyChart) monthlyChart.destroy(); });
+
+// Recrear gráfico cuando el canvas se monte (por v-if tardío o reubicación)
+watch(monthlyChartRef, (val) => {
+    if (val) nextTick(() => createMonthlyChart());
+});
 </script>
 
 <template>
@@ -385,8 +568,14 @@ onUnmounted(() => { if (monthlyChart) monthlyChart.destroy(); });
                     </div>
                 </div>
 
-                <!-- ═══════════ COSTO/HA POR ESTADO DE DESARROLLO ═══════════ -->
-                <div class="row g-3 mb-4">
+                <!-- ═══════════ SECCIÓN: ESTADO DE DESARROLLO ═══════════ -->
+                <div class="card mb-4 shadow-none" style="border-left: 3px solid #b3d1ec;">
+                    <div class="card-header py-2" style="background-color: #dce9f5;">
+                        <h5 class="mb-0 fs-9" style="color: #2c5282;"><i class="fas fa-layer-group me-2"></i>Estado de Desarrollo</h5>
+                    </div>
+                    <div class="card-body">
+
+                <div class="row g-3">
                     <div class="col-lg-7">
                         <div class="card h-100">
                             <div class="card-header"><h6 class="mb-0"><i class="fas fa-layer-group me-2"></i>Costo / Hectárea por Estado de Desarrollo</h6></div>
@@ -433,7 +622,7 @@ onUnmounted(() => { if (monthlyChart) monthlyChart.destroy(); });
                                                 <td>Total</td>
                                                 <td class="text-end">{{ fmtDec(productiveSurface) }} ha</td>
                                                 <td class="text-end">{{ fmtCurrency(adjustedTotalCost) }}</td>
-                                                <td class="text-end text-danger">{{ fmtCurrency(adjustedGlobalCostPerHa) }}</td>
+                                                <td></td>
                                             </tr>
                                         </tfoot>
                                     </table>
@@ -443,7 +632,17 @@ onUnmounted(() => { if (monthlyChart) monthlyChart.destroy(); });
                     </div>
                 </div>
 
-                <!-- ═══════════ COSTO/HA POR FRUTAL ═══════════ -->
+                    </div>
+                </div>
+                <!-- /SECCIÓN: ESTADO DE DESARROLLO -->
+
+                <!-- ═══════════ SECCIÓN: ANÁLISIS POR FRUTAL ═══════════ -->
+                <div class="card mb-4 shadow-none" style="border-left: 3px solid #b3d1ec;">
+                    <div class="card-header py-2" style="background-color: #dce9f5;">
+                        <h5 class="mb-0 fs-9" style="color: #2c5282;"><i class="fas fa-apple-alt me-2"></i>Análisis por Frutal</h5>
+                    </div>
+                    <div class="card-body">
+
                 <div class="row g-3 mb-4">
                     <div class="col-lg-7">
                         <div class="card h-100">
@@ -554,7 +753,17 @@ onUnmounted(() => { if (monthlyChart) monthlyChart.destroy(); });
                     </div>
                 </div>
 
-                <!-- ═══════════ FILTRO ESTADO DE DESARROLLO (compartido Level1 + Variedades) ═══════════ -->
+                    </div>
+                </div>
+                <!-- /SECCIÓN: ANÁLISIS POR FRUTAL -->
+
+                <!-- ═══════════ SECCIÓN: ANÁLISIS POR CATEGORÍA ═══════════ -->
+                <div class="card mb-4 shadow-none" style="border-left: 3px solid #b3d1ec;">
+                    <div class="card-header py-2" style="background-color: #dce9f5;">
+                        <h5 class="mb-0 fs-9" style="color: #2c5282;"><i class="fas fa-sitemap me-2"></i>Análisis por Categoría (Nivel 1)</h5>
+                    </div>
+                    <div class="card-body">
+
                 <div class="row g-3 mb-3">
                     <div class="col-12">
                         <div class="d-flex align-items-center gap-3">
@@ -571,7 +780,7 @@ onUnmounted(() => { if (monthlyChart) monthlyChart.destroy(); });
 
                 <!-- ═══════════ COSTO/HA POR CATEGORÍA (LEVEL 1) ═══════════ -->
                 <div class="row g-3 mb-4">
-                    <div class="col-lg-7">
+                    <div :class="(showLevel2Subcat && showLevel2Level3) ? 'col-lg-4' : (showLevel2Subcat ? 'col-lg-5' : 'col-lg-7')" style="transition: all 0.3s ease;">
                         <div class="card h-100">
                             <div class="card-header">
                                 <h6 class="mb-0"><i class="fas fa-sitemap me-2"></i>Costo / Hectárea por Categoría (Nivel 1)
@@ -591,29 +800,43 @@ onUnmounted(() => { if (monthlyChart) monthlyChart.destroy(); });
                             </div>
                         </div>
                     </div>
-                    <div class="col-lg-5">
+                    <div :class="(showLevel2Subcat && showLevel2Level3) ? 'col-lg-8' : (showLevel2Subcat ? 'col-lg-7' : 'col-lg-5')" style="transition: all 0.3s ease;">
                         <div class="card h-100">
-                            <div class="card-header">
+                            <div class="card-header d-flex align-items-center justify-content-between">
                                 <h6 class="mb-0">
                                     <i class="fas fa-list me-2"></i>
                                     <template v-if="highlightLevel1">Detalle: {{ highlightLevel1 }}</template>
-                                    <template v-else>Seleccione una categoría</template>
+                                    <template v-else>Detalle por Categoría</template>
                                 </h6>
+                                <div v-if="filteredLevel2.length" class="d-flex gap-1">
+                                    <button type="button" class="btn btn-falcon-default btn-sm py-0 px-2" @click="showLevel2Subcat = !showLevel2Subcat; if (!showLevel2Subcat) showLevel2Level3 = false;" v-tooltip="showLevel2Subcat ? 'Ocultar subcategorías' : 'Ver subcategorías'">
+                                        <i class="fas fa-xs" :class="showLevel2Subcat ? 'fa-compress-alt' : 'fa-expand-alt'"></i>
+                                        <span class="ms-1 d-none d-xl-inline" style="font-size: 0.75rem;">{{ showLevel2Subcat ? 'Colapsar' : 'Subcategorías' }}</span>
+                                    </button>
+                                    <button v-if="showLevel2Subcat" type="button" class="btn btn-falcon-default btn-sm py-0 px-2" @click="showLevel2Level3 = !showLevel2Level3" v-tooltip="showLevel2Level3 ? 'Ocultar productos' : 'Ver productos'">
+                                        <i class="fas fa-xs" :class="showLevel2Level3 ? 'fa-compress-alt' : 'fa-expand-alt'"></i>
+                                        <span class="ms-1 d-none d-xl-inline" style="font-size: 0.75rem;">{{ showLevel2Level3 ? 'Colapsar' : 'Productos' }}</span>
+                                    </button>
+                                </div>
                             </div>
                             <div class="card-body p-0">
                                 <div v-if="filteredLevel2.length" class="table-responsive">
                                     <table class="table table-sm table-hover mb-0">
                                         <thead class="bg-light">
                                             <tr>
-                                                <th>Subcategoría</th>
+                                                <th v-if="!highlightLevel1">Categoría</th>
+                                                <th v-if="showLevel2Subcat">Subcategoría</th>
+                                                <th v-if="showLevel2Subcat && showLevel2Level3">Producto</th>
                                                 <th class="text-end">Costo Total</th>
                                                 <th class="text-end">$/ha</th>
                                                 <th class="text-end">%</th>
                                             </tr>
                                         </thead>
                                         <tbody>
-                                            <tr v-for="item in filteredLevel2" :key="item.name">
-                                                <td class="fw-semi-bold">{{ item.name }}</td>
+                                            <tr v-for="(item, idx) in groupedLevel2Rows" :key="item.level1 + '-' + item.name + '-' + (item.level3 || idx)">
+                                                <td v-if="!highlightLevel1 && item.isFirstOfCategory" :rowspan="item.rowspan" class="align-middle fw-semi-bold bg-body-tertiary border-end" style="vertical-align: middle;">{{ item.level1 }}</td>
+                                                <td v-if="showLevel2Subcat && item.isFirstOfSub" :rowspan="item.subRowspan" class="align-middle fw-semi-bold border-end" style="vertical-align: middle;">{{ item.name }}</td>
+                                                <td v-if="showLevel2Subcat && showLevel2Level3">{{ item.level3 }}</td>
                                                 <td class="text-end">{{ fmtCurrency(item.total_cost) }}</td>
                                                 <td class="text-end fw-bold text-primary">{{ fmtCurrency(item.cost_per_ha) }}</td>
                                                 <td class="text-end">{{ filteredLevel2.reduce((s, i) => s + i.total_cost, 0) > 0 ? fmtDec(item.total_cost / filteredLevel2.reduce((s, i) => s + i.total_cost, 0) * 100) : '0' }}%</td>
@@ -621,7 +844,7 @@ onUnmounted(() => { if (monthlyChart) monthlyChart.destroy(); });
                                         </tbody>
                                         <tfoot class="bg-light fw-bold">
                                             <tr>
-                                                <td>Total</td>
+                                                <td :colspan="(highlightLevel1 ? 0 : 1) + (showLevel2Subcat ? (showLevel2Level3 ? 2 : 1) : 0)">Total</td>
                                                 <td class="text-end">{{ fmtCurrency(filteredLevel2.reduce((s, i) => s + i.total_cost, 0)) }}</td>
                                                 <td class="text-end text-danger">{{ fmtCurrency(filteredLevel2.reduce((s, i) => s + i.cost_per_ha, 0)) }}</td>
                                                 <td class="text-end">100%</td>
@@ -630,58 +853,26 @@ onUnmounted(() => { if (monthlyChart) monthlyChart.destroy(); });
                                     </table>
                                 </div>
                                 <div v-else class="d-flex align-items-center justify-content-center h-100 py-5">
-                                    <p class="text-muted mb-0"><i class="fas fa-hand-pointer me-2"></i>Click en una barra del gráfico</p>
+                                    <p class="text-muted mb-0 fs-9"><i class="fas fa-hand-point-left fa-lg me-2"></i>Click en una barra del gráfico</p>
                                 </div>
                             </div>
                         </div>
                     </div>
                 </div>
 
-                <!-- ═══════════ TABLA DETALLE LEVEL 1 ═══════════ -->
-                <div class="row g-3 mb-4">
-                    <div class="col-12">
-                        <div class="card">
-                            <div class="card-header"><h6 class="mb-0">Detalle por Categoría (Nivel 1)</h6></div>
-                            <div class="card-body p-0">
-                                <div class="table-responsive">
-                                    <table class="table table-sm table-hover mb-0">
-                                        <thead class="bg-light">
-                                            <tr>
-                                                <th>Categoría</th>
-                                                <th class="text-end">Costo Total</th>
-                                                <th class="text-end">$/ha</th>
-                                                <th class="text-end">% del Costo</th>
-                                            </tr>
-                                        </thead>
-                                        <tbody>
-                                            <tr v-for="item in filteredCostByLevel1" :key="item.name"
-                                                :class="{ 'table-primary': highlightLevel1 === item.name }"
-                                                style="cursor: pointer; transition: background 0.2s"
-                                                @click="highlightLevel1 = highlightLevel1 === item.name ? null : item.name">
-                                                <td class="fw-semi-bold">{{ item.name }}</td>
-                                                <td class="text-end">{{ fmtCurrency(item.total_cost) }}</td>
-                                                <td class="text-end fw-bold text-primary">{{ fmtCurrency(item.cost_per_ha) }}</td>
-                                                <td class="text-end">{{ filteredLevel1Total > 0 ? fmtDec(item.total_cost / filteredLevel1Total * 100) : '0' }}%</td>
-                                            </tr>
-                                        </tbody>
-                                        <tfoot class="bg-light fw-bold" v-if="filteredCostByLevel1.length">
-                                            <tr>
-                                                <td>TOTAL</td>
-                                                <td class="text-end">{{ fmtCurrency(filteredLevel1Total) }}</td>
-                                                <td class="text-end text-danger">{{ fmtCurrency(filteredLevel1CostPerHa) }}</td>
-                                                <td class="text-end">100%</td>
-                                            </tr>
-                                        </tfoot>
-                                    </table>
-                                </div>
-                            </div>
-                        </div>
                     </div>
                 </div>
+                <!-- /SECCIÓN: ANÁLISIS POR CATEGORÍA -->
 
-                <!-- ═══════════ COSTO/HA POR VARIEDAD ═══════════ -->
+                <!-- ═══════════ SECCIÓN: ANÁLISIS POR VARIEDAD ═══════════ -->
+                <div class="card mb-4 shadow-none" style="border-left: 3px solid #b3d1ec;">
+                    <div class="card-header py-2" style="background-color: #dce9f5;">
+                        <h5 class="mb-0 fs-9" style="color: #2c5282;"><i class="fas fa-seedling me-2"></i>Análisis por Variedad</h5>
+                    </div>
+                    <div class="card-body">
+
                 <div class="row g-3 mb-4">
-                    <div class="col-lg-7">
+                    <div :class="(showVarietySubcat && showVarietyLevel3) ? 'col-lg-4' : (showVarietySubcat ? 'col-lg-5' : 'col-lg-7')" style="transition: all 0.3s ease;">
                         <div class="card h-100">
                             <div class="card-header">
                                 <h6 class="mb-0">Costo / Hectárea por Variedad
@@ -701,31 +892,45 @@ onUnmounted(() => { if (monthlyChart) monthlyChart.destroy(); });
                             </div>
                         </div>
                     </div>
-                    <div class="col-lg-5">
+                    <div :class="(showVarietySubcat && showVarietyLevel3) ? 'col-lg-8' : (showVarietySubcat ? 'col-lg-7' : 'col-lg-5')" style="transition: all 0.3s ease;">
                         <div class="card h-100">
-                            <div class="card-header">
+                            <div class="card-header d-flex align-items-center justify-content-between">
                                 <h6 class="mb-0">
                                     <i class="fas fa-list me-2"></i>
                                     <template v-if="highlightVariety">Detalle: {{ highlightVariety }}</template>
-                                    <template v-else>Seleccione una variedad</template>
+                                    <template v-else>Detalle por Categoría</template>
                                 </h6>
+                                <div v-if="filteredVarietyDetail.length" class="d-flex gap-1">
+                                    <button type="button" class="btn btn-falcon-default btn-sm py-0 px-2" @click="showVarietySubcat = !showVarietySubcat; if (!showVarietySubcat) showVarietyLevel3 = false;" v-tooltip="showVarietySubcat ? 'Ocultar subcategorías' : 'Ver subcategorías'">
+                                        <i class="fas fa-xs" :class="showVarietySubcat ? 'fa-compress-alt' : 'fa-expand-alt'"></i>
+                                        <span class="ms-1 d-none d-xl-inline" style="font-size: 0.75rem;">{{ showVarietySubcat ? 'Colapsar' : 'Subcategorías' }}</span>
+                                    </button>
+                                    <button v-if="showVarietySubcat" type="button" class="btn btn-falcon-default btn-sm py-0 px-2" @click="showVarietyLevel3 = !showVarietyLevel3" v-tooltip="showVarietyLevel3 ? 'Ocultar productos' : 'Ver productos'">
+                                        <i class="fas fa-xs" :class="showVarietyLevel3 ? 'fa-compress-alt' : 'fa-expand-alt'"></i>
+                                        <span class="ms-1 d-none d-xl-inline" style="font-size: 0.75rem;">{{ showVarietyLevel3 ? 'Colapsar' : 'Productos' }}</span>
+                                    </button>
+                                </div>
                             </div>
                             <div class="card-body p-0">
                                 <div v-if="filteredVarietyDetail.length" class="table-responsive">
                                     <table class="table table-sm table-hover mb-0">
                                         <thead class="bg-light">
                                             <tr>
+                                                <th v-if="!highlightVariety">Variedad</th>
                                                 <th>Categoría</th>
-                                                <th>Subcategoría</th>
+                                                <th v-if="showVarietySubcat">Subcategoría</th>
+                                                <th v-if="showVarietySubcat && showVarietyLevel3">Producto</th>
                                                 <th class="text-end">Costo Total</th>
                                                 <th class="text-end">$/ha</th>
                                                 <th class="text-end">%</th>
                                             </tr>
                                         </thead>
                                         <tbody>
-                                            <tr v-for="(item, idx) in groupedVarietyRows" :key="item.category + '-' + item.name">
-                                                <td v-if="item.isFirstOfCategory" :rowspan="item.rowspan" class="align-middle fw-semi-bold bg-body-tertiary border-end" style="vertical-align: middle;">{{ item.category }}</td>
-                                                <td>{{ item.name }}</td>
+                                            <tr v-for="(item, idx) in groupedVarietyRows" :key="item.variety + '-' + item.category + '-' + item.name + '-' + (item.level3 || idx)">
+                                                <td v-if="!highlightVariety && item.isFirstOfVariety" :rowspan="item.varRowspan" class="align-middle fw-semi-bold bg-body-tertiary border-end" style="vertical-align: middle;">{{ item.variety }}</td>
+                                                <td v-if="item.isFirstOfCategory" :rowspan="item.rowspan" class="align-middle fw-semi-bold border-end" style="vertical-align: middle;">{{ item.category }}</td>
+                                                <td v-if="showVarietySubcat && item.isFirstOfSub" :rowspan="item.subRowspan" class="align-middle border-end" style="vertical-align: middle;">{{ item.name }}</td>
+                                                <td v-if="showVarietySubcat && showVarietyLevel3">{{ item.level3 }}</td>
                                                 <td class="text-end">{{ fmtCurrency(item.total_cost) }}</td>
                                                 <td class="text-end fw-bold text-primary">{{ fmtCurrency(item.cost_per_ha) }}</td>
                                                 <td class="text-end">{{ filteredVarietyDetail.reduce((s, i) => s + i.total_cost, 0) > 0 ? fmtDec(item.total_cost / filteredVarietyDetail.reduce((s, i) => s + i.total_cost, 0) * 100) : '0' }}%</td>
@@ -733,7 +938,7 @@ onUnmounted(() => { if (monthlyChart) monthlyChart.destroy(); });
                                         </tbody>
                                         <tfoot class="bg-light fw-bold">
                                             <tr>
-                                                <td colspan="2">Total ({{ fmtDec(highlightVarietySurface) }} ha)</td>
+                                                <td :colspan="(highlightVariety ? 0 : 1) + (showVarietySubcat ? (showVarietyLevel3 ? 3 : 2) : 1)">Total</td>
                                                 <td class="text-end">{{ fmtCurrency(filteredVarietyDetail.reduce((s, i) => s + i.total_cost, 0)) }}</td>
                                                 <td class="text-end text-danger">{{ fmtCurrency(filteredVarietyDetail.reduce((s, i) => s + i.cost_per_ha, 0)) }}</td>
                                                 <td class="text-end">100%</td>
@@ -742,7 +947,7 @@ onUnmounted(() => { if (monthlyChart) monthlyChart.destroy(); });
                                     </table>
                                 </div>
                                 <div v-else class="d-flex align-items-center justify-content-center h-100 py-5">
-                                    <p class="text-muted mb-0"><i class="fas fa-hand-pointer me-2"></i>Click en una barra del gráfico</p>
+                                    <p class="text-muted mb-0 fs-9"><i class="fas fa-hand-point-left fa-lg me-2"></i>Click en una barra del gráfico</p>
                                 </div>
                             </div>
                         </div>
@@ -788,43 +993,154 @@ onUnmounted(() => { if (monthlyChart) monthlyChart.destroy(); });
                     </div>
                 </div>
 
-                <!-- ═══════════ TOP CENTROS DE COSTO MÁS CAROS ═══════════ -->
+                    </div>
+                </div>
+                <!-- /SECCIÓN: ANÁLISIS POR VARIEDAD -->
+
+                <!-- ═══════════ SECCIÓN: CENTRO DE COSTO ═══════════ -->
+                <div class="card mb-4 shadow-none" style="border-left: 3px solid #b3d1ec;">
+                    <div class="card-header py-2" style="background-color: #dce9f5;">
+                        <h5 class="mb-0 fs-9" style="color: #2c5282;"><i class="fas fa-map-marker-alt me-2"></i>Análisis por Centro de Costo</h5>
+                    </div>
+                    <div class="card-body">
+
                 <div class="row g-3 mb-4">
-                    <div class="col-12">
-                        <div class="card">
-                            <div class="card-header"><h6 class="mb-0"><i class="fas fa-sort-amount-down me-2"></i>Top 15 — Centros de Costo más Caros por Hectárea</h6></div>
+                    <div :class="(showCCSubcat && showCCLevel3) ? 'col-lg-4' : (showCCSubcat ? 'col-lg-5' : 'col-lg-7')" style="transition: all 0.3s ease;">
+                        <div class="card h-100">
+                            <div class="card-header">
+                                <h6 class="mb-0"><i class="fas fa-map-marker-alt me-2"></i>Costo / Hectárea por Centro de Costo
+                                    <small v-if="selectedVarietyState" class="text-500 ms-1">({{ varietyDevStates.find(s => Number(s.value) === Number(selectedVarietyState))?.label }})</small>
+                                </h6>
+                            </div>
+                            <div class="card-body">
+                                <FalconBarChart
+                                    v-if="ccBarLabels.length"
+                                    :barLabels="ccBarLabels"
+                                    :barData="ccBarData"
+                                    :height="300"
+                                    :color="['#2c7be5', '#00d97e', '#e63757', '#f5803e', '#727cf5', '#39afd1', '#6b5eae', '#fd7e14', '#02a8b5', '#6c757d']"
+                                    @bar-click="onBarClickCC"
+                                />
+                                <p v-else class="text-center text-muted py-5">Sin datos de centros de costo</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div :class="(showCCSubcat && showCCLevel3) ? 'col-lg-8' : (showCCSubcat ? 'col-lg-7' : 'col-lg-5')" style="transition: all 0.3s ease;">
+                        <div class="card h-100">
+                            <div class="card-header d-flex align-items-center justify-content-between">
+                                <h6 class="mb-0">
+                                    <i class="fas fa-list me-2"></i>
+                                    <template v-if="highlightCC">Detalle: {{ highlightCC }}</template>
+                                    <template v-else>Detalle por Categoría</template>
+                                </h6>
+                                <div v-if="filteredCCDetail.length" class="d-flex gap-1">
+                                    <button type="button" class="btn btn-falcon-default btn-sm py-0 px-2" @click="showCCSubcat = !showCCSubcat; if (!showCCSubcat) showCCLevel3 = false;" v-tooltip="showCCSubcat ? 'Ocultar subcategorías' : 'Ver subcategorías'">
+                                        <i class="fas fa-xs" :class="showCCSubcat ? 'fa-compress-alt' : 'fa-expand-alt'"></i>
+                                        <span class="ms-1 d-none d-xl-inline" style="font-size: 0.75rem;">{{ showCCSubcat ? 'Colapsar' : 'Subcategorías' }}</span>
+                                    </button>
+                                    <button v-if="showCCSubcat" type="button" class="btn btn-falcon-default btn-sm py-0 px-2" @click="showCCLevel3 = !showCCLevel3" v-tooltip="showCCLevel3 ? 'Ocultar productos' : 'Ver productos'">
+                                        <i class="fas fa-xs" :class="showCCLevel3 ? 'fa-compress-alt' : 'fa-expand-alt'"></i>
+                                        <span class="ms-1 d-none d-xl-inline" style="font-size: 0.75rem;">{{ showCCLevel3 ? 'Colapsar' : 'Productos' }}</span>
+                                    </button>
+                                </div>
+                            </div>
                             <div class="card-body p-0">
-                                <div class="table-responsive" v-if="topCostCenters.length">
+                                <div v-if="filteredCCDetail.length" class="table-responsive">
                                     <table class="table table-sm table-hover mb-0">
                                         <thead class="bg-light">
                                             <tr>
-                                                <th>#</th>
-                                                <th>Centro de Costo</th>
-                                                <th>Frutal</th>
-                                                <th>Estado</th>
-                                                <th class="text-end">Superficie</th>
+                                                <th v-if="!highlightCC">Centro de Costo</th>
+                                                <th>Categoría</th>
+                                                <th v-if="showCCSubcat">Subcategoría</th>
+                                                <th v-if="showCCSubcat && showCCLevel3">Producto</th>
                                                 <th class="text-end">Costo Total</th>
                                                 <th class="text-end">$/ha</th>
+                                                <th class="text-end">%</th>
                                             </tr>
                                         </thead>
                                         <tbody>
-                                            <tr v-for="(item, idx) in topCostCenters" :key="item.name">
-                                                <td>{{ idx + 1 }}</td>
-                                                <td class="fw-semi-bold">{{ item.name }}</td>
-                                                <td>{{ item.fruit }}</td>
-                                                <td>{{ item.state }}</td>
-                                                <td class="text-end">{{ fmtDec(item.surface) }} ha</td>
+                                            <tr v-for="(item, idx) in groupedCCRows" :key="(item.cc_name || '') + '-' + item.category + '-' + item.name + '-' + (item.level3 || idx)">
+                                                <td v-if="!highlightCC && item.isFirstOfCC" :rowspan="item.ccRowspan" class="align-middle fw-semi-bold bg-body-tertiary border-end" style="vertical-align: middle;">{{ item.cc_name }}</td>
+                                                <td v-if="item.isFirstOfCategory" :rowspan="item.rowspan" class="align-middle fw-semi-bold border-end" style="vertical-align: middle;">{{ item.category }}</td>
+                                                <td v-if="showCCSubcat && item.isFirstOfSub" :rowspan="item.subRowspan" class="align-middle border-end" style="vertical-align: middle;">{{ item.name }}</td>
+                                                <td v-if="showCCSubcat && showCCLevel3">{{ item.level3 }}</td>
                                                 <td class="text-end">{{ fmtCurrency(item.total_cost) }}</td>
-                                                <td class="text-end fw-bold text-danger">{{ fmtCurrency(item.cost_per_ha) }}</td>
+                                                <td class="text-end fw-bold text-primary">{{ fmtCurrency(item.cost_per_ha) }}</td>
+                                                <td class="text-end">{{ filteredCCDetail.reduce((s, i) => s + i.total_cost, 0) > 0 ? fmtDec(item.total_cost / filteredCCDetail.reduce((s, i) => s + i.total_cost, 0) * 100) : '0' }}%</td>
                                             </tr>
                                         </tbody>
+                                        <tfoot class="bg-light fw-bold">
+                                            <tr>
+                                                <td :colspan="(highlightCC ? 0 : 1) + (showCCSubcat ? (showCCLevel3 ? 3 : 2) : 1)">Total</td>
+                                                <td class="text-end">{{ fmtCurrency(filteredCCDetail.reduce((s, i) => s + i.total_cost, 0)) }}</td>
+                                                <td class="text-end text-danger">{{ fmtCurrency(filteredCCDetail.reduce((s, i) => s + i.cost_per_ha, 0)) }}</td>
+                                                <td class="text-end">100%</td>
+                                            </tr>
+                                        </tfoot>
                                     </table>
                                 </div>
-                                <p v-else class="text-center text-muted py-4">Sin datos</p>
+                                <div v-else class="d-flex align-items-center justify-content-center h-100 py-5">
+                                    <p class="text-muted mb-0 fs-9"><i class="fas fa-hand-point-left fa-lg me-2"></i>Click en una barra del gráfico</p>
+                                </div>
                             </div>
                         </div>
                     </div>
                 </div>
+
+                <!-- ═══════════ DETALLE POR CC (tabla) ═══════════ -->
+                <div class="row g-3 mb-4">
+                    <div class="col-12">
+                        <div class="card">
+                            <div class="card-header">
+                                <h6 class="mb-0">Detalle Costo/ha por Centro de Costo
+                                    <small v-if="selectedVarietyState" class="text-500 ms-1">({{ varietyDevStates.find(s => Number(s.value) === Number(selectedVarietyState))?.label }})</small>
+                                </h6>
+                            </div>
+                            <div class="card-body p-0">
+                                <div class="table-responsive">
+                                    <table class="table table-sm table-hover mb-0">
+                                        <thead class="bg-light">
+                                            <tr>
+                                                <th>Centro de Costo</th>
+                                                <th>Frutal</th>
+                                                <th class="text-end">Superficie</th>
+                                                <th class="text-end">Costo Total</th>
+                                                <th class="text-end">$/ha</th>
+                                                <th class="text-end">% del Costo</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            <tr v-for="item in filteredCostByCC" :key="item.cc_id"
+                                                :class="{ 'table-primary': highlightCC === item.name }"
+                                                style="cursor: pointer; transition: background 0.2s"
+                                                @click="highlightCC = item.name">
+                                                <td class="fw-semi-bold">{{ item.name }}</td>
+                                                <td>{{ item.fruit }}</td>
+                                                <td class="text-end">{{ fmtDec(item.surface) }} ha</td>
+                                                <td class="text-end">{{ fmtCurrency(item.total_cost) }}</td>
+                                                <td class="text-end fw-bold text-primary">{{ fmtCurrency(item.cost_per_ha) }}</td>
+                                                <td class="text-end">{{ filteredCostByCC.reduce((s, i) => s + i.total_cost, 0) > 0 ? fmtDec(item.total_cost / filteredCostByCC.reduce((s, i) => s + i.total_cost, 0) * 100) : '0' }}%</td>
+                                            </tr>
+                                        </tbody>
+                                        <tfoot class="bg-light fw-bold" v-if="filteredCostByCC.length">
+                                            <tr>
+                                                <td colspan="2">TOTAL</td>
+                                                <td class="text-end">{{ fmtDec(filteredCostByCC.reduce((s, i) => s + i.surface, 0)) }} ha</td>
+                                                <td class="text-end">{{ fmtCurrency(filteredCostByCC.reduce((s, i) => s + i.total_cost, 0)) }}</td>
+                                                <td class="text-end text-danger">{{ fmtCurrency(filteredCostByCC.reduce((s, i) => s + i.total_cost, 0) / filteredCostByCC.reduce((s, i) => s + i.surface, 0)) }}</td>
+                                                <td class="text-end">100%</td>
+                                            </tr>
+                                        </tfoot>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                    </div>
+                </div>
+                <!-- /SECCIÓN: CENTRO DE COSTO -->
 
                 <!-- ═══════════ EVOLUCIÓN MENSUAL ═══════════ -->
                 <div class="row g-3 mb-4">

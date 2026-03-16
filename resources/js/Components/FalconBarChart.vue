@@ -3,7 +3,7 @@
 </template>
 
 <script setup>
-import { ref, watch, onMounted, onBeforeUnmount } from 'vue';
+import { ref, watch, onMounted, onBeforeUnmount, nextTick } from 'vue';
 // Importar solo los módulos necesarios de ECharts (reduce de ~1MB a ~200KB)
 import * as echarts from 'echarts/core';
 import { BarChart } from 'echarts/charts';
@@ -141,7 +141,9 @@ const setChart = () => {
 };
 
 onMounted(() => {
-  setChart();
+  nextTick(() => {
+    requestAnimationFrame(() => setChart());
+  });
   window.addEventListener('resize', setChart);
 });
 

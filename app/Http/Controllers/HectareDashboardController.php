@@ -30,11 +30,12 @@ class HectareDashboardController extends Controller
             'costPerHaByLevel1'        => $this->getCostPerHaByLevel1($season_id, $team_id),
             'costPerHaByLevel2'        => $this->getCostPerHaByLevel2($season_id, $team_id),
             'monthlyCostPerHa'         => $this->getMonthlyCostPerHa($season_id, $team_id),
-            'topCostCenters'           => $this->getTopCostCentersByCostPerHa($season_id, $team_id),
             'surfaceByVariety'         => $this->getSurfaceByVariety($season_id, $team_id),
             'costPerHaByVariety'       => $this->getCostPerHaByVariety($season_id, $team_id),
             'costByVarietyLevel2'      => $this->getCostByVarietyLevel2($season_id, $team_id),
             'varietyDevStates'         => $this->getVarietyDevStates($season_id, $team_id),
+            'costPerHaByCC'            => $this->getCostPerHaByCC($season_id, $team_id),
+            'costByCCLevel2'           => $this->getCostByCCLevel2($season_id, $team_id),
         ]);
     }
 
@@ -376,10 +377,11 @@ class HectareDashboardController extends Controller
                 ->selectRaw("
                     COALESCE(level1s.name, 'Sin Clasificar') as level1_name,
                     COALESCE(level2s.name, 'Sin Clasificar') as level2_name,
+                    COALESCE(level3s.name, 'Sin Clasificar') as level3_name,
                     COALESCE(cost_centers.development_state_id, 0) as state_id,
                     COALESCE(SUM({$amountExpr}), 0) as total_cost
                 ")
-                ->groupBy('level1s.id', 'level1s.name', 'level2s.id', 'level2s.name', 'cost_centers.development_state_id')
+                ->groupBy('level1s.id', 'level1s.name', 'level2s.id', 'level2s.name', 'level3s.id', 'level3s.name', 'cost_centers.development_state_id')
                 ->orderBy('level1s.name')
                 ->orderBy('total_cost', 'desc')
                 ->get();
@@ -389,6 +391,7 @@ class HectareDashboardController extends Controller
                 return [
                     'level1'      => $item->level1_name,
                     'name'        => $item->level2_name,
+                    'level3'      => $item->level3_name,
                     'state_id'    => intval($item->state_id),
                     'total_cost'  => $totalCost,
                     'cost_per_ha' => $totalSurface > 0 ? $totalCost / $totalSurface : 0,
@@ -496,49 +499,6 @@ class HectareDashboardController extends Controller
                 'cumulative_costs' => [], 'cumulative_per_ha' => [],
                 'total_surface' => 0,
             ];
-        }
-    }
-
-    /**
-     * Top 15 centros de costo más caros por hectárea (sin inversiones)
-     */
-    private function getTopCostCentersByCostPerHa($season_id, $team_id)
-    {
-        try {
-            $amountExpr = $this->proratedAmountExpression();
-
-            $results = $this->baseOutflowQuery($season_id, $team_id)
-                ->leftJoin('fruits', 'cost_centers.fruit_id', '=', 'fruits.id')
-                ->leftJoin('development_states', 'cost_centers.development_state_id', '=', 'development_states.id')
-                ->where('cost_centers.surface', '>', 0)
-                ->selectRaw("
-                    cost_centers.name as cc_name,
-                    cost_centers.surface as surface,
-                    COALESCE(fruits.name, '-') as fruit_name,
-                    COALESCE(development_states.name, '-') as state_name,
-                    COALESCE(SUM({$amountExpr}), 0) as total_cost
-                ")
-                ->groupBy('cost_centers.id', 'cost_centers.name', 'cost_centers.surface', 'fruits.name', 'development_states.name')
-                ->havingRaw('total_cost > 0')
-                ->orderByRaw('total_cost / cost_centers.surface DESC')
-                ->limit(15)
-                ->get();
-
-            return $results->map(function ($item) {
-                $surface = floatval($item->surface);
-                $totalCost = floatval($item->total_cost);
-                return [
-                    'name'        => $item->cc_name,
-                    'fruit'       => $item->fruit_name,
-                    'state'       => $item->state_name,
-                    'surface'     => $surface,
-                    'total_cost'  => $totalCost,
-                    'cost_per_ha' => $surface > 0 ? $totalCost / $surface : 0,
-                ];
-            })->toArray();
-        } catch (\Exception $e) {
-            Log::error('HectareDashboard getTopCostCentersByCostPerHa: ' . $e->getMessage());
-            return [];
         }
     }
 
@@ -699,12 +659,13 @@ class HectareDashboardController extends Controller
                     COALESCE(cost_center_varieties.development_state_id, 0) as state_id,
                     COALESCE(level1s.name, 'Sin Clasificar') as level1_name,
                     COALESCE(level2s.name, 'Sin Clasificar') as level2_name,
+                    COALESCE(level3s.name, 'Sin Clasificar') as level3_name,
                     COALESCE(SUM(
                         ({$amountExpr}) *
                         cost_center_varieties.surface / NULLIF(ccv_totals.total_variety_surface, 0)
                     ), 0) as total_cost
                 ")
-                ->groupBy('varieties.id', 'varieties.name', 'cost_center_varieties.development_state_id', 'level1s.id', 'level1s.name', 'level2s.id', 'level2s.name')
+                ->groupBy('varieties.id', 'varieties.name', 'cost_center_varieties.development_state_id', 'level1s.id', 'level1s.name', 'level2s.id', 'level2s.name', 'level3s.id', 'level3s.name')
                 ->orderBy('varieties.name')
                 ->orderBy('total_cost', 'desc')
                 ->get();
@@ -715,11 +676,97 @@ class HectareDashboardController extends Controller
                     'state_id'   => intval($item->state_id),
                     'category'   => $item->level1_name,
                     'name'       => $item->level2_name,
+                    'level3'     => $item->level3_name,
                     'total_cost' => floatval($item->total_cost),
                 ];
             })->toArray();
         } catch (\Exception $e) {
             Log::error('HectareDashboard getCostByVarietyLevel2: ' . $e->getMessage());
+            return [];
+        }
+    }
+
+    /**
+     * Costo total y costo/ha por centro de costo
+     */
+    private function getCostPerHaByCC($season_id, $team_id)
+    {
+        try {
+            $amountExpr = $this->proratedAmountExpression();
+
+            $results = $this->baseOutflowQuery($season_id, $team_id)
+                ->leftJoin('fruits', 'cost_centers.fruit_id', '=', 'fruits.id')
+                ->selectRaw("
+                    cost_centers.id as cc_id,
+                    cost_centers.name as cc_name,
+                    cost_centers.surface as surface,
+                    COALESCE(cost_centers.development_state_id, 0) as state_id,
+                    COALESCE(fruits.name, '-') as fruit_name,
+                    COALESCE(SUM({$amountExpr}), 0) as total_cost
+                ")
+                ->groupBy('cost_centers.id', 'cost_centers.name', 'cost_centers.surface', 'cost_centers.development_state_id', 'fruits.name')
+                ->havingRaw("COALESCE(SUM({$amountExpr}), 0) > 0")
+                ->orderByRaw("CASE WHEN cost_centers.surface > 0 THEN COALESCE(SUM({$amountExpr}), 0) / cost_centers.surface ELSE 0 END DESC")
+                ->get();
+
+            return $results->map(function ($item) {
+                $surface = floatval($item->surface);
+                $totalCost = floatval($item->total_cost);
+                return [
+                    'cc_id'       => intval($item->cc_id),
+                    'name'        => $item->cc_name,
+                    'state_id'    => intval($item->state_id),
+                    'fruit'       => $item->fruit_name,
+                    'surface'     => $surface,
+                    'total_cost'  => $totalCost,
+                    'cost_per_ha' => $surface > 0 ? $totalCost / $surface : 0,
+                ];
+            })->toArray();
+        } catch (\Exception $e) {
+            Log::error('HectareDashboard getCostPerHaByCC: ' . $e->getMessage());
+            return [];
+        }
+    }
+
+    /**
+     * Costo por centro de costo desglosado por Level1 / Level2
+     */
+    private function getCostByCCLevel2($season_id, $team_id)
+    {
+        try {
+            $amountExpr = $this->proratedAmountExpression();
+
+            $results = $this->baseOutflowQuery($season_id, $team_id)
+                ->leftJoin('level3s', 'outflows.level3_id', '=', 'level3s.id')
+                ->leftJoin('level2s', 'level3s.level2_id', '=', 'level2s.id')
+                ->leftJoin('level1s', 'level2s.level1_id', '=', 'level1s.id')
+                ->selectRaw("
+                    cost_centers.id as cc_id,
+                    cost_centers.name as cc_name,
+                    COALESCE(cost_centers.development_state_id, 0) as state_id,
+                    COALESCE(level1s.name, 'Sin Clasificar') as level1_name,
+                    COALESCE(level2s.name, 'Sin Clasificar') as level2_name,
+                    COALESCE(level3s.name, 'Sin Clasificar') as level3_name,
+                    COALESCE(SUM({$amountExpr}), 0) as total_cost
+                ")
+                ->groupBy('cost_centers.id', 'cost_centers.name', 'cost_centers.development_state_id', 'level1s.id', 'level1s.name', 'level2s.id', 'level2s.name', 'level3s.id', 'level3s.name')
+                ->orderBy('cost_centers.name')
+                ->orderBy('total_cost', 'desc')
+                ->get();
+
+            return $results->map(function ($item) {
+                return [
+                    'cc_id'      => intval($item->cc_id),
+                    'cc_name'    => $item->cc_name,
+                    'state_id'   => intval($item->state_id),
+                    'category'   => $item->level1_name,
+                    'name'       => $item->level2_name,
+                    'level3'     => $item->level3_name,
+                    'total_cost' => floatval($item->total_cost),
+                ];
+            })->toArray();
+        } catch (\Exception $e) {
+            Log::error('HectareDashboard getCostByCCLevel2: ' . $e->getMessage());
             return [];
         }
     }
