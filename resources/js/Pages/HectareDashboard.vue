@@ -48,7 +48,7 @@ const filteredLevel2 = computed(() => {
     if (!highlightLevel1.value) return [];
     let items = props.costPerHaByLevel2.filter(l => l.level1 === highlightLevel1.value);
     if (selectedVarietyState.value) {
-        items = items.filter(l => l.state_id === selectedVarietyState.value);
+        items = items.filter(l => Number(l.state_id) === Number(selectedVarietyState.value));
     }
     // Agrupar por subcategoría (sumar estados si es "Todos")
     const grouped = {};
@@ -108,7 +108,7 @@ const selectedVarietyState = ref(null); // null = Todos
 // ── Superficie para cálculo $/ha de Level1 (según estado seleccionado) ──
 const level1Surface = computed(() => {
     if (!selectedVarietyState.value) return productiveSurface.value;
-    const state = props.costPerHaByDevState.find(s => s.state_id === selectedVarietyState.value);
+    const state = props.costPerHaByDevState.find(s => Number(s.state_id) === Number(selectedVarietyState.value));
     return state?.surface ?? 0;
 });
 
@@ -126,7 +126,7 @@ const filteredCostByLevel1 = computed(() => {
             ...g, cost_per_ha: surface > 0 ? g.total_cost / surface : 0,
         })).sort((a, b) => b.total_cost - a.total_cost);
     }
-    const filtered = data.filter(d => d.state_id === selectedVarietyState.value);
+    const filtered = data.filter(d => Number(d.state_id) === Number(selectedVarietyState.value));
     const grouped = {};
     filtered.forEach(d => {
         if (!grouped[d.name]) grouped[d.name] = { name: d.name, total_cost: 0 };
@@ -164,7 +164,7 @@ const filteredCostByVariety = computed(() => {
             cost_per_ha: g.surface > 0 ? g.total_cost / g.surface : 0,
         })).sort((a, b) => b.total_cost - a.total_cost);
     }
-    return data.filter(d => d.state_id === selectedVarietyState.value)
+    return data.filter(d => Number(d.state_id) === Number(selectedVarietyState.value))
         .sort((a, b) => b.total_cost - a.total_cost);
 });
 
@@ -181,7 +181,7 @@ const filteredSurfaceByVariety = computed(() => {
         });
         return Object.values(grouped).sort((a, b) => b.surface - a.surface);
     }
-    return data.filter(d => d.state_id === selectedVarietyState.value)
+    return data.filter(d => Number(d.state_id) === Number(selectedVarietyState.value))
         .sort((a, b) => b.surface - a.surface);
 });
 
@@ -210,7 +210,7 @@ const filteredVarietyDetail = computed(() => {
     const surface = highlightVarietySurface.value;
     let items = props.costByVarietyLevel2.filter(v => v.variety === highlightVariety.value);
     if (selectedVarietyState.value) {
-        items = items.filter(v => v.state_id === selectedVarietyState.value);
+        items = items.filter(v => Number(v.state_id) === Number(selectedVarietyState.value));
     } else {
         // Agrupar por level2 sumando todos los estados
         const grouped = {};
@@ -575,7 +575,7 @@ onUnmounted(() => { if (monthlyChart) monthlyChart.destroy(); });
                         <div class="card h-100">
                             <div class="card-header">
                                 <h6 class="mb-0"><i class="fas fa-sitemap me-2"></i>Costo / Hectárea por Categoría (Nivel 1)
-                                    <small v-if="selectedVarietyState" class="text-500 ms-1">({{ varietyDevStates.find(s => s.value === selectedVarietyState)?.label }})</small>
+                                    <small v-if="selectedVarietyState" class="text-500 ms-1">({{ varietyDevStates.find(s => Number(s.value) === Number(selectedVarietyState))?.label }})</small>
                                 </h6>
                             </div>
                             <div class="card-body">
@@ -685,7 +685,7 @@ onUnmounted(() => { if (monthlyChart) monthlyChart.destroy(); });
                         <div class="card h-100">
                             <div class="card-header">
                                 <h6 class="mb-0">Costo / Hectárea por Variedad
-                                    <small v-if="selectedVarietyState" class="text-500 ms-1">({{ varietyDevStates.find(s => s.value === selectedVarietyState)?.label }})</small>
+                                    <small v-if="selectedVarietyState" class="text-500 ms-1">({{ varietyDevStates.find(s => Number(s.value) === Number(selectedVarietyState))?.label }})</small>
                                 </h6>
                             </div>
                             <div class="card-body">
@@ -755,7 +755,7 @@ onUnmounted(() => { if (monthlyChart) monthlyChart.destroy(); });
                         <div class="card">
                             <div class="card-header">
                                 <h6 class="mb-0">Detalle Costo/ha por Variedad
-                                    <small v-if="selectedVarietyState" class="text-500 ms-1">({{ varietyDevStates.find(s => s.value === selectedVarietyState)?.label }})</small>
+                                    <small v-if="selectedVarietyState" class="text-500 ms-1">({{ varietyDevStates.find(s => Number(s.value) === Number(selectedVarietyState))?.label }})</small>
                                 </h6>
                             </div>
                             <div class="card-body p-0">
