@@ -337,6 +337,7 @@ use App\Http\Controllers\GroupingsController;
 use App\Http\Controllers\OutflowsController;
 use App\Http\Controllers\OutflowsDashboardController;
 use App\Http\Controllers\ComparativeOutflowsDashboardController;
+use App\Http\Controllers\HectareDashboardController;
 use App\Http\Controllers\Outflows\CreateOutflowController;
 use App\Http\Controllers\Outflows\StoreOutflowController;
 use App\Http\Controllers\Outflows\ShowOutflowController;
@@ -688,6 +689,9 @@ Route::middleware([
     
     // Dashboard Comparativo (Presupuesto vs Real)
     Route::get('/comparative-dashboard', [ComparativeOutflowsDashboardController::class, 'index'])->name('comparative.dashboard');
+
+    // Dashboard Gestión por Hectárea
+    Route::get('/hectare-dashboard', [HectareDashboardController::class, 'index'])->name('hectare.dashboard');
     
     // Consolidado de Outflows
     Route::get('/consolidated-outflows', [ConsolidatedOutflowsController::class, 'index'])->name('consolidated-outflows.index');

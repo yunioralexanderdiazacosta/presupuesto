@@ -48,6 +48,13 @@ overflow-y: auto;
   font-size: 0.75rem; /* ~12px */
 }
 
+/* Padding izquierdo en el menú lateral para que iconos/textos no queden pegados al borde */
+@media (min-width: 1200px) {
+  .navbar-vertical.navbar-expand-xl .navbar-vertical-content {
+    padding-left: 0.75rem;
+  }
+}
+
 /* ====== Login Page ====== */
 .login-bg {
   background: #d8e2ef;

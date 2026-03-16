@@ -50,7 +50,7 @@ const logout = () => {
 <template>
   <div>
     <nav class="navbar navbar-light navbar-vertical navbar-expand-xl position-fixed start-0 top-0 vh-100">
-        <div class="d-flex align-items-center">
+        <div class="d-flex align-items-center ps-2">
             <div class="toggle-icon-wrapper">
               <button class="btn navbar-toggler-humburger-icon navbar-vertical-toggle" data-bs-toggle="tooltip" data-bs-placement="left" title="Toggle Navigation"><span class="navbar-toggle-icon"><span class="toggle-line"></span></span></button>
             </div>
@@ -239,6 +239,16 @@ const logout = () => {
                         <div class="d-flex align-items-center">
                           <span class="nav-link-text ps-3">
                             <i class="fas fa-chart-line me-2"></i>Comparativo Presupuesto vs Real
+                          </span>
+                        </div>
+                      </Link>
+                    </li>
+
+                    <li class="nav-item">
+                      <Link class="nav-link" :href="route('hectare.dashboard')">
+                        <div class="d-flex align-items-center">
+                          <span class="nav-link-text ps-3">
+                            <i class="fas fa-seedling me-2"></i>Gestión por Hectárea
                           </span>
                         </div>
                       </Link>

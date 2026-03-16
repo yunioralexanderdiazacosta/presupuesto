@@ -42,6 +42,8 @@ const props = defineProps({
 const chartRef = ref(null);
 let chartInstance = null;
 
+const emit = defineEmits(['bar-click']);
+
 const formatNumber = (val) => {
   // Si es un objeto tipo {value: ...} (ECharts a veces lo hace), extraer el valor
   if (val && typeof val === 'object' && 'value' in val) {
@@ -130,6 +132,12 @@ const setChart = () => {
   };
   chartInstance.setOption(option);
   chartInstance.resize();
+
+  // Evento click en barras
+  chartInstance.off('click');
+  chartInstance.on('click', (params) => {
+    emit('bar-click', { index: params.dataIndex, name: params.name, value: params.value });
+  });
 };
 
 onMounted(() => {
