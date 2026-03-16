@@ -136,6 +136,19 @@ Este proyecto es un sistema de gestión presupuestaria agrícola desarrollado en
 - **En la tabla HTML**: Usar `toLocaleString('es-ES')` para mostrar con punto de miles y coma decimal.
 - **En Excel**: Exportar números puros para que Excel aplique su formato numérico automáticamente.
 
+### Comparaciones de IDs en JavaScript (Frontend)
+- **REGLA CRÍTICA**: En producción, MySQL puede devolver IDs como **strings** (`"3"`) mientras que los mapeos PHP (`->map()`) los pasan como **integers** (`3`). La comparación estricta `===` entre ambos falla silenciosamente.
+- **SIEMPRE** usar `String()` al comparar IDs en JavaScript, especialmente en `.find()`, `.filter()`, `.includes()`:
+  ```javascript
+  // ❌ INCORRECTO: Falla en producción por diferencia de tipos (int vs string)
+  const item = items.find(i => i.value === someId);
+
+  // ✅ CORRECTO: Funciona siempre
+  const item = items.find(i => String(i.value) === String(someId));
+  ```
+- Esto aplica a **todos** los componentes que comparan IDs provenientes de props de Inertia contra datos de relaciones Eloquent (cost_center_variety_id, fruit_id, team_id, etc.).
+- **Causa raíz**: El driver MySQL de producción puede tener configuración PDO distinta (`ATTR_STRINGIFY_FETCHES`) a la de desarrollo local.
+
 ## Notas adicionales
 - Si tienes dudas sobre la lógica o reglas, consulta este archivo antes de implementar cambios.
 - Actualiza este archivo si agregas reglas o flujos nuevos.

@@ -96,6 +96,15 @@ use App\Http\Controllers\InvoicePayments\DeleteInvoicePaymentController;
 
 ## Convenciones Frontend
 
+**Comparación de IDs en JavaScript**: En producción MySQL puede devolver IDs como strings (`"3"`) mientras los mapeos PHP los pasan como integers (`3`). **SIEMPRE** usar `String()` al comparar IDs:
+```javascript
+// ❌ INCORRECTO: Falla en producción
+const item = items.find(i => i.value === someId);
+
+// ✅ CORRECTO: Funciona siempre
+const item = items.find(i => String(i.value) === String(someId));
+```
+
 **Selects**: Usar SIEMPRE `@vueform/multiselect`, nunca selects nativos ni otros plugins. Ejemplo:
 ```vue
 import Multiselect from '@vueform/multiselect';

@@ -16,7 +16,7 @@ const typeIcons = { caliber: 'fa-ruler', color: 'fa-palette', quality: 'fa-star'
 // Obtener fruit_id del despacho
 const selectedFruitId = computed(() => {
     if (!props.dispatch?.cost_center_variety_id) return null;
-    const ccv = props.costCenterVarieties?.find(c => c.value === props.dispatch.cost_center_variety_id);
+    const ccv = props.costCenterVarieties?.find(c => String(c.value) === String(props.dispatch.cost_center_variety_id));
     return ccv ? ccv.fruit_id : null;
 });
 
