@@ -679,26 +679,6 @@ onUnmounted(() => { if (monthlyChart) monthlyChart.destroy(); });
                     </div>
                 </div>
 
-                <!-- ═══════════ EVOLUCIÓN MENSUAL ═══════════ -->
-                <div class="row g-3 mb-4">
-                    <div class="col-12">
-                        <div class="card">
-                            <div class="card-header">
-                                <h6 class="mb-0">
-                                    <i class="fas fa-chart-area me-2"></i>Evolución Mensual — Costo y Costo/ha Acumulado
-                                    <small class="text-500 ms-2">(Superficie: {{ fmtDec(monthlyCostPerHa.total_surface) }} ha)</small>
-                                </h6>
-                            </div>
-                            <div class="card-body">
-                                <div v-if="monthlyCostPerHa.labels.length" style="height: 350px;">
-                                    <canvas ref="monthlyChartRef"></canvas>
-                                </div>
-                                <p v-else class="text-center text-muted py-5">Sin datos mensuales disponibles</p>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
                 <!-- ═══════════ COSTO/HA POR VARIEDAD ═══════════ -->
                 <div class="row g-3 mb-4">
                     <div class="col-lg-7">
@@ -841,6 +821,26 @@ onUnmounted(() => { if (monthlyChart) monthlyChart.destroy(); });
                                     </table>
                                 </div>
                                 <p v-else class="text-center text-muted py-4">Sin datos</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- ═══════════ EVOLUCIÓN MENSUAL ═══════════ -->
+                <div class="row g-3 mb-4">
+                    <div class="col-12">
+                        <div class="card">
+                            <div class="card-header">
+                                <h6 class="mb-0">
+                                    <i class="fas fa-chart-area me-2"></i>Evolución Mensual — Costo y Costo/ha Acumulado
+                                    <small class="text-500 ms-2">(Superficie: {{ fmtDec(monthlyCostPerHa.total_surface) }} ha)</small>
+                                </h6>
+                            </div>
+                            <div class="card-body">
+                                <div v-if="monthlyCostPerHa.labels.length" style="height: 350px;">
+                                    <canvas ref="monthlyChartRef"></canvas>
+                                </div>
+                                <p v-else class="text-center text-muted py-5">Sin datos mensuales disponibles</p>
                             </div>
                         </div>
                     </div>
