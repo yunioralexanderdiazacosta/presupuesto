@@ -1,10 +1,9 @@
 <script setup>
 import { ref, computed, watch } from 'vue';
-import { Head, usePage } from '@inertiajs/vue3';
+import { Head } from '@inertiajs/vue3';
 import Swal from 'sweetalert2';
 import axios from 'axios';
 import AppLayout from '@/Layouts/AppLayout.vue';
-import Multiselect from '@vueform/multiselect';
 
 const props = defineProps({
     costCenters: Array,
@@ -19,6 +18,8 @@ const title = 'Variedades por Cuartel';
 
 // ── Estado ────────────────────────────────────────────────────────────────────
 const selectedCostCenterId = ref('');
+const searchTerm           = ref('');
+const localCostCenters     = ref(props.costCenters.map(c => ({ ...c })));
 const varieties       = ref([]);
 const loading         = ref(false);
 const saving          = ref(false);
@@ -47,6 +48,18 @@ const remainingSurface = computed(() =>
     Math.round((totalSurface.value - usedSurface.value) * 10000) / 10000
 );
 
+// ── Computeds cuarteles ──────────────────────────────────────────────────────
+const configuredCount = computed(() =>
+    localCostCenters.value.filter(c => c.varieties_count > 0).length
+);
+const filteredCostCenters = computed(() => {
+    if (!searchTerm.value) return localCostCenters.value;
+    const term = searchTerm.value.toLowerCase();
+    return localCostCenters.value.filter(c => c.label.toLowerCase().includes(term));
+});
+const ccWithVarieties    = computed(() => filteredCostCenters.value.filter(c => c.varieties_count > 0));
+const ccWithoutVarieties = computed(() => filteredCostCenters.value.filter(c => !c.varieties_count));
+
 const filteredVarietiesNew = computed(() => {
     if (!newRow.value.fruit_id) return [];
     return (props.varieties ?? []).filter(v => String(v.fruit_id) === String(newRow.value.fruit_id));
@@ -66,11 +79,17 @@ watch(() => newRow.value.fruit_id, () => { newRow.value.variety_id = ''; });
 watch(() => editRow.value.fruit_id, () => { editRow.value.variety_id = ''; });
 
 // ── API ───────────────────────────────────────────────────────────────────────
+const syncLocalCount = (count) => {
+    const idx = localCostCenters.value.findIndex(c => String(c.value) === String(selectedCostCenterId.value));
+    if (idx !== -1) localCostCenters.value[idx].varieties_count = count;
+};
+
 const loadVarieties = async () => {
     loading.value = true;
     try {
         const res = await axios.get(route('api.cost-center-varieties', selectedCostCenterId.value));
         varieties.value = res.data;
+        syncLocalCount(res.data.length);
     } catch {
         Swal.fire('Error', 'No se pudo cargar las variedades', 'error');
     } finally {
@@ -183,15 +202,32 @@ const deleteVariety = async (id) => {
                 <!-- Selector de cuartel + badges -->
                 <div class="row align-items-end mb-3">
                     <div class="col-md-4">
-                        <label class="form-label fw-semibold small mb-1">Selecciona un cuartel</label>
-                        <Multiselect
-                            v-model="selectedCostCenterId"
-                            :options="costCenters"
-                            placeholder="Buscar cuartel..."
-                            :searchable="true"
-                            :close-on-select="true"
-                            class="multiselect-blue form-control"
+                        <div class="d-flex justify-content-between align-items-center mb-1">
+                            <label class="form-label fw-semibold small mb-0">Selecciona un cuartel</label>
+                            <span class="badge border small" :class="configuredCount === localCostCenters.length ? 'bg-success text-white' : 'bg-light text-secondary'">
+                                <i class="fas fa-check-circle me-1" v-if="configuredCount === localCostCenters.length"></i>
+                                {{ configuredCount }} / {{ localCostCenters.length }} configurados
+                            </span>
+                        </div>
+                        <input
+                            v-model="searchTerm"
+                            type="text"
+                            class="form-control form-control-sm mb-1"
+                            placeholder="Filtrar cuarteles por nombre..."
                         />
+                        <select v-model="selectedCostCenterId" class="form-select form-select-sm">
+                            <option value="">-- Seleccione un cuartel --</option>
+                            <optgroup v-if="ccWithVarieties.length" :label="`✓ Con variedades (${ccWithVarieties.length})`">
+                                <option v-for="c in ccWithVarieties" :key="c.value" :value="c.value">
+                                    {{ c.label }} · {{ c.varieties_count }} var.
+                                </option>
+                            </optgroup>
+                            <optgroup v-if="ccWithoutVarieties.length" :label="`○ Sin variedades (${ccWithoutVarieties.length})`">
+                                <option v-for="c in ccWithoutVarieties" :key="c.value" :value="c.value">
+                                    {{ c.label }}
+                                </option>
+                            </optgroup>
+                        </select>
                     </div>
                     <div class="col-md-8 d-flex align-items-center gap-2 flex-wrap mt-2 mt-md-0" v-if="selectedCostCenterId">
                         <span class="badge bg-secondary" style="font-size: 0.82rem;">
@@ -230,7 +266,7 @@ const deleteVariety = async (id) => {
                                     <th style="width:100px;">Sup. (ha)</th>
                                     <th style="width:100px;">Año Plant.</th>
                                     <th>Observaciones</th>
-                                    <th class="text-end" style="width:100px;">Acciones</th>
+                                    <th class="text-end" style="width:80px; white-space:nowrap;">Acciones</th>
                                 </tr>
                             </thead>
                             <tbody>
@@ -252,7 +288,7 @@ const deleteVariety = async (id) => {
                                         <td>{{ v.surface }}</td>
                                         <td>{{ v.year_plantation ?? '—' }}</td>
                                         <td class="text-truncate" style="max-width:180px;">{{ v.observations ?? '—' }}</td>
-                                        <td class="text-end">
+                                        <td class="text-end" style="white-space:nowrap;">
                                             <button type="button" @click="startEdit(v)" v-tooltip="'Editar'"
                                                 class="btn btn-icon btn-active-light-primary w-28px h-28px me-1">
                                                 <i class="fas fa-pencil-alt fa-sm"></i>
@@ -380,15 +416,4 @@ const deleteVariety = async (id) => {
     </AppLayout>
 </template>
 
-<style src="@vueform/multiselect/themes/default.css"></style>
-<style>
-.multiselect-blue {
-    --ms-bg: var(--kt-input-solid-bg, #f5f8fa) !important;
-    --ms-border-color: var(--kt-input-solid-bg, #f5f8fa);
-    --ms-py: 3px !important;
-    --ms-tag-bg: #2c7be5;
-    --ms-tag-color: #fff;
-    --ms-option-bg-selected: #2c7be5;
-    --ms-option-color-selected: #fff;
-}
-</style>
+

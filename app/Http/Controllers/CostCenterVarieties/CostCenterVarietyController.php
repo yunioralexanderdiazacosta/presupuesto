@@ -19,13 +19,22 @@ class CostCenterVarietyController extends Controller
         $user      = Auth::user();
         $season_id = session('season_id');
 
-        $costCenters = CostCenter::where('season_id', $season_id)
+        $costCenters = CostCenter::withCount('costCenterVarieties')
+            ->where('season_id', $season_id)
             ->whereHas('season', fn($q) => $q->where('team_id', $user->team_id))
             ->orderBy('name')
             ->get(['id', 'name', 'surface']);
 
-        $costCentersData = $costCenters->map(fn($c) => ['id' => $c->id, 'surface' => (float) $c->surface]);
-        $costCenters     = $costCenters->map(fn($c) => ['label' => $c->name, 'value' => $c->id]);
+        $costCentersData = $costCenters->map(fn($c) => [
+            'id'              => $c->id,
+            'surface'         => (float) $c->surface,
+            'varieties_count' => $c->cost_center_varieties_count,
+        ]);
+        $costCenters = $costCenters->map(fn($c) => [
+            'label'           => $c->name,
+            'value'           => $c->id,
+            'varieties_count' => $c->cost_center_varieties_count,
+        ]);
 
         $fruits = Fruit::where('team_id', $user->team_id)
             ->orderBy('name')
