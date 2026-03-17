@@ -31,6 +31,7 @@ class User extends Authenticatable
         'email',
         'password',
         'team_id',
+        'dollar_price',
         'observations',
         'status'
     ];

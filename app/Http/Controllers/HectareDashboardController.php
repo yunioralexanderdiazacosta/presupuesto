@@ -89,6 +89,7 @@ class HectareDashboardController extends Controller
                 ->join('fruits', 'cost_centers.fruit_id', '=', 'fruits.id')
                 ->where('cost_centers.season_id', $season_id)
                 ->select(
+                    'fruits.id as fruit_id',
                     'fruits.name as fruit_name',
                     DB::raw('SUM(cost_centers.surface) as total_surface'),
                     DB::raw('COUNT(cost_centers.id) as count_cc')
@@ -98,9 +99,10 @@ class HectareDashboardController extends Controller
                 ->get();
 
             return $results->map(fn($item) => [
-                'name'    => $item->fruit_name,
-                'surface' => floatval($item->total_surface),
-                'count'   => intval($item->count_cc),
+                'fruit_id' => intval($item->fruit_id),
+                'name'     => $item->fruit_name,
+                'surface'  => floatval($item->total_surface),
+                'count'    => intval($item->count_cc),
             ])->toArray();
         } catch (\Exception $e) {
             Log::error('HectareDashboard getSurfaceByFruit: ' . $e->getMessage());
@@ -174,28 +176,37 @@ class HectareDashboardController extends Controller
 
             $results = $this->baseOutflowQuery($season_id, $team_id)
                 ->join('development_states', 'cost_centers.development_state_id', '=', 'development_states.id')
+                ->leftJoin('fruits', 'cost_centers.fruit_id', '=', 'fruits.id')
                 ->selectRaw("
                     development_states.id as state_id,
                     development_states.name as state_name,
+                    COALESCE(fruits.id, 0) as fruit_id,
                     COALESCE(SUM({$amountExpr}), 0) as total_cost
                 ")
-                ->groupBy('development_states.id', 'development_states.name')
+                ->groupBy('development_states.id', 'development_states.name', 'fruits.id')
                 ->orderBy('total_cost', 'desc')
                 ->get();
 
-            // Obtener superficies por estado
+            // Obtener superficies por estado + frutal
             $surfaces = DB::table('cost_centers')
                 ->join('development_states', 'cost_centers.development_state_id', '=', 'development_states.id')
                 ->where('cost_centers.season_id', $season_id)
-                ->select('development_states.id as state_id', DB::raw('SUM(cost_centers.surface) as total_surface'))
-                ->groupBy('development_states.id')
-                ->pluck('total_surface', 'state_id');
+                ->select(
+                    'development_states.id as state_id',
+                    'cost_centers.fruit_id',
+                    DB::raw('SUM(cost_centers.surface) as total_surface')
+                )
+                ->groupBy('development_states.id', 'cost_centers.fruit_id')
+                ->get()
+                ->keyBy(fn($item) => $item->state_id . '||' . ($item->fruit_id ?? 0));
 
             return $results->map(function ($item) use ($surfaces) {
-                $surface = floatval($surfaces[$item->state_id] ?? 0);
+                $key = $item->state_id . '||' . ($item->fruit_id ?? 0);
+                $surface = floatval($surfaces[$key]->total_surface ?? 0);
                 $totalCost = floatval($item->total_cost);
                 return [
                     'state_id'    => intval($item->state_id),
+                    'fruit_id'    => intval($item->fruit_id ?? 0),
                     'name'        => $item->state_name,
                     'total_cost'  => $totalCost,
                     'surface'     => $surface,
@@ -327,9 +338,10 @@ class HectareDashboardController extends Controller
                 ->selectRaw("
                     COALESCE(level1s.name, 'Sin Clasificar') as level1_name,
                     COALESCE(cost_centers.development_state_id, 0) as state_id,
+                    COALESCE(cost_centers.fruit_id, 0) as fruit_id,
                     COALESCE(SUM({$amountExpr}), 0) as total_cost
                 ")
-                ->groupBy('level1s.id', 'level1s.name', 'cost_centers.development_state_id')
+                ->groupBy('level1s.id', 'level1s.name', 'cost_centers.development_state_id', 'cost_centers.fruit_id')
                 ->orderBy('total_cost', 'desc')
                 ->get();
 
@@ -340,6 +352,7 @@ class HectareDashboardController extends Controller
                     return [
                         'name'        => $item->level1_name,
                         'state_id'    => intval($item->state_id),
+                        'fruit_id'    => intval($item->fruit_id ?? 0),
                         'total_cost'  => $totalCost,
                         'cost_per_ha' => $totalSurface > 0 ? $totalCost / $totalSurface : 0,
                     ];
@@ -379,9 +392,10 @@ class HectareDashboardController extends Controller
                     COALESCE(level2s.name, 'Sin Clasificar') as level2_name,
                     COALESCE(level3s.name, 'Sin Clasificar') as level3_name,
                     COALESCE(cost_centers.development_state_id, 0) as state_id,
+                    COALESCE(cost_centers.fruit_id, 0) as fruit_id,
                     COALESCE(SUM({$amountExpr}), 0) as total_cost
                 ")
-                ->groupBy('level1s.id', 'level1s.name', 'level2s.id', 'level2s.name', 'level3s.id', 'level3s.name', 'cost_centers.development_state_id')
+                ->groupBy('level1s.id', 'level1s.name', 'level2s.id', 'level2s.name', 'level3s.id', 'level3s.name', 'cost_centers.development_state_id', 'cost_centers.fruit_id')
                 ->orderBy('level1s.name')
                 ->orderBy('total_cost', 'desc')
                 ->get();
@@ -393,6 +407,7 @@ class HectareDashboardController extends Controller
                     'name'        => $item->level2_name,
                     'level3'      => $item->level3_name,
                     'state_id'    => intval($item->state_id),
+                    'fruit_id'    => intval($item->fruit_id ?? 0),
                     'total_cost'  => $totalCost,
                     'cost_per_ha' => $totalSurface > 0 ? $totalCost / $totalSurface : 0,
                 ];
@@ -517,10 +532,11 @@ class HectareDashboardController extends Controller
                     'varieties.name as variety_name',
                     DB::raw("COALESCE(development_states.name, 'Sin Estado') as state_name"),
                     DB::raw("COALESCE(cost_center_varieties.development_state_id, 0) as state_id"),
+                    'cost_center_varieties.fruit_id',
                     DB::raw('SUM(cost_center_varieties.surface) as total_surface'),
                     DB::raw('COUNT(cost_center_varieties.id) as count_cc')
                 )
-                ->groupBy('varieties.id', 'varieties.name', 'cost_center_varieties.development_state_id', 'development_states.name')
+                ->groupBy('varieties.id', 'varieties.name', 'cost_center_varieties.development_state_id', 'development_states.name', 'cost_center_varieties.fruit_id')
                 ->orderBy('total_surface', 'desc')
                 ->get();
 
@@ -528,6 +544,7 @@ class HectareDashboardController extends Controller
                 'name'     => $item->variety_name,
                 'state'    => $item->state_name,
                 'state_id' => intval($item->state_id),
+                'fruit_id' => intval($item->fruit_id ?? 0),
                 'surface'  => floatval($item->total_surface),
                 'count'    => intval($item->count_cc),
             ])->toArray();
@@ -565,16 +582,17 @@ class HectareDashboardController extends Controller
                     varieties.name as variety_name,
                     COALESCE(cost_center_varieties.development_state_id, 0) as state_id,
                     COALESCE(ccv_dev_states.name, 'Sin Estado') as state_name,
+                    COALESCE(cost_center_varieties.fruit_id, 0) as fruit_id,
                     COALESCE(SUM(
                         ({$amountExpr}) * 
                         cost_center_varieties.surface / NULLIF(ccv_totals.total_variety_surface, 0)
                     ), 0) as total_cost
                 ")
-                ->groupBy('varieties.id', 'varieties.name', 'cost_center_varieties.development_state_id', 'ccv_dev_states.name')
+                ->groupBy('varieties.id', 'varieties.name', 'cost_center_varieties.development_state_id', 'ccv_dev_states.name', 'cost_center_varieties.fruit_id')
                 ->orderBy('total_cost', 'desc')
                 ->get();
 
-            // Superficies por variedad + estado
+            // Superficies por variedad + estado + frutal
             $surfaces = DB::table('cost_center_varieties')
                 ->join('varieties', 'cost_center_varieties.variety_id', '=', 'varieties.id')
                 ->where('cost_center_varieties.season_id', $season_id)
@@ -582,20 +600,22 @@ class HectareDashboardController extends Controller
                 ->select(
                     'varieties.name as variety_name',
                     DB::raw('COALESCE(cost_center_varieties.development_state_id, 0) as state_id'),
+                    'cost_center_varieties.fruit_id',
                     DB::raw('SUM(cost_center_varieties.surface) as total_surface')
                 )
-                ->groupBy('varieties.id', 'varieties.name', 'cost_center_varieties.development_state_id')
+                ->groupBy('varieties.id', 'varieties.name', 'cost_center_varieties.development_state_id', 'cost_center_varieties.fruit_id')
                 ->get()
-                ->keyBy(fn($item) => $item->variety_name . '||' . $item->state_id);
+                ->keyBy(fn($item) => $item->variety_name . '||' . $item->state_id . '||' . ($item->fruit_id ?? 0));
 
             return $results->map(function ($item) use ($surfaces) {
-                $key = $item->variety_name . '||' . $item->state_id;
+                $key = $item->variety_name . '||' . $item->state_id . '||' . ($item->fruit_id ?? 0);
                 $surface = floatval($surfaces[$key]->total_surface ?? 0);
                 $totalCost = floatval($item->total_cost);
                 return [
                     'name'        => $item->variety_name,
                     'state'       => $item->state_name,
                     'state_id'    => intval($item->state_id),
+                    'fruit_id'    => intval($item->fruit_id ?? 0),
                     'total_cost'  => $totalCost,
                     'surface'     => $surface,
                     'cost_per_ha' => $surface > 0 ? $totalCost / $surface : 0,
@@ -657,6 +677,7 @@ class HectareDashboardController extends Controller
                 ->selectRaw("
                     varieties.name as variety_name,
                     COALESCE(cost_center_varieties.development_state_id, 0) as state_id,
+                    COALESCE(cost_center_varieties.fruit_id, 0) as fruit_id,
                     COALESCE(level1s.name, 'Sin Clasificar') as level1_name,
                     COALESCE(level2s.name, 'Sin Clasificar') as level2_name,
                     COALESCE(level3s.name, 'Sin Clasificar') as level3_name,
@@ -665,7 +686,7 @@ class HectareDashboardController extends Controller
                         cost_center_varieties.surface / NULLIF(ccv_totals.total_variety_surface, 0)
                     ), 0) as total_cost
                 ")
-                ->groupBy('varieties.id', 'varieties.name', 'cost_center_varieties.development_state_id', 'level1s.id', 'level1s.name', 'level2s.id', 'level2s.name', 'level3s.id', 'level3s.name')
+                ->groupBy('varieties.id', 'varieties.name', 'cost_center_varieties.development_state_id', 'cost_center_varieties.fruit_id', 'level1s.id', 'level1s.name', 'level2s.id', 'level2s.name', 'level3s.id', 'level3s.name')
                 ->orderBy('varieties.name')
                 ->orderBy('total_cost', 'desc')
                 ->get();
@@ -674,6 +695,7 @@ class HectareDashboardController extends Controller
                 return [
                     'variety'    => $item->variety_name,
                     'state_id'   => intval($item->state_id),
+                    'fruit_id'   => intval($item->fruit_id ?? 0),
                     'category'   => $item->level1_name,
                     'name'       => $item->level2_name,
                     'level3'     => $item->level3_name,
@@ -701,10 +723,11 @@ class HectareDashboardController extends Controller
                     cost_centers.name as cc_name,
                     cost_centers.surface as surface,
                     COALESCE(cost_centers.development_state_id, 0) as state_id,
+                    COALESCE(fruits.id, 0) as fruit_id,
                     COALESCE(fruits.name, '-') as fruit_name,
                     COALESCE(SUM({$amountExpr}), 0) as total_cost
                 ")
-                ->groupBy('cost_centers.id', 'cost_centers.name', 'cost_centers.surface', 'cost_centers.development_state_id', 'fruits.name')
+                ->groupBy('cost_centers.id', 'cost_centers.name', 'cost_centers.surface', 'cost_centers.development_state_id', 'fruits.id', 'fruits.name')
                 ->havingRaw("COALESCE(SUM({$amountExpr}), 0) > 0")
                 ->orderByRaw("CASE WHEN cost_centers.surface > 0 THEN COALESCE(SUM({$amountExpr}), 0) / cost_centers.surface ELSE 0 END DESC")
                 ->get();
@@ -716,6 +739,7 @@ class HectareDashboardController extends Controller
                     'cc_id'       => intval($item->cc_id),
                     'name'        => $item->cc_name,
                     'state_id'    => intval($item->state_id),
+                    'fruit_id'    => intval($item->fruit_id ?? 0),
                     'fruit'       => $item->fruit_name,
                     'surface'     => $surface,
                     'total_cost'  => $totalCost,
@@ -740,16 +764,18 @@ class HectareDashboardController extends Controller
                 ->leftJoin('level3s', 'outflows.level3_id', '=', 'level3s.id')
                 ->leftJoin('level2s', 'level3s.level2_id', '=', 'level2s.id')
                 ->leftJoin('level1s', 'level2s.level1_id', '=', 'level1s.id')
+                ->leftJoin('fruits', 'cost_centers.fruit_id', '=', 'fruits.id')
                 ->selectRaw("
                     cost_centers.id as cc_id,
                     cost_centers.name as cc_name,
                     COALESCE(cost_centers.development_state_id, 0) as state_id,
+                    COALESCE(fruits.id, 0) as fruit_id,
                     COALESCE(level1s.name, 'Sin Clasificar') as level1_name,
                     COALESCE(level2s.name, 'Sin Clasificar') as level2_name,
                     COALESCE(level3s.name, 'Sin Clasificar') as level3_name,
                     COALESCE(SUM({$amountExpr}), 0) as total_cost
                 ")
-                ->groupBy('cost_centers.id', 'cost_centers.name', 'cost_centers.development_state_id', 'level1s.id', 'level1s.name', 'level2s.id', 'level2s.name', 'level3s.id', 'level3s.name')
+                ->groupBy('cost_centers.id', 'cost_centers.name', 'cost_centers.development_state_id', 'fruits.id', 'level1s.id', 'level1s.name', 'level2s.id', 'level2s.name', 'level3s.id', 'level3s.name')
                 ->orderBy('cost_centers.name')
                 ->orderBy('total_cost', 'desc')
                 ->get();
@@ -759,6 +785,7 @@ class HectareDashboardController extends Controller
                     'cc_id'      => intval($item->cc_id),
                     'cc_name'    => $item->cc_name,
                     'state_id'   => intval($item->state_id),
+                    'fruit_id'   => intval($item->fruit_id ?? 0),
                     'category'   => $item->level1_name,
                     'name'       => $item->level2_name,
                     'level3'     => $item->level3_name,

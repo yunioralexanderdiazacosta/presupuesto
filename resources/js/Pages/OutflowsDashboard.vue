@@ -5,6 +5,7 @@ import Breadcrumb from '@/Components/Breadcrumb.vue';
 import FalconBarChart from '@/Components/FalconBarChart.vue';
 import FalconPieChart from '@/Components/FalconPieChart.vue';
 import { computed, ref } from 'vue';
+import axios from 'axios';
 
 const props = defineProps({
     summary: {
@@ -93,7 +94,9 @@ const props = defineProps({
             totalKilos: 0,
             costoKilo: 0
         })
-    }
+    },
+    dollarPrice: { type: Number, default: 970 },
+    isAdmin:     { type: Boolean, default: false },
 });
 
 const title = 'Dashboard de Outflows';
@@ -215,11 +218,24 @@ const t = computed(() => isEnglish.value ? {
 });
 
 // Variables para conversión USD
-const divisor = ref(970);
+const divisor = ref(props.dollarPrice);
 const divisorMin = 800;
-const divisorMax = 1100;
-const dividir = ref(false); // Por defecto desactivado
+const divisorMax = 1300;
+const dividir = ref(false);
 const incluirAdmin = ref(false);
+const savingDollar = ref(false);
+
+const saveDollarPrice = async () => {
+    if (!props.isAdmin) return;
+    savingDollar.value = true;
+    try {
+        await axios.patch(route('api.dollar-price.update'), { dollar_price: divisor.value });
+    } catch (e) {
+        console.error('Error guardando tipo de cambio', e);
+    } finally {
+        savingDollar.value = false;
+    }
+};
 
 // Select de estimación para Costo Kilo Acumulado
 const selectedEstimateStatusId = ref(props.costoKiloAcumulado?.defaultEstimateStatusId ?? null);
@@ -387,12 +403,17 @@ const totalCompras = computed(() => {
                                 <label class="form-check-label ms-2 mt-0 mb-0 small" for="dividir-switch">{{ t.viewInUSD }}</label>
                             </div>
                             <template v-if="dividir">
-                                <div class="d-flex align-items-center" style="min-width:220px;">
+                                <div class="d-flex align-items-center gap-2">
                                     <label for="divisor-slider" class="form-label mb-0 me-2 small">{{ t.divisor }}:</label>
-                                    <input id="divisor-slider" type="range" class="form-range" 
-                                           v-model.number="divisor" :min="divisorMin" :max="divisorMax" :step="1" 
-                                           style="max-width:150px;" />
-                                    <span class="text-muted small ms-2"><b>{{ divisor }}</b></span>
+                                    <input id="divisor-slider" type="range" class="form-range"
+                                           v-model.number="divisor" :min="divisorMin" :max="divisorMax" :step="1"
+                                           style="width:220px; flex-shrink:0;" />
+                                    <span class="text-muted small ms-1"><b>{{ divisor }}</b></span>
+                                    <button v-if="isAdmin" @click="saveDollarPrice" :disabled="savingDollar"
+                                        class="btn btn-sm btn-outline-secondary py-0 px-2"
+                                        title="Guardar como valor predeterminado para el equipo">
+                                        <i class="fas fa-save fa-xs" :class="{'fa-spin fa-circle-notch': savingDollar}"></i>
+                                    </button>
                                 </div>
                             </template>
                         </div>

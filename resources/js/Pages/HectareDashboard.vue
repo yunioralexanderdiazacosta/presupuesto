@@ -52,6 +52,9 @@ const filteredLevel2 = computed(() => {
     if (highlightLevel1.value) {
         items = items.filter(l => l.level1 === highlightLevel1.value);
     }
+    if (selectedFruitFilter.value) {
+        items = items.filter(l => String(l.fruit_id) === String(selectedFruitFilter.value));
+    }
     if (selectedVarietyState.value) {
         items = items.filter(l => Number(l.state_id) === Number(selectedVarietyState.value));
     }
@@ -111,9 +114,9 @@ const groupedLevel2Rows = computed(() => {
 });
 
 // ── KPI resumen global ──
-const productiveSurface = computed(() => props.costPerHaByDevState.filter(s => s.surface > 0).reduce((sum, s) => sum + s.surface, 0));
+const productiveSurface = computed(() => devStateAggregated.value.filter(s => s.surface > 0).reduce((sum, s) => sum + s.surface, 0));
 const totalSurface = computed(() => props.surfaceByDevelopmentState.reduce((sum, s) => sum + s.surface, 0));
-const totalCostAllStates = computed(() => props.costPerHaByDevState.reduce((sum, s) => sum + s.total_cost, 0));
+const totalCostAllStates = computed(() => devStateAggregated.value.reduce((sum, s) => sum + s.total_cost, 0));
 const globalCostPerHa = computed(() => productiveSurface.value > 0 ? totalCostAllStates.value / productiveSurface.value : 0);
 
 // ── Toggle: incluir administración en KPIs globales ──
@@ -121,7 +124,7 @@ const includeAdmin = ref(true);
 
 // Detectar estado de administración (surface = 0)
 const adminCost = computed(() => {
-    const admin = props.costPerHaByDevState.find(s => s.surface === 0);
+    const admin = devStateAggregated.value.find(s => s.surface === 0);
     return admin?.total_cost ?? 0;
 });
 
@@ -131,7 +134,7 @@ const adjustedGlobalCostPerHa = computed(() => productiveSurface.value > 0 ? adj
 
 // ── Filtrar estados según toggle (ocultar admin si OFF) ──
 const filteredDevStates = computed(() => {
-    const states = includeAdmin.value ? props.costPerHaByDevState : props.costPerHaByDevState.filter(s => s.surface > 0);
+    const states = includeAdmin.value ? devStateAggregated.value : devStateAggregated.value.filter(s => s.surface > 0);
     return states.map(s => ({
         ...s,
         cost_per_ha_display: s.surface > 0 ? s.cost_per_ha : (productiveSurface.value > 0 ? s.total_cost / productiveSurface.value : 0),
@@ -152,17 +155,38 @@ const surfacePieData = computed(() => props.surfaceByFruit.map(f => f.surface));
 
 // ── Filtro de estado de desarrollo compartido (Level1, Level2, Variedades) ──
 const selectedVarietyState = ref(null); // null = Todos
+const selectedFruitFilter  = ref(null); // null = Todos los frutales
+
+// ── Pre-filtrado y re-agregación de costPerHaByDevState por frutal ──
+const devStateAggregated = computed(() => {
+    let data = props.costPerHaByDevState;
+    if (selectedFruitFilter.value) {
+        data = data.filter(r => String(r.fruit_id) === String(selectedFruitFilter.value));
+    }
+    const grouped = {};
+    data.forEach(r => {
+        if (!grouped[r.state_id]) grouped[r.state_id] = { state_id: r.state_id, name: r.name, total_cost: 0, surface: 0 };
+        grouped[r.state_id].total_cost += r.total_cost;
+        grouped[r.state_id].surface    += r.surface;
+    });
+    return Object.values(grouped).map(g => ({
+        ...g, cost_per_ha: g.surface > 0 ? g.total_cost / g.surface : 0,
+    }));
+});
 
 // ── Superficie para cálculo $/ha de Level1 (según estado seleccionado) ──
 const level1Surface = computed(() => {
     if (!selectedVarietyState.value) return productiveSurface.value;
-    const state = props.costPerHaByDevState.find(s => Number(s.state_id) === Number(selectedVarietyState.value));
+    const state = devStateAggregated.value.find(s => Number(s.state_id) === Number(selectedVarietyState.value));
     return state?.surface ?? 0;
 });
 
-// ── Level1 filtrado por estado ──
+// ── Level1 filtrado por estado + frutal ──
 const filteredCostByLevel1 = computed(() => {
-    const data = props.costPerHaByLevel1.data;
+    let data = props.costPerHaByLevel1.data;
+    if (selectedFruitFilter.value) {
+        data = data.filter(d => String(d.fruit_id) === String(selectedFruitFilter.value));
+    }
     const surface = level1Surface.value;
     if (!selectedVarietyState.value) {
         const grouped = {};
@@ -194,9 +218,12 @@ const filteredLevel1CostPerHa = computed(() => {
     return surface > 0 ? filteredLevel1Total.value / surface : 0;
 });
 
-// ── Datos filtrados de variedad según estado seleccionado ──
+// ── Datos filtrados de variedad según estado + frutal ──
 const filteredCostByVariety = computed(() => {
-    const data = props.costPerHaByVariety;
+    let data = props.costPerHaByVariety;
+    if (selectedFruitFilter.value) {
+        data = data.filter(d => String(d.fruit_id) === String(selectedFruitFilter.value));
+    }
     if (!selectedVarietyState.value) {
         // Agregar por variedad (todos los estados)
         const grouped = {};
@@ -217,7 +244,10 @@ const filteredCostByVariety = computed(() => {
 });
 
 const filteredSurfaceByVariety = computed(() => {
-    const data = props.surfaceByVariety;
+    let data = props.surfaceByVariety;
+    if (selectedFruitFilter.value) {
+        data = data.filter(d => String(d.fruit_id) === String(selectedFruitFilter.value));
+    }
     if (!selectedVarietyState.value) {
         const grouped = {};
         data.forEach(item => {
@@ -254,6 +284,9 @@ const filteredVarietyDetail = computed(() => {
     let items = props.costByVarietyLevel2;
     if (highlightVariety.value) {
         items = items.filter(v => v.variety === highlightVariety.value);
+    }
+    if (selectedFruitFilter.value) {
+        items = items.filter(v => String(v.fruit_id) === String(selectedFruitFilter.value));
     }
     if (selectedVarietyState.value) {
         items = items.filter(v => Number(v.state_id) === Number(selectedVarietyState.value));
@@ -334,9 +367,12 @@ const getCrossCostPerHa = (d) => {
     return productiveSurface.value > 0 ? d.total_cost / productiveSurface.value : 0;
 };
 
-// ── Costo/ha por Centro de Costo (filtrado por estado) ──
+// ── Costo/ha por Centro de Costo (filtrado por estado + frutal) ──
 const filteredCostByCC = computed(() => {
     let data = props.costPerHaByCC;
+    if (selectedFruitFilter.value) {
+        data = data.filter(d => String(d.fruit_id) === String(selectedFruitFilter.value));
+    }
     if (selectedVarietyState.value) {
         data = data.filter(d => Number(d.state_id) === Number(selectedVarietyState.value));
     }
@@ -364,6 +400,9 @@ const filteredCCDetail = computed(() => {
         const cc = filteredCostByCC.value.find(c => c.name === highlightCC.value);
         if (!cc) return [];
         items = items.filter(v => v.cc_id === cc.cc_id);
+    }
+    if (selectedFruitFilter.value) {
+        items = items.filter(v => String(v.fruit_id) === String(selectedFruitFilter.value));
     }
     // Filtrar por estado si aplica
     if (selectedVarietyState.value) {
@@ -425,8 +464,8 @@ const groupedCCRows = computed(() => {
     return rows;
 });
 
-// Reset CC al cambiar estado
-watch(selectedVarietyState, () => {
+// Reset CC al cambiar estado o frutal
+watch([selectedVarietyState, selectedFruitFilter], () => {
     highlightLevel1.value = null;
     highlightVariety.value = null;
     highlightCC.value = null;
@@ -568,74 +607,6 @@ watch(monthlyChartRef, (val) => {
                     </div>
                 </div>
 
-                <!-- ═══════════ SECCIÓN: ESTADO DE DESARROLLO ═══════════ -->
-                <div class="card mb-4 shadow-none" style="border-left: 3px solid #b3d1ec;">
-                    <div class="card-header py-2" style="background-color: #dce9f5;">
-                        <h5 class="mb-0 fs-9" style="color: #2c5282;"><i class="fas fa-layer-group me-2"></i>Estado de Desarrollo</h5>
-                    </div>
-                    <div class="card-body">
-
-                <div class="row g-3">
-                    <div class="col-lg-7">
-                        <div class="card h-100">
-                            <div class="card-header"><h6 class="mb-0"><i class="fas fa-layer-group me-2"></i>Costo / Hectárea por Estado de Desarrollo</h6></div>
-                            <div class="card-body">
-                                <FalconBarChart
-                                    v-if="devStateBarLabels.length"
-                                    :barLabels="devStateBarLabels"
-                                    :barData="devStateBarData"
-                                    :height="300"
-                                    :color="['#2c7be5', '#00d97e', '#e63757', '#f5803e', '#6b5eae']"
-                                    @bar-click="onBarClickDevState"
-                                />
-                                <p v-else class="text-center text-muted py-5">Sin datos de estados de desarrollo</p>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="col-lg-5">
-                        <div class="card h-100">
-                            <div class="card-header"><h6 class="mb-0">Detalle por Estado</h6></div>
-                            <div class="card-body p-0">
-                                <div class="table-responsive">
-                                    <table class="table table-sm table-hover mb-0">
-                                        <thead class="bg-light">
-                                            <tr>
-                                                <th>Estado</th>
-                                                <th class="text-end">Superficie</th>
-                                                <th class="text-end">Costo Total</th>
-                                                <th class="text-end">$/ha</th>
-                                            </tr>
-                                        </thead>
-                                        <tbody>
-                                            <tr v-for="item in filteredDevStates" :key="item.name"
-                                                :class="{ 'table-primary': highlightDevState === item.name }"
-                                                style="cursor: pointer; transition: background 0.2s"
-                                                @click="highlightDevState = highlightDevState === item.name ? null : item.name">
-                                                <td class="fw-semi-bold">{{ item.name }}</td>
-                                                <td class="text-end">{{ fmtDec(item.surface) }} ha</td>
-                                                <td class="text-end">{{ fmtCurrency(item.total_cost) }}</td>
-                                                <td class="text-end fw-bold text-primary">{{ fmtCurrency(item.cost_per_ha_display) }}</td>
-                                            </tr>
-                                        </tbody>
-                                        <tfoot class="bg-light fw-bold">
-                                            <tr>
-                                                <td>Total</td>
-                                                <td class="text-end">{{ fmtDec(productiveSurface) }} ha</td>
-                                                <td class="text-end">{{ fmtCurrency(adjustedTotalCost) }}</td>
-                                                <td></td>
-                                            </tr>
-                                        </tfoot>
-                                    </table>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                    </div>
-                </div>
-                <!-- /SECCIÓN: ESTADO DE DESARROLLO -->
-
                 <!-- ═══════════ SECCIÓN: ANÁLISIS POR FRUTAL ═══════════ -->
                 <div class="card mb-4 shadow-none" style="border-left: 3px solid #b3d1ec;">
                     <div class="card-header py-2" style="background-color: #dce9f5;">
@@ -757,26 +728,107 @@ watch(monthlyChartRef, (val) => {
                 </div>
                 <!-- /SECCIÓN: ANÁLISIS POR FRUTAL -->
 
+                <!-- ═══════════ FILTROS COMPARTIDOS ═══════════ -->
+                <div class="card mb-3 shadow-none border">
+                    <div class="card-body py-2 px-3">
+                        <div class="d-flex align-items-center gap-4 flex-wrap">
+                            <span class="fw-semibold small text-muted"><i class="fas fa-filter me-1"></i>Filtros:</span>
+                            <div class="d-flex align-items-center gap-2">
+                                <label class="form-label small mb-0 fw-semibold text-muted">Frutal:</label>
+                                <select v-model="selectedFruitFilter" class="form-select form-select-sm" style="min-width:160px;">
+                                    <option :value="null">Todos los frutales</option>
+                                    <option v-for="f in surfaceByFruit" :key="f.fruit_id" :value="String(f.fruit_id)">{{ f.name }}</option>
+                                </select>
+                            </div>
+                            <div class="d-flex align-items-center gap-2">
+                                <label class="form-label small mb-0 fw-semibold text-muted">Estado de Desarrollo:</label>
+                                <select v-model="selectedVarietyState" class="form-select form-select-sm" style="min-width:180px;">
+                                    <option :value="null">Todos los estados</option>
+                                    <option v-for="s in varietyDevStates" :key="s.value" :value="s.value">{{ s.label }}</option>
+                                </select>
+                            </div>
+                            <button v-if="selectedFruitFilter || selectedVarietyState" @click="selectedFruitFilter = null; selectedVarietyState = null" class="btn btn-sm btn-outline-secondary py-0 px-2">
+                                <i class="fas fa-times me-1"></i>Limpiar
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                <!-- /FILTROS COMPARTIDOS -->
+
+                <!-- ═══════════ SECCIÓN: ESTADO DE DESARROLLO ═══════════ -->
+                <div class="card mb-4 shadow-none" style="border-left: 3px solid #b3d1ec;">
+                    <div class="card-header py-2" style="background-color: #dce9f5;">
+                        <h5 class="mb-0 fs-9" style="color: #2c5282;"><i class="fas fa-layer-group me-2"></i>Estado de Desarrollo</h5>
+                    </div>
+                    <div class="card-body">
+
+                <div class="row g-3">
+                    <div class="col-lg-7">
+                        <div class="card h-100">
+                            <div class="card-header"><h6 class="mb-0"><i class="fas fa-layer-group me-2"></i>Costo / Hectárea por Estado de Desarrollo</h6></div>
+                            <div class="card-body">
+                                <FalconBarChart
+                                    v-if="devStateBarLabels.length"
+                                    :barLabels="devStateBarLabels"
+                                    :barData="devStateBarData"
+                                    :height="300"
+                                    :color="['#2c7be5', '#00d97e', '#e63757', '#f5803e', '#6b5eae']"
+                                    @bar-click="onBarClickDevState"
+                                />
+                                <p v-else class="text-center text-muted py-5">Sin datos de estados de desarrollo</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-lg-5">
+                        <div class="card h-100">
+                            <div class="card-header"><h6 class="mb-0">Detalle por Estado</h6></div>
+                            <div class="card-body p-0">
+                                <div class="table-responsive">
+                                    <table class="table table-sm table-hover mb-0">
+                                        <thead class="bg-light">
+                                            <tr>
+                                                <th>Estado</th>
+                                                <th class="text-end">Superficie</th>
+                                                <th class="text-end">Costo Total</th>
+                                                <th class="text-end">$/ha</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            <tr v-for="item in filteredDevStates" :key="item.name"
+                                                :class="{ 'table-primary': highlightDevState === item.name }"
+                                                style="cursor: pointer; transition: background 0.2s"
+                                                @click="highlightDevState = highlightDevState === item.name ? null : item.name">
+                                                <td class="fw-semi-bold">{{ item.name }}</td>
+                                                <td class="text-end">{{ fmtDec(item.surface) }} ha</td>
+                                                <td class="text-end">{{ fmtCurrency(item.total_cost) }}</td>
+                                                <td class="text-end fw-bold text-primary">{{ fmtCurrency(item.cost_per_ha_display) }}</td>
+                                            </tr>
+                                        </tbody>
+                                        <tfoot class="bg-light fw-bold">
+                                            <tr>
+                                                <td>Total</td>
+                                                <td class="text-end">{{ fmtDec(productiveSurface) }} ha</td>
+                                                <td class="text-end">{{ fmtCurrency(adjustedTotalCost) }}</td>
+                                                <td></td>
+                                            </tr>
+                                        </tfoot>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                    </div>
+                </div>
+                <!-- /SECCIÓN: ESTADO DE DESARROLLO -->
+
                 <!-- ═══════════ SECCIÓN: ANÁLISIS POR CATEGORÍA ═══════════ -->
                 <div class="card mb-4 shadow-none" style="border-left: 3px solid #b3d1ec;">
                     <div class="card-header py-2" style="background-color: #dce9f5;">
                         <h5 class="mb-0 fs-9" style="color: #2c5282;"><i class="fas fa-sitemap me-2"></i>Análisis por Categoría (Nivel 1)</h5>
                     </div>
                     <div class="card-body">
-
-                <div class="row g-3 mb-3">
-                    <div class="col-12">
-                        <div class="d-flex align-items-center gap-3">
-                            <h6 class="mb-0"><i class="fas fa-filter me-2"></i>Filtro por Estado de Desarrollo</h6>
-                            <div class="d-flex align-items-center gap-2">
-                                <select v-model="selectedVarietyState" class="form-select form-select-sm" style="width: 200px;">
-                                    <option :value="null">Todos los estados</option>
-                                    <option v-for="s in varietyDevStates" :key="s.value" :value="s.value">{{ s.label }}</option>
-                                </select>
-                            </div>
-                        </div>
-                    </div>
-                </div>
 
                 <!-- ═══════════ COSTO/HA POR CATEGORÍA (LEVEL 1) ═══════════ -->
                 <div class="row g-3 mb-4">

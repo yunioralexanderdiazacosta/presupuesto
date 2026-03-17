@@ -18,7 +18,8 @@ class OutflowsDashboardController extends Controller
     public function index(Request $request)
     {
         $season_id = session('season_id');
-        $team_id = Auth::user()->team_id;
+        $user = Auth::user();
+        $team_id = $user->team_id;
 
         // Validar que exista season_id en sesión
         // Nota: La ruta 'select.budget' es donde el usuario selecciona la temporada (season)
@@ -27,7 +28,16 @@ class OutflowsDashboardController extends Controller
             return redirect()->route('select.budget');
         }
 
+        // Obtener dollar_price del admin del equipo
+        $adminUser = \App\Models\User::where('team_id', $team_id)
+            ->role('Admin')
+            ->whereNotNull('dollar_price')
+            ->first();
+        $dollarPrice = $adminUser?->dollar_price ?? 970;
+
         return Inertia::render('OutflowsDashboard', [
+            'dollarPrice' => $dollarPrice,
+            'isAdmin'     => $user->hasRole('Admin'),
             'summary' => $this->getSummary($season_id, $team_id),
             'investments' => $this->getInvestmentsTotal($season_id, $team_id),
             'expenses' => $this->getExpensesTotal($season_id, $team_id),

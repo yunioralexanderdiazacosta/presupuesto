@@ -26,11 +26,19 @@ class ComparativeOutflowsDashboardController extends Controller
     public function index()
     {
         $season_id = session('season_id');
-        $team_id = Auth::user()->team_id;
+        $user = Auth::user();
+        $team_id = $user->team_id;
 
         if (!$season_id) {
             return redirect()->route('select.budget');
         }
+
+        // Obtener dollar_price del admin del equipo
+        $adminUser = \App\Models\User::where('team_id', $team_id)
+            ->role('Admin')
+            ->whereNotNull('dollar_price')
+            ->first();
+        $dollarPrice = $adminUser?->dollar_price ?? 970;
 
         // Obtener información de la temporada
         $season = Season::with('month')->find($season_id);
@@ -44,6 +52,8 @@ class ComparativeOutflowsDashboardController extends Controller
         $comparisonByLevel1 = $this->getComparisonByLevel1($season_id, $team_id);
 
         return Inertia::render('ComparativeOutflowsDashboard', [
+            'dollarPrice' => $dollarPrice,
+            'isAdmin'     => $user->hasRole('Admin'),
             'summary' => $this->getSummaryComparison($season_id, $team_id),
             'monthlyComparison' => $monthlyComparison,
             'cumulativeComparison' => $this->buildCumulativeFromMonthly($monthlyComparison, $months),

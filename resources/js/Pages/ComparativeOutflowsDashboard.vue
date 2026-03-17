@@ -2,12 +2,15 @@
 import AppLayout from '@/Layouts/AppLayout.vue';
 import { ref, computed, onMounted, watch } from 'vue';
 import { Chart, registerables } from 'chart.js';
+import axios from 'axios';
 import ExportExcelButton from '@/Components/ExportExcelButton.vue';
 
 Chart.register(...registerables);
 
 const props = defineProps({
     summary: Object,
+    dollarPrice: { type: Number, default: 970 },
+    isAdmin:     { type: Boolean, default: false },
     monthlyComparison: Object,
     cumulativeComparison: Object,
     comparisonByLevel1: Array,
@@ -84,10 +87,23 @@ const t = computed(() => isEnglish.value ? {
 });
 
 // Variables para conversión USD
-const divisor = ref(880);
+const divisor = ref(props.dollarPrice);
 const divisorMin = 800;
-const divisorMax = 1100;
+const divisorMax = 1300;
 const dividir = ref(false); // Por defecto desactivado
+const savingDollar = ref(false);
+
+const saveDollarPrice = async () => {
+    if (!props.isAdmin) return;
+    savingDollar.value = true;
+    try {
+        await axios.patch(route('api.dollar-price.update'), { dollar_price: divisor.value });
+    } catch (e) {
+        console.error('Error guardando tipo de cambio', e);
+    } finally {
+        savingDollar.value = false;
+    }
+};
 
 // Mes seleccionado para el card de diferencia (inicializar con mes anterior al actual)
 const selectedMonthIndex = ref(null);
@@ -747,19 +763,24 @@ function createCumulativeChart() {
                                 
                                 <!-- Slider de divisor (solo visible cuando dividir está activo) -->
                                 <template v-if="dividir">
-                                    <div class="d-flex align-items-center" style="min-width:220px;">
+                                    <div class="d-flex align-items-center gap-2">
                                         <label for="divisor-slider" class="form-label mb-0 me-2 small">Divisor:</label>
-                                        <input 
-                                            id="divisor-slider" 
-                                            type="range" 
-                                            class="form-range" 
-                                            v-model.number="divisor" 
-                                            :min="divisorMin" 
-                                            :max="divisorMax" 
-                                            :step="1" 
-                                            style="max-width:150px;" 
+                                        <input
+                                            id="divisor-slider"
+                                            type="range"
+                                            class="form-range"
+                                            v-model.number="divisor"
+                                            :min="divisorMin"
+                                            :max="divisorMax"
+                                            :step="1"
+                                            style="width:220px; flex-shrink:0;"
                                         />
-                                        <span class="text-muted small ms-2"><b>{{ divisor }}</b></span>
+                                        <span class="text-muted small ms-1"><b>{{ divisor }}</b></span>
+                                        <button v-if="isAdmin" @click="saveDollarPrice" :disabled="savingDollar"
+                                            class="btn btn-sm btn-outline-secondary py-0 px-2"
+                                            title="Guardar como valor predeterminado para el equipo">
+                                            <i class="fas fa-save fa-xs" :class="{'fa-spin fa-circle-notch': savingDollar}"></i>
+                                        </button>
                                     </div>
                                 </template>
                             </div>

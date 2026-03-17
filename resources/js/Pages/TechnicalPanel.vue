@@ -652,3 +652,9 @@ function groupTotalsByLevelAndFruit() {
     </div>
   </AppLayout>
 </template>
+
+<style scoped>
+:deep(.table) {
+  font-size: 0.9rem;
+}
+</style>

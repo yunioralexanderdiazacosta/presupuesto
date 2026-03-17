@@ -252,6 +252,7 @@ use App\Http\Controllers\ContractTemplates\DeleteContractTemplateController;
 use App\Http\Controllers\ContractTemplates\GenerateContractController;
 use App\Http\Controllers\Api\ScheduleApiController;
 use App\Http\Controllers\Api\CityApiController;
+use App\Http\Controllers\Api\UpdateDollarPriceController;
 // API para refrescar selects de producción
 use App\Http\Controllers\Api\GetExportersController;
 use App\Http\Controllers\Api\GetPackingHousesController;
@@ -394,6 +395,7 @@ Route::middleware([
 
     // API para refrescar selects
     Route::get('/api/products', GetProductsController::class)->name('api.products');
+    Route::patch('/api/dollar-price', UpdateDollarPriceController::class)->name('api.dollar-price.update');
     Route::get('/api/pending-expense-items', GetPendingExpenseReportItemsController::class)->name('api.pending-expense-items');
     Route::post('/api/suppliers', StoreSupplierApiController::class)->name('api.suppliers.store');
     Route::get('/api/cost-center-varieties/{costCenterId}', GetCostCenterVarietiesController::class)->name('api.cost-center-varieties');
