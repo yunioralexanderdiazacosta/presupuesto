@@ -4,6 +4,7 @@ import { Head } from '@inertiajs/vue3';
 import Swal from 'sweetalert2';
 import axios from 'axios';
 import AppLayout from '@/Layouts/AppLayout.vue';
+import FalconPieChart from '@/Components/FalconPieChart.vue';
 
 const props = defineProps({
     costCenters: Array,
@@ -13,15 +14,36 @@ const props = defineProps({
     rootstocks: Array,
     developmentStates: Array,
     summaryByVariety: Array,
+    detailByVariety: Array,
 });
 
 const title = 'Variedades por Cuartel';
 
 // ── KPIs globales ──────────────────────────────────────────────────────────
-const showSummary   = ref(true);
-const totalHaAll    = computed(() =>
-    (props.summaryByVariety ?? []).reduce((s, r) => s + r.total_surface, 0)
+const showSummary        = ref(true);
+const showDetail         = ref(false);
+const selectedFruitFilter = ref('');
+
+const filteredSummary = computed(() => {
+    const data = props.summaryByVariety ?? [];
+    if (!selectedFruitFilter.value) return data;
+    return data.filter(r => String(r.fruit_id) === selectedFruitFilter.value);
+});
+const filteredDetail = computed(() => {
+    const data = props.detailByVariety ?? [];
+    if (!selectedFruitFilter.value) return data;
+    return data.filter(r => String(r.fruit_id) === selectedFruitFilter.value);
+});
+
+const totalDetailHa = computed(() =>
+    filteredDetail.value.reduce((s, r) => s + r.surface, 0)
 );
+const totalHaAll    = computed(() =>
+    filteredSummary.value.reduce((s, r) => s + r.total_surface, 0)
+);
+
+const pieLabels   = computed(() => filteredSummary.value.map(r => r.variety_name));
+const pieDatasets = computed(() => [{ data: filteredSummary.value.map(r => r.total_surface) }]);
 const totalHaSeason = computed(() =>
     (props.costCentersData ?? []).reduce((s, c) => s + c.surface, 0)
 );
@@ -208,6 +230,15 @@ const deleteVariety = async (id) => {
                             <i class="fas fa-seedling me-2"></i>{{ title }}
                         </h5>
                     </div>
+                    <div class="col-6 col-sm-auto ms-auto text-end ps-0">
+                        <div class="d-flex align-items-center gap-2">
+                            <label class="form-label small mb-0 text-nowrap fw-semibold text-muted">Frutal:</label>
+                            <select v-model="selectedFruitFilter" class="form-select form-select-sm" style="min-width:160px;">
+                                <option value="">Todos</option>
+                                <option v-for="f in fruits" :key="f.value" :value="String(f.value)">{{ f.label }}</option>
+                            </select>
+                        </div>
+                    </div>
                 </div>
             </div>
 
@@ -233,38 +264,115 @@ const deleteVariety = async (id) => {
                         </div>
                     </div>
                     <div v-show="showSummary" class="card-body p-0">
+                        <div class="row g-0">
+                            <!-- Tabla -->
+                            <div class="col-lg-8 border-end">
+                                <div class="table-responsive">
+                                    <table class="table table-sm table-hover mb-0 align-middle" style="font-size:0.82rem;">
+                                        <thead class="table-light">
+                                            <tr>
+                                                <th class="ps-3">Frutal</th>
+                                                <th>Variedad</th>
+                                                <th class="text-center" style="width:90px;">Cuarteles</th>
+                                                <th class="text-end pe-3" style="width:110px;">Ha totales</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            <tr v-if="filteredSummary.length === 0">
+                                                <td colspan="4" class="text-center text-muted py-3 ps-3">
+                                                    <i class="fas fa-info-circle me-1"></i>Sin datos registrados aún.
+                                                </td>
+                                            </tr>
+                                            <tr v-for="row in filteredSummary" :key="row.fruit_id + '_' + row.variety_name">
+                                                <td class="ps-3">{{ row.fruit_name }}</td>
+                                                <td>{{ row.variety_name }}</td>
+                                                <td class="text-center">
+                                                    <span class="badge bg-light text-secondary border">{{ row.cost_center_count }}</span>
+                                                </td>
+                                                <td class="text-end pe-3 fw-semibold">
+                                                    {{ row.total_surface.toLocaleString('es-CL', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) }} ha
+                                                </td>
+                                            </tr>
+                                        </tbody>
+                                        <tfoot v-if="filteredSummary.length > 0" class="table-light">
+                                            <tr>
+                                                <td colspan="3" class="ps-3 fw-semibold text-end small">Total:</td>
+                                                <td class="text-end pe-3 fw-bold">
+                                                    {{ totalHaAll.toLocaleString('es-CL', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) }} ha
+                                                </td>
+                                            </tr>
+                                        </tfoot>
+                                    </table>
+                                </div>
+                            </div>
+                            <!-- Gráfico torta -->
+                            <div class="col-lg-4 d-flex align-items-center justify-content-center p-2">
+                                <div v-if="filteredSummary.length === 0" class="text-center text-muted py-4 w-100">
+                                    <i class="fas fa-chart-pie fa-2x opacity-25 d-block mb-2"></i>
+                                    <small>Sin datos para graficar</small>
+                                </div>
+                                <FalconPieChart
+                                    v-else
+                                    :pie-labels="pieLabels"
+                                    :pie-datasets="pieDatasets"
+                                    :show-percentage="true"
+                                    style="width:100%; min-height:280px;"
+                                />
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <!-- Card detalle completo -->
+                <div class="card border mb-3 shadow-none">
+                    <div class="card-header py-2 px-3 d-flex justify-content-between align-items-center"
+                        style="cursor:pointer;" @click="showDetail = !showDetail">
+                        <span class="fw-semibold small">
+                            <i class="fas fa-list me-2 text-primary"></i>Detalle completo por cuartel
+                        </span>
+                        <div class="d-flex align-items-center gap-3">
+                            <span class="badge bg-primary bg-opacity-10 text-primary border border-primary border-opacity-25 small">
+                                {{ (detailByVariety ?? []).length }} registros · {{ totalDetailHa.toLocaleString('es-CL', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) }} ha
+                            </span>
+                            <i class="fas fa-chevron-up fa-xs text-muted" :style="{ transform: showDetail ? 'rotate(0deg)' : 'rotate(180deg)', transition: 'transform .2s' }"></i>
+                        </div>
+                    </div>
+                    <div v-show="showDetail" class="card-body p-0">
                         <div class="table-responsive">
                             <table class="table table-sm table-hover mb-0 align-middle" style="font-size:0.82rem;">
                                 <thead class="table-light">
                                     <tr>
-                                        <th class="ps-3">Frutal</th>
+                                        <th class="ps-3">Centro de Costo</th>
+                                        <th>Frutal</th>
                                         <th>Variedad</th>
-                                        <th class="text-center" style="width:110px;">Cuarteles</th>
-                                        <th class="text-end pe-3" style="width:120px;">Ha totales</th>
+                                        <th>Portainjerto</th>
+                                        <th>Est. Desarrollo</th>
+                                        <th class="text-center" style="width:90px;">Año Plant.</th>
+                                        <th class="text-end pe-3" style="width:110px;">Superficie (ha)</th>
                                     </tr>
                                 </thead>
                                 <tbody>
-                                    <tr v-if="!summaryByVariety || summaryByVariety.length === 0">
-                                        <td colspan="4" class="text-center text-muted py-3 ps-3">
+                                    <tr v-if="filteredDetail.length === 0">
+                                        <td colspan="7" class="text-center text-muted py-3 ps-3">
                                             <i class="fas fa-info-circle me-1"></i>Sin datos registrados aún.
                                         </td>
                                     </tr>
-                                    <tr v-for="row in summaryByVariety" :key="row.fruit_name + row.variety_name">
-                                        <td class="ps-3">{{ row.fruit_name }}</td>
+                                    <tr v-for="row in filteredDetail" :key="row.id">
+                                        <td class="ps-3 fw-semibold">{{ row.cost_center_name }}</td>
+                                        <td>{{ row.fruit_name }}</td>
                                         <td>{{ row.variety_name }}</td>
-                                        <td class="text-center">
-                                            <span class="badge bg-light text-secondary border">{{ row.cost_center_count }}</span>
-                                        </td>
+                                        <td>{{ row.rootstock_name }}</td>
+                                        <td>{{ row.development_state_name }}</td>
+                                        <td class="text-center">{{ row.year_plantation ?? '—' }}</td>
                                         <td class="text-end pe-3 fw-semibold">
-                                            {{ row.total_surface.toLocaleString('es-CL', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) }} ha
+                                            {{ row.surface.toLocaleString('es-CL', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) }} ha
                                         </td>
                                     </tr>
                                 </tbody>
-                                <tfoot v-if="summaryByVariety && summaryByVariety.length > 0" class="table-light">
+                                <tfoot v-if="filteredDetail.length > 0" class="table-light">
                                     <tr>
-                                        <td colspan="3" class="ps-3 fw-semibold text-end small">Total configurado:</td>
+                                        <td colspan="6" class="ps-3 fw-semibold text-end small">Total:</td>
                                         <td class="text-end pe-3 fw-bold">
-                                            {{ totalHaAll.toLocaleString('es-CL', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) }} ha
+                                            {{ totalDetailHa.toLocaleString('es-CL', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) }} ha
                                         </td>
                                     </tr>
                                 </tfoot>
@@ -272,6 +380,7 @@ const deleteVariety = async (id) => {
                         </div>
                     </div>
                 </div>
+
                 <div class="row align-items-end mb-3">
                     <div class="col-md-4">
                         <div class="d-flex justify-content-between align-items-center mb-1">

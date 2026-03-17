@@ -57,6 +57,30 @@ class CostCenterVarietyController extends Controller
             ->get(['id', 'name'])
             ->map(fn($d) => ['label' => $d->name, 'value' => $d->id]);
 
+        // Detalle completo por cuartel
+        $detailByVariety = CostCenterVariety::with([
+                'costCenter:id,name',
+                'variety:id,name',
+                'rootstock:id,name',
+                'developmentState:id,name',
+                'fruit:id,name',
+            ])
+            ->where('team_id', $user->team_id)
+            ->where('season_id', $season_id)
+            ->orderBy('cost_center_id')
+            ->get()
+            ->map(fn($r) => [
+                'id'                     => $r->id,
+                'fruit_id'               => $r->fruit_id,
+                'cost_center_name'       => $r->costCenter?->name ?? '—',
+                'fruit_name'             => $r->fruit?->name ?? '—',
+                'variety_name'           => $r->variety?->name ?? '—',
+                'rootstock_name'         => $r->rootstock?->name ?? '—',
+                'development_state_name' => $r->developmentState?->name ?? '—',
+                'surface'                => (float) $r->surface,
+                'year_plantation'        => $r->year_plantation,
+            ]);
+
         // Resumen global: ha totales y cuarteles por variedad
         $summaryByVariety = CostCenterVariety::select(
                 'fruit_id', 'variety_id',
@@ -70,6 +94,7 @@ class CostCenterVarietyController extends Controller
             ->orderByDesc('total_surface')
             ->get()
             ->map(fn($r) => [
+                'fruit_id'          => $r->fruit_id,
                 'fruit_name'        => $r->fruit?->name ?? '—',
                 'variety_name'      => $r->variety?->name ?? '—',
                 'total_surface'     => round((float) $r->total_surface, 4),
@@ -83,7 +108,8 @@ class CostCenterVarietyController extends Controller
             'varieties',
             'rootstocks',
             'developmentStates',
-            'summaryByVariety'
+            'summaryByVariety',
+            'detailByVariety'
         ));
     }
 }
