@@ -50,15 +50,15 @@ const remainingSurface = computed(() =>
 
 // ── Computeds cuarteles ──────────────────────────────────────────────────────
 const configuredCount = computed(() =>
-    localCostCenters.value.filter(c => c.varieties_count > 0).length
+    localCostCenters.value.filter(c => Number(c.varieties_count) > 0).length
 );
 const filteredCostCenters = computed(() => {
     if (!searchTerm.value) return localCostCenters.value;
     const term = searchTerm.value.toLowerCase();
     return localCostCenters.value.filter(c => c.label.toLowerCase().includes(term));
 });
-const ccWithVarieties    = computed(() => filteredCostCenters.value.filter(c => c.varieties_count > 0));
-const ccWithoutVarieties = computed(() => filteredCostCenters.value.filter(c => !c.varieties_count));
+const ccWithVarieties    = computed(() => filteredCostCenters.value.filter(c => Number(c.varieties_count) > 0));
+const ccWithoutVarieties = computed(() => filteredCostCenters.value.filter(c => Number(c.varieties_count) === 0));
 
 const filteredVarietiesNew = computed(() => {
     if (!newRow.value.fruit_id) return [];
