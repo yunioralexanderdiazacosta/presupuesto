@@ -43,6 +43,10 @@ function closeModal() {
 }
 
 function save() {
+    if (processFormRef.value?.kgReceivedExceeded) {
+        Swal.fire({ icon: 'warning', title: 'Kg excedidos', text: 'Los Kilos a Proceso no pueden superar los Kg Despachados.' });
+        return;
+    }
     if (processFormRef.value?.anyTypeExceeded()) {
         Swal.fire({ icon: 'warning', title: 'Kg excedidos', text: 'Los kg por tipo de clasificación no pueden superar los kg despachados.' });
         return;

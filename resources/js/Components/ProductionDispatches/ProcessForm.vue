@@ -16,11 +16,11 @@ const form = props.form;
 function loadExistingData() {
     if (props.dispatch?.status === 'processed') {
         form.process_date = props.dispatch.process_date || '';
-        form.kg_received = props.dispatch.kg_received || '';
-        form.kg_exported = props.dispatch.kg_exported || '';
-        form.kg_national = props.dispatch.kg_national || '';
-        form.kg_industrial = props.dispatch.kg_industrial || '';
-        form.kg_waste = props.dispatch.kg_waste || '';
+        form.kg_received = Number(props.dispatch.kg_received) || '';
+        form.kg_exported = Number(props.dispatch.kg_exported) || '';
+        form.kg_national = Number(props.dispatch.kg_national) || '';
+        form.kg_industrial = Number(props.dispatch.kg_industrial) || '';
+        form.kg_waste = Number(props.dispatch.kg_waste) || '';
         form.items = (props.dispatch.items || []).map(item => ({
             classification_type: item.classification_type,
             classification_value: item.classification_value,
@@ -45,6 +45,11 @@ const currentClassifications = computed(() => {
 
 const typeLabels = { caliber: 'Calibre', color: 'Color', quality: 'Calidad' };
 const typeIcons = { caliber: 'fa-ruler', color: 'fa-palette', quality: 'fa-star' };
+
+function n(val) {
+    const num = parseFloat(val);
+    return isNaN(num) ? 0 : num;
+}
 
 // Inicializar items desde clasificaciones (enfoque matriz)
 function initializeItems() {
@@ -87,13 +92,13 @@ function getItem(type, value) {
 }
 
 // Totales por tipo de clasificación
-const kgLimit = computed(() => Number(props.dispatch.kg_dispatched) || 0);
+const kgLimit = computed(() => n(props.dispatch.kg_dispatched));
 
 const totalsByType = computed(() => {
     const totals = {};
     (form.items || []).forEach(item => {
         if (item.classification_type) {
-            totals[item.classification_type] = (totals[item.classification_type] || 0) + Number(item.kg || 0);
+            totals[item.classification_type] = (totals[item.classification_type] || 0) + n(item.kg);
         }
     });
     return totals;
@@ -107,19 +112,35 @@ function anyTypeExceeded() {
     return Object.keys(totalsByType.value).some(t => typeExceeded(t));
 }
 
-// Validación: Export+Nacional+Industrial+Descarte <= Kilos a Proceso
-const kgBreakdownTotal = computed(() => {
-    return Number(form.kg_exported || 0) + Number(form.kg_national || 0) + Number(form.kg_industrial || 0) + Number(form.kg_waste || 0);
-});
-const kgBreakdownExceeded = computed(() => {
-    const limit = Number(form.kg_received) || 0;
-    return limit > 0 && kgBreakdownTotal.value > limit;
-});
-const kgBreakdownRemaining = computed(() => {
-    return Math.max(0, (Number(form.kg_received) || 0) - kgBreakdownTotal.value);
+// Tope absoluto: Kg Despachados
+const kgDispatched = computed(() => n(props.dispatch.kg_dispatched));
+
+// Validación: Kilos a Proceso no puede superar Kg Despachados
+const kgReceivedExceeded = computed(() => {
+    const received = n(form.kg_received);
+    return received > 0 && received > kgDispatched.value;
 });
 
-defineExpose({ anyTypeExceeded, kgBreakdownExceeded, ensureItemsInitialized });
+// Validación: Export+Nacional+Industrial+Descarte <= Kilos a Proceso (y <= Kg Despachados)
+const kgBreakdownTotal = computed(() => {
+    return n(form.kg_exported) + n(form.kg_national) + n(form.kg_industrial) + n(form.kg_waste);
+});
+const kgBreakdownLimit = computed(() => {
+    const received = n(form.kg_received);
+    return received > 0 ? Math.min(received, kgDispatched.value) : kgDispatched.value;
+});
+const kgBreakdownExceeded = computed(() => {
+    return kgBreakdownTotal.value > 0 && kgBreakdownTotal.value > kgBreakdownLimit.value;
+});
+const kgBreakdownRemaining = computed(() => {
+    return Math.max(0, kgBreakdownLimit.value - kgBreakdownTotal.value);
+});
+const kgBreakdownPercent = computed(() => {
+    if (kgBreakdownLimit.value <= 0) return 0;
+    return (kgBreakdownTotal.value / kgBreakdownLimit.value) * 100;
+});
+
+defineExpose({ anyTypeExceeded, kgBreakdownExceeded, kgReceivedExceeded, ensureItemsInitialized });
 
 watch(form, () => emit('update:form', form), { deep: true });
 </script>
@@ -147,7 +168,7 @@ watch(form, () => emit('update:form', form), { deep: true });
                         <i class="fas fa-file-alt me-1"></i>Guía: {{ dispatch.guide_number }}
                     </span>
                     <span class="badge bg-soft-warning text-warning px-2 py-1 ms-auto">
-                        <i class="fas fa-weight-hanging me-1"></i>{{ Number(dispatch.kg_dispatched || 0).toLocaleString('es-CL') }} kg
+                        <i class="fas fa-weight-hanging me-1"></i>{{ n(dispatch.kg_dispatched) }} kg
                     </span>
                 </div>
             </div>
@@ -162,46 +183,49 @@ watch(form, () => emit('update:form', form), { deep: true });
 
             <!-- Kilos a Proceso -->
             <div class="col-md-3">
-                <label class="form-label small mb-1">Kilos a Proceso</label>
-                <input type="number" v-model="form.kg_received" class="form-control form-control-sm" step="0.01" min="0" required />
+                <label class="form-label small mb-1">Kilos a Proceso <small class="text-muted">(máx {{ kgDispatched }})</small></label>
+                <input type="number" v-model.number="form.kg_received" class="form-control form-control-sm" step="0.01" min="0" :max="kgDispatched" required
+                    :class="{'is-invalid': kgReceivedExceeded}" />
+                <div v-if="kgReceivedExceeded" class="invalid-feedback">No puede superar los {{ kgDispatched }} kg despachados</div>
             </div>
 
             <!-- Kg Exportación -->
             <div class="col-md-3">
                 <label class="form-label small mb-1">Kg Exportación</label>
-                <input type="number" v-model="form.kg_exported" class="form-control form-control-sm" step="0.01" min="0"
+                <input type="number" v-model.number="form.kg_exported" class="form-control form-control-sm" step="0.01" min="0"
                     :class="{'is-invalid': kgBreakdownExceeded}" />
             </div>
 
             <!-- Kg Nacional -->
             <div class="col-md-3">
                 <label class="form-label small mb-1">Kg Nacional</label>
-                <input type="number" v-model="form.kg_national" class="form-control form-control-sm" step="0.01" min="0"
+                <input type="number" v-model.number="form.kg_national" class="form-control form-control-sm" step="0.01" min="0"
                     :class="{'is-invalid': kgBreakdownExceeded}" />
             </div>
 
             <!-- Kg Industrial -->
             <div class="col-md-3">
                 <label class="form-label small mb-1">Kg Industrial</label>
-                <input type="number" v-model="form.kg_industrial" class="form-control form-control-sm" step="0.01" min="0"
+                <input type="number" v-model.number="form.kg_industrial" class="form-control form-control-sm" step="0.01" min="0"
                     :class="{'is-invalid': kgBreakdownExceeded}" />
             </div>
 
             <!-- Kg Descarte -->
             <div class="col-md-3">
                 <label class="form-label small mb-1">Kg Descarte</label>
-                <input type="number" v-model="form.kg_waste" class="form-control form-control-sm" step="0.01" min="0"
+                <input type="number" v-model.number="form.kg_waste" class="form-control form-control-sm" step="0.01" min="0"
                     :class="{'is-invalid': kgBreakdownExceeded}" />
             </div>
 
             <!-- Resumen kg desglose -->
-            <div class="col-12" v-if="Number(form.kg_received) > 0">
-                <small :class="kgBreakdownExceeded ? 'text-danger fw-bold' : 'text-muted'">
-                    <i v-if="kgBreakdownExceeded" class="fas fa-exclamation-triangle me-1"></i>
-                    Total asignado: {{ Number(kgBreakdownTotal).toLocaleString('es-CL') }} / {{ Number(form.kg_received).toLocaleString('es-CL') }} kg a proceso
-                    <span v-if="kgBreakdownRemaining > 0">(quedan {{ Number(kgBreakdownRemaining).toLocaleString('es-CL') }} kg)</span>
-                    <span v-if="kgBreakdownExceeded"> — Excede los kilos a proceso</span>
-                </small>
+            <div class="col-12" v-if="kgBreakdownLimit > 0">
+                <div class="alert py-1 px-2 mb-0 fs-10" :class="kgBreakdownExceeded ? 'alert-danger' : 'alert-light'">
+                    <i v-show="kgBreakdownExceeded" class="fas fa-exclamation-triangle me-1"></i>
+                    <strong>Total asignado:</strong>
+                    {{ kgBreakdownTotal }} de {{ kgBreakdownLimit }} kg
+                    {{ kgBreakdownRemaining > 0 ? '— quedan ' + kgBreakdownRemaining + ' kg' : '' }}
+                    {{ kgBreakdownExceeded ? '— Excede el límite' : '' }}
+                </div>
             </div>
         </div>
 
@@ -218,7 +242,7 @@ watch(form, () => emit('update:form', form), { deep: true });
                         {{ typeLabels[type] || type }}
                     </span>
                     <small :class="typeExceeded(type) ? 'text-danger fw-bold' : 'text-muted'">
-                        Total: {{ Number(totalsByType[type] || 0).toLocaleString('es-CL') }} / {{ kgLimit.toLocaleString('es-CL') }} kg
+                        Total: {{ n(totalsByType[type] || 0) }} / {{ kgLimit }} kg
                         <i v-if="typeExceeded(type)" class="fas fa-exclamation-triangle ms-1"></i>
                     </small>
                 </div>
@@ -248,7 +272,7 @@ watch(form, () => emit('update:form', form), { deep: true });
                                     />
                                 </td>
                                 <td class="text-center align-middle fw-bold" :class="typeExceeded(type) ? 'text-danger' : ''">
-                                    {{ Number(totalsByType[type] || 0).toLocaleString('es-CL') }}
+                                    {{ n(totalsByType[type] || 0) }}
                                 </td>
                             </tr>
                         </tbody>
