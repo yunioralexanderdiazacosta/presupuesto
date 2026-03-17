@@ -12,9 +12,22 @@ const props = defineProps({
     varieties: Array,
     rootstocks: Array,
     developmentStates: Array,
+    summaryByVariety: Array,
 });
 
 const title = 'Variedades por Cuartel';
+
+// ── KPIs globales ──────────────────────────────────────────────────────────
+const showSummary   = ref(true);
+const totalHaAll    = computed(() =>
+    (props.summaryByVariety ?? []).reduce((s, r) => s + r.total_surface, 0)
+);
+const totalHaSeason = computed(() =>
+    (props.costCentersData ?? []).reduce((s, c) => s + c.surface, 0)
+);
+const coveredCostCenters = computed(() =>
+    localCostCenters.value.filter(c => Number(c.varieties_count) > 0).length
+);
 
 // ── Estado ────────────────────────────────────────────────────────────────────
 const selectedCostCenterId = ref('');
@@ -199,7 +212,66 @@ const deleteVariety = async (id) => {
             </div>
 
             <div class="card-body bg-body-tertiary">
-                <!-- Selector de cuartel + badges -->
+                <!-- Card resumen global -->
+                <div class="card border mb-3 shadow-none">
+                    <div class="card-header py-2 px-3 d-flex justify-content-between align-items-center"
+                        style="cursor:pointer;" @click="showSummary = !showSummary">
+                        <span class="fw-semibold small">
+                            <i class="fas fa-chart-bar me-2 text-success"></i>Resumen global de hectáreas
+                        </span>
+                        <div class="d-flex align-items-center gap-3">
+                            <span class="badge bg-success bg-opacity-10 text-success border border-success border-opacity-25 small">
+                                {{ totalHaAll.toLocaleString('es-CL', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) }} ha configuradas
+                            </span>
+                            <span class="badge bg-secondary bg-opacity-10 text-secondary border small">
+                                {{ totalHaSeason.toLocaleString('es-CL', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) }} ha temporada
+                            </span>
+                            <span class="badge bg-primary bg-opacity-10 text-primary border small">
+                                {{ coveredCostCenters }} / {{ localCostCenters.length }} cuarteles
+                            </span>
+                            <i class="fas fa-chevron-up fa-xs text-muted transition" :style="{ transform: showSummary ? 'rotate(0deg)' : 'rotate(180deg)', transition: 'transform .2s' }"></i>
+                        </div>
+                    </div>
+                    <div v-show="showSummary" class="card-body p-0">
+                        <div class="table-responsive">
+                            <table class="table table-sm table-hover mb-0 align-middle" style="font-size:0.82rem;">
+                                <thead class="table-light">
+                                    <tr>
+                                        <th class="ps-3">Frutal</th>
+                                        <th>Variedad</th>
+                                        <th class="text-center" style="width:110px;">Cuarteles</th>
+                                        <th class="text-end pe-3" style="width:120px;">Ha totales</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr v-if="!summaryByVariety || summaryByVariety.length === 0">
+                                        <td colspan="4" class="text-center text-muted py-3 ps-3">
+                                            <i class="fas fa-info-circle me-1"></i>Sin datos registrados aún.
+                                        </td>
+                                    </tr>
+                                    <tr v-for="row in summaryByVariety" :key="row.fruit_name + row.variety_name">
+                                        <td class="ps-3">{{ row.fruit_name }}</td>
+                                        <td>{{ row.variety_name }}</td>
+                                        <td class="text-center">
+                                            <span class="badge bg-light text-secondary border">{{ row.cost_center_count }}</span>
+                                        </td>
+                                        <td class="text-end pe-3 fw-semibold">
+                                            {{ row.total_surface.toLocaleString('es-CL', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) }} ha
+                                        </td>
+                                    </tr>
+                                </tbody>
+                                <tfoot v-if="summaryByVariety && summaryByVariety.length > 0" class="table-light">
+                                    <tr>
+                                        <td colspan="3" class="ps-3 fw-semibold text-end small">Total configurado:</td>
+                                        <td class="text-end pe-3 fw-bold">
+                                            {{ totalHaAll.toLocaleString('es-CL', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) }} ha
+                                        </td>
+                                    </tr>
+                                </tfoot>
+                            </table>
+                        </div>
+                    </div>
+                </div>
                 <div class="row align-items-end mb-3">
                     <div class="col-md-4">
                         <div class="d-flex justify-content-between align-items-center mb-1">

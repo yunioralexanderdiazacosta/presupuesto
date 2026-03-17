@@ -5,7 +5,9 @@ namespace App\Http\Controllers\CostCenterVarieties;
 use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
 use App\Models\CostCenter;
+use App\Models\CostCenterVariety;
 use App\Models\DevelopmentState;
 use App\Models\Fruit;
 use App\Models\Rootstock;
@@ -55,13 +57,33 @@ class CostCenterVarietyController extends Controller
             ->get(['id', 'name'])
             ->map(fn($d) => ['label' => $d->name, 'value' => $d->id]);
 
+        // Resumen global: ha totales y cuarteles por variedad
+        $summaryByVariety = CostCenterVariety::select(
+                'fruit_id', 'variety_id',
+                DB::raw('SUM(surface) as total_surface'),
+                DB::raw('COUNT(DISTINCT cost_center_id) as cost_center_count')
+            )
+            ->where('team_id', $user->team_id)
+            ->where('season_id', $season_id)
+            ->groupBy('fruit_id', 'variety_id')
+            ->with(['fruit:id,name', 'variety:id,name'])
+            ->orderByDesc('total_surface')
+            ->get()
+            ->map(fn($r) => [
+                'fruit_name'        => $r->fruit?->name ?? '—',
+                'variety_name'      => $r->variety?->name ?? '—',
+                'total_surface'     => round((float) $r->total_surface, 4),
+                'cost_center_count' => (int) $r->cost_center_count,
+            ]);
+
         return Inertia::render('CostCenterVarieties', compact(
             'costCenters',
             'costCentersData',
             'fruits',
             'varieties',
             'rootstocks',
-            'developmentStates'
+            'developmentStates',
+            'summaryByVariety'
         ));
     }
 }
