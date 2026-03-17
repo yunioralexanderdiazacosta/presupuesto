@@ -13,7 +13,7 @@ const page = usePage();
 
 const filteredVarieties = computed(() => {
     if (!props.form.fruit_id) return [];
-    return (page.props.varieties || []).filter(v => v.fruit_id === props.form.fruit_id);
+    return (page.props.varieties || []).filter(v => String(v.fruit_id) === String(props.form.fruit_id));
 });
 
 watch(() => props.form.fruit_id, (newVal, oldVal) => {
