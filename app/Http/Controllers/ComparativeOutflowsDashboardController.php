@@ -36,7 +36,6 @@ class ComparativeOutflowsDashboardController extends Controller
         // Obtener dollar_price del admin del equipo
         $adminUser = \App\Models\User::where('team_id', $team_id)
             ->role('Admin')
-            ->whereNotNull('dollar_price')
             ->first();
         $dollarPrice = $adminUser?->dollar_price ?? 970;
 
