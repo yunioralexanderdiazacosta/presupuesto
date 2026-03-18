@@ -215,6 +215,11 @@ use App\Http\Controllers\ProductionDispatches\StoreProductionDispatchController;
 use App\Http\Controllers\ProductionDispatches\UpdateProductionDispatchController;
 use App\Http\Controllers\ProductionDispatches\DeleteProductionDispatchController;
 use App\Http\Controllers\ProductionDispatches\ProcessProductionDispatchController;
+// Rutas para Production Summaries (resumen de producción)
+use App\Http\Controllers\ProductionSummaries\ProductionSummaryController;
+use App\Http\Controllers\ProductionSummaries\StoreProductionSummaryController;
+use App\Http\Controllers\ProductionSummaries\UpdateProductionSummaryController;
+use App\Http\Controllers\ProductionSummaries\DeleteProductionSummaryController;
 // Rutas para Exporters (exportadoras)
 use App\Http\Controllers\Exporters\StoreExporterController;
 use App\Http\Controllers\Exporters\UpdateExporterController;
@@ -792,6 +797,12 @@ Route::middleware([
     Route::put('/production-dispatches/{productionDispatch}', UpdateProductionDispatchController::class)->name('production-dispatches.update');
     Route::delete('/production-dispatches/{productionDispatch}', DeleteProductionDispatchController::class)->name('production-dispatches.delete');
     Route::put('/production-dispatches/{productionDispatch}/process', ProcessProductionDispatchController::class)->name('production-dispatches.process');
+
+    // Production Summaries (Resumen de Producción)
+    Route::get('/production-summaries', ProductionSummaryController::class)->name('production-summaries.index');
+    Route::post('/production-summaries', StoreProductionSummaryController::class)->name('production-summaries.store');
+    Route::post('/production-summaries/{id}/update', UpdateProductionSummaryController::class)->name('production-summaries.update');
+    Route::delete('/production-summaries/{id}/delete', DeleteProductionSummaryController::class)->name('production-summaries.delete');
 
     // Exporters (Exportadoras)
     Route::post('/exporters', StoreExporterController::class)->name('exporters.store');

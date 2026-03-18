@@ -4,6 +4,7 @@ import { usePage, router } from '@inertiajs/vue3';
 import AppLayout from '@/Layouts/AppLayout.vue';
 import Multiselect from '@vueform/multiselect';
 import Swal from 'sweetalert2';
+import ExportExcelButton from '@/Components/ExportExcelButton.vue';
 
 const page = usePage();
 const costCenterVarieties = computed(() => page.props.costCenterVarieties || []);
@@ -219,6 +220,35 @@ async function handleSave() {
     }
 }
 
+// ── Exportar Excel ──
+const excelHeaders = [
+    { label: 'Cuartel',         key: 'costCenterName' },
+    { label: 'Variedad',        key: 'varietyName' },
+    { label: 'Portainjerto',    key: 'rootstockName' },
+    { label: 'Superficie (ha)', key: 'surface',     type: 'number' },
+    { label: 'Kilos/ha',        key: 'kilos',       type: 'number' },
+    { label: 'Kilos Total',     key: 'kilosTotal',  type: 'number' },
+    { label: 'Observaciones',   key: 'observation' },
+];
+
+const excelData = computed(() =>
+    rows.value.map(r => ({
+        costCenterName: r.costCenterName,
+        varietyName:    r.varietyName,
+        rootstockName:  r.rootstockName,
+        surface:        r.surface || 0,
+        kilos:          r.kilos !== '' && r.kilos !== undefined ? Number(r.kilos) : 0,
+        kilosTotal:     r.kilosTotal || 0,
+        observation:    r.observation || '',
+    }))
+);
+
+const excelFilename = computed(() => {
+    const fruta = fruitOptions.value.find(f => String(f.value) === String(selectedFruitId.value))?.label || 'estimacion';
+    const estado = estimateStatusOptions.value.find(s => String(s.value) === String(selectedEstimateStatusId.value))?.label || '';
+    return `Estimaciones_${fruta}${estado ? '_' + estado : ''}.xlsx`;
+});
+
 // ── Eliminar ──
 function handleDelete(row) {
     if (!row.id) return;
@@ -256,6 +286,13 @@ function handleDelete(row) {
                     </div>
                     <div class="col-6 col-sm-auto ms-auto text-end ps-0">
                         <div class="d-flex align-items-center gap-2">
+                            <ExportExcelButton
+                                v-if="rows.length > 0"
+                                :data="excelData"
+                                :headers="excelHeaders"
+                                :filename="excelFilename"
+                                class="btn btn-falcon-default btn-sm"
+                            />
                             <button class="btn btn-falcon-default btn-sm" @click="openStatusModal">
                                 <span class="fas fa-tag" data-fa-transform="shrink-3 down-2"></span>
                                 <span class="d-none d-sm-inline-block ms-1">Nombre Estimación</span>

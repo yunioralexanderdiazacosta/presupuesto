@@ -384,10 +384,28 @@ const logout = () => {
                       </Link>
                       <!-- more inner pages-->
                     </li>
-                    <li class="nav-item"><Link class="nav-link" :href="route('production-dispatches.index')">
-                        <div class="d-flex align-items-center"><span class="nav-link-text ps-3">Producción</span>
+                    <li class="nav-item">
+                      <a class="nav-link dropdown-indicator" href="#productionMenu" data-bs-toggle="collapse" aria-expanded="false" aria-controls="productionMenu">
+                        <div class="d-flex align-items-center">
+                          <span class="nav-link-text ps-3">Producción</span>
                         </div>
-                      </Link>
+                      </a>
+                      <ul class="nav collapse" id="productionMenu">
+                        <li class="nav-item">
+                          <Link class="nav-link" :href="route('production-dispatches.index')">
+                            <div class="d-flex align-items-center">
+                              <span class="nav-link-text ps-4">Ingresar Producción</span>
+                            </div>
+                          </Link>
+                        </li>
+                        <li class="nav-item">
+                          <Link class="nav-link" :href="route('production-summaries.index')">
+                            <div class="d-flex align-items-center">
+                              <span class="nav-link-text ps-4">Ingreso Rápido de Producción</span>
+                            </div>
+                          </Link>
+                        </li>
+                      </ul>
                     </li>
 
                 <li class="nav-item">
