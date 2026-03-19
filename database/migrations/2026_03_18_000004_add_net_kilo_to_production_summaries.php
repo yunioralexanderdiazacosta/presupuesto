@@ -9,7 +9,7 @@ return new class extends Migration
     public function up(): void
     {
         Schema::table('production_summaries', function (Blueprint $table) {
-            $table->decimal('net_kilo', 10, 4)->nullable()->after('kg_exported');
+            $table->decimal('net_kilo', 10, 2)->nullable()->after('kg_exported');
         });
     }
 

@@ -127,6 +127,12 @@ const totalExported     = computed(() => rows.value.reduce((s, r) => s + (r.expo
 const totalSurface      = computed(() => rows.value.reduce((s, r) => s + r.surface, 0));
 const totalEstReturn    = computed(() => rows.value.reduce((s, r) => s + r.estimatedReturn, 0));
 const globalExportPct   = computed(() => totalHarvested.value > 0 ? Math.round((totalExported.value / totalHarvested.value) * 100) : 0);
+const avgKgPerHa        = computed(() => {
+    const activeRows = rows.value.filter(r => r.harvested && Number(r.harvested) > 0);
+    const activeSurface = activeRows.reduce((s, r) => s + r.surface, 0);
+    const activeHarvested = activeRows.reduce((s, r) => s + Number(r.harvested), 0);
+    return activeSurface > 0 ? Math.round(activeHarvested / activeSurface) : 0;
+});
 
 // â”€â”€ Guardar â”€â”€
 async function handleSave() {
@@ -333,6 +339,14 @@ const excelFilename = computed(() => {
                         </div>
                     </div>
                     <div class="col">
+                        <div class="card h-100 p-1 border">
+                            <div class="card-body py-2 px-3 text-center">
+                                <div class="text-muted small">Prom. Kg / ha</div>
+                                <div class="fs-7 fw-bold">{{ avgKgPerHa.toLocaleString('es-CL') }}</div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col">
                         <div class="card h-100 p-1 border border-success">
                             <div class="card-body py-2 px-3 text-center">
                                 <div class="text-muted small">Retorno Estimado</div>
@@ -406,7 +420,7 @@ const excelFilename = computed(() => {
                                 </td>
                                 <td>
                                     <input type="number" class="form-control form-control-sm" :value="row.netKilo"
-                                        @input="updateNetKilo(row.varId, $event.target.value)" min="0" step="0.0001" placeholder="0.0000"
+                                        @input="updateNetKilo(row.varId, $event.target.value)" min="0" step="0.01" placeholder="0.00"
                                         :class="{ 'border-warning border-2': row.isExisting && row.isModified, 'border-success border-2': !row.isExisting && row.harvested }" />
                                 </td>
                                 <td class="text-end fw-bold">
