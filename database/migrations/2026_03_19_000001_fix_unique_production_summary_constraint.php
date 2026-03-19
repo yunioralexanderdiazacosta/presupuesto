@@ -8,46 +8,36 @@ use Illuminate\Support\Facades\Schema;
 return new class extends Migration
 {
     /**
-     * Buscar nombres de FK que referencien una columna específica.
+     * Obtener TODOS los FK constraints de la tabla.
      */
-    private function getForeignKeyNames(string $table, string $column): array
+    private function getAllForeignKeys(string $table): array
     {
         $fks = DB::select("
-            SELECT CONSTRAINT_NAME
+            SELECT CONSTRAINT_NAME, COLUMN_NAME, REFERENCED_TABLE_NAME
             FROM information_schema.KEY_COLUMN_USAGE
             WHERE TABLE_SCHEMA = DATABASE()
               AND TABLE_NAME = ?
-              AND COLUMN_NAME = ?
               AND REFERENCED_TABLE_NAME IS NOT NULL
-        ", [$table, $column]);
+        ", [$table]);
 
-        return array_map(fn($fk) => $fk->CONSTRAINT_NAME, $fks);
+        return $fks;
     }
 
     public function up(): void
     {
-        // 1. Eliminar TODOS los FKs que dependen del unique index
-        //    (season_id y potencialmente team_id)
-        $seasonFks = $this->getForeignKeyNames('production_summaries', 'season_id');
-        $teamFks = $this->getForeignKeyNames('production_summaries', 'team_id');
+        // 1. Descubrir y eliminar TODOS los FKs de la tabla
+        $fks = $this->getAllForeignKeys('production_summaries');
+        $fkNames = array_unique(array_map(fn($fk) => $fk->CONSTRAINT_NAME, $fks));
 
-        if (!empty($seasonFks)) {
-            Schema::table('production_summaries', function (Blueprint $table) use ($seasonFks) {
-                foreach ($seasonFks as $fk) {
+        if (!empty($fkNames)) {
+            Schema::table('production_summaries', function (Blueprint $table) use ($fkNames) {
+                foreach ($fkNames as $fk) {
                     $table->dropForeign($fk);
                 }
             });
         }
 
-        if (!empty($teamFks)) {
-            Schema::table('production_summaries', function (Blueprint $table) use ($teamFks) {
-                foreach ($teamFks as $fk) {
-                    $table->dropForeign($fk);
-                }
-            });
-        }
-
-        // 2. Eliminar el unique incorrecto (season_id, team_id)
+        // 2. Eliminar el unique (ahora sin FKs que lo bloqueen)
         $hasUnique = collect(DB::select("SHOW INDEX FROM production_summaries WHERE Key_name = 'unique_production_summary'"))->isNotEmpty();
         if ($hasUnique) {
             Schema::table('production_summaries', function (Blueprint $table) {
@@ -55,13 +45,14 @@ return new class extends Migration
             });
         }
 
-        // 3. Crear el unique correcto (variety_id, season_id, team_id)
+        // 3. Crear el unique correcto
         Schema::table('production_summaries', function (Blueprint $table) {
             $table->unique(['variety_id', 'season_id', 'team_id'], 'unique_production_summary');
         });
 
-        // 4. Re-crear FKs
+        // 4. Re-crear TODOS los FKs
         Schema::table('production_summaries', function (Blueprint $table) {
+            $table->foreign('variety_id')->references('id')->on('varieties')->onDelete('cascade');
             $table->foreign('season_id')->references('id')->on('seasons')->onDelete('cascade');
             $table->foreign('team_id')->references('id')->on('teams')->onDelete('cascade');
         });
@@ -69,20 +60,12 @@ return new class extends Migration
 
     public function down(): void
     {
-        $seasonFks = $this->getForeignKeyNames('production_summaries', 'season_id');
-        $teamFks = $this->getForeignKeyNames('production_summaries', 'team_id');
+        $fks = $this->getAllForeignKeys('production_summaries');
+        $fkNames = array_unique(array_map(fn($fk) => $fk->CONSTRAINT_NAME, $fks));
 
-        if (!empty($seasonFks)) {
-            Schema::table('production_summaries', function (Blueprint $table) use ($seasonFks) {
-                foreach ($seasonFks as $fk) {
-                    $table->dropForeign($fk);
-                }
-            });
-        }
-
-        if (!empty($teamFks)) {
-            Schema::table('production_summaries', function (Blueprint $table) use ($teamFks) {
-                foreach ($teamFks as $fk) {
+        if (!empty($fkNames)) {
+            Schema::table('production_summaries', function (Blueprint $table) use ($fkNames) {
+                foreach ($fkNames as $fk) {
                     $table->dropForeign($fk);
                 }
             });
@@ -97,6 +80,7 @@ return new class extends Migration
         });
 
         Schema::table('production_summaries', function (Blueprint $table) {
+            $table->foreign('variety_id')->references('id')->on('varieties')->onDelete('cascade');
             $table->foreign('season_id')->references('id')->on('seasons')->onDelete('cascade');
             $table->foreign('team_id')->references('id')->on('teams')->onDelete('cascade');
         });
