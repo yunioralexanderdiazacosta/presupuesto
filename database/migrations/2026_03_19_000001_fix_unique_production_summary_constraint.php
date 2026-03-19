@@ -9,17 +9,38 @@ return new class extends Migration
 {
     public function up(): void
     {
-        DB::statement('SET FOREIGN_KEY_CHECKS=0');
-        DB::statement('ALTER TABLE production_summaries DROP INDEX unique_production_summary');
-        DB::statement('ALTER TABLE production_summaries ADD UNIQUE unique_production_summary (variety_id, season_id, team_id)');
-        DB::statement('SET FOREIGN_KEY_CHECKS=1');
+        // 1. Crear índices simples para que los FKs de season_id y team_id
+        //    no dependan del índice unique compuesto
+        Schema::table('production_summaries', function (Blueprint $table) {
+            $table->index('season_id', 'idx_ps_season_id');
+            $table->index('team_id', 'idx_ps_team_id');
+        });
+
+        // 2. Ahora podemos eliminar el unique sin conflicto de FK
+        Schema::table('production_summaries', function (Blueprint $table) {
+            $table->dropUnique('unique_production_summary');
+        });
+
+        // 3. Crear el unique correcto con variety_id incluido
+        //    Los índices simples se mantienen porque los FKs los necesitan
+        Schema::table('production_summaries', function (Blueprint $table) {
+            $table->unique(['variety_id', 'season_id', 'team_id'], 'unique_production_summary');
+        });
     }
 
     public function down(): void
     {
-        DB::statement('SET FOREIGN_KEY_CHECKS=0');
-        DB::statement('ALTER TABLE production_summaries DROP INDEX unique_production_summary');
-        DB::statement('ALTER TABLE production_summaries ADD UNIQUE unique_production_summary (season_id, team_id)');
-        DB::statement('SET FOREIGN_KEY_CHECKS=1');
+        Schema::table('production_summaries', function (Blueprint $table) {
+            $table->dropUnique('unique_production_summary');
+        });
+
+        Schema::table('production_summaries', function (Blueprint $table) {
+            $table->unique(['season_id', 'team_id'], 'unique_production_summary');
+        });
+
+        Schema::table('production_summaries', function (Blueprint $table) {
+            $table->dropIndex('idx_ps_season_id');
+            $table->dropIndex('idx_ps_team_id');
+        });
     }
 };
