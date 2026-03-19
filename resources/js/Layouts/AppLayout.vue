@@ -1,5 +1,5 @@
 <script setup>
-import { computed } from 'vue';
+import { computed, ref } from 'vue';
 import { router, Link, usePage } from '@inertiajs/vue3';
 import JetDropdownLink from '@/Components/DropdownLink.vue';
 import { onMounted, onUnmounted } from 'vue';
@@ -45,6 +45,84 @@ const path = '';
 const logout = () => {
     router.post(route('logout'));
 };
+
+// ── Buscador del menú lateral ─────────────────────────────────
+const menuSearch = ref('');
+
+const menuItems = [
+    { label: 'Inicio', route: 'home', icon: 'fas fa-home' },
+    { label: 'Guía del Sistema', route: 'system-guide', icon: 'fas fa-map-signs' },
+    { label: 'Dashboard', route: 'dashboard', icon: 'fas fa-tachometer-alt', section: 'Presupuestos' },
+    { label: 'Panel Técnico', route: 'technicalpanel', icon: 'fas fa-clipboard-check', section: 'Presupuestos' },
+    { label: 'Agroquímicos (Presupuesto)', route: 'agrochemicals.index', icon: 'fas fa-flask', section: 'Presupuestar por CC' },
+    { label: 'Fertilizantes (Presupuesto)', route: 'fertilizers.index', icon: 'fas fa-leaf', section: 'Presupuestar por CC' },
+    { label: 'Mano de Obra (Presupuesto)', route: 'manpowers.index', icon: 'fas fa-hard-hat', section: 'Presupuestar por CC' },
+    { label: 'Insumos (Presupuesto)', route: 'supplies.index', icon: 'fas fa-box', section: 'Presupuestar por CC' },
+    { label: 'Servicios (Presupuesto)', route: 'services.index', icon: 'fas fa-concierge-bell', section: 'Presupuestar por CC' },
+    { label: 'Cosecha (Presupuesto)', route: 'harvests.index', icon: 'fas fa-apple-alt', section: 'Presupuestar por CC' },
+    { label: 'Gral Campo', route: 'fields.index', icon: 'fas fa-tractor', section: 'Presupuestos' },
+    { label: 'Administración', route: 'administrations.index', icon: 'fas fa-briefcase', section: 'Presupuestos' },
+    { label: 'FAQ', route: 'faq', icon: 'fas fa-question-circle' },
+    { label: 'Dashboard Gestión', route: 'outflows.dashboard', icon: 'fas fa-chart-bar', section: 'Gestión' },
+    { label: 'Comparativo Presupuesto vs Real', route: 'comparative.dashboard', icon: 'fas fa-chart-line', section: 'Gestión' },
+    { label: 'Gestión por Hectárea', route: 'hectare.dashboard', icon: 'fas fa-seedling', section: 'Gestión' },
+    { label: 'Facturas y otros', route: 'invoices.index', icon: 'fas fa-file-invoice', section: 'Registro de Gastos' },
+    { label: 'Pagos de Facturas', route: 'invoice-payments.index', icon: 'fas fa-money-bill-wave', section: 'Registro de Gastos' },
+    { label: 'Notas de Crédito/Débito', route: 'credit_debit_notes.index', icon: 'fas fa-file-alt', section: 'Registro de Gastos' },
+    { label: 'Rendiciones de Gastos', route: 'expense-reports.index', icon: 'fas fa-receipt', section: 'Registro de Gastos' },
+    { label: 'Órdenes de Compra', route: 'purchase-orders.index', icon: 'fas fa-shopping-cart', section: 'Registro de Gastos' },
+    { label: 'Consolidado de Documentos', route: 'consolidated-documents.index', icon: 'fas fa-folder-open', section: 'Registro de Gastos' },
+    { label: 'Inversiones', route: 'investments.index', icon: 'fas fa-chart-pie', section: 'Gestión' },
+    { label: 'Consolidado de Salidas', route: 'consolidated-outflows.index', icon: 'fas fa-sign-out-alt', section: 'Salidas' },
+    { label: 'Consumos Gral.', route: 'outflows.index', icon: 'fas fa-boxes', section: 'Salidas' },
+    { label: 'Combustible Maquinaria', route: 'fuel-outflows.index', icon: 'fas fa-gas-pump', section: 'Salidas' },
+    { label: 'Órdenes de Aplicación', route: 'application-orders.index', icon: 'fas fa-clipboard-list', section: 'Agroquímicos' },
+    { label: 'Aplicación Agroquímicos', route: 'agrochemical-outflows.index', icon: 'fas fa-spray-can', section: 'Agroquímicos' },
+    { label: 'Órdenes de Fertilizante', route: 'fertilizer-orders.index', icon: 'fas fa-clipboard-list', section: 'Fertilizantes' },
+    { label: 'Aplicación Fertilizantes', route: 'fertilizer-outflows.index', icon: 'fas fa-leaf', section: 'Fertilizantes' },
+    { label: 'Estimaciones', route: 'estimates.index', icon: 'fas fa-calculator', section: 'Gestión' },
+    { label: 'Ingresar Producción', route: 'production-dispatches.index', icon: 'fas fa-truck-loading', section: 'Producción' },
+    { label: 'Ingreso Rápido de Producción', route: 'production-summaries.index', icon: 'fas fa-bolt', section: 'Producción' },
+    { label: 'Proveedores', route: 'suppliers.index', icon: 'fas fa-handshake', section: 'Gestión' },
+    { label: 'Inventario', route: 'inventory', icon: 'fas fa-warehouse', section: 'Gestión' },
+    { label: 'Productos', route: 'products.index', icon: 'fas fa-barcode', section: 'Gestión' },
+    { label: 'Maquinarias', route: 'machineries.index', icon: 'fas fa-cogs', section: 'Maquinarias' },
+    { label: 'Tipo de Maquinarias', route: 'type.machineries.index', icon: 'fas fa-wrench', section: 'Maquinarias' },
+    { label: 'Operarios', route: 'operators.index', icon: 'fas fa-id-badge', section: 'Maquinarias' },
+    { label: 'Equipos de Riego', route: 'irrigation-pumps.index', icon: 'fas fa-tint', section: 'Gestión' },
+    { label: 'Colaboradores', route: 'employees.index', icon: 'fas fa-user-tie', section: 'Remuneraciones' },
+    { label: 'Contratos', route: 'contracts.index', icon: 'fas fa-file-signature', section: 'Remuneraciones' },
+    { label: 'Plantillas de Contrato', route: 'contract-templates.index', icon: 'fas fa-file-contract', section: 'Remuneraciones' },
+    { label: 'Centros de Costos', route: 'cost.centers.index', icon: 'fas fa-sitemap', section: 'Parámetros' },
+    { label: 'Grupos de CC', route: 'groupings.index', icon: 'fas fa-layer-group', section: 'Parámetros' },
+    { label: 'Variedades por Cuartel', route: 'cost-center-varieties.index', icon: 'fas fa-th', section: 'Parámetros' },
+    { label: 'Niveles', route: 'levels.index', icon: 'fas fa-stream', section: 'Parámetros' },
+    { label: 'Resumen de Niveles', route: 'levels.summary', icon: 'fas fa-list-ol', section: 'Parámetros' },
+    { label: 'Usuarios', route: 'users.index', icon: 'fas fa-users-cog', section: 'Parámetros' },
+    { label: 'Razón Social', route: 'company.reasons.index', icon: 'fas fa-id-card', section: 'Parámetros' },
+    { label: 'Frutal', route: 'fruits.index', icon: 'fas fa-lemon', section: 'Parámetros' },
+    { label: 'Etapas Fenológicas', route: 'phenological-stages.index', icon: 'fas fa-spa', section: 'Parámetros' },
+    { label: 'Variedades', route: 'varieties.index', icon: 'fas fa-palette', section: 'Parámetros' },
+    { label: 'Portainjertos', route: 'rootstocks.index', icon: 'fas fa-tree', section: 'Parámetros' },
+    { label: 'Parcelas', route: 'parcels.index', icon: 'fas fa-map-marked-alt', section: 'Parámetros' },
+    { label: 'Temporadas', route: 'seasons.index', icon: 'fas fa-calendar-alt', section: 'Parámetros' },
+];
+
+const normalize = (str) => str.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
+
+const filteredMenuItems = computed(() => {
+    if (!menuSearch.value.trim()) return [];
+    const q = normalize(menuSearch.value.trim());
+    return menuItems.filter(item =>
+        normalize(item.label).includes(q) ||
+        (item.section && normalize(item.section).includes(q))
+    );
+});
+
+const navigateTo = (routeName) => {
+    menuSearch.value = '';
+    router.visit(route(routeName));
+};
 </script>
 
 <template>
@@ -62,7 +140,52 @@ const logout = () => {
         </div>
         <div class="collapse navbar-collapse" id="navbarVerticalCollapse">
         <div class="navbar-vertical-content scrollbar">
-          <ul class="navbar-nav flex-column mb-3" id="navbarVerticalNav">
+
+          <!-- Buscador del menú -->
+          <div class="menu-search-wrapper px-3 pt-2 pb-1 position-sticky top-0" style="z-index: 10;">
+            <div class="position-relative">
+              <span class="fas fa-search position-absolute text-400" style="top: 50%; left: 12px; transform: translateY(-50%); font-size: 0.7rem;"></span>
+              <input
+                v-model="menuSearch"
+                type="text"
+                class="form-control form-control-sm rounded-pill ps-4 pe-4 menu-search-input"
+                placeholder="Buscar..."
+              />
+              <span
+                v-if="menuSearch"
+                class="position-absolute d-flex align-items-center justify-content-center"
+                style="top: 50%; right: 4px; transform: translateY(-50%); width: 22px; height: 22px; cursor: pointer; border: none; background: rgba(0,0,0,0.06); border-radius: 50%; padding: 0;"
+                @click.stop="menuSearch = ''"
+              >
+                <i class="fas fa-times" style="font-size: 0.6rem; color: #9da9bb;"></i>
+              </span>
+            </div>
+          </div>
+
+          <!-- Resultados de búsqueda -->
+          <div v-if="menuSearch.trim()" class="px-3 pt-1 pb-2">
+            <div v-if="filteredMenuItems.length === 0" class="text-center text-muted py-3" style="font-size: 0.8rem;">
+              <i class="fas fa-inbox me-1"></i> Sin resultados
+            </div>
+            <a
+              v-for="item in filteredMenuItems"
+              :key="item.route"
+              href="#"
+              @click.prevent="navigateTo(item.route)"
+              class="d-flex align-items-center px-2 py-2 mb-1 rounded-2 text-decoration-none menu-search-item"
+            >
+              <span class="menu-search-icon d-flex align-items-center justify-content-center rounded-2 me-2">
+                <i :class="item.icon" style="font-size: 0.7rem;"></i>
+              </span>
+              <div class="flex-1 overflow-hidden">
+                <div class="text-truncate fw-medium" style="font-size: 0.8rem; color: var(--falcon-nav-link-color, #5e6e82);">{{ item.label }}</div>
+                <div v-if="item.section" class="text-truncate" style="font-size: 0.65rem; color: #9da9bb;">{{ item.section }}</div>
+              </div>
+            </a>
+          </div>
+
+          <!-- Menú normal (oculto cuando se busca) -->
+          <ul v-show="!menuSearch.trim()" class="navbar-nav flex-column mb-3" id="navbarVerticalNav">
 
       <!-- Inicio para todos los roles -->
       <li class="nav-item">
@@ -799,6 +922,41 @@ const logout = () => {
 </template>
 
 <style>
+/* ── Buscador del menú lateral ─────────────────────────────── */
+.menu-search-wrapper {
+    background: inherit;
+}
+.menu-search-input {
+    font-size: 0.78rem !important;
+    background: rgba(0, 0, 0, 0.03);
+    border: 1px solid rgba(0, 0, 0, 0.08);
+    transition: all 0.2s ease;
+    height: 32px;
+}
+.menu-search-input:focus {
+    background: rgba(0, 0, 0, 0.02);
+    border-color: rgba(44, 123, 229, 0.4);
+    box-shadow: 0 0 0 0.15rem rgba(44, 123, 229, 0.1);
+}
+.menu-search-input::placeholder {
+    color: #b6c1d2;
+    font-size: 0.75rem;
+}
+.menu-search-item {
+    transition: all 0.15s ease;
+    cursor: pointer;
+}
+.menu-search-item:hover {
+    background: rgba(44, 123, 229, 0.08);
+}
+.menu-search-icon {
+    width: 26px;
+    height: 26px;
+    min-width: 26px;
+    background: rgba(44, 123, 229, 0.08);
+    color: #2c7be5;
+}
+
 /* ── Punto centrado antes de cada subítem del menú ─────────── */
 .navbar-vertical .nav.collapse .nav.collapse .nav-link-text::before,
 .navbar-vertical .nav.collapse .nav.collapsing .nav-link-text::before {
