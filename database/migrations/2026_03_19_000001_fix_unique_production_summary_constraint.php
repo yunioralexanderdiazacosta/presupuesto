@@ -9,27 +9,33 @@ return new class extends Migration
 {
     public function up(): void
     {
-        // 1. Crear índices simples para que los FKs de season_id y team_id
-        //    no dependan del índice unique compuesto
+        // 1. Eliminar FK de season_id (depende del unique index)
         Schema::table('production_summaries', function (Blueprint $table) {
-            $table->index('season_id', 'idx_ps_season_id');
-            $table->index('team_id', 'idx_ps_team_id');
+            $table->dropForeign('production_summaries_season_id_foreign');
         });
 
-        // 2. Ahora podemos eliminar el unique sin conflicto de FK
+        // 2. Eliminar el unique incorrecto (season_id, team_id)
         Schema::table('production_summaries', function (Blueprint $table) {
             $table->dropUnique('unique_production_summary');
         });
 
-        // 3. Crear el unique correcto con variety_id incluido
-        //    Los índices simples se mantienen porque los FKs los necesitan
+        // 3. Crear el unique correcto (variety_id, season_id, team_id)
         Schema::table('production_summaries', function (Blueprint $table) {
             $table->unique(['variety_id', 'season_id', 'team_id'], 'unique_production_summary');
+        });
+
+        // 4. Re-crear FK de season_id
+        Schema::table('production_summaries', function (Blueprint $table) {
+            $table->foreign('season_id')->references('id')->on('seasons')->onDelete('cascade');
         });
     }
 
     public function down(): void
     {
+        Schema::table('production_summaries', function (Blueprint $table) {
+            $table->dropForeign('production_summaries_season_id_foreign');
+        });
+
         Schema::table('production_summaries', function (Blueprint $table) {
             $table->dropUnique('unique_production_summary');
         });
@@ -39,8 +45,7 @@ return new class extends Migration
         });
 
         Schema::table('production_summaries', function (Blueprint $table) {
-            $table->dropIndex('idx_ps_season_id');
-            $table->dropIndex('idx_ps_team_id');
+            $table->foreign('season_id')->references('id')->on('seasons')->onDelete('cascade');
         });
     }
 };
