@@ -78,9 +78,10 @@ const rows = computed(() => {
                 ? observationsInputs.value[v.id]
                 : (summary ? summary.observations || '' : '');
 
+            const rawNetKilo = summary ? (summary.net_kilo ?? '') : '';
             const currentNetKilo = netKiloInputs.value[v.id] !== undefined
                 ? netKiloInputs.value[v.id]
-                : (summary ? (summary.net_kilo ?? '') : '');
+                : (rawNetKilo !== '' ? parseFloat(rawNetKilo).toFixed(2) : '');
 
             const harvestedNum   = currentHarvested ? Number(currentHarvested) : 0;
             const exportedNum    = currentExported  ? Number(currentExported)  : 0;
