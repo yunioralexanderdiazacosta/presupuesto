@@ -487,7 +487,7 @@ const createMonthlyChart = () => {
             datasets: [
                 {
                     label: 'Costo Mensual ($)',
-                    data: props.monthlyCostPerHa.monthly_costs,
+                    data: props.monthlyCostPerHa.monthly_costs.map(Number),
                     backgroundColor: 'rgba(44, 123, 229, 0.5)',
                     borderColor: '#2c7be5',
                     borderWidth: 1,
@@ -497,7 +497,7 @@ const createMonthlyChart = () => {
                 },
                 {
                     label: 'Costo/Ha Acumulado ($)',
-                    data: props.monthlyCostPerHa.cumulative_per_ha,
+                    data: props.monthlyCostPerHa.cumulative_per_ha.map(Number),
                     type: 'line',
                     borderColor: '#e63757',
                     backgroundColor: 'rgba(230, 55, 87, 0.1)',
@@ -518,7 +518,7 @@ const createMonthlyChart = () => {
             plugins: {
                 tooltip: {
                     callbacks: {
-                        label: (ctx) => ctx.dataset.label + ': $' + fmt(ctx.parsed.y),
+                        label: (tooltipItem) => tooltipItem.dataset.label + ': $' + fmt(tooltipItem.parsed.y),
                     },
                 },
                 legend: { position: 'top' },
@@ -542,7 +542,16 @@ const createMonthlyChart = () => {
     });
 };
 
-onMounted(() => { nextTick(() => createMonthlyChart()); });
+onMounted(() => {
+    nextTick(() => {
+        if (monthlyChartRef.value) {
+            createMonthlyChart();
+        } else {
+            // Reintentar tras un breve delay si el canvas aún no se montó
+            setTimeout(() => createMonthlyChart(), 200);
+        }
+    });
+});
 onUnmounted(() => { if (monthlyChart) monthlyChart.destroy(); });
 
 // Recrear gráfico cuando el canvas se monte (por v-if tardío o reubicación)

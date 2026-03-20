@@ -1,5 +1,5 @@
 <script setup>
-import { computed, ref } from "vue";
+import { computed, ref, watch } from "vue";
 import { Link, router, Head, usePage, useForm } from "@inertiajs/vue3";
 import Swal from "sweetalert2";
 import axios from "axios";
@@ -72,19 +72,31 @@ const totalFacturasFormatted = computed(() => {
 const termDetalles = ref('');
 const activeTab = ref('resumen'); // controla qué pestaña está activa
 
+// Expansión completa (sin filtro ni spread de objeto completo)
 const expandedInvoices = computed(() => {
-    // Solo calcular cuando la pestaña de detalles está activa
     if (activeTab.value !== 'detalles') return [];
     const source = filteredInvoices.value;
     const rows = [];
     source.forEach(invoice => {
+        const base = {
+            id: invoice.id,
+            date: invoice.date,
+            due_date: invoice.due_date,
+            supplier: invoice.supplier,
+            companyReason: invoice.companyReason,
+            type_document: invoice.type_document,
+            month: invoice.month,
+            number_document: invoice.number_document,
+            total: invoice.total,
+            expense_report: invoice.expense_report,
+        };
         if (invoice.products && invoice.products.length) {
             invoice.products.forEach(prod => {
                 const subtotal = (prod.amount || 0) * (prod.unit_price || 0);
                 const isFactura = invoice.type_document && invoice.type_document.toLowerCase() === 'factura';
                 const iva = isFactura ? subtotal * 0.19 : 0;
                 rows.push({
-                    ...invoice,
+                    ...base,
                     product_name: prod.product_name,
                     product_amount: prod.amount || 0,
                     product_unit_price: prod.unit_price || 0,
@@ -96,42 +108,72 @@ const expandedInvoices = computed(() => {
             });
         } else {
             rows.push({
-                ...invoice,
+                ...base,
                 product_name: '—',
                 product_amount: 0,
                 product_unit_price: 0,
+                product_original_unit_price: null,
                 product_subtotal: 0,
                 product_iva: 0,
                 product_total: 0,
             });
         }
     });
-    if (!termDetalles.value) return rows;
+    return rows;
+});
+
+// Filtrado sobre la expansión completa
+const filteredExpandedInvoices = computed(() => {
+    if (!termDetalles.value) return expandedInvoices.value;
     const search = termDetalles.value.toLowerCase();
-    return rows.filter(row => {
-        const supplier = row.supplier && row.supplier.name ? row.supplier.name.toLowerCase() : '';
+    return expandedInvoices.value.filter(row => {
+        const supplier = row.supplier?.name?.toLowerCase() || '';
         const number = row.number_document ? String(row.number_document).toLowerCase() : '';
-        const product = row.product_name ? row.product_name.toLowerCase() : '';
+        const product = row.product_name?.toLowerCase() || '';
         return supplier.includes(search) || number.includes(search) || product.includes(search);
     });
 });
 
+// Paginación del tab Detalles
+const detallesPage = ref(1);
+const detallesPerPage = ref(50);
+
+watch(termDetalles, () => { detallesPage.value = 1; });
+
+const pagedDetalles = computed(() => {
+    const start = (detallesPage.value - 1) * detallesPerPage.value;
+    return filteredExpandedInvoices.value.slice(start, start + detallesPerPage.value);
+});
+
+const detallesFrom = computed(() => {
+    if (!filteredExpandedInvoices.value.length) return 0;
+    return (detallesPage.value - 1) * detallesPerPage.value + 1;
+});
+
+const detallesTo = computed(() => {
+    return Math.min(detallesPage.value * detallesPerPage.value, filteredExpandedInvoices.value.length);
+});
+
+const detallesPageCount = computed(() => {
+    return Math.ceil(filteredExpandedInvoices.value.length / detallesPerPage.value);
+});
+
 const totalDetallesNeto = computed(() => {
-    return expandedInvoices.value.reduce((sum, row) => sum + row.product_subtotal, 0);
+    return filteredExpandedInvoices.value.reduce((sum, row) => sum + row.product_subtotal, 0);
 });
 
 const totalDetallesIva = computed(() => {
-    return expandedInvoices.value.reduce((sum, row) => sum + row.product_iva, 0);
+    return filteredExpandedInvoices.value.reduce((sum, row) => sum + row.product_iva, 0);
 });
 
 const totalDetallesGeneral = computed(() => {
-    return expandedInvoices.value.reduce((sum, row) => sum + row.product_total, 0);
+    return filteredExpandedInvoices.value.reduce((sum, row) => sum + row.product_total, 0);
 });
 
 const fmt = (val) => new Intl.NumberFormat('es-ES', { maximumFractionDigits: 0 }).format(Math.round(val));
 
 const excelDetallesData = computed(() => {
-    return expandedInvoices.value.map(row => ({
+    return filteredExpandedInvoices.value.map(row => ({
         id: row.id,
         type_document: row.type_document,
         month: row.month,
@@ -236,6 +278,29 @@ const formatCurrency = (value) => {
                         </div>
                     <div class="col-6 col-sm-auto ms-auto text-end ps-0">
                         <div class="d-flex align-items-center gap-2 justify-content-end">
+                            <ExportExcelButton
+                                :data="excelDetallesData"
+                                :headers="[
+                                    { label: 'ID', key: 'id' },
+                                    { label: 'Tipo Doc.', key: 'type_document' },
+                                    { label: 'Mes', key: 'month' },
+                                    { label: 'Proveedor', key: 'supplier' },
+                                    { label: 'N° Doc', key: 'number_document' },
+                                    { label: 'Fecha', key: 'date' },
+                                    { label: 'Producto', key: 'product' },
+                                    { label: 'Cantidad', key: 'amount' },
+                                    { label: 'P. Unit', key: 'unit_price' },
+                                    { label: 'Subtotal Neto', key: 'subtotal' },
+                                    { label: 'IVA', key: 'iva' },
+                                    { label: 'Total', key: 'total' },
+                                    { label: 'Rendición', key: 'expense_report' },
+                                ]"
+                                class="btn btn-falcon-default btn-sm"
+                                filename="Facturas_Detalles.xlsx"
+                            >
+                                <span class="fas fa-file-excel" data-fa-transform="shrink-3 down-2"></span>
+                                <span class="d-none d-sm-inline-block ms-1">Excel Detalles</span>
+                            </ExportExcelButton>
                             <button class="btn btn-falcon-default btn-sm" @click="openImportModal">
                                 <span class="fas fa-file-import" data-fa-transform="shrink-3 down-2"></span>
                                 <span class="d-none d-sm-inline-block ms-1">Importar Rendición</span>
@@ -439,32 +504,25 @@ invoice, index
 
                     <!-- begin::Tab Detalles -->
                     <div v-show="activeTab === 'detalles'" id="pill-tab-detalles" role="tabpanel">
-                        <div class="row align-items-center mb-3">
-                            <div class="col-md-6 col-12 mb-2 mb-md-0">
-                                <SearchInput v-model="termDetalles" placeholder="Buscar por proveedor, N° doc, producto..." />
-                            </div>
-                            <div class="col-md-6 col-12 text-md-end text-start">
-                                <ExportExcelButton
-                                    :data="excelDetallesData"
-                                    :headers="[
-                                        { label: 'ID', key: 'id' },
-                                        { label: 'Tipo Doc.', key: 'type_document' },
-                                        { label: 'Mes', key: 'month' },
-                                        { label: 'Proveedor', key: 'supplier' },
-                                        { label: 'N° Doc', key: 'number_document' },
-                                        { label: 'Fecha', key: 'date' },
-                                        { label: 'Producto', key: 'product' },
-                                        { label: 'Cantidad', key: 'amount' },
-                                        { label: 'P. Unit', key: 'unit_price' },
-                                        { label: 'Subtotal Neto', key: 'subtotal' },
-                                        { label: 'IVA', key: 'iva' },
-                                        { label: 'Total', key: 'total' },
-                                        { label: 'Rendición', key: 'expense_report' },
-                                    ]"
-                                    class="btn btn-falcon-default btn-sm me-2"
-                                    style="font-size: 0.7rem;"
-                                    filename="Facturas_Detalles.xlsx"
-                                />
+                        <div class="d-flex align-items-center justify-content-between mb-2 gap-2">
+                            <input
+                                :value="termDetalles"
+                                @input="termDetalles = $event.target.value"
+                                placeholder="Buscar por proveedor, N° doc, producto..."
+                                class="form-control form-control-sm"
+                                style="max-width: 360px;"
+                            />
+                            <div class="d-flex align-items-center gap-2 flex-shrink-0">
+                                <small class="text-muted text-nowrap">
+                                    {{ detallesFrom }}-{{ detallesTo }} de {{ filteredExpandedInvoices.length }}
+                                    <span v-if="termDetalles"> · "{{ termDetalles }}"</span>
+                                </small>
+                                <select class="form-select form-select-sm" style="width: 75px;" :value="detallesPerPage" @change="detallesPerPage = Number($event.target.value); detallesPage = 1">
+                                    <option :value="25">25</option>
+                                    <option :value="50">50</option>
+                                    <option :value="100">100</option>
+                                    <option :value="200">200</option>
+                                </select>
                             </div>
                         </div>
                         <div class="d-flex justify-content-end mb-2">
@@ -478,7 +536,7 @@ invoice, index
                         </div>
 
                         <div class="table-responsive" style="max-height: calc(100vh - 350px); overflow-y: auto;">
-                            <Table :id="'invoices-detalles'" :total="expandedInvoices.length" :links="[]" class="min-w-full">
+                            <Table :id="'invoices-detalles'" :total="filteredExpandedInvoices.length" :links="[]" class="min-w-full">
                                 <template #header>
                                     <th class="text-center" style="white-space:nowrap;">Acc.</th>
                                     <th class="text-center" style="white-space:nowrap;">ID</th>
@@ -496,11 +554,11 @@ invoice, index
                                     <th style="white-space:nowrap;">Rendición</th>
                                 </template>
                                 <template #body>
-                                    <template v-if="expandedInvoices.length == 0">
+                                    <template v-if="pagedDetalles.length == 0">
                                         <Empty colspan="14" />
                                     </template>
                                     <template v-else>
-                                        <tr v-for="(row, index) in expandedInvoices" :key="'det-' + index">
+                                        <tr v-for="(row, index) in pagedDetalles" :key="'det-' + index">
                                             <td class="text-center">
                                                 <div class="btn-group">
                                                     <Link :href="route('invoices.show', row.id)" v-tooltip="'Ver'"
@@ -546,6 +604,28 @@ invoice, index
                                     </template>
                                 </template>
                             </Table>
+                        </div>
+
+                        <!-- Paginación Detalles -->
+                        <div v-if="detallesPageCount > 1" class="d-flex justify-content-center mt-3">
+                            <nav>
+                                <ul class="pagination pagination-sm">
+                                    <li class="page-item" :class="{ disabled: detallesPage === 1 }">
+                                        <button class="page-link" @click="detallesPage--" :disabled="detallesPage === 1">&laquo;</button>
+                                    </li>
+                                    <li
+                                        v-for="p in detallesPageCount"
+                                        :key="p"
+                                        class="page-item"
+                                        :class="{ active: p === detallesPage }"
+                                    >
+                                        <button class="page-link" @click="detallesPage = p">{{ p }}</button>
+                                    </li>
+                                    <li class="page-item" :class="{ disabled: detallesPage === detallesPageCount }">
+                                        <button class="page-link" @click="detallesPage++" :disabled="detallesPage === detallesPageCount">&raquo;</button>
+                                    </li>
+                                </ul>
+                            </nav>
                         </div>
                     </div>
                     <!-- end::Tab Detalles -->
