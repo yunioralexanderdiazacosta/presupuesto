@@ -20,21 +20,22 @@ class InvoicesExport implements FromView, ShouldAutoSize
     public function view(): View
     {
         $user = Auth::user();
-        
         $season_id = session('season_id');
 
-        $term = $request->term ?? '';
-
-        $invoices = Invoice::with('supplier', 'companyReason')->when($this->term, function ($query, $search) {
-            $query->where('number_document', 'like', '%'.$search.'%');
+        $invoices = Invoice::with('supplier', 'companyReason')
+        ->where('team_id', $user->team_id)
+        ->where('season_id', $season_id)
+        ->when($this->term, function ($query) {
+            $query->where(function ($q) {
+                $q->where('number_document', 'like', '%' . $this->term . '%')
+                  ->orWhereHas('supplier', function ($sq) {
+                      $sq->where('name', 'like', '%' . $this->term . '%');
+                  })
+                  ->orWhereHas('companyReason', function ($sq) {
+                      $sq->where('name', 'like', '%' . $this->term . '%');
+                  });
+            });
         })
-        ->OrWhereHas('supplier', function($query) use ($term){
-            $query->where('name', 'like', '%'.$term.'%');
-        })
-        ->OrWhereHas('companyReason', function($query) use ($term){
-            $query->where('name', 'like', '%'.$term.'%');
-        })
-        ->where('team_id', $user->team_id)->where('season_id', $season_id)
         ->get()
         ->transform(function($invoice){
             return [
@@ -63,6 +64,6 @@ class InvoicesExport implements FromView, ShouldAutoSize
             $total = $total + ($product->pivot->unit_price * $product->pivot->amount);    
         }
 
-        return number_format($total, 2, ',', '.');
+        return round($total);
     }
 }
