@@ -441,11 +441,17 @@ const cumulativeTableData = computed(() => {
         const consumed = includeInvestments.value 
             ? props.cumulativeComparison.consumed_with_investments_cumulative[index] 
             : props.cumulativeComparison.consumed_cumulative[index];
+
+        // Facturado mensual (no acumulado) — null para meses futuros
+        const invoicedMonthly = index <= props.cumulativeComparison.last_month_with_data
+            ? (props.monthlyComparison.real[index] ?? null)
+            : null;
         
         // Aplicar conversión USD si está activada
         const convertedBudget = dividir.value && divisor.value ? budget / divisor.value : budget;
         const convertedInvoiced = invoiced !== null && dividir.value && divisor.value ? invoiced / divisor.value : invoiced;
         const convertedConsumed = consumed !== null && dividir.value && divisor.value ? consumed / divisor.value : consumed;
+        const convertedInvoicedMonthly = invoicedMonthly !== null && dividir.value && divisor.value ? invoicedMonthly / divisor.value : invoicedMonthly;
         
         const difference = convertedInvoiced !== null ? convertedBudget - convertedInvoiced : null;
         const differenceConsumed = convertedConsumed !== null ? convertedBudget - convertedConsumed : null;
@@ -454,6 +460,7 @@ const cumulativeTableData = computed(() => {
         
         return {
             month: month,
+            invoiced_monthly: convertedInvoicedMonthly !== null ? convertedInvoicedMonthly : 0,
             budget: convertedBudget || 0,
             invoiced: convertedInvoiced || 0,
             consumed: convertedConsumed || 0,
@@ -921,6 +928,7 @@ function createCumulativeChart() {
                                     :data="cumulativeTableData"
                                     :headers="[
                                         { label: 'Mes', key: 'month' },
+                                        { label: 'Facturado Mensual', key: 'invoiced_monthly' },
                                         { label: 'Presupuesto Acumulado', key: 'budget' },
                                         { label: 'Facturado Acumulado', key: 'invoiced' },
                                         { label: 'Consumido Acumulado', key: 'consumed' },
@@ -942,19 +950,26 @@ function createCumulativeChart() {
                                 <table class="table table-sm table-hover mb-0" style="font-size: 0.8rem;">
                                     <thead class="table-light">
                                         <tr>
-                                            <th style="width: 10%;">Mes</th>
-                                            <th class="text-end" style="width: 14%;">Presupuesto<br>Acumulado</th>
-                                            <th class="text-end" style="width: 14%;">Facturado<br>Acumulado</th>
-                                            <th class="text-end" style="width: 14%;">Consumido<br>Acumulado</th>
-                                            <th class="text-end" style="width: 12%;">Dif. (P-F)</th>
-                                            <th class="text-end" style="width: 12%;">Dif. (P-C)</th>
-                                            <th class="text-end" style="width: 12%;">Var. % (F)</th>
-                                            <th class="text-end" style="width: 12%;">Var. % (C)</th>
+                                            <th style="width: 9%;">Mes</th>
+                                            <th class="text-end" style="width: 12%;">Facturado<br>Mensual</th>
+                                            <th class="text-end" style="width: 13%;">Presupuesto<br>Acumulado</th>
+                                            <th class="text-end" style="width: 13%;">Facturado<br>Acumulado</th>
+                                            <th class="text-end" style="width: 13%;">Consumido<br>Acumulado</th>
+                                            <th class="text-end" style="width: 10%;">Dif. (P-F)</th>
+                                            <th class="text-end" style="width: 10%;">Dif. (P-C)</th>
+                                            <th class="text-end" style="width: 10%;">Var. % (F)</th>
+                                            <th class="text-end" style="width: 10%;">Var. % (C)</th>
                                         </tr>
                                     </thead>
                                     <tbody>
                                         <tr v-for="(month, index) in cumulativeComparison.labels" :key="index">
                                             <td class="fw-semibold">{{ month }}</td>
+                                            <td class="text-end">
+                                                <span v-if="index <= cumulativeComparison.last_month_with_data">
+                                                    {{ formatCLP(monthlyComparison.real[index]) }}
+                                                </span>
+                                                <span v-else class="text-muted">-</span>
+                                            </td>
                                             <td class="text-end">
                                                 {{ formatCLP(includeInvestments 
                                                     ? cumulativeComparison.budget_with_investments_cumulative[index] 
