@@ -915,6 +915,95 @@ function createCumulativeChart() {
                 </div>
             </div>
 
+            <!-- Tabla Mensual: Presupuesto vs Costos -->
+            <div class="row g-3 mb-3">
+                <div class="col-12">
+                    <div class="card">
+                        <div class="card-header">
+                            <h6 class="mb-0">
+                                <i class="fas fa-table me-2"></i>Resumen Mensual: Presupuesto vs Costos
+                            </h6>
+                        </div>
+                        <div class="card-body p-0">
+                            <div class="table-responsive">
+                                <table class="table table-sm table-bordered mb-0" style="font-size: 0.8rem;">
+                                    <thead class="table-light">
+                                        <tr>
+                                            <th style="min-width: 110px;">Concepto</th>
+                                            <th
+                                                v-for="(label, i) in monthlyComparison.labels"
+                                                :key="i"
+                                                class="text-end"
+                                                style="min-width: 90px;"
+                                            >{{ label }}</th>
+                                            <th class="text-end" style="min-width: 100px;">Total</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <!-- Fila: Presupuesto mensual -->
+                                        <tr>
+                                            <td class="fw-semibold text-primary">
+                                                <i class="fas fa-calculator fa-xs me-1"></i>{{ t.budgeted }}
+                                            </td>
+                                            <td
+                                                v-for="(val, i) in (includeInvestments ? monthlyComparison.budget_with_investments : monthlyComparison.budget)"
+                                                :key="i"
+                                                class="text-end"
+                                            >{{ formatCLP(val) }}</td>
+                                            <td class="text-end fw-bold text-primary">
+                                                {{ formatCLP((includeInvestments ? monthlyComparison.budget_with_investments : monthlyComparison.budget).reduce((a, b) => a + (b || 0), 0)) }}
+                                            </td>
+                                        </tr>
+                                        <!-- Fila: Costos (Facturado) mensual -->
+                                        <tr>
+                                            <td class="fw-semibold text-success">
+                                                <i class="fas fa-file-invoice-dollar fa-xs me-1"></i>{{ t.invoiced }}
+                                            </td>
+                                            <td
+                                                v-for="(val, i) in monthlyComparison.real"
+                                                :key="i"
+                                                class="text-end"
+                                            >
+                                                <span v-if="val > 0">{{ formatCLP(val) }}</span>
+                                                <span v-else class="text-muted">-</span>
+                                            </td>
+                                            <td class="text-end fw-bold text-success">
+                                                {{ formatCLP(monthlyComparison.real.reduce((a, b) => a + (b || 0), 0)) }}
+                                            </td>
+                                        </tr>
+                                        <!-- Fila: Diferencia (Presupuesto - Facturado) -->
+                                        <tr class="table-light">
+                                            <td class="fw-semibold">
+                                                <i class="fas fa-balance-scale fa-xs me-1"></i>{{ t.difference }}
+                                            </td>
+                                            <td
+                                                v-for="(val, i) in monthlyComparison.real"
+                                                :key="i"
+                                                class="text-end fw-bold"
+                                                :class="{
+                                                    'text-danger': ((includeInvestments ? monthlyComparison.budget_with_investments[i] : monthlyComparison.budget[i]) - val) < 0,
+                                                    'text-success': ((includeInvestments ? monthlyComparison.budget_with_investments[i] : monthlyComparison.budget[i]) - val) >= 0 && (val > 0 || (includeInvestments ? monthlyComparison.budget_with_investments[i] : monthlyComparison.budget[i]) > 0),
+                                                    'text-muted': val === 0 && (includeInvestments ? monthlyComparison.budget_with_investments[i] : monthlyComparison.budget[i]) === 0
+                                                }"
+                                            >
+                                                <template v-if="val > 0 || (includeInvestments ? monthlyComparison.budget_with_investments[i] : monthlyComparison.budget[i]) > 0">
+                                                    {{ formatCLP((includeInvestments ? monthlyComparison.budget_with_investments[i] : monthlyComparison.budget[i]) - val) }}
+                                                </template>
+                                                <span v-else class="text-muted">-</span>
+                                            </td>
+                                            <td class="text-end fw-bold"
+                                                :class="((includeInvestments ? monthlyComparison.budget_with_investments : monthlyComparison.budget).reduce((a,b)=>a+(b||0),0) - monthlyComparison.real.reduce((a,b)=>a+(b||0),0)) < 0 ? 'text-danger' : 'text-success'">
+                                                {{ formatCLP((includeInvestments ? monthlyComparison.budget_with_investments : monthlyComparison.budget).reduce((a,b)=>a+(b||0),0) - monthlyComparison.real.reduce((a,b)=>a+(b||0),0)) }}
+                                            </td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
             <!-- Tabla de Evolución Acumulada -->
             <div class="row g-3 mb-3">
                 <div class="col-12">
