@@ -250,6 +250,19 @@ use App\Http\Controllers\Contracts\ContractController;
 use App\Http\Controllers\Contracts\StoreContractController;
 use App\Http\Controllers\Contracts\UpdateContractController;
 use App\Http\Controllers\Contracts\DeleteContractController;
+// Rutas para Project Evaluations (Evaluación de Proyectos Agrícolas)
+use App\Http\Controllers\ProjectEvaluations\ProjectEvaluationController;
+use App\Http\Controllers\ProjectEvaluations\ShowProjectEvaluationController;
+use App\Http\Controllers\ProjectEvaluations\StoreProjectEvaluationController;
+use App\Http\Controllers\ProjectEvaluations\UpdateProjectEvaluationController;
+use App\Http\Controllers\ProjectEvaluations\DeleteProjectEvaluationController;
+use App\Http\Controllers\ProjectEvaluations\StoreProjectEvaluationRowController;
+use App\Http\Controllers\ProjectEvaluations\UpdateProjectEvaluationRowController;
+use App\Http\Controllers\ProjectEvaluations\DeleteProjectEvaluationRowController;
+use App\Http\Controllers\ProjectEvaluations\UpsertRnpPricesController;
+use App\Http\Controllers\ProjectEvaluations\UpsertVarietyCostParamsController;
+use App\Http\Controllers\ProjectEvaluations\UpsertKgYieldCostsController;
+
 // Rutas para ContractTemplates (Plantillas de Contrato)
 use App\Http\Controllers\ContractTemplates\ContractTemplateController;
 use App\Http\Controllers\ContractTemplates\StoreContractTemplateController;
@@ -846,6 +859,21 @@ Route::middleware([
     Route::post('/contracts', StoreContractController::class)->name('contracts.store');
     Route::put('/contracts/{contract}', UpdateContractController::class)->name('contracts.update');
     Route::delete('/contracts/{contract}', DeleteContractController::class)->name('contracts.delete');
+
+    // Project Evaluations (Evaluación de Proyectos Agrícolas)
+    Route::get('/project-evaluations', [ProjectEvaluationController::class, 'index'])->name('project-evaluations.index');
+    Route::post('/project-evaluations', StoreProjectEvaluationController::class)->name('project-evaluations.store');
+    Route::put('/project-evaluations/{projectEvaluation}', UpdateProjectEvaluationController::class)->name('project-evaluations.update');
+    Route::delete('/project-evaluations/{projectEvaluation}', DeleteProjectEvaluationController::class)->name('project-evaluations.delete');
+    Route::get('/project-evaluations/{projectEvaluation}', ShowProjectEvaluationController::class)->name('project-evaluations.show');
+    // Filas de composición
+    Route::post('/project-evaluations/{projectEvaluation}/rows', StoreProjectEvaluationRowController::class)->name('project-evaluations.rows.store');
+    Route::put('/project-evaluations/{projectEvaluation}/rows/{row}', UpdateProjectEvaluationRowController::class)->name('project-evaluations.rows.update');
+    Route::delete('/project-evaluations/{projectEvaluation}/rows/{row}', DeleteProjectEvaluationRowController::class)->name('project-evaluations.rows.delete');
+    // Parámetros (a nivel de equipo)
+    Route::post('/project-evaluations-params/rnp-prices', UpsertRnpPricesController::class)->name('project-evaluations.rnp-prices.upsert');
+    Route::post('/project-evaluations-params/variety-costs', UpsertVarietyCostParamsController::class)->name('project-evaluations.variety-costs.upsert');
+    Route::post('/project-evaluations-params/kg-yield-costs', UpsertKgYieldCostsController::class)->name('project-evaluations.kg-yield-costs.upsert');
 
     // Contract Templates (Plantillas de Contrato)
     Route::get('/contract-templates', [ContractTemplateController::class, 'index'])->name('contract-templates.index');

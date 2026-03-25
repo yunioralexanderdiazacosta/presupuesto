@@ -93,6 +93,7 @@ const menuItems = [
     { label: 'Colaboradores', route: 'employees.index', icon: 'fas fa-user-tie', section: 'Remuneraciones' },
     { label: 'Contratos', route: 'contracts.index', icon: 'fas fa-file-signature', section: 'Remuneraciones' },
     { label: 'Plantillas de Contrato', route: 'contract-templates.index', icon: 'fas fa-file-contract', section: 'Remuneraciones' },
+    { label: 'Evaluación de Proyectos', route: 'project-evaluations.index', icon: 'fas fa-seedling', section: 'Planificación' },
     { label: 'Centros de Costos', route: 'cost.centers.index', icon: 'fas fa-sitemap', section: 'Parámetros' },
     { label: 'Grupos de CC', route: 'groupings.index', icon: 'fas fa-layer-group', section: 'Parámetros' },
     { label: 'Variedades por Cuartel', route: 'cost-center-varieties.index', icon: 'fas fa-th', section: 'Parámetros' },
@@ -596,6 +597,17 @@ const navigateTo = (routeName) => {
                 </li>
                 <li class="nav-item"><Link class="nav-link" :href="route('contract-templates.index')">
                     <div class="d-flex align-items-center"><span class="nav-link-text ps-3">Plantillas de Contrato</span>
+                    </div>
+                  </Link>
+                </li>
+              </ul>
+              <!-- parent pages--><a class="nav-link dropdown-indicator" href="#planificacion" role="button" data-bs-toggle="collapse" aria-expanded="false" aria-controls="planificacion">
+                <div class="d-flex align-items-center"><span class="nav-link-icon"><span class="fas fa-seedling"></span></span><span class="nav-link-text text-dark ps-1">Evaluación de Proyectos</span>
+                </div>
+              </a>
+              <ul class="nav collapse" id="planificacion">
+                <li class="nav-item"><Link class="nav-link" :href="route('project-evaluations.index')">
+                    <div class="d-flex align-items-center"><span class="nav-link-text ps-3">Evaluación de Proyectos</span>
                     </div>
                   </Link>
                 </li>

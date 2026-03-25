@@ -22,33 +22,85 @@ const title = "Facturas";
 
 const term = ref(props.term || "");
 
+// ─── Filtros avanzados ──────────────────────────────────────────────────────
+const showAdvancedFilters = ref(false);
+const filterMonth = ref('');
+const filterDateFrom = ref('');
+const filterDateTo = ref('');
+const filterDocType = ref('');
+const filterExpenseReport = ref(''); // '' = todos, 'con' = con rendición, 'sin' = sin rendición
+
+// Opciones dinámicas generadas a partir de los datos cargados
+const availableMonths = computed(() => {
+    if (!props.invoices?.data) return [];
+    const months = [...new Set(props.invoices.data.map(i => i.month).filter(Boolean))];
+    return months.sort();
+});
+
+const availableDocTypes = computed(() => {
+    if (!props.invoices?.data) return [];
+    const types = [...new Set(props.invoices.data.map(i => i.type_document).filter(Boolean))];
+    return types.sort();
+});
+
+const activeFiltersCount = computed(() => {
+    return [filterMonth.value, filterDateFrom.value, filterDateTo.value, filterDocType.value, filterExpenseReport.value]
+        .filter(v => v !== '').length;
+});
+
+const clearAdvancedFilters = () => {
+    filterMonth.value = '';
+    filterDateFrom.value = '';
+    filterDateTo.value = '';
+    filterDocType.value = '';
+    filterExpenseReport.value = '';
+};
+
 // Filtrado local de facturas
 const filteredInvoices = computed(() => {
     if (!props.invoices || !props.invoices.data) return [];
-    if (!term.value) return props.invoices.data;
-    const search = term.value.toLowerCase();
-    return props.invoices.data.filter((item) => {
-        const supplier =
-            item.supplier && item.supplier.name
-                ? item.supplier.name.toLowerCase()
-                : "";
-        const number = item.number_document
-            ? String(item.number_document).toLowerCase()
-            : "";
-        const company =
-            item.companyReason && item.companyReason.name
-                ? item.companyReason.name.toLowerCase()
-                : "";
-        const products = item.products && item.products.length
-            ? item.products.map(p => p.product_name).join(' ').toLowerCase()
-            : "";
-        return (
-            supplier.includes(search) ||
-            number.includes(search) ||
-            company.includes(search) ||
-            products.includes(search)
-        );
-    });
+    let data = props.invoices.data;
+
+    // Filtro texto libre
+    if (term.value) {
+        const search = term.value.toLowerCase();
+        data = data.filter((item) => {
+            const supplier = item.supplier?.name?.toLowerCase() || '';
+            const number = item.number_document ? String(item.number_document).toLowerCase() : '';
+            const company = item.companyReason?.name?.toLowerCase() || '';
+            const products = item.products?.length
+                ? item.products.map(p => p.product_name).join(' ').toLowerCase()
+                : '';
+            return supplier.includes(search) || number.includes(search) || company.includes(search) || products.includes(search);
+        });
+    }
+
+    // Filtro por mes
+    if (filterMonth.value) {
+        data = data.filter(i => i.month === filterMonth.value);
+    }
+
+    // Filtro por rango de fechas
+    if (filterDateFrom.value) {
+        data = data.filter(i => i.date && i.date >= filterDateFrom.value);
+    }
+    if (filterDateTo.value) {
+        data = data.filter(i => i.date && i.date <= filterDateTo.value);
+    }
+
+    // Filtro por tipo de documento
+    if (filterDocType.value) {
+        data = data.filter(i => i.type_document === filterDocType.value);
+    }
+
+    // Filtro por rendición
+    if (filterExpenseReport.value === 'con') {
+        data = data.filter(i => i.expense_report);
+    } else if (filterExpenseReport.value === 'sin') {
+        data = data.filter(i => !i.expense_report);
+    }
+
+    return data;
 });
 
 
@@ -371,20 +423,92 @@ const formatCurrency = (value) => {
 
                 <div class="tab-content border p-3 mt-3" id="pill-myTabContent">
                     <div v-show="activeTab === 'resumen'" id="pill-tab-resumen" role="tabpanel">
-                        <div class="row align-items-center mb-3">
-                            <div class="col-md-6 col-12 mb-2 mb-md-0">
+                        <!-- Barra de búsqueda y filtros -->
+                        <div class="row align-items-center mb-2 g-2">
+                            <div class="col-md-5 col-12">
                                 <SearchInput v-model="term" placeholder="Buscar por proveedor, número, razón social..."
                                     @keyup.enter="onFilter()" @change="onFilter()" />
                             </div>
-                            <div class="col-md-6 col-12 text-md-end text-start">
-                                <a :href="route('invoices.pdf', { term: term })
-                                    " target="_blank" class="btn btn-falcon-default btn-sm me-2" style="font-size: 0.7rem;">
+                            <div class="col-md-7 col-12 d-flex align-items-center gap-2 flex-wrap justify-content-md-end">
+                                <button
+                                    type="button"
+                                    class="btn btn-sm"
+                                    :class="showAdvancedFilters ? 'btn-primary' : 'btn-falcon-default'"
+                                    @click="showAdvancedFilters = !showAdvancedFilters"
+                                    style="font-size: 0.75rem;"
+                                >
+                                    <i class="fas fa-filter me-1"></i>
+                                    Filtros
+                                    <span v-if="activeFiltersCount > 0" class="badge bg-warning text-dark ms-1">{{ activeFiltersCount }}</span>
+                                    <i :class="['fas', 'ms-1', showAdvancedFilters ? 'fa-chevron-up' : 'fa-chevron-down']" style="font-size:0.65rem;"></i>
+                                </button>
+                                <a :href="route('invoices.pdf', { term: term })" target="_blank" class="btn btn-falcon-default btn-sm" style="font-size: 0.7rem;">
                                     <i class="fas fa-file-pdf me-1"></i>PDF
                                 </a>
-                                <a :href="route('invoices.excel', { term: term })
-                                    " target="_blank" class="btn btn-falcon-default btn-sm me-2" style="font-size: 0.7rem;">
+                                <a :href="route('invoices.excel', { term: term })" target="_blank" class="btn btn-falcon-default btn-sm" style="font-size: 0.7rem;">
                                     <i class="fas fa-file-excel me-1"></i>Excel
                                 </a>
+                            </div>
+                        </div>
+
+                        <!-- Panel de filtros avanzados colapsable -->
+                        <div v-show="showAdvancedFilters" class="card border mb-3" style="background: #f9f9fb;">
+                            <div class="card-body py-2 px-3">
+                                <div class="row g-2 align-items-end">
+                                    <!-- Mes -->
+                                    <div class="col-6 col-md-2">
+                                        <label class="form-label mb-1 small fw-semibold">Mes</label>
+                                        <select v-model="filterMonth" class="form-select form-select-sm">
+                                            <option value="">Todos</option>
+                                            <option v-for="m in availableMonths" :key="m" :value="m">{{ m }}</option>
+                                        </select>
+                                    </div>
+                                    <!-- Fecha desde -->
+                                    <div class="col-6 col-md-2">
+                                        <label class="form-label mb-1 small fw-semibold">Fecha desde</label>
+                                        <input type="date" v-model="filterDateFrom" class="form-control form-control-sm" />
+                                    </div>
+                                    <!-- Fecha hasta -->
+                                    <div class="col-6 col-md-2">
+                                        <label class="form-label mb-1 small fw-semibold">Fecha hasta</label>
+                                        <input type="date" v-model="filterDateTo" class="form-control form-control-sm" />
+                                    </div>
+                                    <!-- Tipo Doc -->
+                                    <div class="col-6 col-md-2">
+                                        <label class="form-label mb-1 small fw-semibold">Tipo doc.</label>
+                                        <select v-model="filterDocType" class="form-select form-select-sm">
+                                            <option value="">Todos</option>
+                                            <option v-for="dt in availableDocTypes" :key="dt" :value="dt">{{ dt }}</option>
+                                        </select>
+                                    </div>
+                                    <!-- Rendición -->
+                                    <div class="col-6 col-md-2">
+                                        <label class="form-label mb-1 small fw-semibold">Rendición</label>
+                                        <select v-model="filterExpenseReport" class="form-select form-select-sm">
+                                            <option value="">Todas</option>
+                                            <option value="con">Con rendición</option>
+                                            <option value="sin">Sin rendición</option>
+                                        </select>
+                                    </div>
+                                    <!-- Limpiar -->
+                                    <div class="col-6 col-md-2 d-flex align-items-end">
+                                        <button
+                                            type="button"
+                                            class="btn btn-sm btn-outline-secondary w-100"
+                                            @click="clearAdvancedFilters"
+                                            :disabled="activeFiltersCount === 0"
+                                            style="font-size: 0.75rem;"
+                                        >
+                                            <i class="fas fa-times me-1"></i>Limpiar filtros
+                                        </button>
+                                    </div>
+                                </div>
+                                <div class="mt-2">
+                                    <small class="text-muted">
+                                        Mostrando <b>{{ filteredInvoices.length }}</b> de <b>{{ props.invoices?.data?.length || 0 }}</b> facturas
+                                        <span v-if="activeFiltersCount > 0" class="text-primary ms-1">· {{ activeFiltersCount }} filtro(s) activo(s)</span>
+                                    </small>
+                                </div>
                             </div>
                         </div>
 
@@ -504,15 +628,29 @@ invoice, index
 
                     <!-- begin::Tab Detalles -->
                     <div v-show="activeTab === 'detalles'" id="pill-tab-detalles" role="tabpanel">
-                        <div class="d-flex align-items-center justify-content-between mb-2 gap-2">
-                            <input
-                                :value="termDetalles"
-                                @input="termDetalles = $event.target.value"
-                                placeholder="Buscar por proveedor, N° doc, producto..."
-                                class="form-control form-control-sm"
-                                style="max-width: 360px;"
-                            />
-                            <div class="d-flex align-items-center gap-2 flex-shrink-0">
+                        <!-- Barra de búsqueda y filtros (Detalles) -->
+                        <div class="row align-items-center mb-2 g-2">
+                            <div class="col-md-5 col-12">
+                                <input
+                                    :value="termDetalles"
+                                    @input="termDetalles = $event.target.value"
+                                    placeholder="Buscar por proveedor, N° doc, producto..."
+                                    class="form-control form-control-sm"
+                                />
+                            </div>
+                            <div class="col-md-7 col-12 d-flex align-items-center gap-2 flex-wrap justify-content-md-end">
+                                <button
+                                    type="button"
+                                    class="btn btn-sm"
+                                    :class="showAdvancedFilters ? 'btn-primary' : 'btn-falcon-default'"
+                                    @click="showAdvancedFilters = !showAdvancedFilters"
+                                    style="font-size: 0.75rem;"
+                                >
+                                    <i class="fas fa-filter me-1"></i>
+                                    Filtros
+                                    <span v-if="activeFiltersCount > 0" class="badge bg-warning text-dark ms-1">{{ activeFiltersCount }}</span>
+                                    <i :class="['fas', 'ms-1', showAdvancedFilters ? 'fa-chevron-up' : 'fa-chevron-down']" style="font-size:0.65rem;"></i>
+                                </button>
                                 <small class="text-muted text-nowrap">
                                     {{ detallesFrom }}-{{ detallesTo }} de {{ filteredExpandedInvoices.length }}
                                     <span v-if="termDetalles"> · "{{ termDetalles }}"</span>
@@ -525,6 +663,62 @@ invoice, index
                                 </select>
                             </div>
                         </div>
+
+                        <!-- Panel de filtros avanzados colapsable (Detalles) -->
+                        <div v-show="showAdvancedFilters" class="card border mb-2" style="background: #f9f9fb;">
+                            <div class="card-body py-2 px-3">
+                                <div class="row g-2 align-items-end">
+                                    <div class="col-6 col-md-2">
+                                        <label class="form-label mb-1 small fw-semibold">Mes</label>
+                                        <select v-model="filterMonth" class="form-select form-select-sm">
+                                            <option value="">Todos</option>
+                                            <option v-for="m in availableMonths" :key="m" :value="m">{{ m }}</option>
+                                        </select>
+                                    </div>
+                                    <div class="col-6 col-md-2">
+                                        <label class="form-label mb-1 small fw-semibold">Fecha desde</label>
+                                        <input type="date" v-model="filterDateFrom" class="form-control form-control-sm" />
+                                    </div>
+                                    <div class="col-6 col-md-2">
+                                        <label class="form-label mb-1 small fw-semibold">Fecha hasta</label>
+                                        <input type="date" v-model="filterDateTo" class="form-control form-control-sm" />
+                                    </div>
+                                    <div class="col-6 col-md-2">
+                                        <label class="form-label mb-1 small fw-semibold">Tipo doc.</label>
+                                        <select v-model="filterDocType" class="form-select form-select-sm">
+                                            <option value="">Todos</option>
+                                            <option v-for="dt in availableDocTypes" :key="dt" :value="dt">{{ dt }}</option>
+                                        </select>
+                                    </div>
+                                    <div class="col-6 col-md-2">
+                                        <label class="form-label mb-1 small fw-semibold">Rendición</label>
+                                        <select v-model="filterExpenseReport" class="form-select form-select-sm">
+                                            <option value="">Todas</option>
+                                            <option value="con">Con rendición</option>
+                                            <option value="sin">Sin rendición</option>
+                                        </select>
+                                    </div>
+                                    <div class="col-6 col-md-2 d-flex align-items-end">
+                                        <button
+                                            type="button"
+                                            class="btn btn-sm btn-outline-secondary w-100"
+                                            @click="clearAdvancedFilters"
+                                            :disabled="activeFiltersCount === 0"
+                                            style="font-size: 0.75rem;"
+                                        >
+                                            <i class="fas fa-times me-1"></i>Limpiar filtros
+                                        </button>
+                                    </div>
+                                </div>
+                                <div class="mt-2">
+                                    <small class="text-muted">
+                                        Mostrando <b>{{ filteredExpandedInvoices.length }}</b> filas
+                                        <span v-if="activeFiltersCount > 0" class="text-primary ms-1">· {{ activeFiltersCount }} filtro(s) activo(s)</span>
+                                    </small>
+                                </div>
+                            </div>
+                        </div>
+
                         <div class="d-flex justify-content-end mb-2">
                             <div class="border rounded px-3 py-1 bg-light d-flex gap-3 align-items-center">
                                 <span class="small">Neto: <b>${{ fmt(totalDetallesNeto) }}</b></span>

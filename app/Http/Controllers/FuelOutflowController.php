@@ -110,7 +110,7 @@ class FuelOutflowController extends Controller
         $creditNotesReturns = DB::table('credit_debit_note_items')
             ->join('credit_debit_notes', 'credit_debit_note_items.credit_debit_note_id', '=', 'credit_debit_notes.id')
             ->where('credit_debit_notes.team_id', $user->team_id)
-            ->where('credit_debit_notes.season_id', $session_id)
+            ->where('credit_debit_notes.season_id', $season_id)
             ->where('credit_debit_notes.type', 'credito')
             ->where('credit_debit_notes.affects_inventory', 1)
             ->whereNotNull('credit_debit_note_items.invoice_product_id')
