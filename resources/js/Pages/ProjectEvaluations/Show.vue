@@ -3,6 +3,7 @@ import { ref, computed, watch } from 'vue';
 import { router, Link } from '@inertiajs/vue3';
 import AppLayout from '@/Layouts/AppLayout.vue';
 import Swal from 'sweetalert2';
+import ExportExcelButton from '@/Components/ExportExcelButton.vue';
 
 const props = defineProps({
     evaluation:        Object,
@@ -18,8 +19,14 @@ const props = defineProps({
 const activeTab = ref('composicion');
 const showPerHa = ref(true);
 const localTargetMargin = ref(Number(props.evaluation.target_margin) || 0);
+
+// ─── Parámetros: colapsables ──────────────────────────────────────────────────
+const openRnp = ref(false);
+const openCostParams = ref(false);
+const openKgLookup = ref(false);
 const activeScenario = ref('base');
 const scenarioLabels = { pessimistic: 'Pesimista', base: 'Base', optimistic: 'Optimista' };
+const scenarioColors = { pessimistic: 'text-warning', base: 'text-primary', optimistic: 'text-success' };
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 const weeks = [42, 43, 44, 45, 46, 47, 48, 49, 50, 51, 52];
@@ -49,7 +56,7 @@ const buildRnpMatrix = () => {
     });
     props.rnpPrices.forEach(r => {
         if (!matrix[r.variety_id]) matrix[r.variety_id] = {};
-        matrix[r.variety_id][r.week] = r.price_usd;
+        matrix[r.variety_id][r.week] = Math.round(Number(r.price_usd) * 100) / 100;
     });
     return matrix;
 };
@@ -88,7 +95,10 @@ const buildCostParams = () => {
     const map = {};
     props.varieties.forEach(v => { map[v.id] = { pct_embalaje: '', precio_proceso: '' }; });
     props.varietyCostParams.forEach(p => {
-        map[p.variety_id] = { pct_embalaje: p.pct_embalaje, precio_proceso: p.precio_proceso };
+        map[p.variety_id] = {
+            pct_embalaje: Math.round(Number(p.pct_embalaje)),
+            precio_proceso: Math.round(Number(p.precio_proceso) * 100) / 100,
+        };
     });
     return map;
 };
@@ -129,9 +139,9 @@ const saveCostParams = () => {
 };
 
 // ── Kg/Yield Costs ────────────────────────────────────────────────────────────
-const localKgCosts = ref(props.kgYieldCosts.map(k => ({ kg_ha: k.kg_ha, cost_usd: k.cost_usd })));
+const localKgCosts = ref(props.kgYieldCosts.map(k => ({ kg_ha: k.kg_ha, cost_usd: Math.round(Number(k.cost_usd) * 100) / 100 })));
 watch(() => props.kgYieldCosts, () => {
-    localKgCosts.value = props.kgYieldCosts.map(k => ({ kg_ha: k.kg_ha, cost_usd: k.cost_usd }));
+    localKgCosts.value = props.kgYieldCosts.map(k => ({ kg_ha: k.kg_ha, cost_usd: Math.round(Number(k.cost_usd) * 100) / 100 }));
 }, { deep: true });
 
 const addKgRow = () => localKgCosts.value.push({ kg_ha: '', cost_usd: '' });
@@ -167,6 +177,12 @@ const filterFruitId = ref('');
 const filteredVarieties = computed(() => {
     if (!filterFruitId.value) return props.varieties;
     return props.varieties.filter(v => String(v.fruit_id) === String(filterFruitId.value));
+});
+
+// Solo variedades que aparecen en las filas de esta evaluación
+const evaluationVarieties = computed(() => {
+    const usedIds = new Set(props.rows.map(r => String(r.variety_id)));
+    return props.varieties.filter(v => usedIds.has(String(v.id)));
 });
 
 // Resetear variedad seleccionada si al cambiar frutal ya no está disponible
@@ -333,8 +349,53 @@ const rowDetailsBySc = (scenario) => {
     return props.rows.map(row => {
         const c = calcRow(row, scenario);
         return { row, calc: c };
+    }).sort((a, b) => {
+        const mA = a.calc ? a.calc.MargenBruto / (a.calc.ha || 1) : -Infinity;
+        const mB = b.calc ? b.calc.MargenBruto / (b.calc.ha || 1) : -Infinity;
+        return mB - mA;
     });
 };
+
+const excelDetalleHeaders = computed(() => {
+    const perHa = showPerHa.value;
+    return [
+        { label: 'Variedad', key: 'variedad' },
+        { label: 'Sem.', key: 'semana' },
+        { label: 'HÁ', key: 'ha' },
+        { label: 'KG/HÁ', key: 'kg_per_ha' },
+        { label: '% Emb.', key: 'pct_emb' },
+        { label: 'RNP (USD)', key: 'rnp_usd' },
+        ...(!perHa ? [{ label: 'KG Totales', key: 'kg_total' }] : []),
+        { label: perHa ? 'IFE/HÁ (USD)' : 'IFE (USD)', key: 'ife' },
+        { label: perHa ? 'FCNE/HÁ (USD)' : 'FCNE (USD)', key: 'fcne' },
+        { label: perHa ? 'Abono CC/HÁ (USD)' : 'Abono CC (USD)', key: 'abono_cc' },
+        { label: perHa ? 'Costo/HÁ (USD)' : 'Costo (USD)', key: 'costo' },
+        { label: perHa ? 'Margen/HÁ (USD)' : 'Margen Total (USD)', key: 'margen' },
+    ];
+});
+
+const excelDetalleData = computed(() => {
+    const perHa = showPerHa.value;
+    return rowDetailsBySc(activeScenario.value)
+        .filter(({ calc }) => calc)
+        .map(({ row, calc }) => {
+            const ha = calc.ha || 1;
+            return {
+                variedad:  varietyName(row.variety_id),
+                semana:    row.week,
+                ha:        calc.ha,
+                kg_per_ha: calc.kg_per_ha,
+                pct_emb:   Math.round(calc.pct_emb * 100),
+                rnp_usd:   calc.rnp_usd,
+                kg_total:  calc.kg_total,
+                ife:       Math.round(perHa ? calc.IFE / ha : calc.IFE),
+                fcne:      Math.round(perHa ? calc.FCNE / ha : calc.FCNE),
+                abono_cc:  Math.round(perHa ? calc.AbonoCC / ha : calc.AbonoCC),
+                costo:     Math.round(perHa ? calc.CostoHA / ha : calc.CostoHA),
+                margen:    Math.round(perHa ? calc.MargenBruto / ha : calc.MargenBruto),
+            };
+        });
+});
 </script>
 
 <template>
@@ -502,125 +563,145 @@ const rowDetailsBySc = (scenario) => {
                      ══════════════════════════════════════════════════════════ -->
                 <div v-if="activeTab === 'parametros'">
 
-                    <!-- RNP por variedad × semana -->
-                    <div class="mb-4">
-                        <div class="d-flex justify-content-between align-items-center mb-2">
-                            <h6 class="mb-0"><i class="fas fa-table me-2 text-primary"></i>Precios RNP (USD/KG) — Variedad × Semana</h6>
-                            <button class="btn btn-sm btn-falcon-default" @click="saveRnpPrices" :disabled="savingRnp">
+                    <!-- ── RNP por variedad × semana ───────────────────── -->
+                    <div class="card mb-3" style="border-left: 4px solid #a3c4f3;">
+                        <div class="card-header py-3 d-flex justify-content-between align-items-center" style="background-color: #eaf2fd; cursor: pointer;" @click="openRnp = !openRnp">
+                            <h6 class="mb-0">
+                                <i class="fas fa-table me-2 text-primary"></i>Precios RNP (USD/KG) — Variedad × Semana
+                                <i class="fas fa-chevron-down ms-2 text-muted" style="font-size:0.7rem; transition: transform 0.2s;" :style="{ transform: openRnp ? 'rotate(0deg)' : 'rotate(-90deg)' }"></i>
+                            </h6>
+                            <button v-if="openRnp" class="btn btn-sm btn-falcon-default" @click.stop="saveRnpPrices" :disabled="savingRnp">
                                 <i class="fas fa-save me-1"></i>Guardar RNP
                                 <span v-if="savingRnp" class="spinner-border spinner-border-sm ms-1"></span>
                             </button>
                         </div>
-                        <div class="table-responsive">
-                            <table class="table table-sm table-bordered align-middle mb-0" style="font-size:0.8rem;">
-                                <thead class="table-light">
-                                    <tr>
-                                        <th>Variedad</th>
-                                        <th v-for="w in weeks" :key="w" class="text-center" style="min-width:70px;">S{{ w }}</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    <tr v-for="v in varieties" :key="v.id">
-                                        <td class="fw-semibold text-nowrap">{{ v.name }}</td>
-                                        <td v-for="w in weeks" :key="w" class="p-1">
-                                            <input
-                                                v-model="localRnp[v.id][w]"
-                                                type="number" step="0.01" min="0"
-                                                class="form-control form-control-sm text-center p-1"
-                                                style="min-width:60px;"
-                                                placeholder="—"
-                                            />
-                                        </td>
-                                    </tr>
-                                </tbody>
-                            </table>
+                        <div v-show="openRnp" class="card-body py-2 px-3">
+                            <div class="table-responsive">
+                                <table class="table table-sm table-bordered align-middle mb-0" style="font-size:0.8rem;">
+                                    <thead class="table-light">
+                                        <tr>
+                                            <th>Variedad</th>
+                                            <th v-for="w in weeks" :key="w" class="text-center" style="min-width:70px;">S{{ w }}</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <tr v-for="v in evaluationVarieties" :key="v.id">
+                                            <td class="fw-semibold text-nowrap">{{ v.name }}</td>
+                                            <td v-for="w in weeks" :key="w" class="p-1">
+                                                <input
+                                                    v-model="localRnp[v.id][w]"
+                                                    type="number" step="0.01" min="0"
+                                                    @change="localRnp[v.id][w] = localRnp[v.id][w] !== '' ? Math.round(localRnp[v.id][w] * 100) / 100 : ''"
+                                                    class="form-control form-control-sm text-center p-1"
+                                                    style="min-width:60px;"
+                                                    placeholder="—"
+                                                />
+                                            </td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
                         </div>
                     </div>
 
-                    <!-- Parámetros de costo por variedad -->
-                    <div class="mb-4">
-                        <div class="d-flex justify-content-between align-items-center mb-2">
-                            <h6 class="mb-0"><i class="fas fa-boxes me-2 text-info"></i>Parámetros de Costo por Variedad</h6>
-                            <button class="btn btn-sm btn-falcon-default" @click="saveCostParams" :disabled="savingCostParams">
+                    <!-- ── Parámetros de costo por variedad ────────────── -->
+                    <div class="card mb-3" style="border-left: 4px solid #b5e8d5;">
+                        <div class="card-header py-3 d-flex justify-content-between align-items-center" style="background-color: #e8f8f0; cursor: pointer;" @click="openCostParams = !openCostParams">
+                            <h6 class="mb-0">
+                                <i class="fas fa-boxes me-2 text-info"></i>Parámetros de Costo por Variedad
+                                <i class="fas fa-chevron-down ms-2 text-muted" style="font-size:0.7rem; transition: transform 0.2s;" :style="{ transform: openCostParams ? 'rotate(0deg)' : 'rotate(-90deg)' }"></i>
+                            </h6>
+                            <button v-if="openCostParams" class="btn btn-sm btn-falcon-default" @click.stop="saveCostParams" :disabled="savingCostParams">
                                 <i class="fas fa-save me-1"></i>Guardar
                                 <span v-if="savingCostParams" class="spinner-border spinner-border-sm ms-1"></span>
                             </button>
                         </div>
-                        <div class="table-responsive">
-                            <table class="table table-sm table-bordered align-middle mb-0" style="font-size:0.85rem;">
-                                <thead class="table-light">
-                                    <tr>
-                                        <th>Variedad</th>
-                                        <th class="text-center" style="min-width:130px;">% Embalaje</th>
-                                        <th class="text-center" style="min-width:140px;">Precio Proceso (USD/KG)</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    <tr v-for="v in varieties" :key="v.id">
-                                        <td class="fw-semibold">{{ v.name }}</td>
-                                        <td class="p-1">
-                                            <input v-model="localCostParams[v.id].pct_embalaje"
-                                                type="number" step="0.1" min="0" max="100"
-                                                class="form-control form-control-sm text-center"
-                                                placeholder="0–100" />
-                                        </td>
-                                        <td class="p-1">
-                                            <input v-model="localCostParams[v.id].precio_proceso"
-                                                type="number" step="0.01" min="0"
-                                                class="form-control form-control-sm text-center"
-                                                placeholder="0.00" />
-                                        </td>
-                                    </tr>
-                                </tbody>
-                            </table>
+                        <div v-show="openCostParams" class="card-body py-2 px-3">
+                            <div class="table-responsive">
+                                <table class="table table-sm table-bordered align-middle mb-0" style="font-size:0.85rem;">
+                                    <thead class="table-light">
+                                        <tr>
+                                            <th>Variedad</th>
+                                            <th class="text-center" style="min-width:130px;">% Embalaje</th>
+                                            <th class="text-center" style="min-width:140px;">Precio Proceso (USD/KG)</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <tr v-for="v in evaluationVarieties" :key="v.id">
+                                            <td class="fw-semibold">{{ v.name }}</td>
+                                            <td class="p-1">
+                                                <input v-model="localCostParams[v.id].pct_embalaje"
+                                                    type="number" step="1" min="0" max="100"
+                                                    @change="localCostParams[v.id].pct_embalaje = localCostParams[v.id].pct_embalaje !== '' ? Math.round(Number(localCostParams[v.id].pct_embalaje)) : ''"
+                                                    class="form-control form-control-sm text-center"
+                                                    placeholder="0–100" />
+                                            </td>
+                                            <td class="p-1">
+                                                <input v-model="localCostParams[v.id].precio_proceso"
+                                                    type="number" step="0.01" min="0"
+                                                    @change="localCostParams[v.id].precio_proceso = localCostParams[v.id].precio_proceso !== '' ? Math.round(localCostParams[v.id].precio_proceso * 100) / 100 : ''"
+                                                    class="form-control form-control-sm text-center"
+                                                    placeholder="0.00" />
+                                            </td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
                         </div>
                     </div>
 
-                    <!-- Tabla costo KG/Rendimiento -->
-                    <div>
-                        <div class="d-flex justify-content-between align-items-center mb-2">
-                            <h6 class="mb-0"><i class="fas fa-chart-line me-2 text-success"></i>Costo según KG/HÁ (tabla lookup)</h6>
-                            <div class="d-flex gap-2">
-                                <button class="btn btn-sm btn-falcon-default" @click="addKgRow">
+                    <!-- ── Tabla costo KG/Rendimiento ──────────────────── -->
+                    <div class="card mb-3" style="border-left: 4px solid #f3d5a3;">
+                        <div class="card-header py-3 d-flex justify-content-between align-items-center" style="background-color: #fdf5ea; cursor: pointer;" @click="openKgLookup = !openKgLookup">
+                            <h6 class="mb-0">
+                                <i class="fas fa-chart-line me-2 text-success"></i>Costo segun KG/HÁ
+                                <i class="fas fa-chevron-down ms-2 text-muted" style="font-size:0.7rem; transition: transform 0.2s;" :style="{ transform: openKgLookup ? 'rotate(0deg)' : 'rotate(-90deg)' }"></i>
+                            </h6>
+                            <div v-if="openKgLookup" class="d-flex gap-2">
+                                <button class="btn btn-sm btn-falcon-default" @click.stop="addKgRow">
                                     <i class="fas fa-plus me-1"></i>Fila
                                 </button>
-                                <button class="btn btn-sm btn-falcon-default" @click="saveKgCosts" :disabled="savingKgCosts">
+                                <button class="btn btn-sm btn-falcon-default" @click.stop="saveKgCosts" :disabled="savingKgCosts">
                                     <i class="fas fa-save me-1"></i>Guardar
                                     <span v-if="savingKgCosts" class="spinner-border spinner-border-sm ms-1"></span>
                                 </button>
                             </div>
                         </div>
-                        <small class="text-muted d-block mb-2">
-                            Se usa el costo del escalón inferior más cercano al KG/HÁ real de cada fila.
-                        </small>
-                        <div class="table-responsive" style="max-width:400px;">
-                            <table class="table table-sm table-bordered align-middle mb-0" style="font-size:0.85rem;">
-                                <thead class="table-light">
-                                    <tr>
-                                        <th class="text-center">KG/HÁ (desde)</th>
-                                        <th class="text-center">Costo (USD/KG)</th>
-                                        <th></th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    <tr v-for="(row, i) in localKgCosts" :key="i">
-                                        <td class="p-1">
-                                            <input v-model="row.kg_ha" type="number" min="0" class="form-control form-control-sm text-center" placeholder="Ej: 5000" />
-                                        </td>
-                                        <td class="p-1">
-                                            <input v-model="row.cost_usd" type="number" step="0.01" min="0" class="form-control form-control-sm text-center" placeholder="0.00" />
-                                        </td>
-                                        <td class="text-center">
-                                            <button class="btn btn-icon btn-active-light-danger w-25px h-25px" @click="removeKgRow(i)">
-                                                <i class="fas fa-times" style="font-size:0.6rem;"></i>
-                                            </button>
-                                        </td>
-                                    </tr>
-                                    <tr v-if="localKgCosts.length === 0">
-                                        <td colspan="3" class="text-center text-muted py-3">Sin datos. Agrega filas.</td>
+                        <div v-show="openKgLookup" class="card-body py-2 px-3">
+                            <small class="text-muted d-block mb-2">
+                                Se usa el costo del escalón inferior más cercano al KG/HÁ real de cada fila.
+                            </small>
+                            <div class="table-responsive" style="max-width:400px;">
+                                <table class="table table-sm table-bordered align-middle mb-0" style="font-size:0.85rem;">
+                                    <thead class="table-light">
+                                        <tr>
+                                            <th class="text-center">KG/HÁ (desde)</th>
+                                            <th class="text-center">Costo (USD/KG)</th>
+                                            <th></th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <tr v-for="(row, i) in localKgCosts" :key="i">
+                                            <td class="p-1">
+                                                <input v-model="row.kg_ha" type="number" min="0" class="form-control form-control-sm text-center" placeholder="Ej: 5000" />
+                                            </td>
+                                            <td class="p-1">
+                                                <input v-model="row.cost_usd" type="number" step="0.01" min="0"
+                                                    @change="row.cost_usd = row.cost_usd !== '' ? Math.round(row.cost_usd * 100) / 100 : ''"
+                                                    class="form-control form-control-sm text-center" placeholder="0.00" />
+                                            </td>
+                                            <td class="text-center">
+                                                <button class="btn btn-icon btn-active-light-danger w-25px h-25px" @click="removeKgRow(i)">
+                                                    <i class="fas fa-times" style="font-size:0.6rem;"></i>
+                                                </button>
+                                            </td>
+                                        </tr>
+                                        <tr v-if="localKgCosts.length === 0">
+                                            <td colspan="3" class="text-center text-muted py-3">Sin datos. Agrega filas.</td>
                                     </tr>
                                 </tbody>
                             </table>
+                        </div>
                         </div>
                     </div>
                 </div>
@@ -817,8 +898,16 @@ const rowDetailsBySc = (scenario) => {
                         </div>
 
                         <!-- Tabla comparativa detallada -->
-                        <h6 class="mb-2"><i class="fas fa-table me-2 text-secondary"></i>Detalle por Fila — Escenario {{ scenarioLabels[activeScenario] }} <small class="text-muted fw-normal">({{ showPerHa ? 'por hectárea' : 'totales' }})</small></h6>
-                        <div class="table-responsive mb-4">
+                        <div class="border rounded-2 p-3 mb-4" style="background:#fafbfc; border-color:#dee2e6 !important;">
+                        <div class="d-flex justify-content-between align-items-center mb-2">
+                            <h6 class="mb-0"><i class="fas fa-table me-2 text-secondary"></i>Detalle por Fila — <span :class="scenarioColors[activeScenario]" class="fw-bold">Escenario {{ scenarioLabels[activeScenario] }}</span> <small class="text-muted fw-normal">({{ showPerHa ? 'por hectárea' : 'totales' }})</small></h6>
+                            <ExportExcelButton
+                                :data="excelDetalleData"
+                                :headers="excelDetalleHeaders"
+                                :filename="`detalle-${activeScenario}-${evaluation.name}.xlsx`"
+                            />
+                        </div>
+                        <div class="table-responsive">
                             <table class="table table-sm table-hover align-middle mb-0" style="font-size:0.8rem;">
                                 <thead class="table-light">
                                     <tr>
@@ -865,9 +954,12 @@ const rowDetailsBySc = (scenario) => {
                                         </tr>
                                     </template>
                                 </tbody>
-                                <tfoot class="table-light fw-bold">
-                                    <tr>
-                                        <td :colspan="showPerHa ? 6 : 7" class="text-end">TOTALES</td>
+                                <tfoot class="fw-bold">
+                                    <tr style="background-color:#e8edf7; border-top: 2px solid #c0cfe8;">
+                                        <td colspan="2" class="text-end">TOTALES</td>
+                                        <td class="text-center">{{ fmt(scenarioTotals[activeScenario].totalHa, 1) }}</td>
+                                        <td colspan="3"></td>
+                                        <td v-if="!showPerHa" class="text-end">{{ fmt(scenarioTotals[activeScenario].totalKg) }}</td>
                                         <td class="text-end">{{ fmtUsd(showPerHa && scenarioTotals[activeScenario].totalHa > 0 ? scenarioTotals[activeScenario].totalIFE / scenarioTotals[activeScenario].totalHa : scenarioTotals[activeScenario].totalIFE) }}</td>
                                         <td class="text-end text-danger">{{ fmtUsd(showPerHa && scenarioTotals[activeScenario].totalHa > 0 ? scenarioTotals[activeScenario].totalFCNE / scenarioTotals[activeScenario].totalHa : scenarioTotals[activeScenario].totalFCNE) }}</td>
                                         <td class="text-end">{{ fmtUsd(showPerHa && scenarioTotals[activeScenario].totalHa > 0 ? scenarioTotals[activeScenario].totalAbonoCC / scenarioTotals[activeScenario].totalHa : scenarioTotals[activeScenario].totalAbonoCC) }}</td>
@@ -879,10 +971,12 @@ const rowDetailsBySc = (scenario) => {
                                 </tfoot>
                             </table>
                         </div>
+                        </div><!-- /detalle wrapper -->
 
                         <!-- Resumen de oferta max por escenario -->
+                        <div class="border rounded-2 p-3" style="background:#fafbfc; border-color:#dee2e6 !important; display:inline-block; max-width:650px; width:100%;">
                         <h6 class="mb-2"><i class="fas fa-hand-holding-usd me-2 text-primary"></i>Resumen Oferta Máxima de Arriendo <small class="text-muted fw-normal">({{ showPerHa ? 'por hectárea' : 'totales' }})</small></h6>
-                        <div class="table-responsive" style="max-width:650px;">
+                        <div class="table-responsive">
                             <table class="table table-sm table-bordered align-middle mb-0" style="font-size:0.85rem;">
                                 <thead class="table-light">
                                     <tr>
@@ -918,6 +1012,7 @@ const rowDetailsBySc = (scenario) => {
                                 </tbody>
                             </table>
                         </div>
+                        </div><!-- /resumen wrapper -->
                     </div>
                 </div>
             </div>
