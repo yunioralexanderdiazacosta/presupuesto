@@ -42,6 +42,9 @@ use App\Http\Controllers\Products2\DeleteProduct2Controller;
     use App\Http\Controllers\Api\StoreSupplierApiController;
     use App\Http\Controllers\Api\GetCostCenterVarietiesController;
 
+// Rutas AI Chat
+    use App\Http\Controllers\AiChat\AiDatabaseChatController;
+
 // Rutas para Irrigation Pumps
     use App\Http\Controllers\IrrigationPumpsController;
     use App\Http\Controllers\IrrigationPumps\StoreIrrigationPumpController;
@@ -417,6 +420,9 @@ Route::middleware([
     Route::get('/api/pending-expense-items', GetPendingExpenseReportItemsController::class)->name('api.pending-expense-items');
     Route::post('/api/suppliers', StoreSupplierApiController::class)->name('api.suppliers.store');
     Route::get('/api/cost-center-varieties/{costCenterId}', GetCostCenterVarietiesController::class)->name('api.cost-center-varieties');
+
+    // AI Chat - consultas en lenguaje natural sobre la base de datos
+    Route::post('/api/ai-chat', AiDatabaseChatController::class)->name('api.ai-chat');
 
     // Products2 estilo teams: vista única y controladores separados para acciones
 

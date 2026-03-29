@@ -405,18 +405,18 @@ const excelDetalleData = computed(() => {
             <div class="card-header">
                 <div class="row flex-between-center">
                     <div class="col-auto d-flex align-items-center pe-0 gap-2">
-                        <Link :href="route('project-evaluations.index')" class="btn btn-sm btn-light">
-                            <i class="fas fa-arrow-left me-1"></i>Volver
-                        </Link>
                         <h5 class="fs-9 mb-0 text-nowrap py-2 py-xl-0">
                             <i class="fas fa-seedling me-2"></i>{{ evaluation.name }}
                         </h5>
                         <span v-if="evaluation.description" class="text-muted small d-none d-md-inline">— {{ evaluation.description }}</span>
                     </div>
-                    <div class="col-auto ms-auto text-end ps-0">
+                    <div class="col-auto ms-auto text-end ps-0 d-flex align-items-center gap-2">
                         <span class="badge bg-info text-dark">
                             Margen objetivo: {{ localTargetMargin }}%
                         </span>
+                        <Link :href="route('project-evaluations.index')" class="btn btn-sm btn-falcon-default">
+                            <i class="fas fa-arrow-left me-1"></i>Volver
+                        </Link>
                     </div>
                 </div>
             </div>

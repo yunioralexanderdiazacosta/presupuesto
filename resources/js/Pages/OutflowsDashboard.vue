@@ -223,6 +223,7 @@ const divisorMin = 800;
 const divisorMax = 1300;
 const dividir = ref(false);
 const incluirAdmin = ref(false);
+const selectedExtraStates = ref({});
 const savingDollar = ref(false);
 
 const saveDollarPrice = async () => {
@@ -255,8 +256,28 @@ const totalAdministracion = computed(() => {
     );
     return adminState ? adminState.total : 0;
 });
+// Estados adicionales generados automáticamente (ej: año 1, año 2, año 3, año 4) excluyendo produccion y administracion
+const extraStates = computed(() => {
+    if (!props.byDevelopmentStateWithoutInvestments?.length) return [];
+    return props.byDevelopmentStateWithoutInvestments.filter(s => {
+        const norm = s.name.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+        return !norm.includes('produccion') && !norm.includes('administracion');
+    });
+});
+const totalExtras = computed(() =>
+    extraStates.value.reduce((sum, s) => sum + (selectedExtraStates.value[s.id] ? s.total : 0), 0)
+);
+// Etiqueta dinámica para el título del card según qué extras están activos
+const costoLabelSuffix = computed(() => {
+    const parts = [];
+    if (incluirAdmin.value) parts.push('Admin');
+    extraStates.value.filter(s => selectedExtraStates.value[s.id]).forEach(s => parts.push(s.name));
+    return parts.length ? `(Prod. + ${parts.join(' + ')})` : null;
+});
 const totalProduccionEfectivo = computed(() =>
-    props.costoKiloAcumulado.totalProduccion + (incluirAdmin.value ? totalAdministracion.value : 0)
+    props.costoKiloAcumulado.totalProduccion
+    + (incluirAdmin.value ? totalAdministracion.value : 0)
+    + totalExtras.value
 );
 const costoKiloEfectivo = computed(() =>
     activeTotalKilos.value > 0 ? totalProduccionEfectivo.value / activeTotalKilos.value : 0
@@ -700,6 +721,10 @@ const totalCompras = computed(() => {
                                             <input class="form-check-input m-0" type="checkbox" id="toggleAdmin" v-model="incluirAdmin" style="cursor:pointer;">
                                             + Admin
                                         </label>
+                                        <label v-for="state in extraStates" :key="state.id" class="d-flex align-items-center gap-1 mb-0 small text-muted border rounded px-2 py-0" style="cursor:pointer;background:#f8f9fa;font-size:0.75rem;">
+                                            <input class="form-check-input m-0" type="checkbox" v-model="selectedExtraStates[state.id]" style="cursor:pointer;">
+                                            + {{ state.name }}
+                                        </label>
                                     </div>
                                     <small class="text-muted mb-0" style="font-size:0.75rem;">{{ t.prodKilosLabel }}</small>
                                 </div>
@@ -710,14 +735,19 @@ const totalCompras = computed(() => {
                                     <div class="col-md-4">
                                         <div class="text-center p-3 bg-light rounded">
                                             <small class="text-uppercase text-muted d-block mb-2" style="font-size: 0.75rem; font-weight: 600;">
-                                                {{ t.totalCosts }} {{ incluirAdmin ? t.totalCostsProdAdmin : t.totalCostsProd }}
+                                                {{ t.totalCosts }} {{ costoLabelSuffix ?? t.totalCostsProd }}
                                             </small>
                                             <div class="fs-7">
                                                 {{ formatNumber(dividir && divisor ? totalProduccionEfectivo / divisor : totalProduccionEfectivo) }} <small class="text-secondary">{{ dividir ? 'USD' : 'CLP' }}</small>
                                             </div>
-                                            <small v-if="incluirAdmin" class="text-muted" style="font-size:0.7rem;">
+                                            <small v-if="incluirAdmin" class="text-muted d-block" style="font-size:0.7rem;">
                                                 {{ t.adminLabel }}: {{ formatNumber(dividir && divisor ? totalAdministracion / divisor : totalAdministracion) }}
                                             </small>
+                                            <template v-for="state in extraStates" :key="state.id">
+                                                <small v-if="selectedExtraStates[state.id]" class="text-muted d-block" style="font-size:0.7rem;">
+                                                    {{ state.name }}: {{ formatNumber(dividir && divisor ? state.total / divisor : state.total) }}
+                                                </small>
+                                            </template>
                                         </div>
                                     </div>
 
