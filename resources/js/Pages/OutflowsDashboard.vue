@@ -148,6 +148,11 @@ const t = computed(() => isEnglish.value ? {
     costoKiloLabel: 'Accumulated Cost / Kilo',
     noKilos: 'No kilo estimates recorded.',
     noProduction: 'No production expenses recorded.',
+    costoKiloCosechaTitle: 'Harvest Cost per Kilo',
+    costoKiloCosechaLabel: 'Harvest Cost / Kilo',
+    totalCosecha: 'Total Harvest',
+    noCosecha: 'No harvest expenses recorded for this season.',
+    costoKiloCosechaSubtitle: 'Harvest Level 1 / Estimated Kilos',
     // Gráficos
     chartLevel2Bar: 'Classification by Level 2',
     chartLevel2Table: 'Detailed Summary by Level 2',
@@ -203,6 +208,11 @@ const t = computed(() => isEnglish.value ? {
     costoKiloLabel: 'Costo / Kilo Acumulado',
     noKilos: 'No hay estimaciones de kilos registradas.',
     noProduction: 'No hay gastos de producción registrados.',
+    costoKiloCosechaTitle: 'Costo / Kilo Cosecha',
+    costoKiloCosechaLabel: 'Costo / Kilo Cosecha',
+    totalCosecha: 'Total Cosecha',
+    noCosecha: 'No hay gastos de cosecha registrados para esta temporada.',
+    costoKiloCosechaSubtitle: 'Level 1 Cosecha / Kilos Estimados',
     // Gráficos
     chartLevel2Bar: 'Clasificación por Nivel 2',
     chartLevel2Table: 'Resumen Detallado por Nivel 2',
@@ -283,6 +293,19 @@ const costoKiloEfectivo = computed(() =>
     activeTotalKilos.value > 0 ? totalProduccionEfectivo.value / activeTotalKilos.value : 0
 );
 
+// Total costos del Level1 "Cosecha" (case-insensitive, sin tildes)
+const totalCosecha = computed(() => {
+    if (!props.byLevel1?.labels?.length) return 0;
+    const idx = props.byLevel1.labels.findIndex(l =>
+        l.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').trim() === 'cosecha'
+    );
+    return idx !== -1 ? (props.byLevel1.data[idx] ?? 0) : 0;
+});
+
+const costoKiloCosechaEfectivo = computed(() =>
+    activeTotalKilos.value > 0 ? totalCosecha.value / activeTotalKilos.value : 0
+);
+
 // Formatear números con separador de miles (sin decimales)
 const formatNumber = (number) => {
     if (number === null || number === undefined) return '0';
@@ -292,12 +315,12 @@ const formatNumber = (number) => {
     }).format(Math.round(number));
 };
 
-// Formatear costo kilo con 1 decimal
+// Formatear costo kilo con 2 decimales
 const formatCostoKilo = (number) => {
-    if (number === null || number === undefined) return '0,0';
+    if (number === null || number === undefined) return '0,00';
     return new Intl.NumberFormat('es-CL', {
-        minimumFractionDigits: 1,
-        maximumFractionDigits: 1
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2
     }).format(number);
 };
 
@@ -783,6 +806,68 @@ const totalCompras = computed(() => {
                                         <span v-if="!activeTotalKilos">{{ t.noKilos }} </span>
                                         <span v-if="!costoKiloAcumulado.totalProduccion">{{ t.noProduction }}</span>
                                     </small>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Card Costo Kilo Cosecha -->
+                <div class="row g-2 mb-3">
+                    <div class="col-12">
+                        <div class="card border-start border-warning border-3 shadow-sm">
+                            <div class="card-header bg-transparent pt-2 pb-1">
+                                <div class="d-flex align-items-center justify-content-between">
+                                    <h6 class="mb-0 text-warning">
+                                        <i class="fas fa-wheat-awn me-2"></i>
+                                        {{ t.costoKiloCosechaTitle }}
+                                    </h6>
+                                    <small class="text-muted mb-0" style="font-size:0.75rem;">{{ t.costoKiloCosechaSubtitle }}</small>
+                                </div>
+                            </div>
+                            <div class="card-body pt-2 pb-3">
+                                <div class="row g-2">
+                                    <!-- Total Cosecha -->
+                                    <div class="col-md-4">
+                                        <div class="text-center p-3 bg-light rounded">
+                                            <small class="text-uppercase text-muted d-block mb-2" style="font-size: 0.75rem; font-weight: 600;">
+                                                {{ t.totalCosecha }}
+                                            </small>
+                                            <div class="fs-7">
+                                                {{ formatNumber(dividir && divisor ? totalCosecha / divisor : totalCosecha) }} <small class="text-secondary">{{ dividir ? 'USD' : 'CLP' }}</small>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <!-- Total Kilos -->
+                                    <div class="col-md-4">
+                                        <div class="text-center p-3 bg-light rounded">
+                                            <small class="text-uppercase text-muted d-block mb-2" style="font-size: 0.75rem; font-weight: 600;">
+                                                {{ t.totalKilos }}
+                                            </small>
+                                            <div class="fs-7">
+                                                {{ formatNumber(activeTotalKilos) }} <small class="text-secondary">Kg</small>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <!-- Costo por Kilo Cosecha -->
+                                    <div class="col-md-4">
+                                        <div class="text-center p-3 bg-warning bg-opacity-10 rounded border border-warning">
+                                            <small class="text-uppercase text-warning d-block mb-2" style="font-size: 0.75rem; font-weight: 700;">
+                                                <i class="fas fa-star me-1"></i> {{ t.costoKiloCosechaLabel }}
+                                            </small>
+                                            <div class="fs-7 text-warning">
+                                                {{ formatCostoKilo(dividir && divisor ? costoKiloCosechaEfectivo / divisor : costoKiloCosechaEfectivo) }} <small class="text-warning fw-medium">{{ dividir ? 'USD' : 'CLP' }}/Kg</small>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- Mensaje si no hay datos -->
+                                <div v-if="!totalCosecha" class="alert alert-warning mt-3 mb-0 py-2">
+                                    <i class="fas fa-exclamation-triangle me-2"></i>
+                                    <small>{{ t.noCosecha }}</small>
                                 </div>
                             </div>
                         </div>
