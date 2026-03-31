@@ -146,6 +146,7 @@ use App\Http\Controllers\Seasons\SetDefaultSeasonController;
 use App\Http\Controllers\CostCenters\StoreCostCenterController;
 use App\Http\Controllers\CostCenters\UpdateCostCenterController;
 use App\Http\Controllers\CostCenters\DeleteCostCenterController;
+use App\Http\Controllers\CostCenters\CopyCostCentersController;
 use App\Http\Controllers\Agrochemicals\StoreAgrochemicalController;
 use App\Http\Controllers\Agrochemicals\UpdateAgrochemicalController;
 use App\Http\Controllers\Agrochemicals\DeleteAgrochemicalController;
@@ -289,6 +290,7 @@ use App\Http\Controllers\Parcels\TransferParcelsController;
 use App\Http\Controllers\Seasons\StoreSeasonController;
 use App\Http\Controllers\Seasons\UpdateSeasonController;
 use App\Http\Controllers\Seasons\DeleteSeasonController;
+use App\Http\Controllers\Seasons\CopyBudgetController;
 use App\Http\Controllers\Machineries\StoreMachineryController;
 use App\Http\Controllers\Machineries\UpdateMachineryController;
 use App\Http\Controllers\Machineries\DeleteMachineryController;
@@ -599,6 +601,7 @@ Route::middleware([
     Route::post('/seasons/{season}/update', UpdateSeasonController::class)->name('seasons.update');
     Route::delete('/seasons/{season}/delete', DeleteSeasonController::class)->name('seasons.delete');
     Route::post('/seasons/{season}/set-default', SetDefaultSeasonController::class)->name('seasons.set-default');
+    Route::post('/seasons/{season}/copy-budget', CopyBudgetController::class)->name('seasons.copy-budget');
 
     // Guía del Sistema (fuera de check.selected.budget porque no requiere temporada)
     Route::get('/system-guide', SystemGuideController::class)->name('system-guide');
@@ -634,6 +637,7 @@ Route::middleware([
         Route::delete('/cost-centers/{costCenter}/delete', DeleteCostCenterController::class)->name('cost.centers.delete');
         Route::post('/cost-centers/import', [CostCentersController::class, 'import'])->name('cost.centers.import');
         Route::get('/cost-centers/template', [CostCentersController::class, 'template'])->name('cost.centers.template');
+        Route::post('/cost-centers/copy', CopyCostCentersController::class)->name('cost.centers.copy');
 
         Route::post('/agrochemicals/store', StoreAgrochemicalController::class)->name('agrochemicals.store');
         Route::post('/agrochemicals/{agrochemical}/update', UpdateAgrochemicalController::class)->name('agrochemicals.update');

@@ -98,7 +98,14 @@ class CostCentersController extends Controller
             ->get(['id', 'name', 'surface'])
             ->map(fn($c) => ['label' => $c->name, 'value' => $c->id, 'surface' => (float) $c->surface]);
 
-        return Inertia::render('CostCenters', compact('costCenters', 'season', 'parcels', 'developmentStates', 'fruits', 'term', 'companyReasons', 'varieties', 'rootstocks', 'costCentersSelect'));
+        // Lista de otras temporadas del equipo para el modal de copia
+        $seasons = Season::where('team_id', $user->team_id)
+            ->where('id', '!=', $season_id)
+            ->orderBy('name')
+            ->get(['id', 'name'])
+            ->map(fn($s) => ['label' => $s->name, 'value' => $s->id]);
+
+        return Inertia::render('CostCenters', compact('costCenters', 'season', 'parcels', 'developmentStates', 'fruits', 'term', 'companyReasons', 'varieties', 'rootstocks', 'costCentersSelect', 'seasons'));
     }   
 
     public function import(Request $request)

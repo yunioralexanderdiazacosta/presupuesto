@@ -11,6 +11,7 @@ import TitleBudget from '@/Components/Budgets/TitleBudget.vue';
 import CreateCostCenterModal from '@/Components/CostCenters/CreateCostCenterModal.vue';
 import EditCostCenterModal from '@/Components/CostCenters/EditCostCenterModal.vue';
 import CostCenterVarietiesDetailModal from '@/Components/CostCenters/CostCenterVarietiesDetailModal.vue';
+import CopyCostCentersModal from '@/Components/CostCenters/CopyCostCentersModal.vue';
 import SearchInput from '@/Components/SearchInput.vue';
 import ExportExcelButton from '@/Components/ExportExcelButton.vue';
 import ExportPdfButton from '@/Components/ExportPdfButton.vue';
@@ -18,7 +19,8 @@ import ExportPdfButton from '@/Components/ExportPdfButton.vue';
 const props = defineProps({
     costCenters: Object,
     season: Object,
-    term: String
+    term: String,
+    seasons: Array,
 });
 
 const form = useForm({
@@ -122,6 +124,12 @@ const onFilter = () => {
 
 const importFile = ref(null);
 const fileName = ref('');
+const copyModalRef = ref(null);
+
+const openCopy = () => {
+    if (copyModalRef.value) copyModalRef.value.reset();
+    $('#copyCostCentersModal').modal('show');
+};
 
 const onFileSelected = () => {
   fileName.value = importFile.value.files[0]?.name || '';
@@ -197,6 +205,7 @@ const openVarietyModal = (costCenterId = null) => {
   Ejemplo plantilla
 </a>
 <button class="btn btn-falcon-default btn-sm ms-auto" type="button" @click="openAdd()" style="margin-right: 0.8rem;"><span class="fas fa-plus" data-fa-transform="shrink-3 down-2"></span><span class="d-none d-sm-inline-block ms-1">Nuevo</span></button>
+<button class="btn btn-falcon-default btn-sm" type="button" @click="openCopy()" v-tooltip="'Copiar cuarteles desde otra temporada'"><span class="fas fa-copy" data-fa-transform="shrink-3 down-2"></span><span class="d-none d-sm-inline-block ms-1">Copiar CC</span></button>
                       </div>
                     </div>
                     </div>
@@ -326,5 +335,6 @@ const openVarietyModal = (costCenterId = null) => {
         <CreateCostCenterModal @store="storeCostCenter" :form="form" />
         <EditCostCenterModal @update="updateCostCenter" @open-variety="openVarietyModal" :form="form" />
         <CostCenterVarietiesDetailModal :costCenter="selectedCostCenter" />
+        <CopyCostCentersModal ref="copyModalRef" :seasons="seasons ?? []" @done="() => router.reload()" />
     </AppLayout>
 </template>

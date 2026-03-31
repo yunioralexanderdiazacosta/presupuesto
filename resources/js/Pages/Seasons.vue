@@ -8,6 +8,7 @@ import Empty from '@/Components/Empty.vue';
 import Breadcrumb from '@/Components/Breadcrumb.vue';
 import CreateSeasonModal from '@/Components/Seasons/CreateSeasonModal.vue';
 import EditSeasonModal from '@/Components/Seasons/EditSeasonModal.vue';
+import CopyBudgetModal from '@/Components/Seasons/CopyBudgetModal.vue';
 
 const props = defineProps({
     seasons: Object,
@@ -18,6 +19,18 @@ const props = defineProps({
 const defaultSeasonId = ref(
     props.seasons.data.find(s => s.is_default)?.id ?? null
 );
+
+const seasonToCopy = ref(null);
+const copyModalRef = ref(null);
+
+const openCopy = (season) => {
+    seasonToCopy.value = season;
+    if (copyModalRef.value) copyModalRef.value.reset();
+    $('#copyBudgetModal').modal('show');
+};
+
+// Lista plana de todas las temporadas para el selector de destino
+const allSeasons = computed(() => props.seasons.data);
 
 const isDefault = (seasonId) => {
     return defaultSeasonId.value != null && Number(defaultSeasonId.value) === Number(seasonId);
@@ -238,6 +251,13 @@ const setDefault = (seasonId) => {
                                         </span>
                                     </button>
                                     <!--end::Update-->
+                                    <!--begin::Copy Budget-->
+                                    <button type="button" v-tooltip="'Copiar presupuesto'" class="btn btn-icon btn-active-light-primary w-30px h-30px me-3" @click="openCopy(season)">
+                                        <span class="svg-icon svg-icon-3">
+                                            <i class="fas fa-copy"></i>
+                                        </span>
+                                    </button>
+                                    <!--end::Copy Budget-->
                                     <!--begin::Delete-->
                                     <button type="button" v-tooltip="'Eliminar'" @click="onDeleted(season.id)" class="btn btn-icon btn-active-light-primary w-30px h-30px">
                                         <span class="svg-icon svg-icon-3">
@@ -260,5 +280,10 @@ const setDefault = (seasonId) => {
 
         <CreateSeasonModal @store="storeSeason" :form="form" />
         <EditSeasonModal @update="updateSeason" :form="form" />
+        <CopyBudgetModal
+            ref="copyModalRef"
+            :source-season="seasonToCopy"
+            :seasons="allSeasons"
+        />
     </AppLayout>
 </template>
