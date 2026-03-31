@@ -12,8 +12,8 @@ class DeleteProjectEvaluationRowController extends Controller
     public function __invoke(ProjectEvaluation $projectEvaluation, ProjectEvaluationRow $row)
     {
         $user = Auth::user();
-        abort_if($projectEvaluation->team_id !== $user->team_id, 403);
-        abort_if($row->project_evaluation_id !== $projectEvaluation->id, 403);
+        abort_if((int) $projectEvaluation->team_id !== (int) $user->team_id, 403);
+        abort_if((int) $row->project_evaluation_id !== (int) $projectEvaluation->id, 403);
 
         $row->delete();
 
