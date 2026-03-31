@@ -29,6 +29,7 @@ class StoreOutflowController extends Controller
                 'season_id' => $seasonId,
                 'project_id' => $outflowData['project_id'] ?? null,
                 'operation_id' => $outflowData['operation_id'] ?? null,
+                'investment_id' => $outflowData['investment_id'] ?? null,
                 'machinery_id' => $outflowData['machinery_id'] ?? null,
                 'quantity' => $outflowData['quantity'] ?? null,
                 'notes' => $outflowData['notes'] ?? null,

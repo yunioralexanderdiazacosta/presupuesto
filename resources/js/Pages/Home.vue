@@ -47,12 +47,13 @@ const links = [
                                 </div>
                                 <p class="card-text">
                                     <strong>Marzo 2026:</strong><br>
+                                    • Copia de presupuesto entre temporadas: desde Temporadas puedes copiar agroquímicos, fertilizantes, insumos, servicios, cosecha, mano de obra, administración y campos a otra temporada<br>
+                                    • Copia de centros de costo entre temporadas: desde Centros de Costo puedes copiar todos los cuarteles y sus variedades a la temporada activa con el botón "Copiar CC"<br>
                                     • Nueva página de inicio de sesión con diseño renovado<br>
                                     • Despachos de producción ahora con clasificación por tipo de fruta<br>
                                     • Se puede ver el detalle de cada despacho procesado<br>
                                     • Se reciben notificaciones por email al aprobar o rechazar rendiciones<br>
                                     • Pagos de facturas ahora muestran saldo pendiente, estado y vencimiento<br>
-                                    • Mejor visualización en pantallas grandes<br>
                                 </p>
                             </div>
                         </div>

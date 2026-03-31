@@ -15,6 +15,7 @@ class Outflow extends Model
         'user_id',
         'project_id',
         'operation_id',
+        'investment_id',
         'machinery_id',
         'quantity',
         'notes',
@@ -50,6 +51,11 @@ class Outflow extends Model
     public function operation()
     {
         return $this->belongsTo(Operation::class);
+    }
+
+    public function investment()
+    {
+        return $this->belongsTo(Investment::class);
     }
 
     public function machinery()

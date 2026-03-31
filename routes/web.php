@@ -375,6 +375,11 @@ use App\Http\Controllers\Investments\IndexInvestmentController;
 use App\Http\Controllers\Investments\StoreInvestmentController;
 use App\Http\Controllers\Investments\UpdateInvestmentController;
 use App\Http\Controllers\Investments\DeleteInvestmentController;
+// Rutas para Projects
+use App\Http\Controllers\Projects\IndexProjectController;
+use App\Http\Controllers\Projects\StoreProjectController;
+use App\Http\Controllers\Projects\UpdateProjectController;
+use App\Http\Controllers\Projects\DeleteProjectController;
 use App\Http\Controllers\ProductStockLinesController;
 use App\Http\Controllers\ConsolidatedDocumentsController;
 use App\Http\Controllers\ConsolidatedOutflowsController;
@@ -619,6 +624,12 @@ Route::middleware([
     Route::post('/investments/store', StoreInvestmentController::class)->name('investments.store');
     Route::post('/investments/{investment}/update', UpdateInvestmentController::class)->name('investments.update');
     Route::delete('/investments/{investment}', DeleteInvestmentController::class)->name('investments.delete');
+
+    // Proyectos
+    Route::get('/projects', IndexProjectController::class)->name('projects.index');
+    Route::post('/projects/store', StoreProjectController::class)->name('projects.store');
+    Route::post('/projects/{project}/update', UpdateProjectController::class)->name('projects.update');
+    Route::delete('/projects/{project}', DeleteProjectController::class)->name('projects.delete');
         Route::get('/fertilizers', FertilizersController::class)->name('fertilizers.index');
         Route::get('/cost-centers', CostCentersController::class)->name('cost.centers.index');
         Route::get('/manpowers', ManPowersController::class)->name('manpowers.index');

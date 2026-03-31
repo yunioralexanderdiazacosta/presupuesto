@@ -22,7 +22,7 @@ class EditOutflowController extends Controller
         $season_id = session('season_id');
         
         // Cargar relaciones necesarias
-        $outflow->load(['costCenters.costCenter', 'invoiceProduct.product.unit', 'creditDebitNoteItem.product.unit', 'project', 'operation', 'machinery']);
+        $outflow->load(['costCenters.costCenter', 'invoiceProduct.product.unit', 'creditDebitNoteItem.product.unit', 'project', 'operation', 'investment', 'machinery']);
         // Calcular stock disponible para la línea de factura
         $stockAvailable = 0;
         $hasCreditNote = false;
@@ -86,6 +86,8 @@ class EditOutflowController extends Controller
             ),
             'projects' => Project::where('team_id', $user->team_id)->where('season_id', $season_id)->get(['id', 'name']),
             'operations' => Operation::all(['id', 'name']),
+            'investments' => \App\Models\Investment::where('season_id', $season_id)->get(['id', 'name'])
+                ->map(fn($i) => ['value' => $i->id, 'label' => $i->name]),
             'machineries' => Machinery::where('team_id', $user->team_id)->get(['id', 'cod_machinery', 'brand']),
             'costCenters' => CostCenter::whereHas('season', function($q) use ($user) {
                 $q->where('team_id', $user->team_id);

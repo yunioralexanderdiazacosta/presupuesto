@@ -185,6 +185,9 @@ class OutflowsController extends Controller
             ->map(fn($p) => ['value' => $p->id, 'label' => $p->name]);
         $operations = \App\Models\Operation::all()
             ->map(fn($o) => ['value' => $o->id, 'label' => $o->name]);
+        $investments = \App\Models\Investment::where('season_id', $season_id)
+            ->get()
+            ->map(fn($i) => ['value' => $i->id, 'label' => $i->name]);
         $machineries = \App\Models\Machinery::where('team_id', $user->team_id)
             ->get()
             ->map(fn($m) => [
@@ -209,7 +212,8 @@ class OutflowsController extends Controller
             'creditDebitNoteItem.product',
             'creditDebitNoteItem.creditDebitNote.supplier',
             'creditDebitNoteItem.creditDebitNote.month',
-            'level3.level2.level1'
+            'level3.level2.level1',
+            'investment'
         ])
             ->where('team_id', $user->team_id)
             ->where('season_id', $season_id)
@@ -243,6 +247,7 @@ class OutflowsController extends Controller
                             : ''),
                     'project' => $outflow->project->name ?? '',
                     'operation' => $outflow->operation->name ?? '',
+                    'investment' => $outflow->investment->name ?? '',
                     'machinery' => $outflow->machinery ? trim($outflow->machinery->cod_machinery . ' - ' . $outflow->machinery->brand) : '',
                     // Nombre del producto según origen
                     'product' => $outflow->invoiceProduct
@@ -331,6 +336,7 @@ class OutflowsController extends Controller
             'term'     => $term,
             'projects' => $projects,
             'operations' => $operations,
+            'investments' => $investments,
             'machineries' => $machineries,
             'cost_centers' => $cost_centers,
             // Detalles de salidas ya mapeados incluyendo 'product'

@@ -126,7 +126,8 @@ const props = defineProps({
   cost_centers: Array,
   outflowDetails: { type: Array, default: () => [] },
   levels2: { type: Array, default: () => [] },
-  levels3: { type: Array, default: () => [] }
+  levels3: { type: Array, default: () => [] },
+  investments: { type: Array, default: () => [] }
 });
 
 const title = 'Salidas de productos';
@@ -165,6 +166,7 @@ const editForm = ref({
   id: '',
   project_id: '',
   operation_id: '',
+  investment_id: null,
   machinery_id: '',
   cost_center_ids: [],
   notes: '',
@@ -179,9 +181,17 @@ const editStockAvailable = ref(0);
 
 const editProjects = ref([]);
 const editOperations = ref([]);
+const editInvestments = ref([]);
 const editMachineries = ref([]);
 const editCostCenters = ref([]);
 const editStockLineData = ref(null);
+
+// Detecta si una operation_id corresponde a "Inversiones" (por nombre, case-insensitive)
+const isInversionOp = (operationId, operationsList) => {
+  if (!operationId) return false;
+  const op = (operationsList || props.operations).find(o => String(o.value) === String(operationId));
+  return op ? /invers/i.test(op.label) : false;
+};
 
 // Función para calcular el precio total de una salida
 const calculateTotal = (selected) => {
@@ -272,6 +282,7 @@ async function openCard(outflow) {
     credit_debit_note_item_id: outflow.credit_debit_note_item_id || null,
     project_id: '',
     operation_id: '',
+    investment_id: null,
     machinery_id: '',
     product_name: outflow.product,
     unit_name: outflow.unit,
@@ -363,6 +374,7 @@ function handleSave() {
       credit_debit_note_item_id: sel.credit_debit_note_item_id,
       project_id: sel.project_id,
       operation_id: sel.operation_id,
+      investment_id: isInversionOp(sel.operation_id) ? (sel.investment_id || null) : null,
       machinery_id: sel.machinery_id,
       product_name: sel.product_name,
       unit_name: sel.unit_name,
@@ -477,6 +489,7 @@ function editOutflow(outflow) {
       editForm.value.id = data.outflow.id;
       editForm.value.project_id = data.outflow.project_id ? Number(data.outflow.project_id) : '';
       editForm.value.operation_id = data.outflow.operation_id ? Number(data.outflow.operation_id) : '';
+      editForm.value.investment_id = data.outflow.investment_id ? Number(data.outflow.investment_id) : null;
       editForm.value.machinery_id = data.outflow.machinery_id ? Number(data.outflow.machinery_id) : '';
       editForm.value.cost_center_ids = Array.isArray(data.outflow.cost_centers)
         ? data.outflow.cost_centers.map(cc => Number(cc.id)).filter(id => !!id)
@@ -501,6 +514,10 @@ function editOutflow(outflow) {
       editOperations.value = (data.operations || []).map(o => ({
         value: Number(o.id),
         label: o.name
+      }));
+      editInvestments.value = (data.investments || []).map(i => ({
+        value: Number(i.value ?? i.id),
+        label: i.label ?? i.name
       }));
       editMachineries.value = (data.machineries || []).map(m => ({
         value: Number(m.id),
@@ -618,6 +635,7 @@ function copyToAllCards(sourceCardId) {
   // Copiar los campos a todos los demás cards
   targetCards.forEach(card => {
     card.operation_id = sourceCard.operation_id;
+    card.investment_id = sourceCard.investment_id;
     card.machinery_id = sourceCard.machinery_id;
     card.project_id = sourceCard.project_id;
     card.level2_id = sourceCard.level2_id;
@@ -963,7 +981,33 @@ function copyToAllCards(sourceCardId) {
                             />
                           </div>
 
-                          <!-- FILA 2: Proyecto, Operación, Maquinaria -->
+                          <!-- FILA 2: Operación, Inversión, Proyecto, Maquinaria -->
+                          <div class="col-12 col-md-2">
+                            <label class="form-label">Operación</label>
+                            <select 
+                              v-model="selected.operation_id" 
+                              class="form-select form-select-sm"
+                              @change="selected.investment_id = null"
+                            >
+                              <option :value="null" disabled selected hidden>Seleccione operación</option>
+                              <option v-for="operation in props.operations" :key="operation.value" :value="operation.value">
+                                {{ operation.label }}
+                              </option>
+                            </select>
+                          </div>
+                          <!-- Select inversión: solo aparece si la operación seleccionada es "Inversión" -->
+                          <div v-if="isInversionOp(selected.operation_id)" class="col-12 col-md-2">
+                            <label class="form-label">Inversión</label>
+                            <select
+                              v-model="selected.investment_id"
+                              class="form-select form-select-sm"
+                            >
+                              <option :value="null">— Sin inversión —</option>
+                              <option v-for="inv in props.investments" :key="inv.value" :value="inv.value">
+                                {{ inv.label }}
+                              </option>
+                            </select>
+                          </div>
                           <div class="col-12 col-md-2">
                             <label class="form-label">Proyecto</label>
                             <select 
@@ -973,18 +1017,6 @@ function copyToAllCards(sourceCardId) {
                               <option :value="null" disabled selected hidden>Seleccione proyecto</option>
                               <option v-for="project in props.projects" :key="project.value" :value="project.value">
                                 {{ project.label }}
-                              </option>
-                            </select>
-                          </div>
-                          <div class="col-12 col-md-2">
-                            <label class="form-label">Operación</label>
-                            <select 
-                              v-model="selected.operation_id" 
-                              class="form-select form-select-sm"
-                            >
-                              <option :value="null" disabled selected hidden>Seleccione operación</option>
-                              <option v-for="operation in props.operations" :key="operation.value" :value="operation.value">
-                                {{ operation.label }}
                               </option>
                             </select>
                           </div>
@@ -1127,6 +1159,7 @@ function copyToAllCards(sourceCardId) {
         :form="{ ...editForm }"
         :projects="editProjects"
         :operations="editOperations"
+        :investments="editInvestments"
         :machineries="editMachineries"
         :costCenters="editCostCenters"
         :groupings="page.props.groupings || []"

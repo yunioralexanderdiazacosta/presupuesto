@@ -13,6 +13,7 @@ const props = defineProps({
   machineries: Array,
   costCenters: Array,
   groupings: { type: Array, default: () => [] },
+  investments: { type: Array, default: () => [] },
   stockAvailable: Number,
   stockLineData: Object, // Nuevo: datos de la línea asociada (factura/nota)
   levels2: { type: Array, default: () => [] },
@@ -120,6 +121,7 @@ const localForm = reactive({
   id: null,
   project_id: null,
   operation_id: null,
+  investment_id: null,
   machinery_id: null,
   cost_center_ids: [],
   notes: '',
@@ -138,6 +140,7 @@ watch(() => props.form, (val) => {
   localForm.id = val.id;
   localForm.project_id = val.project_id ? Number(val.project_id) : null;
   localForm.operation_id = val.operation_id ? Number(val.operation_id) : null;
+  localForm.investment_id = val.investment_id ? Number(val.investment_id) : null;
   localForm.machinery_id = val.machinery_id ? Number(val.machinery_id) : null;
   localForm.cost_center_ids = Array.isArray(val.cost_center_ids) ? val.cost_center_ids.map(id => Number(id)) : [];
   localForm.notes = val.notes;
@@ -178,6 +181,13 @@ watch(selectedGrouping, (groupingId) => {
 
 
 
+// Detecta si operation_id corresponde a una operación de tipo "Inversión" (por nombre)
+const isInversionOp = computed(() => {
+  if (!localForm.operation_id) return false;
+  const op = props.operations.find(o => String(o.value) === String(localForm.operation_id));
+  return op ? /invers/i.test(op.label) : false;
+});
+
 function submit() {
   if (Number(localForm.quantity) > stockAvailable.value) {
     return Swal.fire('Error', `La cantidad no puede exceder el stock disponible (${stockAvailable.value})`, 'error');
@@ -187,6 +197,7 @@ function submit() {
     id: localForm.id,
     project_id: localForm.project_id,
     operation_id: localForm.operation_id,
+    investment_id: isInversionOp.value ? (localForm.investment_id || null) : null,
     machinery_id: localForm.machinery_id,
     cost_center_ids: localForm.cost_center_ids,
     notes: localForm.notes,
@@ -282,6 +293,32 @@ function submit() {
                 />
               </div>
               <div class="col-12 col-md-3">
+                <label class="form-label">Operación</label>
+                <select 
+                  v-model="localForm.operation_id" 
+                  class="form-select form-select-sm"
+                  @change="localForm.investment_id = null"
+                >
+                  
+                  <option v-for="operation in operations" :key="operation.value" :value="operation.value">
+                    {{ operation.label }}
+                  </option>
+                </select>
+              </div>
+              <!-- Select de inversión: solo cuando la operación es de tipo Inversión -->
+              <div v-if="isInversionOp" class="col-12 col-md-3">
+                <label class="form-label">Inversión</label>
+                <select
+                  v-model="localForm.investment_id"
+                  class="form-select form-select-sm"
+                >
+                  <option :value="null">— Sin inversión —</option>
+                  <option v-for="inv in investments" :key="inv.value" :value="inv.value">
+                    {{ inv.label }}
+                  </option>
+                </select>
+              </div>
+              <div class="col-12 col-md-3">
                 <label class="form-label">Proyecto</label>
                 <select 
                   v-model="localForm.project_id" 
@@ -290,18 +327,6 @@ function submit() {
                   
                   <option v-for="project in projects" :key="project.value" :value="project.value">
                     {{ project.label }}
-                  </option>
-                </select>
-              </div>
-              <div class="col-12 col-md-3">
-                <label class="form-label">Operación</label>
-                <select 
-                  v-model="localForm.operation_id" 
-                  class="form-select form-select-sm"
-                >
-                  
-                  <option v-for="operation in operations" :key="operation.value" :value="operation.value">
-                    {{ operation.label }}
                   </option>
                 </select>
               </div>

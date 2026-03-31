@@ -74,6 +74,7 @@ const menuItems = [
     { label: 'Órdenes de Compra', route: 'purchase-orders.index', icon: 'fas fa-shopping-cart', section: 'Registro de Gastos' },
     { label: 'Consolidado de Documentos', route: 'consolidated-documents.index', icon: 'fas fa-folder-open', section: 'Registro de Gastos' },
     { label: 'Inversiones', route: 'investments.index', icon: 'fas fa-chart-pie', section: 'Gestión' },
+    { label: 'Proyectos', route: 'projects.index', icon: 'fas fa-folder-open', section: 'Gestión' },
     { label: 'Consolidado de Salidas', route: 'consolidated-outflows.index', icon: 'fas fa-sign-out-alt', section: 'Salidas' },
     { label: 'Consumos Gral.', route: 'outflows.index', icon: 'fas fa-boxes', section: 'Salidas' },
     { label: 'Combustible Maquinaria', route: 'fuel-outflows.index', icon: 'fas fa-gas-pump', section: 'Salidas' },
@@ -424,6 +425,13 @@ const navigateTo = (routeName) => {
                       <Link class="nav-link" :href="route('investments.index')">
                         <div class="d-flex align-items-center">
                           <span class="nav-link-text ps-3">Inversiones</span>
+                        </div>
+                      </Link>
+                    </li>
+                    <li class="nav-item">
+                      <Link class="nav-link" :href="route('projects.index')">
+                        <div class="d-flex align-items-center">
+                          <span class="nav-link-text ps-3">Proyectos</span>
                         </div>
                       </Link>
                     </li>
