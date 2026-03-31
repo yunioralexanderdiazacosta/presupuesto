@@ -266,6 +266,90 @@ const deleteRow = (rowId) => {
     });
 };
 
+// ─── Carga masiva de filas ────────────────────────────────────────────────────
+const bulkFruitId   = ref('');
+const bulkVarietyId = ref('');
+const bulkHectares  = ref('');
+const bulkRows      = ref([{ week: '', kg_pessimistic: '', kg_base: '', kg_optimistic: '' }]);
+const submittingBulk = ref(false);
+
+const bulkFilteredVarieties = computed(() => {
+    if (!bulkFruitId.value) return props.varieties;
+    return props.varieties.filter(v => String(v.fruit_id) === String(bulkFruitId.value));
+});
+
+watch(bulkFruitId, () => {
+    if (bulkVarietyId.value) {
+        const stillValid = bulkFilteredVarieties.value.some(v => String(v.id) === String(bulkVarietyId.value));
+        if (!stillValid) bulkVarietyId.value = '';
+    }
+});
+
+const openBulkModal = () => {
+    bulkFruitId.value   = '';
+    bulkVarietyId.value = '';
+    bulkHectares.value  = '';
+    bulkRows.value = [{ week: '', kg_pessimistic: '', kg_base: '', kg_optimistic: '' }];
+    setTimeout(() => $('#bulkRowModal').modal('show'), 50);
+};
+
+const addBulkRow = () => {
+    bulkRows.value.push({ week: '', kg_pessimistic: '', kg_base: '', kg_optimistic: '' });
+};
+
+const removeBulkRow = (i) => {
+    if (bulkRows.value.length > 1) bulkRows.value.splice(i, 1);
+};
+
+// Copia kg de la fila i a la fila i+1 (la crea si no existe)
+const copyRowDown = (i) => {
+    const src = bulkRows.value[i];
+    if (i + 1 < bulkRows.value.length) {
+        bulkRows.value[i + 1].kg_pessimistic = src.kg_pessimistic;
+        bulkRows.value[i + 1].kg_base        = src.kg_base;
+        bulkRows.value[i + 1].kg_optimistic  = src.kg_optimistic;
+    } else {
+        bulkRows.value.push({
+            week: '',
+            kg_pessimistic: src.kg_pessimistic,
+            kg_base:        src.kg_base,
+            kg_optimistic:  src.kg_optimistic,
+        });
+    }
+};
+
+const submitBulk = () => {
+    const validRows = bulkRows.value.filter(r => r.week !== '' && r.week !== null);
+    if (!bulkVarietyId.value || bulkHectares.value === '' || validRows.length === 0) {
+        Swal.fire({ icon: 'warning', title: 'Faltan datos', text: 'Completa variedad, hectáreas y al menos una semana.', showConfirmButton: true });
+        return;
+    }
+    const payload = {
+        rows: validRows.map(r => ({
+            variety_id:     Number(bulkVarietyId.value),
+            week:           Number(r.week),
+            hectares:       Number(bulkHectares.value),
+            kg_pessimistic: Number(r.kg_pessimistic) || 0,
+            kg_base:        Number(r.kg_base) || 0,
+            kg_optimistic:  Number(r.kg_optimistic) || 0,
+        })),
+    };
+    submittingBulk.value = true;
+    $('#bulkRowModal').modal('hide');
+    router.post(route('project-evaluations.rows.bulk-store', props.evaluation.id), payload, {
+        preserveScroll: true,
+        onSuccess: () => {
+            submittingBulk.value = false;
+            Swal.fire({ icon: 'success', title: `${validRows.length} fila(s) agregada(s)`, showConfirmButton: false, timer: 1200 });
+        },
+        onError: (errors) => {
+            submittingBulk.value = false;
+            const msg = Object.values(errors).flat().join('\n');
+            Swal.fire({ icon: 'error', title: 'Error de validación', text: msg || 'Revisa los campos.' });
+        },
+    });
+};
+
 // ═══════════════════════════════════════════════════════════════════════════════
 // TAB RESULTADOS — Cálculos
 // ═══════════════════════════════════════════════════════════════════════════════
@@ -465,10 +549,16 @@ const excelDetalleData = computed(() => {
                         <p class="mb-0 text-muted small">
                             Define las variedades y semanas que componen esta evaluación junto con sus estimaciones de producción.
                         </p>
-                        <button class="btn btn-falcon-default btn-sm" @click="openAddRow">
-                            <span class="fas fa-plus" data-fa-transform="shrink-3 down-2"></span>
-                            <span class="ms-1">Agregar fila</span>
-                        </button>
+                        <div class="d-flex gap-2">
+                            <button class="btn btn-falcon-default btn-sm" @click="openBulkModal">
+                                <span class="fas fa-layer-group" data-fa-transform="shrink-3 down-2"></span>
+                                <span class="ms-1">Múltiples filas</span>
+                            </button>
+                            <button class="btn btn-falcon-default btn-sm" @click="openAddRow">
+                                <span class="fas fa-plus" data-fa-transform="shrink-3 down-2"></span>
+                                <span class="ms-1">Agregar fila</span>
+                            </button>
+                        </div>
                     </div>
 
                     <div v-if="rows.length === 0" class="text-center py-5 text-muted">
@@ -1013,6 +1103,126 @@ const excelDetalleData = computed(() => {
                             </table>
                         </div>
                         </div><!-- /resumen wrapper -->
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ── Modal Carga Masiva de Filas ─────────────────────────────────── -->
+        <div class="modal fade" id="bulkRowModal" tabindex="-1" aria-hidden="true">
+            <div class="modal-dialog modal-xl modal-dialog-centered modal-dialog-scrollable">
+                <div class="modal-content">
+                    <div class="modal-header py-2">
+                        <h6 class="modal-title">
+                            <i class="fas fa-layer-group me-2 text-primary"></i>Agregar múltiples filas
+                        </h6>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                    </div>
+                    <div class="modal-body">
+                        <!-- Campos compartidos -->
+                        <div class="row g-3 mb-3 pb-3 border-bottom">
+                            <div class="col-md-4">
+                                <label class="form-label small fw-semibold">Frutal <span class="text-muted small">(filtro)</span></label>
+                                <select v-model="bulkFruitId" class="form-select form-select-sm">
+                                    <option value="">Todos los frutales</option>
+                                    <option v-for="f in fruits" :key="f.id" :value="String(f.id)">{{ f.name }}</option>
+                                </select>
+                            </div>
+                            <div class="col-md-5">
+                                <label class="form-label small fw-semibold">Variedad <span class="text-danger">*</span></label>
+                                <select v-model="bulkVarietyId" class="form-select form-select-sm">
+                                    <option value="" disabled>Seleccione variedad...</option>
+                                    <option v-for="v in bulkFilteredVarieties" :key="v.id" :value="String(v.id)">{{ v.name }}</option>
+                                </select>
+                                <small v-if="bulkFruitId && bulkFilteredVarieties.length === 0" class="text-warning">Sin variedades para este frutal.</small>
+                            </div>
+                            <div class="col-md-3">
+                                <label class="form-label small fw-semibold">Hectáreas <span class="text-danger">*</span></label>
+                                <input v-model.number="bulkHectares" type="number" min="0" step="0.1" class="form-control form-control-sm" placeholder="0.0" />
+                                <small class="text-muted">Se aplica a todas las semanas.</small>
+                            </div>
+                        </div>
+
+                        <!-- Tabla de semanas -->
+                        <div class="d-flex justify-content-between align-items-center mb-2">
+                            <p class="mb-0 small text-muted">
+                                Ingresa una fila por semana. El botón
+                                <i class="fas fa-arrow-down fa-xs text-primary"></i>
+                                copia los KG a la siguiente fila.
+                            </p>
+                            <button type="button" class="btn btn-sm btn-falcon-default" @click="addBulkRow">
+                                <i class="fas fa-plus me-1"></i>Agregar semana
+                            </button>
+                        </div>
+                        <div class="table-responsive">
+                            <table class="table table-sm table-bordered align-middle mb-0" style="font-size:0.85rem;">
+                                <thead class="table-light">
+                                    <tr>
+                                        <th class="text-center" style="width:110px;">Semana <span class="text-danger">*</span></th>
+                                        <th class="text-center text-warning" style="min-width:120px;">KG/HÁ Pesimista</th>
+                                        <th class="text-center text-primary" style="min-width:120px;">KG/HÁ Base</th>
+                                        <th class="text-center text-success" style="min-width:120px;">KG/HÁ Optimista</th>
+                                        <th class="text-center" style="width:80px;">Copiar ↓</th>
+                                        <th class="text-center" style="width:50px;"></th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr v-for="(bRow, i) in bulkRows" :key="i">
+                                        <td class="p-1">
+                                            <select v-model="bRow.week" class="form-select form-select-sm text-center">
+                                                <option value="" disabled>Sem...</option>
+                                                <option v-for="w in weeks" :key="w" :value="w">S{{ w }}</option>
+                                            </select>
+                                        </td>
+                                        <td class="p-1">
+                                            <input v-model.number="bRow.kg_pessimistic" type="number" min="0" class="form-control form-control-sm text-center" placeholder="0" />
+                                        </td>
+                                        <td class="p-1">
+                                            <input v-model.number="bRow.kg_base" type="number" min="0" class="form-control form-control-sm text-center" placeholder="0" />
+                                        </td>
+                                        <td class="p-1">
+                                            <input v-model.number="bRow.kg_optimistic" type="number" min="0" class="form-control form-control-sm text-center" placeholder="0" />
+                                        </td>
+                                        <td class="text-center p-1">
+                                            <button
+                                                type="button"
+                                                class="btn btn-icon btn-active-light-primary w-28px h-28px"
+                                                @click="copyRowDown(i)"
+                                                v-tooltip="i + 1 < bulkRows.length ? 'Copiar KG a la fila siguiente' : 'Copiar KG y agregar nueva fila'"
+                                            >
+                                                <i class="fas fa-arrow-down" style="font-size:0.7rem;"></i>
+                                            </button>
+                                        </td>
+                                        <td class="text-center p-1">
+                                            <button
+                                                type="button"
+                                                class="btn btn-icon btn-active-light-danger w-28px h-28px"
+                                                @click="removeBulkRow(i)"
+                                                :disabled="bulkRows.length === 1"
+                                            >
+                                                <i class="fas fa-times" style="font-size:0.7rem;"></i>
+                                            </button>
+                                        </td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                    <div class="modal-footer py-2">
+                        <span class="text-muted small me-auto">
+                            {{ bulkRows.filter(r => r.week !== '').length }} semana(s) lista(s) para guardar
+                        </span>
+                        <button type="button" class="btn btn-sm btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                        <button
+                            type="button"
+                            class="btn btn-sm btn-primary"
+                            @click="submitBulk"
+                            :disabled="submittingBulk || !bulkVarietyId || bulkHectares === '' || bulkRows.filter(r => r.week !== '').length === 0"
+                        >
+                            <i class="fas fa-save me-1"></i>
+                            Guardar {{ bulkRows.filter(r => r.week !== '').length > 0 ? bulkRows.filter(r => r.week !== '').length : '' }} fila(s)
+                            <span v-if="submittingBulk" class="spinner-border spinner-border-sm ms-1"></span>
+                        </button>
                     </div>
                 </div>
             </div>

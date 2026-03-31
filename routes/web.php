@@ -260,6 +260,7 @@ use App\Http\Controllers\ProjectEvaluations\StoreProjectEvaluationController;
 use App\Http\Controllers\ProjectEvaluations\UpdateProjectEvaluationController;
 use App\Http\Controllers\ProjectEvaluations\DeleteProjectEvaluationController;
 use App\Http\Controllers\ProjectEvaluations\StoreProjectEvaluationRowController;
+use App\Http\Controllers\ProjectEvaluations\StoreBulkProjectEvaluationRowsController;
 use App\Http\Controllers\ProjectEvaluations\UpdateProjectEvaluationRowController;
 use App\Http\Controllers\ProjectEvaluations\DeleteProjectEvaluationRowController;
 use App\Http\Controllers\ProjectEvaluations\UpsertRnpPricesController;
@@ -874,6 +875,7 @@ Route::middleware([
     Route::get('/project-evaluations/{projectEvaluation}', ShowProjectEvaluationController::class)->name('project-evaluations.show');
     // Filas de composición
     Route::post('/project-evaluations/{projectEvaluation}/rows', StoreProjectEvaluationRowController::class)->name('project-evaluations.rows.store');
+    Route::post('/project-evaluations/{projectEvaluation}/rows/bulk', StoreBulkProjectEvaluationRowsController::class)->name('project-evaluations.rows.bulk-store');
     Route::put('/project-evaluations/{projectEvaluation}/rows/{row}', UpdateProjectEvaluationRowController::class)->name('project-evaluations.rows.update');
     Route::delete('/project-evaluations/{projectEvaluation}/rows/{row}', DeleteProjectEvaluationRowController::class)->name('project-evaluations.rows.delete');
     // Parámetros (a nivel de equipo)
