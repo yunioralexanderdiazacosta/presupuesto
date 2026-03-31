@@ -1,5 +1,5 @@
 <script setup>
-import { ref, computed, watch } from 'vue';
+import { ref, computed, watch, nextTick } from 'vue';
 import { router, Link } from '@inertiajs/vue3';
 import AppLayout from '@/Layouts/AppLayout.vue';
 import Swal from 'sweetalert2';
@@ -185,13 +185,14 @@ const evaluationVarieties = computed(() => {
     return props.varieties.filter(v => usedIds.has(String(v.id)));
 });
 
-// Resetear variedad seleccionada si al cambiar frutal ya no está disponible
-watch(filterFruitId, () => {
+// Resetear variedad al cambiar frutal manualmente (solo en modo agregar)
+const onFruitChange = () => {
+    if (editRowId.value) return;
     if (rowForm.value.variety_id) {
         const stillValid = filteredVarieties.value.some(v => String(v.id) === String(rowForm.value.variety_id));
         if (!stillValid) rowForm.value.variety_id = '';
     }
-});
+};
 
 const rowForm = ref({ variety_id: '', week: '', hectares: '', kg_pessimistic: '', kg_base: '', kg_optimistic: '' });
 const editRowId = ref(null);
@@ -200,23 +201,22 @@ const openAddRow = () => {
     editRowId.value = null;
     filterFruitId.value = '';
     rowForm.value = { variety_id: '', week: '', hectares: '', kg_pessimistic: '', kg_base: '', kg_optimistic: '' };
-    setTimeout(() => $('#rowModal').modal('show'), 50);
+    nextTick(() => $('#rowModal').modal('show'));
 };
 
 const openEditRow = (row) => {
     editRowId.value = row.id;
-    // Pre-seleccionar el frutal de la variedad actual
     const v = props.varieties.find(x => String(x.id) === String(row.variety_id));
     filterFruitId.value = v ? String(v.fruit_id) : '';
     rowForm.value = {
-        variety_id:     String(row.variety_id),   // String para match exacto con option :value
+        variety_id:     String(row.variety_id),
         week:           Number(row.week),
         hectares:       Number(row.hectares),
         kg_pessimistic: Number(row.kg_pessimistic),
         kg_base:        Number(row.kg_base),
         kg_optimistic:  Number(row.kg_optimistic),
     };
-    setTimeout(() => $('#rowModal').modal('show'), 50);
+    nextTick(() => $('#rowModal').modal('show'));
 };
 
 const submitRow = () => {
@@ -295,6 +295,24 @@ const openBulkModal = () => {
 
 const addBulkRow = () => {
     bulkRows.value.push({ week: '', kg_pessimistic: '', kg_base: '', kg_optimistic: '' });
+};
+
+const addAllWeeks = () => {
+    const existingWeeks = new Set(bulkRows.value.map(r => String(r.week)));
+    const toAdd = weeks.filter(w => !existingWeeks.has(String(w)));
+    toAdd.forEach(w => bulkRows.value.push({ week: w, kg_pessimistic: '', kg_base: '', kg_optimistic: '' }));
+};
+
+// Copia los kg de la primera fila que tenga valores a todas las demás filas
+const copyAllKgFromFirst = () => {
+    const src = bulkRows.value.find(r => r.kg_base !== '' || r.kg_pessimistic !== '' || r.kg_optimistic !== '');
+    if (!src) return;
+    bulkRows.value.forEach((r, i) => {
+        if (bulkRows.value[i] === src) return;
+        r.kg_pessimistic = src.kg_pessimistic;
+        r.kg_base        = src.kg_base;
+        r.kg_optimistic  = src.kg_optimistic;
+    });
 };
 
 const removeBulkRow = (i) => {
@@ -634,10 +652,10 @@ const excelDetalleData = computed(() => {
                             <tfoot class="table-light fw-bold">
                                 <tr>
                                     <td colspan="2">Totales</td>
-                                    <td class="text-center">{{ fmt(rows.reduce((s, r) => s + Number(r.hectares), 0), 1) }}</td>
-                                    <td class="text-end">{{ fmt(rows.reduce((s, r) => s + Number(r.kg_pessimistic), 0)) }}</td>
-                                    <td class="text-end">{{ fmt(rows.reduce((s, r) => s + Number(r.kg_base), 0)) }}</td>
-                                    <td class="text-end">{{ fmt(rows.reduce((s, r) => s + Number(r.kg_optimistic), 0)) }}</td>
+                                    <td class="text-center text-muted" v-tooltip="'Las há no se suman: un mismo lote puede aparecer en varias semanas'">—</td>
+                                    <td class="text-end text-muted" v-tooltip="'KG/HÁ es un rendimiento, no se suma'">—</td>
+                                    <td class="text-end text-muted">—</td>
+                                    <td class="text-end text-muted">—</td>
                                     <td class="text-end text-warning">{{ fmt(rows.reduce((s, r) => s + Number(r.kg_pessimistic) * Number(r.hectares), 0)) }}</td>
                                     <td class="text-end text-primary">{{ fmt(rows.reduce((s, r) => s + Number(r.kg_base) * Number(r.hectares), 0)) }}</td>
                                     <td class="text-end text-success">{{ fmt(rows.reduce((s, r) => s + Number(r.kg_optimistic) * Number(r.hectares), 0)) }}</td>
@@ -1007,7 +1025,7 @@ const excelDetalleData = computed(() => {
                                         <th class="text-end">KG/HÁ</th>
                                         <th class="text-center">% Emb.</th>
                                         <th class="text-end">RNP (USD)</th>
-                                        <th v-if="!showPerHa" class="text-end">KG Totales</th>
+                                        <th v-show="!showPerHa" class="text-end">KG Totales</th>
                                         <th class="text-end">{{ showPerHa ? 'IFE/HÁ' : 'IFE' }} (USD)</th>
                                         <th class="text-end">{{ showPerHa ? 'FCNE/HÁ' : 'FCNE' }} (USD)</th>
                                         <th class="text-end">{{ showPerHa ? 'Abono CC/HÁ' : 'Abono CC' }} (USD)</th>
@@ -1028,7 +1046,7 @@ const excelDetalleData = computed(() => {
                                             <td class="text-end text-muted">{{ fmt(calc.kg_per_ha) }}</td>
                                             <td class="text-center">{{ fmt(calc.pct_emb * 100, 0) }}%</td>
                                             <td class="text-end">{{ fmtUsd(calc.rnp_usd, 1) }}</td>
-                                            <td v-if="!showPerHa" class="text-end">{{ fmt(calc.kg_total) }}</td>
+                                            <td v-show="!showPerHa" class="text-end">{{ fmt(calc.kg_total) }}</td>
                                             <td class="text-end">{{ fmtUsd(showPerHa && calc.ha > 0 ? calc.IFE / calc.ha : calc.IFE) }}</td>
                                             <td class="text-end text-danger">{{ fmtUsd(showPerHa && calc.ha > 0 ? calc.FCNE / calc.ha : calc.FCNE) }}</td>
                                             <td class="text-end fw-semibold">{{ fmtUsd(showPerHa && calc.ha > 0 ? calc.AbonoCC / calc.ha : calc.AbonoCC) }}</td>
@@ -1040,7 +1058,7 @@ const excelDetalleData = computed(() => {
                                         <tr v-else>
                                             <td class="fw-semibold">{{ varietyName(row.variety_id) }}</td>
                                             <td class="text-center"><span class="badge bg-secondary">S{{ row.week }}</span></td>
-                                            <td :colspan="showPerHa ? 9 : 10" class="text-muted small text-center">Sin parámetros configurados</td>
+                                            <td :colspan="10" class="text-muted small text-center">Sin parámetros configurados</td>
                                         </tr>
                                     </template>
                                 </tbody>
@@ -1049,7 +1067,7 @@ const excelDetalleData = computed(() => {
                                         <td colspan="2" class="text-end">TOTALES</td>
                                         <td class="text-center">{{ fmt(scenarioTotals[activeScenario].totalHa, 1) }}</td>
                                         <td colspan="3"></td>
-                                        <td v-if="!showPerHa" class="text-end">{{ fmt(scenarioTotals[activeScenario].totalKg) }}</td>
+                                        <td v-show="!showPerHa" class="text-end">{{ fmt(scenarioTotals[activeScenario].totalKg) }}</td>
                                         <td class="text-end">{{ fmtUsd(showPerHa && scenarioTotals[activeScenario].totalHa > 0 ? scenarioTotals[activeScenario].totalIFE / scenarioTotals[activeScenario].totalHa : scenarioTotals[activeScenario].totalIFE) }}</td>
                                         <td class="text-end text-danger">{{ fmtUsd(showPerHa && scenarioTotals[activeScenario].totalHa > 0 ? scenarioTotals[activeScenario].totalFCNE / scenarioTotals[activeScenario].totalHa : scenarioTotals[activeScenario].totalFCNE) }}</td>
                                         <td class="text-end">{{ fmtUsd(showPerHa && scenarioTotals[activeScenario].totalHa > 0 ? scenarioTotals[activeScenario].totalAbonoCC / scenarioTotals[activeScenario].totalHa : scenarioTotals[activeScenario].totalAbonoCC) }}</td>
@@ -1150,9 +1168,17 @@ const excelDetalleData = computed(() => {
                                 <i class="fas fa-arrow-down fa-xs text-primary"></i>
                                 copia los KG a la siguiente fila.
                             </p>
-                            <button type="button" class="btn btn-sm btn-falcon-default" @click="addBulkRow">
-                                <i class="fas fa-plus me-1"></i>Agregar semana
-                            </button>
+                            <div class="d-flex gap-2">
+                                <button type="button" class="btn btn-sm btn-falcon-default" @click="copyAllKgFromFirst" v-tooltip="'Copia los KG de la primera fila con valores a todas las demás'">
+                                    <i class="fas fa-copy me-1"></i>Copiar KG a todas
+                                </button>
+                                <button type="button" class="btn btn-sm btn-falcon-default" @click="addAllWeeks" v-tooltip="'Agrega las semanas S42–S52 que aún no estén en la tabla'">
+                                    <i class="fas fa-calendar-alt me-1"></i>Todas las semanas
+                                </button>
+                                <button type="button" class="btn btn-sm btn-falcon-default" @click="addBulkRow">
+                                    <i class="fas fa-plus me-1"></i>Agregar semana
+                                </button>
+                            </div>
                         </div>
                         <div class="table-responsive">
                             <table class="table table-sm table-bordered align-middle mb-0" style="font-size:0.85rem;">
@@ -1231,7 +1257,7 @@ const excelDetalleData = computed(() => {
         <!-- ── Modal Fila de Composición ───────────────────────────────────── -->
         <div class="modal fade" id="rowModal" tabindex="-1" aria-hidden="true">
             <div class="modal-dialog modal-lg modal-dialog-centered">
-                <div class="modal-content">
+                <div class="modal-content" :key="'rowModal-' + (editRowId || 'new')">
                     <div class="modal-header py-2">
                         <h6 class="modal-title">
                             <i class="fas fa-plus me-2 text-primary" v-if="!editRowId"></i>
@@ -1245,7 +1271,7 @@ const excelDetalleData = computed(() => {
                             <!-- Filtro Frutal -->
                             <div class="col-md-4">
                                 <label class="form-label small fw-semibold">Frutal <span class="text-muted small">(filtro)</span></label>
-                                <select v-model="filterFruitId" class="form-select form-select-sm">
+                                <select v-model="filterFruitId" @change="onFruitChange" class="form-select form-select-sm">
                                     <option value="">Todos los frutales</option>
                                     <option v-for="f in fruits" :key="f.id" :value="String(f.id)">{{ f.name }}</option>
                                 </select>
