@@ -19,6 +19,7 @@ const form = useForm({
     id: null,
     name: '',
     team_name: '',
+    username: '',
     email: '',
     password: '',
     observations: ''    

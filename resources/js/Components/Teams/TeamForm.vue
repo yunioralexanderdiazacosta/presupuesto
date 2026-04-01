@@ -30,6 +30,17 @@ const props = defineProps({
     </div>
 
     <div class="fv-row">
+        <label class="col-form-label">Nombre de usuario (para iniciar sesión)</label>
+        <TextInput
+            id="username"
+            v-model="form.username"
+            class="form-control form-control-solid"
+            type="text"
+        />
+        <InputError class="mt-2" :message="form.errors.username" />
+    </div>
+
+    <div class="fv-row">
         <label class="col-form-label">Correo electronico</label>
         <TextInput
             id="email"

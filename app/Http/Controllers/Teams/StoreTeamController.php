@@ -18,6 +18,7 @@ class StoreTeamController extends Controller
 
         $user = new User();
         $user->name = $request->name;
+        $user->username = $request->username;
         $user->email = $request->email;
         $user->password = Hash::make($request->password);
         $user->observations = $request->observations;

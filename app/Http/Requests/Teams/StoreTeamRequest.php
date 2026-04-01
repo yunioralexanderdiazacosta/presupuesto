@@ -24,6 +24,7 @@ class StoreTeamRequest extends FormRequest
         return [
             'name' => 'required',
             'team_name' => 'required',
+            'username' => 'required|max:255|unique:users,username',
             'email' => 'required|max:255|unique:users',
             'password' => 'required:max:255'
         ];
