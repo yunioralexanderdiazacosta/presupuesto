@@ -40,6 +40,7 @@ const openEdit = (user) => {
     form.reset();
     form.id = user.id; 
     form.name = user.name;
+    form.username = user.username;
     form.email = user.email;
     form.observations = user.observations;
     form.team_name = user.team.name;   

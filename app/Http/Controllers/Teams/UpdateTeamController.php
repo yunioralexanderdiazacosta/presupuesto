@@ -12,6 +12,7 @@ class UpdateTeamController extends Controller
     public function __invoke(User $user, UpdateTeamRequest $request)
     {
         $user->name = $request->name;
+        $user->username = $request->username;
         $user->email = $request->email;
         if($request->password != ''){
             $user->password = Hash::make($request->password);
