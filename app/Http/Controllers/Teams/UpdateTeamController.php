@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Teams;
 
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Teams\UpdateTeamRequest;
+use Illuminate\Support\Facades\Hash;
 use App\Models\User;
 
 class UpdateTeamController extends Controller
