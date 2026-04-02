@@ -84,7 +84,7 @@ watch(() => props.form.fruit_id, (newVal, oldVal) => {
         <!-- Variedad -->
         <div class="col-lg-3">
             <label class="col-form-label fw-bold">
-                <i class="fas fa-leaf text-primary me-1"></i>Variedad <span class="text-danger">*</span>
+                <i class="fas fa-leaf text-primary me-1"></i>Variedad principal <span class="text-danger">*</span>
             </label>
             <select
                 v-model="form.variety_id"
