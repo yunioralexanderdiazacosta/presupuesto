@@ -281,7 +281,9 @@ const onFilterProducts2 = (term) => {
 
 // Selección de producto desde modal
 const onProduct2Select = (item) => {
-  props.form.products[currentProductIndex.value].product_name = item.name;
+  // Limpiar formato de envase (ej: "ACRAMITE 48 SC X 1 LT" → "ACRAMITE 48 SC")
+  const cleanName = item.name.replace(/\s*[xX]\s*\d+[\.,]?\d*\s*\w+$/i, '').trim();
+  props.form.products[currentProductIndex.value].product_name = cleanName;
   // Asigna datos adicionales: price, unit_id_price, active_ingredient
   props.form.products[currentProductIndex.value].price = item.price || '';
   props.form.products[currentProductIndex.value].unit_id_price = item.unit_price_id || '';
@@ -291,7 +293,6 @@ const onProduct2Select = (item) => {
 
 
 </script>
-<script setup></script>
 <template>
     <div class="row gy-1">
         <div class="col-sm-4">
@@ -664,99 +665,8 @@ const onProduct2Select = (item) => {
       @select="onProduct2Select"
     />
     </template>
-
-    <!-- Modal para selección de productos2 -->
-    <div
-      class="modal fade"
-      id="products2Modal"
-      tabindex="-1"
-      aria-labelledby="products2ModalLabel"
-      aria-hidden="true"
-    >
-      <div class="modal-dialog modal-lg">
-        <div class="modal-content">
-          <div class="modal-header">
-            <h5 class="modal-title" id="products2ModalLabel">
-              Seleccionar Producto
-            </h5>
-            <button
-              type="button"
-              class="btn-close"
-              data-bs-dismiss="modal"
-              aria-label="Close"
-            ></button>
-          </div>
-          <div class="modal-body">
-            <!-- Buscador -->
-            <div class="mb-3">
-              <label for="searchProducts2" class="form-label"
-                >Buscar producto:</label
-              >
-              <div class="input-group">
-                <span class="input-group-text"
-                  ><i class="fas fa-search"></i
-                ></span>
-                <input
-                  type="text"
-                  id="searchProducts2"
-                  v-model="searchProducts2"
-                  @input="fetchProducts2"
-                  class="form-control"
-                  placeholder="Escriba para buscar..."
-                />
-              </div>
-            </div>
-
-            <!-- Tabla de resultados -->
-            <div v-if="products2Data.data.length" class="table-responsive">
-              <table class="table table-hover">
-                <thead>
-                  <tr>
-                    <th>Nombre</th>
-                    <th>Precio</th>
-                    <th>Unidad</th>
-                    <th>Acciones</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  <tr
-                    v-for="(item, idx) in products2Data.data"
-                    :key="item.id"
-                    @click="onProduct2Select(item)"
-                    style="cursor: pointer;"
-                  >
-                    <td>{{ item.name }}</td>
-                    <td>{{ item.price }}</td>
-                    <td>{{ item.unit_price_id }}</td>
-                    <td>
-                      <button
-                        class="btn btn-sm btn-primary"
-                        @click.stop="onProduct2Select(item)"
-                      >
-                        <i class="fas fa-check"></i> Seleccionar
-                      </button>
-                    </td>
-                  </tr>
-                </tbody>
-              </table>
-            </div>
-            <div v-else class="text-center text-muted py-3">
-              No se encontraron productos que coincidan con la búsqueda.
-            </div>
-          </div>
-          <div class="modal-footer">
-            <button
-              type="button"
-              class="btn btn-secondary"
-              data-bs-dismiss="modal"
-            >
-              Cerrar
-            </button>
-          </div>
-        </div>
-      </div>
-    </div>
 </template>
+
 <!-- <style src="@vueform/multiselect/themes/default.css"></style>-->
 <style>
 select,

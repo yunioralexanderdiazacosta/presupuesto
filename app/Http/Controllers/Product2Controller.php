@@ -14,7 +14,7 @@ class Product2Controller extends Controller
 {
     public function __construct()
     {
-        $this->middleware('role:Super Admin');
+        $this->middleware('role:Super Admin')->except('index');
     }
 
     /**
@@ -41,6 +41,16 @@ class Product2Controller extends Controller
             ->orderBy('name')
             ->paginate(1000)
             ->withQueryString();
+
+        // Si es petición AJAX (desde modal de búsqueda), devolver JSON
+        if ($request->wantsJson()) {
+            return response()->json($products2);
+        }
+
+        // La vista completa solo para Super Admin
+        if (!Auth::user()->hasRole('Super Admin')) {
+            abort(403);
+        }
 
         $units = \App\Models\Unit::all(['id', 'name']);
         $formOptions = ['Agroquímicos', 'Fertilizantes'];
