@@ -11,6 +11,16 @@ class UpdateUserController extends Controller
 {
     public function __invoke(User $user, UpdateUserRequest $request)
     {
+        $owner = \Illuminate\Support\Facades\Auth::user();
+
+        // Impedir editar usuarios de otro team o Super Admins (salvo el propio Super Admin)
+        if ($user->team_id !== $owner->team_id && !$owner->hasRole('Super Admin')) {
+            abort(403);
+        }
+        if ($user->hasRole('Super Admin') && !$owner->hasRole('Super Admin')) {
+            abort(403);
+        }
+
         $user->name = $request->name;
         $user->username = $request->username;
         $user->email = $request->email;

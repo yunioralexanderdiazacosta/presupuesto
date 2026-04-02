@@ -37,13 +37,17 @@ class UsersController extends Controller
             ];
         });
 
-        // Obtener todos los roles disponibles
-        $availableRoles = Role::orderBy('name')->get()->map(function($role) {
-            return [
-                'value' => $role->name,
-                'label' => $role->name == 'Normal' ? 'Digitador' : $role->name
-            ];
-        });
+        // Obtener roles disponibles (Super Admin solo visible para Super Admin)
+        $availableRoles = Role::orderBy('name')
+            ->when(!$user->hasRole('Super Admin'), function($q) {
+                $q->where('name', '!=', 'Super Admin');
+            })
+            ->get()->map(function($role) {
+                return [
+                    'value' => $role->name,
+                    'label' => $role->name == 'Normal' ? 'Digitador' : $role->name
+                ];
+            });
 
         return Inertia::render('Users', compact('users', 'term', 'availableRoles'));
     }
