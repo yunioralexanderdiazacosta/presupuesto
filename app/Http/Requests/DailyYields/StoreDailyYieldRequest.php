@@ -17,6 +17,7 @@ class StoreDailyYieldRequest extends FormRequest
             'employee_id' => 'required|exists:employees,id',
             'date' => 'required|date',
             'labor_type_id' => 'required|exists:labor_types,id',
+            'labor_rate_id' => 'required|exists:labor_rates,id',
             'rate' => 'required|integer|min:0',
             'quantity' => 'required|numeric|min:0',
             'hours' => 'required|numeric|min:0.5|max:24',
@@ -32,6 +33,7 @@ class StoreDailyYieldRequest extends FormRequest
         return [
             'employee_id.required' => 'El trabajador es obligatorio.',
             'labor_type_id.required' => 'La labor es obligatoria.',
+            'labor_rate_id.required' => 'El trato es obligatorio.',
             'rate.required' => 'La tarifa es obligatoria.',
             'quantity.required' => 'La cantidad es obligatoria.',
             'hours.required' => 'Las horas son obligatorias.',

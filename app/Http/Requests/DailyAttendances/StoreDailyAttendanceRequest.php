@@ -15,11 +15,11 @@ class StoreDailyAttendanceRequest extends FormRequest
     {
         return [
             'date' => 'required|date',
-            'estimated_labor_type_id' => 'nullable|exists:labor_types,id',
-            'estimated_cost_center_id' => 'nullable|exists:cost_centers,id',
             'attendances' => 'required|array|min:1',
             'attendances.*.employee_id' => 'required|exists:employees,id',
             'attendances.*.is_present' => 'required|boolean',
+            'attendances.*.estimated_labor_type_id' => 'nullable|exists:labor_types,id',
+            'attendances.*.estimated_cost_center_id' => 'nullable|exists:cost_centers,id',
         ];
     }
 

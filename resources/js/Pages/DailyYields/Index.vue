@@ -1,110 +1,126 @@
-<script setup>
-import { ref, computed } from 'vue';
-import { router } from '@inertiajs/vue3';
+﻿<script setup>
+import { ref, computed, reactive } from 'vue';
+import { router, useForm } from '@inertiajs/vue3';
 import AppLayout from '@/Layouts/AppLayout.vue';
 import Swal from 'sweetalert2';
-import CreateDailyYieldModal from '@/Components/DailyYields/CreateDailyYieldModal.vue';
-import EditDailyYieldModal from '@/Components/DailyYields/EditDailyYieldModal.vue';
 
 const props = defineProps({
-    yields: Array,
-    presentEmployees: Array,
-    laborTypes: Array,
-    bonusTypes: Array,
-    costCenters: Array,
-    selectedDate: String,
-    hasAttendance: Boolean,
-    summary: Object,
+    employees: Array, laborTypes: Array, laborRates: Array, bonusTypes: Array,
+    costCenters: Array, selectedDate: String, hasAttendance: Boolean,
+    maxHoursPerDay: { type: Number, default: 8 }, summary: Object,
 });
 
 const dateFilter = ref(props.selectedDate);
 const searchQuery = ref('');
-const showCreateModal = ref(false);
-const showEditModal = ref(false);
-const editingYield = ref(null);
+const expandedEmployee = ref(null);
+const addingLineFor = ref(null);
 
-// Filtrar tarjas por búsqueda
-const filteredYields = computed(() => {
-    if (!searchQuery.value) return props.yields;
+const filteredEmployees = computed(() => {
+    if (!searchQuery.value) return props.employees;
     const q = searchQuery.value.toLowerCase();
-    return props.yields.filter(y =>
-        y.employee?.full_name?.toLowerCase().includes(q) ||
-        y.labor_type?.name?.toLowerCase().includes(q) ||
-        y.cost_center?.name?.toLowerCase().includes(q)
+    return props.employees.filter(e =>
+        e.full_name.toLowerCase().includes(q) || e.rut.toLowerCase().includes(q)
     );
 });
 
-// Agrupar tarjas por empleado
-const yieldsByEmployee = computed(() => {
-    const grouped = {};
-    filteredYields.value.forEach(y => {
-        const empId = y.employee_id;
-        if (!grouped[empId]) {
-            grouped[empId] = {
-                employee: y.employee,
-                yields: [],
-                totalAmount: 0,
-                totalBonus: 0,
-                totalHours: 0,
-            };
-        }
-        grouped[empId].yields.push(y);
-        grouped[empId].totalAmount += y.amount;
-        grouped[empId].totalBonus += y.bonus_amount;
-        grouped[empId].totalHours += parseFloat(y.hours);
-    });
-    return Object.values(grouped);
-});
-
-function changeDate() {
+function changeDate(e) {
+    dateFilter.value = e.target.value;
     router.get(route('daily-yields.index'), { date: dateFilter.value }, { preserveState: false });
 }
 
-function openCreate() {
-    if (!props.hasAttendance) {
-        Swal.fire({
-            icon: 'warning',
-            title: 'Sin asistencia',
-            text: 'Debe registrar la asistencia del día antes de ingresar tarjas.',
-            confirmButtonText: 'Ir a Asistencia',
-            showCancelButton: true,
-            cancelButtonText: 'Cancelar',
-        }).then((result) => {
-            if (result.isConfirmed) {
-                router.get(route('daily-attendances.index'), { date: dateFilter.value });
-            }
-        });
-        return;
-    }
-    if (props.presentEmployees.length === 0) {
-        Swal.fire({ icon: 'info', title: 'Sin presentes', text: 'No hay trabajadores marcados como presentes para esta fecha.' });
-        return;
-    }
-    showCreateModal.value = true;
+function toggleExpand(empId) {
+    expandedEmployee.value = expandedEmployee.value === empId ? null : empId;
+    addingLineFor.value = null;
 }
 
-function openEdit(yieldItem) {
-    editingYield.value = yieldItem;
-    showEditModal.value = true;
+function statusClass(emp) {
+    if (emp.is_present === false) return 'table-danger bg-opacity-50';
+    if (emp.is_present === true && emp.remaining_hours <= 0) return 'table-success bg-opacity-25';
+    return '';
 }
 
-function deleteYield(yieldItem) {
+function statusBadge(emp) {
+    if (emp.is_present === null) return 'bg-secondary';
+    if (!emp.is_present) return 'bg-danger';
+    if (emp.remaining_hours <= 0) return 'bg-success';
+    return 'bg-warning text-dark';
+}
+
+function statusText(emp) {
+    if (emp.is_present === null) return 'Sin asist.';
+    if (!emp.is_present) return 'Ausente';
+    if (emp.remaining_hours <= 0) return 'Completo';
+    return emp.remaining_hours + 'h pend.';
+}
+
+// Formulario inline para nueva linea
+const newLine = reactive({
+    labor_type_id: '', labor_rate_id: '', rate: 0, quantity: 0, hours: 0,
+    bonus_type_id: '', bonus_amount: 0, cost_center_id: '', observations: '',
+});
+
+function startAddLine(empId) {
+    addingLineFor.value = empId;
+    Object.assign(newLine, {
+        labor_type_id: '', labor_rate_id: '', rate: 0, quantity: 0, hours: 0,
+        bonus_type_id: '', bonus_amount: 0, cost_center_id: '', observations: '',
+    });
+    const emp = props.employees.find(e => e.id === empId);
+    if (emp) newLine.hours = Math.min(props.maxHoursPerDay, emp.remaining_hours > 0 ? emp.remaining_hours : props.maxHoursPerDay);
+}
+
+function onLaborChange() {
+    newLine.labor_rate_id = '';
+    newLine.rate = 0;
+}
+
+const filteredRates = computed(() => {
+    if (!newLine.labor_type_id) return props.laborRates;
+    return props.laborRates.filter(lr => String(lr.labor_type_id) === String(newLine.labor_type_id));
+});
+
+function onRateChange() {
+    const lr = props.laborRates.find(r => String(r.value) === String(newLine.labor_rate_id));
+    newLine.rate = lr ? lr.rate : 0;
+}
+
+function onBonusChange() {
+    const bt = props.bonusTypes.find(b => String(b.value) === String(newLine.bonus_type_id));
+    newLine.bonus_amount = bt ? (bt.default_amount || 0) : 0;
+}
+
+const newLineAmount = computed(() => Math.round((newLine.rate || 0) * (newLine.quantity || 0)));
+
+function saveLine(empId) {
+    const form = useForm({
+        employee_id: empId, date: dateFilter.value,
+        labor_type_id: newLine.labor_type_id,
+        labor_rate_id: newLine.labor_rate_id,
+        rate: newLine.rate,
+        quantity: newLine.quantity, hours: newLine.hours,
+        bonus_type_id: newLine.bonus_type_id || null,
+        bonus_amount: newLine.bonus_amount || 0,
+        cost_center_id: newLine.cost_center_id, observations: newLine.observations,
+    });
+    form.post(route('daily-yields.store'), {
+        preserveScroll: true,
+        onSuccess: () => {
+            addingLineFor.value = null;
+            Swal.fire({ icon: 'success', title: 'Tarja guardada', timer: 900, showConfirmButton: false });
+        },
+        onError: () => Swal.fire({ icon: 'error', title: 'Error', text: 'Revisa los campos.' }),
+    });
+}
+
+function deleteLine(yieldId) {
     Swal.fire({
-        title: '¿Eliminar tarja?',
-        text: `${yieldItem.employee?.full_name} — ${yieldItem.labor_type?.name}`,
-        icon: 'warning',
-        showCancelButton: true,
-        confirmButtonText: 'Eliminar',
-        cancelButtonText: 'Cancelar',
-        confirmButtonColor: '#d33',
-    }).then((result) => {
-        if (result.isConfirmed) {
-            router.delete(route('daily-yields.delete', yieldItem.id), {
-                onSuccess: () => {
-                    Swal.fire({ icon: 'success', title: 'Eliminada', timer: 1000, showConfirmButton: false });
-                }
-            });
-        }
+        title: 'Eliminar linea?', icon: 'warning', showCancelButton: true,
+        confirmButtonText: 'Eliminar', confirmButtonColor: '#d33',
+    }).then(r => {
+        if (r.isConfirmed) router.delete(route('daily-yields.delete', yieldId), {
+            preserveScroll: true,
+            onSuccess: () => Swal.fire({ icon: 'success', title: 'Eliminada', timer: 800, showConfirmButton: false }),
+        });
     });
 }
 </script>
@@ -120,166 +136,170 @@ function deleteYield(yieldItem) {
                         </h5>
                     </div>
                     <div class="col-6 col-sm-auto ms-auto text-end ps-0">
-                        <div class="d-flex align-items-center gap-2">
-                            <button class="btn btn-falcon-default btn-sm" @click="openCreate">
-                                <span class="fas fa-plus" data-fa-transform="shrink-3 down-2"></span>
-                                <span class="d-none d-sm-inline-block ms-1">Nueva Tarja</span>
-                            </button>
-                        </div>
+                        <input type="date" class="form-control form-control-sm d-inline-block w-auto"
+                            :value="dateFilter" @change="changeDate" />
                     </div>
                 </div>
             </div>
-
-            <div class="card-body bg-body-tertiary">
-                <!-- Filtros -->
-                <div class="row g-3 mb-3">
-                    <div class="col-md-2">
-                        <label class="form-label small mb-1">Fecha</label>
-                        <input type="date" v-model="dateFilter" @change="changeDate" class="form-control form-control-sm" />
-                    </div>
-                    <div class="col-md-4">
-                        <label class="form-label small mb-1">Buscar</label>
-                        <input type="text" v-model="searchQuery" class="form-control form-control-sm" placeholder="Nombre, labor o centro de costo..." />
-                    </div>
-                </div>
-
-                <!-- Alerta si no hay asistencia -->
-                <div v-if="!hasAttendance" class="alert alert-warning py-2 small">
-                    <i class="fas fa-exclamation-triangle me-1"></i>
-                    No hay asistencia registrada para esta fecha.
-                    <a href="#" @click.prevent="() => router.get(route('daily-attendances.index'), { date: dateFilter })" class="alert-link">
-                        Registrar asistencia
-                    </a>
-                </div>
-
+            <div class="card-body bg-body-tertiary p-3">
                 <!-- Resumen -->
-                <div class="row g-3 mb-3">
-                    <div class="col-md-2">
-                        <div class="card bg-primary bg-opacity-10 border-0">
-                            <div class="card-body py-2 text-center">
-                                <div class="fs-8 fw-bold text-primary">{{ summary.totalPresent }}</div>
-                                <div class="small text-muted">Presentes</div>
-                            </div>
+                <div class="row g-2 mb-3">
+                    <div class="col-6 col-md-3">
+                        <div class="card bg-soft-primary text-center p-2">
+                            <small class="text-muted">Presentes</small>
+                            <strong>{{ summary.presentCount }}</strong>
                         </div>
                     </div>
-                    <div class="col-md-2">
-                        <div class="card bg-success bg-opacity-10 border-0">
-                            <div class="card-body py-2 text-center">
-                                <div class="fs-8 fw-bold text-success">{{ summary.employeesWithYields }}</div>
-                                <div class="small text-muted">Con Tarja</div>
-                            </div>
+                    <div class="col-6 col-md-3">
+                        <div class="card bg-soft-danger text-center p-2">
+                            <small class="text-muted">Ausentes</small>
+                            <strong>{{ summary.absentCount }}</strong>
                         </div>
                     </div>
-                    <div class="col-md-3">
-                        <div class="card bg-info bg-opacity-10 border-0">
-                            <div class="card-body py-2 text-center">
-                                <div class="fs-8 fw-bold text-info">${{ (summary.totalAmount || 0).toLocaleString('es-CL') }}</div>
-                                <div class="small text-muted">Total Tratos</div>
-                            </div>
+                    <div class="col-6 col-md-3">
+                        <div class="card bg-soft-success text-center p-2">
+                            <small class="text-muted">Total $</small>
+                            <strong>{{ (summary.totalAmount||0).toLocaleString('es-CL') }}</strong>
                         </div>
                     </div>
-                    <div class="col-md-3">
-                        <div class="card bg-warning bg-opacity-10 border-0">
-                            <div class="card-body py-2 text-center">
-                                <div class="fs-8 fw-bold text-warning">${{ (summary.totalBonus || 0).toLocaleString('es-CL') }}</div>
-                                <div class="small text-muted">Total Bonos</div>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="col-md-2">
-                        <div class="card bg-light border-0">
-                            <div class="card-body py-2 text-center">
-                                <div class="fs-8 fw-bold">{{ (summary.totalHours || 0).toLocaleString('es-CL') }}</div>
-                                <div class="small text-muted">Total Horas</div>
-                            </div>
+                    <div class="col-6 col-md-3">
+                        <div class="card bg-soft-warning text-center p-2">
+                            <small class="text-muted">Total Hrs</small>
+                            <strong>{{ summary.totalHours }}</strong>
                         </div>
                     </div>
                 </div>
-
-                <!-- Tabla agrupada por empleado -->
-                <div v-for="group in yieldsByEmployee" :key="group.employee?.id" class="card mb-2">
-                    <div class="card-header py-2 bg-200">
-                        <div class="d-flex justify-content-between align-items-center">
-                            <div>
-                                <i class="fas fa-user me-1"></i>
-                                <strong>{{ group.employee?.full_name }}</strong>
-                                <span class="text-muted ms-2 small">{{ group.yields.length }} línea(s)</span>
-                            </div>
-                            <div class="small">
-                                <span class="badge bg-primary me-1">${{ group.totalAmount.toLocaleString('es-CL') }}</span>
-                                <span v-if="group.totalBonus > 0" class="badge bg-warning me-1">Bono: ${{ group.totalBonus.toLocaleString('es-CL') }}</span>
-                                <span class="badge bg-secondary">{{ group.totalHours }}h</span>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="card-body p-0">
-                        <table class="table table-sm fs-10 mb-0">
-                            <thead>
-                                <tr>
-                                    <th>Labor</th>
-                                    <th class="text-end">Tarifa</th>
-                                    <th class="text-end">Cantidad</th>
-                                    <th class="text-end">Monto</th>
-                                    <th class="text-end">Horas</th>
-                                    <th>Bono</th>
-                                    <th>Centro Costo</th>
-                                    <th class="text-center" style="width: 80px;">Acciones</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                <tr v-for="y in group.yields" :key="y.id">
-                                    <td>{{ y.labor_type?.name }}</td>
-                                    <td class="text-end">${{ (y.rate || 0).toLocaleString('es-CL') }}</td>
-                                    <td class="text-end">{{ y.quantity }}</td>
-                                    <td class="text-end fw-semi-bold">${{ (y.amount || 0).toLocaleString('es-CL') }}</td>
-                                    <td class="text-end">{{ y.hours }}h</td>
-                                    <td>
-                                        <span v-if="y.bonus_type">{{ y.bonus_type.name }} (${{ (y.bonus_amount || 0).toLocaleString('es-CL') }})</span>
-                                        <span v-else class="text-muted">—</span>
-                                    </td>
-                                    <td>{{ y.cost_center?.name }}</td>
+                <!-- Buscar -->
+                <input type="text" v-model="searchQuery" class="form-control form-control-sm mb-3"
+                    placeholder="Buscar colaborador..." />
+                <!-- Tabla principal -->
+                <div class="table-responsive">
+                    <table class="table table-sm table-hover align-middle fs--1 mb-0">
+                        <thead class="bg-200">
+                            <tr>
+                                <th style="width:30px"></th>
+                                <th>Colaborador</th>
+                                <th>RUT</th>
+                                <th class="text-center">Estado</th>
+                                <th class="text-center">Lineas</th>
+                                <th class="text-center">Horas</th>
+                                <th class="text-end">Monto $</th>
+                                <th class="text-end">Bono $</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <template v-for="emp in filteredEmployees" :key="emp.id">
+                                <!-- Fila principal -->
+                                <tr :class="statusClass(emp)" style="cursor:pointer" @click="toggleExpand(emp.id)">
+                                    <td><i class="fas fa-fw" :class="expandedEmployee===emp.id?'fa-chevron-down':'fa-chevron-right'"></i></td>
+                                    <td class="fw-semi-bold">{{ emp.full_name }}</td>
+                                    <td>{{ emp.rut }}</td>
+                                    <td class="text-center"><span class="badge" :class="statusBadge(emp)">{{ statusText(emp) }}</span></td>
+                                    <td class="text-center">{{ emp.yield_count }}</td>
                                     <td class="text-center">
-                                        <button class="btn btn-sm btn-link text-primary p-0 me-2" @click="openEdit(y)" title="Editar">
-                                            <i class="fas fa-edit"></i>
-                                        </button>
-                                        <button class="btn btn-sm btn-link text-danger p-0" @click="deleteYield(y)" title="Eliminar">
-                                            <i class="fas fa-trash-alt"></i>
-                                        </button>
+                                        <span>{{ emp.total_hours }}/{{ maxHoursPerDay }}h</span>
+                                        <div class="progress mt-1" style="height:4px">
+                                            <div class="progress-bar" :class="emp.remaining_hours<=0?'bg-success':'bg-warning'"
+                                                :style="{width: Math.min(100, emp.total_hours/maxHoursPerDay*100)+'%'}"></div>
+                                        </div>
+                                    </td>
+                                    <td class="text-end">{{ (emp.total_amount||0).toLocaleString('es-CL') }}</td>
+                                    <td class="text-end">{{ (emp.total_bonus||0).toLocaleString('es-CL') }}</td>
+                                </tr>
+                                <!-- Fila expandida: sub-tabla de tarjas -->
+                                <tr v-if="expandedEmployee===emp.id">
+                                    <td colspan="8" class="p-0">
+                                        <div class="bg-light p-2">
+                                            <table class="table table-sm table-bordered fs--2 mb-2" v-if="emp.yields && emp.yields.length">
+                                                <thead>
+                                                    <tr class="bg-200">
+                                                        <th>Labor</th><th>Trato</th><th>Tarifa</th><th>Cant.</th><th>Monto</th>
+                                                        <th>Horas</th><th>C.Costo</th><th>Bono</th><th>Obs.</th><th style="width:60px"></th>
+                                                    </tr>
+                                                </thead>
+                                                <tbody>
+                                                    <tr v-for="y in emp.yields" :key="y.id">
+                                                        <td>{{ y.labor_type_name }}</td>
+                                                        <td>{{ y.labor_rate_name || '-' }}</td>
+                                                        <td class="text-end">{{ (y.rate||0).toLocaleString('es-CL') }}</td>
+                                                        <td class="text-end">{{ y.quantity }}</td>
+                                                        <td class="text-end fw-semi-bold">{{ (y.amount||0).toLocaleString('es-CL') }}</td>
+                                                        <td class="text-center">{{ y.hours }}</td>
+                                                        <td>{{ y.cost_center_name }}</td>
+                                                        <td class="text-end">{{ y.bonus_amount ? y.bonus_amount.toLocaleString('es-CL') : '-' }}</td>
+                                                        <td>{{ y.observations || '' }}</td>
+                                                        <td class="text-center">
+                                                            <button class="btn btn-sm btn-link text-danger p-0" @click.stop="deleteLine(y.id)" title="Eliminar">
+                                                                <i class="fas fa-trash-alt"></i>
+                                                            </button>
+                                                        </td>
+                                                    </tr>
+                                                </tbody>
+                                            </table>
+                                            <p v-else class="text-muted small mb-2">Sin tarjas registradas para esta fecha.</p>
+                                            <!-- Formulario inline para agregar linea -->
+                                            <div v-if="addingLineFor===emp.id" class="row g-1 align-items-end border-top pt-2">
+                                                <div class="col-md-2">
+                                                    <label class="form-label small mb-0">Labor</label>
+                                                    <select v-model="newLine.labor_type_id" @change="onLaborChange" class="form-select form-select-sm">
+                                                        <option value="" disabled>Seleccione</option>
+                                                        <option v-for="lt in laborTypes" :key="lt.value" :value="lt.value">{{ lt.label }}</option>
+                                                    </select>
+                                                </div>
+                                                <div class="col-md-2">
+                                                    <label class="form-label small mb-0">Trato</label>
+                                                    <select v-model="newLine.labor_rate_id" @change="onRateChange" class="form-select form-select-sm">
+                                                        <option value="" disabled>Seleccione</option>
+                                                        <option v-for="lr in filteredRates" :key="lr.value" :value="lr.value">{{ lr.label }} (${{ lr.rate.toLocaleString('es-CL') }})</option>
+                                                    </select>
+                                                </div>
+                                                <div class="col-md-1">
+                                                    <label class="form-label small mb-0">Cant.</label>
+                                                    <input type="number" v-model.number="newLine.quantity" class="form-control form-control-sm" min="0" step="0.1" />
+                                                </div>
+                                                <div class="col-md-1">
+                                                    <label class="form-label small mb-0">Monto</label>
+                                                    <input type="text" :value="newLineAmount.toLocaleString('es-CL')" class="form-control form-control-sm bg-light" readonly />
+                                                </div>
+                                                <div class="col-md-1">
+                                                    <label class="form-label small mb-0">Horas</label>
+                                                    <input type="number" v-model.number="newLine.hours" class="form-control form-control-sm" min="0.5" :max="maxHoursPerDay" step="0.5" />
+                                                </div>
+                                                <div class="col-md-2">
+                                                    <label class="form-label small mb-0">C.Costo</label>
+                                                    <select v-model="newLine.cost_center_id" class="form-select form-select-sm">
+                                                        <option value="" disabled>Seleccione</option>
+                                                        <option v-for="cc in costCenters" :key="cc.value" :value="cc.value">{{ cc.label }}</option>
+                                                    </select>
+                                                </div>
+                                                <div class="col-md-2">
+                                                    <label class="form-label small mb-0">Bono</label>
+                                                    <select v-model="newLine.bonus_type_id" @change="onBonusChange" class="form-select form-select-sm">
+                                                        <option value="">Sin bono</option>
+                                                        <option v-for="bt in bonusTypes" :key="bt.value" :value="bt.value">{{ bt.label }}</option>
+                                                    </select>
+                                                </div>
+                                                <div class="col-md-2 d-flex gap-1">
+                                                    <button class="btn btn-sm btn-falcon-default" @click.stop="saveLine(emp.id)">
+                                                        <i class="fas fa-check"></i>
+                                                    </button>
+                                                    <button class="btn btn-sm btn-falcon-default" @click.stop="addingLineFor=null">
+                                                        <i class="fas fa-times"></i>
+                                                    </button>
+                                                </div>
+                                            </div>
+                                            <button v-else class="btn btn-sm btn-falcon-default" @click.stop="startAddLine(emp.id)">
+                                                <i class="fas fa-plus me-1"></i>Agregar linea
+                                            </button>
+                                        </div>
                                     </td>
                                 </tr>
-                            </tbody>
-                        </table>
-                    </div>
+                            </template>
+                        </tbody>
+                    </table>
                 </div>
-
-                <!-- Sin tarjas -->
-                <div v-if="yields.length === 0" class="text-center text-muted py-4">
-                    <i class="fas fa-clipboard fa-2x mb-2"></i>
-                    <p>No hay tarjas registradas para esta fecha.</p>
-                </div>
+                <p v-if="!filteredEmployees.length" class="text-muted text-center py-4">No hay colaboradores para mostrar.</p>
             </div>
         </div>
-
-        <!-- Modales -->
-        <CreateDailyYieldModal
-            :show="showCreateModal"
-            :employees="presentEmployees"
-            :laborTypes="laborTypes"
-            :bonusTypes="bonusTypes"
-            :costCenters="costCenters"
-            :date="dateFilter"
-            @close="showCreateModal = false"
-            @saved="showCreateModal = false"
-        />
-
-        <EditDailyYieldModal
-            :show="showEditModal"
-            :dailyYield="editingYield"
-            :laborTypes="laborTypes"
-            :bonusTypes="bonusTypes"
-            :costCenters="costCenters"
-            @close="showEditModal = false; editingYield = null"
-            @saved="showEditModal = false; editingYield = null"
-        />
     </AppLayout>
 </template>

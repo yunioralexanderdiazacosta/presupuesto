@@ -1,5 +1,5 @@
 <script setup>
-import { ref, computed } from 'vue';
+import { ref, computed, reactive } from 'vue';
 import { router, useForm } from '@inertiajs/vue3';
 import AppLayout from '@/Layouts/AppLayout.vue';
 import Swal from 'sweetalert2';
@@ -15,23 +15,41 @@ const props = defineProps({
 
 const dateFilter = ref(props.selectedDate);
 const searchQuery = ref('');
-const estimatedLaborTypeId = ref('');
-const estimatedCostCenterId = ref('');
 
-// Estado local de asistencia: { employee_id: boolean }
-const localAttendance = ref({});
+// Estado local por empleado: { emp_id: { is_present, labor_type_id, cost_center_id } }
+const localData = reactive({});
 
-// Inicializar estado local desde datos del servidor
 props.employees.forEach(emp => {
     const existing = props.attendances[emp.id];
-    // Si ya tiene registro, usar ese valor; si no, default presente (true)
-    localAttendance.value[emp.id] = existing ? existing.is_present : true;
+    localData[emp.id] = {
+        is_present: existing ? existing.is_present : true,
+        labor_type_id: existing?.estimated_labor_type_id ?? '',
+        cost_center_id: existing?.estimated_cost_center_id ?? '',
+    };
 });
 
-// Saber si ya existe asistencia guardada para esta fecha
 const hasExistingAttendance = computed(() => Object.keys(props.attendances).length > 0);
 
-// Empleados filtrados por búsqueda
+// Selects globales para "aplicar a todos"
+const globalLaborTypeId = ref('');
+const globalCostCenterId = ref('');
+
+function applyGlobalLaborType() {
+    if (!globalLaborTypeId.value) return;
+    props.employees.forEach(emp => {
+        localData[emp.id].labor_type_id = globalLaborTypeId.value;
+    });
+    Swal.fire({ icon: 'success', title: 'Labor aplicada a todos', timer: 800, showConfirmButton: false });
+}
+
+function applyGlobalCostCenter() {
+    if (!globalCostCenterId.value) return;
+    props.employees.forEach(emp => {
+        localData[emp.id].cost_center_id = globalCostCenterId.value;
+    });
+    Swal.fire({ icon: 'success', title: 'CC aplicado a todos', timer: 800, showConfirmButton: false });
+}
+
 const filteredEmployees = computed(() => {
     if (!searchQuery.value) return props.employees;
     const q = searchQuery.value.toLowerCase();
@@ -40,46 +58,34 @@ const filteredEmployees = computed(() => {
     );
 });
 
-// Contadores en tiempo real
-const presentCount = computed(() => {
-    return props.employees.filter(e => localAttendance.value[e.id] === true).length;
-});
-const absentCount = computed(() => {
-    return props.employees.filter(e => localAttendance.value[e.id] === false).length;
-});
+const presentCount = computed(() => props.employees.filter(e => localData[e.id]?.is_present).length);
+const absentCount = computed(() => props.employees.filter(e => !localData[e.id]?.is_present).length);
 
 function changeDate() {
     router.get(route('daily-attendances.index'), { date: dateFilter.value }, { preserveState: false });
 }
 
 function selectAll() {
-    props.employees.forEach(emp => {
-        localAttendance.value[emp.id] = true;
-    });
+    props.employees.forEach(emp => { localData[emp.id].is_present = true; });
 }
 
 function deselectAll() {
-    props.employees.forEach(emp => {
-        localAttendance.value[emp.id] = false;
-    });
+    props.employees.forEach(emp => { localData[emp.id].is_present = false; });
 }
 
 function toggleAttendance(employeeId) {
-    localAttendance.value[employeeId] = !localAttendance.value[employeeId];
+    localData[employeeId].is_present = !localData[employeeId].is_present;
 }
 
 function saveAttendance() {
     const attendances = props.employees.map(emp => ({
         employee_id: emp.id,
-        is_present: localAttendance.value[emp.id],
+        is_present: localData[emp.id].is_present,
+        estimated_labor_type_id: localData[emp.id].labor_type_id || null,
+        estimated_cost_center_id: localData[emp.id].cost_center_id || null,
     }));
 
-    const form = useForm({
-        date: dateFilter.value,
-        estimated_labor_type_id: estimatedLaborTypeId.value || null,
-        estimated_cost_center_id: estimatedCostCenterId.value || null,
-        attendances: attendances,
-    });
+    const form = useForm({ date: dateFilter.value, attendances });
 
     Swal.fire({
         title: '¿Guardar asistencia?',
@@ -150,29 +156,39 @@ function deleteAttendance() {
             </div>
 
             <div class="card-body bg-body-tertiary">
-                <!-- Filtros -->
+                <!-- Filtros y atajos globales -->
                 <div class="row g-3 mb-3">
                     <div class="col-md-2">
                         <label class="form-label small mb-1">Fecha</label>
                         <input type="date" v-model="dateFilter" @change="changeDate" class="form-control form-control-sm" />
                     </div>
                     <div class="col-md-3">
-                        <label class="form-label small mb-1">Labor Estimada</label>
-                        <select v-model="estimatedLaborTypeId" class="form-select form-select-sm">
-                            <option :value="''">Sin especificar</option>
-                            <option v-for="lt in laborTypes" :key="lt.value" :value="lt.value">{{ lt.label }}</option>
-                        </select>
-                    </div>
-                    <div class="col-md-3">
-                        <label class="form-label small mb-1">CC Estimado</label>
-                        <select v-model="estimatedCostCenterId" class="form-select form-select-sm">
-                            <option :value="''">Sin especificar</option>
-                            <option v-for="cc in costCenters" :key="cc.value" :value="cc.value">{{ cc.label }}</option>
-                        </select>
-                    </div>
-                    <div class="col-md-4">
                         <label class="form-label small mb-1">Buscar trabajador</label>
                         <input type="text" v-model="searchQuery" class="form-control form-control-sm" placeholder="Nombre o RUT..." />
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label small mb-1">Aplicar labor a todos</label>
+                        <div class="input-group input-group-sm">
+                            <select v-model="globalLaborTypeId" class="form-select form-select-sm">
+                                <option :value="''">Seleccione...</option>
+                                <option v-for="lt in laborTypes" :key="lt.value" :value="lt.value">{{ lt.label }}</option>
+                            </select>
+                            <button class="btn btn-outline-secondary" type="button" @click="applyGlobalLaborType" :disabled="!globalLaborTypeId">
+                                <i class="fas fa-check"></i>
+                            </button>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label small mb-1">Aplicar CC a todos</label>
+                        <div class="input-group input-group-sm">
+                            <select v-model="globalCostCenterId" class="form-select form-select-sm">
+                                <option :value="''">Seleccione...</option>
+                                <option v-for="cc in costCenters" :key="cc.value" :value="cc.value">{{ cc.label }}</option>
+                            </select>
+                            <button class="btn btn-outline-secondary" type="button" @click="applyGlobalCostCenter" :disabled="!globalCostCenterId">
+                                <i class="fas fa-check"></i>
+                            </button>
+                        </div>
                     </div>
                 </div>
 
@@ -207,10 +223,10 @@ function deleteAttendance() {
                             <div class="card-body py-2 text-center">
                                 <div class="d-flex justify-content-center gap-2">
                                     <button class="btn btn-sm btn-outline-success" @click="selectAll">
-                                        <i class="fas fa-check-double me-1"></i>Todos presentes
+                                        <i class="fas fa-check-double me-1"></i>Todos P
                                     </button>
                                     <button class="btn btn-sm btn-outline-danger" @click="deselectAll">
-                                        <i class="fas fa-times me-1"></i>Todos ausentes
+                                        <i class="fas fa-times me-1"></i>Todos A
                                     </button>
                                 </div>
                             </div>
@@ -223,29 +239,39 @@ function deleteAttendance() {
                     <table class="table table-hover table-sm fs-10 mb-0">
                         <thead class="bg-200">
                             <tr>
-                                <th style="width: 50px;" class="text-center">Presente</th>
+                                <th style="width: 50px;" class="text-center">P/A</th>
                                 <th>Nombre</th>
                                 <th>RUT</th>
-                                <th>Cargo</th>
-                                <th class="text-end">Sueldo Base</th>
+                                <th style="min-width: 180px;">Labor Estimada</th>
+                                <th style="min-width: 180px;">CC Estimado</th>
                             </tr>
                         </thead>
                         <tbody>
                             <tr v-for="emp in filteredEmployees" :key="emp.id"
-                                :class="{ 'table-danger bg-opacity-25': !localAttendance[emp.id] }"
-                                @click="toggleAttendance(emp.id)"
-                                style="cursor: pointer;">
+                                :class="{ 'table-danger bg-opacity-25': !localData[emp.id]?.is_present }">
                                 <td class="text-center">
                                     <div class="form-check d-flex justify-content-center mb-0">
                                         <input type="checkbox" class="form-check-input"
-                                            :checked="localAttendance[emp.id]"
-                                            @click.stop="toggleAttendance(emp.id)" />
+                                            :checked="localData[emp.id]?.is_present"
+                                            @change="toggleAttendance(emp.id)" />
                                     </div>
                                 </td>
-                                <td class="fw-semi-bold">{{ emp.full_name }}</td>
+                                <td class="fw-semi-bold" style="cursor:pointer;" @click="toggleAttendance(emp.id)">
+                                    {{ emp.full_name }}
+                                </td>
                                 <td>{{ emp.rut }}</td>
-                                <td>{{ emp.position }}</td>
-                                <td class="text-end">${{ (emp.base_salary || 0).toLocaleString('es-CL') }}</td>
+                                <td>
+                                    <select v-model="localData[emp.id].labor_type_id" class="form-select form-select-sm py-0" style="font-size: 0.75rem;">
+                                        <option :value="''">—</option>
+                                        <option v-for="lt in laborTypes" :key="lt.value" :value="lt.value">{{ lt.label }}</option>
+                                    </select>
+                                </td>
+                                <td>
+                                    <select v-model="localData[emp.id].cost_center_id" class="form-select form-select-sm py-0" style="font-size: 0.75rem;">
+                                        <option :value="''">—</option>
+                                        <option v-for="cc in costCenters" :key="cc.value" :value="cc.value">{{ cc.label }}</option>
+                                    </select>
+                                </td>
                             </tr>
                             <tr v-if="filteredEmployees.length === 0">
                                 <td colspan="5" class="text-center text-muted py-3">
@@ -256,10 +282,9 @@ function deleteAttendance() {
                     </table>
                 </div>
 
-                <!-- Info si ya está guardada -->
                 <div v-if="hasExistingAttendance" class="alert alert-info mt-3 mb-0 py-2 small">
                     <i class="fas fa-info-circle me-1"></i>
-                    Ya existe asistencia registrada para esta fecha. Al guardar se actualizarán los registros existentes.
+                    Asistencia ya registrada para esta fecha. Al guardar se actualizarán los registros.
                 </div>
             </div>
         </div>

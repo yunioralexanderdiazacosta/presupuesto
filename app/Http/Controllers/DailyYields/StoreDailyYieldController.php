@@ -17,6 +17,7 @@ class StoreDailyYieldController extends Controller
             'employee_id' => $request->employee_id,
             'date' => $request->date,
             'labor_type_id' => $request->labor_type_id,
+            'labor_rate_id' => $request->labor_rate_id,
             'rate' => $request->rate,
             'quantity' => $request->quantity,
             'amount' => $request->rate * $request->quantity,

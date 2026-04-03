@@ -23,8 +23,8 @@ class StoreDailyAttendanceController extends Controller
                 ],
                 [
                     'is_present' => $att['is_present'],
-                    'estimated_labor_type_id' => $request->estimated_labor_type_id,
-                    'estimated_cost_center_id' => $request->estimated_cost_center_id,
+                    'estimated_labor_type_id' => $att['estimated_labor_type_id'] ?? null,
+                    'estimated_cost_center_id' => $att['estimated_cost_center_id'] ?? null,
                     'season_id' => $seasonId,
                     'registered_by' => $user->id,
                 ]

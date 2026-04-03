@@ -13,6 +13,7 @@ class DailyYield extends Model
         'employee_id',
         'date',
         'labor_type_id',
+        'labor_rate_id',
         'rate',
         'quantity',
         'amount',
@@ -43,6 +44,11 @@ class DailyYield extends Model
     public function laborType()
     {
         return $this->belongsTo(LaborType::class);
+    }
+
+    public function laborRate()
+    {
+        return $this->belongsTo(LaborRate::class);
     }
 
     public function bonusType()
