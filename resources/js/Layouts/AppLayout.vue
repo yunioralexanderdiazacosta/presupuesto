@@ -95,6 +95,11 @@ const menuItems = [
     { label: 'Colaboradores', route: 'employees.index', icon: 'fas fa-user-tie', section: 'Remuneraciones' },
     { label: 'Contratos', route: 'contracts.index', icon: 'fas fa-file-signature', section: 'Remuneraciones' },
     { label: 'Plantillas de Contrato', route: 'contract-templates.index', icon: 'fas fa-file-contract', section: 'Remuneraciones' },
+    { label: 'Tipos de Labor', route: 'labor-types.index', icon: 'fas fa-hammer', section: 'Remuneraciones' },
+    { label: 'Tipos de Bono', route: 'bonus-types.index', icon: 'fas fa-gift', section: 'Remuneraciones' },
+    { label: 'Registro de Tarifas', route: 'labor-rates.index', icon: 'fas fa-tags', section: 'Remuneraciones' },
+    { label: 'Asistencia Diaria', route: 'daily-attendances.index', icon: 'fas fa-clipboard-check', section: 'Remuneraciones' },
+    { label: 'Tarjas Diarias', route: 'daily-yields.index', icon: 'fas fa-clipboard-list', section: 'Remuneraciones' },
     { label: 'Evaluación de Proyectos', route: 'project-evaluations.index', icon: 'fas fa-seedling', section: 'Planificación' },
     { label: 'Centros de Costos', route: 'cost.centers.index', icon: 'fas fa-sitemap', section: 'Parámetros' },
     { label: 'Grupos de CC', route: 'groupings.index', icon: 'fas fa-layer-group', section: 'Parámetros' },
@@ -606,6 +611,31 @@ const navigateTo = (routeName) => {
                 </li>
                 <li class="nav-item"><Link class="nav-link" :href="route('contract-templates.index')">
                     <div class="d-flex align-items-center"><span class="nav-link-text ps-3">Plantillas de Contrato</span>
+                    </div>
+                  </Link>
+                </li>
+                <li class="nav-item"><Link class="nav-link" :href="route('labor-types.index')">
+                    <div class="d-flex align-items-center"><span class="nav-link-text ps-3">Tipos de Labor</span>
+                    </div>
+                  </Link>
+                </li>
+                <li class="nav-item"><Link class="nav-link" :href="route('bonus-types.index')">
+                    <div class="d-flex align-items-center"><span class="nav-link-text ps-3">Tipos de Bono</span>
+                    </div>
+                  </Link>
+                </li>
+                <li class="nav-item"><Link class="nav-link" :href="route('labor-rates.index')">
+                    <div class="d-flex align-items-center"><span class="nav-link-text ps-3">Registro de Tarifas</span>
+                    </div>
+                  </Link>
+                </li>
+                <li class="nav-item"><Link class="nav-link" :href="route('daily-attendances.index')">
+                    <div class="d-flex align-items-center"><span class="nav-link-text ps-3">Asistencia Diaria</span>
+                    </div>
+                  </Link>
+                </li>
+                <li class="nav-item"><Link class="nav-link" :href="route('daily-yields.index')">
+                    <div class="d-flex align-items-center"><span class="nav-link-text ps-3">Tarjas Diarias</span>
                     </div>
                   </Link>
                 </li>

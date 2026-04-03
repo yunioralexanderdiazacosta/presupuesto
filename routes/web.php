@@ -254,6 +254,30 @@ use App\Http\Controllers\Contracts\ContractController;
 use App\Http\Controllers\Contracts\StoreContractController;
 use App\Http\Controllers\Contracts\UpdateContractController;
 use App\Http\Controllers\Contracts\DeleteContractController;
+// Rutas para Labor Types (Tipos de Labor - Remuneraciones)
+use App\Http\Controllers\LaborTypes\LaborTypeController;
+use App\Http\Controllers\LaborTypes\StoreLaborTypeController;
+use App\Http\Controllers\LaborTypes\UpdateLaborTypeController;
+use App\Http\Controllers\LaborTypes\DeleteLaborTypeController;
+// Rutas para Bonus Types (Tipos de Bono - Remuneraciones)
+use App\Http\Controllers\BonusTypes\BonusTypeController;
+use App\Http\Controllers\BonusTypes\StoreBonusTypeController;
+use App\Http\Controllers\BonusTypes\UpdateBonusTypeController;
+use App\Http\Controllers\BonusTypes\DeleteBonusTypeController;
+// Rutas para Labor Rates (Tarifas de Labor - Remuneraciones)
+use App\Http\Controllers\LaborRates\LaborRateController;
+use App\Http\Controllers\LaborRates\StoreLaborRateController;
+use App\Http\Controllers\LaborRates\UpdateLaborRateController;
+use App\Http\Controllers\LaborRates\DeleteLaborRateController;
+// Rutas para Daily Attendances (Asistencia Diaria - Remuneraciones)
+use App\Http\Controllers\DailyAttendances\DailyAttendanceController;
+use App\Http\Controllers\DailyAttendances\StoreDailyAttendanceController;
+use App\Http\Controllers\DailyAttendances\DeleteDailyAttendanceController;
+// Rutas para Daily Yields (Tarjas Diarias - Remuneraciones)
+use App\Http\Controllers\DailyYields\DailyYieldController;
+use App\Http\Controllers\DailyYields\StoreDailyYieldController;
+use App\Http\Controllers\DailyYields\UpdateDailyYieldController;
+use App\Http\Controllers\DailyYields\DeleteDailyYieldController;
 // Rutas para Project Evaluations (Evaluación de Proyectos Agrícolas)
 use App\Http\Controllers\ProjectEvaluations\ProjectEvaluationController;
 use App\Http\Controllers\ProjectEvaluations\ShowProjectEvaluationController;
@@ -881,6 +905,35 @@ Route::middleware([
     Route::post('/contracts', StoreContractController::class)->name('contracts.store');
     Route::put('/contracts/{contract}', UpdateContractController::class)->name('contracts.update');
     Route::delete('/contracts/{contract}', DeleteContractController::class)->name('contracts.delete');
+
+    // Labor Types (Tipos de Labor - Remuneraciones)
+    Route::get('/labor-types', [LaborTypeController::class, 'index'])->name('labor-types.index');
+    Route::post('/labor-types', StoreLaborTypeController::class)->name('labor-types.store');
+    Route::put('/labor-types/{laborType}', UpdateLaborTypeController::class)->name('labor-types.update');
+    Route::delete('/labor-types/{laborType}', DeleteLaborTypeController::class)->name('labor-types.delete');
+
+    // Bonus Types (Tipos de Bono - Remuneraciones)
+    Route::get('/bonus-types', [BonusTypeController::class, 'index'])->name('bonus-types.index');
+    Route::post('/bonus-types', StoreBonusTypeController::class)->name('bonus-types.store');
+    Route::put('/bonus-types/{bonusType}', UpdateBonusTypeController::class)->name('bonus-types.update');
+    Route::delete('/bonus-types/{bonusType}', DeleteBonusTypeController::class)->name('bonus-types.delete');
+
+    // Labor Rates (Tarifas de Labor - Remuneraciones)
+    Route::get('/labor-rates', [LaborRateController::class, 'index'])->name('labor-rates.index');
+    Route::post('/labor-rates', StoreLaborRateController::class)->name('labor-rates.store');
+    Route::put('/labor-rates/{laborRate}', UpdateLaborRateController::class)->name('labor-rates.update');
+    Route::delete('/labor-rates/{laborRate}', DeleteLaborRateController::class)->name('labor-rates.delete');
+
+    // Daily Attendances (Asistencia Diaria - Remuneraciones)
+    Route::get('/daily-attendances', [DailyAttendanceController::class, 'index'])->name('daily-attendances.index');
+    Route::post('/daily-attendances', StoreDailyAttendanceController::class)->name('daily-attendances.store');
+    Route::delete('/daily-attendances', DeleteDailyAttendanceController::class)->name('daily-attendances.delete');
+
+    // Daily Yields (Tarjas Diarias - Remuneraciones)
+    Route::get('/daily-yields', [DailyYieldController::class, 'index'])->name('daily-yields.index');
+    Route::post('/daily-yields', StoreDailyYieldController::class)->name('daily-yields.store');
+    Route::put('/daily-yields/{dailyYield}', UpdateDailyYieldController::class)->name('daily-yields.update');
+    Route::delete('/daily-yields/{dailyYield}', DeleteDailyYieldController::class)->name('daily-yields.delete');
 
     // Project Evaluations (Evaluación de Proyectos Agrícolas)
     Route::get('/project-evaluations', [ProjectEvaluationController::class, 'index'])->name('project-evaluations.index');
