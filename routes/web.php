@@ -283,6 +283,9 @@ use App\Http\Controllers\WorkSchedules\WorkScheduleController;
 use App\Http\Controllers\WorkSchedules\UpdateWorkScheduleController;
 // Rutas para Daily Management (Gestión Diaria - Hub Remuneraciones)
 use App\Http\Controllers\DailyManagement\DailyManagementController;
+use App\Http\Controllers\DailyManagement\MonthlyReportController;
+use App\Http\Controllers\DailyManagement\ExportMonthlyExcelController;
+use App\Http\Controllers\DailyManagement\ExportMonthlyPdfController;
 // Rutas para Project Evaluations (Evaluación de Proyectos Agrícolas)
 use App\Http\Controllers\ProjectEvaluations\ProjectEvaluationController;
 use App\Http\Controllers\ProjectEvaluations\ShowProjectEvaluationController;
@@ -946,6 +949,9 @@ Route::middleware([
 
     // Daily Management (Gestión Diaria - Hub consolidado)
     Route::get('/daily-management', [DailyManagementController::class, 'index'])->name('daily-management.index');
+    Route::get('/daily-management/monthly-report', MonthlyReportController::class)->name('daily-management.monthly-report');
+    Route::get('/daily-management/export-excel', ExportMonthlyExcelController::class)->name('daily-management.export-excel');
+    Route::get('/daily-management/export-pdf', ExportMonthlyPdfController::class)->name('daily-management.export-pdf');
 
     // Project Evaluations (Evaluación de Proyectos Agrícolas)
     Route::get('/project-evaluations', [ProjectEvaluationController::class, 'index'])->name('project-evaluations.index');

@@ -8,6 +8,7 @@ import LaborTypesTab from './LaborTypesTab.vue';
 import LaborRatesTab from './LaborRatesTab.vue';
 import BonusTypesTab from './BonusTypesTab.vue';
 import ScheduleTab from './ScheduleTab.vue';
+import ReportesTab from './ReportesTab.vue';
 
 const props = defineProps({
     employees: Array,
@@ -40,6 +41,7 @@ const tabs = [
     { key: 'labor-rates', label: 'Tarifas', icon: 'fas fa-tags' },
     { key: 'bonus-types', label: 'Bonos', icon: 'fas fa-gift' },
     { key: 'schedule', label: 'Horario', icon: 'fas fa-clock' },
+    { key: 'reportes', label: 'Reportes', icon: 'fas fa-chart-bar' },
 ];
 
 function switchTab(tabKey) {
@@ -137,6 +139,11 @@ function changeDate() {
                     <ScheduleTab
                         v-if="currentTab === 'schedule'"
                         :schedule="schedule"
+                    />
+
+                    <ReportesTab
+                        v-if="currentTab === 'reportes'"
+                        :selectedDate="selectedDate"
                     />
                 </div>
             </div>

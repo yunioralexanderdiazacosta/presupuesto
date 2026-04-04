@@ -41,6 +41,7 @@ function statusClass(emp) {
 function statusBadge(emp) {
     if (emp.is_present === null) return 'bg-secondary';
     if (!emp.is_present) return 'bg-danger';
+    if (emp.remaining_hours === null) return 'bg-info';
     if (emp.remaining_hours <= 0) return 'bg-success';
     return 'bg-warning text-dark';
 }
@@ -48,6 +49,7 @@ function statusBadge(emp) {
 function statusText(emp) {
     if (emp.is_present === null) return 'Sin asist.';
     if (!emp.is_present) return 'Ausente';
+    if (emp.remaining_hours === null) return 'Sin límite';
     if (emp.remaining_hours <= 0) return 'Completo';
     return emp.remaining_hours + 'h pend.';
 }
@@ -67,7 +69,13 @@ function startAddLine(empId) {
         bonus_type_id: '', bonus_amount: 0, cost_center_id: '', observations: '',
     });
     const emp = props.employees.find(e => e.id === empId);
-    if (emp) newLine.hours = Math.min(props.maxHoursPerDay, emp.remaining_hours > 0 ? emp.remaining_hours : props.maxHoursPerDay);
+    if (emp) {
+        if (emp.remaining_hours === null) {
+            newLine.hours = 8; // Default sensato cuando no hay límite
+        } else {
+            newLine.hours = Math.min(props.maxHoursPerDay, emp.remaining_hours > 0 ? emp.remaining_hours : props.maxHoursPerDay);
+        }
+    }
 }
 
 function onPaymentTypeChange() {
@@ -114,7 +122,36 @@ function onBonusChange() {
 
 const newLineAmount = computed(() => Math.round((newLine.rate || 0) * (newLine.quantity || 0)));
 
+function getRemainingHours(empId) {
+    const emp = props.employees.find(e => e.id === empId);
+    if (!emp || emp.remaining_hours === null) return 24;
+    return emp.remaining_hours;
+}
+
+function hasHourLimit() {
+    return props.maxHoursPerDay > 0;
+}
+
 function saveLine(empId) {
+    const emp = props.employees.find(e => e.id === empId);
+    const remaining = (!emp || emp.remaining_hours === null) ? null : emp.remaining_hours;
+
+    if (remaining !== null && remaining >= 0) {
+        if (newLine.hours > remaining) {
+            Swal.fire({
+                icon: 'warning',
+                title: 'Horas excedidas',
+                html: `Solo quedan <b>${remaining}h</b> disponibles de <b>${props.maxHoursPerDay}h</b> para este día.`,
+            });
+            return;
+        }
+
+        if (newLine.hours > props.maxHoursPerDay) {
+            Swal.fire({ icon: 'warning', title: 'Horas excedidas', text: `El máximo para este día es ${props.maxHoursPerDay}h.` });
+            return;
+        }
+    }
+
     const form = useForm({
         employee_id: empId, date: props.selectedDate,
         payment_type: newLine.payment_type,
@@ -132,7 +169,10 @@ function saveLine(empId) {
             addingLineFor.value = null;
             Swal.fire({ icon: 'success', title: 'Tarja guardada', timer: 900, showConfirmButton: false });
         },
-        onError: () => Swal.fire({ icon: 'error', title: 'Error', text: 'Revisa los campos.' }),
+        onError: (errors) => {
+            const msg = errors.hours || 'Revisa los campos.';
+            Swal.fire({ icon: 'error', title: 'Error', text: msg });
+        },
     });
 }
 
@@ -143,7 +183,10 @@ function deleteLine(yieldId) {
     }).then(r => {
         if (r.isConfirmed) router.delete(route('daily-yields.delete', yieldId), {
             preserveScroll: true,
-            onSuccess: () => Swal.fire({ icon: 'success', title: 'Eliminada', timer: 800, showConfirmButton: false }),
+            onSuccess: () => {
+                Swal.fire({ icon: 'success', title: 'Eliminada', timer: 800, showConfirmButton: false });
+                router.reload({ preserveScroll: true, preserveState: true });
+            },
         });
     });
 }
@@ -292,7 +335,7 @@ function deleteLine(yieldId) {
                                             </div>
                                             <div class="col-md-1">
                                                 <label class="form-label small mb-0">Horas</label>
-                                                <input type="number" v-model.number="newLine.hours" @change="onHoursChange" class="form-control form-control-sm" min="0.5" :max="maxHoursPerDay" step="0.5" />
+                                                <input type="number" v-model.number="newLine.hours" @change="onHoursChange" class="form-control form-control-sm" min="0.5" :max="getRemainingHours(emp.id)" step="0.5" />
                                             </div>
                                             <div class="col-md-2">
                                                 <label class="form-label small mb-0">C.Costo</label>
@@ -318,8 +361,12 @@ function deleteLine(yieldId) {
                                             </div>
                                         </div>
                                     </div>
-                                    <button v-else class="btn btn-sm btn-falcon-default" @click.stop="startAddLine(emp.id)">
+                                    <button v-else class="btn btn-sm btn-falcon-default"
+                                        @click.stop="startAddLine(emp.id)"
+                                        :disabled="hasHourLimit() && emp.remaining_hours !== null && emp.remaining_hours <= 0"
+                                        :title="(hasHourLimit() && emp.remaining_hours !== null && emp.remaining_hours <= 0) ? 'Sin horas disponibles' : 'Agregar línea'">
                                         <i class="fas fa-plus me-1"></i>Agregar linea
+                                        <span v-if="hasHourLimit() && emp.remaining_hours !== null && emp.remaining_hours <= 0" class="ms-1 text-danger small">(sin horas)</span>
                                     </button>
                                 </div>
                             </td>

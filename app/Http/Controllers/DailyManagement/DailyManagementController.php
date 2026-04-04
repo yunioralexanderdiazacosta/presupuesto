@@ -102,7 +102,7 @@ class DailyManagementController extends Controller
                         'observations' => $y->observations,
                     ])->values(),
                     'total_hours' => round((float) $totalHours, 1),
-                    'remaining_hours' => round($maxHoursPerDay - (float) $totalHours, 1),
+                    'remaining_hours' => $maxHoursPerDay > 0 ? round($maxHoursPerDay - (float) $totalHours, 1) : null,
                     'total_amount' => $totalAmount,
                     'total_bonus' => $totalBonus,
                     'yield_count' => $empYields->count(),
