@@ -31,7 +31,7 @@ class StoreDailyAttendanceController extends Controller
             );
         }
 
-        return redirect()->route('daily-attendances.index', ['date' => $request->date])
+        return redirect()->back()
             ->with('success', 'Asistencia registrada correctamente.');
     }
 }

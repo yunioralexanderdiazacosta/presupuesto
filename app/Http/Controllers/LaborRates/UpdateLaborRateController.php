@@ -11,7 +11,7 @@ class UpdateLaborRateController
     {
         $laborRate->update($request->validated());
 
-        return redirect()->route('labor-rates.index')
+        return redirect()->back()
             ->with('success', 'Tarifa actualizada correctamente.');
     }
 }

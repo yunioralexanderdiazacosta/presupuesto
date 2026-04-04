@@ -20,7 +20,7 @@ class DeleteDailyAttendanceController extends Controller
             ->where('date', $date)
             ->delete();
 
-        return redirect()->route('daily-attendances.index', ['date' => $date])
+        return redirect()->back()
             ->with('success', 'Asistencia del día eliminada.');
     }
 }

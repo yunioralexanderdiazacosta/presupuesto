@@ -10,7 +10,7 @@ class DeleteLaborRateController
     {
         $laborRate->delete();
 
-        return redirect()->route('labor-rates.index')
+        return redirect()->back()
             ->with('success', 'Tarifa eliminada correctamente.');
     }
 }

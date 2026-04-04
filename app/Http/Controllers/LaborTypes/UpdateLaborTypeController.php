@@ -15,7 +15,7 @@ class UpdateLaborTypeController
 
         $laborType->update($validated);
 
-        return redirect()->route('labor-types.index')
+        return redirect()->back()
             ->with('success', 'Labor actualizada correctamente.');
     }
 }

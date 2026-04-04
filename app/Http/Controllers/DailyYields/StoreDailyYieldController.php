@@ -16,8 +16,9 @@ class StoreDailyYieldController extends Controller
         DailyYield::create([
             'employee_id' => $request->employee_id,
             'date' => $request->date,
+            'payment_type' => $request->payment_type,
             'labor_type_id' => $request->labor_type_id,
-            'labor_rate_id' => $request->labor_rate_id,
+            'labor_rate_id' => $request->payment_type === 'trato' ? $request->labor_rate_id : null,
             'rate' => $request->rate,
             'quantity' => $request->quantity,
             'amount' => $request->rate * $request->quantity,
@@ -31,7 +32,7 @@ class StoreDailyYieldController extends Controller
             'observations' => $request->observations,
         ]);
 
-        return redirect()->route('daily-yields.index', ['date' => $request->date])
+        return redirect()->back()
             ->with('success', 'Tarja registrada correctamente.');
     }
 }

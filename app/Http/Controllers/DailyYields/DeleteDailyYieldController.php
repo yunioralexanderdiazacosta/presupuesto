@@ -12,7 +12,7 @@ class DeleteDailyYieldController extends Controller
         $date = $dailyYield->date->format('Y-m-d');
         $dailyYield->delete();
 
-        return redirect()->route('daily-yields.index', ['date' => $date])
+        return redirect()->back()
             ->with('success', 'Tarja eliminada.');
     }
 }

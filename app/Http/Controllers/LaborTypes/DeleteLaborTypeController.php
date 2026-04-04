@@ -10,7 +10,7 @@ class DeleteLaborTypeController
     {
         $laborType->delete();
 
-        return redirect()->route('labor-types.index')
+        return redirect()->back()
             ->with('success', 'Labor eliminada correctamente.');
     }
 }

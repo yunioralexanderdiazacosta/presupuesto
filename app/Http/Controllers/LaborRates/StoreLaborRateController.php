@@ -17,7 +17,7 @@ class StoreLaborRateController
 
         LaborRate::create($validated);
 
-        return redirect()->route('labor-rates.index')
+        return redirect()->back()
             ->with('success', 'Tarifa registrada correctamente.');
     }
 }

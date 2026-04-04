@@ -22,7 +22,7 @@ class UpdateDailyYieldController extends Controller
             'observations' => $request->observations,
         ]);
 
-        return redirect()->route('daily-yields.index', ['date' => $dailyYield->date->format('Y-m-d')])
+        return redirect()->back()
             ->with('success', 'Tarja actualizada.');
     }
 }

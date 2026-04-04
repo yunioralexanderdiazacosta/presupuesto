@@ -278,6 +278,11 @@ use App\Http\Controllers\DailyYields\DailyYieldController;
 use App\Http\Controllers\DailyYields\StoreDailyYieldController;
 use App\Http\Controllers\DailyYields\UpdateDailyYieldController;
 use App\Http\Controllers\DailyYields\DeleteDailyYieldController;
+// Rutas para Work Schedules (Horario de Trabajo - Remuneraciones)
+use App\Http\Controllers\WorkSchedules\WorkScheduleController;
+use App\Http\Controllers\WorkSchedules\UpdateWorkScheduleController;
+// Rutas para Daily Management (Gestión Diaria - Hub Remuneraciones)
+use App\Http\Controllers\DailyManagement\DailyManagementController;
 // Rutas para Project Evaluations (Evaluación de Proyectos Agrícolas)
 use App\Http\Controllers\ProjectEvaluations\ProjectEvaluationController;
 use App\Http\Controllers\ProjectEvaluations\ShowProjectEvaluationController;
@@ -934,6 +939,13 @@ Route::middleware([
     Route::post('/daily-yields', StoreDailyYieldController::class)->name('daily-yields.store');
     Route::put('/daily-yields/{dailyYield}', UpdateDailyYieldController::class)->name('daily-yields.update');
     Route::delete('/daily-yields/{dailyYield}', DeleteDailyYieldController::class)->name('daily-yields.delete');
+
+    // Work Schedules (Horario de Trabajo - Remuneraciones)
+    Route::get('/work-schedules', [WorkScheduleController::class, 'index'])->name('work-schedules.index');
+    Route::put('/work-schedules', UpdateWorkScheduleController::class)->name('work-schedules.update');
+
+    // Daily Management (Gestión Diaria - Hub consolidado)
+    Route::get('/daily-management', [DailyManagementController::class, 'index'])->name('daily-management.index');
 
     // Project Evaluations (Evaluación de Proyectos Agrícolas)
     Route::get('/project-evaluations', [ProjectEvaluationController::class, 'index'])->name('project-evaluations.index');

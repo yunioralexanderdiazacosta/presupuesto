@@ -17,7 +17,7 @@ class StoreBonusTypeController
 
         BonusType::create($validated);
 
-        return redirect()->route('bonus-types.index')
+        return redirect()->back()
             ->with('success', 'Tipo de bono registrado correctamente.');
     }
 }

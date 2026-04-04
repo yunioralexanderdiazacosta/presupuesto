@@ -55,6 +55,7 @@ function statusText(emp) {
 
 // Formulario inline para nueva linea
 const newLine = reactive({
+    payment_type: 'trato',
     labor_type_id: '', labor_rate_id: '', rate: 0, quantity: 0, hours: 0,
     bonus_type_id: '', bonus_amount: 0, cost_center_id: '', observations: '',
 });
@@ -62,11 +63,34 @@ const newLine = reactive({
 function startAddLine(empId) {
     addingLineFor.value = empId;
     Object.assign(newLine, {
+        payment_type: 'trato',
         labor_type_id: '', labor_rate_id: '', rate: 0, quantity: 0, hours: 0,
         bonus_type_id: '', bonus_amount: 0, cost_center_id: '', observations: '',
     });
     const emp = props.employees.find(e => e.id === empId);
     if (emp) newLine.hours = Math.min(props.maxHoursPerDay, emp.remaining_hours > 0 ? emp.remaining_hours : props.maxHoursPerDay);
+}
+
+function onPaymentTypeChange() {
+    newLine.labor_rate_id = '';
+    if (newLine.payment_type === 'dia') {
+        newLine.quantity = 1;
+        recalcDailyRate();
+    } else {
+        newLine.rate = 0;
+        newLine.quantity = 0;
+    }
+}
+
+function recalcDailyRate() {
+    if (newLine.payment_type !== 'dia') return;
+    const emp = props.employees.find(e => e.id === addingLineFor.value);
+    const fullDayRate = emp ? emp.daily_rate : 0;
+    newLine.rate = Math.round(fullDayRate * (newLine.hours || 0) / props.maxHoursPerDay);
+}
+
+function onHoursChange() {
+    recalcDailyRate();
 }
 
 function onLaborChange() {
@@ -94,8 +118,9 @@ const newLineAmount = computed(() => Math.round((newLine.rate || 0) * (newLine.q
 function saveLine(empId) {
     const form = useForm({
         employee_id: empId, date: dateFilter.value,
+        payment_type: newLine.payment_type,
         labor_type_id: newLine.labor_type_id,
-        labor_rate_id: newLine.labor_rate_id,
+        labor_rate_id: newLine.payment_type === 'trato' ? newLine.labor_rate_id : null,
         rate: newLine.rate,
         quantity: newLine.quantity, hours: newLine.hours,
         bonus_type_id: newLine.bonus_type_id || null,
@@ -190,7 +215,7 @@ function deleteLine(yieldId) {
                         <tbody>
                             <template v-for="emp in filteredEmployees" :key="emp.id">
                                 <!-- Fila principal -->
-                                <tr :class="statusClass(emp)" style="cursor:pointer" @click="toggleExpand(emp.id)">
+                                <tr :class="[statusClass(emp), expandedEmployee===emp.id ? 'bg-success bg-opacity-10 border-start border-3 border-success' : '']" style="cursor:pointer" @click="toggleExpand(emp.id)">
                                     <td><i class="fas fa-fw" :class="expandedEmployee===emp.id?'fa-chevron-down':'fa-chevron-right'"></i></td>
                                     <td class="fw-semi-bold">{{ emp.full_name }}</td>
                                     <td>{{ emp.rut }}</td>
@@ -213,12 +238,13 @@ function deleteLine(yieldId) {
                                             <table class="table table-sm table-bordered fs--2 mb-2" v-if="emp.yields && emp.yields.length">
                                                 <thead>
                                                     <tr class="bg-200">
-                                                        <th>Labor</th><th>Trato</th><th>Tarifa</th><th>Cant.</th><th>Monto</th>
+                                                        <th>Tipo</th><th>Labor</th><th>Trato</th><th>Tarifa</th><th>Cant.</th><th>Monto</th>
                                                         <th>Horas</th><th>C.Costo</th><th>Bono</th><th>Obs.</th><th style="width:60px"></th>
                                                     </tr>
                                                 </thead>
                                                 <tbody>
                                                     <tr v-for="y in emp.yields" :key="y.id">
+                                                        <td><span class="badge" :class="y.payment_type==='dia'?'bg-info':'bg-primary'">{{ y.payment_type==='dia'?'Al día':'A trato' }}</span></td>
                                                         <td>{{ y.labor_type_name }}</td>
                                                         <td>{{ y.labor_rate_name || '-' }}</td>
                                                         <td class="text-end">{{ (y.rate||0).toLocaleString('es-CL') }}</td>
@@ -238,54 +264,74 @@ function deleteLine(yieldId) {
                                             </table>
                                             <p v-else class="text-muted small mb-2">Sin tarjas registradas para esta fecha.</p>
                                             <!-- Formulario inline para agregar linea -->
-                                            <div v-if="addingLineFor===emp.id" class="row g-1 align-items-end border-top pt-2">
-                                                <div class="col-md-2">
-                                                    <label class="form-label small mb-0">Labor</label>
-                                                    <select v-model="newLine.labor_type_id" @change="onLaborChange" class="form-select form-select-sm">
-                                                        <option value="" disabled>Seleccione</option>
-                                                        <option v-for="lt in laborTypes" :key="lt.value" :value="lt.value">{{ lt.label }}</option>
-                                                    </select>
+                                            <div v-if="addingLineFor===emp.id" class="border-top pt-2">
+                                                <!-- Toggle Al día / A trato -->
+                                                <div class="d-flex align-items-center gap-3 mb-2">
+                                                    <span class="small fw-semi-bold">Tipo:</span>
+                                                    <div class="form-check form-check-inline mb-0">
+                                                        <input class="form-check-input" type="radio" v-model="newLine.payment_type" value="trato" id="pt_trato" @change="onPaymentTypeChange">
+                                                        <label class="form-check-label small" for="pt_trato">A trato</label>
+                                                    </div>
+                                                    <div class="form-check form-check-inline mb-0">
+                                                        <input class="form-check-input" type="radio" v-model="newLine.payment_type" value="dia" id="pt_dia" @change="onPaymentTypeChange">
+                                                        <label class="form-check-label small" for="pt_dia">Al día <span v-if="emp.daily_rate" class="text-muted">({{ emp.daily_rate.toLocaleString('es-CL') }}/día)</span></label>
+                                                    </div>
                                                 </div>
-                                                <div class="col-md-2">
-                                                    <label class="form-label small mb-0">Trato</label>
-                                                    <select v-model="newLine.labor_rate_id" @change="onRateChange" class="form-select form-select-sm">
-                                                        <option value="" disabled>Seleccione</option>
-                                                        <option v-for="lr in filteredRates" :key="lr.value" :value="lr.value">{{ lr.label }} (${{ lr.rate.toLocaleString('es-CL') }})</option>
-                                                    </select>
-                                                </div>
-                                                <div class="col-md-1">
-                                                    <label class="form-label small mb-0">Cant.</label>
-                                                    <input type="number" v-model.number="newLine.quantity" class="form-control form-control-sm" min="0" step="0.1" />
-                                                </div>
-                                                <div class="col-md-1">
-                                                    <label class="form-label small mb-0">Monto</label>
-                                                    <input type="text" :value="newLineAmount.toLocaleString('es-CL')" class="form-control form-control-sm bg-light" readonly />
-                                                </div>
-                                                <div class="col-md-1">
-                                                    <label class="form-label small mb-0">Horas</label>
-                                                    <input type="number" v-model.number="newLine.hours" class="form-control form-control-sm" min="0.5" :max="maxHoursPerDay" step="0.5" />
-                                                </div>
-                                                <div class="col-md-2">
-                                                    <label class="form-label small mb-0">C.Costo</label>
-                                                    <select v-model="newLine.cost_center_id" class="form-select form-select-sm">
-                                                        <option value="" disabled>Seleccione</option>
-                                                        <option v-for="cc in costCenters" :key="cc.value" :value="cc.value">{{ cc.label }}</option>
-                                                    </select>
-                                                </div>
-                                                <div class="col-md-2">
-                                                    <label class="form-label small mb-0">Bono</label>
-                                                    <select v-model="newLine.bonus_type_id" @change="onBonusChange" class="form-select form-select-sm">
-                                                        <option value="">Sin bono</option>
-                                                        <option v-for="bt in bonusTypes" :key="bt.value" :value="bt.value">{{ bt.label }}</option>
-                                                    </select>
-                                                </div>
-                                                <div class="col-md-2 d-flex gap-1">
-                                                    <button class="btn btn-sm btn-falcon-default" @click.stop="saveLine(emp.id)">
-                                                        <i class="fas fa-check"></i>
-                                                    </button>
-                                                    <button class="btn btn-sm btn-falcon-default" @click.stop="addingLineFor=null">
-                                                        <i class="fas fa-times"></i>
-                                                    </button>
+                                                <div class="row g-1 align-items-end">
+                                                    <div class="col-md-2">
+                                                        <label class="form-label small mb-0">Labor</label>
+                                                        <select v-model="newLine.labor_type_id" @change="onLaborChange" class="form-select form-select-sm">
+                                                            <option value="" disabled>Seleccione</option>
+                                                            <option v-for="lt in laborTypes" :key="lt.value" :value="lt.value">{{ lt.label }}</option>
+                                                        </select>
+                                                    </div>
+                                                    <!-- Trato: solo si es "a trato" -->
+                                                    <div class="col-md-2" v-if="newLine.payment_type==='trato'">
+                                                        <label class="form-label small mb-0">Trato</label>
+                                                        <select v-model="newLine.labor_rate_id" @change="onRateChange" class="form-select form-select-sm">
+                                                            <option value="" disabled>Seleccione</option>
+                                                            <option v-for="lr in filteredRates" :key="lr.value" :value="lr.value">{{ lr.label }} (${{ lr.rate.toLocaleString('es-CL') }})</option>
+                                                        </select>
+                                                    </div>
+                                                    <!-- Tarifa: readonly si es "al día" -->
+                                                    <div class="col-md-1" v-if="newLine.payment_type==='dia'">
+                                                        <label class="form-label small mb-0">Tarifa/día</label>
+                                                        <input type="text" :value="newLine.rate.toLocaleString('es-CL')" class="form-control form-control-sm bg-light" readonly />
+                                                    </div>
+                                                    <div class="col-md-1">
+                                                        <label class="form-label small mb-0">Cant.</label>
+                                                        <input type="number" v-model.number="newLine.quantity" class="form-control form-control-sm" min="0" step="0.1" :readonly="newLine.payment_type==='dia'" :class="{'bg-light': newLine.payment_type==='dia'}" />
+                                                    </div>
+                                                    <div class="col-md-1">
+                                                        <label class="form-label small mb-0">Monto</label>
+                                                        <input type="text" :value="newLineAmount.toLocaleString('es-CL')" class="form-control form-control-sm bg-light" readonly />
+                                                    </div>
+                                                    <div class="col-md-1">
+                                                        <label class="form-label small mb-0">Horas</label>
+                                                        <input type="number" v-model.number="newLine.hours" @change="onHoursChange" class="form-control form-control-sm" min="0.5" :max="maxHoursPerDay" step="0.5" />
+                                                    </div>
+                                                    <div class="col-md-2">
+                                                        <label class="form-label small mb-0">C.Costo</label>
+                                                        <select v-model="newLine.cost_center_id" class="form-select form-select-sm">
+                                                            <option value="" disabled>Seleccione</option>
+                                                            <option v-for="cc in costCenters" :key="cc.value" :value="cc.value">{{ cc.label }}</option>
+                                                        </select>
+                                                    </div>
+                                                    <div class="col-md-1">
+                                                        <label class="form-label small mb-0">Bono</label>
+                                                        <select v-model="newLine.bonus_type_id" @change="onBonusChange" class="form-select form-select-sm">
+                                                            <option value="">Sin bono</option>
+                                                            <option v-for="bt in bonusTypes" :key="bt.value" :value="bt.value">{{ bt.label }}</option>
+                                                        </select>
+                                                    </div>
+                                                    <div class="col-md-1 d-flex gap-1">
+                                                        <button class="btn btn-sm btn-falcon-default" @click.stop="saveLine(emp.id)">
+                                                            <i class="fas fa-check"></i>
+                                                        </button>
+                                                        <button class="btn btn-sm btn-falcon-default" @click.stop="addingLineFor=null">
+                                                            <i class="fas fa-times"></i>
+                                                        </button>
+                                                    </div>
                                                 </div>
                                             </div>
                                             <button v-else class="btn btn-sm btn-falcon-default" @click.stop="startAddLine(emp.id)">

@@ -10,7 +10,7 @@ class DeleteBonusTypeController
     {
         $bonusType->delete();
 
-        return redirect()->route('bonus-types.index')
+        return redirect()->back()
             ->with('success', 'Tipo de bono eliminado correctamente.');
     }
 }

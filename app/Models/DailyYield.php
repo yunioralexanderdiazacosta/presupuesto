@@ -12,6 +12,7 @@ class DailyYield extends Model
     protected $fillable = [
         'employee_id',
         'date',
+        'payment_type',
         'labor_type_id',
         'labor_rate_id',
         'rate',
