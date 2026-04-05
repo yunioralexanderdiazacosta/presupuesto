@@ -40,6 +40,7 @@ const props = defineProps({
     data: Array,
     data2: Array,
     data3: Array,
+    data4: Object,
     totalData1: String,
     totalData2: String,
     percentage: String,
@@ -299,11 +300,23 @@ const acum_products = (quantity) => {
     return acum.value;
 }
 
-/*
-const onFilter = () => {
-  router.get(route('manage.providers', {term: term.value, plan: plan.value, membership: membership.value}), { preserveState: true});  
-}
-*/
+const resumenData = computed(() => props.data4 || { rows: [], subfamilyList: [], totalSurface: 0, totalCCs: 0, globalSubfamilyCosts: {}, globalTotalCostPerHa: 0 });
+
+const excelDataResumen = computed(() => {
+  const d = resumenData.value;
+  return (d.rows || []).map(row => {
+    const obj = {
+      estado_desarrollo: row.development_state_name,
+      superficie: row.total_surface,
+      centros_costo: row.cost_centers_count,
+    };
+    (d.subfamilyList || []).forEach(sf => {
+      obj[sf.name] = row.subfamilyCosts[sf.id] || 0;
+    });
+    obj['total_por_ha'] = row.total_cost_per_ha;
+    return obj;
+  });
+});
 </script>
 <template>
     <Head :title="title" />
@@ -332,6 +345,7 @@ const onFilter = () => {
                 <li class="nav-item"><a class="nav-link" id="pill-detalles" data-bs-toggle="tab" href="#pill-tab-detalles" role="tab" aria-controls="pill-tab-detalles" aria-selected="false">Detalles</a></li>
                 <li class="nav-item"><a class="nav-link" id="pill-gastos" data-bs-toggle="tab" href="#pill-tab-gastos" role="tab" aria-controls="pill-tab-gastos" aria-selected="false">Gastos por Hectarea</a></li>
                  <li class="nav-item"><a class="nav-link" id="pill-detalles-compra" data-bs-toggle="tab" href="#pill-tab-detalles-compra" role="tab" aria-controls="pill-tab-detalles-compra" aria-selected="false">Detalle de compra</a></li>
+                 <li class="nav-item"><a class="nav-link" id="pill-resumen-estado" data-bs-toggle="tab" href="#pill-tab-resumen-estado" role="tab" aria-controls="pill-tab-resumen-estado" aria-selected="false">Resumen por Estado</a></li>
             </ul>
             <div class="tab-content border p-3 mt-3" id="pill-myTabContent">
                 <div class="tab-pane fade show active" id="pill-tab-edicion" role="tabpanel" aria-labelledby="edicion-tab">
@@ -732,6 +746,120 @@ const onFilter = () => {
                             </table>
                         </div>
                 </div>
+
+                    <!-- Resumen por Estado -->
+                    <div class="tab-pane fade" id="pill-tab-resumen-estado" role="tabpanel" aria-labelledby="resumen-estado-tab">
+                        <div class="row mb-3">
+                            <div class="col-md-4 col-lg-2 col-xl-2 col-xxl-2">
+                              <div class="card h-100 p-1 small-card">
+                                <div class="card-header pb-0 pt-1 px-2">
+                                  <h6 class="mb-0 mt-1 fs-8 d-flex align-items-center small-card-title">Prom. Ponderado $/Ha</h6>
+                                </div>
+                                <div class="card-body d-flex flex-column justify-content-end py-1 px-2">
+                                  <div class="row">
+                                    <div class="col">
+                                      <p class="font-sans-serif lh-1 mb-1 fs-8 small-card-number">{{ resumenData.globalTotalCostPerHa?.toLocaleString('es-ES', { maximumFractionDigits: 0 }) || 0 }}</p>
+                                    </div>
+                                  </div>
+                                </div>
+                              </div>
+                            </div>
+                            <div class="col-md-4 col-lg-2 col-xl-2 col-xxl-2">
+                              <div class="card h-100 p-1 small-card">
+                                <div class="card-header pb-0 pt-1 px-2">
+                                  <h6 class="mb-0 mt-1 fs-8 d-flex align-items-center small-card-title">Superficie Total</h6>
+                                </div>
+                                <div class="card-body d-flex flex-column justify-content-end py-1 px-2">
+                                  <div class="row">
+                                    <div class="col">
+                                      <p class="font-sans-serif lh-1 mb-1 fs-8 small-card-number">{{ resumenData.totalSurface?.toLocaleString('es-ES', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) || 0 }} ha</p>
+                                    </div>
+                                  </div>
+                                </div>
+                              </div>
+                            </div>
+                            <div class="col-md-4 col-lg-2 col-xl-2 col-xxl-2">
+                              <div class="card h-100 p-1 small-card">
+                                <div class="card-header pb-0 pt-1 px-2">
+                                  <h6 class="mb-0 mt-1 fs-8 d-flex align-items-center small-card-title">Porc. Monto</h6>
+                                </div>
+                                <div class="card-body d-flex flex-column justify-content-end py-1 px-2">
+                                  <div class="row">
+                                    <div class="col">
+                                      <p class="font-sans-serif lh-1 mb-1 fs-8 small-card-number">{{props.percentage}}%</p>
+                                    </div>
+                                  </div>
+                                </div>
+                              </div>
+                            </div>
+                        </div>
+
+                        <div class="mb-3 row g-2 align-items-end flex-wrap">
+                          <div class="col d-flex justify-content-end align-items-end gap-1">
+                            <ExportExcelButton
+                              :data="excelDataResumen"
+                              :headers="[
+                                { label: 'Estado Desarrollo', key: 'estado_desarrollo' },
+                                { label: 'Superficie (ha)', key: 'superficie', type: 'number' },
+                                { label: 'N° CC', key: 'centros_costo', type: 'number' },
+                                ...resumenData.subfamilyList.map(sf => ({ label: sf.name, key: sf.name, type: 'number' })),
+                                { label: 'Total $/Ha', key: 'total_por_ha', type: 'number' }
+                              ]"
+                              class="btn btn-success btn-md d-flex align-items-center p-0"
+                              filename="Servicios-ResumenEstado.xlsx"
+                            />
+                            <ExportPdfButton
+                              :data="excelDataResumen"
+                              :headers="[
+                                { label: 'Estado Desarrollo', key: 'estado_desarrollo' },
+                                { label: 'Superficie (ha)', key: 'superficie', type: 'number' },
+                                { label: 'N° CC', key: 'centros_costo', type: 'number' },
+                                ...resumenData.subfamilyList.map(sf => ({ label: sf.name, key: sf.name, type: 'number' })),
+                                { label: 'Total $/Ha', key: 'total_por_ha', type: 'number' }
+                              ]"
+                              class="btn btn-danger btn-md d-flex align-items-center p-0"
+                              filename="Servicios-ResumenEstado.pdf"
+                            />
+                          </div>
+                        </div>
+
+                        <div class="table-responsive mt-1" style="max-height: 450px; overflow-y: auto;">
+                            <table class="table table-bordered table-hover table-sm custom-striped fs-10 mb-0 agrochem-details">
+                                <thead>
+                                    <tr>
+                                        <th>Estado Desarrollo</th>
+                                        <th class="text-end">Superficie (ha)</th>
+                                        <th class="text-center">N° CC</th>
+                                        <th v-for="sf in resumenData.subfamilyList" :key="sf.id" class="text-end">{{ sf.name }}</th>
+                                        <th class="text-end fw-bold">Total $/Ha</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr v-for="row in resumenData.rows" :key="row.development_state_id">
+                                        <td class="fw-semibold">{{ row.development_state_name }}</td>
+                                        <td class="text-end">{{ row.total_surface.toLocaleString('es-ES', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) }}</td>
+                                        <td class="text-center">{{ row.cost_centers_count }}</td>
+                                        <td v-for="sf in resumenData.subfamilyList" :key="sf.id" class="text-end">
+                                          {{ row.subfamilyCosts[sf.id]?.toLocaleString('es-ES', { maximumFractionDigits: 0 }) || '-' }}
+                                        </td>
+                                        <td class="text-end fw-bold">{{ row.total_cost_per_ha.toLocaleString('es-ES', { maximumFractionDigits: 0 }) }}</td>
+                                    </tr>
+                                </tbody>
+                                <tfoot>
+                                    <tr class="table-secondary fw-bold">
+                                        <td>Total</td>
+                                        <td class="text-end">{{ resumenData.totalSurface?.toLocaleString('es-ES', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) }}</td>
+                                        <td class="text-center">{{ resumenData.totalCCs }}</td>
+                                        <td v-for="sf in resumenData.subfamilyList" :key="sf.id" class="text-end">
+                                          {{ resumenData.globalSubfamilyCosts[sf.id]?.toLocaleString('es-ES', { maximumFractionDigits: 0 }) || '-' }}
+                                        </td>
+                                        <td class="text-end">{{ resumenData.globalTotalCostPerHa?.toLocaleString('es-ES', { maximumFractionDigits: 0 }) }}</td>
+                                    </tr>
+                                </tfoot>
+                            </table>
+                        </div>
+                    </div>
+
             </div>
         </div>
     </div>

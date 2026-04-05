@@ -172,15 +172,15 @@ class AgrochemicalsController extends Controller
         $data3 = Agrochemical::from('agrochemicals as a')
         ->join('agrochemical_items as ai', 'a.id', 'ai.agrochemical_id')
         ->join('cost_centers as cc', 'ai.cost_center_id', 'cc.id')
-        ->select('ai.cost_center_id', 'cc.name', 'cc.surface', 'cc.variety_id') // <-- Agregamos variety_id
+        ->select('ai.cost_center_id', 'cc.name', 'cc.surface', 'cc.variety_id')
         ->whereIn('ai.cost_center_id', $costCenters->pluck('value'))
-        ->groupBy('ai.cost_center_id', 'cc.name', 'cc.surface', 'cc.variety_id') // <-- Agregamos variety_id
+        ->groupBy('ai.cost_center_id', 'cc.name', 'cc.surface', 'cc.variety_id')
         ->get()
         ->transform(function($value) use ($costCenters){
             return [
                 'id' => $value->cost_center_id,
                 'name' => $value->name,
-                'variety_id' => $value->variety_id, // <-- Agregamos variety_id al array
+                'variety_id' => $value->variety_id,
                 'subfamilies' => $this->getSubfamilies($value->cost_center_id, null, true)
             ];
         }); 
@@ -287,8 +287,11 @@ class AgrochemicalsController extends Controller
             ])->values(),
         ]);
 
+        // Construir data4: resumen por estado de desarrollo y subfamilia
+        $data4 = $this->buildData4($costCenters->pluck('value'), $season_id, $user->team_id);
+
         return Inertia::render('Agrochemicals', compact(
-            'units', 'subfamilies', 'months', 'costCenters', 'groupings', 'agrochemicals', 'data', 'data2', 'data3', 'doseTypes', 'season',
+            'units', 'subfamilies', 'months', 'costCenters', 'groupings', 'agrochemicals', 'data', 'data2', 'data3', 'data4', 'doseTypes', 'season',
             'totalData1', 'totalData2',
             'totalAgrochemical', 'totalFertilizer', 'totalManPower', 'totalSupplies', 'totalServices', 'totalAdministration', 'totalField', 'totalHarvest', 'totalAbsolute',
             'percentageAgrochemical',
@@ -611,7 +614,175 @@ class AgrochemicalsController extends Controller
 
 
 
-   
-    
-   
+    /**
+     * Construye el resumen de gastos por hectárea agrupado por estado de desarrollo y subfamilia (nivel 3).
+     * Usa la misma lógica de cálculo que TechnicalPanelController para que los valores coincidan.
+     * La superficie del denominador incluye TODOS los CCs del estado (incluso los sin agroquímicos).
+     */
+    private function buildData4($costCentersId, $season_id, $team_id)
+    {
+        // 1. Obtener TODOS los cost centers con su development_state y surface
+        $allCostCenters = CostCenter::whereIn('id', $costCentersId)
+            ->select('id', 'surface', 'development_state_id', 'variety_id')
+            ->get();
+
+        $centerData = [];
+        foreach ($allCostCenters as $cc) {
+            $centerData[$cc->id] = [
+                'surface' => (float) $cc->surface,
+                'development_state_id' => $cc->development_state_id,
+                'variety_id' => $cc->variety_id,
+            ];
+        }
+
+        // Superficie total por development_state_id (TODOS los CCs, no solo los con agroquímicos)
+        $surfaceByDevState = $allCostCenters->groupBy('development_state_id')
+            ->map(fn($group) => $group->sum('surface'))
+            ->toArray();
+
+        // Cantidad de CCs por development_state_id
+        $ccCountByDevState = $allCostCenters->groupBy('development_state_id')
+            ->map(fn($group) => $group->count())
+            ->toArray();
+
+        // 2. Obtener agrochemical_items indexados
+        $months = $this->cachedMonths ?? [];
+        if (empty($months)) {
+            $currentMonth = $this->month_id;
+            for ($x = $currentMonth; $x < $currentMonth + 12; $x++) {
+                $months[] = date('n', mktime(0, 0, 0, $x, 1));
+            }
+        }
+
+        $items = DB::table('agrochemical_items')
+            ->select('agrochemical_id', 'cost_center_id', 'month_id', DB::raw('COUNT(*) as count'))
+            ->whereIn('cost_center_id', $costCentersId)
+            ->whereIn('month_id', $months)
+            ->groupBy('agrochemical_id', 'cost_center_id', 'month_id')
+            ->get();
+
+        $itemIndex = [];
+        foreach ($items as $item) {
+            $itemIndex[$item->agrochemical_id][$item->cost_center_id][$item->month_id] = $item->count;
+        }
+
+        // 3. Obtener todos los agroquímicos con su subfamilia
+        $products = Agrochemical::from('agrochemicals as a')
+            ->join('level3s as l3', 'a.subfamily_id', 'l3.id')
+            ->join('level2s as l2', 'l3.level2_id', 'l2.id')
+            ->where('l2.name', 'agroquimicos')
+            ->leftJoin('units as u', 'a.unit_id_price', 'u.id')
+            ->select('a.id', 'a.price', 'a.dose_type_id', 'a.dose', 'a.unit_id', 'a.unit_id_price', 'a.mojamiento', 'a.subfamily_id', 'l3.name as subfamily_name')
+            ->whereIn('a.id', $items->pluck('agrochemical_id')->unique())
+            ->get();
+
+        // 4. Calcular costo total por devState + subfamilia (misma lógica que TechnicalPanel)
+        // [devStateId][subfamilyId] => totalCost
+        $costMatrix = [];
+
+        foreach ($products as $product) {
+            $dose = (($product->unit_id == 4 && $product->unit_id_price == 3) || ($product->unit_id == 2 && $product->unit_id_price == 1))
+                ? ($product->dose / 1000) : $product->dose;
+
+            foreach ($itemIndex[$product->id] ?? [] as $costCenterId => $monthData) {
+                $center = $centerData[$costCenterId] ?? null;
+                if (!$center) continue;
+
+                $surface = $center['surface'];
+                $devStateId = $center['development_state_id'] ?? 0;
+
+                if ($product->dose_type_id == 1) {
+                    $quantityFirst = round($dose * $surface, 2);
+                } elseif ($product->dose_type_id == 2) {
+                    $quantityFirst = round((($product->mojamiento / 100) * $dose * $surface), 2);
+                } else {
+                    $quantityFirst = 0;
+                }
+
+                $amountFirst = round($product->price * $quantityFirst, 2);
+                $activeMonths = count($monthData);
+                $totalAmount = $amountFirst * $activeMonths;
+
+                $sfId = $product->subfamily_id;
+                if (!isset($costMatrix[$devStateId][$sfId])) {
+                    $costMatrix[$devStateId][$sfId] = 0;
+                }
+                $costMatrix[$devStateId][$sfId] += $totalAmount;
+            }
+        }
+
+        // 5. Obtener nombres de estados de desarrollo y subfamilias
+        $devStateIds = array_keys($costMatrix);
+        // Incluir también devStates de CCs sin agroquímicos
+        foreach ($surfaceByDevState as $dsId => $surf) {
+            if (!in_array($dsId, $devStateIds)) {
+                $devStateIds[] = $dsId;
+            }
+        }
+        $devStates = \App\Models\DevelopmentState::whereIn('id', $devStateIds)->pluck('name', 'id')->toArray();
+
+        $allSubfamilyIds = [];
+        foreach ($costMatrix as $devStateId => $subs) {
+            foreach (array_keys($subs) as $sfId) {
+                $allSubfamilyIds[$sfId] = true;
+            }
+        }
+        $subfamilyNames = Level3::whereIn('id', array_keys($allSubfamilyIds))->pluck('name', 'id')->toArray();
+
+        // 6. Construir respuesta
+        $subfamilyList = [];
+        foreach ($subfamilyNames as $id => $name) {
+            $subfamilyList[] = ['id' => $id, 'name' => $name];
+        }
+        usort($subfamilyList, fn($a, $b) => strcmp($a['name'], $b['name']));
+
+        $rows = [];
+        foreach ($surfaceByDevState as $dsId => $totalSurface) {
+            $subfamilyCosts = [];
+            $totalCostPerHa = 0;
+            foreach ($subfamilyList as $sf) {
+                $totalCost = $costMatrix[$dsId][$sf['id']] ?? 0;
+                $costPerHa = $totalSurface > 0 ? round($totalCost / $totalSurface) : 0;
+                $subfamilyCosts[$sf['id']] = $costPerHa;
+                $totalCostPerHa += $costPerHa;
+            }
+            $rows[] = [
+                'development_state_id' => $dsId,
+                'development_state_name' => $devStates[$dsId] ?? 'Sin Estado',
+                'total_surface' => round($totalSurface, 2),
+                'cost_centers_count' => $ccCountByDevState[$dsId] ?? 0,
+                'subfamilyCosts' => $subfamilyCosts,
+                'total_cost_per_ha' => $totalCostPerHa,
+            ];
+        }
+
+        usort($rows, fn($a, $b) => strcmp($a['development_state_name'], $b['development_state_name']));
+
+        // Totales globales
+        $grandTotalSurface = array_sum($surfaceByDevState);
+        $globalSubfamilyCosts = [];
+        foreach ($subfamilyList as $sf) {
+            $totalCost = 0;
+            foreach ($costMatrix as $dsId => $subs) {
+                $totalCost += $subs[$sf['id']] ?? 0;
+            }
+            $globalSubfamilyCosts[$sf['id']] = $grandTotalSurface > 0 ? round($totalCost / $grandTotalSurface) : 0;
+        }
+        $globalTotalCostPerHa = array_sum($globalSubfamilyCosts);
+
+        // Mapa de variety_id por CC para filtros en frontend
+        $ccVarietyMap = [];
+        foreach ($allCostCenters as $cc) {
+            $ccVarietyMap[$cc->id] = $cc->variety_id;
+        }
+
+        return [
+            'rows' => $rows,
+            'subfamilyList' => $subfamilyList,
+            'totalSurface' => round($grandTotalSurface, 2),
+            'totalCCs' => count($costCentersId instanceof \Illuminate\Support\Collection ? $costCentersId->toArray() : $costCentersId),
+            'globalSubfamilyCosts' => $globalSubfamilyCosts,
+            'globalTotalCostPerHa' => $globalTotalCostPerHa,
+        ];
+    }
 }

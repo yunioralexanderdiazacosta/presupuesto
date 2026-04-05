@@ -36,6 +36,22 @@ const props = defineProps({
 const selectedFruit = ref('');
 const selectedVariety = ref('');
 const selectedCostCenter = ref('');
+const selectedProduct = ref('');
+
+// Opciones únicas de productos extraídas de data y data3
+const productOptions = computed(() => {
+  const names = new Set();
+  const addProducts = (list) => {
+    (list || []).forEach(cc => {
+      (cc.subfamilies || []).forEach(sf => {
+        (sf.products || []).forEach(p => { if (p.name) names.add(p.name); });
+      });
+    });
+  };
+  addProducts(props.data);
+  addProducts(props.data3);
+  return Array.from(names).sort((a, b) => a.localeCompare(b, 'es'));
+});
 
 // Buscador global para la tabla de fertilizantes
 const search = ref('');
@@ -86,6 +102,16 @@ const filteredData = computed(() => {
       data = data.filter(cc => cc.variety_id == selectedVariety.value);
     }
   }
+  // Filtro por producto
+  if (selectedProduct.value) {
+    data = data.map(cc => ({
+      ...cc,
+      subfamilies: (cc.subfamilies || []).map(sf => ({
+        ...sf,
+        products: (sf.products || []).filter(p => p.name === selectedProduct.value)
+      })).filter(sf => sf.products.length > 0)
+    })).filter(cc => (cc.subfamilies || []).length > 0);
+  }
   // Aseguramos que cada cc tenga la propiedad total igual a la suma de productos de todas sus subfamilias
   return data.map(cc => {
     const total = cc.subfamilies.reduce((acc, subfamily) => acc + (subfamily.products ? subfamily.products.length : 0), 0);
@@ -130,7 +156,21 @@ const filteredDataGastos = computed(() => {
       data = data.filter(cc => cc.variety_id == selectedVarietyGastos.value);
     }
   }
-  return data;
+  // Filtro por producto
+  if (selectedProduct.value) {
+    data = data.map(cc => ({
+      ...cc,
+      subfamilies: (cc.subfamilies || []).map(sf => ({
+        ...sf,
+        products: (sf.products || []).filter(p => p.name === selectedProduct.value)
+      })).filter(sf => sf.products.length > 0)
+    })).filter(cc => (cc.subfamilies || []).length > 0);
+  }
+  // Aseguramos que cada cc tenga la propiedad total
+  return data.map(cc => {
+    const total = cc.subfamilies.reduce((acc, sf) => acc + (sf.products ? sf.products.length : 0), 0);
+    return { ...cc, total };
+  });
 });
 
 // Monto total dinámico para la pestaña Gastos por Hectarea (de filteredDataGastos)
@@ -326,7 +366,7 @@ const onFilter = () => {
                               :data="fertilizers.data"
                               :headers="[
                                 { label: 'Nombre', key: 'product_name' },
-                                { label: 'SubFamilia', key: 'subfamily.name' },
+                                { label: 'Nivel 3', key: 'subfamily.name' },
                                 { label: 'Dosis', key: 'dose', type: 'number' },
                                 { label: 'Unidad', key: 'unit.name' },
                                 { label: 'Precio', key: 'price', type: 'number' },
@@ -339,7 +379,7 @@ const onFilter = () => {
                               :data="fertilizers.data"
                               :headers="[
                                 { label: 'Nombre', key: 'product_name' },
-                                { label: 'SubFamilia', key: 'subfamily.name' },
+                                { label: 'Nivel 3', key: 'subfamily.name' },
                                 { label: 'Dosis', key: 'dose' },
                                 { label: 'Unidad', key: 'unit.name' },
                                 { label: 'Precio', key: 'price' },
@@ -357,7 +397,7 @@ const onFilter = () => {
                             <template #header>
                                 <!--begin::Table row-->
                                 <th width="min-w-100px">Nombre</th>
-                                <th width="min-w-100px">SubFamilia</th>
+                                <th width="min-w-100px">Nivel 3</th>
                                 <th width="min-w-100px">Dosis</th>
                                 <th width="min-w-100px">Unidad dosis</th>
                                 <th width="min-w-100px">Precio</th>
@@ -462,6 +502,15 @@ const onFilter = () => {
                               </option>
                             </select>
                           </div>
+                          <div class="col-auto">
+                            <label for="productSelect" class="form-label">Filtrar por producto:</label>
+                            <select id="productSelect" v-model="selectedProduct" class="form-select form-select-sm" style="min-width: 180px; max-width: 220px;">
+                              <option value="">Todos</option>
+                              <option v-for="product in productOptions" :key="product" :value="product">
+                                {{ product }}
+                              </option>
+                            </select>
+                          </div>
                         </div>
                         <div class="table-responsive mt-1" style="max-height: 450px; overflow-y: auto;">
                             <table class="table table-bordered table-hover table-sm custom-striped fs-10 mb-0 agrochem-details">
@@ -469,7 +518,7 @@ const onFilter = () => {
                                 <thead>
                                     <tr>
                                         <th class="min-w-150px">Centro de costo</th>
-                                        <th>Subfamilia</th>
+                                        <th>Nivel 3</th>
                                         <th class="min-w-100px">Producto</th>
                                         <th>Cantidad Total</th>
                                         <th>Un</th>
@@ -567,6 +616,15 @@ const onFilter = () => {
                               </option>
                             </select>
                           </div>
+                          <div class="col-auto">
+                            <label for="productSelectGastos" class="form-label">Filtrar por producto:</label>
+                            <select id="productSelectGastos" v-model="selectedProduct" class="form-select form-select-sm" style="min-width: 180px; max-width: 220px;">
+                              <option value="">Todos</option>
+                              <option v-for="product in productOptions" :key="product" :value="product">
+                                {{ product }}
+                              </option>
+                            </select>
+                          </div>
                         </div>
                         <div class="table-responsive mt-1" style="max-height: 450px; overflow-y: auto;">
                             <table class="table table-bordered table-hover table-sm custom-striped fs-10 mb-0 agrochem-details">
@@ -574,7 +632,7 @@ const onFilter = () => {
                                 <thead>
                                     <tr>
                                         <th class="min-w-150px">Centro de costo</th>
-                                        <th>Subfamilia</th>
+                                        <th>Nivel 3</th>
                                         <th class="min-w-100px">Producto</th>
                                         <th>Cantidad Total</th>
                                         <th>Un</th>
@@ -650,7 +708,7 @@ const onFilter = () => {
                                 <!--begin::Table head-->
                                 <thead>
                                     <tr>
-                                        <th>Subfamilia</th>
+                                        <th>Nivel 3</th>
                                         <th class="min-w-100px">Producto</th>
                                         <th>Cantidad Total</th>
                                         <th>Un</th>

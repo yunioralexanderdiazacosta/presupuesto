@@ -251,6 +251,8 @@ public $totalHarvest = 0;
 
         $costCentersId = $costCenters->pluck('value');
 
+        $data4 = $this->buildData4($costCentersId, $season_id, $user->team_id);
+
         $data2 = ManPower::from('man_powers as mp')
         ->join('manpower_items as mpi', 'mp.id', 'mpi.man_power_id')
         ->join('level3s as s', 'mp.subfamily_id', 's.id')
@@ -316,7 +318,7 @@ public $totalHarvest = 0;
 
 
 
-        return Inertia::render('ManPowers', compact('subfamilies', 'months', 'costCenters', 'groupings', 'manPowers', 'season', 'data', 'data2', 'data3', 'totalData1', 'totalData2',
+        return Inertia::render('ManPowers', compact('subfamilies', 'months', 'costCenters', 'groupings', 'manPowers', 'season', 'data', 'data2', 'data3', 'data4', 'totalData1', 'totalData2',
         'totalAgrochemical', 'totalFertilizer', 'totalManPower', 'totalSupplies', 'totalServices', 'totalHarvest', 'totalAdministration', 'totalField', 'totalAbsolute',
             'percentageManPower',
             'varieties', 'fruits'));
@@ -613,5 +615,147 @@ public $totalHarvest = 0;
 
     
 
-    
+    private function buildData4($costCentersId, $season_id, $team_id)
+    {
+        // 1. Obtener TODOS los cost centers con su development_state y surface
+        $allCostCenters = CostCenter::whereIn('id', $costCentersId)
+            ->select('id', 'surface', 'development_state_id', 'variety_id')
+            ->get();
+
+        $centerData = [];
+        foreach ($allCostCenters as $cc) {
+            $centerData[$cc->id] = [
+                'surface' => (float) $cc->surface,
+                'development_state_id' => $cc->development_state_id,
+            ];
+        }
+
+        // Superficie total por development_state_id (TODOS los CCs)
+        $surfaceByDevState = $allCostCenters->groupBy('development_state_id')
+            ->map(fn($group) => $group->sum('surface'))
+            ->toArray();
+
+        $ccCountByDevState = $allCostCenters->groupBy('development_state_id')
+            ->map(fn($group) => $group->count())
+            ->toArray();
+
+        // 2. Obtener manpower_items indexados
+        $months = [];
+        $currentMonth = $this->month_id;
+        for ($x = $currentMonth; $x < $currentMonth + 12; $x++) {
+            $months[] = date('n', mktime(0, 0, 0, $x, 1));
+        }
+
+        $items = DB::table('manpower_items')
+            ->select('man_power_id', 'cost_center_id', 'month_id', DB::raw('COUNT(*) as count'))
+            ->whereIn('cost_center_id', $costCentersId)
+            ->whereIn('month_id', $months)
+            ->groupBy('man_power_id', 'cost_center_id', 'month_id')
+            ->get();
+
+        $itemIndex = [];
+        foreach ($items as $item) {
+            $itemIndex[$item->man_power_id][$item->cost_center_id][$item->month_id] = $item->count;
+        }
+
+        // 3. Obtener todos los man_powers con su subfamilia
+        $products = ManPower::from('man_powers as mp')
+            ->join('level3s as l3', 'mp.subfamily_id', 'l3.id')
+            ->join('level2s as l2', 'l3.level2_id', 'l2.id')
+            ->where('l2.name', 'mano de obra')
+            ->select('mp.id', 'mp.price', 'mp.workday', 'mp.subfamily_id', 'l3.name as subfamily_name')
+            ->whereIn('mp.id', $items->pluck('man_power_id')->unique())
+            ->get();
+
+        // 4. Calcular costo total por devState + subfamilia
+        $costMatrix = [];
+
+        foreach ($products as $product) {
+            foreach ($itemIndex[$product->id] ?? [] as $costCenterId => $monthData) {
+                $center = $centerData[$costCenterId] ?? null;
+                if (!$center) continue;
+
+                $surface = $center['surface'];
+                $devStateId = $center['development_state_id'] ?? 0;
+
+                $quantityFirst = round($product->workday * $surface, 2);
+                $amountFirst = round($product->price * $quantityFirst, 2);
+                $activeMonths = count($monthData);
+                $totalAmount = $amountFirst * $activeMonths;
+
+                $sfId = $product->subfamily_id;
+                if (!isset($costMatrix[$devStateId][$sfId])) {
+                    $costMatrix[$devStateId][$sfId] = 0;
+                }
+                $costMatrix[$devStateId][$sfId] += $totalAmount;
+            }
+        }
+
+        // 5. Obtener nombres de estados de desarrollo y subfamilias
+        $devStateIds = array_keys($costMatrix);
+        foreach ($surfaceByDevState as $dsId => $surf) {
+            if (!in_array($dsId, $devStateIds)) {
+                $devStateIds[] = $dsId;
+            }
+        }
+        $devStates = \App\Models\DevelopmentState::whereIn('id', $devStateIds)->pluck('name', 'id')->toArray();
+
+        $allSubfamilyIds = [];
+        foreach ($costMatrix as $devStateId => $subs) {
+            foreach (array_keys($subs) as $sfId) {
+                $allSubfamilyIds[$sfId] = true;
+            }
+        }
+        $subfamilyNames = Level3::whereIn('id', array_keys($allSubfamilyIds))->pluck('name', 'id')->toArray();
+
+        // 6. Construir respuesta
+        $subfamilyList = [];
+        foreach ($subfamilyNames as $id => $name) {
+            $subfamilyList[] = ['id' => $id, 'name' => $name];
+        }
+        usort($subfamilyList, fn($a, $b) => strcmp($a['name'], $b['name']));
+
+        $rows = [];
+        foreach ($surfaceByDevState as $dsId => $totalSurface) {
+            $subfamilyCosts = [];
+            $totalCostPerHa = 0;
+            foreach ($subfamilyList as $sf) {
+                $totalCost = $costMatrix[$dsId][$sf['id']] ?? 0;
+                $costPerHa = $totalSurface > 0 ? round($totalCost / $totalSurface) : 0;
+                $subfamilyCosts[$sf['id']] = $costPerHa;
+                $totalCostPerHa += $costPerHa;
+            }
+            $rows[] = [
+                'development_state_id' => $dsId,
+                'development_state_name' => $devStates[$dsId] ?? 'Sin Estado',
+                'total_surface' => round($totalSurface, 2),
+                'cost_centers_count' => $ccCountByDevState[$dsId] ?? 0,
+                'subfamilyCosts' => $subfamilyCosts,
+                'total_cost_per_ha' => $totalCostPerHa,
+            ];
+        }
+
+        usort($rows, fn($a, $b) => strcmp($a['development_state_name'], $b['development_state_name']));
+
+        // Totales globales
+        $grandTotalSurface = array_sum($surfaceByDevState);
+        $globalSubfamilyCosts = [];
+        foreach ($subfamilyList as $sf) {
+            $totalCost = 0;
+            foreach ($costMatrix as $dsId => $subs) {
+                $totalCost += $subs[$sf['id']] ?? 0;
+            }
+            $globalSubfamilyCosts[$sf['id']] = $grandTotalSurface > 0 ? round($totalCost / $grandTotalSurface) : 0;
+        }
+        $globalTotalCostPerHa = array_sum($globalSubfamilyCosts);
+
+        return [
+            'rows' => $rows,
+            'subfamilyList' => $subfamilyList,
+            'totalSurface' => round($grandTotalSurface, 2),
+            'totalCCs' => count($costCentersId instanceof \Illuminate\Support\Collection ? $costCentersId->toArray() : $costCentersId),
+            'globalSubfamilyCosts' => $globalSubfamilyCosts,
+            'globalTotalCostPerHa' => $globalTotalCostPerHa,
+        ];
+    }
 }

@@ -18,6 +18,7 @@ use App\Models\Month;
 use App\Models\Service;
 
 use App\Models\Level1;
+use App\Models\CostCenter;
 
 
 use App\Http\Controllers\Traits\BudgetTotalsTrait;
@@ -278,6 +279,9 @@ class AdministrationsController extends Controller
       
 
         $season = isset($season) ? $season : null;
+
+        $data4 = $this->buildData4($season_id, $team_id);
+
         // Usar la variable local $percentageAdministration para asegurar el valor correcto
         return Inertia::render('Administrations', compact(
             'units',
@@ -287,6 +291,7 @@ class AdministrationsController extends Controller
             'data1',
             'data2',
             'data3',
+            'data4',
             'season',
             'level2s',
             'team_id',
@@ -465,7 +470,91 @@ class AdministrationsController extends Controller
 
     // Método getTotal eliminado porque no se utiliza en el controlador
 
+    /**
+     * Resumen de costos por Nivel 3 (subfamilia) con $/Ha.
+     * Sin desglose por estado de desarrollo (Administrations es global).
+     */
+    private function buildData4($season_id, $team_id)
+    {
+        $grandTotalSurface = CostCenter::where('season_id', $season_id)->sum('surface');
 
+        // Meses activos de la temporada
+        $season = Season::select('month_id')->where('id', $season_id)->first();
+        $currentMonth = $season ? $season->month_id : 1;
+        $months = [];
+        for ($x = $currentMonth; $x < $currentMonth + 12; $x++) {
+            $months[] = date('n', mktime(0, 0, 0, $x, 1));
+        }
+
+        // Administrations con su subfamilia
+        $admins = Administration::from('administrations as f')
+            ->join('level3s as l3', 'f.subfamily_id', 'l3.id')
+            ->join('level2s as l2', 'l3.level2_id', 'l2.id')
+            ->join('level1s as l1', 'l2.level1_id', 'l1.id')
+            ->where('l1.name', 'Administracion')
+            ->where('f.season_id', $season_id)
+            ->where('f.team_id', $team_id)
+            ->select('f.id', 'f.price', 'f.quantity', 'f.unit_id', 'f.subfamily_id', 'l3.name as subfamily_name')
+            ->get();
+
+        $adminIds = $admins->pluck('id')->unique();
+        $items = DB::table('administration_items')
+            ->select('administration_id', 'month_id')
+            ->whereIn('administration_id', $adminIds)
+            ->whereIn('month_id', $months)
+            ->get();
+
+        $itemIndex = [];
+        foreach ($items as $item) {
+            $itemIndex[$item->administration_id][$item->month_id] = true;
+        }
+
+        // Calcular costo total por subfamilia
+        $costBySubfamily = [];
+        $subfamilyNames = [];
+        foreach ($admins as $admin) {
+            $activeMonths = isset($itemIndex[$admin->id]) ? count($itemIndex[$admin->id]) : 0;
+            if ($activeMonths === 0) continue;
+
+            $quantity = (in_array($admin->unit_id, [2, 4]) && $admin->quantity > 0)
+                ? ($admin->quantity / 1000)
+                : $admin->quantity;
+
+            $totalAmount = round($admin->price * $quantity * $activeMonths, 2);
+
+            $sfId = $admin->subfamily_id;
+            if (!isset($costBySubfamily[$sfId])) {
+                $costBySubfamily[$sfId] = 0;
+            }
+            $costBySubfamily[$sfId] += $totalAmount;
+            $subfamilyNames[$sfId] = $admin->subfamily_name;
+        }
+
+        // Construir filas
+        $rows = [];
+        $grandTotalCost = 0;
+        foreach ($costBySubfamily as $sfId => $totalCost) {
+            $costPerHa = $grandTotalSurface > 0 ? round($totalCost / $grandTotalSurface) : 0;
+            $grandTotalCost += $totalCost;
+            $rows[] = [
+                'subfamily_id' => $sfId,
+                'subfamily_name' => $subfamilyNames[$sfId] ?? 'Sin Nombre',
+                'total_cost' => round($totalCost),
+                'cost_per_ha' => $costPerHa,
+            ];
+        }
+
+        usort($rows, fn($a, $b) => strcmp($a['subfamily_name'], $b['subfamily_name']));
+
+        $grandTotalCostPerHa = $grandTotalSurface > 0 ? round($grandTotalCost / $grandTotalSurface) : 0;
+
+        return [
+            'rows' => $rows,
+            'totalCost' => round($grandTotalCost),
+            'totalCostPerHa' => $grandTotalCostPerHa,
+            'totalSurface' => round($grandTotalSurface, 2),
+        ];
+    }
 }
 
 

@@ -299,6 +299,9 @@ class FieldsController extends Controller
             return null;
         })->filter()->values();
         // $percentageField ya está calculado correctamente arriba, no sobrescribirlo aquí
+
+        $data4 = $this->buildData4($season_id, $team_id);
+
         return Inertia::render('Fields', compact(
             'units',
             'subfamilies',
@@ -307,6 +310,7 @@ class FieldsController extends Controller
             'data1',
             'data2',
             'data3',
+            'data4',
             'season',
             'level2s',
             'team_id',
@@ -495,5 +499,91 @@ class FieldsController extends Controller
             ->count();
 
         return $total;
+    }
+
+    /**
+     * Resumen de costos por Nivel 3 (subfamilia) con $/Ha.
+     * Sin desglose por estado de desarrollo (Fields es global).
+     */
+    private function buildData4($season_id, $team_id)
+    {
+        $grandTotalSurface = CostCenter::where('season_id', $season_id)->sum('surface');
+
+        // Meses activos de la temporada
+        $season = Season::select('month_id')->where('id', $season_id)->first();
+        $currentMonth = $season ? $season->month_id : 1;
+        $months = [];
+        for ($x = $currentMonth; $x < $currentMonth + 12; $x++) {
+            $months[] = date('n', mktime(0, 0, 0, $x, 1));
+        }
+
+        // Fields con su subfamilia
+        $fields = Field::from('fields as f')
+            ->join('level3s as l3', 'f.subfamily_id', 'l3.id')
+            ->join('level2s as l2', 'l3.level2_id', 'l2.id')
+            ->join('level1s as l1', 'l2.level1_id', 'l1.id')
+            ->where('l1.name', 'Generales campo')
+            ->where('f.season_id', $season_id)
+            ->where('f.team_id', $team_id)
+            ->select('f.id', 'f.price', 'f.quantity', 'f.unit_id', 'f.subfamily_id', 'l3.name as subfamily_name')
+            ->get();
+
+        $fieldIds = $fields->pluck('id')->unique();
+        $items = DB::table('field_items')
+            ->select('field_id', 'month_id')
+            ->whereIn('field_id', $fieldIds)
+            ->whereIn('month_id', $months)
+            ->get();
+
+        $itemIndex = [];
+        foreach ($items as $item) {
+            $itemIndex[$item->field_id][$item->month_id] = true;
+        }
+
+        // Calcular costo total por subfamilia
+        $costBySubfamily = [];
+        $subfamilyNames = [];
+        foreach ($fields as $field) {
+            $activeMonths = isset($itemIndex[$field->id]) ? count($itemIndex[$field->id]) : 0;
+            if ($activeMonths === 0) continue;
+
+            $quantity = (in_array($field->unit_id, [2, 4]) && $field->quantity > 0)
+                ? ($field->quantity / 1000)
+                : $field->quantity;
+
+            $totalAmount = round($field->price * $quantity * $activeMonths, 2);
+
+            $sfId = $field->subfamily_id;
+            if (!isset($costBySubfamily[$sfId])) {
+                $costBySubfamily[$sfId] = 0;
+            }
+            $costBySubfamily[$sfId] += $totalAmount;
+            $subfamilyNames[$sfId] = $field->subfamily_name;
+        }
+
+        // Construir filas
+        $rows = [];
+        $grandTotalCost = 0;
+        foreach ($costBySubfamily as $sfId => $totalCost) {
+            $costPerHa = $grandTotalSurface > 0 ? round($totalCost / $grandTotalSurface) : 0;
+            $grandTotalCost += $totalCost;
+            $rows[] = [
+                'subfamily_id' => $sfId,
+                'subfamily_name' => $subfamilyNames[$sfId] ?? 'Sin Nombre',
+                'total_cost' => round($totalCost),
+                'cost_per_ha' => $costPerHa,
+            ];
+        }
+
+        usort($rows, fn($a, $b) => strcmp($a['subfamily_name'], $b['subfamily_name']));
+
+        $grandTotalCostPerHa = $grandTotalSurface > 0 ? round($grandTotalCost / $grandTotalSurface) : 0;
+
+        return [
+            'rows' => $rows,
+            'totalCost' => round($grandTotalCost),
+            'totalCostPerHa' => $grandTotalCostPerHa,
+            'totalSurface' => round($grandTotalSurface, 2),
+        ];
     }
 }

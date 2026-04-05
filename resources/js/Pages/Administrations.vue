@@ -39,6 +39,7 @@ const props = defineProps({
     data1: Array,
     data2: Array,
     data3: Array,
+    data4: Object,
     team_id: [Number, String], // <-- Añadido
     season_id: [Number, String], // <-- Añadido
     percentageAdministration: Number // <-- Añadir aquí para recibir el porcentaje
@@ -181,8 +182,21 @@ const acum_products = (quantity) => {
     return acum.value;
 }
 
-// Computed para mostrar el porcentaje de administración
-//const percentage = computed(() => props.percentageAdministration ?? 0);
+// Computed para exportar Resumen $/Ha a Excel
+const excelDataResumen = computed(() => {
+    if (!props.data4 || !props.data4.rows) return [];
+    const rows = props.data4.rows.map(row => ({
+        nivel3: row.subfamily_name,
+        monto_total: row.total_cost,
+        costo_por_ha: row.cost_per_ha,
+    }));
+    rows.push({
+        nivel3: 'Total',
+        monto_total: props.data4.totalCost,
+        costo_por_ha: props.data4.totalCostPerHa,
+    });
+    return rows;
+});
 
 /*
 const onFilter = () => {
@@ -217,6 +231,7 @@ const onFilter = () => {
                 <li class="nav-item"><a class="nav-link" id="pill-detalles" data-bs-toggle="tab" href="#pill-tab-detalles" role="tab" aria-controls="pill-tab-detalles" aria-selected="false">Detalles</a></li>
                 <li class="nav-item"><a class="nav-link" id="pill-gastos" data-bs-toggle="tab" href="#pill-tab-gastos" role="tab" aria-controls="pill-tab-gastos" aria-selected="false">Gastos por Hectarea</a></li>
                  <li class="nav-item"><a class="nav-link" id="pill-detalles-compra" data-bs-toggle="tab" href="#pill-tab-detalles-compra" role="tab" aria-controls="pill-tab-detalles-compra" aria-selected="false">Detalle de compra</a></li>
+                 <li class="nav-item"><a class="nav-link" id="pill-resumen" data-bs-toggle="tab" href="#pill-tab-resumen" role="tab" aria-controls="pill-tab-resumen" aria-selected="false">Resumen $/Ha</a></li>
             </ul>
             <div class="tab-content border p-3 mt-3" id="pill-myTabContent">
                 <div class="tab-pane fade show active" id="pill-tab-edicion" role="tabpanel" aria-labelledby="edicion-tab">
@@ -562,7 +577,107 @@ const onFilter = () => {
                             </table>
                         </div>
                     </div>
-                    
+
+                    <!-- Resumen $/Ha -->
+                    <div class="tab-pane fade" id="pill-tab-resumen" role="tabpanel" aria-labelledby="resumen-tab">
+                        <div class="row mb-3">
+                            <div class="col-md-4 col-lg-2 col-xl-2 col-xxl-2">
+                              <div class="card h-100 p-1 small-card">
+                                <div class="card-header pb-0 pt-1 px-2">
+                                  <h6 class="mb-0 mt-1 fs-8 d-flex align-items-center small-card-title">Total $/Ha</h6>
+                                </div>
+                                <div class="card-body d-flex flex-column justify-content-end py-1 px-2">
+                                  <div class="row">
+                                    <div class="col">
+                                      <p class="font-sans-serif lh-1 mb-1 fs-8 small-card-number">{{ data4.totalCostPerHa?.toLocaleString('es-ES', { maximumFractionDigits: 0 }) || 0 }}</p>
+                                    </div>
+                                  </div>
+                                </div>
+                              </div>
+                            </div>
+                            <div class="col-md-4 col-lg-2 col-xl-2 col-xxl-2">
+                              <div class="card h-100 p-1 small-card">
+                                <div class="card-header pb-0 pt-1 px-2">
+                                  <h6 class="mb-0 mt-1 fs-8 d-flex align-items-center small-card-title">Superficie Total</h6>
+                                </div>
+                                <div class="card-body d-flex flex-column justify-content-end py-1 px-2">
+                                  <div class="row">
+                                    <div class="col">
+                                      <p class="font-sans-serif lh-1 mb-1 fs-8 small-card-number">{{ data4.totalSurface?.toLocaleString('es-ES', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) || 0 }} ha</p>
+                                    </div>
+                                  </div>
+                                </div>
+                              </div>
+                            </div>
+                            <div class="col-md-4 col-lg-2 col-xl-2 col-xxl-2">
+                              <div class="card h-100 p-1 small-card">
+                                <div class="card-header pb-0 pt-1 px-2">
+                                  <h6 class="mb-0 mt-1 fs-8 d-flex align-items-center small-card-title">Porc. Monto</h6>
+                                </div>
+                                <div class="card-body d-flex flex-column justify-content-end py-1 px-2">
+                                  <div class="row">
+                                    <div class="col">
+                                      <p class="font-sans-serif lh-1 mb-1 fs-8 small-card-number">{{ percentageAdministration }}%</p>
+                                    </div>
+                                  </div>
+                                </div>
+                              </div>
+                            </div>
+                        </div>
+
+                        <!-- Botones de exportación -->
+                        <div class="mb-3 row g-2 align-items-end flex-wrap">
+                          <div class="col d-flex justify-content-end align-items-end gap-1">
+                            <ExportExcelButton
+                              :data="excelDataResumen"
+                              :headers="[
+                                { label: 'Nivel 3', key: 'nivel3' },
+                                { label: 'Monto Total', key: 'monto_total', type: 'number' },
+                                { label: '$/Ha', key: 'costo_por_ha', type: 'number' }
+                              ]"
+                              class="btn btn-success btn-md d-flex align-items-center p-0"
+                              filename="Administracion-ResumenHa.xlsx"
+                            />
+                            <ExportPdfButton
+                              :data="excelDataResumen"
+                              :headers="[
+                                { label: 'Nivel 3', key: 'nivel3' },
+                                { label: 'Monto Total', key: 'monto_total', type: 'number' },
+                                { label: '$/Ha', key: 'costo_por_ha', type: 'number' }
+                              ]"
+                              class="btn btn-danger btn-md d-flex align-items-center p-0"
+                              filename="Administracion-ResumenHa.pdf"
+                            />
+                          </div>
+                        </div>
+
+                        <!--begin::Table-->
+                        <div class="table-responsive mt-1" style="max-height: 450px; overflow-y: auto;">
+                            <table class="table table-bordered table-hover table-sm custom-striped fs-10 mb-0 agrochem-details">
+                                <thead>
+                                    <tr>
+                                        <th>Nivel 3</th>
+                                        <th class="text-end">Monto Total</th>
+                                        <th class="text-end">$/Ha</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr v-for="row in data4.rows" :key="row.subfamily_id">
+                                        <td class="fw-semibold">{{ row.subfamily_name }}</td>
+                                        <td class="text-end">{{ row.total_cost?.toLocaleString('es-ES', { maximumFractionDigits: 0 }) }}</td>
+                                        <td class="text-end">{{ row.cost_per_ha?.toLocaleString('es-ES', { maximumFractionDigits: 0 }) }}</td>
+                                    </tr>
+                                </tbody>
+                                <tfoot>
+                                    <tr class="table-secondary fw-bold">
+                                        <td>Total</td>
+                                        <td class="text-end">{{ data4.totalCost?.toLocaleString('es-ES', { maximumFractionDigits: 0 }) }}</td>
+                                        <td class="text-end">{{ data4.totalCostPerHa?.toLocaleString('es-ES', { maximumFractionDigits: 0 }) }}</td>
+                                    </tr>
+                                </tfoot>
+                            </table>
+                        </div>
+                    </div>
                 
                 </div>
 
