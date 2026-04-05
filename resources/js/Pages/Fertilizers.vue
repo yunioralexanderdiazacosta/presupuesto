@@ -391,7 +391,7 @@ const onFilter = () => {
                             
                           </div>
                         </div>
-                        <div class="table-responsive mt-1" style="max-height: 450px; overflow-y: auto;">
+                        <div class="table-responsive budget-table-wrapper mt-1">
                         <Table :id="'fertilizers'" :total="filteredFertilizers.length" :links="fertilizers.links">
                             <!--begin::Table head-->
                             <template #header>
@@ -512,8 +512,8 @@ const onFilter = () => {
                             </select>
                           </div>
                         </div>
-                        <div class="table-responsive mt-1" style="max-height: 450px; overflow-y: auto;">
-                            <table class="table table-bordered table-hover table-sm custom-striped fs-10 mb-0 agrochem-details">
+                        <div class="table-responsive budget-table-wrapper mt-1">
+                            <table class="table budget-tbl">
                                 <!--begin::Table head-->
                                 <thead>
                                     <tr>
@@ -522,8 +522,8 @@ const onFilter = () => {
                                         <th class="min-w-100px">Producto</th>
                                         <th>Cantidad Total</th>
                                         <th>Un</th>
-                                        <th class="text-dark">Monto Total</th>
-                                        <th v-for="month in $page.props.months" class="text-primary">{{month.label}}</th> 
+                                        <th class="col-amount">Monto Total</th>
+                                        <th v-for="month in $page.props.months" class="col-month">{{month.label}}</th> 
                                     </tr>
                                 </thead>
                                 <!--end::Table head-->
@@ -532,13 +532,13 @@ const onFilter = () => {
                                     <template v-for="cc in filteredData">
                                         <template v-for="(subfamily, index2) in cc.subfamilies">
                                             <tr>
-                                                <td v-if="index2 == 0" :rowspan="cc.total" style="vertical-align:top">{{cc.name}}</td>
-                                                <td style="vertical-align:top;" :rowspan="subfamily.products.length">{{subfamily.name}}</td>
+                                                <td v-if="index2 == 0" :rowspan="cc.total" class="cell-group">{{cc.name}}</td>
+                                                <td :rowspan="subfamily.products.length" class="cell-group">{{subfamily.name}}</td>
                                                 <td>{{subfamily.products[0].name}}</td>
                                                 <td>{{subfamily.products[0].totalQuantity}}</td>
                                                 <td>{{subfamily.products[0].unit}}</td>
                                                 <td>{{subfamily.products[0].totalAmount}}</td>
-                                                <td class="bg-opacity-5 table-primary" v-for="value in subfamily.products[0].months">{{value}}</td>
+                                                <td class="col-month col-amount" v-for="value in subfamily.products[0].months">{{value}}</td>
                                             </tr>
                                             <template v-for="(product, index3) in subfamily.products">
                                                 <tr v-if="index3 > 0">
@@ -546,7 +546,7 @@ const onFilter = () => {
                                                     <td>{{product.totalQuantity}}</td>
                                                     <td>{{product.unit}}</td>
                                                     <td>{{product.totalAmount}}</td>
-                                                    <td class="bg-opacity-5 table-primary" v-for="value in product.months">{{value}}</td>
+                                                    <td class="col-month col-amount" v-for="value in product.months">{{value}}</td>
                                                 </tr>
                                             </template>
                                         </template>
@@ -626,8 +626,8 @@ const onFilter = () => {
                             </select>
                           </div>
                         </div>
-                        <div class="table-responsive mt-1" style="max-height: 450px; overflow-y: auto;">
-                            <table class="table table-bordered table-hover table-sm custom-striped fs-10 mb-0 agrochem-details">
+                        <div class="table-responsive budget-table-wrapper mt-1">
+                            <table class="table budget-tbl">
                                 <!--begin::Table head-->
                                 <thead>
                                     <tr>
@@ -636,8 +636,8 @@ const onFilter = () => {
                                         <th class="min-w-100px">Producto</th>
                                         <th>Cantidad Total</th>
                                         <th>Un</th>
-                                        <th class="text-dark">Monto Total</th>
-                                        <th v-for="month in $page.props.months" class="text-primary">{{month.label}}</th> 
+                                        <th class="col-amount">Monto Total</th>
+                                        <th v-for="month in $page.props.months" class="col-month">{{month.label}}</th> 
                                     </tr>
                                 </thead>
                                 <!--end::Table head-->
@@ -646,13 +646,13 @@ const onFilter = () => {
                                     <template v-for="cc in filteredDataGastos">
                                         <template v-for="(subfamily, index2) in cc.subfamilies">
                                             <tr>
-                                                <td v-if="index2 == 0" :rowspan="cc.total" style="vertical-align:top">{{cc.name}}</td>
-                                                <td style="vertical-align:top;" :rowspan="subfamily.products.length">{{subfamily.name}}</td>
+                                                <td v-if="index2 == 0" :rowspan="cc.total" class="cell-group">{{cc.name}}</td>
+                                                <td :rowspan="subfamily.products.length" class="cell-group">{{subfamily.name}}</td>
                                                 <td>{{subfamily.products[0].name}}</td>
                                                 <td>{{subfamily.products[0].totalQuantity}}</td>
                                                 <td>{{subfamily.products[0].unit}}</td>
                                                 <td>{{subfamily.products[0].totalAmount}}</td>
-                                                <td class="bg-opacity-5 table-primary" v-for="value in subfamily.products[0].months">{{value}}</td>
+                                                <td class="col-month col-amount" v-for="value in subfamily.products[0].months">{{value}}</td>
                                             </tr>
                                             <template v-for="(product, index3) in subfamily.products">
                                                 <tr v-if="index3 > 0">
@@ -660,7 +660,7 @@ const onFilter = () => {
                                                     <td>{{product.totalQuantity}}</td>
                                                     <td>{{product.unit}}</td>
                                                     <td>{{product.totalAmount}}</td>
-                                                    <td class="bg-opacity-5 table-primary" v-for="value in product.months">{{value}}</td>
+                                                    <td class="col-month col-amount" v-for="value in product.months">{{value}}</td>
                                                 </tr>
                                             </template>
                                         </template>
@@ -703,8 +703,8 @@ const onFilter = () => {
                           </div>
                         </div>
 
-                       <div class="table-responsive mt-1" style="max-height: 450px; overflow-y: auto;">
-                            <table class="table table-bordered table-hover table-sm custom-striped fs-10 mb-0 agrochem-details">
+                       <div class="table-responsive budget-table-wrapper mt-1">
+                            <table class="table budget-tbl">
                                 <!--begin::Table head-->
                                 <thead>
                                     <tr>
@@ -712,7 +712,7 @@ const onFilter = () => {
                                         <th class="min-w-100px">Producto</th>
                                         <th>Cantidad Total</th>
                                         <th>Un</th>
-                                        <th class="text-dark">Monto Total</th>
+                                        <th class="col-amount">Monto Total</th>
                                     </tr>
                                 </thead>
                                 <!--end::Table head-->
@@ -736,7 +736,7 @@ const onFilter = () => {
                                             </tr>
                                         </template>
                                         <!-- Subtotal row -->
-                                        <tr class="table-secondary">
+                                        <tr class="row-subtotal">
                                             <td colspan="3" class="text-end fw-bold">Subtotal</td>
                                             <td colspan="2" class="fw-bold text-dark">
                                               {{ subfamily.products.reduce((acc, p) => {
@@ -761,22 +761,5 @@ const onFilter = () => {
 </template>
 
 <style>
-.table-responsive thead th {
-  position: sticky;
-  top: 0;
-  background: #f8fafc;
-  z-index: 2;
-}
-.table-responsive {
-  max-height: 450px;
-  overflow-y: auto;
-}
-.table.agrochem-details > thead > tr {
-  background-color: #e7ebee !important; /* azul claro, puedes ajustar el color */
-}
-
-.table.agrochem-details > :not(caption) > * > * {
-  border-width: 1px !important;
-  border-color: #cdcdd3 !important;
-}
+/* Estilos de tablas centralizados en budget-tables.css */
 </style>

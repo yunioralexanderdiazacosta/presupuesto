@@ -269,7 +269,7 @@ const onFilter = () => {
                        
                       </div>
                     </div>
-                    <div class="table-responsive mt-1" style="max-height: 450px; overflow-y: auto;">
+                    <div class="table-responsive budget-table-wrapper mt-1">
                     <Table sticky-header :id="'administrations'" :total="filteredAdministrations.length" :links="administrations.links">
                         <!--begin::Table head-->
                         <template #header>
@@ -374,8 +374,8 @@ const onFilter = () => {
                             </div>
                         </div>
 
-                        <div class="table-responsive mt-1" style="max-height: 450px; overflow-y: auto;">
-                            <table class="table table-bordered table-hover table-sm custom-striped fs-10 mb-0 agrochem-details">
+                        <div class="table-responsive budget-table-wrapper mt-1">
+                            <table class="table budget-tbl">
                                 <thead>
                                     <tr>
                                         <th class="min-w-150px">Level 2</th>
@@ -383,8 +383,8 @@ const onFilter = () => {
                                         <th class="min-w-100px">Producto</th>
                                         <th>Cantidad Total</th>
                                         <th>Un</th>
-                                        <th class="text-dark">Monto Total</th>
-                                        <th v-for="month in $page.props.months" class="text-primary">{{month.label}}</th> 
+                                        <th class="col-amount">Monto Total</th>
+                                        <th v-for="month in $page.props.months" class="col-month">{{month.label}}</th> 
                                     </tr>
                                 </thead>
                                 <tbody>
@@ -398,7 +398,7 @@ const onFilter = () => {
           <td>{{ product.totalQuantity }}</td>
           <td>{{ product.unit }}</td>
           <td class="text-dark">{{ product.totalAmount }}</td>
-          <td class="bg-opacity-5 table-primary" v-for="value in product.months">{{ value }}</td>
+          <td class="col-month col-amount" v-for="value in product.months">{{ value }}</td>
         </tr>
       </template>
       <tr v-if="!subfamily.products || subfamily.products.length === 0">
@@ -412,7 +412,7 @@ const onFilter = () => {
   <!-- Fila de totales por mes -->
   <tr class="table-dark fw-bold">
     <td colspan="6" class="text-end text-dark">Total por mes</td>
-    <td v-for="(month, mIdx) in $page.props.months" class="bg-opacity-5 table-primary">
+    <td v-for="(month, mIdx) in $page.props.months" class="col-month col-amount">
       {{
         data1.reduce((sum, level) =>
           sum + level.subfamilies.reduce((sfSum, subfamily) =>
@@ -462,15 +462,15 @@ const onFilter = () => {
                             </div>
                         </div>
 
-                        <div class="table-responsive mt-1" style="max-height: 450px; overflow-y: auto;">
-                            <table class="table table-bordered table-hover table-sm custom-striped fs-10 mb-0 agrochem-details">
+                        <div class="table-responsive budget-table-wrapper mt-1">
+                            <table class="table budget-tbl">
                                 <thead>
                                     <tr>
                                         <th>Nivel 2</th>
                                         <th>Nivel 3</th>
                                         <th class="min-w-100px">Producto</th>
                                         <th>Cantidad Total</th>
-                                        <th class="text-dark">Monto Total</th>
+                                        <th class="col-amount">Monto Total</th>
                                         <th v-for="(month, mIdx) in $page.props.months" class="text-primary">{{ month.label }}</th>
                                     </tr>
                                 </thead>
@@ -485,7 +485,7 @@ const onFilter = () => {
                                               <td v-if="idx === 0" :rowspan="product.items.length">{{ product.name }}</td>
                                               <td>{{ Number(item.quantity).toLocaleString('es-ES') }}</td>
                                               <td class="text-dark">{{ Number(item.total).toLocaleString('es-ES') }}</td>
-                                              <td v-for="(value, mIdx) in item.months" class="bg-opacity-5 table-primary">{{ Number(value).toLocaleString('es-ES') }}</td>
+                                              <td v-for="(value, mIdx) in item.months" class="col-month col-amount">{{ Number(value).toLocaleString('es-ES') }}</td>
                                             </tr>
                                           </template>
                                         </template>
@@ -541,15 +541,15 @@ const onFilter = () => {
                             </div>
                         </div>
 
-                        <div class="table-responsive mt-1" style="max-height: 450px; overflow-y: auto;">
-                            <table class="table table-bordered table-hover table-sm custom-striped fs-10 mb-0 agrochem-details">
+                        <div class="table-responsive budget-table-wrapper mt-1">
+                            <table class="table budget-tbl">
                                 <thead>
                                     <tr>
                                         <th>Subfamilia</th>
                                         <th class="min-w-100px">Producto</th>
                                         <th>Cantidad Total</th>
                                         <th>Un</th>
-                                        <th class="text-dark">Monto Total</th>
+                                        <th class="col-amount">Monto Total</th>
                                     </tr>
                                 </thead>
                                 <tbody>
@@ -564,7 +564,7 @@ const onFilter = () => {
                                             </tr>
                                         </template>
                                         <!-- Fila de subtotal solo monto total -->
-                                        <tr class="table-secondary fw-bold">
+                                        <tr>
                                             <td colspan="4" class="text-end">Subtotal {{subfamily.name}}</td>
                                             <td class="text-dark">
                                                 {{
@@ -652,8 +652,8 @@ const onFilter = () => {
                         </div>
 
                         <!--begin::Table-->
-                        <div class="table-responsive mt-1" style="max-height: 450px; overflow-y: auto;">
-                            <table class="table table-bordered table-hover table-sm custom-striped fs-10 mb-0 agrochem-details">
+                        <div class="table-responsive budget-table-wrapper mt-1">
+                            <table class="table budget-tbl">
                                 <thead>
                                     <tr>
                                         <th>Nivel 3</th>
@@ -663,13 +663,13 @@ const onFilter = () => {
                                 </thead>
                                 <tbody>
                                     <tr v-for="row in data4.rows" :key="row.subfamily_id">
-                                        <td class="fw-semibold">{{ row.subfamily_name }}</td>
+                                        <td class="cell-group">{{ row.subfamily_name }}</td>
                                         <td class="text-end">{{ row.total_cost?.toLocaleString('es-ES', { maximumFractionDigits: 0 }) }}</td>
                                         <td class="text-end">{{ row.cost_per_ha?.toLocaleString('es-ES', { maximumFractionDigits: 0 }) }}</td>
                                     </tr>
                                 </tbody>
                                 <tfoot>
-                                    <tr class="table-secondary fw-bold">
+                                    <tr>
                                         <td>Total</td>
                                         <td class="text-end">{{ data4.totalCost?.toLocaleString('es-ES', { maximumFractionDigits: 0 }) }}</td>
                                         <td class="text-end">{{ data4.totalCostPerHa?.toLocaleString('es-ES', { maximumFractionDigits: 0 }) }}</td>
@@ -690,14 +690,5 @@ const onFilter = () => {
 </template>
 
 <style>
-.table-responsive thead th {
-  position: sticky;
-  top: 0;
-  background: #f8fafc;
-  z-index: 2;
-}
-.table-responsive {
-  max-height: 450px;
-  overflow-y: auto;
-}
+/* Estilos de tablas centralizados en budget-tables.css */
 </style>

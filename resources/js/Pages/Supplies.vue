@@ -384,7 +384,7 @@ const excelDataResumen = computed(() => {
                            
                           </div>
                         </div>
-                        <div class="table-responsive mt-1" style="max-height: 450px; overflow-y: auto;">
+                        <div class="table-responsive budget-table-wrapper mt-1">
                         <Table sticky-header :id="'agrochemicals'" :total="filteredSupplies.length" :links="supplies.links">
                             <!--begin::Table head-->
                             <template #header>
@@ -497,8 +497,8 @@ const excelDataResumen = computed(() => {
                           </div>
                         </div>
 
-                        <div class="table-responsive mt-1" style="max-height: 450px; overflow-y: auto;">
-                            <table id="table_4" class="table table-bordered table-hover table-sm custom-striped fs-10 mb-0 agrochem-details">
+                        <div class="table-responsive budget-table-wrapper mt-1">
+                            <table id="table_4" class="table budget-tbl">
                                 <!--begin::Table head-->
                                 <thead>
                                     <tr class="fw-bold text-muted">
@@ -517,13 +517,13 @@ const excelDataResumen = computed(() => {
                                     <template v-for="cc in filteredData">
                                         <template v-for="(subfamily, index2) in cc.subfamilies">
                                             <tr>
-                                                <td v-if="index2 == 0" :rowspan="cc.total" style="vertical-align:top">{{cc.name}}</td>
-                                                <td style="vertical-align:top;" :rowspan="subfamily.products.length">{{subfamily.name}}</td>
+                                                <td v-if="index2 == 0" :rowspan="cc.total" class="cell-group">{{cc.name}}</td>
+                                                <td :rowspan="subfamily.products.length" class="cell-group">{{subfamily.name}}</td>
                                                 <td>{{subfamily.products[0].name}}</td>
                                                 <td>{{subfamily.products[0].totalQuantity}}</td>
                                                 <td>{{subfamily.products[0].unit}}</td>
                                                 <td>{{subfamily.products[0].totalAmount}}</td>
-                                                <td class="bg-opacity-5 table-primary" v-for="value in subfamily.products[0].months">{{value}}</td>
+                                                <td class="col-month col-amount" v-for="value in subfamily.products[0].months">{{value}}</td>
                                             </tr>
                                             <template v-for="(product, index3) in subfamily.products">
                                                 <tr v-if="index3 > 0">
@@ -531,7 +531,7 @@ const excelDataResumen = computed(() => {
                                                     <td>{{product.totalQuantity}}</td>
                                                     <td>{{product.unit}}</td>
                                                     <td>{{product.totalAmount}}</td>
-                                                    <td class="bg-opacity-5 table-primary" v-for="value in product.months">{{value}}</td>
+                                                    <td class="col-month col-amount" v-for="value in product.months">{{value}}</td>
                                                 </tr>
                                             </template>
                                         </template>
@@ -604,8 +604,8 @@ const excelDataResumen = computed(() => {
                           </div>
                         </div>
 
-                        <div class="table-responsive mt-1" style="max-height: 450px; overflow-y: auto;">
-                            <table id="table_4" class="table table-bordered table-hover table-sm custom-striped fs-10 mb-0 agrochem-details">
+                        <div class="table-responsive budget-table-wrapper mt-1">
+                            <table id="table_4" class="table budget-tbl">
                                 <!--begin::Table head-->
                                 <thead>
                                     <tr class="fw-bold text-muted">
@@ -624,13 +624,13 @@ const excelDataResumen = computed(() => {
                                     <template v-for="cc in filteredDataGastos">
                                         <template v-for="(subfamily, index2) in cc.subfamilies">
                                             <tr>
-                                                <td v-if="index2 == 0" :rowspan="cc.total" style="vertical-align:top">{{cc.name}}</td>
-                                                <td style="vertical-align:top;" :rowspan="subfamily.products.length">{{subfamily.name}}</td>
+                                                <td v-if="index2 == 0" :rowspan="cc.total" class="cell-group">{{cc.name}}</td>
+                                                <td :rowspan="subfamily.products.length" class="cell-group">{{subfamily.name}}</td>
                                                 <td>{{subfamily.products[0].name}}</td>
                                                 <td>{{subfamily.products[0].totalQuantity}}</td>
                                                 <td>{{subfamily.products[0].unit}}</td>
                                                 <td>{{subfamily.products[0].totalAmount}}</td>
-                                                <td class="bg-opacity-5 table-primary" v-for="value in subfamily.products[0].months">{{value}}</td>
+                                                <td class="col-month col-amount" v-for="value in subfamily.products[0].months">{{value}}</td>
                                             </tr>
                                             <template v-for="(product, index3) in subfamily.products">
                                                 <tr v-if="index3 > 0">
@@ -638,7 +638,7 @@ const excelDataResumen = computed(() => {
                                                     <td>{{product.totalQuantity}}</td>
                                                     <td>{{product.unit}}</td>
                                                     <td>{{product.totalAmount}}</td>
-                                                    <td class="bg-opacity-5 table-primary" v-for="value in product.months">{{value}}</td>
+                                                    <td class="col-month col-amount" v-for="value in product.months">{{value}}</td>
                                                 </tr>
                                             </template>
                                         </template>
@@ -688,15 +688,15 @@ const excelDataResumen = computed(() => {
                             </div>
                         </div>
                         <!-- Sin filtros de especie/variedad aquí, tabla completamente independiente -->
-                        <div class="table-responsive mt-1" style="max-height: 450px; overflow-y: auto;">
-                            <table class="table table-bordered table-hover table-sm custom-striped fs-10 mb-0 agrochem-details">
+                        <div class="table-responsive budget-table-wrapper mt-1">
+                            <table class="table budget-tbl">
                                 <thead>
                                     <tr class="fw-bold text-muted">
                                         <th>Subfamilia</th>
                                         <th class="min-w-100px">Producto</th>
                                         <th>Cantidad Total</th>
                                         <th>Un</th>
-                                        <th class="text-dark">Monto Total</th>
+                                        <th class="col-amount">Monto Total</th>
                                     </tr>
                                 </thead>
                                 <tbody>
@@ -718,7 +718,7 @@ const excelDataResumen = computed(() => {
                                             </tr>
                                         </template>
                                         <!-- Subtotal row -->
-                                        <tr class="table-secondary">
+                                        <tr class="row-subtotal">
                                             <td colspan="3" class="text-end fw-bold">Subtotal</td>
                                             <td colspan="2" class="fw-bold text-dark">
                                               {{ subfamily.products.reduce((acc, p) => {
@@ -809,8 +809,8 @@ const excelDataResumen = computed(() => {
                           </div>
                         </div>
 
-                        <div class="table-responsive mt-1" style="max-height: 450px; overflow-y: auto;">
-                            <table class="table table-bordered table-hover table-sm custom-striped fs-10 mb-0 agrochem-details">
+                        <div class="table-responsive budget-table-wrapper mt-1">
+                            <table class="table budget-tbl">
                                 <thead>
                                     <tr>
                                         <th>Estado Desarrollo</th>
@@ -822,7 +822,7 @@ const excelDataResumen = computed(() => {
                                 </thead>
                                 <tbody>
                                     <tr v-for="row in resumenData.rows" :key="row.development_state_id">
-                                        <td class="fw-semibold">{{ row.development_state_name }}</td>
+                                        <td class="cell-group">{{ row.development_state_name }}</td>
                                         <td class="text-end">{{ row.total_surface.toLocaleString('es-ES', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) }}</td>
                                         <td class="text-center">{{ row.cost_centers_count }}</td>
                                         <td v-for="sf in resumenData.subfamilyList" :key="sf.id" class="text-end">
@@ -832,7 +832,7 @@ const excelDataResumen = computed(() => {
                                     </tr>
                                 </tbody>
                                 <tfoot>
-                                    <tr class="table-secondary fw-bold">
+                                    <tr>
                                         <td>Total</td>
                                         <td class="text-end">{{ resumenData.totalSurface?.toLocaleString('es-ES', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) }}</td>
                                         <td class="text-center">{{ resumenData.totalCCs }}</td>
@@ -855,14 +855,5 @@ const excelDataResumen = computed(() => {
 </template>
 
 <style>
-.table-responsive thead th {
-  position: sticky;
-  top: 0;
-  background: #f8fafc;
-  z-index: 2;
-}
-.table-responsive {
-  max-height: 450px;
-  overflow-y: auto;
-}
+/* Estilos de tablas centralizados en budget-tables.css */
 </style>
