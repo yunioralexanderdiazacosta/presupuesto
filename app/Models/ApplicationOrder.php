@@ -15,13 +15,15 @@ class ApplicationOrder extends Model
         'volume',
         'mojamiento',
         'recomendado',
-        'aplicadores',
         'status',
         'responsable',
         'observations',
         'team_id',
         'season_id',
         'phenological_stage_id',
+        'tractors',
+        'equipments',
+        'operators',
     ];
 
     protected $casts = [

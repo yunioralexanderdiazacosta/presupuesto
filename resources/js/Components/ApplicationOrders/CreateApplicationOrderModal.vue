@@ -12,6 +12,8 @@ const props = defineProps({
     groupings: Array,
     fruits: Array,
     phenologicalStages: Array,
+    machineries: Array,
+    operators: Array,
 });
 
 const emit = defineEmits(['close']);
@@ -22,11 +24,13 @@ const form = useForm({
     volume: '',
     mojamiento: '',
     recomendado: '',
-    aplicadores: '',
     status: 'pendiente',
     responsable: '',
     observations: '',
     phenological_stage_id: null,
+    tractors: '',
+    equipments: '',
+    operators: '',
     products: [],
     cost_centers: [],
 });
@@ -118,6 +122,8 @@ function save() {
                         :groupings="groupings"
                         :fruits="fruits"
                         :phenological-stages="phenologicalStages"
+                        :machineries="machineries"
+                        :operators="operators"
                     />
                 </div>
 

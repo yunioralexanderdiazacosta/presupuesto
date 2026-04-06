@@ -14,6 +14,8 @@ const props = defineProps({
     groupings: Array,
     fruits: Array,
     phenologicalStages: Array,
+    machineries: Array,
+    operators: Array,
     isEditing: {
         type: Boolean,
         default: false
@@ -22,6 +24,23 @@ const props = defineProps({
 
 // ==== PRODUCTOS ====
 const productsOptions = ref(props.products);
+
+// ==== TRACTORES, EQUIPOS, OPERARIOS (Multiselect tags → string separado por coma) ====
+const machineryNames = computed(() => (props.machineries || []).map(m => m.label));
+const operatorNames = computed(() => (props.operators || []).map(o => o.label));
+
+const selectedTractors = computed({
+    get: () => props.form.tractors ? props.form.tractors.split(', ').filter(Boolean) : [],
+    set: (val) => { props.form.tractors = val.join(', '); }
+});
+const selectedEquipments = computed({
+    get: () => props.form.equipments ? props.form.equipments.split(', ').filter(Boolean) : [],
+    set: (val) => { props.form.equipments = val.join(', '); }
+});
+const selectedOperators = computed({
+    get: () => props.form.operators ? props.form.operators.split(', ').filter(Boolean) : [],
+    set: (val) => { props.form.operators = val.join(', '); }
+});
 const isRefreshingProducts = ref(false);
 const selectedProduct = ref(null);
 const editingProductIndex = ref(null);
@@ -396,9 +415,53 @@ function getSimplifiedQuantity(product) {
                 />
                 <InputError :message="form.errors.responsable" />
             </div>
+
+            <div class="col-md-3 mb-2">
+                <label class="form-label small mb-1">Operarios</label>
+                <Multiselect
+                    v-model="selectedOperators"
+                    :options="operatorNames"
+                    mode="tags"
+                    :searchable="true"
+                    :close-on-select="false"
+                    :create-option="true"
+                    placeholder="Seleccione operarios..."
+                    class="multiselect-blue form-control-sm"
+                />
+                <InputError :message="form.errors.operators" />
+            </div>
+
+            <div class="col-md-3 mb-2">
+                <label class="form-label small mb-1">Tractores</label>
+                <Multiselect
+                    v-model="selectedTractors"
+                    :options="machineryNames"
+                    mode="tags"
+                    :searchable="true"
+                    :close-on-select="false"
+                    :create-option="true"
+                    placeholder="Seleccione tractores..."
+                    class="multiselect-blue form-control-sm"
+                />
+                <InputError :message="form.errors.tractors" />
+            </div>
         </div>
 
         <div class="row mb-2">
+            <div class="col-md-3 mb-2">
+                <label class="form-label small mb-1">Equipos</label>
+                <Multiselect
+                    v-model="selectedEquipments"
+                    :options="machineryNames"
+                    mode="tags"
+                    :searchable="true"
+                    :close-on-select="false"
+                    :create-option="true"
+                    placeholder="Seleccione equipos..."
+                    class="multiselect-blue form-control-sm"
+                />
+                <InputError :message="form.errors.equipments" />
+            </div>
             <div class="col-md-4 mb-2">
                 <label class="form-label small mb-1">Frutal (filtro)</label>
                 <select 
@@ -430,18 +493,6 @@ function getSimplifiedQuantity(product) {
         </div>
 
         <div class="row mb-2">
-            <div class="col-md-6 mb-2">
-                <label class="form-label small mb-1">Aplicadores <span class="text-danger">*</span></label>
-                <textarea
-                    v-model="form.aplicadores"
-                    rows="1"
-                    class="form-control form-control-sm"
-                    :class="{'is-invalid': form.errors.aplicadores}"
-                    placeholder="Nombres de los aplicadores..."
-                ></textarea>
-                <InputError :message="form.errors.aplicadores" />
-            </div>
-
             <div class="col-md-3 mb-2">
                 <label class="form-label small mb-1">Estado <span class="text-danger">*</span></label>
                 <select v-model="form.status" class="form-select form-select-sm" :class="{'is-invalid': form.errors.status}">

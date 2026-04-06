@@ -13,6 +13,8 @@ const props = defineProps({
     groupings: Array,
     fruits: Array,
     phenologicalStages: Array,
+    machineries: Array,
+    operators: Array,
 });
 
 const emit = defineEmits(['close']);
@@ -23,11 +25,13 @@ const form = useForm({
     volume: '',
     mojamiento: '',
     recomendado: '',
-    aplicadores: '',
     status: 'pendiente',
     responsable: '',
     observations: '',
     phenological_stage_id: null,
+    tractors: '',
+    equipments: '',
+    operators: '',
     products: [],
     cost_centers: [],
 });
@@ -51,11 +55,13 @@ watch(() => props.show, (val) => {
         form.volume = props.order.volume || '';
         form.mojamiento = props.order.mojamiento;
         form.recomendado = props.order.recomendado;
-        form.aplicadores = props.order.aplicadores;
         form.status = props.order.status;
         form.responsable = props.order.responsable;
         form.observations = props.order.observations || '';
         form.phenological_stage_id = props.order.phenological_stage_id || null;
+        form.tractors = props.order.tractors || '';
+        form.equipments = props.order.equipments || '';
+        form.operators = props.order.operators || '';
         
         // Cargar productos
         form.products = (props.order.order_products || []).map(op => ({
@@ -162,6 +168,8 @@ function save() {
                         :groupings="groupings"
                         :fruits="fruits"
                         :phenological-stages="phenologicalStages"
+                        :machineries="machineries"
+                        :operators="operators"
                         :is-editing="true"
                     />
                 </div>

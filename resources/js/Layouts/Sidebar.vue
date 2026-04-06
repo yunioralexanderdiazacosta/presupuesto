@@ -45,43 +45,8 @@ const items = [
             {
                 title: 'Presupuesto por CC',
                 icon: `<i class="bi bi-card-checklist"></i>`,
-                link: null,
-                subitems: [
-                    {
-                        title: 'Agroquimicos',
-                        icon: `<i class="bi bi-card-checklist"></i>`,
-                        link: 'agrochemicals.index'
-                    },
-
-                    {
-                        title: 'Fertilizantes',
-                        icon: `<i class="bi bi-card-checklist"></i>`,
-                        link: 'fertilizers.index'
-                    },
-
-                    {
-                        title: 'Mano de Obra',
-                        icon: `<i class="bi bi-card-checklist"></i>`,
-                        link: 'manpowers.index'
-                    },
-
-                    {
-                        title: 'Insumos',
-                        icon: `<i class="bi bi-card-checklist"></i>`,
-                        link: 'supplies.index'
-                    },
-
-                    {
-                        title: 'Servicios',
-                        icon: `<i class="bi bi-card-checklist"></i>`,
-                        link: 'services.index'
-                    },
-                     {
-                        title: 'Cosecha',
-                        icon: `<i class="bi bi-card-checklist"></i>`,
-                        link: 'harvests.index'
-                    }
-                ]
+                link: 'agrochemicals.index',
+                subitems: []
             },
 
             {

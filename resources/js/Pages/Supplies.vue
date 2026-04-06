@@ -7,6 +7,7 @@ import Table from '@/Components/Table.vue';
 import Empty from '@/Components/Empty.vue';
 import Breadcrumb from '@/Components/Breadcrumb.vue';
 import TitleBudget from '@/Components/Budgets/TitleBudget.vue';
+import BudgetCCNavBar from '@/Components/Budgets/BudgetCCNavBar.vue';
 import CreateSupplyModal from '@/Components/Supplies/CreateSupplyModal.vue';
 import EditSupplyModal from '@/Components/Supplies/EditSupplyModal.vue';
 import ExportExcelButton from '@/Components/ExportExcelButton.vue';
@@ -323,6 +324,8 @@ const excelDataResumen = computed(() => {
         <!--begin::Breadcrumb-->
         <Breadcrumb :links="links" />
         <!--end::Breadcrumb-->
+
+        <BudgetCCNavBar />
 
         <div class="card my-3">
             <div class="card-header">

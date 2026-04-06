@@ -88,7 +88,8 @@ function onRutInput(event) {
             <div class="col-md-3">
                 <label class="form-label small mb-1">RUT <span class="text-danger">*</span></label>
                 <input type="text" :value="form.rut" @input="onRutInput" class="form-control form-control-sm"
-                    :class="{ 'is-invalid': form.errors?.rut || rutError, 'is-valid': form.rut && !rutError && !form.errors?.rut }" placeholder="12.345.678-9" maxlength="12" />
+                    :class="{ 'is-invalid': form.errors?.rut || rutError, 'is-valid': form.rut && !rutError && !form.errors?.rut }" placeholder="12.345.678-9" maxlength="12"
+                    title="Puedes ingresar con o sin puntos y guión, se formatea automáticamente" />
                 <div v-if="rutError" class="invalid-feedback">{{ rutError }}</div>
                 <div v-if="form.errors?.rut" class="invalid-feedback">{{ form.errors.rut }}</div>
             </div>

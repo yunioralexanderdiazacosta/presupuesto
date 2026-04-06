@@ -15,6 +15,8 @@ const props = defineProps({
     groupings: Array,
     fruits: Array,
     phenologicalStages: Array,
+    machineries: Array,
+    operators: Array,
 });
 
 const title = 'Órdenes de Aplicación';
@@ -29,11 +31,11 @@ const filteredRows = computed(() => {
     if (!term.value) return props.applicationOrders.data;
     const search = term.value.toLowerCase();
     return props.applicationOrders.data.filter(item => {
-        const aplicadores = item.aplicadores?.toLowerCase() || '';
+        const operators = item.operators?.toLowerCase() || '';
         const status = item.status?.toLowerCase() || '';
         const productos = item.order_products?.map(op => op.product?.name?.toLowerCase() || '').join(' ') || '';
         return (
-            aplicadores.includes(search) ||
+            operators.includes(search) ||
             status.includes(search) ||
             productos.includes(search) ||
             item.id.toString().includes(search)
@@ -292,6 +294,8 @@ watch(filteredRows, () => {
             :groupings="groupings"
             :fruits="fruits"
             :phenological-stages="phenologicalStages"
+            :machineries="machineries"
+            :operators="operators"
             @close="closeCreateModal"
         />
 
@@ -304,6 +308,8 @@ watch(filteredRows, () => {
             :groupings="groupings"
             :fruits="fruits"
             :phenological-stages="phenologicalStages"
+            :machineries="machineries"
+            :operators="operators"
             @close="closeEditModal"
         />
     </AppLayout>

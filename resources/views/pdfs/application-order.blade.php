@@ -354,12 +354,6 @@
                 </td>
                 <td style="width: 50%; border: none; padding: 5px; vertical-align: top;">
                     <table style="border: none; margin: 0;">
-                        <tr>
-                            <td style="border: none; padding: 2px 5px;">
-                                <div class="info-label">Aplicadores:</div>
-                                <div class="info-value">{{ $order->aplicadores }}</div>
-                            </td>
-                        </tr>
                         @if($order->observations)
                         <tr>
                             <td style="border: none; padding: 2px 5px;">
@@ -372,6 +366,31 @@
                 </td>
             </tr>
         </table>
+
+        @if($order->tractors || $order->equipments || $order->operators)
+        <table style="border: none; margin: 5px 0 0 0;">
+            <tr>
+                @if($order->tractors)
+                <td style="width: 33%; border: none; padding: 2px 5px; vertical-align: top;">
+                    <div class="info-label">Tractores:</div>
+                    <div class="info-value">{{ $order->tractors }}</div>
+                </td>
+                @endif
+                @if($order->equipments)
+                <td style="width: 33%; border: none; padding: 2px 5px; vertical-align: top;">
+                    <div class="info-label">Equipos:</div>
+                    <div class="info-value">{{ $order->equipments }}</div>
+                </td>
+                @endif
+                @if($order->operators)
+                <td style="width: 33%; border: none; padding: 2px 5px; vertical-align: top;">
+                    <div class="info-label">Operarios:</div>
+                    <div class="info-value">{{ $order->operators }}</div>
+                </td>
+                @endif
+            </tr>
+        </table>
+        @endif
     </div>
 
     <!-- Centros de Costo -->

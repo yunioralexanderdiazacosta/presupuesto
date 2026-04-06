@@ -25,6 +25,7 @@ class StoreInvoiceController extends Controller
                 'payment_term'      => $request->payment_term,
                 'payment_type'      => $request->payment_type,
                 'team_id'           => $user->team_id,
+                'user_id'           => $user->id,
                 'supplier_id'       => $request->supplier_id,
                 'company_reason_id' => $request->company_reason_id,
                 'type_document_id'  => $request->type_document_id,

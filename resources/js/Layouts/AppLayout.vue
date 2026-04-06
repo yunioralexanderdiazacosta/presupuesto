@@ -268,49 +268,10 @@ const navigateTo = (routeName) => {
                   </Link>
                   <!-- more inner pages-->
                 </li>
-                <li class="nav-item"><a class="nav-link dropdown-indicator" href="#simple" data-bs-toggle="collapse" aria-expanded="false" aria-controls="authentication">
+                <li class="nav-item"><Link class="nav-link" :href="route('agrochemicals.index')">
                     <div class="d-flex align-items-center"><span class="nav-link-text ps-3">Presupuestar por CC</span>
                     </div>
-                  </a>
-                  <!-- more inner pages-->
-                  <ul class="nav collapse" id="simple">
-                    <li class="nav-item"><Link class="nav-link" :href="route('agrochemicals.index')">
-                        <div class="d-flex align-items-center"><span class="nav-link-text ps-4 mt-1 mb-1 text-primary">Agroquimicos</span>
-                        </div>
-                      </Link>
-                      <!-- more inner pages-->
-                    </li>
-                    <li class="nav-item"><Link class="nav-link" :href="route('fertilizers.index')">
-                        <div class="d-flex align-items-center"><span class="nav-link-text ps-4 mb-1 text-primary">Fertilizantes</span>
-                        </div>
-                      </Link>
-                      <!-- more inner pages-->
-                    </li>
-                    <li class="nav-item"><Link class="nav-link" :href="route('manpowers.index')">
-                        <div class="d-flex align-items-center"><span class="nav-link-text ps-4 mb-1 text-primary">Mano de Obra</span>
-                        </div>
-                      </Link>
-                      <!-- more inner pages-->
-                    </li>
-                    <li class="nav-item"><Link class="nav-link" :href="route('supplies.index')">
-                        <div class="d-flex align-items-center"><span class="nav-link-text ps-4  mb-1 text-primary">Insumos</span>
-                        </div>
-                      </Link>
-                      <!-- more inner pages-->
-                    </li>
-                    <li class="nav-item"><Link class="nav-link" :href="route('services.index')">
-                        <div class="d-flex align-items-center"><span class="nav-link-text ps-4  mb-1 text-primary">Servicios</span>
-                        </div>
-                      </Link>
-                      <!-- more inner pages-->
-                    </li>
-                     <li class="nav-item"><Link class="nav-link" :href="route('harvests.index')">
-                        <div class="d-flex align-items-center"><span class="nav-link-text ps-4 mb-1 text-primary">Cosecha</span>
-                        </div>
-                      </Link>
-                      <!-- more inner pages-->
-                    </li>
-                  </ul>
+                  </Link>
                 </li>
                 <li class="nav-item"><a class="nav-link dropdown-indicator" href="#card" data-bs-toggle="collapse" aria-expanded="false" aria-controls="authentication">
                     <div class="d-flex align-items-center"><span class="nav-link-text ps-3 mb-1">Presupuestar Gral Campo</span>

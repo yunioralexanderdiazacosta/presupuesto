@@ -23,6 +23,7 @@ class InvoicesController extends Controller
             'companyReason:id,name', 
             'typeDocument:id,name',
             'month:id,name',
+            'user:id,name',
             'invoiceProducts.product:id,name,level1_id',
             'expenseReport:id,number'
         ])
@@ -98,6 +99,7 @@ class InvoicesController extends Controller
                 }),
                 'total'             => '$' . number_format($total, 0, ',', '.'),
                 'expense_report'    => $invoice->expenseReport ? $invoice->expenseReport->number : null,
+                'user_name'         => $invoice->user ? $invoice->user->name : null,
             ];
         });
 

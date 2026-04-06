@@ -10,6 +10,8 @@ use App\Models\Product;
 use App\Models\CostCenter;
 use App\Models\Level3;
 use App\Models\Unit;
+use App\Models\Machinery;
+use App\Models\Operator;
 
 class ApplicationOrdersController extends Controller
 {
@@ -27,7 +29,7 @@ class ApplicationOrdersController extends Controller
             'orderProducts.product',
             'orderProducts.unit',
             'orderCostCenters.costCenter',
-            'phenologicalStage'
+            'phenologicalStage',
         ])
             ->where('team_id', $user->team_id)
             ->where('season_id', $season_id)
@@ -112,6 +114,31 @@ class ApplicationOrdersController extends Controller
                 ];
             });
 
+        // Obtener maquinarias del equipo (para tractor y equipo)
+        $machineries = Machinery::with('typeMachinery:id,name')
+            ->where('team_id', $user->team_id)
+            ->where('is_active', true)
+            ->get(['id', 'cod_machinery', 'brand', 'type_machinery_id'])
+            ->map(function($m) {
+                return [
+                    'value' => $m->id,
+                    'label' => $m->cod_machinery . ($m->brand ? ' - ' . $m->brand : ''),
+                    'type' => $m->typeMachinery->name ?? '',
+                ];
+            });
+
+        // Obtener operadores del equipo y temporada
+        $operators = Operator::where('team_id', $user->team_id)
+            ->where('season_id', $season_id)
+            ->orderBy('name')
+            ->get(['id', 'name'])
+            ->map(function($op) {
+                return [
+                    'value' => $op->id,
+                    'label' => $op->name,
+                ];
+            });
+
         return Inertia::render('ApplicationOrders/Index', [
             'applicationOrders' => $applicationOrders,
             'products' => $products,
@@ -120,6 +147,8 @@ class ApplicationOrdersController extends Controller
             'groupings' => $groupings,
             'fruits' => $fruits,
             'phenologicalStages' => $phenologicalStages,
+            'machineries' => $machineries,
+            'operators' => $operators,
         ]);
     }
 }

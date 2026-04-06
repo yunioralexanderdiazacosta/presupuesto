@@ -1,6 +1,7 @@
 <script setup>
 import { ref, computed } from 'vue';
 import Swal from 'sweetalert2';
+import axios from 'axios';
 import { router, Head } from '@inertiajs/vue3';
 import AppLayout from '@/Layouts/AppLayout.vue';
 import Breadcrumb from '@/Components/Breadcrumb.vue';
@@ -104,6 +105,54 @@ function formatDate(date) {
     if (!date) return '-';
     return new Date(date).toLocaleDateString('es-CL');
 }
+
+// ── Importación masiva Excel ─────────────────────────────────
+const importFile = ref(null);
+const selectedFileName = ref('');
+const isImporting = ref(false);
+
+function onFileSelected(event) {
+    const file = event.target.files[0];
+    if (file) {
+        selectedFileName.value = file.name;
+    }
+}
+
+async function importExcel() {
+    const file = importFile.value?.files[0];
+    if (!file) {
+        Swal.fire('Atención', 'Primero selecciona un archivo Excel.', 'warning');
+        return;
+    }
+
+    isImporting.value = true;
+    const formData = new FormData();
+    formData.append('file', file);
+
+    try {
+        await axios.post(route('employees.import'), formData, {
+            headers: { 'Content-Type': 'multipart/form-data' },
+        });
+        Swal.fire({ icon: 'success', title: 'Importación exitosa', showConfirmButton: false, timer: 1500 });
+        importFile.value.value = '';
+        selectedFileName.value = '';
+        router.reload({ preserveScroll: true });
+    } catch (error) {
+        if (error.response?.status === 422 && error.response.data.failures) {
+            const failures = error.response.data.failures;
+            let html = '<div style="text-align:left;max-height:300px;overflow:auto;font-size:0.85rem;">';
+            failures.forEach(f => {
+                html += `<b>Fila ${f.row}:</b> ${f.errors.join(', ')}<br>`;
+            });
+            html += '</div>';
+            Swal.fire({ icon: 'error', title: 'Errores en el archivo', html, width: 600 });
+        } else {
+            Swal.fire('Error', 'No se pudo procesar el archivo.', 'error');
+        }
+    } finally {
+        isImporting.value = false;
+    }
+}
 </script>
 
 <template>
@@ -119,7 +168,20 @@ function formatDate(date) {
                         </h5>
                     </div>
                     <div class="col-6 col-sm-auto ms-auto text-end ps-0">
-                        <div class="d-flex align-items-center gap-2">
+                        <div class="d-flex align-items-center gap-2 flex-wrap">
+                            <a :href="route('employees.template')" class="btn btn-falcon-default btn-sm">
+                                <span class="fas fa-file-download" data-fa-transform="shrink-3 down-2"></span>
+                                <span class="d-none d-sm-inline-block ms-1">Plantilla</span>
+                            </a>
+                            <label for="import-file" class="btn btn-falcon-default btn-sm mb-0">
+                                <span class="fas fa-file-upload" data-fa-transform="shrink-3 down-2"></span>
+                                <span class="d-none d-sm-inline-block ms-1">{{ selectedFileName || 'Seleccionar' }}</span>
+                            </label>
+                            <input id="import-file" type="file" ref="importFile" accept=".xlsx,.xls,.csv" class="d-none" @change="onFileSelected" />
+                            <button class="btn btn-falcon-default btn-sm" @click="importExcel" :disabled="isImporting">
+                                <span class="fas fa-file-import" data-fa-transform="shrink-3 down-2" :class="{'fa-spin': isImporting}"></span>
+                                <span class="d-none d-sm-inline-block ms-1">Importar</span>
+                            </button>
                             <button class="btn btn-falcon-default btn-sm" @click="openCreateModal">
                                 <span class="fas fa-plus" data-fa-transform="shrink-3 down-2"></span>
                                 <span class="d-none d-sm-inline-block ms-1">Nuevo</span>

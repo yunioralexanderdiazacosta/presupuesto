@@ -25,11 +25,13 @@ class UpdateApplicationOrderRequest extends FormRequest
             'volume' => 'nullable|integer|min:0',
             'mojamiento' => 'required|numeric|min:0',
             'recomendado' => 'required|string|max:255',
-            'aplicadores' => 'required|string',
             'status' => 'required|in:pendiente,en_proceso,completada,cancelada',
             'responsable' => 'required|string|max:255',
             'observations' => 'nullable|string',
             'phenological_stage_id' => 'nullable|exists:phenological_stages,id',
+            'tractors' => 'nullable|string|max:500',
+            'equipments' => 'nullable|string|max:500',
+            'operators' => 'nullable|string|max:500',
             
             // Productos (array de productos)
             'products' => 'required|array|min:1',
@@ -57,7 +59,6 @@ class UpdateApplicationOrderRequest extends FormRequest
             'mojamiento.required' => 'El mojamiento es obligatorio.',
             'mojamiento.numeric' => 'El mojamiento debe ser un número.',
             'recomendado.required' => 'El nombre de quien recomienda es obligatorio.',
-            'aplicadores.required' => 'Los nombres de aplicadores son obligatorios.',
             'status.required' => 'El estado es obligatorio.',
             'responsable.required' => 'El responsable es obligatorio.',
             'products.required' => 'Debe agregar al menos un producto.',

@@ -907,6 +907,8 @@ Route::middleware([
     Route::post('/employees', StoreEmployeeController::class)->name('employees.store');
     Route::put('/employees/{employee}', UpdateEmployeeController::class)->name('employees.update');
     Route::delete('/employees/{employee}', DeleteEmployeeController::class)->name('employees.delete');
+    Route::post('/employees/import', [EmployeeController::class, 'import'])->name('employees.import');
+    Route::get('/employees/template', [EmployeeController::class, 'template'])->name('employees.template');
 
     // Contracts (Contratos - Remuneraciones)
     Route::get('/contracts', [ContractController::class, 'index'])->name('contracts.index');

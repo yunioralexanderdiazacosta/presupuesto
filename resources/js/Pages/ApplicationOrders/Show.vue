@@ -14,6 +14,8 @@ const props = defineProps({
     groupings: Array,
     fruits: Array,
     phenologicalStages: Array,
+    machineries: Array,
+    operators: Array,
 });
 
 const title = 'Detalle de Orden de Aplicación';
@@ -244,9 +246,23 @@ function getPracticalQuantityPerHa(value, unitName) {
                     </div>
 
                     <div class="row g-3 mt-1">
-                        <div class="col-md-12">
-                            <label class="text-muted small">Aplicadores:</label>
-                            <p class="fw-bold mb-0">{{ applicationOrder.aplicadores }}</p>
+                        <div class="col-md-4" v-if="applicationOrder.tractors">
+                            <label class="text-muted small">Tractores:</label>
+                            <p class="fw-bold mb-0">
+                                <i class="fas fa-tractor text-muted me-1"></i>{{ applicationOrder.tractors }}
+                            </p>
+                        </div>
+                        <div class="col-md-4" v-if="applicationOrder.equipments">
+                            <label class="text-muted small">Equipos:</label>
+                            <p class="fw-bold mb-0">
+                                <i class="fas fa-cogs text-muted me-1"></i>{{ applicationOrder.equipments }}
+                            </p>
+                        </div>
+                        <div class="col-md-4" v-if="applicationOrder.operators">
+                            <label class="text-muted small">Operarios:</label>
+                            <p class="fw-bold mb-0">
+                                <i class="fas fa-user-hard-hat text-muted me-1"></i>{{ applicationOrder.operators }}
+                            </p>
                         </div>
                     </div>
 
@@ -404,6 +420,8 @@ function getPracticalQuantityPerHa(value, unitName) {
             :groupings="groupings"
             :fruits="fruits"
             :phenological-stages="phenologicalStages"
+            :machineries="machineries"
+            :operators="operators"
             @close="closeEditModal"
         />
     </AppLayout>
