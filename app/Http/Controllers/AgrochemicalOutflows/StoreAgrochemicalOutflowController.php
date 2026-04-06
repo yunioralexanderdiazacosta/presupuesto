@@ -70,33 +70,53 @@ class StoreAgrochemicalOutflowController
             $date = $request->date;
             $observations = $request->observations;
             
-            // Obtener cost centers de la orden de aplicación
-            $applicationOrder = ApplicationOrder::with('orderCostCenters')->findOrFail($applicationOrderId);
+            // Obtener cost centers de la orden de aplicación con superficie
+            $applicationOrder = ApplicationOrder::with('orderCostCenters.costCenter')->findOrFail($applicationOrderId);
             $orderCostCenters = $applicationOrder->orderCostCenters;
+            
+            // Calcular superficie total para prorrateo
+            $totalSurface = $orderCostCenters->sum(fn($occ) => $occ->costCenter->surface ?? 0);
             
             foreach ($request->products as $productData) {
                 $product = Product::findOrFail($productData['product_id']);
-                $costCenterId = $productData['cost_center_id'];
                 
-                // Crear un registro por cada línea de factura
+                // Crear un registro por cada línea de factura × cada cuartel de la orden
                 foreach ($productData['lines'] as $line) {
                     $quantity = $line['quantity'];
                     
-                    // 1. Crear AgrochemicalOutflow
-                    $agrochemicalOutflow = AgrochemicalOutflow::create([
-                        'application_order_id' => $applicationOrderId,
-                        'maquinadas' => $maquinadas,
-                        'date' => $date,
-                        'product_id' => $productData['product_id'],
-                        'invoice_product_id' => $line['invoice_product_id'],
-                        'quantity' => $quantity,
-                        'cost_center_id' => $costCenterId,
-                        'observations' => $observations,
-                        'team_id' => $teamId,
-                        'season_id' => $seasonId,
-                    ]);
+                    // Prorratear cantidad por superficie de cada cuartel
+                    $remainingQty = $quantity;
+                    $lastIndex = $orderCostCenters->count() - 1;
                     
-                    // 2. Crear registro en Outflow para el kardex
+                    foreach ($orderCostCenters->values() as $idx => $occ) {
+                        $ccSurface = $occ->costCenter->surface ?? 0;
+                        
+                        // Último cuartel recibe el residuo para evitar diferencias por redondeo
+                        if ($idx === $lastIndex) {
+                            $proratedQty = round($remainingQty, 2);
+                        } else {
+                            $proratedQty = $totalSurface > 0
+                                ? round($quantity * ($ccSurface / $totalSurface), 2)
+                                : round($quantity / $orderCostCenters->count(), 2);
+                            $remainingQty -= $proratedQty;
+                        }
+                        
+                        // 1. Crear AgrochemicalOutflow (uno por cuartel, cantidad prorrateada)
+                        $agrochemicalOutflow = AgrochemicalOutflow::create([
+                            'application_order_id' => $applicationOrderId,
+                            'maquinadas' => $maquinadas,
+                            'date' => $date,
+                            'product_id' => $productData['product_id'],
+                            'invoice_product_id' => $line['invoice_product_id'],
+                            'quantity' => $proratedQty,
+                            'cost_center_id' => $occ->cost_center_id,
+                            'observations' => $observations,
+                            'team_id' => $teamId,
+                            'season_id' => $seasonId,
+                        ]);
+                    }
+                    
+                    // 2. Crear registro en Outflow para el kardex (uno por línea, no por cuartel)
                     $outflow = Outflow::create([
                         'agrochemical_outflow_id' => $agrochemicalOutflow->id,
                         'team_id' => $teamId,
@@ -110,7 +130,7 @@ class StoreAgrochemicalOutflowController
                         'notes' => 'Aplicación agroquímico - Orden #' . $applicationOrderId . ' - ' . ($observations ?? 'Sin observaciones'),
                     ]);
                     
-                    // 3. Crear MÚLTIPLES outflow_cost_centers (uno por cada cost center de la orden)
+                    // 3. Crear outflow_cost_centers (uno por cada cost center de la orden)
                     foreach ($orderCostCenters as $occ) {
                         $outflow->costCenters()->create([
                             'cost_center_id' => $occ->cost_center_id,

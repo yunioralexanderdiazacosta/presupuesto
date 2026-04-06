@@ -71,6 +71,9 @@ use App\Http\Controllers\Products2\DeleteProduct2Controller;
     use App\Http\Controllers\AgrochemicalOutflows\StoreAgrochemicalOutflowController;
     use App\Http\Controllers\AgrochemicalOutflows\DeleteAgrochemicalOutflowController;
 
+// Rutas para Libro de Campo
+    use App\Http\Controllers\LibroCampoController;
+
 // Rutas para Invoice Payments
     use App\Http\Controllers\InvoicePayments\InvoicePaymentController;
     use App\Http\Controllers\InvoicePayments\InvoicePaymentDashboardController;
@@ -820,6 +823,10 @@ Route::middleware([
     Route::get('/agrochemical-outflows', [AgrochemicalOutflowController::class, 'index'])->name('agrochemical-outflows.index');
     Route::post('/agrochemical-outflows', StoreAgrochemicalOutflowController::class)->name('agrochemical-outflows.store');
     Route::delete('/agrochemical-outflows/{agrochemicalOutflow}', DeleteAgrochemicalOutflowController::class)->name('agrochemical-outflows.delete');
+
+    // Libro de Campo
+    Route::get('/libro-campo', [LibroCampoController::class, 'index'])->name('libro-campo.index');
+    Route::get('/libro-campo/export-pdf', [LibroCampoController::class, 'exportPdf'])->name('libro-campo.export-pdf');
 
     // Fertilizer Outflows
     Route::get('/fertilizer-outflows', [FertilizerOutflowController::class, 'index'])->name('fertilizer-outflows.index');

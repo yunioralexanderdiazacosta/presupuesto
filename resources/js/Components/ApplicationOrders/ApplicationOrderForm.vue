@@ -497,7 +497,6 @@ function getSimplifiedQuantity(product) {
                 <label class="form-label small mb-1">Estado <span class="text-danger">*</span></label>
                 <select v-model="form.status" class="form-select form-select-sm" :class="{'is-invalid': form.errors.status}">
                     <option value="pendiente">Pendiente</option>
-                    <option value="en_proceso">En Proceso</option>
                     <option value="completada">Completada</option>
                     <option value="cancelada">Cancelada</option>
                 </select>

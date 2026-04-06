@@ -80,6 +80,7 @@ const menuItems = [
     { label: 'Combustible Maquinaria', route: 'fuel-outflows.index', icon: 'fas fa-gas-pump', section: 'Salidas' },
     { label: 'Órdenes de Aplicación', route: 'application-orders.index', icon: 'fas fa-clipboard-list', section: 'Agroquímicos' },
     { label: 'Aplicación Agroquímicos', route: 'agrochemical-outflows.index', icon: 'fas fa-spray-can', section: 'Agroquímicos' },
+    { label: 'Libro de Campo', route: 'libro-campo.index', icon: 'fas fa-book', section: 'Agroquímicos' },
     { label: 'Órdenes de Fertilizante', route: 'fertilizer-orders.index', icon: 'fas fa-clipboard-list', section: 'Fertilizantes' },
     { label: 'Aplicación Fertilizantes', route: 'fertilizer-outflows.index', icon: 'fas fa-leaf', section: 'Fertilizantes' },
     { label: 'Estimaciones', route: 'estimates.index', icon: 'fas fa-calculator', section: 'Gestión' },
@@ -445,6 +446,13 @@ const navigateTo = (routeName) => {
                           <Link class="nav-link" :href="route('agrochemical-outflows.index')">
                             <div class="d-flex align-items-center">
                               <span class="nav-link-text ps-4">Aplicación Agroquímicos</span>
+                            </div>
+                          </Link>
+                        </li>
+                        <li class="nav-item">
+                          <Link class="nav-link" :href="route('libro-campo.index')">
+                            <div class="d-flex align-items-center">
+                              <span class="nav-link-text ps-4">Libro de Campo</span>
                             </div>
                           </Link>
                         </li>

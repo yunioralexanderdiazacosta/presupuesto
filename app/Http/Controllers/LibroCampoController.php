@@ -1,0 +1,153 @@
+<?php
+
+namespace App\Http\Controllers;
+
+use App\Models\AgrochemicalOutflow;
+use App\Models\ApplicationOrder;
+use App\Models\CostCenter;
+use App\Models\Product;
+use Illuminate\Support\Facades\Auth;
+use Barryvdh\DomPDF\Facade\Pdf;
+use Inertia\Inertia;
+
+class LibroCampoController extends Controller
+{
+    public function index()
+    {
+        $user = Auth::user();
+        $teamId = $user->team_id;
+        $seasonId = session('season_id');
+
+        $libroCampo = $this->getLibroCampoData($teamId, $seasonId);
+
+        // Opciones para filtros
+        $costCenterOptions = CostCenter::where('season_id', $seasonId)
+            ->whereHas('companyReason', fn($q) => $q->where('team_id', $teamId))
+            ->orderBy('name')
+            ->get(['id', 'name'])
+            ->map(fn($cc) => ['value' => $cc->id, 'label' => $cc->name]);
+
+        $orderOptions = ApplicationOrder::where('team_id', $teamId)
+            ->where('season_id', $seasonId)
+            ->orderByDesc('id')
+            ->get(['id', 'date'])
+            ->map(fn($o) => ['value' => $o->id, 'label' => '#' . $o->id . ' - ' . \Carbon\Carbon::parse($o->date)->format('d/m/Y')]);
+
+        $productIds = AgrochemicalOutflow::where('team_id', $teamId)
+            ->where('season_id', $seasonId)
+            ->distinct()
+            ->pluck('product_id');
+
+        $productOptions = Product::whereIn('id', $productIds)
+            ->orderBy('name')
+            ->get(['id', 'name'])
+            ->map(fn($p) => ['value' => $p->id, 'label' => $p->name]);
+
+        return Inertia::render('LibroCampo/Index', [
+            'libroCampo' => $libroCampo,
+            'costCenterOptions' => $costCenterOptions,
+            'orderOptions' => $orderOptions,
+            'productOptions' => $productOptions,
+        ]);
+    }
+
+    public function exportPdf()
+    {
+        $user = Auth::user();
+        $libroCampo = $this->getLibroCampoData($user->team_id, session('season_id'));
+
+        $pdf = Pdf::loadView('pdfs.libro-campo', [
+            'libroCampo' => $libroCampo,
+        ]);
+
+        $pdf->setPaper('letter', 'landscape');
+
+        $filename = 'libro-de-campo-' . now()->format('Y-m-d') . '.pdf';
+
+        return $pdf->stream($filename);
+    }
+
+    private function getLibroCampoData($teamId, $seasonId)
+    {
+        $costCenters = CostCenter::where('season_id', $seasonId)
+            ->whereHas('companyReason', function ($q) use ($teamId) {
+                $q->where('team_id', $teamId);
+            })
+            ->with(['variety', 'fruit'])
+            ->orderBy('name')
+            ->get();
+
+        $outflows = AgrochemicalOutflow::with([
+            'applicationOrder.orderProducts.product.unit',
+            'applicationOrder.orderProducts.unit',
+            'applicationOrder.phenologicalStage',
+            'product.unit',
+            'product:id,name,active_ingredient,unit_id',
+            'costCenter:id,name,surface,variety_id,fruit_id',
+            'costCenter.variety:id,name',
+            'costCenter.fruit:id,name',
+        ])
+            ->where('team_id', $teamId)
+            ->where('season_id', $seasonId)
+            ->orderBy('date', 'asc')
+            ->get();
+
+        return $costCenters->map(function ($cc) use ($outflows) {
+            $ccOutflows = $outflows->where('cost_center_id', $cc->id);
+
+            if ($ccOutflows->isEmpty()) {
+                return null;
+            }
+
+            $rows = $ccOutflows->map(function ($outflow) use ($cc) {
+                $order = $outflow->applicationOrder;
+                $product = $outflow->product;
+
+                $orderProduct = null;
+                if ($order) {
+                    $orderProduct = $order->orderProducts
+                        ->where('product_id', $product->id)
+                        ->first();
+                }
+
+                $fechaAplic = $outflow->date;
+                $carencia = $orderProduct->carencia ?? null;
+                $reingreso = $orderProduct->reingreso ?? null;
+
+                return [
+                    'fecha_aplic' => $fechaAplic,
+                    'limite_proteccion' => $reingreso && $fechaAplic
+                        ? \Carbon\Carbon::parse($fechaAplic)->addDays($reingreso)->format('Y-m-d')
+                        : null,
+                    'orden_id' => $order->id ?? null,
+                    'producto' => $product->name ?? '-',
+                    'ingrediente_activo' => $product->active_ingredient ?? '-',
+                    'carencia' => $carencia,
+                    'reingreso' => $reingreso,
+                    'cosecha_desde' => $carencia && $fechaAplic
+                        ? \Carbon\Carbon::parse($fechaAplic)->addDays($carencia)->format('Y-m-d')
+                        : null,
+                    'tractor' => $order->tractors ?? '-',
+                    'equipo' => $order->equipments ?? '-',
+                    'operario' => $order->operators ?? '-',
+                    'dosis_100' => $orderProduct->dosis_por_100 ?? null,
+                    'dosis_ha' => $orderProduct->dosis_por_hectarea ?? null,
+                    'unidad' => $product->unit->name ?? ($orderProduct->unit->name ?? '-'),
+                    'mojamiento' => $order->mojamiento ?? null,
+                    'maquinadas' => $outflow->maquinadas,
+                    'cantidad' => $outflow->quantity,
+                    'etapa_fenologica' => $order->phenologicalStage->name ?? '-',
+                ];
+            })->values()->toArray();
+
+            return [
+                'cost_center_id' => $cc->id,
+                'cuartel' => $cc->name,
+                'variedad' => $cc->variety->name ?? '-',
+                'fruta' => $cc->fruit->name ?? '-',
+                'superficie' => $cc->surface,
+                'rows' => $rows,
+            ];
+        })->filter()->values()->toArray();
+    }
+}

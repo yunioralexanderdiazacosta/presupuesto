@@ -25,7 +25,7 @@ class StoreApplicationOrderRequest extends FormRequest
             'volume' => 'nullable|integer|min:0',
             'mojamiento' => 'required|numeric|min:0',
             'recomendado' => 'required|string|max:255',
-            'status' => 'required|in:pendiente,en_proceso,completada,cancelada',
+            'status' => 'required|in:pendiente,completada,cancelada',
             'responsable' => 'required|string|max:255',
             'observations' => 'nullable|string',
             'phenological_stage_id' => 'nullable|exists:phenological_stages,id',

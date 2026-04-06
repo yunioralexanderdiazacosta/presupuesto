@@ -27,7 +27,6 @@ class StoreAgrochemicalOutflowRequest extends FormRequest
             
             'products' => 'required|array|min:1',
             'products.*.product_id' => 'required|exists:products,id',
-            'products.*.cost_center_id' => 'required|exists:cost_centers,id',
             
             'products.*.lines' => 'required|array|min:1',
             'products.*.lines.*.invoice_product_id' => 'required|exists:invoice_products,id',

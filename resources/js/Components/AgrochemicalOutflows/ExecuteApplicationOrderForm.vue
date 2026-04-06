@@ -39,7 +39,6 @@ function initializeProducts() {
             unit_name: op.product?.unit?.name || 'unidad',
             theoretical_quantity: op.cantidad_total,
             real_quantity: 0,
-            cost_center_id: selectedOrder.value.order_cost_centers?.[0]?.cost_center_id || null,
             availableInvoices: productStocks,
             lines: [
                 {

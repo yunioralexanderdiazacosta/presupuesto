@@ -25,14 +25,46 @@ class AgrochemicalOutflowController
             'product.unit',
             'costCenter',
             'invoiceProduct.invoice',
-            'team',
-            'season'
         ])
         ->where('team_id', $teamId)
         ->where('season_id', $seasonId)
         ->orderBy('date', 'desc')
         ->orderBy('created_at', 'desc')
-        ->paginate(50);
+        ->get();
+
+        // Agrupar outflows por orden de aplicación (1 fila = 1 orden)
+        $groupedOutflows = $outflows->groupBy('application_order_id')->map(function ($group) {
+            $first = $group->first();
+            $productos = $group->pluck('product.name')->unique()->implode(', ');
+            $cuarteles = $group->pluck('costCenter.name')->unique()->implode(', ');
+            $facturas = $group->pluck('invoiceProduct.invoice.number_document')->unique()->filter()->implode(', ');
+            $cantidadTotal = $group->sum('quantity');
+            $unidad = $first->product->unit->name ?? '';
+
+            // Detalle por cuartel para la vista expandida
+            $detalle = $group->map(fn($o) => [
+                'id' => $o->id,
+                'cuartel' => $o->costCenter->name ?? '-',
+                'producto' => $o->product->name ?? '-',
+                'cantidad' => $o->quantity,
+                'unidad' => $o->product->unit->name ?? '',
+                'factura' => $o->invoiceProduct->invoice->number_document ?? 'N/A',
+            ])->values();
+
+            return [
+                'application_order_id' => $first->application_order_id,
+                'date' => $first->date,
+                'maquinadas' => $first->maquinadas,
+                'productos' => $productos,
+                'cuarteles' => $cuarteles,
+                'cantidad_total' => $cantidadTotal,
+                'unidad' => $unidad,
+                'facturas' => $facturas ?: 'N/A',
+                'outflow_ids' => $group->pluck('id')->toArray(),
+                'observations' => $first->observations,
+                'detalle' => $detalle,
+            ];
+        })->values();
 
         // Obtener órdenes disponibles para ejecutar con sus productos
         $availableOrders = ApplicationOrder::with([
@@ -50,7 +82,7 @@ class AgrochemicalOutflowController
         $availableStocksByProduct = $this->getAvailableStocksByInvoiceProduct($teamId, $seasonId);
 
         return Inertia::render('AgrochemicalOutflows/Index', [
-            'outflows' => $outflows,
+            'outflows' => $groupedOutflows,
             'availableOrders' => $availableOrders,
             'availableStocksByProduct' => $availableStocksByProduct,
         ]);
