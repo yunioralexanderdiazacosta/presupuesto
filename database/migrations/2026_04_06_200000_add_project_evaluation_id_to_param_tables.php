@@ -10,105 +10,75 @@ return new class extends Migration
     public function up(): void
     {
         // =====================================================================
-        // 1. Agregar columna project_evaluation_id (nullable) a las 3 tablas
+        // 1. Crear índices simples en team_id para que MySQL pueda soltar los unique
+        //    (la FK team_id_foreign necesita un índice que la respalde)
+        // =====================================================================
+        if (!$this->indexExists('rnp_prices', 'rnp_prices_team_id_index')) {
+            Schema::table('rnp_prices', function (Blueprint $table) {
+                $table->index('team_id', 'rnp_prices_team_id_index');
+            });
+        }
+        if (!$this->indexExists('variety_cost_params', 'variety_cost_params_team_id_index')) {
+            Schema::table('variety_cost_params', function (Blueprint $table) {
+                $table->index('team_id', 'variety_cost_params_team_id_index');
+            });
+        }
+        if (!$this->indexExists('kg_yield_costs', 'kg_yield_costs_team_id_index')) {
+            Schema::table('kg_yield_costs', function (Blueprint $table) {
+                $table->index('team_id', 'kg_yield_costs_team_id_index');
+            });
+        }
+
+        // =====================================================================
+        // 2. ELIMINAR unique viejos (si existen) — idempotente ante fallo parcial
+        // =====================================================================
+        $this->dropUniqueIfExists('rnp_prices', 'rnp_prices_team_id_variety_id_week_unique');
+        $this->dropUniqueIfExists('variety_cost_params', 'variety_cost_params_team_id_variety_id_unique');
+        $this->dropUniqueIfExists('kg_yield_costs', 'kg_yield_costs_team_id_kg_ha_unique');
+
+        // =====================================================================
+        // 2. Agregar columna (si no existe) — idempotente ante fallo parcial
+        // =====================================================================
+        if (!Schema::hasColumn('rnp_prices', 'project_evaluation_id')) {
+            Schema::table('rnp_prices', function (Blueprint $table) {
+                $table->foreignId('project_evaluation_id')->nullable()->after('team_id')
+                    ->constrained('project_evaluations')->cascadeOnDelete();
+            });
+        }
+
+        if (!Schema::hasColumn('variety_cost_params', 'project_evaluation_id')) {
+            Schema::table('variety_cost_params', function (Blueprint $table) {
+                $table->foreignId('project_evaluation_id')->nullable()->after('team_id')
+                    ->constrained('project_evaluations')->cascadeOnDelete();
+            });
+        }
+
+        if (!Schema::hasColumn('kg_yield_costs', 'project_evaluation_id')) {
+            Schema::table('kg_yield_costs', function (Blueprint $table) {
+                $table->foreignId('project_evaluation_id')->nullable()->after('team_id')
+                    ->constrained('project_evaluations')->cascadeOnDelete();
+            });
+        }
+
+        // =====================================================================
+        // 2. Limpiar datos viejos (usuario los reingresará por evaluación)
+        // =====================================================================
+        DB::table('rnp_prices')->truncate();
+        DB::table('variety_cost_params')->truncate();
+        DB::table('kg_yield_costs')->truncate();
+
+        // =====================================================================
+        // 3. Crear nuevos unique constraints y hacer NOT NULL
         // =====================================================================
         Schema::table('rnp_prices', function (Blueprint $table) {
-            $table->foreignId('project_evaluation_id')->nullable()->after('team_id')
-                ->constrained('project_evaluations')->cascadeOnDelete();
-        });
-
-        Schema::table('variety_cost_params', function (Blueprint $table) {
-            $table->foreignId('project_evaluation_id')->nullable()->after('team_id')
-                ->constrained('project_evaluations')->cascadeOnDelete();
-        });
-
-        Schema::table('kg_yield_costs', function (Blueprint $table) {
-            $table->foreignId('project_evaluation_id')->nullable()->after('team_id')
-                ->constrained('project_evaluations')->cascadeOnDelete();
-        });
-
-        // =====================================================================
-        // 2. Duplicar datos existentes para cada evaluación del mismo team
-        // =====================================================================
-
-        // RNP Prices
-        $rnpPrices = DB::table('rnp_prices')->whereNull('project_evaluation_id')->get();
-        foreach ($rnpPrices as $price) {
-            $evaluations = DB::table('project_evaluations')
-                ->where('team_id', $price->team_id)
-                ->pluck('id');
-
-            foreach ($evaluations as $evalId) {
-                DB::table('rnp_prices')->insert([
-                    'team_id'                => $price->team_id,
-                    'project_evaluation_id'  => $evalId,
-                    'variety_id'             => $price->variety_id,
-                    'week'                   => $price->week,
-                    'price_usd'              => $price->price_usd,
-                    'created_at'             => $price->created_at,
-                    'updated_at'             => $price->updated_at,
-                ]);
-            }
-        }
-        // Eliminar los registros globales originales (sin evaluation)
-        DB::table('rnp_prices')->whereNull('project_evaluation_id')->delete();
-
-        // Variety Cost Params
-        $costParams = DB::table('variety_cost_params')->whereNull('project_evaluation_id')->get();
-        foreach ($costParams as $param) {
-            $evaluations = DB::table('project_evaluations')
-                ->where('team_id', $param->team_id)
-                ->pluck('id');
-
-            foreach ($evaluations as $evalId) {
-                DB::table('variety_cost_params')->insert([
-                    'team_id'                => $param->team_id,
-                    'project_evaluation_id'  => $evalId,
-                    'variety_id'             => $param->variety_id,
-                    'pct_embalaje'           => $param->pct_embalaje,
-                    'precio_proceso'         => $param->precio_proceso,
-                    'created_at'             => $param->created_at,
-                    'updated_at'             => $param->updated_at,
-                ]);
-            }
-        }
-        DB::table('variety_cost_params')->whereNull('project_evaluation_id')->delete();
-
-        // Kg Yield Costs
-        $kgCosts = DB::table('kg_yield_costs')->whereNull('project_evaluation_id')->get();
-        foreach ($kgCosts as $cost) {
-            $evaluations = DB::table('project_evaluations')
-                ->where('team_id', $cost->team_id)
-                ->pluck('id');
-
-            foreach ($evaluations as $evalId) {
-                DB::table('kg_yield_costs')->insert([
-                    'team_id'                => $cost->team_id,
-                    'project_evaluation_id'  => $evalId,
-                    'kg_ha'                  => $cost->kg_ha,
-                    'cost_usd'               => $cost->cost_usd,
-                    'created_at'             => $cost->created_at,
-                    'updated_at'             => $cost->updated_at,
-                ]);
-            }
-        }
-        DB::table('kg_yield_costs')->whereNull('project_evaluation_id')->delete();
-
-        // =====================================================================
-        // 3. Cambiar constraints: eliminar unique viejo, crear nuevo, NOT NULL
-        // =====================================================================
-        Schema::table('rnp_prices', function (Blueprint $table) {
-            $table->dropUnique(['team_id', 'variety_id', 'week']);
             $table->unique(['project_evaluation_id', 'variety_id', 'week']);
         });
 
         Schema::table('variety_cost_params', function (Blueprint $table) {
-            $table->dropUnique(['team_id', 'variety_id']);
             $table->unique(['project_evaluation_id', 'variety_id']);
         });
 
         Schema::table('kg_yield_costs', function (Blueprint $table) {
-            $table->dropUnique(['team_id', 'kg_ha']);
             $table->unique(['project_evaluation_id', 'kg_ha']);
         });
 
@@ -147,5 +117,25 @@ return new class extends Migration
             $table->dropColumn('project_evaluation_id');
             $table->unique(['team_id', 'kg_ha']);
         });
+    }
+
+    /**
+     * Drop a unique index only if it exists.
+     */
+    private function dropUniqueIfExists(string $table, string $indexName): void
+    {
+        if ($this->indexExists($table, $indexName)) {
+            Schema::table($table, function (Blueprint $blueprint) use ($indexName) {
+                $blueprint->dropUnique($indexName);
+            });
+        }
+    }
+
+    /**
+     * Check if an index exists on a table.
+     */
+    private function indexExists(string $table, string $indexName): bool
+    {
+        return count(DB::select("SHOW INDEX FROM `{$table}` WHERE Key_name = ?", [$indexName])) > 0;
     }
 };
