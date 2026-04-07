@@ -3,15 +3,17 @@
 namespace App\Http\Controllers\ProjectEvaluations;
 
 use App\Http\Controllers\Controller;
+use App\Models\ProjectEvaluation;
 use App\Models\RnpPrice;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 
 class UpsertRnpPricesController extends Controller
 {
-    public function __invoke(Request $request)
+    public function __invoke(ProjectEvaluation $projectEvaluation, Request $request)
     {
         $user = Auth::user();
+        abort_if((int) $projectEvaluation->team_id !== (int) $user->team_id, 403);
 
         $data = $request->validate([
             'prices'              => 'required|array',
@@ -23,11 +25,14 @@ class UpsertRnpPricesController extends Controller
         foreach ($data['prices'] as $item) {
             RnpPrice::updateOrCreate(
                 [
-                    'team_id'    => $user->team_id,
+                    'project_evaluation_id' => $projectEvaluation->id,
                     'variety_id' => $item['variety_id'],
                     'week'       => $item['week'],
                 ],
-                ['price_usd' => $item['price_usd']]
+                [
+                    'team_id'   => $user->team_id,
+                    'price_usd' => $item['price_usd'],
+                ]
             );
         }
 

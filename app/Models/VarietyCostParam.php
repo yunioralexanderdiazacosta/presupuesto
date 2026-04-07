@@ -6,7 +6,12 @@ use Illuminate\Database\Eloquent\Model;
 
 class VarietyCostParam extends Model
 {
-    protected $fillable = ['team_id', 'variety_id', 'pct_embalaje', 'precio_proceso'];
+    protected $fillable = ['team_id', 'project_evaluation_id', 'variety_id', 'pct_embalaje', 'precio_proceso'];
+
+    public function projectEvaluation()
+    {
+        return $this->belongsTo(ProjectEvaluation::class);
+    }
 
     public function variety()
     {

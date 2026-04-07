@@ -30,15 +30,15 @@ class ShowProjectEvaluationController extends Controller
             ->get(['id', 'name']);
 
         // Precios RNP: [variety_id][week] => price_usd
-        $rnpPrices = RnpPrice::where('team_id', $user->team_id)
+        $rnpPrices = RnpPrice::where('project_evaluation_id', $projectEvaluation->id)
             ->get(['id', 'variety_id', 'week', 'price_usd']);
 
         // Parámetros de costo por variedad
-        $varietyCostParams = VarietyCostParam::where('team_id', $user->team_id)
+        $varietyCostParams = VarietyCostParam::where('project_evaluation_id', $projectEvaluation->id)
             ->get(['id', 'variety_id', 'pct_embalaje', 'precio_proceso']);
 
         // Tabla de costo kg/rendimiento
-        $kgYieldCosts = KgYieldCost::where('team_id', $user->team_id)
+        $kgYieldCosts = KgYieldCost::where('project_evaluation_id', $projectEvaluation->id)
             ->orderBy('kg_ha')
             ->get(['id', 'kg_ha', 'cost_usd']);
 

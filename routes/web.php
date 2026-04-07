@@ -977,10 +977,10 @@ Route::middleware([
     Route::post('/project-evaluations/{projectEvaluation}/rows/bulk', StoreBulkProjectEvaluationRowsController::class)->name('project-evaluations.rows.bulk-store');
     Route::put('/project-evaluations/{projectEvaluation}/rows/{row}', UpdateProjectEvaluationRowController::class)->name('project-evaluations.rows.update');
     Route::delete('/project-evaluations/{projectEvaluation}/rows/{row}', DeleteProjectEvaluationRowController::class)->name('project-evaluations.rows.delete');
-    // Parámetros (a nivel de equipo)
-    Route::post('/project-evaluations-params/rnp-prices', UpsertRnpPricesController::class)->name('project-evaluations.rnp-prices.upsert');
-    Route::post('/project-evaluations-params/variety-costs', UpsertVarietyCostParamsController::class)->name('project-evaluations.variety-costs.upsert');
-    Route::post('/project-evaluations-params/kg-yield-costs', UpsertKgYieldCostsController::class)->name('project-evaluations.kg-yield-costs.upsert');
+    // Parámetros (a nivel de evaluación)
+    Route::post('/project-evaluations/{projectEvaluation}/params/rnp-prices', UpsertRnpPricesController::class)->name('project-evaluations.rnp-prices.upsert');
+    Route::post('/project-evaluations/{projectEvaluation}/params/variety-costs', UpsertVarietyCostParamsController::class)->name('project-evaluations.variety-costs.upsert');
+    Route::post('/project-evaluations/{projectEvaluation}/params/kg-yield-costs', UpsertKgYieldCostsController::class)->name('project-evaluations.kg-yield-costs.upsert');
 
     // Contract Templates (Plantillas de Contrato)
     Route::get('/contract-templates', [ContractTemplateController::class, 'index'])->name('contract-templates.index');

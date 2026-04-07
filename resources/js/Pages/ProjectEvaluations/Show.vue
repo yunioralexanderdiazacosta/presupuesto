@@ -75,7 +75,7 @@ const saveRnpPrices = () => {
             }
         });
     });
-    router.post(route('project-evaluations.rnp-prices.upsert'), { prices }, {
+    router.post(route('project-evaluations.rnp-prices.upsert', props.evaluation.id), { prices }, {
         preserveScroll: true,
         onSuccess: () => {
             savingRnp.value = false;
@@ -123,7 +123,7 @@ const saveCostParams = () => {
         Swal.fire({ icon: 'warning', title: 'Sin datos', text: 'Ingresa al menos una variedad con valores.', showConfirmButton: true });
         return;
     }
-    router.post(route('project-evaluations.variety-costs.upsert'), { params }, {
+    router.post(route('project-evaluations.variety-costs.upsert', props.evaluation.id), { params }, {
         preserveScroll: true,
         onSuccess: () => {
             savingCostParams.value = false;
@@ -153,7 +153,7 @@ const saveKgCosts = () => {
     const costs = localKgCosts.value
         .filter(c => c.kg_ha !== '' && c.cost_usd !== '')
         .map(c => ({ kg_ha: Number(c.kg_ha), cost_usd: Number(c.cost_usd) }));
-    router.post(route('project-evaluations.kg-yield-costs.upsert'), { costs }, {
+    router.post(route('project-evaluations.kg-yield-costs.upsert', props.evaluation.id), { costs }, {
         preserveScroll: true,
         onSuccess: () => {
             savingKgCosts.value = false;
