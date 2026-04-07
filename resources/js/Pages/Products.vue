@@ -20,6 +20,7 @@ const props = defineProps({
 const form = useForm({
     id: '',
     name: '',
+    active_ingredient: '',
     unit_id: '',
     level1_id: '',
     level2_id: '',
@@ -60,6 +61,7 @@ const openEdit = (product) => {
     form.reset();
     form.id = product.id;
     form.name = product.name;
+    form.active_ingredient = product.active_ingredient || '';
     form.unit_id = product.unit_id;
     form.level1_id = product.level1_id;
     form.level2_id = product.level2_id;

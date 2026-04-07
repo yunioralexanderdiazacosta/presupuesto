@@ -15,6 +15,7 @@ class StoreProductController extends Controller
 
         Product::Create([
             'name'      => $request->name,
+            'active_ingredient' => $request->active_ingredient,
             'unit_id'   => $request->unit_id,
             'level1_id'   => $request->level1_id,
             'level2_id'   => $request->level2_id,

@@ -10,7 +10,7 @@ const presupuestos = ['/dashboard','/technicalpanel','/budgets', '/agrochemicals
 
 const parametros = ['/cost-centers', '/levels', '/users', '/company-reasons', '/fruits', '/varieties', '/parcels', '/seasons'];
 
-const gestion = ['/suppliers','/estimates', '/products', '/invoices', '/credit_debit_notes', '/machineries', '/type-machineries', '/application-orders', '/invoice-payments', '/expense-reports', '/irrigation-pumps', '/fertilizer-orders', '/fertilizer-outflows'];
+const gestion = ['/suppliers','/estimates', '/products', '/invoices', '/credit_debit_notes', '/machineries', '/type-machineries', '/application-orders', '/agrochemical-outflows', '/libro-campo', '/invoice-payments', '/expense-reports', '/irrigation-pumps', '/fertilizer-orders', '/fertilizer-outflows'];
 
 var active = ref(0);
 var active2 = ref('');
@@ -220,8 +220,8 @@ const items = [
             },
 
             {
-                title: 'Órdenes de Aplicación',
-                icon: `<i class="bi bi-card-checklist"></i>`,
+                title: 'Aplic. Agroquímicos',
+                icon: `<i class="bi bi-droplet-half"></i>`,
                 link: 'application-orders.index',
                 subitems: []
             },

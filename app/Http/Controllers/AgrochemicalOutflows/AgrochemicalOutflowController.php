@@ -36,7 +36,8 @@ class AgrochemicalOutflowController
         $groupedOutflows = $outflows->groupBy('application_order_id')->map(function ($group) {
             $first = $group->first();
             $productos = $group->pluck('product.name')->unique()->implode(', ');
-            $cuarteles = $group->pluck('costCenter.name')->unique()->implode(', ');
+            $cuartelesList = $group->pluck('costCenter.name')->unique()->values()->toArray();
+            $cuarteles = implode(', ', $cuartelesList);
             $facturas = $group->pluck('invoiceProduct.invoice.number_document')->unique()->filter()->implode(', ');
             $cantidadTotal = $group->sum('quantity');
             $unidad = $first->product->unit->name ?? '';
@@ -57,6 +58,7 @@ class AgrochemicalOutflowController
                 'maquinadas' => $first->maquinadas,
                 'productos' => $productos,
                 'cuarteles' => $cuarteles,
+                'cuarteles_list' => $cuartelesList,
                 'cantidad_total' => $cantidadTotal,
                 'unidad' => $unidad,
                 'facturas' => $facturas ?: 'N/A',

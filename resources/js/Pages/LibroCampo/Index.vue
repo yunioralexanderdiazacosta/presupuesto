@@ -2,6 +2,7 @@
 import { ref, computed } from 'vue';
 import AppLayout from '@/Layouts/AppLayout.vue';
 import ExportExcelButton from '@/Components/ExportExcelButton.vue';
+import AgrochemicalNavBar from '@/Components/AgrochemicalOutflows/AgrochemicalNavBar.vue';
 
 const props = defineProps({
     libroCampo: { type: Array, default: () => [] },
@@ -51,9 +52,18 @@ const clearFilters = () => {
 
 const hasFilters = computed(() => filterCostCenter.value || filterOrder.value || filterProduct.value);
 
+const pdfUrl = computed(() => {
+    const params = {};
+    if (filterCostCenter.value) params.cost_center_id = filterCostCenter.value;
+    if (filterOrder.value) params.order_id = filterOrder.value;
+    if (filterProduct.value) params.product_id = filterProduct.value;
+    return route('libro-campo.export-pdf', params);
+});
+
 const formatDate = (date) => {
     if (!date) return '-';
-    const d = new Date(date + 'T12:00:00');
+    const dateStr = String(date).substring(0, 10);
+    const d = new Date(dateStr + 'T12:00:00');
     return d.toLocaleDateString('es-CL', { day: '2-digit', month: '2-digit', year: 'numeric' });
 };
 
@@ -125,6 +135,8 @@ const totalAplicaciones = computed(() => filteredLibroCampo.value.reduce((sum, c
 
 <template>
     <AppLayout title="Libro de Campo">
+        <AgrochemicalNavBar />
+
         <div class="card my-3">
             <div class="card-header">
                 <div class="row flex-between-center">
@@ -141,7 +153,7 @@ const totalAplicaciones = computed(() => filteredLibroCampo.value.reduce((sum, c
                                 filename="libro-de-campo.xlsx"
                                 class="btn btn-falcon-default btn-sm"
                             />
-                            <a :href="route('libro-campo.export-pdf')"
+                            <a :href="pdfUrl"
                                target="_blank"
                                class="btn btn-falcon-default btn-sm">
                                 <span class="fas fa-file-pdf" data-fa-transform="shrink-3 down-2"></span>
@@ -270,7 +282,7 @@ const totalAplicaciones = computed(() => filteredLibroCampo.value.reduce((sum, c
                                     <td class="text-end">{{ row.dosis_100 ? formatNumber(row.dosis_100) : '-' }}</td>
                                     <td class="text-end">{{ row.dosis_ha ? formatNumber(row.dosis_ha) : '-' }}</td>
                                     <td>{{ row.unidad }}</td>
-                                    <td class="text-end">{{ row.mojamiento ? formatNumber(row.mojamiento) : '-' }}</td>
+                                    <td class="text-end">{{ row.mojamiento ? formatNumber(row.mojamiento, 0) : '-' }}</td>
                                     <td class="text-end">{{ row.maquinadas ? formatNumber(row.maquinadas) : '-' }}</td>
                                     <td class="text-end">{{ row.cantidad ? formatNumber(row.cantidad) : '-' }}</td>
                                     <td>

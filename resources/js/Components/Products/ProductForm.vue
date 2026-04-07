@@ -1,5 +1,5 @@
 <script setup>
-    import { ref, onMounted, nextTick } from 'vue';
+    import { ref, computed, onMounted, nextTick } from 'vue';
     import Multiselect from '@vueform/multiselect';
 	import TextInput from '@/Components/TextInput.vue';
 	import InputError from '@/Components/InputError.vue';
@@ -11,6 +11,14 @@
             default: false
         }
 	});
+
+    const showActiveIngredient = computed(() => {
+        if (!props.form.level2_id || !props.form.level2s?.length) return false;
+        const selected = props.form.level2s.find(l => String(l.value) === String(props.form.level2_id));
+        if (!selected) return false;
+        const name = (selected.label || '').toLowerCase();
+        return /agroqu[ií]m|fertiliz/.test(name);
+    });
 
     const getLevel2s = (event) => {
         if(event && event != ""){
@@ -78,6 +86,22 @@
                     :disabled="readonlyBasicFields"
                 />
                 <InputError class="mt-2" :message="form.errors.unit_id" />
+            </div>
+        </div>
+    </div>
+    <div class="row" v-if="showActiveIngredient">
+        <div class="col-lg-12">
+            <div class="fv-row">
+                <label class="col-form-label">Ingrediente Activo</label>
+                <TextInput
+                    id="active_ingredient"
+                    v-model="form.active_ingredient"
+                    class="form-control form-control-solid"
+                    type="text"
+                    placeholder="Ej: Imidacloprid, Glifosato..."
+                    :class="{'is-invalid': form.errors.active_ingredient}"
+                />
+                <InputError class="mt-2" :message="form.errors.active_ingredient" />
             </div>
         </div>
     </div>

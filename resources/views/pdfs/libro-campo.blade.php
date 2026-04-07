@@ -153,7 +153,7 @@
                             <td class="text-end">{{ $row['dosis_100'] ? number_format($row['dosis_100'], 2, ',', '.') : '-' }}</td>
                             <td class="text-end">{{ $row['dosis_ha'] ? number_format($row['dosis_ha'], 2, ',', '.') : '-' }}</td>
                             <td class="text-center">{{ $row['unidad'] }}</td>
-                            <td class="text-end">{{ $row['mojamiento'] ? number_format($row['mojamiento'], 2, ',', '.') : '-' }}</td>
+                            <td class="text-end">{{ $row['mojamiento'] ? number_format($row['mojamiento'], 0, ',', '.') : '-' }}</td>
                         </tr>
                     @endforeach
                 </tbody>

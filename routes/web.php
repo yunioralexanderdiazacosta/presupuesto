@@ -69,7 +69,9 @@ use App\Http\Controllers\Products2\DeleteProduct2Controller;
 // Rutas para Agrochemical Outflows
     use App\Http\Controllers\AgrochemicalOutflows\AgrochemicalOutflowController;
     use App\Http\Controllers\AgrochemicalOutflows\StoreAgrochemicalOutflowController;
+    use App\Http\Controllers\AgrochemicalOutflows\UpdateAgrochemicalOutflowController;
     use App\Http\Controllers\AgrochemicalOutflows\DeleteAgrochemicalOutflowController;
+    use App\Http\Controllers\AgrochemicalOutflows\RevertAgrochemicalOutflowController;
 
 // Rutas para Libro de Campo
     use App\Http\Controllers\LibroCampoController;
@@ -822,7 +824,9 @@ Route::middleware([
     // Agrochemical Outflows
     Route::get('/agrochemical-outflows', [AgrochemicalOutflowController::class, 'index'])->name('agrochemical-outflows.index');
     Route::post('/agrochemical-outflows', StoreAgrochemicalOutflowController::class)->name('agrochemical-outflows.store');
+    Route::put('/agrochemical-outflows', UpdateAgrochemicalOutflowController::class)->name('agrochemical-outflows.update');
     Route::delete('/agrochemical-outflows/{agrochemicalOutflow}', DeleteAgrochemicalOutflowController::class)->name('agrochemical-outflows.delete');
+    Route::delete('/agrochemical-outflows/{applicationOrder}/revert', RevertAgrochemicalOutflowController::class)->name('agrochemical-outflows.revert');
 
     // Libro de Campo
     Route::get('/libro-campo', [LibroCampoController::class, 'index'])->name('libro-campo.index');

@@ -4,6 +4,7 @@ import Swal from 'sweetalert2';
 import { Link, router, Head } from '@inertiajs/vue3';
 import AppLayout from '@/Layouts/AppLayout.vue';
 import Breadcrumb from '@/Components/Breadcrumb.vue';
+import AgrochemicalNavBar from '@/Components/AgrochemicalOutflows/AgrochemicalNavBar.vue';
 import CreateApplicationOrderModal from '@/Components/ApplicationOrders/CreateApplicationOrderModal.vue';
 import EditApplicationOrderModal from '@/Components/ApplicationOrders/EditApplicationOrderModal.vue';
 
@@ -148,6 +149,8 @@ watch(filteredRows, () => {
         <Head :title="title" />
         
         <Breadcrumb :title="title" :links="links" />
+
+        <AgrochemicalNavBar />
 
         <div class="card my-3">
                 <div class="card-header d-flex justify-content-between align-items-center">

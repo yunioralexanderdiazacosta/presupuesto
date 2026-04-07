@@ -78,11 +78,8 @@ const menuItems = [
     { label: 'Consolidado de Salidas', route: 'consolidated-outflows.index', icon: 'fas fa-sign-out-alt', section: 'Salidas' },
     { label: 'Consumos Gral.', route: 'outflows.index', icon: 'fas fa-boxes', section: 'Salidas' },
     { label: 'Combustible Maquinaria', route: 'fuel-outflows.index', icon: 'fas fa-gas-pump', section: 'Salidas' },
-    { label: 'Órdenes de Aplicación', route: 'application-orders.index', icon: 'fas fa-clipboard-list', section: 'Agroquímicos' },
-    { label: 'Aplicación Agroquímicos', route: 'agrochemical-outflows.index', icon: 'fas fa-spray-can', section: 'Agroquímicos' },
-    { label: 'Libro de Campo', route: 'libro-campo.index', icon: 'fas fa-book', section: 'Agroquímicos' },
-    { label: 'Órdenes de Fertilizante', route: 'fertilizer-orders.index', icon: 'fas fa-clipboard-list', section: 'Fertilizantes' },
-    { label: 'Aplicación Fertilizantes', route: 'fertilizer-outflows.index', icon: 'fas fa-leaf', section: 'Fertilizantes' },
+    { label: 'Salida Agroquímicos', route: 'application-orders.index', icon: 'fas fa-spray-can', section: 'Agroquímicos' },
+    { label: 'Salida Fertilizantes', route: 'fertilizer-orders.index', icon: 'fas fa-leaf', section: 'Fertilizantes' },
     { label: 'Estimaciones', route: 'estimates.index', icon: 'fas fa-calculator', section: 'Gestión' },
     { label: 'Ingresar Producción', route: 'production-dispatches.index', icon: 'fas fa-truck-loading', section: 'Producción' },
     { label: 'Ingreso Rápido de Producción', route: 'production-summaries.index', icon: 'fas fa-bolt', section: 'Producción' },
@@ -429,57 +426,18 @@ const navigateTo = (routeName) => {
                       </ul>
                     </li>
                     <li class="nav-item">
-                      <a class="nav-link dropdown-indicator" href="#agrochemicals" data-bs-toggle="collapse" aria-expanded="false" aria-controls="agrochemicals">
+                      <Link class="nav-link" :href="route('application-orders.index')">
                         <div class="d-flex align-items-center">
-                          <span class="nav-link-text ps-3">Agroquímicos</span>
+                          <span class="nav-link-text ps-3">Salida Agroquímicos</span>
                         </div>
-                      </a>
-                      <ul class="nav collapse" id="agrochemicals">
-                        <li class="nav-item">
-                          <Link class="nav-link" :href="route('application-orders.index')">
-                            <div class="d-flex align-items-center">
-                              <span class="nav-link-text ps-4">Órdenes de Aplicación</span>
-                            </div>
-                          </Link>
-                        </li>
-                        <li class="nav-item">
-                          <Link class="nav-link" :href="route('agrochemical-outflows.index')">
-                            <div class="d-flex align-items-center">
-                              <span class="nav-link-text ps-4">Aplicación Agroquímicos</span>
-                            </div>
-                          </Link>
-                        </li>
-                        <li class="nav-item">
-                          <Link class="nav-link" :href="route('libro-campo.index')">
-                            <div class="d-flex align-items-center">
-                              <span class="nav-link-text ps-4">Libro de Campo</span>
-                            </div>
-                          </Link>
-                        </li>
-                      </ul>
+                      </Link>
                     </li>
                     <li class="nav-item">
-                      <a class="nav-link dropdown-indicator" href="#fertilizers" data-bs-toggle="collapse" aria-expanded="false" aria-controls="fertilizers">
+                      <Link class="nav-link" :href="route('fertilizer-orders.index')">
                         <div class="d-flex align-items-center">
-                          <span class="nav-link-text ps-3">Fertilizantes</span>
+                          <span class="nav-link-text ps-3">Salida Fertilizantes</span>
                         </div>
-                      </a>
-                      <ul class="nav collapse" id="fertilizers">
-                        <li class="nav-item">
-                          <Link class="nav-link" :href="route('fertilizer-orders.index')">
-                            <div class="d-flex align-items-center">
-                              <span class="nav-link-text ps-4">Órdenes de Fertilizante</span>
-                            </div>
-                          </Link>
-                        </li>
-                        <li class="nav-item">
-                          <Link class="nav-link" :href="route('fertilizer-outflows.index')">
-                            <div class="d-flex align-items-center">
-                              <span class="nav-link-text ps-4">Aplicación Fertilizantes</span>
-                            </div>
-                          </Link>
-                        </li>
-                      </ul>
+                      </Link>
                     </li>
                     <li class="nav-item"><Link class="nav-link" :href="route('estimates.index')">
                         <div class="d-flex align-items-center"><span class="nav-link-text ps-3">Estimaciones</span>

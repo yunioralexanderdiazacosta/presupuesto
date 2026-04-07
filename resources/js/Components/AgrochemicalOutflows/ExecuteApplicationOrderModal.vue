@@ -8,6 +8,7 @@ const props = defineProps({
     show: Boolean,
     availableOrders: Array,
     availableStocksByProduct: Object,
+    preselectedOrderId: { type: Number, default: null },
 });
 
 const emit = defineEmits(['close', 'saved']);
@@ -29,6 +30,10 @@ watch(() => props.show, (val) => {
         const month = String(today.getMonth() + 1).padStart(2, '0');
         const day = String(today.getDate()).padStart(2, '0');
         form.date = `${year}-${month}-${day}`;
+        // Si viene preseleccionada una orden (desde Rehacer), auto-seleccionarla
+        if (props.preselectedOrderId) {
+            form.application_order_id = props.preselectedOrderId;
+        }
         $('#executeApplicationOrderModal').modal('show');
     } else {
         $('#executeApplicationOrderModal').modal('hide');

@@ -7,6 +7,7 @@ use App\Models\ApplicationOrder;
 use App\Models\CostCenter;
 use App\Models\Product;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Http\Request;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Inertia\Inertia;
 
@@ -51,10 +52,38 @@ class LibroCampoController extends Controller
         ]);
     }
 
-    public function exportPdf()
+    public function exportPdf(Request $request)
     {
         $user = Auth::user();
         $libroCampo = $this->getLibroCampoData($user->team_id, session('season_id'));
+
+        // Aplicar filtros si vienen como query params
+        $costCenterId = $request->query('cost_center_id');
+        $orderId = $request->query('order_id');
+        $productId = $request->query('product_id');
+
+        if ($costCenterId) {
+            $libroCampo = array_values(array_filter($libroCampo, fn($cc) => $cc['cost_center_id'] == $costCenterId));
+        }
+
+        if ($orderId || $productId) {
+            $productName = null;
+            if ($productId) {
+                $productName = \App\Models\Product::find($productId)?->name;
+            }
+
+            $libroCampo = array_values(array_filter(array_map(function ($cc) use ($orderId, $productName) {
+                $rows = $cc['rows'];
+                if ($orderId) {
+                    $rows = array_filter($rows, fn($r) => $r['orden_id'] == $orderId);
+                }
+                if ($productName) {
+                    $rows = array_filter($rows, fn($r) => $r['producto'] === $productName);
+                }
+                $cc['rows'] = array_values($rows);
+                return $cc;
+            }, $libroCampo), fn($cc) => count($cc['rows']) > 0));
+        }
 
         $pdf = Pdf::loadView('pdfs.libro-campo', [
             'libroCampo' => $libroCampo,
@@ -81,6 +110,7 @@ class LibroCampoController extends Controller
             'applicationOrder.orderProducts.product.unit',
             'applicationOrder.orderProducts.unit',
             'applicationOrder.phenologicalStage',
+            'applicationOrder.orderCostCenters.costCenter',
             'product.unit',
             'product:id,name,active_ingredient,unit_id',
             'costCenter:id,name,surface,variety_id,fruit_id',
@@ -99,7 +129,10 @@ class LibroCampoController extends Controller
                 return null;
             }
 
-            $rows = $ccOutflows->map(function ($outflow) use ($cc) {
+            $rows = $ccOutflows->groupBy(function ($outflow) {
+                return $outflow->application_order_id . '-' . $outflow->product_id;
+            })->map(function ($group) use ($cc) {
+                $outflow = $group->first();
                 $order = $outflow->applicationOrder;
                 $product = $outflow->product;
 
@@ -113,6 +146,17 @@ class LibroCampoController extends Controller
                 $fechaAplic = $outflow->date;
                 $carencia = $orderProduct->carencia ?? null;
                 $reingreso = $orderProduct->reingreso ?? null;
+
+                // Mojamiento real = (maquinadas × volumen_equipo) / superficie_total_aplicada
+                $maquinadas = $outflow->maquinadas ?? 0;
+                $volumenEquipo = $order->volume ?? 0;
+                $superficieTotalAplicada = 0;
+                if ($order && $order->orderCostCenters) {
+                    $superficieTotalAplicada = $order->orderCostCenters->sum(fn($occ) => $occ->costCenter->surface ?? 0);
+                }
+                $mojamientoReal = $superficieTotalAplicada > 0
+                    ? round(($maquinadas * $volumenEquipo) / $superficieTotalAplicada)
+                    : null;
 
                 return [
                     'fecha_aplic' => $fechaAplic,
@@ -133,9 +177,9 @@ class LibroCampoController extends Controller
                     'dosis_100' => $orderProduct->dosis_por_100 ?? null,
                     'dosis_ha' => $orderProduct->dosis_por_hectarea ?? null,
                     'unidad' => $product->unit->name ?? ($orderProduct->unit->name ?? '-'),
-                    'mojamiento' => $order->mojamiento ?? null,
-                    'maquinadas' => $outflow->maquinadas,
-                    'cantidad' => $outflow->quantity,
+                    'mojamiento' => $mojamientoReal,
+                    'maquinadas' => $maquinadas,
+                    'cantidad' => $group->sum('quantity'),
                     'etapa_fenologica' => $order->phenologicalStage->name ?? '-',
                 ];
             })->values()->toArray();

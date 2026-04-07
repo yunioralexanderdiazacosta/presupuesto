@@ -5,6 +5,7 @@ import { router } from '@inertiajs/vue3';
 import Swal from 'sweetalert2';
 import ExportExcelButton from '@/Components/ExportExcelButton.vue';
 import ExecuteApplicationOrderModal from '@/Components/AgrochemicalOutflows/ExecuteApplicationOrderModal.vue';
+import AgrochemicalNavBar from '@/Components/AgrochemicalOutflows/AgrochemicalNavBar.vue';
 
 const props = defineProps({
     outflows: Array,
@@ -13,48 +14,85 @@ const props = defineProps({
 });
 
 const showExecuteModal = ref(false);
-const selectedOrder = ref(null);
 const expandedRows = ref({});
+const preselectedOrderId = ref(null);
 
 const toggleExpand = (orderId) => {
     expandedRows.value[orderId] = !expandedRows.value[orderId];
 };
 
 const openExecuteModal = () => {
+    preselectedOrderId.value = null;
     showExecuteModal.value = true;
 };
 
 const handleOrderExecuted = () => {
     showExecuteModal.value = false;
+    preselectedOrderId.value = null;
     router.reload();
 };
 
-const deleteOutflow = (outflowIds) => {
+const revertOutflow = (row) => {
     Swal.fire({
-        title: '¿Estás seguro?',
-        text: "Esta acción eliminará la aplicación completa y revertirá los movimientos de inventario",
+        title: '¿Rehacer esta aplicación?',
+        html: `Se eliminarán todos los registros de la <strong>Orden #${row.application_order_id}</strong> y la orden volverá a estado <strong>pendiente</strong> para que pueda re-ejecutarla.<br><br>El stock de las facturas se liberará automáticamente.`,
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonColor: '#e6a800',
+        cancelButtonColor: '#6c757d',
+        confirmButtonText: 'Sí, rehacer',
+        cancelButtonText: 'Cancelar',
+    }).then((result) => {
+        if (result.isConfirmed) {
+            router.delete(route('agrochemical-outflows.revert', row.application_order_id), {
+                preserveScroll: true,
+                onSuccess: () => {
+                    Swal.fire({
+                        icon: 'success',
+                        title: 'Aplicación revertida',
+                        text: 'La orden está disponible para re-ejecutar. Se abrirá el formulario.',
+                        timer: 2000,
+                        showConfirmButton: false,
+                    });
+                    // Esperar a que Inertia actualice las props, luego abrir modal con la orden preseleccionada
+                    setTimeout(() => {
+                        preselectedOrderId.value = row.application_order_id;
+                        showExecuteModal.value = true;
+                    }, 500);
+                },
+                onError: (errors) => {
+                    Swal.fire('Error', errors.error || 'No se pudo revertir la aplicación', 'error');
+                },
+            });
+        }
+    });
+};
+
+const deleteOutflow = (row) => {
+    Swal.fire({
+        title: '¿Eliminar esta aplicación?',
+        html: `Se eliminarán todos los registros de la <strong>Orden #${row.application_order_id}</strong> y se revertirá el inventario.`,
         icon: 'warning',
         showCancelButton: true,
         confirmButtonColor: '#d33',
-        cancelButtonColor: '#3085d6',
+        cancelButtonColor: '#6c757d',
         confirmButtonText: 'Sí, eliminar',
         cancelButtonText: 'Cancelar'
     }).then((result) => {
         if (result.isConfirmed) {
-            // Eliminar todos los outflows del grupo
-            const promises = outflowIds.map(id => 
-                new Promise((resolve, reject) => {
-                    router.delete(route('agrochemical-outflows.delete', id), {
-                        preserveScroll: true,
-                        onSuccess: resolve,
-                        onError: reject,
-                    });
-                })
-            );
-            // El último delete recarga la página por Inertia
-            Swal.fire('Eliminado', 'La aplicación ha sido eliminada correctamente.', 'success');
+            router.delete(route('agrochemical-outflows.revert', row.application_order_id), {
+                preserveScroll: true,
+                onSuccess: () => {
+                    Swal.fire('Eliminado', 'La aplicación ha sido eliminada correctamente.', 'success');
+                },
+            });
         }
     });
+};
+
+const truncateCuarteles = (list, max = 2) => {
+    if (!list || list.length <= max) return list ? list.join(', ') : '';
+    return list.slice(0, max).join(', ');
 };
 
 const excelData = computed(() => {
@@ -74,6 +112,8 @@ const excelData = computed(() => {
 
 <template>
     <AppLayout title="Aplicaciones de Agroquímicos">
+        <AgrochemicalNavBar />
+
         <div class="card my-3">
             <div class="card-header">
                 <div class="row flex-between-center">
@@ -120,11 +160,14 @@ const excelData = computed(() => {
                         </thead>
                         <tbody>
                             <template v-for="row in outflows" :key="row.application_order_id">
-                                <tr @click="toggleExpand(row.application_order_id)" style="cursor: pointer;">
+                                <tr @click="toggleExpand(row.application_order_id)" 
+                                    style="cursor: pointer;"
+                                    :class="{ 'bg-soft-primary': expandedRows[row.application_order_id] }"
+                                >
                                     <td>
                                         <i class="fas fa-xs me-1" 
                                            :class="expandedRows[row.application_order_id] ? 'fa-chevron-down' : 'fa-chevron-right'"></i>
-                                        {{ new Date(row.date + 'T12:00:00').toLocaleDateString('es-CL') }}
+                                        {{ new Date(String(row.date).substring(0, 10) + 'T12:00:00').toLocaleDateString('es-CL') }}
                                     </td>
                                     <td>
                                         <a :href="route('application-orders.show', row.application_order_id)" 
@@ -134,13 +177,19 @@ const excelData = computed(() => {
                                         </a>
                                     </td>
                                     <td>
-                                        <small>{{ row.cuarteles }}</small>
+                                        <small v-tooltip="row.cuarteles_list?.length > 2 ? row.cuarteles : null">
+                                            {{ truncateCuarteles(row.cuarteles_list) }}
+                                            <span v-if="row.cuarteles_list?.length > 2" class="badge bg-soft-secondary text-secondary ms-1" style="font-size: 0.65rem;">
+                                                +{{ row.cuarteles_list.length - 2 }}
+                                            </span>
+                                        </small>
                                     </td>
                                     <td>
                                         <span class="fw-semibold">{{ row.productos }}</span>
                                     </td>
-                                    <td class="text-end">
-                                        {{ Number(row.cantidad_total).toLocaleString('es-CL', {minimumFractionDigits: 2}) }} {{ row.unidad }}
+                                    <td class="text-end text-nowrap">
+                                        {{ Number(row.cantidad_total).toLocaleString('es-CL', {minimumFractionDigits: 2}) }}
+                                        <small class="text-muted ms-1">{{ row.unidad }}</small>
                                     </td>
                                     <td class="text-end">
                                         {{ Number(row.maquinadas).toLocaleString('es-CL', {minimumFractionDigits: 2}) }}
@@ -149,36 +198,57 @@ const excelData = computed(() => {
                                         <small class="text-muted">{{ row.facturas }}</small>
                                     </td>
                                     <td class="text-center">
-                                        <button 
-                                            @click.stop="deleteOutflow(row.outflow_ids)"
-                                            class="btn btn-sm btn-falcon-default"
-                                            title="Eliminar aplicación"
-                                        >
-                                            <i class="fas fa-trash"></i>
-                                        </button>
+                                        <div class="d-flex justify-content-center gap-1">
+                                            <button 
+                                                @click.stop="revertOutflow(row)"
+                                                class="btn btn-sm btn-falcon-default"
+                                                title="Rehacer aplicación"
+                                            >
+                                                <i class="fas fa-redo"></i>
+                                            </button>
+                                            <button 
+                                                @click.stop="deleteOutflow(row)"
+                                                class="btn btn-sm btn-falcon-default"
+                                                title="Eliminar aplicación"
+                                            >
+                                                <i class="fas fa-trash"></i>
+                                            </button>
+                                        </div>
                                     </td>
                                 </tr>
                                 <!-- Detalle expandido -->
                                 <tr v-if="expandedRows[row.application_order_id]">
                                     <td colspan="8" class="p-0">
-                                        <table class="table table-sm mb-0 bg-light" style="font-size: 0.75rem;">
-                                            <thead>
-                                                <tr class="table-light">
-                                                    <th class="ps-4">Cuartel</th>
-                                                    <th>Producto</th>
-                                                    <th class="text-end">Cantidad</th>
-                                                    <th>Factura</th>
-                                                </tr>
-                                            </thead>
-                                            <tbody>
-                                                <tr v-for="d in row.detalle" :key="d.id">
-                                                    <td class="ps-4">{{ d.cuartel }}</td>
-                                                    <td>{{ d.producto }}</td>
-                                                    <td class="text-end">{{ Number(d.cantidad).toLocaleString('es-CL', {minimumFractionDigits: 2}) }} {{ d.unidad }}</td>
-                                                    <td><small class="text-muted">{{ d.factura }}</small></td>
-                                                </tr>
-                                            </tbody>
-                                        </table>
+                                        <div class="mx-3 my-2 px-3 py-2 bg-light rounded border-start border-3 border-primary rounded-3">
+                                            <div class="d-flex align-items-center mb-2">
+                                                <i class="fas fa-list-ul text-primary me-2"></i>
+                                                <strong class="small text-primary">Detalle por cuartel — Orden #{{ row.application_order_id }}</strong>
+                                            </div>
+                                            <table class="table table-sm table-bordered mb-0" style="font-size: 0.75rem;">
+                                                <thead>
+                                                    <tr class="table-light">
+                                                        <th class="ps-3">Cuartel</th>
+                                                        <th>Producto</th>
+                                                        <th class="text-center">Cantidad</th>
+                                                        <th>Factura</th>
+                                                    </tr>
+                                                </thead>
+                                                <tbody>
+                                                    <tr v-for="d in row.detalle" :key="d.id">
+                                                        <td class="ps-3">
+                                                            <i class="fas fa-map-marker-alt text-muted me-1" style="font-size: 0.6rem;"></i>
+                                                            {{ d.cuartel }}
+                                                        </td>
+                                                        <td>{{ d.producto }}</td>
+                                                        <td class="text-center fw-semibold">
+                                                            {{ Number(d.cantidad).toLocaleString('es-CL', {minimumFractionDigits: 2}) }}
+                                                            <small class="text-muted ms-1">{{ d.unidad }}</small>
+                                                        </td>
+                                                        <td><small class="text-muted">{{ d.factura }}</small></td>
+                                                    </tr>
+                                                </tbody>
+                                            </table>
+                                        </div>
                                     </td>
                                 </tr>
                             </template>
@@ -198,7 +268,8 @@ const excelData = computed(() => {
             :show="showExecuteModal"
             :available-orders="availableOrders"
             :available-stocks-by-product="availableStocksByProduct"
-            @close="showExecuteModal = false"
+            :preselected-order-id="preselectedOrderId"
+            @close="showExecuteModal = false; preselectedOrderId = null;"
             @saved="handleOrderExecuted"
         />
     </AppLayout>
