@@ -25,7 +25,7 @@ class UpdateTeamRequest extends FormRequest
             'name' => 'required',
             'team_name' => 'required',
             'username' => 'required|max:255|unique:users,username,'. $this->user->id,
-            'email' => 'required|max:255|unique:users,email,'. $this->user->id
+            'email' => 'required|email|max:255',
         ];
     }
 }

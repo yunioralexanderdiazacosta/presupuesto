@@ -444,6 +444,11 @@ Route::get('/', function () {
     ]);
 });
 
+// Override Fortify: password reset busca por username en vez de email
+Route::post('/forgot-password', \App\Http\Controllers\Auth\ForgotPasswordController::class)
+    ->middleware('guest')
+    ->name('password.email');
+
 Route::middleware([
     'auth:sanctum',
     config('jetstream.auth_session'),
