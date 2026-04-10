@@ -11,6 +11,6 @@ class DeleteLaborRateController
         $laborRate->delete();
 
         return redirect()->back()
-            ->with('success', 'Tarifa eliminada correctamente.');
+            ->with('success', 'Trato eliminado correctamente.');
     }
 }

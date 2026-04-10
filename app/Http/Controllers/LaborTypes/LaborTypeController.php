@@ -17,7 +17,7 @@ class LaborTypeController extends Controller
 
         $laborTypes = LaborType::with(['level3', 'unit'])
             ->where('team_id', $user->team_id)
-            ->orderBy('name')
+            ->orderBy('code')
             ->get();
 
         $seasonId = session('season_id');

@@ -1,5 +1,5 @@
 <script setup>
-import { ref, computed, watch } from 'vue';
+import { ref, computed, watch, reactive } from 'vue';
 import axios from 'axios';
 import Swal from 'sweetalert2';
 
@@ -84,7 +84,33 @@ const monthLabel = computed(() => {
 // Totales diarios para la planilla
 function dayColumnTotal(date) {
     if (!reportData.value) return 0;
-    return reportData.value.employees.reduce((sum, e) => sum + (e.days[date]?.amount || 0), 0);
+    return reportData.value.employees.reduce((sum, e) => {
+        const day = e.days[date];
+        return sum + (day ? (day.amount || 0) + (day.bonus || 0) : 0);
+    }, 0);
+}
+
+// Popover desglose por celda diaria
+const popover = reactive({ show: false, x: 0, y: 0, day: null, empName: '' });
+let popoverTimeout = null;
+
+function showPopover(event, day, empName) {
+    if (!day || !day.lines || day.lines.length === 0) return;
+    clearTimeout(popoverTimeout);
+    const rect = event.target.getBoundingClientRect();
+    popover.x = rect.left + rect.width / 2;
+    popover.y = rect.top - 6;
+    popover.day = day;
+    popover.empName = empName;
+    popover.show = true;
+}
+
+function hidePopover() {
+    popoverTimeout = setTimeout(() => { popover.show = false; }, 150);
+}
+
+function keepPopover() {
+    clearTimeout(popoverTimeout);
 }
 
 // Export URLs
@@ -196,8 +222,9 @@ function exportPdf(mode) {
                                 <div>{{ dayName(date) }}</div>
                                 <div class="fw-bold">{{ dayShort(date) }}</div>
                             </th>
-                            <th class="text-end bg-200" style="min-width:70px;">Total $</th>
+                            <th class="text-end bg-200" style="min-width:70px;">Monto $</th>
                             <th class="text-end bg-200" style="min-width:60px;">Bono $</th>
+                            <th class="text-end bg-200" style="min-width:70px;">Total $</th>
                             <th class="text-center bg-200" style="min-width:40px;">Hrs</th>
                         </tr>
                     </thead>
@@ -207,11 +234,14 @@ function exportPdf(mode) {
                             <td v-for="date in reportData.dates" :key="date"
                                 class="text-end"
                                 :class="{ 'bg-100': isWeekend(date) }"
-                                style="font-size:0.65rem;">
-                                {{ emp.days[date]?.amount ? fmt(emp.days[date].amount) : '' }}
+                                @mouseenter="showPopover($event, emp.days[date], emp.full_name)"
+                                @mouseleave="hidePopover"
+                                style="font-size:0.65rem; cursor:default;">
+                                {{ emp.days[date] ? fmt((emp.days[date].amount || 0) + (emp.days[date].bonus || 0)) : '' }}
                             </td>
                             <td class="text-end fw-bold" style="font-size:0.7rem;">{{ fmt(emp.grand_total_amount) }}</td>
                             <td class="text-end" style="font-size:0.7rem;">{{ emp.grand_total_bonus ? fmt(emp.grand_total_bonus) : '' }}</td>
+                            <td class="text-end fw-bold text-primary" style="font-size:0.7rem;">{{ fmt(emp.grand_total_amount + (emp.grand_total_bonus || 0)) }}</td>
                             <td class="text-center" style="font-size:0.7rem;">{{ emp.grand_total_hours }}</td>
                         </tr>
                     </tbody>
@@ -226,6 +256,7 @@ function exportPdf(mode) {
                             </td>
                             <td class="text-end" style="font-size:0.75rem;">{{ fmt(reportData.totals.amount) }}</td>
                             <td class="text-end" style="font-size:0.75rem;">{{ fmt(reportData.totals.bonus) }}</td>
+                            <td class="text-end text-primary" style="font-size:0.75rem;">{{ fmt(reportData.totals.amount + reportData.totals.bonus) }}</td>
                             <td class="text-center" style="font-size:0.75rem;">{{ reportData.totals.hours }}</td>
                         </tr>
                     </tfoot>
@@ -383,7 +414,79 @@ function exportPdf(mode) {
             </template>
         </div>
     </div>
+
+    <!-- Popover desglose diario -->
+    <Teleport to="body">
+        <div v-if="popover.show && popover.day"
+            class="day-popover shadow-lg"
+            :style="{ left: popover.x + 'px', top: popover.y + 'px' }"
+            @mouseenter="keepPopover"
+            @mouseleave="hidePopover">
+            <div class="popover-header-custom">
+                <i class="fas fa-user-circle me-1"></i>{{ popover.empName }}
+            </div>
+            <div class="popover-body-custom">
+                <div v-for="(line, i) in popover.day.lines" :key="i" class="popover-line">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <span>
+                            <span class="badge me-1" :class="line.payment_type === 'dia' ? 'bg-info' : 'bg-primary'"
+                                style="font-size:0.55rem; padding:1px 4px;">
+                                {{ line.payment_type === 'dia' ? 'Día' : 'Trato' }}
+                            </span>
+                            <span style="font-size:0.7rem;">{{ line.labor_type || 'Labor' }}</span>
+                        </span>
+                        <span class="fw-bold" style="font-size:0.7rem;">${{ (line.amount || 0).toLocaleString('es-CL') }}</span>
+                    </div>
+                    <div v-if="line.bonus_amount" class="d-flex justify-content-between ps-3" style="font-size:0.65rem; color:#e6a817;">
+                        <span><i class="fas fa-gift me-1"></i>Bono</span>
+                        <span>+${{ line.bonus_amount.toLocaleString('es-CL') }}</span>
+                    </div>
+                </div>
+                <hr class="my-1" style="border-color:#e3e6f0;">
+                <div class="d-flex justify-content-between fw-bold" style="font-size:0.75rem; color:#2c7be5;">
+                    <span>Total</span>
+                    <span>${{ ((popover.day.amount || 0) + (popover.day.bonus || 0)).toLocaleString('es-CL') }}</span>
+                </div>
+                <div class="text-muted text-end" style="font-size:0.6rem;">{{ popover.day.hours }}h trabajadas</div>
+            </div>
+        </div>
+    </Teleport>
 </template>
+
+<style scoped>
+.day-popover {
+    position: fixed;
+    transform: translate(-50%, -100%);
+    z-index: 9999;
+    background: white;
+    border-radius: 6px;
+    border: 1px solid #d8e2ef;
+    min-width: 220px;
+    max-width: 280px;
+    pointer-events: auto;
+}
+.popover-header-custom {
+    background: #2c7be5;
+    color: white;
+    padding: 4px 10px;
+    border-radius: 5px 5px 0 0;
+    font-size: 0.7rem;
+    font-weight: 600;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+.popover-body-custom {
+    padding: 6px 10px 8px;
+}
+.popover-line {
+    padding: 2px 0;
+    border-bottom: 0.5px dashed #edf2f9;
+}
+.popover-line:last-of-type {
+    border-bottom: none;
+}
+</style>
 
 <style scoped>
 .sticky-col {

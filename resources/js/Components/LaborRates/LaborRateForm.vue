@@ -23,7 +23,7 @@ watch(form, () => emit('update:form', form), { deep: true });
                 <div v-if="form.errors?.name" class="invalid-feedback">{{ form.errors.name }}</div>
             </div>
             <div class="col-md-3">
-                <label class="form-label small mb-1">Tarifa ($) <span class="text-danger">*</span></label>
+                <label class="form-label small mb-1">Valor ($) <span class="text-danger">*</span></label>
                 <input type="number" v-model="form.rate" class="form-control form-control-sm"
                     :class="{ 'is-invalid': form.errors?.rate }" placeholder="0" min="0" />
                 <div v-if="form.errors?.rate" class="invalid-feedback">{{ form.errors.rate }}</div>

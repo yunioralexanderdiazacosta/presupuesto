@@ -264,6 +264,8 @@ use App\Http\Controllers\LaborTypes\LaborTypeController;
 use App\Http\Controllers\LaborTypes\StoreLaborTypeController;
 use App\Http\Controllers\LaborTypes\UpdateLaborTypeController;
 use App\Http\Controllers\LaborTypes\DeleteLaborTypeController;
+use App\Http\Controllers\LaborTypes\ExportLaborTypesPdfController;
+use App\Http\Controllers\LaborTypes\ShowLaborTypesCatalogController;
 // Rutas para Bonus Types (Tipos de Bono - Remuneraciones)
 use App\Http\Controllers\BonusTypes\BonusTypeController;
 use App\Http\Controllers\BonusTypes\StoreBonusTypeController;
@@ -274,6 +276,8 @@ use App\Http\Controllers\LaborRates\LaborRateController;
 use App\Http\Controllers\LaborRates\StoreLaborRateController;
 use App\Http\Controllers\LaborRates\UpdateLaborRateController;
 use App\Http\Controllers\LaborRates\DeleteLaborRateController;
+use App\Http\Controllers\LaborRates\ExportLaborRatesPdfController;
+use App\Http\Controllers\LaborRates\ShowLaborRatesCatalogController;
 // Rutas para Daily Attendances (Asistencia Diaria - Remuneraciones)
 use App\Http\Controllers\DailyAttendances\DailyAttendanceController;
 use App\Http\Controllers\DailyAttendances\StoreDailyAttendanceController;
@@ -937,6 +941,8 @@ Route::middleware([
     Route::post('/labor-types', StoreLaborTypeController::class)->name('labor-types.store');
     Route::put('/labor-types/{laborType}', UpdateLaborTypeController::class)->name('labor-types.update');
     Route::delete('/labor-types/{laborType}', DeleteLaborTypeController::class)->name('labor-types.delete');
+    Route::get('/labor-types/export-pdf', ExportLaborTypesPdfController::class)->name('labor-types.export-pdf');
+    Route::get('/labor-types/catalog', ShowLaborTypesCatalogController::class)->name('labor-types.show');
 
     // Bonus Types (Tipos de Bono - Remuneraciones)
     Route::get('/bonus-types', [BonusTypeController::class, 'index'])->name('bonus-types.index');
@@ -949,6 +955,8 @@ Route::middleware([
     Route::post('/labor-rates', StoreLaborRateController::class)->name('labor-rates.store');
     Route::put('/labor-rates/{laborRate}', UpdateLaborRateController::class)->name('labor-rates.update');
     Route::delete('/labor-rates/{laborRate}', DeleteLaborRateController::class)->name('labor-rates.delete');
+    Route::get('/labor-rates/export-pdf', ExportLaborRatesPdfController::class)->name('labor-rates.export-pdf');
+    Route::get('/labor-rates/catalog', ShowLaborRatesCatalogController::class)->name('labor-rates.show');
 
     // Daily Attendances (Asistencia Diaria - Remuneraciones)
     Route::get('/daily-attendances', [DailyAttendanceController::class, 'index'])->name('daily-attendances.index');

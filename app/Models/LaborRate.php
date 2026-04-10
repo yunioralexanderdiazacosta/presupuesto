@@ -12,6 +12,7 @@ class LaborRate extends Model
     protected $fillable = [
         'team_id',
         'season_id',
+        'code',
         'labor_type_id',
         'name',
         'rate',

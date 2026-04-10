@@ -31,7 +31,7 @@ function closeModal() {
 function save() {
     form.post(route('labor-rates.store'), {
         onSuccess: () => {
-            Swal.fire({ icon: 'success', title: 'Guardado', text: 'Tarifa registrada correctamente', timer: 1200, showConfirmButton: false });
+            Swal.fire({ icon: 'success', title: 'Guardado', text: 'Trato registrado correctamente', timer: 1200, showConfirmButton: false });
             form.reset();
             emit('saved');
             closeModal();

@@ -13,6 +13,7 @@ class StoreLaborTypeController
         $user = Auth::user();
         $validated = $request->validated();
         $validated['team_id'] = $user->team_id;
+        $validated['code'] = (LaborType::where('team_id', $user->team_id)->max('code') ?? 0) + 1;
         $validated['default_rate'] = $validated['default_rate'] ?? 0;
         $validated['default_bonus'] = $validated['default_bonus'] ?? 0;
 

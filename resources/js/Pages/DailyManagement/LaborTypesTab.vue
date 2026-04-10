@@ -1,7 +1,7 @@
 <script setup>
 import { ref, computed } from 'vue';
 import Swal from 'sweetalert2';
-import { router } from '@inertiajs/vue3';
+import { router, Link } from '@inertiajs/vue3';
 import CreateLaborTypeModal from '@/Components/LaborTypes/CreateLaborTypeModal.vue';
 import EditLaborTypeModal from '@/Components/LaborTypes/EditLaborTypeModal.vue';
 
@@ -24,10 +24,11 @@ const filteredRows = computed(() => {
     if (term.value) {
         const search = term.value.toLowerCase();
         rows = rows.filter(item => {
+            const code = String(item.code || '');
             const name = item.name?.toLowerCase() || '';
             const level3 = item.level3?.name?.toLowerCase() || '';
             const unit = item.unit?.name?.toLowerCase() || '';
-            return name.includes(search) || level3.includes(search) || unit.includes(search);
+            return code.includes(search) || name.includes(search) || level3.includes(search) || unit.includes(search);
         });
     }
     return rows;
@@ -88,8 +89,13 @@ function formatCurrency(value) {
 
 <template>
     <div>
-        <!-- Botón crear -->
-        <div class="d-flex justify-content-end mb-3">
+        <!-- Botones -->
+        <div class="d-flex justify-content-between mb-3">
+            <div class="d-flex gap-1">
+                <Link :href="route('labor-types.show')" class="btn btn-falcon-default btn-sm">
+                    <i class="fas fa-book-open me-1"></i>Ver Catálogo
+                </Link>
+            </div>
             <button class="btn btn-falcon-default btn-sm" @click="openCreateModal">
                 <span class="fas fa-plus" data-fa-transform="shrink-3 down-2"></span>
                 <span class="d-none d-sm-inline-block ms-1">Nueva Labor</span>
@@ -114,6 +120,7 @@ function formatCurrency(value) {
             <table class="table table-bordered table-striped table-hover table-sm fs-10 mb-0">
                 <thead class="table-primary">
                     <tr>
+                        <th style="width: 60px;" class="text-center">Cód.</th>
                         <th>Nombre</th>
                         <th>Subfamilia (Level3)</th>
                         <th>Unidad</th>
@@ -125,6 +132,7 @@ function formatCurrency(value) {
                 </thead>
                 <tbody>
                     <tr v-for="item in filteredRows" :key="item.id">
+                        <td class="text-center fw-bold text-primary">{{ item.code }}</td>
                         <td class="fw-semibold">{{ item.name }}</td>
                         <td>{{ item.level3?.name || '-' }}</td>
                         <td>{{ item.unit?.name || '-' }}</td>
@@ -147,7 +155,7 @@ function formatCurrency(value) {
                         </td>
                     </tr>
                     <tr v-if="filteredRows.length === 0">
-                        <td colspan="7" class="text-center text-muted">No hay labores registradas.</td>
+                        <td colspan="8" class="text-center text-muted">No hay labores registradas.</td>
                     </tr>
                 </tbody>
             </table>

@@ -38,7 +38,7 @@ const tabs = [
     { key: 'attendance', label: 'Asistencia', icon: 'fas fa-clipboard-check' },
     { key: 'yields', label: 'Tarjas', icon: 'fas fa-clipboard-list' },
     { key: 'labor-types', label: 'Labores', icon: 'fas fa-hard-hat' },
-    { key: 'labor-rates', label: 'Tarifas', icon: 'fas fa-tags' },
+    { key: 'labor-rates', label: 'Tratos', icon: 'fas fa-tags' },
     { key: 'bonus-types', label: 'Bonos', icon: 'fas fa-gift' },
     { key: 'schedule', label: 'Horario', icon: 'fas fa-clock' },
     { key: 'reportes', label: 'Reportes', icon: 'fas fa-chart-bar' },

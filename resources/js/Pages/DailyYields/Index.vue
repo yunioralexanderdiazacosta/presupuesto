@@ -68,7 +68,10 @@ function startAddLine(empId) {
         bonus_type_id: '', bonus_amount: 0, cost_center_id: '', observations: '',
     });
     const emp = props.employees.find(e => e.id === empId);
-    if (emp) newLine.hours = Math.min(props.maxHoursPerDay, emp.remaining_hours > 0 ? emp.remaining_hours : props.maxHoursPerDay);
+    if (emp) {
+        const maxH = props.maxHoursPerDay > 0 ? props.maxHoursPerDay : 8;
+        newLine.hours = Math.min(maxH, emp.remaining_hours > 0 ? emp.remaining_hours : maxH);
+    }
 }
 
 function onPaymentTypeChange() {
@@ -86,7 +89,9 @@ function recalcDailyRate() {
     if (newLine.payment_type !== 'dia') return;
     const emp = props.employees.find(e => e.id === addingLineFor.value);
     const fullDayRate = emp ? emp.daily_rate : 0;
-    newLine.rate = Math.round(fullDayRate * (newLine.hours || 0) / props.maxHoursPerDay);
+    newLine.rate = props.maxHoursPerDay > 0
+        ? Math.round(fullDayRate * (newLine.hours || 0) / props.maxHoursPerDay)
+        : fullDayRate;
 }
 
 function onHoursChange() {
@@ -95,7 +100,11 @@ function onHoursChange() {
 
 function onLaborChange() {
     newLine.labor_rate_id = '';
-    newLine.rate = 0;
+    if (newLine.payment_type === 'dia') {
+        recalcDailyRate();
+    } else {
+        newLine.rate = 0;
+    }
 }
 
 const filteredRates = computed(() => {

@@ -71,9 +71,10 @@ function startAddLine(empId) {
     const emp = props.employees.find(e => e.id === empId);
     if (emp) {
         if (emp.remaining_hours === null) {
-            newLine.hours = 8; // Default sensato cuando no hay límite
+            newLine.hours = props.maxHoursPerDay > 0 ? props.maxHoursPerDay : 8;
         } else {
-            newLine.hours = Math.min(props.maxHoursPerDay, emp.remaining_hours > 0 ? emp.remaining_hours : props.maxHoursPerDay);
+            const maxH = props.maxHoursPerDay > 0 ? props.maxHoursPerDay : 8;
+            newLine.hours = Math.min(maxH, emp.remaining_hours > 0 ? emp.remaining_hours : maxH);
         }
     }
 }
@@ -93,7 +94,9 @@ function recalcDailyRate() {
     if (newLine.payment_type !== 'dia') return;
     const emp = props.employees.find(e => e.id === addingLineFor.value);
     const fullDayRate = emp ? emp.daily_rate : 0;
-    newLine.rate = Math.round(fullDayRate * (newLine.hours || 0) / props.maxHoursPerDay);
+    newLine.rate = props.maxHoursPerDay > 0
+        ? Math.round(fullDayRate * (newLine.hours || 0) / props.maxHoursPerDay)
+        : fullDayRate;
 }
 
 function onHoursChange() {
@@ -102,7 +105,11 @@ function onHoursChange() {
 
 function onLaborChange() {
     newLine.labor_rate_id = '';
-    newLine.rate = 0;
+    if (newLine.payment_type === 'dia') {
+        recalcDailyRate();
+    } else {
+        newLine.rate = 0;
+    }
 }
 
 const filteredRates = computed(() => {
@@ -267,7 +274,7 @@ function deleteLine(yieldId) {
                                     <table class="table table-sm table-bordered fs--2 mb-2" v-if="emp.yields && emp.yields.length">
                                         <thead>
                                             <tr class="bg-200">
-                                                <th>Tipo</th><th>Labor</th><th>Trato</th><th>Tarifa</th><th>Cant.</th><th>Monto</th>
+                                                <th>Tipo</th><th>Labor</th><th>Trato</th><th>Valor</th><th>Cant.</th><th>Monto</th>
                                                 <th>Horas</th><th>C.Costo</th><th>Bono</th><th>Obs.</th><th style="width:60px"></th>
                                             </tr>
                                         </thead>

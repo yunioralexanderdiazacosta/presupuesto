@@ -38,7 +38,7 @@ function closeModal() {
 function save() {
     form.put(route('labor-rates.update', props.laborRate.id), {
         onSuccess: () => {
-            Swal.fire({ icon: 'success', title: 'Actualizado', text: 'Tarifa actualizada correctamente', timer: 1200, showConfirmButton: false });
+            Swal.fire({ icon: 'success', title: 'Actualizado', text: 'Trato actualizado correctamente', timer: 1200, showConfirmButton: false });
             emit('saved');
             closeModal();
         },
@@ -56,7 +56,7 @@ function save() {
                 <div class="modal-header bg-white border-bottom">
                     <h5 class="modal-title d-flex align-items-center">
                         <i class="fas fa-edit text-primary me-2 fs-8"></i>
-                        Editar Tarifa
+                        Editar Trato
                     </h5>
                     <button type="button" class="btn-close" @click="closeModal"></button>
                 </div>

@@ -118,18 +118,18 @@ class DailyManagementController extends Controller
         // === CATÁLOGOS (formato select) ===
         $laborTypes = LaborType::where('team_id', $user->team_id)
             ->where('is_active', true)
-            ->orderBy('name')
+            ->orderBy('code')
             ->get()
-            ->map(fn($l) => ['value' => $l->id, 'label' => $l->name]);
+            ->map(fn($l) => ['value' => $l->id, 'label' => $l->code . ' - ' . $l->name]);
 
         $laborRates = LaborRate::where('team_id', $user->team_id)
             ->where('season_id', $seasonId)
             ->where('is_active', true)
-            ->orderBy('name')
+            ->orderBy('code')
             ->get()
             ->map(fn($lr) => [
                 'value' => $lr->id,
-                'label' => $lr->name,
+                'label' => $lr->code . ' - ' . $lr->name,
                 'labor_type_id' => $lr->labor_type_id,
                 'rate' => $lr->rate,
             ]);
@@ -147,13 +147,13 @@ class DailyManagementController extends Controller
         // === CATÁLOGOS COMPLETOS (para tabs CRUD) ===
         $laborTypesCatalog = LaborType::with(['level3', 'unit'])
             ->where('team_id', $user->team_id)
-            ->orderBy('name')
+            ->orderBy('code')
             ->get();
 
         $laborRatesCatalog = LaborRate::with(['laborType', 'unit'])
             ->where('team_id', $user->team_id)
             ->where('season_id', $seasonId)
-            ->orderBy('name')
+            ->orderBy('code')
             ->get();
 
         $bonusTypesCatalog = BonusType::where('team_id', $user->team_id)

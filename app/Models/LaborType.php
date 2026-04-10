@@ -11,6 +11,7 @@ class LaborType extends Model
 
     protected $fillable = [
         'team_id',
+        'code',
         'name',
         'level3_id',
         'unit_id',
@@ -20,6 +21,7 @@ class LaborType extends Model
     ];
 
     protected $casts = [
+        'code' => 'integer',
         'default_rate' => 'integer',
         'default_bonus' => 'integer',
         'is_active' => 'boolean',

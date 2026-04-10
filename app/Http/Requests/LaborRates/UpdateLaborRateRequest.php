@@ -25,9 +25,9 @@ class UpdateLaborRateRequest extends FormRequest
     public function messages(): array
     {
         return [
-            'name.required' => 'El nombre de la tarifa es obligatorio.',
-            'rate.required' => 'El monto de la tarifa es obligatorio.',
-            'rate.min' => 'La tarifa debe ser mayor o igual a 0.',
+            'name.required' => 'El nombre del trato es obligatorio.',
+            'rate.required' => 'El monto del trato es obligatorio.',
+            'rate.min' => 'El valor del trato debe ser mayor o igual a 0.',
         ];
     }
 }

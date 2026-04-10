@@ -1,7 +1,7 @@
 <script setup>
 import { ref, computed } from 'vue';
 import Swal from 'sweetalert2';
-import { router } from '@inertiajs/vue3';
+import { router, Link } from '@inertiajs/vue3';
 import CreateLaborRateModal from '@/Components/LaborRates/CreateLaborRateModal.vue';
 import EditLaborRateModal from '@/Components/LaborRates/EditLaborRateModal.vue';
 
@@ -24,10 +24,11 @@ const filteredRows = computed(() => {
     if (term.value) {
         const search = term.value.toLowerCase();
         rows = rows.filter(item => {
+            const code = String(item.code || '');
             const name = item.name?.toLowerCase() || '';
             const laborType = item.labor_type?.name?.toLowerCase() || '';
             const unit = item.unit?.name?.toLowerCase() || '';
-            return name.includes(search) || laborType.includes(search) || unit.includes(search);
+            return code.includes(search) || name.includes(search) || laborType.includes(search) || unit.includes(search);
         });
     }
     return rows;
@@ -70,7 +71,7 @@ function deleteItem(id) {
             router.delete(route('labor-rates.delete', id), {
                 preserveScroll: true,
                 onSuccess: () => {
-                    Swal.fire({ icon: 'success', title: 'Eliminado', text: 'Tarifa eliminada correctamente', timer: 1500, showConfirmButton: false });
+                    Swal.fire({ icon: 'success', title: 'Eliminado', text: 'Trato eliminado correctamente', timer: 1500, showConfirmButton: false });
                 },
                 onError: () => {
                     Swal.fire({ icon: 'error', title: 'Error', text: 'No se pudo eliminar el registro' });
@@ -88,16 +89,21 @@ function formatCurrency(value) {
 
 <template>
     <div>
-        <div class="d-flex justify-content-end mb-3">
+        <div class="d-flex justify-content-between mb-3">
+            <div class="d-flex gap-1">
+                <Link :href="route('labor-rates.show')" class="btn btn-falcon-default btn-sm">
+                    <i class="fas fa-book-open me-1"></i>Ver Catálogo
+                </Link>
+            </div>
             <button class="btn btn-falcon-default btn-sm" @click="openCreateModal">
                 <span class="fas fa-plus" data-fa-transform="shrink-3 down-2"></span>
-                <span class="d-none d-sm-inline-block ms-1">Nueva Tarifa</span>
+                <span class="d-none d-sm-inline-block ms-1">Nuevo Trato</span>
             </button>
         </div>
 
         <div class="row mb-3 g-2">
             <div class="col-md-8">
-                <input v-model="term" class="form-control form-control-sm" placeholder="Buscar por nombre, labor, unidad..." />
+                <input v-model="term" class="form-control form-control-sm" placeholder="Buscar por código, nombre, labor, unidad..." />
             </div>
             <div class="col-md-4">
                 <select v-model="statusFilter" class="form-select form-select-sm">
@@ -112,9 +118,10 @@ function formatCurrency(value) {
             <table class="table table-bordered table-striped table-hover table-sm fs-10 mb-0">
                 <thead class="table-primary">
                     <tr>
+                        <th style="width: 65px;" class="text-center">Cód.</th>
                         <th>Nombre</th>
                         <th>Labor Asociada</th>
-                        <th class="text-end">Tarifa</th>
+                        <th class="text-end">Valor</th>
                         <th>Unidad</th>
                         <th class="text-center">Estado</th>
                         <th style="width: 100px;">Acciones</th>
@@ -122,6 +129,7 @@ function formatCurrency(value) {
                 </thead>
                 <tbody>
                     <tr v-for="item in filteredRows" :key="item.id">
+                        <td class="text-center fw-bold text-success">{{ item.code }}</td>
                         <td class="fw-semibold">{{ item.name }}</td>
                         <td>{{ item.labor_type?.name || '-' }}</td>
                         <td class="text-end">{{ formatCurrency(item.rate) }}</td>
@@ -143,7 +151,7 @@ function formatCurrency(value) {
                         </td>
                     </tr>
                     <tr v-if="filteredRows.length === 0">
-                        <td colspan="6" class="text-center text-muted">No hay tarifas registradas para esta temporada.</td>
+                        <td colspan="7" class="text-center text-muted">No hay tratos registrados para esta temporada.</td>
                     </tr>
                 </tbody>
             </table>
