@@ -2,6 +2,7 @@
 import { ref, computed, watch, reactive } from 'vue';
 import axios from 'axios';
 import Swal from 'sweetalert2';
+import Multiselect from '@vueform/multiselect';
 
 const props = defineProps({
     selectedDate: String,
@@ -10,7 +11,7 @@ const props = defineProps({
 // Estado
 const currentMonth = ref(props.selectedDate ? props.selectedDate.substring(0, 7) : new Date().toISOString().substring(0, 7));
 const viewMode = ref('planilla'); // 'planilla' | 'detalle'
-const selectedEmployeeId = ref('');
+const selectedEmployeeIds = ref([]);
 const loading = ref(false);
 const reportData = ref(null);
 
@@ -22,7 +23,7 @@ async function fetchReport() {
             params: { month: currentMonth.value }
         });
         reportData.value = response.data;
-        selectedEmployeeId.value = '';
+        selectedEmployeeIds.value = [];
     } catch (error) {
         console.error('Error al cargar reporte:', error);
         Swal.fire('Error', 'No se pudo cargar el reporte mensual.', 'error');
@@ -38,10 +39,10 @@ function changeMonth() {
     fetchReport();
 }
 
-// Empleado seleccionado para detalle individual
-const selectedEmployee = computed(() => {
-    if (!reportData.value || !selectedEmployeeId.value) return null;
-    return reportData.value.employees.find(e => String(e.id) === String(selectedEmployeeId.value));
+// Empleados seleccionados para detalle
+const selectedEmployees = computed(() => {
+    if (!reportData.value || selectedEmployeeIds.value.length === 0) return [];
+    return reportData.value.employees.filter(e => selectedEmployeeIds.value.includes(e.id));
 });
 
 // Empleados para el select (solo los que tienen datos)
@@ -121,8 +122,8 @@ function exportExcel(mode) {
 
 function exportPdf(mode) {
     let url = route('daily-management.export-pdf') + '?month=' + currentMonth.value + '&mode=' + mode;
-    if (mode === 'detalle' && selectedEmployeeId.value) {
-        url += '&employee_id=' + selectedEmployeeId.value;
+    if (mode === 'detalle' && selectedEmployeeIds.value.length > 0) {
+        selectedEmployeeIds.value.forEach(id => { url += '&employee_ids[]=' + id; });
     }
     window.open(url, '_blank');
 }
@@ -149,11 +150,18 @@ function exportPdf(mode) {
                 </div>
             </div>
             <div class="col-md-4" v-if="viewMode === 'detalle'">
-                <label class="form-label small mb-1">Colaborador</label>
-                <select v-model="selectedEmployeeId" class="form-select form-select-sm">
-                    <option value="">-- Todos --</option>
-                    <option v-for="emp in employeeOptions" :key="emp.value" :value="emp.value">{{ emp.label }}</option>
-                </select>
+                <label class="form-label small mb-1">Colaboradores</label>
+                <Multiselect
+                    v-model="selectedEmployeeIds"
+                    :options="employeeOptions"
+                    mode="tags"
+                    :searchable="true"
+                    :close-on-select="false"
+                    placeholder="Todos los colaboradores"
+                    no-results-text="Sin resultados"
+                    no-options-text="Sin colaboradores"
+                    class="multiselect-sm"
+                />
             </div>
             <div class="col-md-3 ms-auto">
                 <label class="form-label small mb-1">Exportar</label>
@@ -266,12 +274,12 @@ function exportPdf(mode) {
 
         <!-- DETALLE INDIVIDUAL -->
         <div v-else-if="reportData && viewMode === 'detalle'">
-            <!-- Si hay un empleado seleccionado: detalle individual -->
-            <template v-if="selectedEmployee">
-                <div class="card border mb-3">
+            <!-- Si hay empleados seleccionados: detalle de cada uno -->
+            <template v-if="selectedEmployees.length > 0">
+                <div v-for="emp in selectedEmployees" :key="emp.id" class="card border mb-3">
                     <div class="card-header bg-primary text-white py-2">
-                        <strong>{{ selectedEmployee.full_name }}</strong>
-                        <span class="ms-2 small">{{ selectedEmployee.rut }} | {{ selectedEmployee.position || '-' }}</span>
+                        <strong>{{ emp.full_name }}</strong>
+                        <span class="ms-2 small">{{ emp.rut }} | {{ emp.position || '-' }}</span>
                     </div>
                     <div class="card-body p-2">
                         <!-- Resumen personal -->
@@ -279,25 +287,25 @@ function exportPdf(mode) {
                             <div class="col-md-3">
                                 <div class="card bg-soft-success text-center p-2">
                                     <small class="text-muted">Total Ganado</small>
-                                    <strong class="fs-8">${{ fmt(selectedEmployee.grand_total_amount) }}</strong>
+                                    <strong class="fs-8">${{ fmt(emp.grand_total_amount) }}</strong>
                                 </div>
                             </div>
                             <div class="col-md-3">
                                 <div class="card bg-soft-info text-center p-2">
                                     <small class="text-muted">Total Bonos</small>
-                                    <strong>${{ fmt(selectedEmployee.grand_total_bonus) }}</strong>
+                                    <strong>${{ fmt(emp.grand_total_bonus) }}</strong>
                                 </div>
                             </div>
                             <div class="col-md-3">
                                 <div class="card bg-soft-warning text-center p-2">
                                     <small class="text-muted">Total Horas</small>
-                                    <strong>{{ selectedEmployee.grand_total_hours }}h</strong>
+                                    <strong>{{ emp.grand_total_hours }}h</strong>
                                 </div>
                             </div>
                             <div class="col-md-3">
                                 <div class="card bg-soft-primary text-center p-2">
                                     <small class="text-muted">Días Trabajados</small>
-                                    <strong>{{ selectedEmployee.days_worked }}</strong>
+                                    <strong>{{ emp.days_worked }}</strong>
                                 </div>
                             </div>
                         </div>
@@ -321,8 +329,8 @@ function exportPdf(mode) {
                                 </thead>
                                 <tbody>
                                     <template v-for="date in reportData.dates" :key="date">
-                                        <template v-if="selectedEmployee.days[date]?.lines?.length > 0">
-                                            <tr v-for="(line, idx) in selectedEmployee.days[date].lines" :key="date + '-' + idx">
+                                        <template v-if="emp.days[date]?.lines?.length > 0">
+                                            <tr v-for="(line, idx) in emp.days[date].lines" :key="date + '-' + idx">
                                                 <td>{{ new Date(date + 'T12:00:00').toLocaleDateString('es-CL', { day: '2-digit', month: '2-digit' }) }}</td>
                                                 <td class="text-center">
                                                     <span class="badge" :class="line.payment_type === 'dia' ? 'bg-info' : 'bg-primary'" style="font-size:0.6rem;">
@@ -339,14 +347,14 @@ function exportPdf(mode) {
                                                 <td>{{ line.cost_center }}</td>
                                             </tr>
                                             <!-- Subtotal del día (solo si hay más de 1 línea) -->
-                                            <tr v-if="selectedEmployee.days[date].lines.length > 1" class="bg-100">
+                                            <tr v-if="emp.days[date].lines.length > 1" class="bg-100">
                                                 <td colspan="6" class="fw-semi-bold small text-end">
                                                     {{ new Date(date + 'T12:00:00').toLocaleDateString('es-CL', { weekday: 'short', day: '2-digit', month: '2-digit' }) }}
                                                     — Subtotal:
                                                 </td>
-                                                <td class="text-end fw-bold small">${{ fmt(selectedEmployee.days[date].amount) }}</td>
-                                                <td class="text-center fw-bold small">{{ selectedEmployee.days[date].hours }}h</td>
-                                                <td class="text-end fw-bold small">{{ selectedEmployee.days[date].bonus ? '$' + fmt(selectedEmployee.days[date].bonus) : '' }}</td>
+                                                <td class="text-end fw-bold small">${{ fmt(emp.days[date].amount) }}</td>
+                                                <td class="text-center fw-bold small">{{ emp.days[date].hours }}h</td>
+                                                <td class="text-end fw-bold small">{{ emp.days[date].bonus ? '$' + fmt(emp.days[date].bonus) : '' }}</td>
                                                 <td></td>
                                             </tr>
                                         </template>
@@ -355,9 +363,9 @@ function exportPdf(mode) {
                                 <tfoot class="bg-200">
                                     <tr class="fw-bold">
                                         <td colspan="6" class="text-end">TOTAL MES</td>
-                                        <td class="text-end">${{ fmt(selectedEmployee.grand_total_amount) }}</td>
-                                        <td class="text-center">{{ selectedEmployee.grand_total_hours }}h</td>
-                                        <td class="text-end">${{ fmt(selectedEmployee.grand_total_bonus) }}</td>
+                                        <td class="text-end">${{ fmt(emp.grand_total_amount) }}</td>
+                                        <td class="text-center">{{ emp.grand_total_hours }}h</td>
+                                        <td class="text-end">${{ fmt(emp.grand_total_bonus) }}</td>
                                         <td></td>
                                     </tr>
                                 </tfoot>
@@ -393,7 +401,7 @@ function exportPdf(mode) {
                                 <td class="text-end">{{ emp.grand_total_bonus ? fmt(emp.grand_total_bonus) : '-' }}</td>
                                 <td class="text-end fw-bold">{{ fmt(emp.grand_total_amount + emp.grand_total_bonus) }}</td>
                                 <td class="text-center">
-                                    <button class="btn btn-sm btn-falcon-default p-0 px-1" @click="selectedEmployeeId = emp.id" title="Ver detalle">
+                                    <button class="btn btn-sm btn-falcon-default p-0 px-1" @click="selectedEmployeeIds = [emp.id]" title="Ver detalle">
                                         <i class="fas fa-eye"></i>
                                     </button>
                                 </td>
@@ -493,5 +501,25 @@ function exportPdf(mode) {
     position: sticky;
     left: 0;
     z-index: 1;
+}
+</style>
+
+<style src="@vueform/multiselect/themes/default.css"></style>
+<style>
+.multiselect-sm {
+    font-size: 0.75rem;
+    min-height: 30px;
+}
+.multiselect-sm .multiselect-option {
+    font-size: 0.8rem;
+    padding: 3px 8px;
+    line-height: 1.2;
+}
+.multiselect-sm .multiselect-tag {
+    font-size: 0.8rem;
+    padding: 2px 6px;
+}
+.multiselect-sm .multiselect-search input {
+    font-size: 0.7rem;
 }
 </style>

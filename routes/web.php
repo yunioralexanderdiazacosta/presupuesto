@@ -547,6 +547,16 @@ Route::middleware([
     Route::post('/company-reasons/{companyReason}/update', UpdateCompanyReasonController::class)->name('company.reasons.update');
     Route::delete('/company-reasons/{companyReason}/delete', DeleteCompanyReasonController::class)->name('company.reasons.delete');
 
+    Route::get('/schedules', \App\Http\Controllers\Schedules\ScheduleController::class)->name('schedules.index');
+    Route::post('/schedules/store', \App\Http\Controllers\Schedules\StoreScheduleController::class)->name('schedules.store');
+    Route::post('/schedules/{schedule}/update', \App\Http\Controllers\Schedules\UpdateScheduleController::class)->name('schedules.update');
+    Route::delete('/schedules/{schedule}/delete', \App\Http\Controllers\Schedules\DeleteScheduleController::class)->name('schedules.delete');
+
+    Route::get('/cities', \App\Http\Controllers\Cities\CityController::class)->name('cities.index');
+    Route::post('/cities/store', \App\Http\Controllers\Cities\StoreCityController::class)->name('cities.store');
+    Route::post('/cities/{city}/update', \App\Http\Controllers\Cities\UpdateCityController::class)->name('cities.update');
+    Route::delete('/cities/{city}/delete', \App\Http\Controllers\Cities\DeleteCityController::class)->name('cities.delete');
+
     Route::get('/invoices/pdf', InvoicesPdfController::class)->name('invoices.pdf');
     Route::get('/invoices/excel', InvoicesExcelController::class)->name('invoices.excel');
     Route::get('/invoices', InvoicesController::class)->name('invoices.index');

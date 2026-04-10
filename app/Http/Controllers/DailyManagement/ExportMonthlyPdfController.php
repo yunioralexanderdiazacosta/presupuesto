@@ -18,6 +18,8 @@ class ExportMonthlyPdfController extends Controller
             'month' => 'required|date_format:Y-m',
             'mode' => 'required|in:planilla,detalle',
             'employee_id' => 'nullable|integer',
+            'employee_ids' => 'nullable|array',
+            'employee_ids.*' => 'integer',
         ]);
 
         $user = Auth::user();
@@ -38,8 +40,10 @@ class ExportMonthlyPdfController extends Controller
             ->where('season_id', $seasonId)
             ->whereBetween('date', [$startDate->format('Y-m-d'), $endDate->format('Y-m-d')]);
 
-        if ($request->employee_id) {
-            $yieldsQuery->where('employee_id', $request->employee_id);
+        $employeeIds = $request->employee_ids ?? ($request->employee_id ? [$request->employee_id] : []);
+
+        if (!empty($employeeIds)) {
+            $yieldsQuery->whereIn('employee_id', $employeeIds);
         }
 
         $yields = $yieldsQuery->orderBy('date')->orderBy('employee_id')->get();
@@ -51,8 +55,8 @@ class ExportMonthlyPdfController extends Controller
             ->whereHas('activeContract')
             ->orderBy('paternal_surname');
 
-        if ($request->employee_id) {
-            $employeesQuery->where('id', $request->employee_id);
+        if (!empty($employeeIds)) {
+            $employeesQuery->whereIn('id', $employeeIds);
         }
 
         $employees = $employeesQuery->get();

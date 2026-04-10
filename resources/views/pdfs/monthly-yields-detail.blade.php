@@ -9,7 +9,8 @@
         .header { text-align: center; margin-bottom: 10px; border-bottom: 2px solid #2c7be5; padding-bottom: 6px; }
         .header h1 { font-size: 16px; color: #2c7be5; margin-bottom: 2px; }
         .header p { font-size: 10px; color: #666; }
-        .employee-section { margin-bottom: 15px; page-break-inside: avoid; }
+        .employee-section { margin-bottom: 15px; page-break-after: always; }
+        .employee-section:last-of-type { page-break-after: auto; }
         .employee-header { background-color: #2c7be5; color: #fff; padding: 4px 8px; font-size: 11px; font-weight: bold; margin-bottom: 4px; }
         .employee-info { font-size: 9px; color: #666; margin-bottom: 4px; padding-left: 8px; }
         table { width: 100%; border-collapse: collapse; margin-bottom: 6px; }
@@ -26,13 +27,13 @@
     </style>
 </head>
 <body>
-    <div class="header">
-        <h1>Detalle de Tarjas</h1>
-        <p>{{ $team->name ?? '' }} — {{ \Carbon\Carbon::parse($month . '-01')->translatedFormat('F Y') }}</p>
-    </div>
 
     @foreach($employees as $emp)
     <div class="employee-section">
+        <div class="header">
+            <h1>Detalle de Tarjas</h1>
+            <p>{{ $team->name ?? '' }} — {{ \Carbon\Carbon::parse($month . '-01')->translatedFormat('F Y') }}</p>
+        </div>
         <div class="employee-header">{{ $emp['full_name'] }}</div>
         <div class="employee-info">RUT: {{ $emp['rut'] }} | Cargo: {{ $emp['position'] ?: '-' }}</div>
 

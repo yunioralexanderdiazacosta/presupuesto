@@ -84,9 +84,7 @@ overflow-y: auto;
   }
 }
 
- input{
-    text-transform: lowercase;
-} 
+
 
 /* Regla global para achicar los tags de Vue Multiselect */
 

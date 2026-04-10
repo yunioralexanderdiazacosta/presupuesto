@@ -183,7 +183,7 @@ const addCity = async () => {
             </div>
 
             <!-- Horario -->
-            <div class="col-md-3">
+            <div class="col-md-5">
                 <div class="d-flex align-items-center justify-content-between mb-1">
                     <label class="form-label small mb-0">Horario</label>
                     <div class="d-flex gap-1">

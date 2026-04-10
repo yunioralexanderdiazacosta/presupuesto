@@ -27,6 +27,7 @@ class ContractController extends Controller
 
         $employees = Employee::where('team_id', $user->team_id)
             ->where('is_active', true)
+            ->whereDoesntHave('activeContract')
             ->orderBy('paternal_surname')
             ->get()
             ->map(fn($e) => [
