@@ -433,21 +433,21 @@ function exportPdf(mode) {
                                 style="font-size:0.55rem; padding:1px 4px;">
                                 {{ line.payment_type === 'dia' ? 'Día' : 'Trato' }}
                             </span>
-                            <span style="font-size:0.7rem;">{{ line.labor_type || 'Labor' }}</span>
+                            <span style="font-size:0.78rem;">{{ line.labor_type || 'Labor' }}</span>
                         </span>
-                        <span class="fw-bold" style="font-size:0.7rem;">${{ (line.amount || 0).toLocaleString('es-CL') }}</span>
+                        <span class="fw-bold" style="font-size:0.78rem;">${{ (line.amount || 0).toLocaleString('es-CL') }}</span>
                     </div>
-                    <div v-if="line.bonus_amount" class="d-flex justify-content-between ps-3" style="font-size:0.65rem; color:#e6a817;">
+                    <div v-if="line.bonus_amount" class="d-flex justify-content-between ps-3" style="font-size:0.72rem;">
                         <span><i class="fas fa-gift me-1"></i>Bono</span>
                         <span>+${{ line.bonus_amount.toLocaleString('es-CL') }}</span>
                     </div>
                 </div>
                 <hr class="my-1" style="border-color:#e3e6f0;">
-                <div class="d-flex justify-content-between fw-bold" style="font-size:0.75rem; color:#2c7be5;">
+                <div class="d-flex justify-content-between fw-bold" style="font-size:0.82rem; color:#2c7be5;">
                     <span>Total</span>
                     <span>${{ ((popover.day.amount || 0) + (popover.day.bonus || 0)).toLocaleString('es-CL') }}</span>
                 </div>
-                <div class="text-muted text-end" style="font-size:0.6rem;">{{ popover.day.hours }}h trabajadas</div>
+                <div class="text-muted text-end" style="font-size:0.68rem;">{{ popover.day.hours }}h trabajadas</div>
             </div>
         </div>
     </Teleport>
