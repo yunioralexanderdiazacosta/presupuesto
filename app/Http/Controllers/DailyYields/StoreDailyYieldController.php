@@ -25,6 +25,8 @@ class StoreDailyYieldController extends Controller
             'hours' => $request->hours,
             'bonus_type_id' => $request->bonus_type_id,
             'bonus_amount' => $request->bonus_amount ?? 0,
+            'target_price' => $request->target_price ?? null,
+            'target_price_bonus' => $request->target_price_bonus ?? null,
             'cost_center_id' => $request->cost_center_id,
             'team_id' => $user->team_id,
             'season_id' => session('season_id'),

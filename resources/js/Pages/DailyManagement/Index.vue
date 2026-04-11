@@ -3,6 +3,7 @@ import { ref } from 'vue';
 import { router } from '@inertiajs/vue3';
 import AppLayout from '@/Layouts/AppLayout.vue';
 import AttendanceTab from './AttendanceTab.vue';
+import AttendanceReportTab from './AttendanceReportTab.vue';
 import YieldsTab from './YieldsTab.vue';
 import LaborTypesTab from './LaborTypesTab.vue';
 import LaborRatesTab from './LaborRatesTab.vue';
@@ -15,6 +16,7 @@ const props = defineProps({
     selectedDate: String,
     activeTab: String,
     costCenters: Array,
+    parcels: Array,
     maxHoursPerDay: Number,
     hasAttendance: Boolean,
     attendances: Object,
@@ -36,6 +38,7 @@ const dateFilter = ref(props.selectedDate);
 
 const tabs = [
     { key: 'attendance', label: 'Asistencia', icon: 'fas fa-clipboard-check' },
+    { key: 'attendance-report', label: 'Rpt. Asistencia', icon: 'fas fa-map-marked-alt' },
     { key: 'yields', label: 'Tarjas', icon: 'fas fa-clipboard-list' },
     { key: 'labor-types', label: 'Labores', icon: 'fas fa-hard-hat' },
     { key: 'labor-rates', label: 'Tratos', icon: 'fas fa-tags' },
@@ -104,6 +107,13 @@ function changeDate() {
                         :summary="attendanceSummary"
                     />
 
+                    <AttendanceReportTab
+                        v-if="currentTab === 'attendance-report'"
+                        :summary="attendanceSummary"
+                        :employees="employees"
+                        :selectedDate="selectedDate"
+                    />
+
                     <YieldsTab
                         v-if="currentTab === 'yields'"
                         :employees="employees"
@@ -111,6 +121,7 @@ function changeDate() {
                         :laborRates="laborRates"
                         :bonusTypes="bonusTypes"
                         :costCenters="costCenters"
+                        :parcels="parcels"
                         :selectedDate="selectedDate"
                         :hasAttendance="hasAttendance"
                         :maxHoursPerDay="maxHoursPerDay"

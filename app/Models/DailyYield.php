@@ -21,6 +21,8 @@ class DailyYield extends Model
         'hours',
         'bonus_type_id',
         'bonus_amount',
+        'target_price',
+        'target_price_bonus',
         'cost_center_id',
         'team_id',
         'season_id',
@@ -35,6 +37,8 @@ class DailyYield extends Model
         'amount' => 'integer',
         'hours' => 'decimal:1',
         'bonus_amount' => 'integer',
+        'target_price' => 'integer',
+        'target_price_bonus' => 'integer',
     ];
 
     public function employee()

@@ -19,6 +19,8 @@ const form = useForm({
     default_rate: 0,
     default_bonus: 0,
     is_active: true,
+    is_absence: false,
+    is_paid: false,
 });
 
 watch(() => props.show, (val) => {

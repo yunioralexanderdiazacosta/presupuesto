@@ -18,6 +18,8 @@ class LaborType extends Model
         'default_rate',
         'default_bonus',
         'is_active',
+        'is_absence',
+        'is_paid',
     ];
 
     protected $casts = [
@@ -25,6 +27,8 @@ class LaborType extends Model
         'default_rate' => 'integer',
         'default_bonus' => 'integer',
         'is_active' => 'boolean',
+        'is_absence' => 'boolean',
+        'is_paid' => 'boolean',
     ];
 
     public function team()

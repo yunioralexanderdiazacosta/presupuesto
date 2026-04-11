@@ -126,25 +126,13 @@ function deleteAttendance() {
 
 <template>
     <div>
-        <!-- Botones de acción -->
-        <div class="d-flex justify-content-end gap-2 mb-3">
-            <button v-if="hasExistingAttendance" class="btn btn-falcon-default btn-sm" @click="deleteAttendance">
-                <span class="fas fa-trash" data-fa-transform="shrink-3 down-2"></span>
-                <span class="d-none d-sm-inline-block ms-1">Borrar Día</span>
-            </button>
-            <button class="btn btn-falcon-default btn-sm" @click="saveAttendance">
-                <span class="fas fa-save" data-fa-transform="shrink-3 down-2"></span>
-                <span class="d-none d-sm-inline-block ms-1">Guardar</span>
-            </button>
-        </div>
-
-        <!-- Filtros y atajos globales -->
-        <div class="row g-3 mb-3">
-            <div class="col-md-4">
+        <!-- Filtros, atajos globales y botones -->
+        <div class="row g-2 mb-3 align-items-end">
+            <div class="col-md-3">
                 <label class="form-label small mb-1">Buscar trabajador</label>
                 <input type="text" v-model="searchQuery" class="form-control form-control-sm" placeholder="Nombre o RUT..." />
             </div>
-            <div class="col-md-4">
+            <div class="col-md-3">
                 <label class="form-label small mb-1">Aplicar labor a todos</label>
                 <div class="input-group input-group-sm">
                     <select v-model="globalLaborTypeId" class="form-select form-select-sm">
@@ -156,7 +144,7 @@ function deleteAttendance() {
                     </button>
                 </div>
             </div>
-            <div class="col-md-4">
+            <div class="col-md-3">
                 <label class="form-label small mb-1">Aplicar CC a todos</label>
                 <div class="input-group input-group-sm">
                     <select v-model="globalCostCenterId" class="form-select form-select-sm">
@@ -167,6 +155,16 @@ function deleteAttendance() {
                         <i class="fas fa-check"></i>
                     </button>
                 </div>
+            </div>
+            <div class="col-md-3 d-flex justify-content-end gap-2">
+                <button v-if="hasExistingAttendance" class="btn btn-falcon-default btn-sm" @click="deleteAttendance">
+                    <span class="fas fa-trash" data-fa-transform="shrink-3 down-2"></span>
+                    <span class="d-none d-sm-inline-block ms-1">Borrar Día</span>
+                </button>
+                <button class="btn btn-falcon-default btn-sm" @click="saveAttendance">
+                    <span class="fas fa-save" data-fa-transform="shrink-3 down-2"></span>
+                    <span class="d-none d-sm-inline-block ms-1">Guardar</span>
+                </button>
             </div>
         </div>
 

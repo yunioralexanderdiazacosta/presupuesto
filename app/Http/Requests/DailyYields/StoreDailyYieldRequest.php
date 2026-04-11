@@ -28,6 +28,8 @@ class StoreDailyYieldRequest extends FormRequest
             'hours' => 'required|numeric|min:0.5',
             'bonus_type_id' => 'nullable|exists:bonus_types,id',
             'bonus_amount' => 'nullable|integer|min:0',
+            'target_price' => 'nullable|integer|min:0',
+            'target_price_bonus' => 'nullable|integer|min:0',
             'cost_center_id' => 'required|exists:cost_centers,id',
             'observations' => 'nullable|string|max:500',
         ];

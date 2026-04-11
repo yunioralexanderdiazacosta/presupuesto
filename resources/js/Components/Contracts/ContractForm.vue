@@ -12,6 +12,7 @@ const props = defineProps({
     afps: { type: Array, default: () => [] },
     healthPlans: { type: Array, default: () => [] },
     cities: { type: Array, default: () => [] },
+    parcels: { type: Array, default: () => [] },
     maritalStatuses: { type: Array, default: () => [] },
 });
 
@@ -27,6 +28,9 @@ const cityOptions = ref(props.cities);
 const isRefreshingCities = ref(false);
 const newCityName = ref('');
 const showAddCity = ref(false);
+
+const parcelOptions = ref(props.parcels);
+const isRefreshingParcels = ref(false);
 
 const showEndDate = computed(() => form.contract_type === 'Plazo Fijo');
 
@@ -92,6 +96,19 @@ const addCity = async () => {
         Swal.fire('Error', 'No se pudo crear la ciudad', 'error');
     }
 };
+
+const refreshParcels = async () => {
+    isRefreshingParcels.value = true;
+    try {
+        const response = await axios.get(route('api.parcels'));
+        parcelOptions.value = response.data;
+        Swal.fire({ icon: 'success', title: 'Lista actualizada', showConfirmButton: false, timer: 1000 });
+    } catch (error) {
+        Swal.fire('Error', 'No se pudo refrescar la lista', 'error');
+    } finally {
+        isRefreshingParcels.value = false;
+    }
+};
 </script>
 
 <template>
@@ -109,7 +126,7 @@ const addCity = async () => {
             </div>
 
             <!-- Empresa -->
-            <div class="col-md-6">
+            <div class="col-md-4">
                 <label class="form-label small mb-1">Empresa <span class="text-danger">*</span></label>
                 <select v-model="form.company_reason_id" class="form-select form-select-sm"
                     :class="{ 'is-invalid': form.errors?.company_reason_id }">
@@ -117,6 +134,22 @@ const addCity = async () => {
                     <option v-for="c in companyReasons" :key="c.value" :value="c.value">{{ c.label }}</option>
                 </select>
                 <div v-if="form.errors?.company_reason_id" class="invalid-feedback">{{ form.errors.company_reason_id }}</div>
+            </div>
+
+            <!-- Parcela -->
+            <div class="col-md-2">
+                <div class="d-flex align-items-center justify-content-between mb-1">
+                    <label class="form-label small mb-0">Parcela</label>
+                    <button type="button" @click="refreshParcels" :disabled="isRefreshingParcels"
+                        class="btn btn-sm btn-light-primary d-flex align-items-center gap-1 py-0 px-2"
+                        v-tooltip="'Refrescar lista'" style="font-size: 0.75rem;">
+                        <i class="fas fa-sync-alt fa-xs" :class="{'fa-spin': isRefreshingParcels}"></i>
+                    </button>
+                </div>
+                <select v-model="form.parcel_id" class="form-select form-select-sm">
+                    <option value="">Sin parcela</option>
+                    <option v-for="p in parcelOptions" :key="p.value" :value="p.value">{{ p.label }}</option>
+                </select>
             </div>
 
             <!-- Fecha Contrato -->

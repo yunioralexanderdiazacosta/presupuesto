@@ -10,6 +10,7 @@ use App\Models\Schedule;
 use App\Models\Afp;
 use App\Models\HealthPlan;
 use App\Models\City;
+use App\Models\Parcel;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Inertia\Inertia;
@@ -20,7 +21,7 @@ class ContractController extends Controller
     {
         $user = Auth::user();
 
-        $contracts = Contract::with(['employee', 'companyReason', 'schedule', 'afp', 'healthPlan', 'city'])
+        $contracts = Contract::with(['employee', 'companyReason', 'schedule', 'afp', 'healthPlan', 'city', 'parcel'])
             ->where('team_id', $user->team_id)
             ->latest('contract_date')
             ->get();
@@ -69,6 +70,11 @@ class ContractController extends Controller
             ->get(['id', 'name'])
             ->map(fn($c) => ['value' => $c->id, 'label' => $c->name]);
 
+        $parcels = Parcel::where('team_id', $user->team_id)
+            ->orderBy('name')
+            ->get(['id', 'name'])
+            ->map(fn($p) => ['value' => $p->id, 'label' => $p->name]);
+
         $maritalStatuses = [
             'Soltero/a', 'Casado/a', 'Divorciado/a', 'Viudo/a', 'Separado/a', 'Unión Civil',
         ];
@@ -82,6 +88,7 @@ class ContractController extends Controller
             'afps' => $afps,
             'healthPlans' => $healthPlans,
             'cities' => $cities,
+            'parcels' => $parcels,
             'maritalStatuses' => $maritalStatuses,
         ]);
     }

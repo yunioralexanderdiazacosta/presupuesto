@@ -11,6 +11,7 @@ use App\Models\Employee;
 use App\Models\LaborRate;
 use App\Models\LaborType;
 use App\Models\Level3;
+use App\Models\Parcel;
 use App\Models\Unit;
 use App\Models\WorkSchedule;
 use Carbon\Carbon;
@@ -42,7 +43,8 @@ class DailyManagementController extends Controller
         $maxHoursPerDay = $schedule->hoursForDayOfWeek($dayOfWeek);
 
         // === ASISTENCIA ===
-        $attendances = DailyAttendance::where('team_id', $user->team_id)
+        $attendances = DailyAttendance::with(['estimatedLaborType', 'estimatedCostCenter.parcel'])
+            ->where('team_id', $user->team_id)
             ->where('season_id', $seasonId)
             ->where('date', $date)
             ->get()
@@ -73,6 +75,7 @@ class DailyManagementController extends Controller
                 $totalHours = $empYields->sum('hours');
                 $totalAmount = $empYields->sum('amount');
                 $totalBonus = $empYields->sum('bonus_amount');
+                $totalTargetBonus = $empYields->sum('target_price_bonus');
 
                 return [
                     'id' => $e->id,
@@ -82,12 +85,14 @@ class DailyManagementController extends Controller
                     'base_salary' => $e->activeContract?->base_salary ?? 0,
                     'net_salary' => $e->activeContract?->net_salary ?? 0,
                     'daily_rate' => $e->activeContract?->net_salary ? round($e->activeContract->net_salary / 30) : 0,
+                    'parcel_id' => $e->activeContract?->parcel_id,
                     'is_present' => $att ? $att->is_present : null,
                     'yields' => $empYields->map(fn($y) => [
                         'id' => $y->id,
                         'payment_type' => $y->payment_type ?? 'trato',
                         'labor_type_id' => $y->labor_type_id,
                         'labor_type_name' => $y->laborType?->name,
+                        'is_absence' => $y->laborType?->is_absence ?? false,
                         'labor_rate_id' => $y->labor_rate_id,
                         'labor_rate_name' => $y->laborRate?->name,
                         'rate' => $y->rate,
@@ -97,6 +102,8 @@ class DailyManagementController extends Controller
                         'bonus_type_id' => $y->bonus_type_id,
                         'bonus_type_name' => $y->bonusType?->name,
                         'bonus_amount' => $y->bonus_amount,
+                        'target_price' => $y->target_price,
+                        'target_price_bonus' => $y->target_price_bonus,
                         'cost_center_id' => $y->cost_center_id,
                         'cost_center_name' => $y->costCenter?->name,
                         'observations' => $y->observations,
@@ -105,6 +112,7 @@ class DailyManagementController extends Controller
                     'remaining_hours' => $maxHoursPerDay > 0 ? round($maxHoursPerDay - (float) $totalHours, 1) : null,
                     'total_amount' => $totalAmount,
                     'total_bonus' => $totalBonus,
+                    'total_target_bonus' => $totalTargetBonus,
                     'yield_count' => $empYields->count(),
                 ];
             });
@@ -115,12 +123,18 @@ class DailyManagementController extends Controller
             ->get()
             ->map(fn($cc) => ['value' => $cc->id, 'label' => $cc->name]);
 
+        // === PARCELAS ===
+        $parcels = Parcel::where('team_id', $user->team_id)
+            ->orderBy('name')
+            ->get(['id', 'name'])
+            ->map(fn($p) => ['value' => $p->id, 'label' => $p->name]);
+
         // === CATÁLOGOS (formato select) ===
         $laborTypes = LaborType::where('team_id', $user->team_id)
             ->where('is_active', true)
             ->orderBy('code')
             ->get()
-            ->map(fn($l) => ['value' => $l->id, 'label' => $l->code . ' - ' . $l->name]);
+            ->map(fn($l) => ['value' => $l->id, 'label' => $l->code . ' - ' . $l->name, 'is_absence' => $l->is_absence, 'is_paid' => $l->is_paid]);
 
         $laborRates = LaborRate::where('team_id', $user->team_id)
             ->where('season_id', $seasonId)
@@ -166,7 +180,7 @@ class DailyManagementController extends Controller
             ->select('l3.id', 'l3.name')
             ->where('l1.team_id', $user->team_id)
             ->where('l1.season_id', $seasonId)
-            ->where('l2.name', 'mano de obra')
+            ->where('l2.name', 'like', '%mano de obra%')
             ->orderBy('l3.name')
             ->get()
             ->map(fn($l) => ['value' => $l->id, 'label' => $l->name]);
@@ -182,6 +196,7 @@ class DailyManagementController extends Controller
             'selectedDate' => $date,
             'activeTab' => $activeTab,
             'costCenters' => $costCenters,
+            'parcels' => $parcels,
             'maxHoursPerDay' => $maxHoursPerDay,
             'hasAttendance' => $hasAttendance,
             // Asistencia
@@ -191,6 +206,24 @@ class DailyManagementController extends Controller
                 'present' => $presentCount,
                 'absent' => $absentCount,
                 'pending' => $employees->count() - $attendances->count(),
+                'parcelSummary' => $attendances->where('is_present', true)
+                    ->filter(fn($a) => $a->estimated_cost_center_id)
+                    ->groupBy(fn($a) => $a->estimatedCostCenter?->parcel_id ?? 0)
+                    ->map(function ($group) {
+                        $parcelName = $group->first()->estimatedCostCenter?->parcel?->name ?? 'Sin parcela';
+                        $laborGroups = $group->groupBy('estimated_labor_type_id')->map(function ($laborGroup) {
+                            return [
+                                'labor_name' => $laborGroup->first()->estimatedLaborType?->name ?? 'Sin labor',
+                                'workers' => $laborGroup->count(),
+                            ];
+                        })->sortByDesc('workers')->values();
+
+                        return [
+                            'parcel_name' => $parcelName,
+                            'labors' => $laborGroups,
+                            'total_workers' => $group->count(),
+                        ];
+                    })->sortByDesc('total_workers')->values(),
             ],
             // Tarjas
             'yieldsSummary' => [

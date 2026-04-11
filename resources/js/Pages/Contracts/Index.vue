@@ -16,6 +16,7 @@ const props = defineProps({
     afps: Array,
     healthPlans: Array,
     cities: Array,
+    parcels: Array,
     maritalStatuses: Array,
 });
 
@@ -300,6 +301,7 @@ function formatCurrency(val) {
             :afps="props.afps"
             :healthPlans="props.healthPlans"
             :cities="props.cities"
+            :parcels="props.parcels"
             :maritalStatuses="props.maritalStatuses"
             @close="closeCreateModal"
             @saved="reloadAfterSave"
@@ -315,6 +317,7 @@ function formatCurrency(val) {
             :afps="props.afps"
             :healthPlans="props.healthPlans"
             :cities="props.cities"
+            :parcels="props.parcels"
             :maritalStatuses="props.maritalStatuses"
             @close="closeEditModal"
             @saved="reloadAfterSave"

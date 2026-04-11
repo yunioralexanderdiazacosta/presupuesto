@@ -23,6 +23,7 @@ class Contract extends Model
         'afp_id',
         'health_plan_id',
         'city_id',
+        'parcel_id',
         'marital_status',
         'phone',
         'address',
@@ -72,5 +73,10 @@ class Contract extends Model
     public function city()
     {
         return $this->belongsTo(City::class);
+    }
+
+    public function parcel()
+    {
+        return $this->belongsTo(Parcel::class);
     }
 }

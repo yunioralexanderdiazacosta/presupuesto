@@ -20,6 +20,8 @@ const form = useForm({
     default_rate: 0,
     default_bonus: 0,
     is_active: true,
+    is_absence: false,
+    is_paid: false,
 });
 
 watch(() => props.show, (val) => {
@@ -30,6 +32,8 @@ watch(() => props.show, (val) => {
         form.default_rate = props.laborType.default_rate || 0;
         form.default_bonus = props.laborType.default_bonus || 0;
         form.is_active = props.laborType.is_active ?? true;
+        form.is_absence = props.laborType.is_absence ?? false;
+        form.is_paid = props.laborType.is_paid ?? false;
     }
 });
 

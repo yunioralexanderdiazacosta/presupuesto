@@ -18,12 +18,16 @@ class UpdateDailyYieldRequest extends FormRequest
     public function rules(): array
     {
         return [
+            'payment_type' => 'required|in:trato,dia',
             'labor_type_id' => 'required|exists:labor_types,id',
+            'labor_rate_id' => 'nullable|required_if:payment_type,trato|exists:labor_rates,id',
             'rate' => 'required|integer|min:0',
             'quantity' => 'required|numeric|min:0',
             'hours' => 'required|numeric|min:0.5',
             'bonus_type_id' => 'nullable|exists:bonus_types,id',
             'bonus_amount' => 'nullable|integer|min:0',
+            'target_price' => 'nullable|integer|min:0',
+            'target_price_bonus' => 'nullable|integer|min:0',
             'cost_center_id' => 'required|exists:cost_centers,id',
             'observations' => 'nullable|string|max:500',
         ];

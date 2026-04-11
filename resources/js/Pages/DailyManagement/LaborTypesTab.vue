@@ -133,7 +133,10 @@ function formatCurrency(value) {
                 <tbody>
                     <tr v-for="item in filteredRows" :key="item.id">
                         <td class="text-center fw-bold text-primary">{{ item.code }}</td>
-                        <td class="fw-semibold">{{ item.name }}</td>
+                        <td class="fw-semibold">
+                            {{ item.name }}
+                            <span v-if="item.is_absence" class="badge bg-warning text-dark ms-1" style="font-size: 0.65rem;">Ausencia</span>
+                        </td>
                         <td>{{ item.level3?.name || '-' }}</td>
                         <td>{{ item.unit?.name || '-' }}</td>
                         <td class="text-end">{{ formatCurrency(item.default_rate) }}</td>

@@ -20,6 +20,8 @@ class StoreLaborTypeRequest extends FormRequest
             'default_rate' => 'nullable|integer|min:0',
             'default_bonus' => 'nullable|integer|min:0',
             'is_active' => 'boolean',
+            'is_absence' => 'boolean',
+            'is_paid' => 'boolean',
         ];
     }
 

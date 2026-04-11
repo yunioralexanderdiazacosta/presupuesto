@@ -1,5 +1,6 @@
 <script setup>
 import { ref, computed, watch, reactive } from 'vue';
+import { router } from '@inertiajs/vue3';
 import axios from 'axios';
 import Swal from 'sweetalert2';
 import Multiselect from '@vueform/multiselect';
@@ -87,7 +88,7 @@ function dayColumnTotal(date) {
     if (!reportData.value) return 0;
     return reportData.value.employees.reduce((sum, e) => {
         const day = e.days[date];
-        return sum + (day ? (day.amount || 0) + (day.bonus || 0) : 0);
+        return sum + (day ? (day.amount || 0) + (day.bonus || 0) + (day.target_bonus || 0) : 0);
     }, 0);
 }
 
@@ -112,6 +113,14 @@ function hidePopover() {
 
 function keepPopover() {
     clearTimeout(popoverTimeout);
+}
+
+function goToYield(date, day) {
+    if (!day) return;
+    router.get(route('daily-management.index'), {
+        date: date,
+        tab: 'yields',
+    }, { preserveState: false });
 }
 
 // Export URLs
@@ -212,8 +221,8 @@ function exportPdf(mode) {
                 </div>
                 <div class="col-6 col-md-3">
                     <div class="card bg-soft-warning text-center p-2">
-                        <small class="text-muted">Total Horas</small>
-                        <strong>{{ reportData.totals.hours }}h</strong>
+                        <small class="text-muted">Bono P.Objetivo</small>
+                        <strong>${{ fmt(reportData.totals.target_bonus) }}</strong>
                     </div>
                 </div>
             </div>
@@ -232,6 +241,7 @@ function exportPdf(mode) {
                             </th>
                             <th class="text-end bg-200" style="min-width:70px;">Monto $</th>
                             <th class="text-end bg-200" style="min-width:60px;">Bono $</th>
+                            <th class="text-end bg-200" style="min-width:60px;">P.Obj $</th>
                             <th class="text-end bg-200" style="min-width:70px;">Total $</th>
                             <th class="text-center bg-200" style="min-width:40px;">Hrs</th>
                         </tr>
@@ -241,15 +251,18 @@ function exportPdf(mode) {
                             <td class="fw-semi-bold sticky-col bg-white" style="white-space:nowrap; font-size:0.7rem;">{{ emp.full_name }}</td>
                             <td v-for="date in reportData.dates" :key="date"
                                 class="text-end"
-                                :class="{ 'bg-100': isWeekend(date) }"
+                                :class="{ 'bg-100': isWeekend(date), 'cursor-pointer': emp.days[date] }"
                                 @mouseenter="showPopover($event, emp.days[date], emp.full_name)"
                                 @mouseleave="hidePopover"
-                                style="font-size:0.65rem; cursor:default;">
-                                {{ emp.days[date] ? fmt((emp.days[date].amount || 0) + (emp.days[date].bonus || 0)) : '' }}
+                                @click="goToYield(date, emp.days[date])"
+                                style="font-size:0.65rem;"
+                                :title="emp.days[date] ? 'Ir a tarjas del ' + date : ''">
+                                {{ emp.days[date] ? fmt((emp.days[date].amount || 0) + (emp.days[date].bonus || 0) + (emp.days[date].target_bonus || 0)) : '' }}
                             </td>
                             <td class="text-end fw-bold" style="font-size:0.7rem;">{{ fmt(emp.grand_total_amount) }}</td>
                             <td class="text-end" style="font-size:0.7rem;">{{ emp.grand_total_bonus ? fmt(emp.grand_total_bonus) : '' }}</td>
-                            <td class="text-end fw-bold text-primary" style="font-size:0.7rem;">{{ fmt(emp.grand_total_amount + (emp.grand_total_bonus || 0)) }}</td>
+                            <td class="text-end text-warning" style="font-size:0.7rem;">{{ emp.grand_total_target_bonus ? fmt(emp.grand_total_target_bonus) : '' }}</td>
+                            <td class="text-end fw-bold text-primary" style="font-size:0.7rem;">{{ fmt(emp.grand_total_amount + (emp.grand_total_bonus || 0) + (emp.grand_total_target_bonus || 0)) }}</td>
                             <td class="text-center" style="font-size:0.7rem;">{{ emp.grand_total_hours }}</td>
                         </tr>
                     </tbody>
@@ -264,7 +277,8 @@ function exportPdf(mode) {
                             </td>
                             <td class="text-end" style="font-size:0.75rem;">{{ fmt(reportData.totals.amount) }}</td>
                             <td class="text-end" style="font-size:0.75rem;">{{ fmt(reportData.totals.bonus) }}</td>
-                            <td class="text-end text-primary" style="font-size:0.75rem;">{{ fmt(reportData.totals.amount + reportData.totals.bonus) }}</td>
+                            <td class="text-end text-warning" style="font-size:0.75rem;">{{ fmt(reportData.totals.target_bonus) }}</td>
+                            <td class="text-end text-primary" style="font-size:0.75rem;">{{ fmt(reportData.totals.amount + reportData.totals.bonus + reportData.totals.target_bonus) }}</td>
                             <td class="text-center" style="font-size:0.75rem;">{{ reportData.totals.hours }}</td>
                         </tr>
                     </tfoot>
@@ -284,25 +298,31 @@ function exportPdf(mode) {
                     <div class="card-body p-2">
                         <!-- Resumen personal -->
                         <div class="row g-2 mb-3">
-                            <div class="col-md-3">
+                            <div class="col">
                                 <div class="card bg-soft-success text-center p-2">
                                     <small class="text-muted">Total Ganado</small>
                                     <strong class="fs-8">${{ fmt(emp.grand_total_amount) }}</strong>
                                 </div>
                             </div>
-                            <div class="col-md-3">
+                            <div class="col">
                                 <div class="card bg-soft-info text-center p-2">
                                     <small class="text-muted">Total Bonos</small>
                                     <strong>${{ fmt(emp.grand_total_bonus) }}</strong>
                                 </div>
                             </div>
-                            <div class="col-md-3">
+                            <div class="col">
+                                <div class="card bg-soft-warning text-center p-2">
+                                    <small class="text-muted">Bono P.Obj</small>
+                                    <strong>${{ fmt(emp.grand_total_target_bonus) }}</strong>
+                                </div>
+                            </div>
+                            <div class="col">
                                 <div class="card bg-soft-warning text-center p-2">
                                     <small class="text-muted">Total Horas</small>
                                     <strong>{{ emp.grand_total_hours }}h</strong>
                                 </div>
                             </div>
-                            <div class="col-md-3">
+                            <div class="col">
                                 <div class="card bg-soft-primary text-center p-2">
                                     <small class="text-muted">Días Trabajados</small>
                                     <strong>{{ emp.days_worked }}</strong>
@@ -324,6 +344,7 @@ function exportPdf(mode) {
                                         <th class="text-end" style="width:65px">Monto</th>
                                         <th class="text-center" style="width:40px">Hrs</th>
                                         <th class="text-end" style="width:55px">Bono</th>
+                                        <th class="text-end" style="width:55px">P.Obj</th>
                                         <th>C.Costo</th>
                                     </tr>
                                 </thead>
@@ -344,6 +365,7 @@ function exportPdf(mode) {
                                                 <td class="text-end fw-semi-bold">{{ fmt(line.amount) }}</td>
                                                 <td class="text-center">{{ line.hours }}</td>
                                                 <td class="text-end">{{ line.bonus_amount ? fmt(line.bonus_amount) : '' }}</td>
+                                                <td class="text-end text-warning">{{ line.target_price_bonus ? fmt(line.target_price_bonus) : '' }}</td>
                                                 <td>{{ line.cost_center }}</td>
                                             </tr>
                                             <!-- Subtotal del día (solo si hay más de 1 línea) -->
@@ -355,6 +377,7 @@ function exportPdf(mode) {
                                                 <td class="text-end fw-bold small">${{ fmt(emp.days[date].amount) }}</td>
                                                 <td class="text-center fw-bold small">{{ emp.days[date].hours }}h</td>
                                                 <td class="text-end fw-bold small">{{ emp.days[date].bonus ? '$' + fmt(emp.days[date].bonus) : '' }}</td>
+                                                <td class="text-end fw-bold small text-warning">{{ emp.days[date].target_bonus ? '$' + fmt(emp.days[date].target_bonus) : '' }}</td>
                                                 <td></td>
                                             </tr>
                                         </template>
@@ -366,6 +389,7 @@ function exportPdf(mode) {
                                         <td class="text-end">${{ fmt(emp.grand_total_amount) }}</td>
                                         <td class="text-center">{{ emp.grand_total_hours }}h</td>
                                         <td class="text-end">${{ fmt(emp.grand_total_bonus) }}</td>
+                                        <td class="text-end text-warning">${{ fmt(emp.grand_total_target_bonus) }}</td>
                                         <td></td>
                                     </tr>
                                 </tfoot>
@@ -387,6 +411,7 @@ function exportPdf(mode) {
                                 <th class="text-center">Horas</th>
                                 <th class="text-end">Total Monto</th>
                                 <th class="text-end">Total Bonos</th>
+                                <th class="text-end">P.Obj</th>
                                 <th class="text-end">Gran Total</th>
                                 <th style="width:50px"></th>
                             </tr>
@@ -399,7 +424,8 @@ function exportPdf(mode) {
                                 <td class="text-center">{{ emp.grand_total_hours }}h</td>
                                 <td class="text-end">{{ fmt(emp.grand_total_amount) }}</td>
                                 <td class="text-end">{{ emp.grand_total_bonus ? fmt(emp.grand_total_bonus) : '-' }}</td>
-                                <td class="text-end fw-bold">{{ fmt(emp.grand_total_amount + emp.grand_total_bonus) }}</td>
+                                <td class="text-end text-warning">{{ emp.grand_total_target_bonus ? fmt(emp.grand_total_target_bonus) : '-' }}</td>
+                                <td class="text-end fw-bold">{{ fmt(emp.grand_total_amount + emp.grand_total_bonus + (emp.grand_total_target_bonus || 0)) }}</td>
                                 <td class="text-center">
                                     <button class="btn btn-sm btn-falcon-default p-0 px-1" @click="selectedEmployeeIds = [emp.id]" title="Ver detalle">
                                         <i class="fas fa-eye"></i>
@@ -413,7 +439,8 @@ function exportPdf(mode) {
                                 <td class="text-center">{{ reportData.totals.hours }}h</td>
                                 <td class="text-end">{{ fmt(reportData.totals.amount) }}</td>
                                 <td class="text-end">{{ fmt(reportData.totals.bonus) }}</td>
-                                <td class="text-end">{{ fmt(reportData.totals.amount + reportData.totals.bonus) }}</td>
+                                <td class="text-end text-warning">{{ fmt(reportData.totals.target_bonus) }}</td>
+                                <td class="text-end">{{ fmt(reportData.totals.amount + reportData.totals.bonus + reportData.totals.target_bonus) }}</td>
                                 <td></td>
                             </tr>
                         </tfoot>
@@ -449,11 +476,15 @@ function exportPdf(mode) {
                         <span><i class="fas fa-gift me-1"></i>Bono</span>
                         <span>+${{ line.bonus_amount.toLocaleString('es-CL') }}</span>
                     </div>
+                    <div v-if="line.target_price_bonus" class="d-flex justify-content-between ps-3" style="font-size:0.72rem; color:#e6a700;">
+                        <span><i class="fas fa-bullseye me-1"></i>P.Obj (${{ line.target_price.toLocaleString('es-CL') }})</span>
+                        <span>+${{ line.target_price_bonus.toLocaleString('es-CL') }}</span>
+                    </div>
                 </div>
                 <hr class="my-1" style="border-color:#e3e6f0;">
                 <div class="d-flex justify-content-between fw-bold" style="font-size:0.82rem; color:#2c7be5;">
                     <span>Total</span>
-                    <span>${{ ((popover.day.amount || 0) + (popover.day.bonus || 0)).toLocaleString('es-CL') }}</span>
+                    <span>${{ ((popover.day.amount || 0) + (popover.day.bonus || 0) + (popover.day.target_bonus || 0)).toLocaleString('es-CL') }}</span>
                 </div>
                 <div class="text-muted text-end" style="font-size:0.68rem;">{{ popover.day.hours }}h trabajadas</div>
             </div>
@@ -502,22 +533,37 @@ function exportPdf(mode) {
     left: 0;
     z-index: 1;
 }
+.cursor-pointer {
+    cursor: pointer;
+}
+.cursor-pointer:hover {
+    background-color: rgba(44, 123, 229, 0.12) !important;
+    text-decoration: underline;
+}
 </style>
 
 <style src="@vueform/multiselect/themes/default.css"></style>
 <style>
 .multiselect-sm {
     font-size: 0.75rem;
-    min-height: 30px;
+    min-height: 0;
+    --ms-py: 0.1rem;
+    --ms-px: 0.4rem;
+    --ms-tag-py: 0rem;
+    --ms-tag-px: 0.3rem;
+    --ms-tag-font-size: 0.7rem;
+    --ms-option-py: 0.2rem;
+    --ms-option-px: 0.5rem;
+    --ms-option-font-size: 0.75rem;
 }
 .multiselect-sm .multiselect-option {
     font-size: 0.8rem;
     padding: 3px 8px;
-    line-height: 1.2;
+    line-height: 1.9;
 }
 .multiselect-sm .multiselect-tag {
-    font-size: 0.8rem;
-    padding: 2px 6px;
+    font-size: 0.75rem;
+    padding: 1px 4px;
 }
 .multiselect-sm .multiselect-search input {
     font-size: 0.7rem;

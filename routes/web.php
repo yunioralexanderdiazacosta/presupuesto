@@ -295,6 +295,7 @@ use App\Http\Controllers\DailyManagement\DailyManagementController;
 use App\Http\Controllers\DailyManagement\MonthlyReportController;
 use App\Http\Controllers\DailyManagement\ExportMonthlyExcelController;
 use App\Http\Controllers\DailyManagement\ExportMonthlyPdfController;
+use App\Http\Controllers\DailyManagement\YieldTemplatePdfController;
 // Rutas para Project Evaluations (Evaluación de Proyectos Agrícolas)
 use App\Http\Controllers\ProjectEvaluations\ProjectEvaluationController;
 use App\Http\Controllers\ProjectEvaluations\ShowProjectEvaluationController;
@@ -316,6 +317,7 @@ use App\Http\Controllers\ContractTemplates\DeleteContractTemplateController;
 use App\Http\Controllers\ContractTemplates\GenerateContractController;
 use App\Http\Controllers\Api\ScheduleApiController;
 use App\Http\Controllers\Api\CityApiController;
+use App\Http\Controllers\Api\GetParcelsController;
 use App\Http\Controllers\Api\UpdateDollarPriceController;
 // API para refrescar selects de producción
 use App\Http\Controllers\Api\GetExportersController;
@@ -988,6 +990,7 @@ Route::middleware([
     Route::get('/daily-management/monthly-report', MonthlyReportController::class)->name('daily-management.monthly-report');
     Route::get('/daily-management/export-excel', ExportMonthlyExcelController::class)->name('daily-management.export-excel');
     Route::get('/daily-management/export-pdf', ExportMonthlyPdfController::class)->name('daily-management.export-pdf');
+    Route::get('/daily-management/yield-template-pdf', YieldTemplatePdfController::class)->name('daily-management.yield-template-pdf');
 
     // Project Evaluations (Evaluación de Proyectos Agrícolas)
     Route::get('/project-evaluations', [ProjectEvaluationController::class, 'index'])->name('project-evaluations.index');
@@ -1020,6 +1023,9 @@ Route::middleware([
     Route::get('/api/cities', [CityApiController::class, 'index'])->name('api.cities');
     Route::post('/api/cities', [CityApiController::class, 'store'])->name('api.cities.store');
     Route::delete('/api/cities/{city}', [CityApiController::class, 'destroy'])->name('api.cities.delete');
+
+    // API Parcels (Parcelas)
+    Route::get('/api/parcels', GetParcelsController::class)->name('api.parcels');
 
     Route::get('/api/fruit-classifications', [FruitClassificationController::class, 'index'])->name('api.fruit-classifications.index');
     Route::post('/api/fruit-classifications', [FruitClassificationController::class, 'store'])->name('api.fruit-classifications.store');

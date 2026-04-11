@@ -142,39 +142,34 @@ function fmt(val) {
                     </div>
                 </div>
 
-                <!-- Grupos de labores -->
-                <div v-for="(labors, groupName) in groupedTypes" :key="groupName" class="mb-4">
-                    <div class="d-flex align-items-center mb-2">
-                        <div class="border-start border-3 border-primary ps-2">
-                            <h6 class="mb-0 text-primary">
-                                {{ groupName }}
-                                <span class="badge bg-soft-primary text-primary ms-1">{{ labors.length }}</span>
-                            </h6>
-                        </div>
-                    </div>
-
-                    <div class="table-responsive">
-                        <table class="table table-sm table-bordered table-hover fs--1 mb-0">
-                            <thead class="bg-200">
-                                <tr>
-                                    <th style="width: 65px;" class="text-center">Cód.</th>
-                                    <th>Labor</th>
-                                    <th style="width: 100px;">Unidad</th>
-                                    <th style="width: 90px;" class="text-end">Tarifa Ref.</th>
-                                    <th style="width: 80px;" class="text-end">Bono Ref.</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                <tr v-for="lt in labors" :key="lt.id">
+                <!-- Tabla de labores agrupada por Nivel 3 -->
+                <div class="table-responsive">
+                    <table class="table table-sm table-bordered table-hover fs--1 mb-0">
+                        <thead class="bg-200">
+                            <tr>
+                                <th style="width: 65px;" class="text-center">Cód.</th>
+                                <th>Labor</th>
+                                <th>Nivel 3</th>
+                                <th style="width: 100px;">Unidad</th>
+                                <th style="width: 90px;" class="text-end">Tarifa Ref.</th>
+                                <th style="width: 80px;" class="text-end">Bono Ref.</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <template v-for="(labors, groupName) in groupedTypes" :key="groupName">
+                                <tr v-for="(lt, idx) in labors" :key="lt.id">
                                     <td class="text-center fw-bold text-primary fs-8">{{ lt.code }}</td>
                                     <td class="fw-semi-bold">{{ lt.name }}</td>
+                                    <td v-if="idx === 0" :rowspan="labors.length" class="align-middle text-primary fw-semi-bold bg-soft-primary">
+                                        {{ groupName }}
+                                    </td>
                                     <td class="text-muted">{{ lt.unit_name }}</td>
                                     <td class="text-end">{{ fmt(lt.default_rate) }}</td>
                                     <td class="text-end">{{ fmt(lt.default_bonus) }}</td>
                                 </tr>
-                            </tbody>
-                        </table>
-                    </div>
+                            </template>
+                        </tbody>
+                    </table>
                 </div>
 
                 <p v-if="Object.keys(groupedTypes).length === 0" class="text-muted text-center py-4">

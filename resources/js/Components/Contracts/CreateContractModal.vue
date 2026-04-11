@@ -13,6 +13,7 @@ const props = defineProps({
     afps: Array,
     healthPlans: Array,
     cities: Array,
+    parcels: Array,
     maritalStatuses: Array,
 });
 
@@ -31,6 +32,7 @@ const form = useForm({
     afp_id: '',
     health_plan_id: '',
     city_id: '',
+    parcel_id: '',
     marital_status: '',
     phone: '',
     address: '',
@@ -83,6 +85,7 @@ function save() {
                         :afps="afps"
                         :healthPlans="healthPlans"
                         :cities="cities"
+                        :parcels="parcels"
                         :maritalStatuses="maritalStatuses"
                     />
                 </div>

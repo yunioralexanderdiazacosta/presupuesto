@@ -59,6 +59,7 @@ class MonthlyReportController extends Controller
             $days = [];
             $grandTotalAmount = 0;
             $grandTotalBonus = 0;
+            $grandTotalTargetBonus = 0;
             $grandTotalHours = 0;
             $daysWorked = 0;
 
@@ -66,11 +67,13 @@ class MonthlyReportController extends Controller
                 $dayYields = $yieldsByDate->get($date, collect());
                 $dayAmount = $dayYields->sum('amount');
                 $dayBonus = $dayYields->sum('bonus_amount');
+                $dayTargetBonus = $dayYields->sum('target_price_bonus');
                 $dayHours = $dayYields->sum('hours');
 
                 $days[$date] = [
                     'amount' => $dayAmount,
                     'bonus' => $dayBonus,
+                    'target_bonus' => $dayTargetBonus,
                     'hours' => round((float) $dayHours, 1),
                     'lines' => $dayYields->map(fn($y) => [
                         'payment_type' => $y->payment_type ?? 'trato',
@@ -81,12 +84,15 @@ class MonthlyReportController extends Controller
                         'amount' => $y->amount,
                         'hours' => $y->hours,
                         'bonus_amount' => $y->bonus_amount,
+                        'target_price' => $y->target_price,
+                        'target_price_bonus' => $y->target_price_bonus,
                         'cost_center' => $y->costCenter?->name,
                     ])->values(),
                 ];
 
                 $grandTotalAmount += $dayAmount;
                 $grandTotalBonus += $dayBonus;
+                $grandTotalTargetBonus += $dayTargetBonus;
                 $grandTotalHours += $dayHours;
                 if ($dayYields->isNotEmpty()) $daysWorked++;
             }
@@ -100,10 +106,11 @@ class MonthlyReportController extends Controller
                 'days' => $days,
                 'grand_total_amount' => $grandTotalAmount,
                 'grand_total_bonus' => $grandTotalBonus,
+                'grand_total_target_bonus' => $grandTotalTargetBonus,
                 'grand_total_hours' => round((float) $grandTotalHours, 1),
                 'days_worked' => $daysWorked,
             ];
-        })->filter(fn($e) => $e['grand_total_amount'] > 0 || $e['grand_total_bonus'] > 0)
+        })->filter(fn($e) => $e['grand_total_amount'] > 0 || $e['grand_total_bonus'] > 0 || $e['grand_total_target_bonus'] > 0)
           ->values();
 
         return response()->json([
@@ -114,6 +121,7 @@ class MonthlyReportController extends Controller
             'totals' => [
                 'amount' => $employeesData->sum('grand_total_amount'),
                 'bonus' => $employeesData->sum('grand_total_bonus'),
+                'target_bonus' => $employeesData->sum('grand_total_target_bonus'),
                 'hours' => round($employeesData->sum('grand_total_hours'), 1),
             ],
         ]);

@@ -25,15 +25,6 @@
         .summary span { margin-right: 20px; }
 
         .group { margin: 0 20px 14px; page-break-inside: avoid; }
-        .group-header {
-            background-color: #edf2f9;
-            border-left: 3px solid #2c7be5;
-            padding: 5px 10px;
-            font-size: 10px;
-            font-weight: bold;
-            color: #2c7be5;
-            margin-bottom: 4px;
-        }
 
         table { width: 100%; border-collapse: collapse; }
         th {
@@ -59,6 +50,13 @@
             width: 50px;
         }
         .name-cell { font-weight: 600; }
+        .level3-cell {
+            color: #2c7be5;
+            font-weight: 600;
+            font-size: 9px;
+            background-color: #f0f4fb;
+            vertical-align: middle;
+        }
         .unit-cell { color: #748194; font-size: 8px; }
         .rate-cell { text-align: right; font-size: 8px; color: #748194; }
 
@@ -90,36 +88,36 @@
         </div>
     </div>
 
-    @foreach($grouped as $groupName => $labors)
-        <div class="group">
-            <div class="group-header">
-                {{ $groupName }}
-                <span class="group-count">({{ $labors->count() }} {{ $labors->count() === 1 ? 'labor' : 'labores' }})</span>
-            </div>
-            <table>
-                <thead>
-                    <tr>
-                        <th style="width: 50px; text-align: center;">Cód.</th>
-                        <th>Labor</th>
-                        <th style="width: 80px;">Unidad</th>
-                        <th style="width: 70px; text-align: right;">Tarifa Ref.</th>
-                        <th style="width: 65px; text-align: right;">Bono Ref.</th>
-                    </tr>
-                </thead>
-                <tbody>
+    <div class="group">
+        <table>
+            <thead>
+                <tr>
+                    <th style="width: 50px; text-align: center;">Cód.</th>
+                    <th>Labor</th>
+                    <th style="width: 100px;">Nivel 3</th>
+                    <th style="width: 80px;">Unidad</th>
+                    <th style="width: 70px; text-align: right;">Tarifa Ref.</th>
+                    <th style="width: 65px; text-align: right;">Bono Ref.</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach($grouped as $groupName => $labors)
                     @foreach($labors->sortBy('code') as $lt)
                         <tr>
                             <td class="code-cell">{{ $lt->code }}</td>
                             <td class="name-cell">{{ $lt->name }}</td>
+                            @if($loop->first)
+                                <td class="level3-cell" rowspan="{{ $labors->count() }}">{{ $groupName }}</td>
+                            @endif
                             <td class="unit-cell">{{ $lt->unit?->name ?? '-' }}</td>
                             <td class="rate-cell">{{ $lt->default_rate ? '$' . number_format($lt->default_rate, 0, ',', '.') : '-' }}</td>
                             <td class="rate-cell">{{ $lt->default_bonus ? '$' . number_format($lt->default_bonus, 0, ',', '.') : '-' }}</td>
                         </tr>
                     @endforeach
-                </tbody>
-            </table>
-        </div>
-    @endforeach
+                @endforeach
+            </tbody>
+        </table>
+    </div>
 
     <div class="footer">
         Catálogo de Labores — {{ $teamName }} — {{ $date }}

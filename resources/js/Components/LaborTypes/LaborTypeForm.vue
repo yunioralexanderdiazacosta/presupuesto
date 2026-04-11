@@ -53,6 +53,22 @@ watch(form, () => emit('update:form', form), { deep: true });
                     <option :value="false">Inactivo</option>
                 </select>
             </div>
+            <div class="col-md-12">
+                <div class="d-flex align-items-center gap-4">
+                    <div class="form-check form-switch">
+                        <input class="form-check-input" type="checkbox" v-model="form.is_absence" id="is_absence_check">
+                        <label class="form-check-label small" for="is_absence_check">
+                            <i class="fas fa-user-slash text-warning me-1"></i>Es ausencia
+                        </label>
+                    </div>
+                    <div class="form-check form-switch" v-if="form.is_absence">
+                        <input class="form-check-input" type="checkbox" v-model="form.is_paid" id="is_paid_check">
+                        <label class="form-check-label small" for="is_paid_check">
+                            <i class="fas fa-dollar-sign text-success me-1"></i>Remunerada
+                        </label>
+                    </div>
+                </div>
+            </div>
         </div>
     </form>
 </template>

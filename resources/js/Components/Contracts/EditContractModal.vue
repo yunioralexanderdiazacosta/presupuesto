@@ -14,6 +14,7 @@ const props = defineProps({
     afps: Array,
     healthPlans: Array,
     cities: Array,
+    parcels: Array,
     maritalStatuses: Array,
 });
 
@@ -32,6 +33,7 @@ const form = useForm({
     afp_id: '',
     health_plan_id: '',
     city_id: '',
+    parcel_id: '',
     marital_status: '',
     phone: '',
     address: '',
@@ -54,6 +56,7 @@ watch(() => props.show, (val) => {
         form.afp_id = props.contract.afp_id || '';
         form.health_plan_id = props.contract.health_plan_id || '';
         form.city_id = props.contract.city_id || '';
+        form.parcel_id = props.contract.parcel_id || '';
         form.marital_status = props.contract.marital_status || '';
         form.phone = props.contract.phone || '';
         form.address = props.contract.address || '';
@@ -102,6 +105,7 @@ function save() {
                         :afps="afps"
                         :healthPlans="healthPlans"
                         :cities="cities"
+                        :parcels="parcels"
                         :maritalStatuses="maritalStatuses"
                     />
                 </div>
