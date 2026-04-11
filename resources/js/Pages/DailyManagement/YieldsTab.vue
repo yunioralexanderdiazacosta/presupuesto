@@ -162,8 +162,15 @@ function onLaborChange() {
             }
             recalcDailyRate();
         } else {
-            newLine.hours = 0;
+            const emp = props.employees.find(e => e.id === addingLineFor.value);
+            const maxH = props.maxHoursPerDay > 0 ? props.maxHoursPerDay : 8;
+            if (emp && emp.remaining_hours !== null) {
+                newLine.hours = Math.min(maxH, emp.remaining_hours > 0 ? emp.remaining_hours : maxH);
+            } else {
+                newLine.hours = maxH;
+            }
             newLine.rate = 0;
+            newLine.cost_center_id = '';
         }
         return;
     }
@@ -183,6 +190,12 @@ const isAbsenceSelected = computed(() => {
     if (!newLine.labor_type_id) return false;
     const lt = props.laborTypes.find(l => String(l.value) === String(newLine.labor_type_id));
     return lt?.is_absence ?? false;
+});
+
+const isUnpaidAbsence = computed(() => {
+    if (!newLine.labor_type_id) return false;
+    const lt = props.laborTypes.find(l => String(l.value) === String(newLine.labor_type_id));
+    return lt?.is_absence && !lt?.is_paid;
 });
 
 function onRateChange() {
@@ -735,7 +748,7 @@ function deleteLine(yieldId) {
                                                 <label class="form-label small mb-0">Horas</label>
                                                 <input type="number" v-model.number="newLine.hours" @change="onHoursChange" class="form-control form-control-sm" min="0" :max="getRemainingHours(emp.id)" step="0.5" />
                                             </div>
-                                            <div class="col-md-2">
+                                            <div class="col-md-2" v-if="!isUnpaidAbsence">
                                                 <label class="form-label small mb-0">C.Costo</label>
                                                 <select v-model="newLine.cost_center_id" class="form-select form-select-sm">
                                                     <option value="" disabled>Seleccione</option>
