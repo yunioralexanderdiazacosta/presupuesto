@@ -24,7 +24,8 @@ class PhenologicalStagesController extends Controller
                     });
             })
             ->where('team_id', $user->team_id)
-            ->paginate(10);
+            ->orderBy('name')
+            ->paginate(500);
 
         // Obtener frutas del equipo para el formulario
         $fruits = Fruit::where('team_id', $user->team_id)
