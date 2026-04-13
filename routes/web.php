@@ -406,6 +406,7 @@ use App\Http\Controllers\OutflowsController;
 use App\Http\Controllers\OutflowsDashboardController;
 use App\Http\Controllers\ComparativeOutflowsDashboardController;
 use App\Http\Controllers\HectareDashboardController;
+use App\Http\Controllers\InvestmentDashboardController;
 use App\Http\Controllers\Outflows\CreateOutflowController;
 use App\Http\Controllers\Outflows\StoreOutflowController;
 use App\Http\Controllers\Outflows\ShowOutflowController;
@@ -792,6 +793,9 @@ Route::middleware([
 
     // Dashboard Gestión por Hectárea
     Route::get('/hectare-dashboard', [HectareDashboardController::class, 'index'])->name('hectare.dashboard');
+
+    // Dashboard de Inversiones
+    Route::get('/investment-dashboard', [InvestmentDashboardController::class, 'index'])->name('investment.dashboard');
     
     // Consolidado de Outflows
     Route::get('/consolidated-outflows', [ConsolidatedOutflowsController::class, 'index'])->name('consolidated-outflows.index');

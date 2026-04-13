@@ -67,6 +67,7 @@ const menuItems = [
     { label: 'Dashboard Gestión', route: 'outflows.dashboard', icon: 'fas fa-chart-bar', section: 'Gestión' },
     { label: 'Comparativo Presupuesto vs Real', route: 'comparative.dashboard', icon: 'fas fa-chart-line', section: 'Gestión' },
     { label: 'Gestión por Hectárea', route: 'hectare.dashboard', icon: 'fas fa-seedling', section: 'Gestión' },
+    { label: 'Dashboard Inversiones', route: 'investment.dashboard', icon: 'fas fa-chart-pie', section: 'Gestión' },
     { label: 'Facturas y otros', route: 'invoices.index', icon: 'fas fa-file-invoice', section: 'Registro de Gastos' },
     { label: 'Pagos de Facturas', route: 'invoice-payments.index', icon: 'fas fa-money-bill-wave', section: 'Registro de Gastos' },
     { label: 'Notas de Crédito/Débito', route: 'credit_debit_notes.index', icon: 'fas fa-file-alt', section: 'Registro de Gastos' },
@@ -337,6 +338,16 @@ const navigateTo = (routeName) => {
                         <div class="d-flex align-items-center">
                           <span class="nav-link-text ps-3">
                             <i class="fas fa-seedling me-2"></i>Gestión por Hectárea
+                          </span>
+                        </div>
+                      </Link>
+                    </li>
+
+                    <li class="nav-item">
+                      <Link class="nav-link" :href="route('investment.dashboard')">
+                        <div class="d-flex align-items-center">
+                          <span class="nav-link-text ps-3">
+                            <i class="fas fa-chart-pie me-2"></i>Dashboard Inversiones
                           </span>
                         </div>
                       </Link>
