@@ -874,6 +874,7 @@ function copyToAllCards(sourceCardId) {
                             { label: 'Precio Unitario', key: 'precio_unitario' },
                             { label: 'Proyecto', key: 'project' },
                             { label: 'Operación', key: 'operation' },
+                            { label: 'Inversión', key: 'investment' },
                             { label: 'Maquinaria', key: 'machinery' },
                             { label: 'Cantidad', key: 'quantity', type: 'number' },
                             { label: 'Total', key: 'total' },
@@ -917,6 +918,7 @@ function copyToAllCards(sourceCardId) {
                             <th @click="setSort('unit_price')" :class="sortClass('unit_price')">Precio Unitario</th>
                             <th @click="setSort('project')" :class="sortClass('project')">Proyecto</th>
                             <th @click="setSort('operation')" :class="sortClass('operation')">Operación</th>
+                            <th @click="setSort('investment')" :class="sortClass('investment')">Inversión</th>
                             <th @click="setSort('machinery')" :class="sortClass('machinery')">Maquinaria</th>
                             <th @click="setSort('quantity')" :class="sortClass('quantity')">Cantidad</th>
                             <th @click="setSort('total')" :class="sortClass('total')">Total</th>
@@ -960,6 +962,7 @@ function copyToAllCards(sourceCardId) {
                             </td>
                             <td>{{ outflow.project || '-' }}</td>
                             <td>{{ outflow.operation }}</td>
+                            <td>{{ outflow.investment || '-' }}</td>
                             <td>{{ outflow.machinery || '-' }}</td>
                             <td>{{ (+outflow.quantity).toFixed(2) }}</td>
                             <td>
@@ -1013,7 +1016,7 @@ function copyToAllCards(sourceCardId) {
                             </td>
                           </tr>
                           <tr v-if="!props.outflowDetails || !props.outflowDetails.length">
-                            <td colspan="20" class="text-center text-muted">No hay salidas registradas.</td>
+                            <td colspan="21" class="text-center text-muted">No hay salidas registradas.</td>
                           </tr>
                         </tbody>
                       </table>
