@@ -1,5 +1,5 @@
 <script setup>
-import { computed, ref } from 'vue';
+import { computed, ref, nextTick } from 'vue';
 import { Link, router, Head, usePage, useForm } from '@inertiajs/vue3';
 import Swal from 'sweetalert2';
 import moment from 'moment';
@@ -61,7 +61,9 @@ const openEdit = (costCenter) => {
     form.development_state_id = costCenter.development_state_id;
     form.year_plantation = costCenter.year_plantation;
     form.company_reason_id = costCenter.company_reason_id;
-    form.variety_id = costCenter.variety_id;
+    nextTick(() => {
+        form.variety_id = costCenter.variety_id;
+    });
     $('#editCostCenterModal').modal('show');
 }
 
@@ -274,6 +276,7 @@ const openVarietyModal = (costCenterId = null) => {
                     <template #header>
                         <!--begin::Table row-->
                         <th width="min-w-150px">Nombre</th>
+                        <th width="min-w-150px">Parcela</th>
                         <th width="min-w-150px">Frutal</th>
                         <th width="min-w-150px">Variedad</th>
                         <th width="min-w-150px">Superficie</th>
@@ -288,11 +291,12 @@ const openVarietyModal = (costCenterId = null) => {
                     <!--begin::Table body-->
                     <template #body>
                         <template v-if="costCenters.total == 0">
-                            <Empty colspan="8" />
+                            <Empty colspan="9" />
                         </template>
                         <template v-else>
                             <tr v-for="(costCenter, index) in costCenters.data" :key="index">
                                 <td><span class="text-dark text-hover-primary fw-bold mb-1">{{costCenter.name}}</span></td>
+                                <td>{{costCenter.parcel ? costCenter.parcel.name : ''}}</td>
                                 <td>{{costCenter.fruit.name}}</td>
                                 <td>{{costCenter.variety.name}}</td>
                                 <td>{{costCenter.surface}}</td>

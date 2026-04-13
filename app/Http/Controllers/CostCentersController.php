@@ -64,7 +64,7 @@ class CostCentersController extends Controller
 
 
 
-        $costCenters = CostCenter::with('fruit:id,name', 'variety:id,name','developmentState:id,name','companyReason:id,name','groupings:id,name')
+        $costCenters = CostCenter::with('fruit:id,name', 'variety:id,name', 'parcel:id,name', 'developmentState:id,name','companyReason:id,name','groupings:id,name')
             ->where('season_id', $season_id)
             ->when($request->term, function ($query, $search) {
                 $query->where('name', 'like', '%'.$search.'%');
