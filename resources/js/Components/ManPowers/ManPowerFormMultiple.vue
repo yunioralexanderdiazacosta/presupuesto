@@ -363,7 +363,7 @@ const selectAllMonths = (index, months) => {
         <CalculateWorkDayModal @store="storeWorkDay" :form="formWorkDay" />
     </template>
 </template>
-<!-- <style src="@vueform/multiselect/themes/default.css"></style>-->
+<!-- -->
 <style>
 select,
 select.form-control {

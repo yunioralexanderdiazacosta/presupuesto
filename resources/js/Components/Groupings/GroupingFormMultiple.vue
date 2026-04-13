@@ -124,7 +124,7 @@ const selectAllMonths = (index, months) => {
   </div>
 
 </template>
-<!-- <style src="@vueform/multiselect/themes/default.css"></style>-->
+<!-- -->
 <style>
 select,
 select.form-control {

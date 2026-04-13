@@ -2,7 +2,7 @@
 import { computed, ref, watch, nextTick, onMounted } from 'vue';
 import { Chart, DoughnutController, ArcElement, Tooltip, Legend } from 'chart.js';
 import ChartDataLabels from 'chartjs-plugin-datalabels';
-Chart.register(DoughnutController, ArcElement, Tooltip, Legend, ChartDataLabels);
+Chart.register(DoughnutController, ArcElement, Tooltip, Legend);
 
 const props = defineProps({
     summary: Object,
@@ -43,6 +43,7 @@ function renderChart() {
 
     chartInstance = new Chart(chartCanvas.value, {
         type: 'doughnut',
+        plugins: [ChartDataLabels],
         data: {
             labels,
             datasets: [{

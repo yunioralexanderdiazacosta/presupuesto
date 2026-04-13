@@ -74,4 +74,3 @@ watch(form, () => emit('update:form', form), { deep: true });
     </div>
   </form>
 </template>
-<style src="@vueform/multiselect/themes/default.css"></style>

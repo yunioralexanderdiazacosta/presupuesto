@@ -538,7 +538,6 @@ function handleDelete(row) {
     </AppLayout>
 </template>
 
-<style src="@vueform/multiselect/themes/default.css"></style>
 <style>
 .multiselect-blue {
     --ms-tag-bg: #DBEAFE;

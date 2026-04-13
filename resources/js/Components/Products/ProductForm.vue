@@ -173,7 +173,6 @@
         </div>
     </div>
 </template>
-<style src="@vueform/multiselect/themes/default.css"></style>
 <style>
 .multiselect,
 .multiselect__input,

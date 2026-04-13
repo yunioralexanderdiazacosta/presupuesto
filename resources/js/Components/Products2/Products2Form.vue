@@ -66,4 +66,3 @@ watch(() => props.modelValue.form, (val) => {
 });
 </script>
 
-<style src="@vueform/multiselect/themes/default.css"></style>

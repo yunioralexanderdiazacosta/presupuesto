@@ -131,7 +131,6 @@ watch(
 </template>
 
 
-<style src="@vueform/multiselect/themes/default.css"></style>
 <style>
 .multiselect-blue {
     min-height: 26px !important;

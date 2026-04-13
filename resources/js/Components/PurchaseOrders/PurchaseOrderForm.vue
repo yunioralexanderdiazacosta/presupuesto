@@ -528,7 +528,6 @@ defineExpose({ form, submit });
     </div>
 </template>
 
-<style src="@vueform/multiselect/themes/default.css"></style>
 <style>
 .multiselect-blue {
     --ms-bg: var(--kt-input-solid-bg) !important;

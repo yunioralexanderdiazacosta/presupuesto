@@ -128,7 +128,6 @@ const props = defineProps({
   </div>
 </template>
 
-<style src="@vueform/multiselect/themes/default.css"></style>
 <style>
 .table-sm th, .table-sm td { padding: 0.15rem 0.2rem; }
 .form-control-sm, .form-select-sm { font-size: 0.78rem; padding: 0.08rem 0.3rem; }

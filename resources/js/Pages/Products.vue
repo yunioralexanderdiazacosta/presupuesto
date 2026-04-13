@@ -376,4 +376,3 @@ const sortClass = (field) => ({
 }
 </style>
 
-<style src="@vueform/multiselect/themes/default.css"></style>

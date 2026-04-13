@@ -219,7 +219,6 @@
         <InputError class="mt-2" :message="form.errors.observations" />
     </div>
 </template>
-<style src="@vueform/multiselect/themes/default.css"></style>
 <style scoped>
 .multiselect-tags-limited :deep(.multiselect-tags) {
     max-height: 32px;

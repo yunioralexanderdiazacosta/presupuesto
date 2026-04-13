@@ -542,7 +542,6 @@ function exportPdf(mode) {
 }
 </style>
 
-<style src="@vueform/multiselect/themes/default.css"></style>
 <style>
 .multiselect-sm {
     font-size: 0.75rem;

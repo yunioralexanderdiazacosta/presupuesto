@@ -303,7 +303,6 @@ watch(
         :affects_inventory="form.affects_inventory"
     />
 </template>
-<style src="@vueform/multiselect/themes/default.css"></style>
 <style>
 /* Mostrar más opciones en el dropdown de Multiselect */
 

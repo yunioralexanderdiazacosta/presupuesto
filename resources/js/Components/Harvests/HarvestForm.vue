@@ -206,7 +206,6 @@ const { appContext } = getCurrentInstance();
         <InputError class="mt-2" :message="form.errors.observations" />
     </div>
 </template>
-<style src="@vueform/multiselect/themes/default.css"></style>
 <style>
 .multiselect,
 .multiselect__input,
