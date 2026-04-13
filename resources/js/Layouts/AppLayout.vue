@@ -721,6 +721,9 @@ const navigateTo = (routeName) => {
             </li>
           </ul>
         </div>
+        <div class="text-center py-2">
+          <small class="text-muted" style="font-size: 0.7rem;">v{{ $page.props.appVersion }}</small>
+        </div>
         </div>
     </nav>
   <div class="content">

@@ -70,7 +70,8 @@ class HandleInertiaRequests extends Middleware
                 'success' => fn () => $request->session()->get('success'),
                 'info' => fn () => $request->session()->get('info'),
             ],
-            'lifetime' => env('SESSION_LIFETIME')
+            'lifetime' => env('SESSION_LIFETIME'),
+            'appVersion' => config('app.version'),
         ]);
     }
 }
