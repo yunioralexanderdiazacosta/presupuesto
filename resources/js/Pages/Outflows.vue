@@ -54,32 +54,112 @@ const totalEdicionFormatted = computed(() => {
 });
 const termEdicion = ref("");
 
+// Filtros avanzados para la tabla de edición
+const filterMes = ref(null);
+const filterOperation = ref(null);
+const filterSupplier = ref(null);
+const filterLevel1 = ref(null);
+const filterLevel2 = ref(null);
+const filterLevel3 = ref(null);
+
+// Opciones únicas extraídas de los datos ya cargados
+const mesOptions = computed(() => {
+  if (!props.outflowDetails?.length) return [];
+  const unique = [...new Set(props.outflowDetails.map(i => i.mes_contable).filter(Boolean))];
+  return unique.sort().map(v => ({ value: v, label: v }));
+});
+const operationOptions = computed(() => {
+  if (!props.outflowDetails?.length) return [];
+  const unique = [...new Set(props.outflowDetails.map(i => i.operation).filter(Boolean))];
+  return unique.sort().map(v => ({ value: v, label: v }));
+});
+const supplierOptions = computed(() => {
+  if (!props.outflowDetails?.length) return [];
+  const unique = [...new Set(props.outflowDetails.map(i => i.supplier).filter(Boolean))];
+  return unique.sort().map(v => ({ value: v, label: v }));
+});
+const level1Options = computed(() => {
+  if (!props.outflowDetails?.length) return [];
+  const unique = [...new Set(props.outflowDetails.map(i => i.level1_name).filter(Boolean))];
+  return unique.sort().map(v => ({ value: v, label: v }));
+});
+const level2Options = computed(() => {
+  if (!props.outflowDetails?.length) return [];
+  // Filtrar level2 según level1 seleccionado para cascada
+  const source = filterLevel1.value
+    ? props.outflowDetails.filter(i => i.level1_name === filterLevel1.value)
+    : props.outflowDetails;
+  const unique = [...new Set(source.map(i => i.level2_name).filter(Boolean))];
+  return unique.sort().map(v => ({ value: v, label: v }));
+});
+const level3Options = computed(() => {
+  if (!props.outflowDetails?.length) return [];
+  let source = props.outflowDetails;
+  if (filterLevel1.value) source = source.filter(i => i.level1_name === filterLevel1.value);
+  if (filterLevel2.value) source = source.filter(i => i.level2_name === filterLevel2.value);
+  const unique = [...new Set(source.map(i => i.level3_name).filter(Boolean))];
+  return unique.sort().map(v => ({ value: v, label: v }));
+});
+
+// Limpiar niveles hijos al cambiar padre
+watch(filterLevel1, () => { filterLevel2.value = null; filterLevel3.value = null; });
+watch(filterLevel2, () => { filterLevel3.value = null; });
+
+const hasActiveFilters = computed(() => {
+  return filterMes.value || filterOperation.value || filterSupplier.value 
+      || filterLevel1.value || filterLevel2.value || filterLevel3.value;
+});
+
+const isReloading = ref(false);
+const clearAllFilters = () => {
+  isReloading.value = true;
+  // setTimeout para que el browser pinte el spinner ANTES del render pesado
+  setTimeout(() => {
+    termEdicion.value = '';
+    filterMes.value = null;
+    filterOperation.value = null;
+    filterSupplier.value = null;
+    filterLevel1.value = null;
+    filterLevel2.value = null;
+    filterLevel3.value = null;
+    nextTick(() => {
+      nextTick(() => { isReloading.value = false; });
+    });
+  }, 50);
+};
+
 const filteredOutflowDetails = computed(() => {
   if (!props.outflowDetails || !props.outflowDetails.length) return [];
-  if (!termEdicion.value) return props.outflowDetails;
-  const search = termEdicion.value.toLowerCase();
-  return props.outflowDetails.filter((item) => {
-    const proveedor = item.supplier ? item.supplier.toLowerCase() : "";
-    const numero = item.number_document ? String(item.number_document).toLowerCase() : "";
-    const producto = item.product_name ? item.product_name.toLowerCase() : (item.product ? item.product.toLowerCase() : "");
-    const proyecto = item.project ? item.project.toLowerCase() : "";
-    const operacion = item.operation ? item.operation.toLowerCase() : "";
-    const maquinaria = item.machinery ? item.machinery.toLowerCase() : "";
-    const nivel1 = item.level1_name ? item.level1_name.toLowerCase() : "";
-    const nivel2 = item.level2_name ? item.level2_name.toLowerCase() : "";
-    const nivel3 = item.level3_name ? item.level3_name.toLowerCase() : "";
-    return (
-      proveedor.includes(search) ||
-      numero.includes(search) ||
-      producto.includes(search) ||
-      proyecto.includes(search) ||
-      operacion.includes(search) ||
-      maquinaria.includes(search) ||
-      nivel1.includes(search) ||
-      nivel2.includes(search) ||
-      nivel3.includes(search)
-    );
-  });
+  
+  let result = props.outflowDetails;
+
+  // Filtros de select
+  if (filterMes.value) result = result.filter(i => i.mes_contable === filterMes.value);
+  if (filterOperation.value) result = result.filter(i => i.operation === filterOperation.value);
+  if (filterSupplier.value) result = result.filter(i => i.supplier === filterSupplier.value);
+  if (filterLevel1.value) result = result.filter(i => i.level1_name === filterLevel1.value);
+  if (filterLevel2.value) result = result.filter(i => i.level2_name === filterLevel2.value);
+  if (filterLevel3.value) result = result.filter(i => i.level3_name === filterLevel3.value);
+
+  // Filtro de texto
+  if (termEdicion.value) {
+    const search = termEdicion.value.toLowerCase();
+    result = result.filter((item) => {
+      return (
+        (item.supplier || '').toLowerCase().includes(search) ||
+        String(item.number_document || '').toLowerCase().includes(search) ||
+        (item.product_name || item.product || '').toLowerCase().includes(search) ||
+        (item.project || '').toLowerCase().includes(search) ||
+        (item.operation || '').toLowerCase().includes(search) ||
+        (item.machinery || '').toLowerCase().includes(search) ||
+        (item.level1_name || '').toLowerCase().includes(search) ||
+        (item.level2_name || '').toLowerCase().includes(search) ||
+        (item.level3_name || '').toLowerCase().includes(search)
+      );
+    });
+  }
+
+  return result;
 });
 // Convierte los centros de costo en string para exportar a Excel
 const outflowsExcelData = computed(() => {
@@ -102,7 +182,7 @@ const outflowsExcelData = computed(() => {
   });
 });
 import ExportExcelButton from '@/Components/ExportExcelButton.vue';
-import { ref, watch, getCurrentInstance, computed } from 'vue';
+import { ref, watch, getCurrentInstance, computed, nextTick } from 'vue';
 import { Link, Head, router } from '@inertiajs/vue3';
 import axios from 'axios';
 import Swal from 'sweetalert2';
@@ -417,7 +497,7 @@ function formatCreditNotePopover(creditNoteInfo) {
   return html.trim();
 }
 
-import { onMounted, onUpdated, nextTick } from 'vue';
+import { onMounted, onUpdated } from 'vue';
 onMounted(() => {
   nextTick(() => {
     if (window.bootstrap) {
@@ -702,11 +782,94 @@ function copyToAllCards(sourceCardId) {
             <div class="tab-content border p-3 mt-3" id="pill-myTabContent">
                
                   <div class="tab-pane fade show active" id="pill-tab-edicion" role="tabpanel" aria-labelledby="pill-edicion">
-                    <div class="row align-items-center mb-2">
-                      <div class="col">
-                        <SearchInput v-model="termEdicion" placeholder="Buscar por proveedor, producto, documento..." />
+                    <!-- Filtros compactos en una sola fila -->
+                    <div class="d-flex flex-wrap align-items-end gap-2 mb-2">
+                      <div style="min-width: 180px; flex: 1 1 180px; max-width: 250px;">
+                        <SearchInput v-model="termEdicion" placeholder="Buscar..." />
                       </div>
-                      <div class="col-auto text-end">
+                      <div style="min-width: 120px; flex: 0 1 140px;">
+                        <label class="form-label small mb-0">Mes</label>
+                        <Multiselect
+                          v-model="filterMes"
+                          :options="mesOptions"
+                          :searchable="true"
+                          placeholder="Todos"
+                          :canClear="true"
+                          :canDeselect="true"
+                          class="multiselect-sm"
+                        />
+                      </div>
+                      <div style="min-width: 120px; flex: 0 1 140px;">
+                        <label class="form-label small mb-0">Operación</label>
+                        <Multiselect
+                          v-model="filterOperation"
+                          :options="operationOptions"
+                          :searchable="true"
+                          placeholder="Todas"
+                          :canClear="true"
+                          :canDeselect="true"
+                          class="multiselect-sm"
+                        />
+                      </div>
+                      <div style="min-width: 160px; flex: 0 1 210px;">
+                        <label class="form-label small mb-0">Proveedor</label>
+                        <Multiselect
+                          v-model="filterSupplier"
+                          :options="supplierOptions"
+                          :searchable="true"
+                          placeholder="Todos"
+                          :canClear="true"
+                          :canDeselect="true"
+                          class="multiselect-sm"
+                        />
+                      </div>
+                      <div style="min-width: 120px; flex: 0 1 130px;">
+                        <label class="form-label small mb-0">Nivel 1</label>
+                        <Multiselect
+                          v-model="filterLevel1"
+                          :options="level1Options"
+                          :searchable="true"
+                          placeholder="Todos"
+                          :canClear="true"
+                          :canDeselect="true"
+                          class="multiselect-sm"
+                        />
+                      </div>
+                      <div style="min-width: 120px; flex: 0 1 130px;">
+                        <label class="form-label small mb-0">Nivel 2</label>
+                        <Multiselect
+                          v-model="filterLevel2"
+                          :options="level2Options"
+                          :searchable="true"
+                          placeholder="Todos"
+                          :canClear="true"
+                          :canDeselect="true"
+                          class="multiselect-sm"
+                        />
+                      </div>
+                      <div style="min-width: 120px; flex: 0 1 130px;">
+                        <label class="form-label small mb-0">Nivel 3</label>
+                        <Multiselect
+                          v-model="filterLevel3"
+                          :options="level3Options"
+                          :searchable="true"
+                          placeholder="Todos"
+                          :canClear="true"
+                          :canDeselect="true"
+                          class="multiselect-sm"
+                        />
+                      </div>
+                      <div class="d-flex align-items-end gap-1" style="flex-shrink: 0;">
+                        <button 
+                          v-if="hasActiveFilters || isReloading"
+                          type="button" 
+                          class="btn btn-falcon-default btn-sm py-1"
+                          @click="clearAllFilters"
+                          :disabled="isReloading"
+                          title="Limpiar filtros"
+                        >
+                          <i :class="isReloading ? 'fas fa-spinner fa-spin' : 'fas fa-times'"></i>
+                        </button>
                         <ExportExcelButton
                           :data="outflowsExcelData"
                           :headers="[
@@ -731,14 +894,23 @@ function copyToAllCards(sourceCardId) {
                             { label: 'Usuario', key: 'user' }
                           ]"
                           filename="salidas.xlsx"
-                          class="btn btn-light-primary me-3"
+                          class="btn btn-falcon-default btn-sm py-1"
                         >
-                          <span class="svg-icon svg-icon-2"></span>
-                          Exportar Excel
+                          <i class="fas fa-file-excel"></i>
                         </ExportExcelButton>
                       </div>
+                      <small class="text-muted ms-auto align-self-end" style="flex-shrink: 0;">
+                        {{ sortedOutflowDetails.length }}/{{ props.outflowDetails?.length || 0 }}
+                      </small>
                     </div>
            
+                    <div style="position: relative;">
+                      <div v-if="isReloading" class="table-loading-overlay">
+                        <div class="text-center">
+                          <div class="table-spinner"></div>
+                          <div class="mt-2 text-muted small">Recargando datos...</div>
+                        </div>
+                      </div>
                     <div class="table-responsive mb-4" style="max-height:450px; overflow-y:auto; overflow-x:auto; width:100%;">
                       <table class="table table-bordered table-striped table-hover table-sm mb-0 tabla-edicion-small" style="min-width:2000px;">
 
@@ -857,6 +1029,7 @@ function copyToAllCards(sourceCardId) {
                           </tr>
                         </tbody>
                       </table>
+                    </div>
                     </div>
                   </div>
                   <div class="tab-pane fade" id="pill-tab-salidas" role="tabpanel" aria-labelledby="salidas-tab">
@@ -1259,6 +1432,34 @@ textarea::placeholder {
 	box-shadow: 0 2px 8px 0 rgba(44,123,229,0.10);
 }
 
+.table-loading-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(255,255,255,0.8);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 20;
+  border-radius: 4px;
+}
+
+.table-spinner {
+  width: 36px;
+  height: 36px;
+  border: 4px solid #e3e6ed;
+  border-top: 4px solid #2c7be5;
+  border-radius: 50%;
+  animation: table-spin 0.8s linear infinite;
+  margin: 0 auto;
+}
+
+@keyframes table-spin {
+  to { transform: rotate(360deg); }
+}
+
 
 /* Header fijo para todas las tablas de Outflows */
 .table-responsive, .outflows-table-scroll {
@@ -1284,6 +1485,18 @@ th {
   padding-top: 0.25rem;
   padding-bottom: 0.25rem;
   line-height: 1.2;
+}
+
+/* Multiselect compacto para filtros */
+.multiselect-sm {
+  --ms-font-size: 0.8rem;
+  --ms-line-height: 1.3;
+  --ms-py: 0.25rem;
+  --ms-px: 0.5rem;
+  --ms-tag-font-size: 0.75rem;
+  --ms-option-font-size: 0.8rem;
+  --ms-ring-width: 0px;
+  min-height: 32px;
 }
 
 .td-supplier {
