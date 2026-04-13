@@ -37,7 +37,7 @@ class ParcelsController extends Controller
             $query->where('name', 'like', '%'.$search.'%');
         })->where('team_id', $user->team_id)
           ->when($season_id, fn($q) => $q->where('season_id', $season_id), fn($q) => $q->whereNull('season_id'))
-          ->paginate(10)->withQueryString();
+          ->paginate(500)->withQueryString();
 
         // Verificar parcelas pendientes de traspaso desde la temporada anterior
         $pendingTransferCount = 0;
