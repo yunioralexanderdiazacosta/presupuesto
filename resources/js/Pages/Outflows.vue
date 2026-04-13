@@ -113,19 +113,7 @@ const hasActiveFilters = computed(() => {
 const isReloading = ref(false);
 const clearAllFilters = () => {
   isReloading.value = true;
-  // setTimeout para que el browser pinte el spinner ANTES del render pesado
-  setTimeout(() => {
-    termEdicion.value = '';
-    filterMes.value = null;
-    filterOperation.value = null;
-    filterSupplier.value = null;
-    filterLevel1.value = null;
-    filterLevel2.value = null;
-    filterLevel3.value = null;
-    nextTick(() => {
-      nextTick(() => { isReloading.value = false; });
-    });
-  }, 50);
+  router.visit(route('outflows.index'), { preserveScroll: true });
 };
 
 const filteredOutflowDetails = computed(() => {
