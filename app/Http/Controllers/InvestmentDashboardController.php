@@ -136,20 +136,22 @@ class InvestmentDashboardController extends Controller
                 ->pluck('total', 'month_execute')
                 ->toArray();
 
-            // Real por mes (outflows con operación inversión, agrupados por mes de fecha)
+            // Real por mes (outflows con operación inversión, agrupados por mes de fecha factura)
             $realByMonth = DB::table('outflows as o')
                 ->leftJoin('invoice_products as ip', 'o.invoice_product_id', '=', 'ip.id')
+                ->leftJoin('invoices as inv', 'ip.invoice_id', '=', 'inv.id')
                 ->leftJoin('credit_debit_note_items as cdni', 'o.credit_debit_note_item_id', '=', 'cdni.id')
+                ->leftJoin('credit_debit_notes as cdn', 'cdni.credit_debit_note_id', '=', 'cdn.id')
                 ->join('operations as op', 'o.operation_id', '=', 'op.id')
                 ->where('o.season_id', $season_id)
                 ->where('o.team_id', $team_id)
                 ->whereRaw('LOWER(op.name) LIKE ?', ['%inversion%'])
-                ->selectRaw('MONTH(o.date) as month_num, SUM(CASE
+                ->selectRaw('MONTH(COALESCE(inv.date, cdn.date, o.date)) as month_num, SUM(CASE
                     WHEN o.invoice_product_id IS NOT NULL AND ip.id IS NOT NULL THEN o.quantity * ip.unit_price
                     WHEN o.credit_debit_note_item_id IS NOT NULL AND cdni.id IS NOT NULL THEN o.quantity * cdni.unit_price
                     ELSE 0
                 END) as total')
-                ->groupByRaw('MONTH(o.date)')
+                ->groupByRaw('MONTH(COALESCE(inv.date, cdn.date, o.date))')
                 ->pluck('total', 'month_num')
                 ->toArray();
 
