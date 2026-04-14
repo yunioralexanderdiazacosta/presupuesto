@@ -34,8 +34,24 @@ class ProfitLossController extends Controller
             $income = $this->getIncomeData($season_id, $team_id);
             $costs = $this->getCostsByVariety($season_id, $team_id);
             $surfaces = $this->getSurfaces($season_id, $team_id);
+
+            // DEBUG: Log de datos enviados al frontend
+            Log::info('ProfitLoss DEBUG', [
+                'season_id' => $season_id,
+                'team_id' => $team_id,
+                'fruits_count' => count($fruits),
+                'devStates_count' => count($devStates),
+                'varieties_count' => count($varieties),
+                'income_count' => count($income),
+                'costs_count' => count($costs),
+                'surfaces_count' => count($surfaces),
+                'devStates' => $devStates,
+                'income_sample' => array_slice($income, 0, 2, true),
+                'costs_sample' => array_slice($costs, 0, 2),
+                'surfaces_sample' => array_slice($surfaces, 0, 2),
+            ]);
         } catch (\Exception $e) {
-            Log::error('ProfitLoss: ' . $e->getMessage());
+            Log::error('ProfitLoss EXCEPTION: ' . $e->getMessage() . ' | Trace: ' . $e->getTraceAsString());
             $fruits = [];
             $devStates = [];
             $varieties = [];

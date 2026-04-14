@@ -21,6 +21,17 @@ const props = defineProps({
 const selectedFruitId = ref('');
 const includeInvestments = ref(false);
 
+// ── DEBUG: Log de props recibidos ──
+console.log('=== ProfitLoss DEBUG ===');
+console.log('props.dollarPrice:', props.dollarPrice);
+console.log('props.fruits:', JSON.stringify(props.fruits));
+console.log('props.developmentStates:', JSON.stringify(props.developmentStates));
+console.log('props.varieties count:', props.varieties?.length, 'sample:', JSON.stringify(props.varieties?.slice(0, 2)));
+console.log('props.income:', JSON.stringify(props.income));
+console.log('props.costs count:', props.costs?.length, 'sample:', JSON.stringify(props.costs?.slice(0, 2)));
+console.log('props.surfaces count:', props.surfaces?.length, 'sample:', JSON.stringify(props.surfaces?.slice(0, 2)));
+console.log('=== END DEBUG ===');
+
 // ── Estados de desarrollo (patrón OutflowsDashboard) ──
 const normalize = (str) => str.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
 
@@ -28,8 +39,16 @@ const incluirAdmin = ref(true);
 const selectedExtraStates = ref({});
 
 // Producción = siempre incluido
-const prodState = computed(() => props.developmentStates.find(s => normalize(s.label).includes('produccion')));
-const adminState = computed(() => props.developmentStates.find(s => normalize(s.label).includes('administracion')));
+const prodState = computed(() => {
+    const found = props.developmentStates.find(s => normalize(s.label).includes('produccion'));
+    console.log('prodState:', found);
+    return found;
+});
+const adminState = computed(() => {
+    const found = props.developmentStates.find(s => normalize(s.label).includes('administracion'));
+    console.log('adminState:', found);
+    return found;
+});
 const extraStates = computed(() => props.developmentStates.filter(s => {
     const n = normalize(s.label);
     return !n.includes('produccion') && !n.includes('administracion');
@@ -43,6 +62,7 @@ const activeDevStateIds = computed(() => {
     extraStates.value.forEach(s => {
         if (selectedExtraStates.value[s.value]) ids.push(s.value);
     });
+    console.log('activeDevStateIds:', ids);
     return ids;
 });
 
@@ -82,11 +102,22 @@ const saveDollarPrice = async () => {
 
 // ── Datos filtrados por estado de desarrollo ──
 const filteredSurfaces = computed(() => {
-    return props.surfaces.filter(s => activeDevStateIds.value.includes(s.development_state_id));
+    const result = props.surfaces.filter(s => activeDevStateIds.value.includes(s.development_state_id));
+    console.log('filteredSurfaces:', result.length, 'de', props.surfaces?.length);
+    if (result.length === 0 && props.surfaces?.length > 0) {
+        console.log('MISMATCH! surfaces dev_state_ids:', [...new Set(props.surfaces.map(s => s.development_state_id + '(' + typeof s.development_state_id + ')'))]);
+        console.log('activeDevStateIds:', activeDevStateIds.value.map(id => id + '(' + typeof id + ')'));
+    }
+    return result;
 });
 
 const filteredCosts = computed(() => {
-    return props.costs.filter(c => activeDevStateIds.value.includes(c.development_state_id));
+    const result = props.costs.filter(c => activeDevStateIds.value.includes(c.development_state_id));
+    console.log('filteredCosts:', result.length, 'de', props.costs?.length);
+    if (result.length === 0 && props.costs?.length > 0) {
+        console.log('MISMATCH! costs dev_state_ids:', [...new Set(props.costs.map(c => c.development_state_id + '(' + typeof c.development_state_id + ')'))]);
+    }
+    return result;
 });
 
 // ── Construir filas por variedad (TODAS las frutas) ──
@@ -146,6 +177,12 @@ const allRows = computed(() => {
         })
         .sort((a, b) => b.profit - a.profit);
 });
+
+// DEBUG: Log de allRows
+watch(allRows, (rows) => {
+    console.log('allRows count:', rows.length);
+    if (rows.length > 0) console.log('allRows sample:', JSON.stringify(rows[0]));
+}, { immediate: true });
 
 // ── Resumen por especie (macro) ──
 const fruitSummary = computed(() => {
