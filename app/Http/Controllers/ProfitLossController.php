@@ -294,6 +294,7 @@ class ProfitLossController extends Controller
             'development_state_id' => (int) $row->development_state_id,
             'cost_total'           => round((float) $row->cost_total, 2),
             'cost_no_inv'          => round((float) $row->cost_no_inv, 2),
+            'is_admin'             => false,
         ])->toArray();
 
         // Distribuir admin igual que OutflowsDashboard:
@@ -332,9 +333,10 @@ class ProfitLossController extends Controller
                             $varietyRatio = $sv->total_surface / $stateCCVTotal;
                             $results[] = [
                                 'variety_id'           => (int) $sv->variety_id,
-                                'development_state_id' => (int) $adminRow->development_state_id,
+                                'development_state_id' => (int) $devStateId,
                                 'cost_total'           => round($stateAdminTotal * $varietyRatio, 2),
                                 'cost_no_inv'          => round($stateAdminNoInv * $varietyRatio, 2),
+                                'is_admin'             => true,
                             ];
                         }
                     }

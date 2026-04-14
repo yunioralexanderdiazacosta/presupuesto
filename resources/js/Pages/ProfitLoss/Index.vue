@@ -89,7 +89,10 @@ const filteredSurfaces = computed(() => {
 });
 
 const filteredCosts = computed(() => {
-    return props.costs.filter(c => activeDevStateIds.value.map(String).includes(String(c.development_state_id)));
+    return props.costs.filter(c => {
+        if (c.is_admin && (!incluirAdmin.value || !adminState.value)) return false;
+        return activeDevStateIds.value.map(String).includes(String(c.development_state_id));
+    });
 });
 
 // ── Construir filas por variedad (TODAS las frutas) ──
@@ -187,13 +190,16 @@ const totalCost = computed(() => allRows.value.reduce((s, r) => s + r.cost, 0));
 const totalProfit = computed(() => totalIncome.value - totalCommercialCost.value - totalCost.value);
 const totalMargin = computed(() => totalIncome.value > 0 ? (totalProfit.value / totalIncome.value) * 100 : 0);
 const totalSurface = computed(() => allRows.value.reduce((s, r) => s + r.surface, 0));
+const plMargin = computed(() => totalIncome.value > 0 ? (plProfit.value / totalIncome.value) * 100 : 0);
 
 // ── Resumen P&L: costos desglosados por tipo de dev state (solo variedades visibles) ──
 const visibleVarietyIds = computed(() => new Set(allRows.value.map(r => String(r.variety_id))));
 
-const costByDevType = (devStateId) => {
+const costByDevType = (devStateId, includeAdmin = false) => {
     const filtered = props.costs.filter(c =>
-        String(c.development_state_id) === String(devStateId) && visibleVarietyIds.value.has(String(c.variety_id))
+        String(c.development_state_id) === String(devStateId)
+        && visibleVarietyIds.value.has(String(c.variety_id))
+        && (includeAdmin || !c.is_admin)
     );
     let total = 0;
     filtered.forEach(c => {
@@ -413,16 +419,16 @@ watch(allRows, () => setupCollapseChevron());
                                 <div class="text-muted small">Costos Productivos
                                     <small class="text-muted">(Prod.{{ incluirAdmin && adminState ? ' + Admin' : '' }}{{ extraStates.filter(s => selectedExtraStates[s.value]).map(s => ' + ' + s.label).join('') }})</small>
                                 </div>
-                                <div class="fs-7 fw-bold text-danger">{{ currencyPrefix }}{{ formatMoney(totalCost) }}</div>
+                                <div class="fs-7 fw-bold text-danger">{{ currencyPrefix }}{{ formatMoney(plTotalCost) }}</div>
                             </div>
                         </div>
                     </div>
                     <div class="col">
-                        <div class="card h-100 p-1" :class="totalProfit >= 0 ? 'border border-primary' : 'border border-warning'">
+                        <div class="card h-100 p-1" :class="plProfit >= 0 ? 'border border-primary' : 'border border-warning'">
                             <div class="card-body py-2 px-3 text-center">
                                 <div class="text-muted small">Utilidad / Pérdida</div>
-                                <div class="fs-7 fw-bold" :class="totalProfit >= 0 ? 'text-primary' : 'text-warning'">
-                                    {{ currencyPrefix }}{{ formatMoney(totalProfit) }}
+                                <div class="fs-7 fw-bold" :class="plProfit >= 0 ? 'text-primary' : 'text-warning'">
+                                    {{ currencyPrefix }}{{ formatMoney(plProfit) }}
                                 </div>
                             </div>
                         </div>
@@ -431,8 +437,8 @@ watch(allRows, () => setupCollapseChevron());
                         <div class="card h-100 p-1 border">
                             <div class="card-body py-2 px-3 text-center">
                                 <div class="text-muted small">Margen</div>
-                                <div class="fs-7 fw-bold" :class="totalMargin >= 0 ? 'text-success' : 'text-danger'">
-                                    {{ totalMargin.toFixed(1) }}%
+                                <div class="fs-7 fw-bold" :class="plMargin >= 0 ? 'text-success' : 'text-danger'">
+                                    {{ plMargin.toFixed(1) }}%
                                 </div>
                             </div>
                         </div>
@@ -494,13 +500,13 @@ watch(allRows, () => setupCollapseChevron());
                                     <td class="text-end">{{ allRows.reduce((s,r) => s + r.kg_harvested, 0).toLocaleString('es-CL') }}</td>
                                     <td class="text-end">{{ allRows.reduce((s,r) => s + r.kg_exported, 0).toLocaleString('es-CL') }}</td>
                                     <td class="text-end text-success">{{ currencyPrefix }}{{ formatMoney(totalIncome) }}</td>
-                                    <td class="text-end text-danger">{{ currencyPrefix }}{{ formatMoney(totalCost) }}</td>
-                                    <td class="text-end" :class="totalProfit >= 0 ? 'text-primary' : 'text-warning'">
-                                        {{ currencyPrefix }}{{ formatMoney(totalProfit) }}
+                                    <td class="text-end text-danger">{{ currencyPrefix }}{{ formatMoney(plTotalCost) }}</td>
+                                    <td class="text-end" :class="plProfit >= 0 ? 'text-primary' : 'text-warning'">
+                                        {{ currencyPrefix }}{{ formatMoney(plProfit) }}
                                     </td>
                                     <td class="text-end">
-                                        <span class="badge" :class="totalMargin >= 0 ? 'bg-success' : 'bg-danger'">
-                                            {{ totalMargin.toFixed(1) }}%
+                                        <span class="badge" :class="plMargin >= 0 ? 'bg-success' : 'bg-danger'">
+                                            {{ plMargin.toFixed(1) }}%
                                         </span>
                                     </td>
                                 </tr>
