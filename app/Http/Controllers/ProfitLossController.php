@@ -34,6 +34,7 @@ class ProfitLossController extends Controller
             $income = $this->getIncomeData($season_id, $team_id);
             $costs = $this->getCostsByVariety($season_id, $team_id);
             $surfaces = $this->getSurfaces($season_id, $team_id);
+            $adminShares = $this->getAdminShares($season_id, $team_id);
         } catch (\Exception $e) {
             Log::error('ProfitLoss: ' . $e->getMessage());
             $fruits = [];
@@ -42,6 +43,7 @@ class ProfitLossController extends Controller
             $income = [];
             $costs = [];
             $surfaces = [];
+            $adminShares = [];
         }
 
         return Inertia::render('ProfitLoss/Index', [
@@ -53,6 +55,7 @@ class ProfitLossController extends Controller
             'income'      => $income,
             'costs'       => $costs,
             'surfaces'    => $surfaces,
+            'adminShares' => $adminShares,
         ]);
     }
 
@@ -228,13 +231,17 @@ class ProfitLossController extends Controller
             ->groupBy('ccv.variety_id', 'ccv.development_state_id')
             ->get();
 
-        // ── Query 2: CCs SIN CCVs (admin, etc.) → prorratear a variedades por superficie ──
-        // IDs de CCs que SÍ tienen CCVs
-        $ccIdsWithCCV = DB::table('cost_center_varieties')
-            ->where('season_id', $season_id)
-            ->where('team_id', $team_id)
-            ->distinct()
-            ->pluck('cost_center_id');
+        // ── Query 2: Admin → misma lógica que OutflowsDashboard ──
+        // Identificar dev_states de administración por nombre
+        $adminDevStateIds = DB::table('development_states')
+            ->whereRaw("LOWER(REPLACE(name, 'ó', 'o')) LIKE '%administracion%'")
+            ->pluck('id');
+
+        // Subconsulta superficie total por outflow (mismo que OutflowsDashboard)
+        $surfaceTotalsAdmin = DB::table('outflow_cost_center')
+            ->join('cost_centers', 'outflow_cost_center.cost_center_id', '=', 'cost_centers.id')
+            ->select('outflow_cost_center.outflow_id', DB::raw('SUM(cost_centers.surface) as total_surface'))
+            ->groupBy('outflow_cost_center.outflow_id');
 
         $costsWithoutCCV = DB::table('outflows as o')
             ->join('outflow_cost_center as occ', 'o.id', '=', 'occ.outflow_id')
@@ -242,33 +249,31 @@ class ProfitLossController extends Controller
             ->leftJoin('operations as op', 'o.operation_id', '=', 'op.id')
             ->leftJoin('invoice_products as ip', 'o.invoice_product_id', '=', 'ip.id')
             ->leftJoin('credit_debit_note_items as cdni', 'o.credit_debit_note_item_id', '=', 'cdni.id')
-            ->leftJoinSub($surfaceTotals, 'st', function ($join) {
+            ->leftJoinSub($surfaceTotalsAdmin, 'st', function ($join) {
                 $join->on('o.id', '=', 'st.outflow_id');
             })
             ->where('o.season_id', $season_id)
             ->where('o.team_id', $team_id)
-            ->whereNull('o.fuel_outflow_id')
-            ->whereNotIn('cc.id', $ccIdsWithCCV)
-            ->whereNotNull('cc.development_state_id')
+            ->whereIn('cc.development_state_id', $adminDevStateIds)
             ->selectRaw("
                 cc.development_state_id,
                 COALESCE(SUM(
                     CASE
-                        WHEN COALESCE(st.total_surface, 0) > 0 THEN
-                            (cc.surface / st.total_surface) *
+                        WHEN cc.surface = 0 THEN
                             o.quantity * COALESCE(ip.unit_price, cdni.unit_price, 0)
                         ELSE
-                            o.quantity * COALESCE(ip.unit_price, cdni.unit_price, 0)
+                            (cc.surface * (o.quantity / NULLIF(st.total_surface, 0))) *
+                            COALESCE(ip.unit_price, cdni.unit_price, 0)
                     END
                 ), 0) as cost_total,
                 COALESCE(SUM(
                     CASE WHEN LOWER(COALESCE(op.name, '')) NOT LIKE '%inversion%' THEN
                         CASE
-                            WHEN COALESCE(st.total_surface, 0) > 0 THEN
-                                (cc.surface / st.total_surface) *
+                            WHEN cc.surface = 0 THEN
                                 o.quantity * COALESCE(ip.unit_price, cdni.unit_price, 0)
                             ELSE
-                                o.quantity * COALESCE(ip.unit_price, cdni.unit_price, 0)
+                                (cc.surface * (o.quantity / NULLIF(st.total_surface, 0))) *
+                                COALESCE(ip.unit_price, cdni.unit_price, 0)
                         END
                     ELSE 0 END
                 ), 0) as cost_no_inv
@@ -291,29 +296,111 @@ class ProfitLossController extends Controller
             'cost_no_inv'          => round((float) $row->cost_no_inv, 2),
         ])->toArray();
 
-        // Distribuir costos sin CCV: prorratear por superficie TOTAL de todas las variedades
-        // pero asignarle el development_state_id del CC (ej: admin)
-        $allVarietySurfaces = $varietySurfacesByDevState
-            ->groupBy('variety_id')
-            ->map(fn($group) => $group->sum('total_surface'));
+        // Distribuir admin igual que OutflowsDashboard:
+        // Paso 1: Prorratear admin a cada dev_state no-admin por superficie CC
+        // Paso 2: Dentro de cada dev_state, distribuir a variedades por su superficie CCV
+        $ccSurfacesByDevState = DB::table('cost_centers')
+            ->where('season_id', $season_id)
+            ->whereNotNull('development_state_id')
+            ->whereNotIn('development_state_id', $adminDevStateIds)
+            ->where('surface', '>', 0)
+            ->select('development_state_id', DB::raw('SUM(surface) as total_surface'))
+            ->groupBy('development_state_id')
+            ->pluck('total_surface', 'development_state_id');
 
-        $grandTotalSurface = $allVarietySurfaces->sum();
+        $totalCCSurface = $ccSurfacesByDevState->sum();
 
-        if ($grandTotalSurface > 0) {
-            foreach ($costsWithoutCCV as $row) {
-                foreach ($allVarietySurfaces as $varietyId => $surface) {
-                    $ratio = $surface / $grandTotalSurface;
-                    $results[] = [
-                        'variety_id'           => (int) $varietyId,
-                        'development_state_id' => (int) $row->development_state_id,
-                        'cost_total'           => round((float) $row->cost_total * $ratio, 2),
-                        'cost_no_inv'          => round((float) $row->cost_no_inv * $ratio, 2),
-                    ];
+        $ccvByState = $varietySurfacesByDevState->groupBy('development_state_id');
+
+        if ($totalCCSurface > 0) {
+            foreach ($costsWithoutCCV as $adminRow) {
+                $adminCostTotal = (float) $adminRow->cost_total;
+                $adminCostNoInv = (float) $adminRow->cost_no_inv;
+
+                // Para cada dev_state no-admin, calcular su porción de admin (por superficie CC)
+                foreach ($ccSurfacesByDevState as $devStateId => $ccSurface) {
+                    $stateRatio = $ccSurface / $totalCCSurface;
+                    $stateAdminTotal = $adminCostTotal * $stateRatio;
+                    $stateAdminNoInv = $adminCostNoInv * $stateRatio;
+
+                    // Dentro del dev_state, distribuir a variedades por superficie CCV
+                    $stateVarieties = $ccvByState->get($devStateId, collect());
+                    $stateCCVTotal = $stateVarieties->sum('total_surface');
+
+                    if ($stateCCVTotal > 0) {
+                        foreach ($stateVarieties as $sv) {
+                            $varietyRatio = $sv->total_surface / $stateCCVTotal;
+                            $results[] = [
+                                'variety_id'           => (int) $sv->variety_id,
+                                'development_state_id' => (int) $adminRow->development_state_id,
+                                'cost_total'           => round($stateAdminTotal * $varietyRatio, 2),
+                                'cost_no_inv'          => round($stateAdminNoInv * $varietyRatio, 2),
+                            ];
+                        }
+                    }
                 }
             }
         }
 
         return $results;
+    }
+
+    /**
+     * Admin shares por dev_state: misma lógica que OutflowsDashboard
+     * admin_total * (cc_surface_state / cc_surface_total)
+     */
+    private function getAdminShares($season_id, $team_id)
+    {
+        $adminDevStateIds = DB::table('development_states')
+            ->whereRaw("LOWER(REPLACE(name, 'ó', 'o')) LIKE '%administracion%'")
+            ->pluck('id');
+
+        $surfaceTotals = DB::table('outflow_cost_center')
+            ->join('cost_centers', 'outflow_cost_center.cost_center_id', '=', 'cost_centers.id')
+            ->select('outflow_cost_center.outflow_id', DB::raw('SUM(cost_centers.surface) as total_surface'))
+            ->groupBy('outflow_cost_center.outflow_id');
+
+        $adminTotal = (float) DB::table('outflows as o')
+            ->join('outflow_cost_center as occ', 'o.id', '=', 'occ.outflow_id')
+            ->join('cost_centers as cc', 'occ.cost_center_id', '=', 'cc.id')
+            ->leftJoin('operations as op', 'o.operation_id', '=', 'op.id')
+            ->leftJoin('invoice_products as ip', 'o.invoice_product_id', '=', 'ip.id')
+            ->leftJoin('credit_debit_note_items as cdni', 'o.credit_debit_note_item_id', '=', 'cdni.id')
+            ->leftJoinSub($surfaceTotals, 'st', fn($j) => $j->on('o.id', '=', 'st.outflow_id'))
+            ->where('o.season_id', $season_id)
+            ->where('o.team_id', $team_id)
+            ->whereIn('cc.development_state_id', $adminDevStateIds)
+            ->where(fn($q) => $q->whereNull('op.name')->orWhereRaw('LOWER(op.name) NOT LIKE ?', ['%inversion%']))
+            ->selectRaw("COALESCE(SUM(
+                CASE
+                    WHEN cc.surface = 0 THEN o.quantity * COALESCE(ip.unit_price, cdni.unit_price, 0)
+                    ELSE (cc.surface * (o.quantity / NULLIF(st.total_surface, 0))) * COALESCE(ip.unit_price, cdni.unit_price, 0)
+                END
+            ), 0) as total")
+            ->value('total');
+
+        $ccSurfaces = DB::table('cost_centers')
+            ->where('season_id', $season_id)
+            ->whereNotNull('development_state_id')
+            ->whereNotIn('development_state_id', $adminDevStateIds)
+            ->where('surface', '>', 0)
+            ->select('development_state_id', DB::raw('SUM(surface) as total_surface'))
+            ->groupBy('development_state_id')
+            ->pluck('total_surface', 'development_state_id');
+
+        $totalCCSurface = $ccSurfaces->sum();
+
+        $shares = [];
+        if ($totalCCSurface > 0 && $adminTotal > 0) {
+            foreach ($ccSurfaces as $devStateId => $surface) {
+                $shares[] = [
+                    'development_state_id' => (int) $devStateId,
+                    'admin_share' => round($adminTotal * ($surface / $totalCCSurface), 2),
+                ];
+            }
+        }
+
+        return $shares;
     }
 
     private function getSurfaces($season_id, $team_id)

@@ -9,6 +9,7 @@ import Swal from 'sweetalert2';
 const props = defineProps({
     dollarPrice: Number,
     isAdmin: Boolean,
+    adminShares: Array,
     fruits: Array,
     developmentStates: Array,
     varieties: Array,
@@ -207,8 +208,16 @@ const totalCostProduccion = computed(() => {
 });
 
 const totalCostAdmin = computed(() => {
-    if (!adminState.value || !incluirAdmin.value) return 0;
-    return convertCost(costByDevType(adminState.value.value));
+    if (!adminState.value || !incluirAdmin.value || !props.adminShares?.length) return 0;
+    // Sumar admin_shares de los dev_states activos (sin admin mismo)
+    const activeNonAdmin = activeDevStateIds.value.filter(id => String(id) !== String(adminState.value.value));
+    let total = 0;
+    props.adminShares.forEach(s => {
+        if (activeNonAdmin.map(String).includes(String(s.development_state_id))) {
+            total += s.admin_share;
+        }
+    });
+    return convertCost(total);
 });
 
 const totalCostExtras = computed(() => {
