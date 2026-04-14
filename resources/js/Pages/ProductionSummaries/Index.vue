@@ -377,7 +377,7 @@ const excelFilename = computed(() => {
                         <div class="card h-100 p-1 border border-success">
                             <div class="card-body py-2 px-3 text-center">
                                 <div class="text-muted small">Retorno Estimado</div>
-                                <div class="fs-7 fw-bold text-success">USD {{ totalEstReturn.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 }) }}</div>
+                                <div class="fs-7 fw-bold text-success">USD {{ totalExportReturn.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 }) }}</div>
                             </div>
                         </div>
                     </div>

@@ -227,7 +227,7 @@ const totalCommercialCost = computed(() => allRows.value.reduce((s, r) => s + r.
 const plIncome = computed(() => totalIncome.value);
 const plTotalCost = computed(() => totalCostProduccion.value + totalCostAdmin.value + totalCostExtras.value);
 const plProfit = computed(() => plIncome.value - totalCommercialCost.value - plTotalCost.value);
-const plCostPerKg = computed(() => totalKgHarvested.value > 0 ? plTotalCost.value / totalKgHarvested.value : 0);
+const plCostPerKg = computed(() => totalKgExported.value > 0 ? (totalCostProduccion.value + totalCostAdmin.value) / totalKgExported.value : 0);
 const plIncomePerKg = computed(() => totalKgExported.value > 0 ? plIncome.value / totalKgExported.value : 0);
 const plCommercialPerKg = computed(() => totalKgExported.value > 0 ? totalCommercialCost.value / totalKgExported.value : 0);
 const plProfitPerKg = computed(() => plIncomePerKg.value - plCommercialPerKg.value - plCostPerKg.value);
