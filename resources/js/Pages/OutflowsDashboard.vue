@@ -258,21 +258,30 @@ const activeTotalKilos = computed(() => {
     return props.costoKiloAcumulado?.totalKilos ?? 0;
 });
 
-// Leer el monto de "Administración" desde byDevelopmentStateWithoutInvestments (con prorrateo por superficie)
-const totalAdministracion = computed(() => {
-    if (!props.byDevelopmentStateWithoutInvestments?.length) return 0;
-    const adminState = props.byDevelopmentStateWithoutInvestments.find(s =>
-        s.name.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').includes('administracion')
-    );
-    return adminState ? adminState.total : 0;
-});
+// Admin prorrateado por hectáreas: suma admin_share de producción + extras activos
+const normalize = (s) => s.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
 // Estados adicionales generados automáticamente (ej: año 1, año 2, año 3, año 4) excluyendo produccion y administracion
 const extraStates = computed(() => {
     if (!props.byDevelopmentStateWithoutInvestments?.length) return [];
     return props.byDevelopmentStateWithoutInvestments.filter(s => {
-        const norm = s.name.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
-        return !norm.includes('produccion') && !norm.includes('administracion');
+        const n = normalize(s.name);
+        return !n.includes('produccion') && !n.includes('administracion');
     });
+});
+const totalAdministracion = computed(() => {
+    if (!props.byDevelopmentStateWithoutInvestments?.length) return 0;
+    // Admin prorrateado a producción (siempre incluido como base)
+    const prodState = props.byDevelopmentStateWithoutInvestments.find(s =>
+        normalize(s.name).includes('produccion')
+    );
+    let total = prodState?.admin_share ?? 0;
+    // Sumar admin_share de extras activos
+    for (const s of extraStates.value) {
+        if (selectedExtraStates.value[s.id]) {
+            total += (s.admin_share ?? 0);
+        }
+    }
+    return total;
 });
 const totalExtras = computed(() =>
     extraStates.value.reduce((sum, s) => sum + (selectedExtraStates.value[s.id] ? s.total : 0), 0)
@@ -768,7 +777,7 @@ const totalCompras = computed(() => {
                                             </small>
                                             <template v-for="state in extraStates" :key="state.id">
                                                 <small v-if="selectedExtraStates[state.id]" class="text-muted d-block" style="font-size:0.7rem;">
-                                                    {{ state.name }}: {{ formatNumber(dividir && divisor ? state.total / divisor : state.total) }}
+                                                    {{ state.name }}: {{ formatNumber(dividir && divisor ? (state.total + (incluirAdmin ? (state.admin_share ?? 0) : 0)) / divisor : (state.total + (incluirAdmin ? (state.admin_share ?? 0) : 0))) }}
                                                 </small>
                                             </template>
                                         </div>

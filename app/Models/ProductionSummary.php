@@ -13,6 +13,7 @@ class ProductionSummary extends Model
         'kg_harvested',
         'kg_exported',
         'net_kilo',
+        'commercial_cost_per_kg',
         'observations',
     ];
 

@@ -28,6 +28,7 @@ class StoreProductionSummaryController extends Controller
                     'kg_harvested' => $record['kg_harvested'],
                     'kg_exported'  => $record['kg_exported'] ?? 0,
                     'net_kilo'     => $record['net_kilo'] ?? null,
+                    'commercial_cost_per_kg' => $record['commercial_cost_per_kg'] ?? 0,
                     'observations' => $record['observations'] ?? '',
                 ]
             );

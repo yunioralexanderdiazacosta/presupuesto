@@ -590,14 +590,59 @@ class OutflowsDashboardController extends Controller
                 ->orderBy('total', 'desc')
                 ->get();
 
-            // Formatear resultados
-            return $results->map(function($item) {
+            // Separar admin de no-admin
+            $adminTotal = 0;
+            $adminId = null;
+            $adminName = null;
+            $nonAdmin = [];
+            foreach ($results as $item) {
+                $norm = mb_strtolower(str_replace(['ó','Ó'], ['o','O'], $item->state_name));
+                if (str_contains($norm, 'administracion')) {
+                    $adminTotal += floatval($item->total ?? 0);
+                    $adminId = $item->id;
+                    $adminName = $item->state_name;
+                } else {
+                    $nonAdmin[] = $item;
+                }
+            }
+
+            // Obtener superficie por estado de desarrollo (para prorrateo de admin)
+            $surfaces = DB::table('cost_centers')
+                ->where('season_id', $season_id)
+                ->whereNotNull('development_state_id')
+                ->where('surface', '>', 0)
+                ->select('development_state_id', DB::raw('SUM(surface) as total_surface'))
+                ->groupBy('development_state_id')
+                ->pluck('total_surface', 'development_state_id');
+
+            $totalSurface = $surfaces->sum();
+
+            // Prorratear admin en cada estado proporcionalmente a sus hectáreas
+            $formatted = collect($nonAdmin)->map(function($item) use ($adminTotal, $surfaces, $totalSurface) {
+                $stateSurface = floatval($surfaces[$item->id] ?? 0);
+                $adminShare = ($totalSurface > 0 && $adminTotal > 0)
+                    ? round($adminTotal * ($stateSurface / $totalSurface), 2)
+                    : 0;
+
                 return [
                     'id' => $item->id,
                     'name' => $item->state_name,
                     'total' => floatval($item->total ?? 0),
+                    'admin_share' => $adminShare,
                 ];
-            })->toArray();
+            })->sortByDesc('total')->values()->toArray();
+
+            // Incluir admin como ítem separado para la lista visual
+            if ($adminTotal > 0 && $adminId !== null) {
+                $formatted[] = [
+                    'id' => $adminId,
+                    'name' => $adminName,
+                    'total' => $adminTotal,
+                    'admin_share' => 0,
+                ];
+            }
+
+            return $formatted;
 
         } catch (\Exception $e) {
             Log::error('Error en OutflowsDashboard getTotalsByDevelopmentStateWithoutInvestments: ' . $e->getMessage());

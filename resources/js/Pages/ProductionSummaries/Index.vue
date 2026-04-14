@@ -18,36 +18,45 @@ const fruitOptions = computed(() =>
 );
 const selectedFruitId  = ref(fruitOptions.value.length ? fruitOptions.value[0].value : '');
 
-const devStateOptions  = computed(() => developmentStates.value);
-const selectedDevStateId = ref('');
+
+const selectedVarietyId = ref('');
 
 // â”€â”€ Tabla editable â”€â”€
 const harvestedInputs    = ref({});
 const exportedInputs     = ref({});
 const netKiloInputs      = ref({});
+const commercialCostInputs = ref({});
 const observationsInputs = ref({});
 const modifiedRows       = ref({});
 
 function markAsModified(varId) { modifiedRows.value[varId] = true; }
-function updateHarvested(varId, value)  { harvestedInputs.value[varId]  = value; markAsModified(varId); }
-function updateExported(varId, value)   { exportedInputs.value[varId]   = value; markAsModified(varId); }
+function parseKg(value) { return String(value).replace(/\./g, '').replace(/,/g, ''); }
+function formatKg(value) {
+    const num = parseInt(parseKg(value), 10);
+    return isNaN(num) || num === 0 ? '' : num.toLocaleString('es-CL');
+}
+function updateHarvested(varId, value)  { harvestedInputs.value[varId]  = parseKg(value); markAsModified(varId); }
+function updateExported(varId, value)   { exportedInputs.value[varId]   = parseKg(value); markAsModified(varId); }
 function updateNetKilo(varId, value)    { netKiloInputs.value[varId]    = value; markAsModified(varId); }
+function updateCommercialCost(varId, value) { commercialCostInputs.value[varId] = value; markAsModified(varId); }
 function updateObservation(varId, value){ observationsInputs.value[varId] = value; markAsModified(varId); }
 
 watch(selectedFruitId, () => {
     harvestedInputs.value    = {};
     exportedInputs.value     = {};
     netKiloInputs.value      = {};
+    commercialCostInputs.value = {};
     observationsInputs.value = {};
     modifiedRows.value       = {};
+    selectedVarietyId.value  = '';
 });
 
-watch(selectedDevStateId, () => {
-    harvestedInputs.value    = {};
-    exportedInputs.value     = {};
-    netKiloInputs.value      = {};
-    observationsInputs.value = {};
-    modifiedRows.value       = {};
+const varietyOptions = computed(() => {
+    if (!selectedFruitId.value) return [];
+    return varieties.value
+        .filter(v => v.fruit_id != selectedFruitId.value ? false : true)
+        .map(v => ({ value: v.id, label: v.name }))
+        .sort((a, b) => a.label.localeCompare(b.label));
 });
 
 const rows = computed(() => {
@@ -56,11 +65,7 @@ const rows = computed(() => {
     return varieties.value
         .filter(v => {
             if (v.fruit_id != selectedFruitId.value) return false;
-            if (selectedDevStateId.value) {
-                return surfaceData.value.some(
-                    d => String(d.variety_id) === String(v.id) && String(d.development_state_id) === String(selectedDevStateId.value)
-                );
-            }
+            if (selectedVarietyId.value && String(v.id) !== String(selectedVarietyId.value)) return false;
             return true;
         })
         .map(v => {
@@ -68,11 +73,11 @@ const rows = computed(() => {
 
             const currentHarvested = harvestedInputs.value[v.id] !== undefined
                 ? harvestedInputs.value[v.id]
-                : (summary ? summary.kg_harvested : '');
+                : (summary && summary.kg_harvested ? Math.round(Number(summary.kg_harvested)) : '');
 
             const currentExported = exportedInputs.value[v.id] !== undefined
                 ? exportedInputs.value[v.id]
-                : (summary ? (summary.kg_exported ?? '') : '');
+                : (summary && summary.kg_exported ? Math.round(Number(summary.kg_exported)) : '');
 
             const currentObs = observationsInputs.value[v.id] !== undefined
                 ? observationsInputs.value[v.id]
@@ -83,22 +88,23 @@ const rows = computed(() => {
                 ? netKiloInputs.value[v.id]
                 : (rawNetKilo !== '' ? parseFloat(rawNetKilo).toFixed(2) : '');
 
+            const rawCommercialCost = summary ? (summary.commercial_cost_per_kg ?? '') : '';
+            const currentCommercialCost = commercialCostInputs.value[v.id] !== undefined
+                ? commercialCostInputs.value[v.id]
+                : (rawCommercialCost !== '' && rawCommercialCost !== 0 ? parseFloat(rawCommercialCost).toFixed(2) : '');
+
             const harvestedNum   = currentHarvested ? Number(currentHarvested) : 0;
             const exportedNum    = currentExported  ? Number(currentExported)  : 0;
             const netKiloNum     = currentNetKilo   ? Number(currentNetKilo)   : 0;
+            const commercialKg   = harvestedNum - exportedNum;
+            const commercialCostNum = currentCommercialCost ? Number(currentCommercialCost) : 0;
             const exportPct      = harvestedNum > 0 ? Math.round((exportedNum / harvestedNum) * 100) : 0;
-            const estimatedReturn = exportedNum > 0 && netKiloNum > 0 ? exportedNum * netKiloNum : 0;
-            const surface = (() => {
-                if (selectedDevStateId.value) {
-                    const item = surfaceData.value.find(
-                        d => String(d.variety_id) === String(v.id) && String(d.development_state_id) === String(selectedDevStateId.value)
-                    );
-                    return item ? Number(item.total_surface) : 0;
-                }
-                return surfaceData.value
+            const exportReturn   = exportedNum > 0 && netKiloNum > 0 ? exportedNum * netKiloNum : 0;
+            const commercialDiscount = commercialKg > 0 && commercialCostNum > 0 ? commercialKg * commercialCostNum : 0;
+            const estimatedReturn = exportReturn - commercialDiscount;
+            const surface = surfaceData.value
                     .filter(d => String(d.variety_id) === String(v.id))
                     .reduce((s, d) => s + Number(d.total_surface), 0);
-            })();
 
             return {
                 id:              summary ? summary.id : null,
@@ -108,6 +114,10 @@ const rows = computed(() => {
                 harvested:       currentHarvested,
                 exported:        currentExported,
                 netKilo:         currentNetKilo,
+                commercialKg,
+                commercialCost:  currentCommercialCost,
+                exportReturn,
+                commercialTotal: commercialDiscount,
                 estimatedReturn,
                 observation:     currentObs,
                 exportPct,
@@ -127,6 +137,9 @@ const totalHarvested    = computed(() => rows.value.reduce((s, r) => s + (r.harv
 const totalExported     = computed(() => rows.value.reduce((s, r) => s + (r.exported  ? Number(r.exported)  : 0), 0));
 const totalSurface      = computed(() => rows.value.reduce((s, r) => s + r.surface, 0));
 const totalEstReturn    = computed(() => rows.value.reduce((s, r) => s + r.estimatedReturn, 0));
+const totalExportReturn = computed(() => rows.value.reduce((s, r) => s + (r.exportReturn || 0), 0));
+const totalCommercialKg = computed(() => rows.value.reduce((s, r) => s + (r.commercialKg > 0 ? r.commercialKg : 0), 0));
+const totalCommercialTotal = computed(() => rows.value.reduce((s, r) => s + (r.commercialTotal > 0 ? r.commercialTotal : 0), 0));
 const globalExportPct   = computed(() => totalHarvested.value > 0 ? Math.round((totalExported.value / totalHarvested.value) * 100) : 0);
 const avgKgPerHa        = computed(() => {
     const activeRows = rows.value.filter(r => r.harvested && Number(r.harvested) > 0);
@@ -144,6 +157,7 @@ async function handleSave() {
             kg_harvested:  r.harvested,
             kg_exported:   r.exported || 0,
             net_kilo:      r.netKilo || null,
+            commercial_cost_per_kg: r.commercialCost || 0,
             observations:  r.observation || '',
         }));
 
@@ -154,6 +168,7 @@ async function handleSave() {
             kg_harvested: r.harvested,
             kg_exported:  r.exported || 0,
             net_kilo:     r.netKilo || null,
+            commercial_cost_per_kg: r.commercialCost || 0,
             observations: r.observation || '',
         }));
 
@@ -191,6 +206,7 @@ async function handleSave() {
         harvestedInputs.value    = {};
         exportedInputs.value     = {};
         netKiloInputs.value      = {};
+        commercialCostInputs.value = {};
         observationsInputs.value = {};
         modifiedRows.value       = {};
         Swal.fire({ icon: 'success', title: 'Guardado correctamente', text: `${newRecords.length} nuevo(s), ${modifiedRecords.length} modificado(s)`, showConfirmButton: false, timer: 2000 });
@@ -222,7 +238,11 @@ const excelHeaders = [
     { label: 'Kg Cosechados',      key: 'harvested',       type: 'number' },
     { label: 'Kg Exportados',      key: 'exported',        type: 'number' },
     { label: '% Exportación',      key: 'exportPct',       type: 'number' },
+    { label: 'Kg Comerciales',      key: 'commercialKg',    type: 'number' },
     { label: 'Net Kilo (USD)',      key: 'netKilo',         type: 'number' },
+    { label: 'Costo/Kg Com. (USD)', key: 'commercialCost',  type: 'number' },
+    { label: 'Ingreso Neto (USD)',   key: 'exportReturn',    type: 'number' },
+    { label: 'Total Com. (USD)',    key: 'commercialTotal', type: 'number' },
     { label: 'Retorno Est. (USD)',  key: 'estimatedReturn', type: 'number' },
     { label: 'Observaciones',      key: 'observation' },
 ];
@@ -233,7 +253,11 @@ const excelData = computed(() =>
         harvested:       r.harvested !== '' && r.harvested !== undefined ? Number(r.harvested) : 0,
         exported:        r.exported  !== '' && r.exported  !== undefined ? Number(r.exported)  : 0,
         exportPct:       r.exportPct || 0,
+        commercialKg:    r.commercialKg || 0,
         netKilo:         r.netKilo   !== '' && r.netKilo   !== undefined ? Number(r.netKilo)   : 0,
+        commercialCost:  r.commercialCost !== '' && r.commercialCost !== undefined ? Number(r.commercialCost) : 0,
+        exportReturn:    r.exportReturn || 0,
+        commercialTotal: r.commercialTotal || 0,
         estimatedReturn: r.estimatedReturn || 0,
         observation:     r.observation || '',
     }))
@@ -279,7 +303,7 @@ const excelFilename = computed(() => {
                 </div>
                 <!-- Filtros + botón guardar -->
                 <div class="row g-2 align-items-end mb-3">
-                    <div class="col-md-4">
+                    <div class="col-md-3">
                         <label class="form-label fw-bold mb-1">
                             <i class="fas fa-seedling me-1"></i> Especie
                         </label>
@@ -290,14 +314,14 @@ const excelFilename = computed(() => {
                     </div>
                     <div class="col-md-4">
                         <label class="form-label fw-bold mb-1">
-                            <i class="fas fa-leaf me-1"></i> Estado de Desarrollo
+                            <i class="fas fa-grape me-1"></i> Variedad
                         </label>
-                        <select v-model="selectedDevStateId" class="form-select form-select-sm">
-                            <option value="">Todos los estados</option>
-                            <option v-for="s in devStateOptions" :key="s.value" :value="s.value">{{ s.label }}</option>
+                        <select v-model="selectedVarietyId" class="form-select form-select-sm">
+                            <option value="">Todas las variedades</option>
+                            <option v-for="v in varietyOptions" :key="v.value" :value="v.value">{{ v.label }}</option>
                         </select>
                     </div>
-                    <div class="col-md-4 d-flex align-items-end justify-content-end">
+                    <div class="col-md-3 d-flex align-items-end justify-content-end">
                         <button class="btn btn-falcon-default btn-sm" @click="handleSave" :disabled="countNewRows === 0 && countModifiedRows === 0">
                             <i class="fas fa-save me-1"></i> Guardar
                             <span v-if="countNewRows + countModifiedRows > 0" class="badge bg-primary ms-1">{{ countNewRows + countModifiedRows }}</span>
@@ -380,7 +404,7 @@ const excelFilename = computed(() => {
                 <!-- Tabla -->
                 <div v-else class="table-responsive">
                     <table class="table table-bordered table-hover table-sm fs-10 mb-0">
-                        <thead class="table-light">
+                        <thead style="background-color: #e8f4f8;">
                             <tr>
                                 <th style="width: 90px">Estado</th>
                                 <th>Variedad</th>
@@ -388,7 +412,11 @@ const excelFilename = computed(() => {
                                 <th style="width: 150px">Kg Cosechados</th>
                                 <th style="width: 150px">Kg Exportados</th>
                                 <th class="text-end" style="width: 100px">% Export.</th>
+                                <th class="text-end" style="width: 130px">Kg Comerciales</th>
                                 <th class="text-end" style="width: 110px">Net Kilo (USD)</th>
+                                <th style="width: 130px">Costo/Kg Com. (USD)</th>
+                                <th class="text-end" style="width: 140px">Ingreso Neto (USD)</th>
+                                <th class="text-end" style="width: 140px">Total Com. (USD)</th>
                                 <th class="text-end" style="width: 130px">Retorno Est. (USD)</th>
                                 <th style="width: 220px">Observaciones</th>
                                 <th style="width: 60px"></th>
@@ -406,23 +434,42 @@ const excelFilename = computed(() => {
                                 <td class="fw-semibold">{{ row.varietyName }}</td>
                                 <td class="text-end">{{ row.surface ? row.surface.toLocaleString('es-CL', { minimumFractionDigits: 2 }) : '-' }}</td>
                                 <td>
-                                    <input type="number" class="form-control form-control-sm" :value="row.harvested"
-                                        @input="updateHarvested(row.varId, $event.target.value)" min="0" placeholder="0"
+                                    <input type="text" class="form-control form-control-sm text-end" :value="formatKg(row.harvested)"
+                                        @input="updateHarvested(row.varId, $event.target.value)" placeholder="0"
+                                        @blur="$event.target.value = formatKg(row.harvested)"
                                         :class="{ 'border-warning border-2': row.isExisting && row.isModified, 'border-success border-2': !row.isExisting && row.harvested }" />
                                 </td>
                                 <td>
-                                    <input type="number" class="form-control form-control-sm" :value="row.exported"
-                                        @input="updateExported(row.varId, $event.target.value)" min="0" placeholder="0"
+                                    <input type="text" class="form-control form-control-sm text-end" :value="formatKg(row.exported)"
+                                        @input="updateExported(row.varId, $event.target.value)" placeholder="0"
+                                        @blur="$event.target.value = formatKg(row.exported)"
                                         :class="{ 'border-warning border-2': row.isExisting && row.isModified, 'border-success border-2': !row.isExisting && row.harvested }" />
                                 </td>
                                 <td class="text-end fw-bold">
                                     <span v-if="row.exportPct > 0">{{ row.exportPct }}%</span>
                                     <span v-else class="text-muted">-</span>
                                 </td>
+                                <td class="text-end fw-bold">
+                                    <span v-if="row.commercialKg > 0">{{ row.commercialKg.toLocaleString('es-CL') }}</span>
+                                    <span v-else class="text-muted">-</span>
+                                </td>
                                 <td>
                                     <input type="number" class="form-control form-control-sm" :value="row.netKilo"
                                         @input="updateNetKilo(row.varId, $event.target.value)" min="0" step="0.01" placeholder="0.00"
                                         :class="{ 'border-warning border-2': row.isExisting && row.isModified, 'border-success border-2': !row.isExisting && row.harvested }" />
+                                </td>
+                                <td>
+                                    <input type="number" class="form-control form-control-sm" :value="row.commercialCost"
+                                        @input="updateCommercialCost(row.varId, $event.target.value)" min="0" step="0.01" placeholder="0.00"
+                                        :class="{ 'border-warning border-2': row.isExisting && row.isModified, 'border-success border-2': !row.isExisting && row.harvested }" />
+                                </td>
+                                <td class="text-end fw-bold">
+                                    <span v-if="row.exportReturn > 0" class="text-success">USD {{ row.exportReturn.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 }) }}</span>
+                                    <span v-else class="text-muted">-</span>
+                                </td>
+                                <td class="text-end fw-bold">
+                                    <span v-if="row.commercialTotal > 0" class="text-danger">USD {{ row.commercialTotal.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 }) }}</span>
+                                    <span v-else class="text-muted">-</span>
                                 </td>
                                 <td class="text-end fw-bold">
                                     <span v-if="row.estimatedReturn > 0" class="text-success">USD {{ row.estimatedReturn.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 }) }}</span>
@@ -448,7 +495,11 @@ const excelFilename = computed(() => {
                                 <td class="text-end">{{ totalHarvested.toLocaleString('es-CL') }}</td>
                                 <td class="text-end">{{ totalExported.toLocaleString('es-CL') }}</td>
                                 <td class="text-end">{{ globalExportPct }}%</td>
+                                <td class="text-end">{{ totalCommercialKg.toLocaleString('es-CL') }}</td>
                                 <td></td>
+                                <td></td>
+                                <td class="text-end text-success fw-bold">USD {{ totalExportReturn.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 }) }}</td>
+                                <td class="text-end text-danger fw-bold">USD {{ totalCommercialTotal.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 }) }}</td>
                                 <td class="text-end text-success fw-bold">USD {{ totalEstReturn.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 }) }}</td>
                                 <td colspan="2"></td>
                             </tr>

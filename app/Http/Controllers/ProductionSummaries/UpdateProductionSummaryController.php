@@ -22,6 +22,7 @@ class UpdateProductionSummaryController extends Controller
         $summary->kg_harvested  = $request->kg_harvested;
         $summary->kg_exported   = $request->kg_exported ?? 0;
         $summary->net_kilo      = $request->net_kilo ?? null;
+        $summary->commercial_cost_per_kg = $request->commercial_cost_per_kg ?? 0;
         $summary->observations  = $request->observations ?? '';
         $summary->save();
 
