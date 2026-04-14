@@ -227,9 +227,9 @@ const totalCommercialCost = computed(() => allRows.value.reduce((s, r) => s + r.
 const plIncome = computed(() => totalIncome.value);
 const plTotalCost = computed(() => totalCostProduccion.value + totalCostAdmin.value + totalCostExtras.value);
 const plProfit = computed(() => plIncome.value - totalCommercialCost.value - plTotalCost.value);
-const plCostPerKg = computed(() => totalKgExported.value > 0 ? (totalCostProduccion.value + totalCostAdmin.value) / totalKgExported.value : 0);
-const plIncomePerKg = computed(() => totalKgExported.value > 0 ? plIncome.value / totalKgExported.value : 0);
-const plCommercialPerKg = computed(() => totalKgExported.value > 0 ? totalCommercialCost.value / totalKgExported.value : 0);
+const plCostPerKg = computed(() => totalKgHarvested.value > 0 ? (totalCostProduccion.value + totalCostAdmin.value) / totalKgHarvested.value : 0);
+const plIncomePerKg = computed(() => totalKgHarvested.value > 0 ? plIncome.value / totalKgHarvested.value : 0);
+const plCommercialPerKg = computed(() => totalKgHarvested.value > 0 ? totalCommercialCost.value / totalKgHarvested.value : 0);
 const plProfitPerKg = computed(() => plIncomePerKg.value - plCommercialPerKg.value - plCostPerKg.value);
 
 // ── Excel ──
@@ -522,6 +522,7 @@ watch(allRows, () => setupCollapseChevron());
                                 <tr>
                                     <th>Variedad</th>
                                     <th class="text-end" style="width:100px">Sup. (ha)</th>
+                                    <th class="text-end" style="width:100px">Kilos/ha</th>
                                     <th class="text-end" style="width:120px">Kg Cosechados</th>
                                     <th class="text-end" style="width:120px">Kg Exportados</th>
                                     <th class="text-end" style="width:110px">Kg Comerciales</th>
@@ -535,6 +536,7 @@ watch(allRows, () => setupCollapseChevron());
                                 <tr v-for="row in detailRows" :key="row.variety_id">
                                     <td class="fw-semibold">{{ row.variety_name }}</td>
                                     <td class="text-end">{{ row.surface ? row.surface.toLocaleString('es-CL', { minimumFractionDigits: 2 }) : '-' }}</td>
+                                    <td class="text-end">{{ row.surface > 0 && row.kg_harvested > 0 ? Math.round(row.kg_harvested / row.surface).toLocaleString('es-CL') : '-' }}</td>
                                     <td class="text-end">{{ row.kg_harvested ? row.kg_harvested.toLocaleString('es-CL') : '-' }}</td>
                                     <td class="text-end">{{ row.kg_exported ? row.kg_exported.toLocaleString('es-CL') : '-' }}</td>
                                     <td class="text-end">{{ row.commercial_kg ? row.commercial_kg.toLocaleString('es-CL') : '-' }}</td>
@@ -561,6 +563,7 @@ watch(allRows, () => setupCollapseChevron());
                                 <tr>
                                     <td>Total</td>
                                     <td class="text-end">{{ detailRows.reduce((s,r) => s + r.surface, 0).toLocaleString('es-CL', { minimumFractionDigits: 2 }) }}</td>
+                                    <td class="text-end">{{ (() => { const s = detailRows.reduce((a,r) => a + r.surface, 0); const k = detailRows.reduce((a,r) => a + r.kg_harvested, 0); return s > 0 ? Math.round(k / s).toLocaleString('es-CL') : '-'; })() }}</td>
                                     <td class="text-end">{{ detailRows.reduce((s,r) => s + r.kg_harvested, 0).toLocaleString('es-CL') }}</td>
                                     <td class="text-end">{{ detailRows.reduce((s,r) => s + r.kg_exported, 0).toLocaleString('es-CL') }}</td>
                                     <td class="text-end">{{ detailRows.reduce((s,r) => s + r.commercial_kg, 0).toLocaleString('es-CL') }}</td>
@@ -576,7 +579,7 @@ watch(allRows, () => setupCollapseChevron());
                     </div>
                     </div>
                 </div>
-                <div v-if="allRows.length > 0" class="d-flex justify-content-center mt-4 mb-3">
+                <div v-if="allRows.length > 0" class="d-flex justify-content-end mt-4 mb-3">
                     <div class="card border shadow-sm" style="min-width: 420px; max-width: 520px;">
                         <div class="card-header bg-light py-2 text-center">
                             <h6 class="mb-0"><i class="fas fa-file-invoice-dollar me-2"></i>Resumen de Resultados ({{ currencyLabel }})</h6>
@@ -611,6 +614,10 @@ watch(allRows, () => setupCollapseChevron());
                                         </td>
                                     </tr>
                                     <tr class="table-light"><td colspan="2" class="py-1"></td></tr>
+                                    <tr>
+                                        <td class="ps-3">Kg Producidos</td>
+                                        <td class="text-end pe-3">{{ totalKgHarvested.toLocaleString('es-CL') }}</td>
+                                    </tr>
                                     <tr>
                                         <td class="ps-3">Kg Exportados</td>
                                         <td class="text-end pe-3">{{ totalKgExported.toLocaleString('es-CL') }}</td>
