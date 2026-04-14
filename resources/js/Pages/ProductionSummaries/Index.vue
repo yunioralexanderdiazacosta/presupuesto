@@ -147,6 +147,8 @@ const avgKgPerHa        = computed(() => {
     const activeHarvested = activeRows.reduce((s, r) => s + Number(r.harvested), 0);
     return activeSurface > 0 ? Math.round(activeHarvested / activeSurface) : 0;
 });
+const returnPerKgExported = computed(() => totalExported.value > 0 ? totalExportReturn.value / totalExported.value : 0);
+const returnPerKgHarvested = computed(() => totalHarvested.value > 0 ? totalExportReturn.value / totalHarvested.value : 0);
 
 // â”€â”€ Guardar â”€â”€
 async function handleSave() {
@@ -321,7 +323,7 @@ const excelFilename = computed(() => {
                             <option v-for="v in varietyOptions" :key="v.value" :value="v.value">{{ v.label }}</option>
                         </select>
                     </div>
-                    <div class="col-md-3 d-flex align-items-end justify-content-end">
+                    <div class="col-md-auto ms-auto d-flex align-items-end">
                         <button class="btn btn-falcon-default btn-sm" @click="handleSave" :disabled="countNewRows === 0 && countModifiedRows === 0">
                             <i class="fas fa-save me-1"></i> Guardar
                             <span v-if="countNewRows + countModifiedRows > 0" class="badge bg-primary ms-1">{{ countNewRows + countModifiedRows }}</span>
@@ -376,6 +378,22 @@ const excelFilename = computed(() => {
                             <div class="card-body py-2 px-3 text-center">
                                 <div class="text-muted small">Retorno Estimado</div>
                                 <div class="fs-7 fw-bold text-success">USD {{ totalEstReturn.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 }) }}</div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col">
+                        <div class="card h-100 p-1 border border-info">
+                            <div class="card-body py-2 px-3 text-center">
+                                <div class="text-muted small">Retorno / Kg Exportado</div>
+                                <div class="fs-7 fw-bold text-info">USD {{ returnPerKgExported.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) }}</div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col">
+                        <div class="card h-100 p-1 border border-info">
+                            <div class="card-body py-2 px-3 text-center">
+                                <div class="text-muted small">Retorno / Kg Producido</div>
+                                <div class="fs-7 fw-bold text-info">USD {{ returnPerKgHarvested.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) }}</div>
                             </div>
                         </div>
                     </div>
