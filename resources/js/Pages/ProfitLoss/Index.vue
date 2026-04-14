@@ -1,5 +1,5 @@
 <script setup>
-import { ref, computed } from 'vue';
+import { ref, computed, onMounted, nextTick, watch } from 'vue';
 import { usePage } from '@inertiajs/vue3';
 import AppLayout from '@/Layouts/AppLayout.vue';
 import ExportExcelButton from '@/Components/ExportExcelButton.vue';
@@ -275,6 +275,19 @@ const excelDataDetail = computed(() => detailRows.value.map(r => ({
     profit: Math.round(r.profit),
     margin: Math.round(r.margin * 10) / 10,
 })));
+// Chevron rotation for collapse
+const setupCollapseChevron = () => {
+    nextTick(() => {
+        const el = document.getElementById('detailVarietyCollapse');
+        const chevron = document.getElementById('detailChevron');
+        if (el && chevron) {
+            el.addEventListener('show.bs.collapse', () => { chevron.style.transform = 'rotate(90deg)'; });
+            el.addEventListener('hide.bs.collapse', () => { chevron.style.transform = 'rotate(0deg)'; });
+        }
+    });
+};
+onMounted(setupCollapseChevron);
+watch(allRows, () => setupCollapseChevron());
 </script>
 
 <template>
@@ -655,15 +668,4 @@ const excelDataDetail = computed(() => detailRows.value.map(r => ({
 }
 </style>
 
-<script>
-export default {
-    mounted() {
-        const el = document.getElementById('detailVarietyCollapse');
-        const chevron = document.getElementById('detailChevron');
-        if (el && chevron) {
-            el.addEventListener('show.bs.collapse', () => { chevron.style.transform = 'rotate(90deg)'; });
-            el.addEventListener('hide.bs.collapse', () => { chevron.style.transform = 'rotate(0deg)'; });
-        }
-    }
-};
-</script>
+
