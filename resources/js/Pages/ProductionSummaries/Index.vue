@@ -30,10 +30,15 @@ const observationsInputs = ref({});
 const modifiedRows       = ref({});
 
 function markAsModified(varId) { modifiedRows.value[varId] = true; }
-function parseKg(value) { return String(value).replace(/\./g, '').replace(/,/g, ''); }
+function parseKg(value) {
+    const raw = String(value).replace(/\./g, '').replace(/,/g, '.');
+    const num = parseFloat(raw);
+    return isNaN(num) ? '' : num;
+}
 function formatKg(value) {
-    const num = parseInt(parseKg(value), 10);
-    return isNaN(num) || num === 0 ? '' : num.toLocaleString('es-CL');
+    const num = parseFloat(value);
+    if (isNaN(num) || num === 0) return '';
+    return num.toLocaleString('es-CL', { minimumFractionDigits: 0, maximumFractionDigits: 1 });
 }
 function updateHarvested(varId, value)  { harvestedInputs.value[varId]  = parseKg(value); markAsModified(varId); }
 function updateExported(varId, value)   { exportedInputs.value[varId]   = parseKg(value); markAsModified(varId); }
@@ -73,11 +78,11 @@ const rows = computed(() => {
 
             const currentHarvested = harvestedInputs.value[v.id] !== undefined
                 ? harvestedInputs.value[v.id]
-                : (summary && summary.kg_harvested ? Math.round(Number(summary.kg_harvested)) : '');
+                : (summary && summary.kg_harvested ? parseFloat(Number(summary.kg_harvested).toFixed(1)) : '');
 
             const currentExported = exportedInputs.value[v.id] !== undefined
                 ? exportedInputs.value[v.id]
-                : (summary && summary.kg_exported ? Math.round(Number(summary.kg_exported)) : '');
+                : (summary && summary.kg_exported ? parseFloat(Number(summary.kg_exported).toFixed(1)) : '');
 
             const currentObs = observationsInputs.value[v.id] !== undefined
                 ? observationsInputs.value[v.id]
@@ -86,7 +91,7 @@ const rows = computed(() => {
             const rawNetKilo = summary ? (summary.net_kilo ?? '') : '';
             const currentNetKilo = netKiloInputs.value[v.id] !== undefined
                 ? netKiloInputs.value[v.id]
-                : (rawNetKilo !== '' ? parseFloat(rawNetKilo).toFixed(2) : '');
+                : (rawNetKilo !== '' ? parseFloat(rawNetKilo).toFixed(4) : '');
 
             const rawCommercialCost = summary ? (summary.commercial_cost_per_kg ?? '') : '';
             const currentCommercialCost = commercialCostInputs.value[v.id] !== undefined
@@ -473,7 +478,7 @@ const excelFilename = computed(() => {
                                 </td>
                                 <td>
                                     <input type="number" class="form-control form-control-sm" :value="row.netKilo"
-                                        @input="updateNetKilo(row.varId, $event.target.value)" min="0" step="0.01" placeholder="0.00"
+                                        @input="updateNetKilo(row.varId, $event.target.value)" min="0" step="0.0001" placeholder="0.0000"
                                         :class="{ 'border-warning border-2': row.isExisting && row.isModified, 'border-success border-2': !row.isExisting && row.harvested }" />
                                 </td>
                                 <td>
