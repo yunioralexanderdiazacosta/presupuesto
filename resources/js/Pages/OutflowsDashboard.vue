@@ -777,7 +777,7 @@ const totalCompras = computed(() => {
                                             </small>
                                             <template v-for="state in extraStates" :key="state.id">
                                                 <small v-if="selectedExtraStates[state.id]" class="text-muted d-block" style="font-size:0.7rem;">
-                                                    {{ state.name }}: {{ formatNumber(dividir && divisor ? (state.total + (incluirAdmin ? (state.admin_share ?? 0) : 0)) / divisor : (state.total + (incluirAdmin ? (state.admin_share ?? 0) : 0))) }}
+                                                    {{ state.name }}: {{ formatNumber(dividir && divisor ? state.total / divisor : state.total) }}
                                                 </small>
                                             </template>
                                         </div>
