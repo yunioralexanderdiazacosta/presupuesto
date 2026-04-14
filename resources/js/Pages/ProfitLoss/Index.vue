@@ -313,28 +313,26 @@ watch(allRows, () => setupCollapseChevron());
                                 <label class="form-check-label ms-2 mt-0 mb-0 small" for="dividir-switch">Ver en USD</label>
                             </div>
                             <!-- Slider divisor (visible solo cuando dividir está activo) -->
-                            <template v-if="dividir">
+                            <div v-if="dividir" class="d-flex align-items-center gap-2">
                                 <div class="vr d-none d-md-block" style="height: 24px;"></div>
-                                <div class="d-flex align-items-center gap-2">
-                                    <label for="divisor-slider" class="form-label mb-0 me-2 small">Divisor:</label>
-                                    <input
-                                        id="divisor-slider"
-                                        type="range"
-                                        class="form-range"
-                                        v-model.number="divisor"
-                                        :min="divisorMin"
-                                        :max="divisorMax"
-                                        :step="1"
-                                        style="width:220px; flex-shrink:0;"
-                                    />
-                                    <span class="text-muted small ms-1"><b>{{ divisor }}</b></span>
-                                    <button v-if="isAdmin" @click="saveDollarPrice" :disabled="savingDollar"
-                                        class="btn btn-sm btn-outline-secondary py-0 px-2"
-                                        title="Guardar como valor predeterminado para el equipo">
-                                        <i class="fas fa-save fa-xs" :class="{'fa-spin fa-circle-notch': savingDollar}"></i>
-                                    </button>
-                                </div>
-                            </template>
+                                <label for="divisor-slider" class="form-label mb-0 me-2 small">Divisor:</label>
+                                <input
+                                    id="divisor-slider"
+                                    type="range"
+                                    class="form-range"
+                                    v-model.number="divisor"
+                                    :min="divisorMin"
+                                    :max="divisorMax"
+                                    :step="1"
+                                    style="width:220px; flex-shrink:0;"
+                                />
+                                <span class="text-muted small ms-1"><b>{{ divisor }}</b></span>
+                                <button v-if="isAdmin" @click="saveDollarPrice" :disabled="savingDollar"
+                                    class="btn btn-sm btn-outline-secondary py-0 px-2"
+                                    title="Guardar como valor predeterminado para el equipo">
+                                    <i class="fas fa-save fa-xs" :class="{'fa-spin fa-circle-notch': savingDollar}"></i>
+                                </button>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -477,7 +475,7 @@ watch(allRows, () => setupCollapseChevron());
                                     </td>
                                 </tr>
                             </tbody>
-                            <tfoot class="table-light fw-bold" v-if="fruitSummary.length > 1">
+                            <tfoot class="table-light fw-bold" v-show="fruitSummary.length > 1">
                                 <tr>
                                     <td>Total</td>
                                     <td class="text-end">{{ totalSurface.toLocaleString('es-CL', { minimumFractionDigits: 2 }) }}</td>
