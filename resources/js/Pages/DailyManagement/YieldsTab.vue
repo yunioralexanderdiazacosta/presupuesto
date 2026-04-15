@@ -500,7 +500,13 @@ function deleteLine(yieldId) {
                         <!-- Fila principal -->
                         <tr :class="[statusClass(emp), expandedEmployee===emp.id ? 'bg-success bg-opacity-10 border-start border-3 border-success' : '']" style="cursor:pointer" @click="toggleExpand(emp.id)">
                             <td><i class="fas fa-fw" :class="expandedEmployee===emp.id?'fa-chevron-down':'fa-chevron-right'"></i></td>
-                            <td class="fw-semi-bold">{{ emp.full_name }}</td>
+                            <td class="fw-semi-bold">
+                                {{ emp.full_name }}
+                                <span v-if="emp.yields && emp.yields.some(y => !y.cost_center_id && !y.is_absence)"
+                                    class="badge bg-soft-warning text-warning ms-1" style="font-size: 0.6rem; vertical-align: middle;">
+                                    <i class="fas fa-exclamation-triangle fa-xs me-1"></i>Falta CC
+                                </span>
+                            </td>
                             <td>{{ emp.rut }}</td>
                             <td class="text-center"><span class="badge" :class="statusBadge(emp)">{{ statusText(emp) }}</span></td>
                             <td class="text-center">{{ emp.yield_count }}</td>

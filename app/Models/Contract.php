@@ -30,6 +30,10 @@ class Contract extends Model
         'email',
         'end_date',
         'is_active',
+        'payment_method_id',
+        'bank_id',
+        'account_type_id',
+        'account_number',
     ];
 
     protected $casts = [
@@ -78,5 +82,20 @@ class Contract extends Model
     public function parcel()
     {
         return $this->belongsTo(Parcel::class);
+    }
+
+    public function paymentMethod()
+    {
+        return $this->belongsTo(PaymentMethod::class);
+    }
+
+    public function bank()
+    {
+        return $this->belongsTo(Bank::class);
+    }
+
+    public function accountType()
+    {
+        return $this->belongsTo(AccountType::class);
     }
 }

@@ -11,6 +11,9 @@ use App\Models\Afp;
 use App\Models\HealthPlan;
 use App\Models\City;
 use App\Models\Parcel;
+use App\Models\Bank;
+use App\Models\PaymentMethod;
+use App\Models\AccountType;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Inertia\Inertia;
@@ -21,7 +24,7 @@ class ContractController extends Controller
     {
         $user = Auth::user();
 
-        $contracts = Contract::with(['employee', 'companyReason', 'schedule', 'afp', 'healthPlan', 'city', 'parcel'])
+        $contracts = Contract::with(['employee', 'companyReason', 'schedule', 'afp', 'healthPlan', 'city', 'parcel', 'paymentMethod', 'bank', 'accountType'])
             ->where('team_id', $user->team_id)
             ->latest('contract_date')
             ->get();
@@ -79,6 +82,21 @@ class ContractController extends Controller
             'Soltero/a', 'Casado/a', 'Divorciado/a', 'Viudo/a', 'Separado/a', 'Unión Civil',
         ];
 
+        $banks = Bank::where('active', true)
+            ->orderBy('name')
+            ->get(['id', 'name'])
+            ->map(fn($b) => ['value' => $b->id, 'label' => $b->name]);
+
+        $paymentMethods = PaymentMethod::where('active', true)
+            ->orderBy('name')
+            ->get(['id', 'name'])
+            ->map(fn($p) => ['value' => $p->id, 'label' => $p->name]);
+
+        $accountTypes = AccountType::where('active', true)
+            ->orderBy('name')
+            ->get(['id', 'name'])
+            ->map(fn($a) => ['value' => $a->id, 'label' => $a->name]);
+
         return Inertia::render('Contracts/Index', [
             'contracts' => $contracts,
             'employees' => $employees,
@@ -90,6 +108,9 @@ class ContractController extends Controller
             'cities' => $cities,
             'parcels' => $parcels,
             'maritalStatuses' => $maritalStatuses,
+            'banks' => $banks,
+            'paymentMethods' => $paymentMethods,
+            'accountTypes' => $accountTypes,
         ]);
     }
 }

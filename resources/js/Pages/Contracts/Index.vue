@@ -18,6 +18,9 @@ const props = defineProps({
     cities: Array,
     parcels: Array,
     maritalStatuses: Array,
+    banks: Array,
+    paymentMethods: Array,
+    accountTypes: Array,
 });
 
 const title = 'Contratos';
@@ -303,6 +306,9 @@ function formatCurrency(val) {
             :cities="props.cities"
             :parcels="props.parcels"
             :maritalStatuses="props.maritalStatuses"
+            :banks="props.banks"
+            :paymentMethods="props.paymentMethods"
+            :accountTypes="props.accountTypes"
             @close="closeCreateModal"
             @saved="reloadAfterSave"
         />
@@ -319,6 +325,9 @@ function formatCurrency(val) {
             :cities="props.cities"
             :parcels="props.parcels"
             :maritalStatuses="props.maritalStatuses"
+            :banks="props.banks"
+            :paymentMethods="props.paymentMethods"
+            :accountTypes="props.accountTypes"
             @close="closeEditModal"
             @saved="reloadAfterSave"
         />

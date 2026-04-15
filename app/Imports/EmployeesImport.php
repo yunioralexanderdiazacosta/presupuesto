@@ -8,6 +8,7 @@ use Illuminate\Support\Facades\Auth;
 use Maatwebsite\Excel\Concerns\ToModel;
 use Maatwebsite\Excel\Concerns\WithHeadingRow;
 use Maatwebsite\Excel\Concerns\WithValidation;
+use PhpOffice\PhpSpreadsheet\Shared\Date;
 use Carbon\Carbon;
 
 class EmployeesImport implements ToModel, WithHeadingRow, WithValidation
@@ -28,14 +29,31 @@ class EmployeesImport implements ToModel, WithHeadingRow, WithValidation
         // Parsear fecha
         $birthDate = null;
         if (!empty($row['fecha_nacimiento'])) {
+            $rawDate = $row['fecha_nacimiento'];
             try {
-                $birthDate = Carbon::createFromFormat('d/m/Y', $row['fecha_nacimiento'])->format('Y-m-d');
-            } catch (\Exception $e) {
-                try {
-                    $birthDate = Carbon::parse($row['fecha_nacimiento'])->format('Y-m-d');
-                } catch (\Exception $e2) {
-                    $birthDate = null;
+                // Si Excel envía número serial (ej. 44927)
+                if (is_numeric($rawDate)) {
+                    $birthDate = Date::excelToDateTimeObject($rawDate)->format('Y-m-d');
+                } else {
+                    $rawDate = trim($rawDate);
+                    // Intentar formatos comunes: d/m/Y, d-m-Y, d.m.Y
+                    $formats = ['d/m/Y', 'd-m-Y', 'd.m.Y', 'Y-m-d', 'Y/m/d'];
+                    $parsed = false;
+                    foreach ($formats as $fmt) {
+                        try {
+                            $birthDate = Carbon::createFromFormat($fmt, $rawDate)->format('Y-m-d');
+                            $parsed = true;
+                            break;
+                        } catch (\Exception $e) {
+                            continue;
+                        }
+                    }
+                    if (!$parsed) {
+                        $birthDate = Carbon::parse($rawDate)->format('Y-m-d');
+                    }
                 }
+            } catch (\Exception $e) {
+                $birthDate = null;
             }
         }
 

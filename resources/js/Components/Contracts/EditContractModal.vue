@@ -16,6 +16,9 @@ const props = defineProps({
     cities: Array,
     parcels: Array,
     maritalStatuses: Array,
+    banks: Array,
+    paymentMethods: Array,
+    accountTypes: Array,
 });
 
 const emit = defineEmits(['close', 'saved']);
@@ -40,6 +43,10 @@ const form = useForm({
     email: '',
     end_date: '',
     is_active: true,
+    payment_method_id: '',
+    bank_id: '',
+    account_type_id: '',
+    account_number: '',
 });
 
 watch(() => props.show, (val) => {
@@ -63,6 +70,10 @@ watch(() => props.show, (val) => {
         form.email = props.contract.email || '';
         form.end_date = props.contract.end_date ? props.contract.end_date.substring(0, 10) : '';
         form.is_active = props.contract.is_active ?? true;
+        form.payment_method_id = props.contract.payment_method_id || '';
+        form.bank_id = props.contract.bank_id || '';
+        form.account_type_id = props.contract.account_type_id || '';
+        form.account_number = props.contract.account_number || '';
     }
 });
 
@@ -107,6 +118,9 @@ function save() {
                         :cities="cities"
                         :parcels="parcels"
                         :maritalStatuses="maritalStatuses"
+                        :banks="banks"
+                        :paymentMethods="paymentMethods"
+                        :accountTypes="accountTypes"
                     />
                 </div>
                 <div class="modal-footer">

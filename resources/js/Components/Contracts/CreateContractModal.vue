@@ -15,6 +15,9 @@ const props = defineProps({
     cities: Array,
     parcels: Array,
     maritalStatuses: Array,
+    banks: Array,
+    paymentMethods: Array,
+    accountTypes: Array,
 });
 
 const emit = defineEmits(['close', 'saved']);
@@ -39,6 +42,10 @@ const form = useForm({
     email: '',
     end_date: '',
     is_active: true,
+    payment_method_id: '',
+    bank_id: '',
+    account_type_id: '',
+    account_number: '',
 });
 
 watch(() => props.show, (val) => {
@@ -87,6 +94,9 @@ function save() {
                         :cities="cities"
                         :parcels="parcels"
                         :maritalStatuses="maritalStatuses"
+                        :banks="banks"
+                        :paymentMethods="paymentMethods"
+                        :accountTypes="accountTypes"
                     />
                 </div>
                 <div class="modal-footer">

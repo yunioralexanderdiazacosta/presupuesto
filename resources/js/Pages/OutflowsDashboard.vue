@@ -1166,65 +1166,6 @@ const totalCompras = computed(() => {
 
                     <div class="col-12">
                         <div class="row g-3">
-                            <!-- Gráfico de Barras -->
-                            <div class="col-lg-7">
-                                <div class="card h-100">
-                                    <div class="card-header">
-                                        <h6 class="mb-0">
-                                            <i class="fas fa-chart-bar text-success me-2"></i>
-                                            {{ t.chartProjectBar }}
-                                        </h6>
-                                    </div>
-                                    <div class="card-body">
-                                        <FalconBarChart
-                                            v-if="byProject.labels && byProject.labels.length > 0"
-                                            :barLabels="byProject.labels"
-                                            :barData="convertedProjectData"
-                                            :height="350"
-                                            :color="['#10b981', '#3b82f6', '#f59e0b', '#ef4444', '#8b5cf6', '#ec4899', '#06b6d4', '#6366f1']"
-                                        />
-                                        <div v-else class="text-center py-5">
-                                            <i class="fas fa-chart-bar fa-4x text-muted mb-3"></i>
-                                            <h5 class="text-muted">{{ t.noData }}</h5>
-                                            <p class="text-muted mb-0">
-                                                {{ t.noExpensesByProject }}
-                                            </p>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-
-                            <!-- Gráfico de Torta (Porcentaje) -->
-                            <div class="col-lg-5">
-                                <div class="card h-100">
-                                    <div class="card-header">
-                                        <h6 class="mb-0">
-                                            <i class="fas fa-chart-pie text-info me-2"></i>
-                                            {{ t.chartProjectPie }}
-                                        </h6>
-                                    </div>
-                                    <div class="card-body">
-                                        <FalconPieChart
-                                            v-if="pieChartData.labels && pieChartData.labels.length > 0"
-                                            :pieLabels="pieChartData.labels"
-                                            :pieDatasets="pieChartData.datasets"
-                                            :showPercentage="true"
-                                        />
-                                        <div v-else class="text-center py-5">
-                                            <i class="fas fa-chart-pie fa-4x text-muted mb-3"></i>
-                                            <h5 class="text-muted">{{ t.noData }}</h5>
-                                            <p class="text-muted mb-0">
-                                                {{ t.noExpensesByProject }}
-                                            </p>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div class="col-12">
-                        <div class="row g-3">
                             <!-- Gráfico de Barras Level1 -->
                             <div class="col-lg-7">
                                 <div class="card h-100">

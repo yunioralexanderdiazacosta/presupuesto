@@ -33,6 +33,10 @@ class StoreContractRequest extends FormRequest
             'email' => 'nullable|email|max:150',
             'end_date' => 'nullable|date|after_or_equal:contract_date',
             'is_active' => 'boolean',
+            'payment_method_id' => 'nullable|exists:payment_methods,id',
+            'bank_id' => 'nullable|exists:banks,id',
+            'account_type_id' => 'nullable|exists:account_types,id',
+            'account_number' => 'nullable|string|max:30',
         ];
     }
 
