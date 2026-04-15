@@ -160,7 +160,12 @@ const t = computed(() => isEnglish.value ? {
     colLevel2: 'Level 2',
     colTotal: 'Total Amount',
     colPct: '% of Total',
+    colCategory: 'Category',
+    colArea: 'Area',
     total: 'TOTAL',
+    subtotal: 'Subtotal',
+    viewByArea: 'By Area',
+    viewByCategory: 'By Category',
     chartProjectBar: 'Total Amount Spent by Project',
     chartProjectPie: 'Percentage Distribution by Project',
     chartLevel1Bar: 'Classification by Product and Level 1',
@@ -220,7 +225,12 @@ const t = computed(() => isEnglish.value ? {
     colLevel2: 'Nivel 2',
     colTotal: 'Monto Total',
     colPct: '% del Total',
+    colCategory: 'Categoría',
+    colArea: 'Área',
     total: 'TOTAL',
+    subtotal: 'Subtotal',
+    viewByArea: 'Por Área',
+    viewByCategory: 'Por Categoría',
     chartProjectBar: 'Monto Total Gastado por Proyecto',
     chartProjectPie: 'Distribución Porcentual por Proyecto',
     chartLevel1Bar: 'Clasificación por producto y Nivel 1',
@@ -422,6 +432,80 @@ const convertedLevel2Data = computed(() => {
         : props.byLevel2.data;
 });
 
+// Toggle para vista de tabla Level2
+const level2ViewMode = ref('area'); // 'area' o 'category'
+
+// Vista agrupada por Área (Level1)
+const groupedByArea = computed(() => {
+    if (!props.byLevel2 || !props.byLevel2.labels) return [];
+    const totalAll = props.byLevel2.data.reduce((a, b) => a + b, 0);
+    const groups = {};
+    props.byLevel2.labels.forEach((label, i) => {
+        const level1 = props.byLevel2.level1[i];
+        if (!groups[level1]) groups[level1] = { name: level1, items: [], subtotal: 0 };
+        groups[level1].items.push({
+            label,
+            amount: props.byLevel2.data[i],
+            pct: totalAll > 0 ? (props.byLevel2.data[i] / totalAll * 100) : 0
+        });
+        groups[level1].subtotal += props.byLevel2.data[i];
+    });
+    // Ordenar grupos por subtotal desc, items dentro por monto desc
+    return Object.values(groups)
+        .sort((a, b) => b.subtotal - a.subtotal)
+        .map(g => ({
+            ...g,
+            pct: totalAll > 0 ? (g.subtotal / totalAll * 100) : 0,
+            items: g.items.sort((a, b) => b.amount - a.amount)
+        }));
+});
+
+// Vista agrupada por Categoría (nombre base)
+const groupedByCategory = computed(() => {
+    if (!props.byLevel2 || !props.byLevel2.labels) return [];
+    const totalAll = props.byLevel2.data.reduce((a, b) => a + b, 0);
+    const groups = {};
+    props.byLevel2.labels.forEach((label, i) => {
+        // Extraer nombre base: quitar prefijos como "cos. ", "adm. ", "admin. ", etc.
+        const baseName = label.replace(/^(cos\.?|adm\.?|admin\.?)\s*/i, '').trim().toLowerCase();
+        const displayName = baseName.charAt(0).toUpperCase() + baseName.slice(1);
+        if (!groups[baseName]) groups[baseName] = { name: displayName, items: [], subtotal: 0 };
+        groups[baseName].items.push({
+            level1: props.byLevel2.level1[i],
+            originalLabel: label,
+            amount: props.byLevel2.data[i],
+            pct: totalAll > 0 ? (props.byLevel2.data[i] / totalAll * 100) : 0
+        });
+        groups[baseName].subtotal += props.byLevel2.data[i];
+    });
+    return Object.values(groups)
+        .sort((a, b) => b.subtotal - a.subtotal)
+        .map(g => ({
+            ...g,
+            pct: totalAll > 0 ? (g.subtotal / totalAll * 100) : 0,
+            items: g.items.sort((a, b) => b.amount - a.amount)
+        }));
+});
+
+// Control de grupos expandidos/colapsados
+const expandedGroups = ref(new Set());
+const toggleGroup = (key) => {
+    if (expandedGroups.value.has(key)) {
+        expandedGroups.value.delete(key);
+    } else {
+        expandedGroups.value.add(key);
+    }
+    // Forzar reactividad
+    expandedGroups.value = new Set(expandedGroups.value);
+};
+const expandAll = () => {
+    const groups = level2ViewMode.value === 'area' ? groupedByArea.value : groupedByCategory.value;
+    expandedGroups.value = new Set(groups.map((_, i) => level2ViewMode.value + '-' + i));
+};
+const collapseAll = () => {
+    expandedGroups.value = new Set();
+};
+
 // Calcular total de compras: Facturas + Crédito - Débito
 const totalCompras = computed(() => {
     const facturas = props.invoices?.total || 0;
@@ -475,88 +559,6 @@ const totalCompras = computed(() => {
             </div>
 
             <div class="card-body bg-body-tertiary py-3">
-                <!-- Título Sección Consumos -->
-                <h6 class="text-secondary mb-2 d-flex align-items-center">
-                    <i class="fas fa-chart-line me-2 fs-8"></i>
-                    <span>{{ t.sectionConsumed }}</span>
-                </h6>
-
-                <!-- KPI Cards Fila 1: Consumos -->
-                <div class="row g-2 mb-2">
-                    <!-- Total Outflows Card -->
-                    <div class="col-md-4">
-                        <div class="card h-100 border-start border-primary border-3">
-                            <div class="card-body py-2 px-3">
-                                <div class="d-flex align-items-center justify-content-between">
-                                    <div>
-                                        <small class="text-muted text-uppercase d-block mb-1">{{ t.totalConsumed }}</small>
-                                        <h4 class="mb-0 text-primary fw-bold">
-                                            {{ formatNumber(dividir && divisor ? (summary?.total_amount || 0) / divisor : (summary?.total_amount || 0)) }} {{ dividir ? 'USD' : 'CLP' }}
-                                        </h4>
-                                        <small class="text-muted fs-10">
-                                            {{ formatNumber(summary?.total_count || 0) }} {{ t.records }}
-                                        </small>
-                                    </div>
-                                    <div class="text-primary">
-                                        <i class="fas fa-money-bill-wave fa-2x opacity-50"></i>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Total Inversiones Card -->
-                    <div class="col-md-4">
-                        <div class="card h-100 border-start border-primary border-3">
-                            <div class="card-body py-2 px-3">
-                                <div class="d-flex align-items-center justify-content-between">
-                                    <div>
-                                        <small class="text-muted text-uppercase d-block mb-1">{{ t.totalInvestments }}</small>
-                                        <h4 class="mb-0 text-primary fw-bold">
-                                            {{ formatNumber(dividir && divisor ? (investments?.total || 0) / divisor : (investments?.total || 0)) }} {{ dividir ? 'USD' : 'CLP' }}
-                                        </h4>
-                                        <small class="text-muted fs-10">
-                                            {{ formatNumber(investments?.count || 0) }} {{ t.records }}
-                                        </small>
-                                    </div>
-                                    <div class="text-primary">
-                                        <i class="fas fa-hand-holding-usd fa-2x opacity-50"></i>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Total Gastos Card -->
-                    <div class="col-md-4">
-                        <div class="card h-100 border-start border-primary border-3">
-                            <div class="card-body py-2 px-3">
-                                <div class="d-flex align-items-center justify-content-between">
-                                    <div>
-                                        <small class="text-muted text-uppercase d-block mb-1">{{ t.totalExpenses }}</small>
-                                        <h4 class="mb-0 text-primary fw-bold">
-                                            {{ formatNumber(dividir && divisor ? (expenses?.total || 0) / divisor : (expenses?.total || 0)) }} {{ dividir ? 'USD' : 'CLP' }}
-                                        </h4>
-                                        <small class="text-muted fs-10">
-                                            {{ formatNumber(expenses?.count || 0) }} {{ t.records }}
-                                        </small>
-                                    </div>
-                                    <div class="text-primary">
-                                        <i class="fas fa-receipt fa-2x opacity-50"></i>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Separador -->
-                <div class="row mb-2">
-                    <div class="col-12">
-                        <hr class="my-1 opacity-25">
-                    </div>
-                </div>
-
                 <!-- Título Sección Compras -->
                 <h6 class="text-secondary mb-2 d-flex align-items-center">
                     <i class="fas fa-shopping-cart me-2 fs-8"></i>
@@ -564,7 +566,7 @@ const totalCompras = computed(() => {
                 </h6>
 
                 <!-- KPI Cards Fila 2: Compras -->
-                <div class="row g-2 mb-3">
+                <div class="row g-2 mb-2">
                     <!-- Total Facturas Card -->
                     <div class="col-md-3">
                         <div class="card h-100 border-start border-3" style="border-color: #6FB550 !important;" v-tooltip="t.totalInvoicesTooltip">
@@ -647,6 +649,88 @@ const totalCompras = computed(() => {
                                     </div>
                                     <div style="color: #60A145;">
                                         <i class="fas fa-shopping-cart fa-2x opacity-50"></i>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Separador -->
+                <div class="row mb-2">
+                    <div class="col-12">
+                        <hr class="my-1 opacity-25">
+                    </div>
+                </div>
+
+                <!-- Título Sección Consumos -->
+                <h6 class="text-secondary mb-2 d-flex align-items-center">
+                    <i class="fas fa-chart-line me-2 fs-8"></i>
+                    <span>{{ t.sectionConsumed }}</span>
+                </h6>
+
+                <!-- KPI Cards Fila 1: Consumos -->
+                <div class="row g-2 mb-2">
+                    <!-- Total Outflows Card -->
+                    <div class="col-md-4">
+                        <div class="card h-100 border-start border-primary border-3">
+                            <div class="card-body py-2 px-3">
+                                <div class="d-flex align-items-center justify-content-between">
+                                    <div>
+                                        <small class="text-muted text-uppercase d-block mb-1">{{ t.totalConsumed }}</small>
+                                        <h4 class="mb-0 text-primary fw-bold">
+                                            {{ formatNumber(dividir && divisor ? (summary?.total_amount || 0) / divisor : (summary?.total_amount || 0)) }} {{ dividir ? 'USD' : 'CLP' }}
+                                        </h4>
+                                        <small class="text-muted fs-10">
+                                            {{ formatNumber(summary?.total_count || 0) }} {{ t.records }}
+                                        </small>
+                                    </div>
+                                    <div class="text-primary">
+                                        <i class="fas fa-money-bill-wave fa-2x opacity-50"></i>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Total Inversiones Card -->
+                    <div class="col-md-4">
+                        <div class="card h-100 border-start border-primary border-3">
+                            <div class="card-body py-2 px-3">
+                                <div class="d-flex align-items-center justify-content-between">
+                                    <div>
+                                        <small class="text-muted text-uppercase d-block mb-1">{{ t.totalInvestments }}</small>
+                                        <h4 class="mb-0 text-primary fw-bold">
+                                            {{ formatNumber(dividir && divisor ? (investments?.total || 0) / divisor : (investments?.total || 0)) }} {{ dividir ? 'USD' : 'CLP' }}
+                                        </h4>
+                                        <small class="text-muted fs-10">
+                                            {{ formatNumber(investments?.count || 0) }} {{ t.records }}
+                                        </small>
+                                    </div>
+                                    <div class="text-primary">
+                                        <i class="fas fa-hand-holding-usd fa-2x opacity-50"></i>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Total Gastos Card -->
+                    <div class="col-md-4">
+                        <div class="card h-100 border-start border-primary border-3">
+                            <div class="card-body py-2 px-3">
+                                <div class="d-flex align-items-center justify-content-between">
+                                    <div>
+                                        <small class="text-muted text-uppercase d-block mb-1">{{ t.totalExpenses }}</small>
+                                        <h4 class="mb-0 text-primary fw-bold">
+                                            {{ formatNumber(dividir && divisor ? (expenses?.total || 0) / divisor : (expenses?.total || 0)) }} {{ dividir ? 'USD' : 'CLP' }}
+                                        </h4>
+                                        <small class="text-muted fs-10">
+                                            {{ formatNumber(expenses?.count || 0) }} {{ t.records }}
+                                        </small>
+                                    </div>
+                                    <div class="text-primary">
+                                        <i class="fas fa-receipt fa-2x opacity-50"></i>
                                     </div>
                                 </div>
                             </div>
@@ -921,58 +1005,153 @@ const totalCompras = computed(() => {
                     <!-- Tabla resumen Level2 -->
                     <div class="col-12" v-if="byLevel2.labels && byLevel2.labels.length > 0">
                         <div class="card">
-                            <div class="card-header">
+                            <div class="card-header d-flex justify-content-between align-items-center">
                                 <h6 class="mb-0">
                                     <i class="fas fa-table text-info me-2"></i>
                                     {{ t.chartLevel2Table }}
                                 </h6>
+                                <div class="d-flex align-items-center gap-2">
+                                    <div class="btn-group btn-group-sm" role="group">
+                                        <button type="button" class="btn btn-outline-secondary btn-sm" @click="expandAll" v-tooltip="isEnglish ? 'Expand all' : 'Expandir todo'">
+                                            <i class="fas fa-expand-alt"></i>
+                                        </button>
+                                        <button type="button" class="btn btn-outline-secondary btn-sm" @click="collapseAll" v-tooltip="isEnglish ? 'Collapse all' : 'Colapsar todo'">
+                                            <i class="fas fa-compress-alt"></i>
+                                        </button>
+                                    </div>
+                                    <div class="btn-group btn-group-sm" role="group">
+                                        <button 
+                                            type="button" 
+                                            class="btn" 
+                                            :class="level2ViewMode === 'area' ? 'btn-primary' : 'btn-outline-secondary'"
+                                            @click="level2ViewMode = 'area'"
+                                        >
+                                            <i class="fas fa-sitemap me-1"></i>{{ t.viewByArea }}
+                                        </button>
+                                        <button 
+                                            type="button" 
+                                            class="btn" 
+                                            :class="level2ViewMode === 'category' ? 'btn-primary' : 'btn-outline-secondary'"
+                                            @click="level2ViewMode = 'category'"
+                                        >
+                                            <i class="fas fa-tags me-1"></i>{{ t.viewByCategory }}
+                                        </button>
+                                    </div>
+                                </div>
                             </div>
                             <div class="card-body">
                                 <div class="table-responsive">
-                                    <table class="table table-sm table-hover align-middle mb-0">
+                                    <!-- Vista Por Área (Level1) -->
+                                    <table v-if="level2ViewMode === 'area'" class="table table-hover align-middle mb-0" style="font-size: 0.9rem;">
                                         <thead class="bg-light">
                                             <tr>
-                                                <th class="border-0 py-2">
-                                                    <small class="text-uppercase fw-bold">{{ t.colLevel1 }}</small>
+                                                <th class="border-0 py-2" style="width: 55%;">
+                                                    <span class="text-uppercase fw-bold">{{ t.colArea }} / {{ t.colLevel2 }}</span>
                                                 </th>
-                                                <th class="border-0 py-2">
-                                                    <small class="text-uppercase fw-bold">{{ t.colLevel2 }}</small>
+                                                <th class="border-0 py-2 text-end" style="width: 30%;">
+                                                    <span class="text-uppercase fw-bold">{{ t.colTotal }}</span>
                                                 </th>
-                                                <th class="border-0 py-2 text-end">
-                                                    <small class="text-uppercase fw-bold">{{ t.colTotal }}</small>
-                                                </th>
-                                                <th class="border-0 py-2 text-end">
-                                                    <small class="text-uppercase fw-bold">{{ t.colPct }}</small>
+                                                <th class="border-0 py-2 text-end" style="width: 15%;">
+                                                    <span class="text-uppercase fw-bold">{{ t.colPct }}</span>
                                                 </th>
                                             </tr>
                                         </thead>
                                         <tbody>
-                                            <tr v-for="(label, index) in byLevel2.labels" :key="index">
-                                                <td class="py-2">
-                                                    <small class="text-muted" v-if="index === 0 || byLevel2.level1[index] !== byLevel2.level1[index - 1]">
-                                                        {{ byLevel2.level1[index] }}
-                                                    </small>
-                                                </td>
-                                                <td class="py-2">
-                                                    <span class="badge" :style="{backgroundColor: ['#3b82f6', '#60a5fa', '#93c5fd', '#2563eb', '#1d4ed8', '#1e40af', '#1e3a8a', '#06b6d4'][index % 8]}">
-                                                        {{ label }}
-                                                    </span>
-                                                </td>
-                                                <td class="py-2 text-end">
-                                                    <strong>{{ formatNumber(dividir && divisor ? byLevel2.data[index] / divisor : byLevel2.data[index]) }}</strong>
-                                                    <small class="text-secondary ms-1">{{ dividir ? 'USD' : 'CLP' }}</small>
-                                                </td>
-                                                <td class="py-2 text-end">
-                                                    <span class="badge bg-secondary">
-                                                        {{ ((byLevel2.data[index] / byLevel2.data.reduce((a, b) => a + b, 0)) * 100).toFixed(1) }}%
-                                                    </span>
-                                                </td>
-                                            </tr>
+                                            <template v-for="(group, gi) in groupedByArea" :key="'area-'+gi">
+                                                <!-- Fila grupo Level1 -->
+                                                <tr class="table-light" style="cursor: pointer;" @click="toggleGroup('area-'+gi)">
+                                                    <td class="py-2 fw-bold text-primary">
+                                                        <i class="fas me-2" :class="expandedGroups.has('area-'+gi) ? 'fa-chevron-down' : 'fa-chevron-right'"></i>{{ group.name }}
+                                                        <small class="text-muted ms-1">({{ group.items.length }})</small>
+                                                    </td>
+                                                    <td class="py-2 text-end fw-bold text-primary">
+                                                        {{ formatNumber(dividir && divisor ? group.subtotal / divisor : group.subtotal) }}
+                                                        <span class="text-secondary ms-1">{{ dividir ? 'USD' : 'CLP' }}</span>
+                                                    </td>
+                                                    <td class="py-2 text-end">
+                                                        <span class="badge bg-primary">{{ group.pct.toFixed(1) }}%</span>
+                                                    </td>
+                                                </tr>
+                                                <!-- Filas detalle Level2 -->
+                                                <tr v-if="expandedGroups.has('area-'+gi)" v-for="(item, ii) in group.items" :key="'area-item-'+gi+'-'+ii">
+                                                    <td class="py-2 ps-5">
+                                                        {{ item.label }}
+                                                    </td>
+                                                    <td class="py-2 text-end">
+                                                        {{ formatNumber(dividir && divisor ? item.amount / divisor : item.amount) }}
+                                                        <span class="text-secondary ms-1">{{ dividir ? 'USD' : 'CLP' }}</span>
+                                                    </td>
+                                                    <td class="py-2 text-end">
+                                                        <span class="badge bg-secondary">{{ item.pct.toFixed(1) }}%</span>
+                                                    </td>
+                                                </tr>
+                                            </template>
+                                            <!-- Fila total -->
                                             <tr class="table-primary fw-bold">
-                                                <td class="py-2" colspan="2">{{ t.total }}</td>
+                                                <td class="py-2">{{ t.total }}</td>
                                                 <td class="py-2 text-end">
                                                     {{ formatNumber(dividir && divisor ? byLevel2.data.reduce((a, b) => a + b, 0) / divisor : byLevel2.data.reduce((a, b) => a + b, 0)) }}
-                                                    <small class="text-secondary ms-1">{{ dividir ? 'USD' : 'CLP' }}</small>
+                                                    <span class="text-secondary ms-1">{{ dividir ? 'USD' : 'CLP' }}</span>
+                                                </td>
+                                                <td class="py-2 text-end">
+                                                    <span class="badge bg-primary">100%</span>
+                                                </td>
+                                            </tr>
+                                        </tbody>
+                                    </table>
+
+                                    <!-- Vista Por Categoría (nombre base) -->
+                                    <table v-else class="table table-hover align-middle mb-0" style="font-size: 0.9rem;">
+                                        <thead class="bg-light">
+                                            <tr>
+                                                <th class="border-0 py-2" style="width: 55%;">
+                                                    <span class="text-uppercase fw-bold">{{ t.colCategory }} / {{ t.colArea }}</span>
+                                                </th>
+                                                <th class="border-0 py-2 text-end" style="width: 30%;">
+                                                    <span class="text-uppercase fw-bold">{{ t.colTotal }}</span>
+                                                </th>
+                                                <th class="border-0 py-2 text-end" style="width: 15%;">
+                                                    <span class="text-uppercase fw-bold">{{ t.colPct }}</span>
+                                                </th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            <template v-for="(group, gi) in groupedByCategory" :key="'cat-'+gi">
+                                                <!-- Fila grupo Categoría -->
+                                                <tr class="table-light" style="cursor: pointer;" @click="toggleGroup('category-'+gi)">
+                                                    <td class="py-2 fw-bold text-info">
+                                                        <i class="fas me-2" :class="expandedGroups.has('category-'+gi) ? 'fa-chevron-down' : 'fa-chevron-right'"></i>{{ group.name }}
+                                                        <span v-if="group.items.length > 1" class="text-muted ms-1">({{ group.items.length }} áreas)</span>
+                                                    </td>
+                                                    <td class="py-2 text-end fw-bold text-info">
+                                                        {{ formatNumber(dividir && divisor ? group.subtotal / divisor : group.subtotal) }}
+                                                        <span class="text-secondary ms-1">{{ dividir ? 'USD' : 'CLP' }}</span>
+                                                    </td>
+                                                    <td class="py-2 text-end">
+                                                        <span class="badge bg-info">{{ group.pct.toFixed(1) }}%</span>
+                                                    </td>
+                                                </tr>
+                                                <!-- Filas detalle por área -->
+                                                <tr v-if="expandedGroups.has('category-'+gi)" v-for="(item, ii) in group.items" :key="'cat-item-'+gi+'-'+ii">
+                                                    <td class="py-2 ps-5">
+                                                        <span class="text-muted">{{ item.level1 }}</span>
+                                                        <span class="text-muted ms-1">({{ item.originalLabel }})</span>
+                                                    </td>
+                                                    <td class="py-2 text-end">
+                                                        {{ formatNumber(dividir && divisor ? item.amount / divisor : item.amount) }}
+                                                        <span class="text-secondary ms-1">{{ dividir ? 'USD' : 'CLP' }}</span>
+                                                    </td>
+                                                    <td class="py-2 text-end">
+                                                        <span class="badge bg-secondary">{{ item.pct.toFixed(1) }}%</span>
+                                                    </td>
+                                                </tr>
+                                            </template>
+                                            <!-- Fila total -->
+                                            <tr class="table-primary fw-bold">
+                                                <td class="py-2">{{ t.total }}</td>
+                                                <td class="py-2 text-end">
+                                                    {{ formatNumber(dividir && divisor ? byLevel2.data.reduce((a, b) => a + b, 0) / divisor : byLevel2.data.reduce((a, b) => a + b, 0)) }}
+                                                    <span class="text-secondary ms-1">{{ dividir ? 'USD' : 'CLP' }}</span>
                                                 </td>
                                                 <td class="py-2 text-end">
                                                     <span class="badge bg-primary">100%</span>

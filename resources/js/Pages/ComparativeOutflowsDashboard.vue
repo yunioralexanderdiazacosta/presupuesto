@@ -2,6 +2,7 @@
 import AppLayout from '@/Layouts/AppLayout.vue';
 import { ref, computed, onMounted, watch } from 'vue';
 import { Chart, registerables } from 'chart.js';
+import ChartDataLabels from 'chartjs-plugin-datalabels';
 import axios from 'axios';
 import ExportExcelButton from '@/Components/ExportExcelButton.vue';
 
@@ -26,6 +27,11 @@ let cumulativeChart = null;
 // Toggle ÚNICO para incluir/excluir inversiones en TODO el dashboard
 const includeInvestments = ref(false);
 
+// Toggles para mostrar/ocultar series en gráficos
+const showBudget = ref(true);
+const showInvoiced = ref(false);
+const showConsumed = ref(true);
+
 // Toggle idioma ES/EN
 const isEnglish = ref(false);
 const t = computed(() => isEnglish.value ? {
@@ -43,10 +49,12 @@ const t = computed(() => isEnglish.value ? {
     investmentsBudgeted: 'Budgeted investments',
     investmentsConsumed: 'Consumed investments',
     // Gráfico mensual
-    monthlyTitle: 'Monthly Comparison: Budget vs Invoiced',
+    monthlyTitle: 'Monthly Comparison: Budget vs Invoiced vs Outflows',
     budgetedLabel: 'Budget',
     budgetedWithInv: 'Budget (with investments)',
     invoicedLabel: 'Invoiced',
+    consumedLabel: 'Outflows',
+    consumedWithInvLabel: 'Outflows (with investments)',
     // Gráfico acumulado
     cumulativeTitle: 'Cumulative Evolution - Actual vs Projection',
     cumBudget: 'Cumulative Budget (Full projection)',
@@ -71,10 +79,12 @@ const t = computed(() => isEnglish.value ? {
     investmentsBudgeted: 'Inversiones presupuestadas',
     investmentsConsumed: 'Inversiones consumidas',
     // Gráfico mensual
-    monthlyTitle: 'Comparativo Mensual: Presupuesto vs Facturado',
+    monthlyTitle: 'Comparativo Mensual: Presupuesto vs Facturado vs Egresos',
     budgetedLabel: 'Presupuestado',
     budgetedWithInv: 'Presupuestado (con inversiones)',
     invoicedLabel: 'Facturado',
+    consumedLabel: 'Egresos',
+    consumedWithInvLabel: 'Egresos (con inversiones)',
     // Gráfico acumulado
     cumulativeTitle: 'Evolución Acumulada - Real vs Proyección',
     cumBudget: 'Acumulado Presupuesto (Proyección completa)',
@@ -491,7 +501,7 @@ const excelData = computed(() => {
 });
 
 // Watch para actualizar gráficos cuando cambie el toggle o la conversión USD
-watch([includeInvestments, dividir, divisor, isEnglish], () => {
+watch([includeInvestments, dividir, divisor, isEnglish, showBudget, showInvoiced, showConsumed], () => {
     createMonthlyChart();
     createCumulativeChart();
 });
@@ -510,6 +520,10 @@ function createMonthlyChart() {
         ? props.monthlyComparison.budget_with_investments 
         : props.monthlyComparison.budget;
 
+    const consumedData = includeInvestments.value 
+        ? props.monthlyComparison.consumed_with_investments 
+        : props.monthlyComparison.consumed;
+
     // Aplicar conversión USD si está activada
     const convertedBudgetData = dividir.value && divisor.value 
         ? budgetData.map(v => v / divisor.value)
@@ -519,25 +533,36 @@ function createMonthlyChart() {
         ? props.monthlyComparison.real.map(v => v / divisor.value)
         : props.monthlyComparison.real;
 
+    const convertedConsumedData = dividir.value && divisor.value
+        ? consumedData.map(v => v / divisor.value)
+        : consumedData;
+
     monthlyChart = new Chart(ctx, {
         type: 'bar',
         data: {
             labels: props.monthlyComparison.labels,
             datasets: [
-                {
+                ...(showBudget.value ? [{
                     label: includeInvestments.value ? t.value.budgetedWithInv : t.value.budgetedLabel,
                     data: convertedBudgetData,
                     backgroundColor: 'rgba(54, 162, 235, 0.7)',
                     borderColor: 'rgba(54, 162, 235, 1)',
                     borderWidth: 1
-                },
-                {
+                }] : []),
+                ...(showInvoiced.value ? [{
                     label: t.value.invoicedLabel,
                     data: convertedRealData,
                     backgroundColor: 'rgba(75, 192, 192, 0.7)',
                     borderColor: 'rgba(75, 192, 192, 1)',
                     borderWidth: 1
-                }
+                }] : []),
+                ...(showConsumed.value ? [{
+                    label: includeInvestments.value ? t.value.consumedWithInvLabel : t.value.consumedLabel,
+                    data: convertedConsumedData,
+                    backgroundColor: 'rgba(255, 159, 64, 0.7)',
+                    borderColor: 'rgba(255, 159, 64, 1)',
+                    borderWidth: 1
+                }] : [])
             ]
         },
         options: {
@@ -564,6 +589,26 @@ function createMonthlyChart() {
                             return label;
                         }
                     }
+                },
+                datalabels: {
+                    display: function(context) {
+                        return context.dataset.data[context.dataIndex] > 0;
+                    },
+                    anchor: 'end',
+                    align: 'end',
+                    rotation: -45,
+                    font: { size: 10, weight: 'bold' },
+                    color: '#333',
+                    formatter: function(value) {
+                        if (value >= 1000000000) {
+                            return (value / 1000000000).toFixed(1) + ' MM';
+                        } else if (value >= 1000000) {
+                            return (value / 1000000).toFixed(1) + ' M';
+                        } else if (value >= 1000) {
+                            return (value / 1000).toFixed(0) + ' K';
+                        }
+                        return value;
+                    }
                 }
             },
             scales: {
@@ -576,7 +621,8 @@ function createMonthlyChart() {
                     }
                 }
             }
-        }
+        },
+        plugins: [ChartDataLabels]
     });
 }
 
@@ -616,7 +662,7 @@ function createCumulativeChart() {
         data: {
             labels: props.cumulativeComparison.labels,
             datasets: [
-                {
+                ...(showBudget.value ? [{
                     label: includeInvestments.value 
                         ? t.value.cumBudgetWithInv 
                         : t.value.cumBudget,
@@ -627,9 +673,14 @@ function createCumulativeChart() {
                     fill: false,
                     tension: 0.4,
                     pointRadius: 4,
-                    pointHoverRadius: 6
-                },
-                {
+                    pointHoverRadius: 6,
+                    datalabels: {
+                        align: 'top',
+                        offset: 10,
+                        color: 'rgb(54, 162, 235)',
+                    }
+                }] : []),
+                ...(showInvoiced.value ? [{
                     label: t.value.cumInvoiced,
                     data: convertedRealCumulative,
                     borderColor: 'rgb(75, 192, 192)',
@@ -639,9 +690,14 @@ function createCumulativeChart() {
                     tension: 0.4,
                     pointRadius: 4,
                     pointHoverRadius: 6,
-                    spanGaps: false // No conectar puntos null
-                },
-                {
+                    spanGaps: false,
+                    datalabels: {
+                        align: 'bottom',
+                        offset: 10,
+                        color: 'rgb(75, 192, 192)',
+                    }
+                }] : []),
+                ...(showConsumed.value ? [{
                     label: includeInvestments.value 
                         ? t.value.cumConsumedWithInv 
                         : t.value.cumConsumed,
@@ -653,8 +709,13 @@ function createCumulativeChart() {
                     tension: 0.4,
                     pointRadius: 4,
                     pointHoverRadius: 6,
-                    spanGaps: false // No conectar puntos null
-                }
+                    spanGaps: false,
+                    datalabels: {
+                        align: 'right',
+                        offset: 10,
+                        color: 'rgb(255, 159, 64)',
+                    }
+                }] : [])
             ]
         },
         options: {
@@ -682,6 +743,24 @@ function createCumulativeChart() {
                             return label;
                         }
                     }
+                },
+                datalabels: {
+                    display: function(context) {
+                        return context.dataset.data[context.dataIndex] !== null && context.dataset.data[context.dataIndex] > 0;
+                    },
+                    anchor: 'end',
+                    font: { size: 11, weight: 'bold' },
+                    formatter: function(value) {
+                        if (value === null) return '';
+                        if (value >= 1000000000) {
+                            return (value / 1000000000).toFixed(1) + ' MM';
+                        } else if (value >= 1000000) {
+                            return (value / 1000000).toFixed(1) + ' M';
+                        } else if (value >= 1000) {
+                            return (value / 1000).toFixed(0) + ' K';
+                        }
+                        return value;
+                    }
                 }
             },
             scales: {
@@ -698,7 +777,8 @@ function createCumulativeChart() {
                 intersect: false,
                 mode: 'index',
             }
-        }
+        },
+        plugins: [ChartDataLabels]
     });
 }
 </script>
@@ -890,24 +970,65 @@ function createCumulativeChart() {
                 </div>
             </div>
 
-            <!-- Gráficos Principales -->
+            <!-- Toggles para series de gráficos -->
             <div class="row g-3 mb-3">
-                <!-- Gráfico Mensual -->
-                <div class="col-lg-6">
-                    <div class="card h-100">
+                <div class="col-12">
+                    <div class="card">
+                        <div class="card-body py-2">
+                            <div class="d-flex align-items-center gap-4">
+                                <small class="text-muted fw-semibold"><i class="fas fa-eye me-1"></i>{{ isEnglish ? 'Show in charts' : 'Mostrar en gráficos' }}:</small>
+                                <div class="form-check form-switch mb-0 d-flex align-items-center">
+                                    <input class="form-check-input me-2" type="checkbox" role="switch" id="showBudgetToggle" v-model="showBudget" style="cursor: pointer;">
+                                    <label class="form-check-label small mb-0" for="showBudgetToggle" style="cursor: pointer;">
+                                        <span :class="showBudget ? 'text-primary' : 'text-secondary'">
+                                            <i :class="showBudget ? 'fas fa-check-circle' : 'fas fa-times-circle'"></i>
+                                            {{ isEnglish ? 'Budget' : 'Presupuesto' }}
+                                        </span>
+                                    </label>
+                                </div>
+                                <div class="form-check form-switch mb-0 d-flex align-items-center">
+                                    <input class="form-check-input me-2" type="checkbox" role="switch" id="showInvoicedToggle" v-model="showInvoiced" style="cursor: pointer;">
+                                    <label class="form-check-label small mb-0" for="showInvoicedToggle" style="cursor: pointer;">
+                                        <span :class="showInvoiced ? 'text-success' : 'text-secondary'">
+                                            <i :class="showInvoiced ? 'fas fa-check-circle' : 'fas fa-times-circle'"></i>
+                                            {{ isEnglish ? 'Invoiced' : 'Facturado' }}
+                                        </span>
+                                    </label>
+                                </div>
+                                <div class="form-check form-switch mb-0 d-flex align-items-center">
+                                    <input class="form-check-input me-2" type="checkbox" role="switch" id="showConsumedToggle" v-model="showConsumed" style="cursor: pointer;">
+                                    <label class="form-check-label small mb-0" for="showConsumedToggle" style="cursor: pointer;">
+                                        <span :class="showConsumed ? 'text-warning' : 'text-secondary'">
+                                            <i :class="showConsumed ? 'fas fa-check-circle' : 'fas fa-times-circle'"></i>
+                                            {{ isEnglish ? 'Outflows' : 'Egresos' }}
+                                        </span>
+                                    </label>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Gráfico Mensual -->
+            <div class="row g-3 mb-3">
+                <div class="col-12">
+                    <div class="card">
                         <div class="card-body">
-                            <div style="height: 350px;">
+                            <div style="height: 400px;">
                                 <canvas id="monthlyChart"></canvas>
                             </div>
                         </div>
                     </div>
                 </div>
+            </div>
 
-                <!-- Gráfico Acumulado -->
-                <div class="col-lg-6">
-                    <div class="card h-100">
+            <!-- Gráfico Acumulado -->
+            <div class="row g-3 mb-3">
+                <div class="col-12">
+                    <div class="card">
                         <div class="card-body">
-                            <div style="height: 350px;">
+                            <div style="height: 400px;">
                                 <canvas id="cumulativeChart"></canvas>
                             </div>
                         </div>
@@ -941,7 +1062,7 @@ function createCumulativeChart() {
                                     </thead>
                                     <tbody>
                                         <!-- Fila: Presupuesto mensual -->
-                                        <tr>
+                                        <tr v-if="showBudget">
                                             <td class="fw-semibold text-primary">
                                                 <i class="fas fa-calculator fa-xs me-1"></i>{{ t.budgeted }}
                                             </td>
@@ -955,7 +1076,7 @@ function createCumulativeChart() {
                                             </td>
                                         </tr>
                                         <!-- Fila: Costos (Facturado) mensual -->
-                                        <tr>
+                                        <tr v-if="showInvoiced">
                                             <td class="fw-semibold text-success">
                                                 <i class="fas fa-file-invoice-dollar fa-xs me-1"></i>{{ t.invoiced }}
                                             </td>
@@ -971,10 +1092,27 @@ function createCumulativeChart() {
                                                 {{ formatCLP(monthlyComparison.real.reduce((a, b) => a + (b || 0), 0)) }}
                                             </td>
                                         </tr>
+                                        <!-- Fila: Egresos (Consumido) mensual -->
+                                        <tr v-if="showConsumed">
+                                            <td class="fw-semibold" style="color: rgb(255, 159, 64);">
+                                                <i class="fas fa-arrow-circle-down fa-xs me-1"></i>{{ t.consumed }}
+                                            </td>
+                                            <td
+                                                v-for="(val, i) in (includeInvestments ? monthlyComparison.consumed_with_investments : monthlyComparison.consumed)"
+                                                :key="i"
+                                                class="text-end"
+                                            >
+                                                <span v-if="val > 0">{{ formatCLP(val) }}</span>
+                                                <span v-else class="text-muted">-</span>
+                                            </td>
+                                            <td class="text-end fw-bold" style="color: rgb(255, 159, 64);">
+                                                {{ formatCLP((includeInvestments ? monthlyComparison.consumed_with_investments : monthlyComparison.consumed).reduce((a, b) => a + (b || 0), 0)) }}
+                                            </td>
+                                        </tr>
                                         <!-- Fila: Diferencia (Presupuesto - Facturado) -->
-                                        <tr class="table-light">
+                                        <tr class="table-light" v-if="showInvoiced">
                                             <td class="fw-semibold">
-                                                <i class="fas fa-balance-scale fa-xs me-1"></i>{{ t.difference }}
+                                                <i class="fas fa-balance-scale fa-xs me-1"></i>{{ t.difference }} ({{ t.invoiced }})
                                             </td>
                                             <td
                                                 v-for="(val, i) in monthlyComparison.real"
@@ -994,6 +1132,31 @@ function createCumulativeChart() {
                                             <td class="text-end fw-bold"
                                                 :class="((includeInvestments ? monthlyComparison.budget_with_investments : monthlyComparison.budget).reduce((a,b)=>a+(b||0),0) - monthlyComparison.real.reduce((a,b)=>a+(b||0),0)) < 0 ? 'text-danger' : 'text-success'">
                                                 {{ formatCLP((includeInvestments ? monthlyComparison.budget_with_investments : monthlyComparison.budget).reduce((a,b)=>a+(b||0),0) - monthlyComparison.real.reduce((a,b)=>a+(b||0),0)) }}
+                                            </td>
+                                        </tr>
+                                        <!-- Fila: Diferencia (Presupuesto - Consumido) -->
+                                        <tr class="table-light" v-if="showConsumed">
+                                            <td class="fw-semibold">
+                                                <i class="fas fa-balance-scale fa-xs me-1"></i>{{ t.difference }} ({{ t.consumed }})
+                                            </td>
+                                            <td
+                                                v-for="(val, i) in (includeInvestments ? monthlyComparison.consumed_with_investments : monthlyComparison.consumed)"
+                                                :key="i"
+                                                class="text-end fw-bold"
+                                                :class="{
+                                                    'text-danger': ((includeInvestments ? monthlyComparison.budget_with_investments[i] : monthlyComparison.budget[i]) - val) < 0,
+                                                    'text-success': ((includeInvestments ? monthlyComparison.budget_with_investments[i] : monthlyComparison.budget[i]) - val) >= 0 && (val > 0 || (includeInvestments ? monthlyComparison.budget_with_investments[i] : monthlyComparison.budget[i]) > 0),
+                                                    'text-muted': val === 0 && (includeInvestments ? monthlyComparison.budget_with_investments[i] : monthlyComparison.budget[i]) === 0
+                                                }"
+                                            >
+                                                <template v-if="val > 0 || (includeInvestments ? monthlyComparison.budget_with_investments[i] : monthlyComparison.budget[i]) > 0">
+                                                    {{ formatCLP((includeInvestments ? monthlyComparison.budget_with_investments[i] : monthlyComparison.budget[i]) - val) }}
+                                                </template>
+                                                <span v-else class="text-muted">-</span>
+                                            </td>
+                                            <td class="text-end fw-bold"
+                                                :class="((includeInvestments ? monthlyComparison.budget_with_investments : monthlyComparison.budget).reduce((a,b)=>a+(b||0),0) - (includeInvestments ? monthlyComparison.consumed_with_investments : monthlyComparison.consumed).reduce((a,b)=>a+(b||0),0)) < 0 ? 'text-danger' : 'text-success'">
+                                                {{ formatCLP((includeInvestments ? monthlyComparison.budget_with_investments : monthlyComparison.budget).reduce((a,b)=>a+(b||0),0) - (includeInvestments ? monthlyComparison.consumed_with_investments : monthlyComparison.consumed).reduce((a,b)=>a+(b||0),0)) }}
                                             </td>
                                         </tr>
                                     </tbody>
