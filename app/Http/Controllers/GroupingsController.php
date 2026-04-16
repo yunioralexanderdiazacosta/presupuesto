@@ -17,15 +17,16 @@ class GroupingsController extends Controller
     {
         $term = $request->term ?? '';
 
+        // Temporada activa desde sesión
+        $currentSeasonId = session('season_id');
+
         $groupings = Grouping::with(['season', 'costCenters'])
             ->where('team_id', auth()->user()->team_id)
+            ->where('season_id', $currentSeasonId)
             ->when($term, function ($query, $search) {
                 $query->where('name', 'like', '%'.$search.'%');
             })
-            ->paginate(10);
-
-        // Temporada activa desde sesión
-        $currentSeasonId = session('season_id');
+            ->paginate(100);
 
         // Filtrar los cost centers por temporada activa
         $costCenters = CostCenter::with(['fruit','variety','parcel','developmentState'])
