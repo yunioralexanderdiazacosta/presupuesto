@@ -263,6 +263,14 @@ const refreshX = async () => {
 - ❌ NO poner título fuera del card
 - ❌ NO usar `container-fluid` con rows para el layout principal
 
+**Patrón de KPI Cards Contextuales**: Cuando el número esperado de elementos es bajo (ej. hasta 3 frutales, escenarios o combinaciones frutal/estado de desarrollo), PRIORIZAR cards individuales en lugar de tablas. Seguir el patrón visual de `resources/js/Pages/ProjectEvaluations/Show.vue` en la sección `KPI por Escenario`:
+- Un card por entidad o combinación contextual (ej. un card por frutal, o un card por frutal + estado de desarrollo)
+- Header del card con nombre principal y, si aplica, subtítulo contextual pequeño debajo o al lado (ej. estado de desarrollo)
+- Body con KPIs en grilla simple de 2 columnas (`row g-1`, `col-6`), usando labels pequeños en gris y valor en `strong`
+- Cuando hay una métrica principal, destacarla en una fila completa con borde superior (`col-12 mt-1 border-top pt-1`)
+- Si existe una combinación como frutal/estado de desarrollo, nombrar el card con el frutal en el header y el estado de desarrollo como subtítulo contextual
+- Evitar tablas para este caso salvo que la cantidad de combinaciones crezca lo suficiente como para perjudicar la lectura visual
+
 **Exportación Excel**: Al usar `ExportExcelButton`, exportar números puros (sin `toLocaleString`). Excel aplica formato automático con separador de miles.
 
 ```javascript

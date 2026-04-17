@@ -459,6 +459,7 @@ $totalInvestments = \App\Models\Investment::where('season_id', $season_id)
             //obtener total estimacion en kilos
             $totalEstimatedKilosData = $this->getTotalEstimatedKilos($season_id, $user->team_id);
             $kilosByEstimate = $totalEstimatedKilosData['kilosByEstimate'] ?? [];
+            $kilosByEstimateFruitDevState = $totalEstimatedKilosData['kilosByEstimateFruitDevState'] ?? [];
             $estimateOptions = $totalEstimatedKilosData['estimateOptions'] ?? [];
             $fruitNames = $totalEstimatedKilosData['fruitNames'] ?? [];
             $defaultEstimateStatusId = $totalEstimatedKilosData['defaultEstimateStatusId'] ?? null;
@@ -478,6 +479,19 @@ $totalInvestments = \App\Models\Investment::where('season_id', $season_id)
             $entityCounts = self::getEntityCounts($season_id, $user->team_id);
             // Calcular los totales y porcentajes de cada rubro principal
             $mainTotalsAndPercents = $this->getMainBudgetTotalsAndPercents($season_id, $user->team_id);
+            $fruitDevStateSummary = $this->buildFruitDevelopmentStateSummary(
+                $fruitNames,
+                $devStates,
+                $adminFieldsByFruit,
+                $agrochemicalProducts,
+                $fertilizerProducts,
+                $manPowerProducts,
+                $serviceProducts,
+                $harvestProducts,
+                $supplyProducts,
+                $totalAdminFields,
+                $totalSurface
+            );
             // Pasar todos los datos al frontend
             // Nuevo: adminFieldsByFruit contiene el total prorrateado de administración+fields por especie
             return Inertia::render('Dashboard', compact(
@@ -523,14 +537,97 @@ $totalInvestments = \App\Models\Investment::where('season_id', $season_id)
                 'totalEstimatedKilosData', // <-- nuevo prop para total estimado en kilos
                 'kilosByFruit',
                 'kilosByEstimate',
+                'kilosByEstimateFruitDevState',
                 'estimateOptions',
                 'defaultEstimateStatusId',
                 'fruitNames',
                 'adminFieldsByFruit',
                 'totalHarvestByFruit',
+                'fruitDevStateSummary',
                 'totalInvestments'
             ));
         }
+    }
+
+    private function getScopedCostCenters($costCentersId)
+    {
+        $ids = collect($costCentersId)->map(fn($id) => (int) $id)->all();
+
+        if ($this->cachedCostCenters) {
+            return $this->cachedCostCenters->whereIn('id', $ids)->values();
+        }
+
+        return CostCenter::whereIn('id', $ids)
+            ->select('id', 'development_state_id', 'surface', 'fruit_id')
+            ->get();
+    }
+
+    private function sumProductAmountsForDevelopmentState($products, $costCenterIds, $devStateId, $method)
+    {
+        $total = 0;
+
+        foreach ($products as $product) {
+            $byDev = $this->{$method}($product, $costCenterIds);
+            $total += (float) ($byDev[$devStateId] ?? 0);
+        }
+
+        return round($total, 2);
+    }
+
+    private function buildFruitDevelopmentStateSummary(
+        array $fruitNames,
+        array $devStates,
+        array $adminFieldsByFruit,
+        $agrochemicalProducts,
+        $fertilizerProducts,
+        $manPowerProducts,
+        $serviceProducts,
+        $harvestProducts,
+        $supplyProducts,
+        float $totalAdminFields,
+        float $totalSurface
+    ) {
+        $rows = [];
+
+        $grouped = $this->cachedCostCenters
+            ->filter(fn($costCenter) => !empty($costCenter->fruit_id) && !empty($costCenter->development_state_id))
+            ->groupBy(fn($costCenter) => $costCenter->fruit_id . '|' . $costCenter->development_state_id);
+
+        foreach ($grouped as $centers) {
+            $first = $centers->first();
+            $fruitId = (int) $first->fruit_id;
+            $devStateId = (int) $first->development_state_id;
+            $costCenterIds = $centers->pluck('id')->values()->all();
+            $surface = (float) $centers->sum('surface');
+            $adminFieldsTotal = $totalSurface > 0
+                ? round($totalAdminFields * ($surface / $totalSurface), 2)
+                : 0;
+
+            $directCostTotal =
+                $this->sumProductAmountsForDevelopmentState($agrochemicalProducts, $costCenterIds, $devStateId, 'getAgrochemicalResultByDevelopmentState') +
+                $this->sumProductAmountsForDevelopmentState($fertilizerProducts, $costCenterIds, $devStateId, 'getFertilizerResultByDevelopmentState') +
+                $this->sumProductAmountsForDevelopmentState($manPowerProducts, $costCenterIds, $devStateId, 'getManPowerResultByDevelopmentState') +
+                $this->sumProductAmountsForDevelopmentState($serviceProducts, $costCenterIds, $devStateId, 'getServiceResultByDevelopmentState') +
+                $this->sumProductAmountsForDevelopmentState($harvestProducts, $costCenterIds, $devStateId, 'getHarvestResultByDevelopmentState') +
+                $this->sumProductAmountsForDevelopmentState($supplyProducts, $costCenterIds, $devStateId, 'getSupplyResultByDevelopmentState');
+
+            $rows[] = [
+                'fruit_id' => $fruitId,
+                'fruit_name' => $fruitNames[$fruitId] ?? ($adminFieldsByFruit[$fruitId]['name'] ?? ('Fruta ' . $fruitId)),
+                'development_state_id' => $devStateId,
+                'development_state_name' => $devStates[$devStateId]['name'] ?? ('Estado ' . $devStateId),
+                'surface' => round($surface, 2),
+                'direct_cost_total' => round($directCostTotal, 2),
+                'admin_fields_total' => $adminFieldsTotal,
+                'total_cost' => round($directCostTotal + $adminFieldsTotal, 2),
+            ];
+        }
+
+        usort($rows, function ($left, $right) {
+            return [$left['fruit_name'], $left['development_state_name']] <=> [$right['fruit_name'], $right['development_state_name']];
+        });
+
+        return $rows;
     }
 
     /**
@@ -962,9 +1059,7 @@ $totalInvestments = \App\Models\Investment::where('season_id', $season_id)
         $result = [];
         $currentMonth = $this->month_id;
         // Obtener todos los cost centers con su development_state_id y surface
-        $costCenters = $this->cachedCostCenters ?? \App\Models\CostCenter::whereIn('id', $costCentersId)
-            ->select('id', 'development_state_id', 'surface')
-            ->get();
+        $costCenters = $this->getScopedCostCenters($costCentersId);
 
         // Obtener todos los meses del ciclo
         $months = [];
@@ -1020,9 +1115,7 @@ $totalInvestments = \App\Models\Investment::where('season_id', $season_id)
         $result = [];
         $currentMonth = $this->month_id;
         // Obtener todos los cost centers con su development_state_id
-        $costCenters = $this->cachedCostCenters ?? \App\Models\CostCenter::whereIn('id', $costCentersId)
-            ->select('id', 'development_state_id', 'surface')
-            ->get();
+        $costCenters = $this->getScopedCostCenters($costCentersId);
 
         // Obtener todos los meses del ciclo
         $months = [];
@@ -1080,9 +1173,7 @@ $totalInvestments = \App\Models\Investment::where('season_id', $season_id)
         $result = [];
         $currentMonth = $this->month_id;
         // Obtener todos los cost centers con su development_state_id y surface
-        $costCenters = $this->cachedCostCenters ?? \App\Models\CostCenter::whereIn('id', $costCentersId)
-            ->select('id', 'development_state_id', 'surface')
-            ->get();
+        $costCenters = $this->getScopedCostCenters($costCentersId);
 
         // Obtener todos los meses del ciclo
         $months = [];
@@ -1133,9 +1224,7 @@ $totalInvestments = \App\Models\Investment::where('season_id', $season_id)
         $result = [];
         $currentMonth = $this->month_id;
         // Obtener todos los cost centers con su development_state_id y surface
-        $costCenters = $this->cachedCostCenters ?? \App\Models\CostCenter::whereIn('id', $costCentersId)
-            ->select('id', 'development_state_id', 'surface')
-            ->get();
+        $costCenters = $this->getScopedCostCenters($costCentersId);
 
         // Obtener todos los meses del ciclo
         $months = [];
@@ -1188,9 +1277,7 @@ $totalInvestments = \App\Models\Investment::where('season_id', $season_id)
         $result = [];
         $currentMonth = $this->month_id;
         // Obtener todos los cost centers con su development_state_id y surface
-        $costCenters = $this->cachedCostCenters ?? \App\Models\CostCenter::whereIn('id', $costCentersId)
-            ->select('id', 'development_state_id', 'surface')
-            ->get();
+        $costCenters = $this->getScopedCostCenters($costCentersId);
 
         // Obtener todos los meses del ciclo
         $months = [];
@@ -1240,9 +1327,7 @@ $totalInvestments = \App\Models\Investment::where('season_id', $season_id)
         $result = [];
         $currentMonth = $this->month_id;
         // Obtener todos los cost centers con su development_state_id y surface
-        $costCenters = $this->cachedCostCenters ?? \App\Models\CostCenter::whereIn('id', $costCentersId)
-            ->select('id', 'development_state_id', 'surface')
-            ->get();
+        $costCenters = $this->getScopedCostCenters($costCentersId);
 
         // Obtener todos los meses del ciclo
         $months = [];

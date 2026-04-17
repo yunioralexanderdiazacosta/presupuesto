@@ -357,6 +357,7 @@ trait BudgetTotalsTrait
 
         if ($estimates->isEmpty()) return [
             'kilosByEstimate' => [],
+            'kilosByEstimateFruitDevState' => [],
             'estimateOptions' => [],
             'fruitNames' => [],
             'defaultEstimateStatusId' => null,
@@ -380,6 +381,7 @@ trait BudgetTotalsTrait
 
         // Calcular kilos por cada estimate_status_id, agrupado por fruta
         $kilosByEstimate = []; // [statusId => [fruitId => totalKilos]]
+        $kilosByEstimateFruitDevState = []; // [statusId => [fruitId => [devStateId => totalKilos]]]
         $maxStatusByFruit = [];
 
         foreach ($estimatesByFruit as $fruitId => $estimatesGroup) {
@@ -388,7 +390,16 @@ trait BudgetTotalsTrait
                 $totalKilos = 0;
                 foreach ($statusEstimates as $estimate) {
                     $surface = $estimate->costCenterVariety ? $estimate->costCenterVariety->surface : 0;
-                    $totalKilos += ($estimate->kilos_ha ?? 0) * $surface;
+                    $kilos = ($estimate->kilos_ha ?? 0) * $surface;
+                    $totalKilos += $kilos;
+
+                    $devStateId = $estimate->costCenterVariety->development_state_id ?? null;
+                    if ($devStateId) {
+                        if (!isset($kilosByEstimateFruitDevState[$statusId][$fruitId][$devStateId])) {
+                            $kilosByEstimateFruitDevState[$statusId][$fruitId][$devStateId] = 0;
+                        }
+                        $kilosByEstimateFruitDevState[$statusId][$fruitId][$devStateId] += $kilos;
+                    }
                 }
                 $kilosByEstimate[$statusId][$fruitId] = $totalKilos;
             }
@@ -408,6 +419,7 @@ trait BudgetTotalsTrait
 
         return [
             'kilosByEstimate' => $kilosByEstimate,
+            'kilosByEstimateFruitDevState' => $kilosByEstimateFruitDevState,
             'estimateOptions' => $estimateOptions,
             'fruitNames' => $fruitNames,
             'defaultEstimateStatusId' => $defaultEstimateStatusId,

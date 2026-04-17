@@ -91,10 +91,12 @@ const props = defineProps({
   kilosByFruit: Object,
   fruitNames: Object,
   kilosByEstimate: Object,
+  kilosByEstimateFruitDevState: Object,
   estimateOptions: Array,
   defaultEstimateStatusId: Number,
   adminFieldsByFruit: Object, // <-- nuevo prop para admin+fields prorrateado por especie
   totalHarvestByFruit: Object, // <-- nuevo prop para total de cosecha por especie
+  fruitDevStateSummary: Array,
   totalInvestments: Number
 });
 
@@ -240,7 +242,216 @@ const barChartFromTable = computed(() => {
   }));
 });
 
+const selectedLevel1Id = ref(null);
 
+const handleLevel1BarClick = ({ index }) => {
+  const clicked = barChartFromTable.value[index];
+  if (!clicked) return;
+
+  selectedLevel1Id.value = String(selectedLevel1Id.value) === String(clicked.level1_id)
+    ? null
+    : clicked.level1_id;
+};
+
+const isSelectedLevel1 = (level1Id) => String(selectedLevel1Id.value) === String(level1Id);
+
+const categoryContainsSelectedLevel1 = (group) => {
+  if (!selectedLevel1Id.value) return false;
+  return (group.items || []).some(item => isSelectedLevel1(item.level1_id));
+};
+
+const barChartColors = computed(() => {
+  if (!selectedLevel1Id.value) {
+    return barChartFromTable.value.map(() => '#2c7be5');
+  }
+
+  return barChartFromTable.value.map(item => (
+    isSelectedLevel1(item.level1_id) ? '#2c7be5' : 'rgba(44, 123, 229, 0.25)'
+  ));
+});
+
+// Computed: Tabla resumen agrupada por Level1 → Level2 (todas las fuentes combinadas)
+const summaryByLevel12 = computed(() => {
+  const allRows = [
+    ...(props.administrationTotalsByLevel12 || []).map(r => ({ ...r })),
+    ...(props.fieldTotalsByLevel12 || []).map(r => ({ ...r })),
+    ...(props.totalsByLevel12 || []).map(r => ({ ...r })),
+  ];
+  const groups = {};
+  allRows.forEach(row => {
+    const l1Key = row.level1_id;
+    if (!groups[l1Key]) {
+      groups[l1Key] = {
+        level1_id: row.level1_id,
+        level1_name: row.level1_name,
+        total: 0,
+        level2s: {}
+      };
+    }
+    const l2Key = row.level2_id;
+    if (!groups[l1Key].level2s[l2Key]) {
+      groups[l1Key].level2s[l2Key] = {
+        level2_id: row.level2_id,
+        level2_name: row.level2_name,
+        total: 0
+      };
+    }
+    const amount = Number(row.total_amount || 0);
+    groups[l1Key].total += amount;
+    groups[l1Key].level2s[l2Key].total += amount;
+  });
+  const d = (dividir.value && divisor.value) ? divisor.value : 1;
+  return Object.values(groups).map(g => ({
+    ...g,
+    total: g.total / d,
+    level2s: Object.values(g.level2s).map(l2 => ({
+      ...l2,
+      total: l2.total / d
+    })).sort((a, b) => b.total - a.total)
+  })).sort((a, b) => b.total - a.total);
+});
+
+const summaryGrandTotal = computed(() => {
+  return summaryByLevel12.value.reduce((sum, g) => sum + g.total, 0);
+});
+
+// Control expand/collapse para tabla resumen
+const expandedBudgetGroups = ref(new Set(summaryByLevel12.value.map((_, i) => 'bg-' + i)));
+
+const toggleBudgetGroup = (key) => {
+  if (expandedBudgetGroups.value.has(key)) {
+    expandedBudgetGroups.value.delete(key);
+  } else {
+    expandedBudgetGroups.value.add(key);
+  }
+  expandedBudgetGroups.value = new Set(expandedBudgetGroups.value);
+};
+
+const expandAllBudget = () => {
+  expandedBudgetGroups.value = new Set(summaryByLevel12.value.map((_, i) => 'bg-' + i));
+};
+
+const collapseAllBudget = () => {
+  expandedBudgetGroups.value = new Set();
+};
+
+// Computed: Tabla resumen agrupada por categoría (nombre base de Level2) → Level1 (área)
+// Lógica igual a groupedByCategory de OutflowsDashboard: quita prefijos cos./adm./admin. y agrupa
+const summaryByCategory = computed(() => {
+  const allRows = [
+    ...(props.administrationTotalsByLevel12 || []).map(r => ({ ...r })),
+    ...(props.fieldTotalsByLevel12 || []).map(r => ({ ...r })),
+    ...(props.totalsByLevel12 || []).map(r => ({ ...r })),
+  ];
+  const groups = {};
+  allRows.forEach(row => {
+    // Extraer nombre base: quitar prefijos como "cos. ", "adm. ", "admin. ", "gral. ", etc.
+    // Normalizar espacios múltiples y trim
+    const baseName = (row.level2_name || '').replace(/^(cos\.?|adm\.?|admin\.?|gral\.?)\s*/i, '').replace(/\s+/g, ' ').trim().toLowerCase();
+    const displayName = baseName.charAt(0).toUpperCase() + baseName.slice(1);
+    if (!groups[baseName]) {
+      groups[baseName] = {
+        category_name: displayName,
+        total: 0,
+        items: []
+      };
+    }
+    // Buscar si ya existe un item para este level1 + level2 original en este grupo
+    const itemKey = String(row.level1_id) + '|' + String(row.level2_id);
+    let existingItem = groups[baseName].items.find(it => it._key === itemKey);
+    if (!existingItem) {
+      existingItem = {
+        _key: itemKey,
+        level1_id: row.level1_id,
+        level1_name: row.level1_name,
+        originalLabel: row.level2_name,
+        total: 0
+      };
+      groups[baseName].items.push(existingItem);
+    }
+    const amount = Number(row.total_amount || 0);
+    groups[baseName].total += amount;
+    existingItem.total += amount;
+  });
+  const d = (dividir.value && divisor.value) ? divisor.value : 1;
+  return Object.values(groups)
+    .sort((a, b) => b.total - a.total)
+    .map(g => ({
+      ...g,
+      total: g.total / d,
+      items: g.items.map(it => ({
+        ...it,
+        total: it.total / d
+      })).sort((a, b) => b.total - a.total)
+    }));
+});
+
+// Control expand/collapse para tabla por categoría
+const expandedCategoryGroups = ref(new Set(summaryByCategory.value.map((_, i) => 'cat-' + i)));
+
+const toggleCategoryGroup = (key) => {
+  if (expandedCategoryGroups.value.has(key)) {
+    expandedCategoryGroups.value.delete(key);
+  } else {
+    expandedCategoryGroups.value.add(key);
+  }
+  expandedCategoryGroups.value = new Set(expandedCategoryGroups.value);
+};
+
+const expandAllCategory = () => {
+  expandedCategoryGroups.value = new Set(summaryByCategory.value.map((_, i) => 'cat-' + i));
+};
+
+const collapseAllCategory = () => {
+  expandedCategoryGroups.value = new Set();
+};
+
+const normalizeLabel = (value) => String(value || '')
+  .normalize('NFD')
+  .replace(/[\u0300-\u036f]/g, '')
+  .toLowerCase()
+  .trim();
+
+const summaryByFruitDevState = computed(() => {
+  const activeKilosMatrix = selectedEstimateStatusId.value && props.kilosByEstimateFruitDevState?.[selectedEstimateStatusId.value]
+    ? props.kilosByEstimateFruitDevState[selectedEstimateStatusId.value]
+    : {};
+  const d = (dividir.value && divisor.value) ? divisor.value : 1;
+
+  return (props.fruitDevStateSummary || []).map(row => {
+    const fruitId = String(row.fruit_id);
+    const devStateId = String(row.development_state_id);
+    const kilos = Number(activeKilosMatrix?.[fruitId]?.[devStateId] || 0);
+    const directCostTotal = Number(row.direct_cost_total || 0) / d;
+    const adminFieldsTotal = Number(row.admin_fields_total || 0) / d;
+    const totalCost = Number(row.total_cost || 0) / d;
+    const surface = Number(row.surface || 0);
+
+    return {
+      ...row,
+      kilos,
+      surface,
+      directCostTotal,
+      adminFieldsTotal,
+      totalCost,
+      costPerHa: surface > 0 ? totalCost / surface : null,
+      costPerKg: kilos > 0 ? totalCost / kilos : null,
+    };
+  }).filter(row => row.surface > 0 || row.kilos > 0 || row.totalCost > 0)
+    .sort((left, right) => {
+      const fruitCompare = String(left.fruit_name || '').localeCompare(String(right.fruit_name || ''), 'es');
+      if (fruitCompare !== 0) return fruitCompare;
+
+      const leftIsProduction = normalizeLabel(left.development_state_name) === 'produccion';
+      const rightIsProduction = normalizeLabel(right.development_state_name) === 'produccion';
+
+      if (leftIsProduction !== rightIsProduction) {
+        return leftIsProduction ? -1 : 1;
+      }
+
+      return String(left.development_state_name || '').localeCompare(String(right.development_state_name || ''), 'es');
+    });
+});
 
 
 //(nombra los form en el grafico de barras)
@@ -356,7 +567,13 @@ onMounted(() => {
 </script>
 
 <style scoped>
-/* Puedes agregar aquí estilos personalizados si lo deseas */
+.dashboard-row-highlight > td {
+  background-color: rgba(149, 213, 178, 0.24) !important;
+}
+
+.dashboard-row-highlight-soft > td {
+  background-color: rgba(149, 213, 178, 0.12) !important;
+}
 </style>
 
 <template>
@@ -531,21 +748,21 @@ onMounted(() => {
               <h6 class="mb-0">Indicadores por rubro (porcentaje del total)</h6>
             </div>
             <div class="card-body pt-1 pb-1">
-              <div class="d-flex flex-nowrap overflow-auto justify-content-start align-items-center ">
+              <div class="d-flex flex-nowrap overflow-auto justify-content-center align-items-stretch w-100">
                 <div
                   v-for="(item, idx) in orderedMainTotalsAndPercents"
                   :key="'gauge-' + idx"
-                  class="falcon-gauge-card flex-grow-1 d-flex flex-column align-items-center justify-content-center mb-1 rounded"
+                  class="falcon-gauge-card d-flex flex-column align-items-center justify-content-center mb-1 rounded"
                   :class="{
                     'bg-secondary bg-opacity-10': item.label === 'Generales Campo' || item.label === 'Administración',
                     'bg-success bg-opacity-10': item.label === 'Cosecha'
                   }"
-                  style="min-width: 150px; max-width: 100px;"
+                  style="flex: 1 1 0; min-width: 120px;"
                 >
                   <div
-                    class="echart-gauge-ring-chart-example"
+                    class="echart-gauge-ring-chart-example mx-auto"
                     :id="'gauge-ring-' + idx"
-                    style="min-height: 120px; width: 100%;"
+                    style="min-height: 120px; width: 100%; max-width: 160px;"
                     data-echart-responsive="true"
                   ></div>
                   <div class="fw-semibold text-center mt-2 text-dark small">{{ item.label }}</div>
@@ -558,11 +775,263 @@ onMounted(() => {
         </div>
       </div>
 
+      <div class="row mt-4 mb-2" v-if="summaryByFruitDevState.length">
+        <div class="col-12">
+          <div class="d-flex align-items-center justify-content-between mb-2">
+            <h6 class="mb-0"><i class="fas fa-chart-line me-2 text-secondary"></i>KPI por Frutal / Estado de Desarrollo</h6>
+            <span class="badge bg-soft-primary text-primary">{{ dividir ? 'USD' : 'CLP' }}</span>
+          </div>
+        </div>
+      </div>
 
+      <div class="row g-3 mb-3" v-if="summaryByFruitDevState.length">
+        <div v-for="row in summaryByFruitDevState" :key="'fruit-dev-kpi-' + row.fruit_id + '-' + row.development_state_id" class="col-12 col-md-6 col-xl-4">
+          <div class="card border border-primary h-100">
+            <div class="card-header py-2 bg-primary bg-opacity-10">
+              <h6 class="mb-0 text-primary fw-bold"><i class="fas fa-apple-alt me-1" :class="normalizeLabel(row.fruit_name).includes('cerez') ? 'text-danger' : 'text-success'"></i>{{ row.fruit_name }}</h6>
+              <small class="text-muted">{{ row.development_state_name }}</small>
+            </div>
+            <div class="card-body py-2">
+              <div class="row g-1">
+                <div class="col-6">
+                  <small class="text-muted d-block">Superficie</small>
+                  <strong>{{ row.surface > 0 ? row.surface.toLocaleString('es-CL', { maximumFractionDigits: 1 }) + ' ha' : '-' }}</strong>
+                </div>
+                <div class="col-6">
+                  <small class="text-muted d-block">Kilos Est.</small>
+                  <strong>{{ row.kilos > 0 ? formatNumber(Math.round(row.kilos)) : '-' }}</strong>
+                </div>
+                <div class="col-6">
+                  <small class="text-muted d-block">Costo/Ha</small>
+                  <strong class="text-primary">{{ row.costPerHa !== null ? formatNumber(Math.round(row.costPerHa)) : '-' }}</strong>
+                </div>
+                <div class="col-6">
+                  <small class="text-muted d-block">Costo/Kg</small>
+                  <strong class="text-success">{{ row.costPerKg !== null ? row.costPerKg.toLocaleString('es-CL', { maximumFractionDigits: 2 }) : '-' }}</strong>
+                </div>
+                <div class="col-6">
+                  <small class="text-muted d-block">Costo Directo</small>
+                  <strong>{{ formatNumber(Math.round(row.directCostTotal)) }}</strong>
+                </div>
+                <div class="col-6">
+                  <small class="text-muted d-block">Adm + Campo</small>
+                  <strong>{{ formatNumber(Math.round(row.adminFieldsTotal)) }}</strong>
+                </div>
+                <div class="col-12 mt-1 border-top pt-1">
+                  <small class="text-muted d-block">Costo Total</small>
+                  <strong class="fs-6">
+                    {{ formatNumber(Math.round(row.totalCost)) }}
+                    <span style="font-size: 0.8em;">{{ dividir ? 'USD' : 'CLP' }}</span>
+                  </strong>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="row g-3 mb-3">
+        <div class="col-xl-6 d-flex">
+          <div class="card shadow-sm mt-2 border-0 bg-white w-100">
+            <div class="card-header bg-white border-0 pb-2 pt-3 d-flex align-items-center">
+              <span class="me-2"><span class="fas fa-chart-bar text-primary"></span></span>
+              <h6 class="mb-0">Gráfico: Totales agrupados por Nivel 1</h6>
+            </div>
+            <div class="card-body pt-3 pb-3 px-4">
+              <div class="falcon-bar-chart-container" style="height:320px;">
+                <FalconBarChart
+                  :barLabels="barChartFromTable.map(item => item.level1_name)"
+                  :barData="barChartFromTable.map(item => item.total_amount)"
+                  :color="barChartColors"
+                  :height="320"
+                  @bar-click="handleLevel1BarClick"
+                />
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="col-xl-6 d-flex">
+          <div class="card mt-2 w-100">
+            <div class="card-body bg-body-tertiary py-2 d-flex align-items-center justify-content-center">
+              <FalconPieChart :pieLabels="pieLabels" :pieDatasets="pieDatasets" />
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Tablas resumen presupuesto lado a lado -->
+      <div class="row mt-3 mb-2">
+        <!-- Tabla por Nivel 1 / Nivel 2 -->
+        <div class="col-xl-6">
+          <div class="card h-100">
+            <div class="card-header py-2 position-relative">
+              <h5 class="mb-0 text-center fs-8" style="font-weight: 600;">
+                <i class="fas fa-table text-info me-2"></i>
+                Resumen por Área (Nivel 1)
+              </h5>
+              <div class="position-absolute top-50 end-0 translate-middle-y me-3 d-flex align-items-center gap-2">
+                <div class="btn-group btn-group-sm" role="group">
+                  <button type="button" class="btn btn-outline-secondary btn-sm" @click="expandAllBudget" v-tooltip="'Expandir todo'">
+                    <i class="fas fa-expand-alt"></i>
+                  </button>
+                  <button type="button" class="btn btn-outline-secondary btn-sm" @click="collapseAllBudget" v-tooltip="'Colapsar todo'">
+                    <i class="fas fa-compress-alt"></i>
+                  </button>
+                </div>
+              </div>
+            </div>
+            <div class="card-body p-0">
+              <div class="table-responsive">
+                <table class="table table-hover align-middle mb-0" style="font-size: 0.9rem;">
+                  <thead class="bg-light">
+                    <tr>
+                      <th class="border-0 py-2">
+                        <span class="text-uppercase fw-bold">Nivel 1 / Nivel 2</span>
+                      </th>
+                      <th class="border-0 py-2 text-end">
+                        <span class="text-uppercase fw-bold">Monto</span>
+                      </th>
+                      <th class="border-0 py-2 text-end">
+                        <span class="text-uppercase fw-bold">% Total</span>
+                      </th>
+                      <th class="border-0 py-2 text-end">
+                        <span class="text-uppercase fw-bold">% Área</span>
+                      </th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <template v-for="(group, gi) in summaryByLevel12" :key="'bg-'+gi">
+                      <tr class="table-light" :class="{ 'dashboard-row-highlight': isSelectedLevel1(group.level1_id) }" style="cursor: pointer;" @click="toggleBudgetGroup('bg-'+gi)">
+                        <td class="py-2 fw-bold text-primary">
+                          <i class="fas me-2" :class="expandedBudgetGroups.has('bg-'+gi) ? 'fa-chevron-down' : 'fa-chevron-right'"></i>
+                          {{ group.level1_name }}
+                          <small class="text-muted ms-1">({{ group.level2s.length }})</small>
+                        </td>
+                        <td class="py-2 text-end fw-bold text-primary">
+                          {{ formatNumber(Math.round(group.total)) }}
+                        </td>
+                        <td class="py-2 text-end">
+                          <span class="badge bg-primary">{{ summaryGrandTotal > 0 ? ((group.total / summaryGrandTotal) * 100).toFixed(1) : '0.0' }}%</span>
+                        </td>
+                        <td class="py-2 text-end">
+                          <span class="badge bg-info">100%</span>
+                        </td>
+                      </tr>
+                      <tr v-if="expandedBudgetGroups.has('bg-'+gi)" v-for="l2 in group.level2s" :key="'bl2-'+group.level1_id+'-'+l2.level2_id" :class="{ 'dashboard-row-highlight-soft': isSelectedLevel1(group.level1_id) }">
+                        <td class="py-2 ps-5">{{ l2.level2_name }}</td>
+                        <td class="py-2 text-end">
+                          {{ formatNumber(Math.round(l2.total)) }}
+                        </td>
+                        <td class="py-2 text-end">
+                          <span class="badge bg-secondary">{{ summaryGrandTotal > 0 ? ((l2.total / summaryGrandTotal) * 100).toFixed(1) : '0.0' }}%</span>
+                        </td>
+                        <td class="py-2 text-end">
+                          <span class="badge bg-light text-dark">{{ group.total > 0 ? ((l2.total / group.total) * 100).toFixed(1) : '0.0' }}%</span>
+                        </td>
+                      </tr>
+                    </template>
+                    <tr class="table-primary fw-bold">
+                      <td class="py-2">Total</td>
+                      <td class="py-2 text-end">
+                        {{ formatNumber(Math.round(summaryGrandTotal)) }}
+                      </td>
+                      <td class="py-2 text-end"><span class="badge bg-primary">100%</span></td>
+                      <td class="py-2 text-end"><span class="text-muted">-</span></td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        </div>
+        <!-- Tabla por Categoría (Nivel 2) -->
+        <div class="col-xl-6">
+          <div class="card h-100">
+            <div class="card-header py-2 position-relative">
+              <h5 class="mb-0 text-center fs-8" style="font-weight: 600;">
+                <i class="fas fa-tags text-info me-2"></i>
+                Resumen por Categoría (Nivel 2)
+              </h5>
+              <div class="position-absolute top-50 end-0 translate-middle-y me-3 d-flex align-items-center gap-2">
+                <div class="btn-group btn-group-sm" role="group">
+                  <button type="button" class="btn btn-outline-secondary btn-sm" @click="expandAllCategory" v-tooltip="'Expandir todo'">
+                    <i class="fas fa-expand-alt"></i>
+                  </button>
+                  <button type="button" class="btn btn-outline-secondary btn-sm" @click="collapseAllCategory" v-tooltip="'Colapsar todo'">
+                    <i class="fas fa-compress-alt"></i>
+                  </button>
+                </div>
+              </div>
+            </div>
+            <div class="card-body p-0">
+              <div class="table-responsive">
+                <table class="table table-hover align-middle mb-0" style="font-size: 0.9rem;">
+                  <thead class="bg-light">
+                    <tr>
+                      <th class="border-0 py-2">
+                        <span class="text-uppercase fw-bold">Categoría / Área</span>
+                      </th>
+                      <th class="border-0 py-2 text-end">
+                        <span class="text-uppercase fw-bold">Monto</span>
+                      </th>
+                      <th class="border-0 py-2 text-end">
+                        <span class="text-uppercase fw-bold">% Total</span>
+                      </th>
+                      <th class="border-0 py-2 text-end">
+                        <span class="text-uppercase fw-bold">% Cat.</span>
+                      </th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <template v-for="(group, gi) in summaryByCategory" :key="'cat-'+gi">
+                      <tr class="table-light" :class="{ 'dashboard-row-highlight': categoryContainsSelectedLevel1(group) }" style="cursor: pointer;" @click="toggleCategoryGroup('cat-'+gi)">
+                        <td class="py-2 fw-bold text-primary">
+                          <i class="fas me-2" :class="expandedCategoryGroups.has('cat-'+gi) ? 'fa-chevron-down' : 'fa-chevron-right'"></i>
+                          {{ group.category_name }}
+                          <small class="text-muted ms-1">({{ group.items.length }})</small>
+                        </td>
+                        <td class="py-2 text-end fw-bold text-primary">
+                          {{ formatNumber(Math.round(group.total)) }}
+                        </td>
+                        <td class="py-2 text-end">
+                          <span class="badge bg-primary">{{ summaryGrandTotal > 0 ? ((group.total / summaryGrandTotal) * 100).toFixed(1) : '0.0' }}%</span>
+                        </td>
+                        <td class="py-2 text-end">
+                          <span class="badge bg-info">100%</span>
+                        </td>
+                      </tr>
+                      <tr v-if="expandedCategoryGroups.has('cat-'+gi)" v-for="item in group.items" :key="'cl1-'+gi+'-'+item._key" :class="{ 'dashboard-row-highlight-soft': isSelectedLevel1(item.level1_id) }">
+                        <td class="py-2 ps-5">{{ item.level1_name }} <span class="text-muted">({{ item.originalLabel }})</span></td>
+                        <td class="py-2 text-end">
+                          {{ formatNumber(Math.round(item.total)) }}
+                        </td>
+                        <td class="py-2 text-end">
+                          <span class="badge bg-secondary">{{ summaryGrandTotal > 0 ? ((item.total / summaryGrandTotal) * 100).toFixed(1) : '0.0' }}%</span>
+                        </td>
+                        <td class="py-2 text-end">
+                          <span class="badge bg-light text-dark">{{ group.total > 0 ? ((item.total / group.total) * 100).toFixed(1) : '0.0' }}%</span>
+                        </td>
+                      </tr>
+                    </template>
+                    <tr class="table-primary fw-bold">
+                      <td class="py-2">Total</td>
+                      <td class="py-2 text-end">
+                        {{ formatNumber(Math.round(summaryGrandTotal)) }}
+                      </td>
+                      <td class="py-2 text-end"><span class="badge bg-primary">100%</span></td>
+                      <td class="py-2 text-end"><span class="text-muted">-</span></td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
 
       <div class="row g-2 g-xl-3">
         <!-- Columna izquierda: Weather, superficie, total presupuestos -->
-        <div class="col-xl-5 col-lg-6 d-flex flex-column">
+        <div class="col-12 d-flex flex-column">
           <!-- Weather card (comentado) -->
           <!--
           <div class="card mb-3" v-if="weather">
@@ -720,30 +1189,6 @@ onMounted(() => {
             </div>
           </div>
        
-        </div>
-        <!-- Columna derecha: Pie chart y gráfico de barras -->
-        <div class="col-xl-7 col-lg-6 d-flex flex-column">
-          <!-- Gráfico de barras Falcon modernizado -->
-          <div class="card shadow-sm mb-3 mt-2 border-0 bg-white">
-            <div class="card-header bg-white border-0 pb-2 pt-3 d-flex align-items-center">
-              <span class="me-2"><span class="fas fa-chart-bar text-primary"></span></span>
-              <h6 class="mb-0">Gráfico: Totales agrupados por Nivel 1</h6>
-            </div>
-            <div class="card-body pt-3 pb-3 px-4">
-              <div class="falcon-bar-chart-container" style="height:320px;">
-                <FalconBarChart
-                  :barLabels="barChartFromTable.map(item => item.level1_name)"
-                  :barData="barChartFromTable.map(item => item.total_amount)"
-                  :height="320"
-                />
-              </div>
-            </div>
-          </div>
-          <div class="card h-100">
-            <div class="card-body bg-body-tertiary py-2">
-              <FalconPieChart :pieLabels="pieLabels" :pieDatasets="pieDatasets" />
-            </div>
-          </div>
         </div>
       </div>
     </div>

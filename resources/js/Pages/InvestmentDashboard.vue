@@ -264,6 +264,11 @@ function createComparisonBarChart() {
             responsive: true,
             maintainAspectRatio: false,
             plugins: {
+                legend: {
+                    labels: {
+                        font: { size: 13 }
+                    }
+                },
                 title: {
                     display: true,
                     text: t.value.comparisonTitle + (dividir.value ? ' (USD)' : ' (CLP)'),
@@ -284,9 +289,15 @@ function createComparisonBarChart() {
                 x: {
                     beginAtZero: true,
                     ticks: {
+                        font: { size: 13 },
                         callback: function(value) {
                             return '$' + (value / 1000000).toFixed(1) + 'M';
                         }
+                    }
+                },
+                y: {
+                    ticks: {
+                        font: { size: 13 }
                     }
                 }
             }

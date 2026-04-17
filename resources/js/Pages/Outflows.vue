@@ -151,7 +151,7 @@ const filteredOutflowDetails = computed(() => {
 });
 // Convierte los centros de costo en string para exportar a Excel
 const outflowsExcelData = computed(() => {
-  return props.outflowDetails.map(outflow => {
+  return sortedOutflowDetails.value.map(outflow => {
     const precioNum = Number(outflow.unit_price);
     const cantidad = Number(outflow.quantity);
     const totalNum = (!isNaN(precioNum) && !isNaN(cantidad)) ? precioNum * cantidad : '';
