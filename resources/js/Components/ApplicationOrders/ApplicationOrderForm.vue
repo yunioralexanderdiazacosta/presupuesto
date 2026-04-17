@@ -149,7 +149,7 @@ function addProduct() {
         return;
     }
     
-    if (!newProduct.value.carencia || !newProduct.value.reingreso) {
+    if (newProduct.value.carencia === '' || newProduct.value.carencia === null || newProduct.value.reingreso === '' || newProduct.value.reingreso === null) {
         Swal.fire('Error', 'Debe ingresar carencia y reingreso', 'error');
         return;
     }
@@ -230,6 +230,11 @@ function removeProduct(index) {
 function getProductName(productId) {
     const product = productsOptions.value.find(p => p.value === productId);
     return product?.label || '';
+}
+
+function getProductActiveIngredient(productId) {
+    const product = productsOptions.value.find(p => p.value === productId);
+    return product?.active_ingredient || '-';
 }
 
 function getProductUnitName(productId) {
@@ -731,6 +736,7 @@ function getSimplifiedQuantity(product) {
                         <input
                             v-model="newProduct.carencia"
                             type="number"
+                            min="0"
                             class="form-control form-control-sm"
                             placeholder="0"
                         />
@@ -741,6 +747,7 @@ function getSimplifiedQuantity(product) {
                         <input
                             v-model="newProduct.reingreso"
                             type="number"
+                            min="0"
                             class="form-control form-control-sm"
                             placeholder="0"
                         />
@@ -775,6 +782,7 @@ function getSimplifiedQuantity(product) {
                 <thead class="table-light">
                     <tr>
                         <th class="small">Producto</th>
+                        <th class="small">Ingrediente Activo</th>
                         <th class="small">Tipo Dosis</th>
                         <th class="text-end small">Dosis</th>
                         <th class="text-end small">Cantidad/ha</th>
@@ -787,6 +795,7 @@ function getSimplifiedQuantity(product) {
                 <tbody>
                     <tr v-for="(product, index) in form.products" :key="index">
                         <td class="small">{{ getProductName(product.product_id) }}</td>
+                        <td class="small text-muted">{{ getProductActiveIngredient(product.product_id) }}</td>
                         <td>
                             <span v-if="product.tipo_dosis === 'por_hectarea'" class="badge badge-sm bg-primary">Hectárea</span>
                             <span v-else class="badge badge-sm bg-info">100L</span>

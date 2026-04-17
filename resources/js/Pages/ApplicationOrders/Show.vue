@@ -33,6 +33,17 @@ const totalHectareas = computed(() => {
     }, 0) || 0;
 });
 
+// Dividir CC en columnas de máximo 10
+const ccColumns = computed(() => {
+    const items = props.applicationOrder.order_cost_centers || [];
+    const maxPerCol = 10;
+    const cols = [];
+    for (let i = 0; i < items.length; i += maxPerCol) {
+        cols.push(items.slice(i, i + maxPerCol));
+    }
+    return cols.length ? cols : [[]];
+});
+
 const maquinadas = computed(() => {
     const mojamiento = Number(props.applicationOrder.mojamiento || 0);
     const hectareas = totalHectareas.value;
@@ -312,34 +323,43 @@ function getPracticalQuantityPerHa(value, unitName) {
                     </h5>
                 </div>
                 <div class="card-body">
-                    <div v-if="applicationOrder.order_cost_centers?.length > 0" class="table-responsive" style="max-height: 400px; overflow-y: auto;">
-                        <table class="table table-hover table-sm">
-                            <thead class="table-light sticky-top">
-                                <tr>
-                                    <th>#</th>
-                                    <th>Centro de Costo</th>
-                                    <th class="text-end">Superficie (ha)</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                <tr v-for="(occ, index) in applicationOrder.order_cost_centers" :key="occ.id">
-                                    <td>{{ index + 1 }}</td>
-                                    <td>
-                                        <i class="fas fa-map-marker-alt text-muted me-2"></i>
-                                        {{ occ.cost_center?.name || 'N/A' }}
-                                    </td>
-                                    <td class="text-end">
-                                        {{ Number(occ.cost_center?.surface || 0).toLocaleString('es-ES', {minimumFractionDigits: 2}) }}
-                                    </td>
-                                </tr>
-                            </tbody>
-                            <tfoot class="table-light sticky-bottom">
-                                <tr>
-                                    <th colspan="2" class="text-end">Total:</th>
-                                    <th class="text-end">{{ totalHectareas.toLocaleString('es-ES', {minimumFractionDigits: 2}) }} ha</th>
-                                </tr>
-                            </tfoot>
-                        </table>
+                    <div v-if="applicationOrder.order_cost_centers?.length > 0" class="row g-2">
+                        <div v-for="(col, colIdx) in ccColumns" :key="colIdx" :class="ccColumns.length === 1 ? 'col-12' : ccColumns.length === 2 ? 'col-md-6' : 'col-md-4'">
+                            <table class="table table-hover table-sm mb-0">
+                                <thead class="table-light" v-if="colIdx === 0">
+                                    <tr>
+                                        <th style="width: 40px;">#</th>
+                                        <th>Centro de Costo</th>
+                                        <th class="text-end" style="width: 110px;">Superficie</th>
+                                    </tr>
+                                </thead>
+                                <thead class="table-light" v-else>
+                                    <tr>
+                                        <th style="width: 40px;">#</th>
+                                        <th>Centro de Costo</th>
+                                        <th class="text-end" style="width: 110px;">Superficie</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr v-for="(occ, index) in col" :key="occ.id">
+                                        <td>{{ colIdx * 15 + index + 1 }}</td>
+                                        <td>
+                                            <i class="fas fa-map-marker-alt text-muted me-1"></i>
+                                            {{ occ.cost_center?.name || 'N/A' }}
+                                        </td>
+                                        <td class="text-end">
+                                            {{ Number(occ.cost_center?.surface || 0).toLocaleString('es-ES', {minimumFractionDigits: 2}) }}
+                                        </td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                        <div class="col-12">
+                            <div class="bg-primary text-white fw-bold d-flex justify-content-between px-3 py-1 rounded-bottom" style="font-size: 0.85rem;">
+                                <span>TOTAL:</span>
+                                <span>{{ totalHectareas.toLocaleString('es-ES', {minimumFractionDigits: 2}) }} ha</span>
+                            </div>
+                        </div>
                     </div>
                     <div v-else class="alert alert-warning">
                         <i class="fas fa-exclamation-triangle me-2"></i>
@@ -362,6 +382,7 @@ function getPracticalQuantityPerHa(value, unitName) {
                                 <tr>
                                     <th>#</th>
                                     <th>Producto</th>
+                                    <th>Ingrediente Activo</th>
                                     <th>Tipo Dosis</th>
                                     <th class="text-end">Dosis</th>
                                     <th class="text-end">Cantidad/ha</th>
@@ -377,6 +398,7 @@ function getPracticalQuantityPerHa(value, unitName) {
                                         <i class="fas fa-flask text-muted me-2"></i>
                                         <strong>{{ op.product?.name || 'N/A' }}</strong>
                                     </td>
+                                    <td class="text-muted">{{ op.product?.active_ingredient || '-' }}</td>
                                     <td>
                                         <span v-if="op.tipo_dosis === 'por_hectarea'" class="badge bg-primary">
                                             Por Hectárea

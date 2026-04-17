@@ -366,34 +366,48 @@
     <!-- Centros de Costo -->
     <div class="info-section" style="border-left-color: #28a745;">
         <h2>:: Centros de Costo</h2>
-        <table>
-            <thead>
-                <tr>
-                    <th style="width: 10%;">#</th>
-                    <th>Centro de Costo</th>
-                    <th class="text-right" style="width: 25%;">Superficie (ha)</th>
-                </tr>
-            </thead>
-            <tbody>
-                @forelse($order->orderCostCenters as $index => $occ)
-                <tr>
-                    <td>{{ $index + 1 }}</td>
-                    <td>{{ $occ->costCenter->name ?? 'N/A' }}</td>
-                    <td class="text-right">{{ number_format($occ->costCenter->surface ?? 0, 2, ',', '.') }}</td>
-                </tr>
-                @empty
-                <tr>
-                    <td colspan="3" class="text-center" style="color: #999;">No hay centros de costo asociados</td>
-                </tr>
-                @endforelse
-            </tbody>
-            <tfoot>
-                <tr class="total-highlight">
-                    <td colspan="2" class="text-right">TOTAL:</td>
-                    <td class="text-right">{{ number_format($totalHectareas, 2, ',', '.') }} ha</td>
-                </tr>
-            </tfoot>
+        @if($order->orderCostCenters->count() > 0)
+        @php
+            $ccItems = $order->orderCostCenters->values();
+            $maxPerCol = 15;
+            $ccChunks = $ccItems->chunk($maxPerCol);
+            $numCols = $ccChunks->count();
+            $colWidth = floor(100 / $numCols);
+        @endphp
+        <table style="border: none; margin: 0; width: 100%;">
+            <tr>
+                @foreach($ccChunks as $chunkIdx => $chunk)
+                <td style="width: {{ $colWidth }}%; border: none; padding: 0 {{ $chunkIdx > 0 ? '0 0 4px' : '0' }}; vertical-align: top;">
+                    <table style="width: 100%; margin: 0;">
+                        <thead>
+                            <tr>
+                                <th style="width: 25px;">#</th>
+                                <th>Centro de Costo</th>
+                                <th class="text-right" style="width: 60px;">Ha</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach($chunk as $occ)
+                            <tr>
+                                <td>{{ $loop->parent->index * $maxPerCol + $loop->iteration }}</td>
+                                <td>{{ $occ->costCenter->name ?? 'N/A' }}</td>
+                                <td class="text-right">{{ number_format($occ->costCenter->surface ?? 0, 2, ',', '.') }}</td>
+                            </tr>
+                            @endforeach
+                        </tbody>
+                    </table>
+                </td>
+                @endforeach
+            </tr>
         </table>
+        <table style="margin: 0; width: 100%;">
+            <tr class="total-highlight">
+                <td class="text-right" style="font-weight: bold;">TOTAL: {{ number_format($totalHectareas, 2, ',', '.') }} ha</td>
+            </tr>
+        </table>
+        @else
+        <p style="color: #999; text-align: center;">No hay centros de costo asociados</p>
+        @endif
     </div>
 
     <!-- Productos a Aplicar -->
@@ -406,8 +420,9 @@
             <thead>
                 <tr>
                     <th style="width: 5%;">#</th>
-                    <th style="width: 20%;">Producto</th>
-                    <th style="width: 12%;">Tipo Dosis</th>
+                    <th style="width: 16%;">Producto</th>
+                    <th style="width: 14%;">Ing. Activo</th>
+                    <th style="width: 10%;">Tipo Dosis</th>
                     <th class="text-right" style="width: 15%;">Dosis</th>
                     <th class="text-right" style="width: 13%;">Cant./ha</th>
                     <th class="text-right" style="width: 15%;">Cant. Total</th>
@@ -420,6 +435,7 @@
                 <tr>
                     <td>{{ $index + 1 }}</td>
                     <td><strong>{{ $op->product->name ?? 'N/A' }}</strong></td>
+                    <td style="color: #666;">{{ $op->product->active_ingredient ?? '-' }}</td>
                     <td>
                         @if($op->tipo_dosis === 'por_hectarea')
                             <span class="badge-primary">Por Hectárea</span>
@@ -461,7 +477,7 @@
                 </tr>
                 @empty
                 <tr>
-                    <td colspan="8" class="text-center" style="color: #999;">No hay productos asociados</td>
+                    <td colspan="9" class="text-center" style="color: #999;">No hay productos asociados</td>
                 </tr>
                 @endforelse
             </tbody>
@@ -568,7 +584,7 @@
 
     <!-- Pie de página -->
     <div class="footer">
-        <p>Este documento es una orden de aplicación generada por el sistema de gestión presupuestaria.</p>
+        <p>Este documento es una orden de aplicación generada por el sistema de gestión agrícola Alisoft.</p>
         <p>Generado el {{ now()->format('d/m/Y H:i:s') }}</p>
     </div>
 </body>
