@@ -11,10 +11,13 @@ import Empty from '@/Components/Empty.vue';
 import Breadcrumb from '@/Components/Breadcrumb.vue';
 import CreateProductModal from '@/Components/Products/CreateProductModal.vue';
 import EditProductModal from '@/Components/Products/EditProductModal.vue';
+import CopyProductsModal from '@/Components/Products/CopyProductsModal.vue';
 
 const props = defineProps({
     products: Object,
-    term: String
+    term: String,
+    canCopyProducts: Boolean,
+    teams: Array,
 });
 
 const form = useForm({
@@ -33,6 +36,13 @@ const form = useForm({
 });
 
 const title = 'Productos';
+
+const copyModalRef = ref(null);
+
+const openCopy = () => {
+    if (copyModalRef.value) copyModalRef.value.reset();
+    $('#copyProductsModal').modal('show');
+};
 
 // Buscador global para la tabla de productos
 const search = ref("");
@@ -232,6 +242,15 @@ const sortClass = (field) => ({
                                 <span class="fas fa-plus" data-fa-transform="shrink-3 down-2"></span>
                                 <span class="d-none d-sm-inline-block ms-1">Nuevo</span>
                             </button>
+                            <button 
+                                v-if="canCopyProducts"
+                                class="btn btn-falcon-default btn-sm" 
+                                type="button" 
+                                @click="openCopy()"
+                            >
+                                <span class="fas fa-copy" data-fa-transform="shrink-3 down-2"></span>
+                                <span class="d-none d-sm-inline-block ms-1">Copiar</span>
+                            </button>
                         </div>
                     </div>
                 </div>
@@ -346,6 +365,7 @@ const sortClass = (field) => ({
      </div>
         <CreateProductModal @store="storeProduct" :form="form" />
         <EditProductModal @update="updateProduct" :form="form" />
+        <CopyProductsModal v-if="canCopyProducts" ref="copyModalRef" :teams="teams" />
     </AppLayout>
 </template>
 

@@ -9,6 +9,7 @@ use App\Models\Level1;
 use App\Models\Level2;
 use App\Models\Level3;
 use App\Models\Product;
+use App\Models\Team;
 use Inertia\Inertia;
 
 class ProductsController extends Controller
@@ -75,6 +76,16 @@ class ProductsController extends Controller
         ->paginate(5000)
         ->withQueryString();
 
-        return Inertia::render('Products', compact('units', 'level1s', 'level2s','level3s', 'products', 'term'));
+        $canCopyProducts = $user->hasPermissionTo('copy-products');
+
+        $teams = [];
+        if ($canCopyProducts) {
+            $teams = Team::where('id', '!=', $user->team_id)
+                ->orderBy('name')
+                ->get(['id', 'name'])
+                ->map(fn($team) => ['value' => $team->id, 'label' => $team->name]);
+        }
+
+        return Inertia::render('Products', compact('units', 'level1s', 'level2s', 'level3s', 'products', 'term', 'canCopyProducts', 'teams'));
     }
 }

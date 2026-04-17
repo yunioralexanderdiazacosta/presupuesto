@@ -48,7 +48,7 @@ const visibility = () => {
         <div class="text-center mb-4">
           <img :src="path + '/assets/img/icons/spot-illustrations/alisoft.png'" alt="Alisoft" width="130" class="mb-2" />
           <h4 class="font-sans-serif text-primary fw-bolder mb-0">Alisoft</h4>
-          <p class="text-muted fs-10 mb-0">Sistema de Gestión Presupuestaria</p>
+          <p class="text-muted fs-10 mb-0">Sistema de Gestión Agrícola</p>
         </div>
 
         <!-- Card -->

@@ -279,6 +279,14 @@ const items = [
         directLink: true,
         subitems: [],
         role: 'Super Admin'
+    },
+
+    {
+        title: 'Configuración',
+        icon: `<i class="bi bi-gear"></i>`,
+        link: 'system-settings.index',
+        subitems: [],
+        role: 'Super Admin'
     }
 ];
 

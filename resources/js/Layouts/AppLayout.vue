@@ -250,6 +250,14 @@ const navigateTo = (routeName) => {
             <span class="nav-link-text ps-1">Accesos</span>
           </div>
         </Link>
+        <Link class="nav-link" :href="route('system-settings.index')" role="button">
+          <div class="d-flex align-items-center">
+            <span class="nav-link-icon">
+              <span class="fas fa-cogs"></span>
+            </span>
+            <span class="nav-link-text ps-1">Configuración</span>
+          </div>
+        </Link>
       </li>
             <li class="nav-item" v-role="'Admin'">
           

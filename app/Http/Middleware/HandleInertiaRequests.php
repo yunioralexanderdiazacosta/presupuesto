@@ -69,6 +69,7 @@ class HandleInertiaRequests extends Middleware
                 'error' => fn () => $request->session()->get('error'),
                 'success' => fn () => $request->session()->get('success'),
                 'info' => fn () => $request->session()->get('info'),
+                'copy_warnings' => fn () => $request->session()->get('copy_warnings'),
             ],
             'lifetime' => env('SESSION_LIFETIME'),
             'appVersion' => config('app.version'),

@@ -167,6 +167,12 @@ use App\Http\Controllers\Suppliers\DeleteSupplierController;
 use App\Http\Controllers\Products\StoreProductController;
 use App\Http\Controllers\Products\UpdateProductController;
 use App\Http\Controllers\Products\DeleteProductController;
+use App\Http\Controllers\Products\CopyProductsController;
+
+// Rutas para System Settings
+use App\Http\Controllers\SystemSettingsController;
+use App\Http\Controllers\TogglePermissionController;
+use App\Http\Controllers\Api\GetTeamsController;
 use App\Http\Controllers\CompanyReasons\StoreCompanyReasonController;
 use App\Http\Controllers\CompanyReasons\UpdateCompanyReasonController;
 use App\Http\Controllers\CompanyReasons\DeleteCompanyReasonController;
@@ -500,6 +506,10 @@ Route::middleware([
 
     Route::get('/teams', TeamsController::class)->name('teams.index');
     Route::get('/login-logs', LoginLogController::class)->name('login-logs.index');
+
+    // Rutas para Configuración del Sistema (Super Admin)
+    Route::get('/system-settings', SystemSettingsController::class)->name('system-settings.index');
+    Route::post('/system-settings/toggle-permission', TogglePermissionController::class)->name('system-settings.toggle');
     Route::get('/budgets', BudgetsController::class)->name('budgets.index');
     Route::get('/suppliers', SuppliersController::class)->name('suppliers.index');
     Route::get('/products', ProductsController::class)->name('products.index');
@@ -544,6 +554,9 @@ Route::middleware([
     Route::post('/products/store', StoreProductController::class)->name('products.store');
     Route::post('/products/{product}/update', UpdateProductController::class)->name('products.update');
     Route::delete('/products/{product}/delete', DeleteProductController::class)->name('products.delete');
+    Route::post('/products/copy', CopyProductsController::class)->name('products.copy');
+    Route::get('/api/products/copy-preview', [CopyProductsController::class, 'preview'])->name('products.copy.preview');
+    Route::get('/api/teams', GetTeamsController::class)->name('api.teams');
 
     Route::get('/company-reasons/pdf', CompanyReasonsPdfController::class)->name('company.reasons.pdf');
     Route::get('/company-reasons/excel', CompanyReasonsExcelController::class)->name('company.reasons.excel');

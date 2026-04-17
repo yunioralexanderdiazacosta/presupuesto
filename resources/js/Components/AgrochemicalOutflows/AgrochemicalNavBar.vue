@@ -5,7 +5,7 @@ const currentUrl = usePage().url;
 
 const tabs = [
     { label: 'Órdenes de Aplicación', route: 'application-orders.index', icon: 'fas fa-clipboard-list' },
-    { label: 'Aplicaciones', route: 'agrochemical-outflows.index', icon: 'fas fa-spray-can' },
+    { label: 'Registro de Aplicaciones', route: 'agrochemical-outflows.index', icon: 'fas fa-spray-can' },
     { label: 'Libro de Campo', route: 'libro-campo.index', icon: 'fas fa-book' },
 ];
 
