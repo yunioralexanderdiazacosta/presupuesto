@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="es">
 <head>
     <meta charset="UTF-8">
@@ -32,7 +32,7 @@
     <div class="employee-section">
         <div class="header">
             <h1>Detalle de Tarjas</h1>
-            <p>{{ $team->name ?? '' }} — {{ \Carbon\Carbon::parse($month . '-01')->translatedFormat('F Y') }}</p>
+            <p>{{ $team->name ?? '' }} â€” {{ \Carbon\Carbon::parse($month . '-01')->translatedFormat('F Y') }}</p>
         </div>
         <div class="employee-header">{{ $emp['full_name'] }}</div>
         <div class="employee-info">RUT: {{ $emp['rut'] }} | Cargo: {{ $emp['position'] ?: '-' }}</div>
@@ -47,7 +47,7 @@
                     <th class="text-right" style="width:50px">Tarifa</th>
                     <th class="text-center" style="width:35px">Cant.</th>
                     <th class="text-right" style="width:60px">Monto</th>
-                    <th class="text-center" style="width:35px">Hrs</th>
+                    <th class="text-center" style="width:35px">JH</th>
                     <th class="text-right" style="width:50px">Bono</th>
                     <th>C.Costo</th>
                 </tr>
@@ -61,7 +61,7 @@
                             <td>{{ \Carbon\Carbon::parse($date)->format('d/m') }}</td>
                             <td class="text-center">
                                 <span class="badge {{ ($line->payment_type ?? 'trato') === 'dia' ? 'badge-dia' : 'badge-trato' }}">
-                                    {{ ($line->payment_type ?? 'trato') === 'dia' ? 'Día' : 'Trato' }}
+                                    {{ ($line->payment_type ?? 'trato') === 'dia' ? 'DÃ­a' : 'Trato' }}
                                 </span>
                             </td>
                             <td>{{ $line->laborType?->name }}</td>
@@ -69,7 +69,7 @@
                             <td class="text-right">{{ number_format($line->rate, 0, ',', '.') }}</td>
                             <td class="text-center">{{ $line->quantity }}</td>
                             <td class="text-right">{{ number_format($line->amount, 0, ',', '.') }}</td>
-                            <td class="text-center">{{ $line->hours }}</td>
+                            <td class="text-center">{{ $line->workdays }}</td>
                             <td class="text-right">{{ $line->bonus_amount ? number_format($line->bonus_amount, 0, ',', '.') : '' }}</td>
                             <td>{{ $line->costCenter?->name }}</td>
                         </tr>
@@ -79,7 +79,7 @@
                 <tr class="subtotal-row">
                     <td colspan="6" style="text-align:right">TOTAL {{ $emp['full_name'] }}</td>
                     <td class="text-right">{{ number_format($emp['grand_total_amount'], 0, ',', '.') }}</td>
-                    <td class="text-center">{{ $emp['grand_total_hours'] }}</td>
+                    <td class="text-center">{{ $emp['grand_total_workdays'] }}</td>
                     <td class="text-right">{{ number_format($emp['grand_total_bonus'], 0, ',', '.') }}</td>
                     <td></td>
                 </tr>
@@ -93,7 +93,7 @@
         <tr class="total-row">
             <td colspan="6" style="text-align:right">TOTAL GENERAL</td>
             <td class="text-right">{{ number_format(collect($employees)->sum('grand_total_amount'), 0, ',', '.') }}</td>
-            <td class="text-center">{{ collect($employees)->sum('grand_total_hours') }}</td>
+            <td class="text-center">{{ collect($employees)->sum('grand_total_workdays') }}</td>
             <td class="text-right">{{ number_format(collect($employees)->sum('grand_total_bonus'), 0, ',', '.') }}</td>
             <td></td>
         </tr>

@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="es">
 <head>
     <meta charset="UTF-8">
@@ -25,7 +25,7 @@
 <body>
     <div class="header">
         <h1>Planilla de Tarjas</h1>
-        <p>{{ $team->name ?? '' }} — {{ \Carbon\Carbon::parse($month . '-01')->translatedFormat('F Y') }}</p>
+        <p>{{ $team->name ?? '' }} â€” {{ \Carbon\Carbon::parse($month . '-01')->translatedFormat('F Y') }}</p>
     </div>
 
     <table>
@@ -37,7 +37,7 @@
                 @endforeach
                 <th>Total $</th>
                 <th>Bono $</th>
-                <th>Hrs</th>
+                <th>JH</th>
             </tr>
         </thead>
         <tbody>
@@ -49,7 +49,7 @@
                 @endforeach
                 <td class="fw-bold text-right">{{ number_format($emp['grand_total_amount'], 0, ',', '.') }}</td>
                 <td class="text-right">{{ number_format($emp['grand_total_bonus'], 0, ',', '.') }}</td>
-                <td>{{ $emp['grand_total_hours'] }}</td>
+                <td>{{ $emp['grand_total_workdays'] }}</td>
             </tr>
             @endforeach
             <tr class="total-row">
@@ -60,7 +60,7 @@
                 @endforeach
                 <td class="text-right">{{ number_format(collect($employees)->sum('grand_total_amount'), 0, ',', '.') }}</td>
                 <td class="text-right">{{ number_format(collect($employees)->sum('grand_total_bonus'), 0, ',', '.') }}</td>
-                <td>{{ collect($employees)->sum('grand_total_hours') }}</td>
+                <td>{{ collect($employees)->sum('grand_total_workdays') }}</td>
             </tr>
         </tbody>
     </table>

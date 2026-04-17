@@ -1,4 +1,4 @@
-<script setup>
+﻿<script setup>
 import { ref, computed, watch, reactive } from 'vue';
 import { router } from '@inertiajs/vue3';
 import axios from 'axios';
@@ -52,7 +52,7 @@ const employeeOptions = computed(() => {
     return reportData.value.employees.map(e => ({ value: e.id, label: e.full_name + ' (' + e.rut + ')' }));
 });
 
-// Días cortos para header planilla
+// DÃ­as cortos para header planilla
 function dayShort(dateStr) {
     const d = new Date(dateStr + 'T12:00:00');
     return d.getDate();
@@ -60,7 +60,7 @@ function dayShort(dateStr) {
 
 function dayName(dateStr) {
     const d = new Date(dateStr + 'T12:00:00');
-    const names = ['Do', 'Lu', 'Ma', 'Mi', 'Ju', 'Vi', 'Sá'];
+    const names = ['Do', 'Lu', 'Ma', 'Mi', 'Ju', 'Vi', 'SÃ¡'];
     return names[d.getDay()];
 }
 
@@ -243,7 +243,7 @@ function exportPdf(mode) {
                             <th class="text-end bg-200" style="min-width:60px;">Bono $</th>
                             <th class="text-end bg-200" style="min-width:60px;">P.Obj $</th>
                             <th class="text-end bg-200" style="min-width:70px;">Total $</th>
-                            <th class="text-center bg-200" style="min-width:40px;">Hrs</th>
+                            <th class="text-center bg-200" style="min-width:40px;">JH</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -263,7 +263,7 @@ function exportPdf(mode) {
                             <td class="text-end" style="font-size:0.7rem;">{{ emp.grand_total_bonus ? fmt(emp.grand_total_bonus) : '' }}</td>
                             <td class="text-end text-warning" style="font-size:0.7rem;">{{ emp.grand_total_target_bonus ? fmt(emp.grand_total_target_bonus) : '' }}</td>
                             <td class="text-end fw-bold text-primary" style="font-size:0.7rem;">{{ fmt(emp.grand_total_amount + (emp.grand_total_bonus || 0) + (emp.grand_total_target_bonus || 0)) }}</td>
-                            <td class="text-center" style="font-size:0.7rem;">{{ emp.grand_total_hours }}</td>
+                            <td class="text-center" style="font-size:0.7rem;">{{ emp.grand_total_workdays }}</td>
                         </tr>
                     </tbody>
                     <tfoot class="bg-100">
@@ -279,7 +279,7 @@ function exportPdf(mode) {
                             <td class="text-end" style="font-size:0.75rem;">{{ fmt(reportData.totals.bonus) }}</td>
                             <td class="text-end text-warning" style="font-size:0.75rem;">{{ fmt(reportData.totals.target_bonus) }}</td>
                             <td class="text-end text-primary" style="font-size:0.75rem;">{{ fmt(reportData.totals.amount + reportData.totals.bonus + reportData.totals.target_bonus) }}</td>
-                            <td class="text-center" style="font-size:0.75rem;">{{ reportData.totals.hours }}</td>
+                            <td class="text-center" style="font-size:0.75rem;">{{ reportData.totals.workdays }}</td>
                         </tr>
                     </tfoot>
                 </table>
@@ -318,19 +318,19 @@ function exportPdf(mode) {
                             </div>
                             <div class="col">
                                 <div class="card bg-soft-warning text-center p-2">
-                                    <small class="text-muted">Total Horas</small>
-                                    <strong>{{ emp.grand_total_hours }}h</strong>
+                                    <small class="text-muted">Total Jornadas</small>
+                                    <strong>{{ emp.grand_total_workdays }} JH</strong>
                                 </div>
                             </div>
                             <div class="col">
                                 <div class="card bg-soft-primary text-center p-2">
-                                    <small class="text-muted">Días Trabajados</small>
+                                    <small class="text-muted">DÃ­as Trabajados</small>
                                     <strong>{{ emp.days_worked }}</strong>
                                 </div>
                             </div>
                         </div>
 
-                        <!-- Tabla detalle día a día -->
+                        <!-- Tabla detalle dÃ­a a dÃ­a -->
                         <div class="table-responsive">
                             <table class="table table-sm table-bordered fs--2 mb-0">
                                 <thead class="bg-200">
@@ -342,7 +342,7 @@ function exportPdf(mode) {
                                         <th class="text-end" style="width:55px">Tarifa</th>
                                         <th class="text-center" style="width:40px">Cant.</th>
                                         <th class="text-end" style="width:65px">Monto</th>
-                                        <th class="text-center" style="width:40px">Hrs</th>
+                                        <th class="text-center" style="width:40px">JH</th>
                                         <th class="text-end" style="width:55px">Bono</th>
                                         <th class="text-end" style="width:55px">P.Obj</th>
                                         <th>C.Costo</th>
@@ -355,7 +355,7 @@ function exportPdf(mode) {
                                                 <td>{{ new Date(date + 'T12:00:00').toLocaleDateString('es-CL', { day: '2-digit', month: '2-digit' }) }}</td>
                                                 <td class="text-center">
                                                     <span class="badge" :class="line.payment_type === 'dia' ? 'bg-info' : 'bg-primary'" style="font-size:0.6rem;">
-                                                        {{ line.payment_type === 'dia' ? 'Día' : 'Trato' }}
+                                                        {{ line.payment_type === 'dia' ? 'DÃ­a' : 'Trato' }}
                                                     </span>
                                                 </td>
                                                 <td>{{ line.labor_type }}</td>
@@ -363,19 +363,19 @@ function exportPdf(mode) {
                                                 <td class="text-end">{{ fmt(line.rate) }}</td>
                                                 <td class="text-center">{{ line.quantity }}</td>
                                                 <td class="text-end fw-semi-bold">{{ fmt(line.amount) }}</td>
-                                                <td class="text-center">{{ line.hours }}</td>
+                                                <td class="text-center">{{ line.workdays }}</td>
                                                 <td class="text-end">{{ line.bonus_amount ? fmt(line.bonus_amount) : '' }}</td>
                                                 <td class="text-end text-warning">{{ line.target_price_bonus ? fmt(line.target_price_bonus) : '' }}</td>
                                                 <td>{{ line.cost_center }}</td>
                                             </tr>
-                                            <!-- Subtotal del día (solo si hay más de 1 línea) -->
+                                            <!-- Subtotal del dÃ­a (solo si hay mÃ¡s de 1 lÃ­nea) -->
                                             <tr v-if="emp.days[date].lines.length > 1" class="bg-100">
                                                 <td colspan="6" class="fw-semi-bold small text-end">
                                                     {{ new Date(date + 'T12:00:00').toLocaleDateString('es-CL', { weekday: 'short', day: '2-digit', month: '2-digit' }) }}
-                                                    — Subtotal:
+                                                    â€” Subtotal:
                                                 </td>
                                                 <td class="text-end fw-bold small">${{ fmt(emp.days[date].amount) }}</td>
-                                                <td class="text-center fw-bold small">{{ emp.days[date].hours }}h</td>
+                                                <td class="text-center fw-bold small">{{ emp.days[date].workdays }} JH</td>
                                                 <td class="text-end fw-bold small">{{ emp.days[date].bonus ? '$' + fmt(emp.days[date].bonus) : '' }}</td>
                                                 <td class="text-end fw-bold small text-warning">{{ emp.days[date].target_bonus ? '$' + fmt(emp.days[date].target_bonus) : '' }}</td>
                                                 <td></td>
@@ -387,7 +387,7 @@ function exportPdf(mode) {
                                     <tr class="fw-bold">
                                         <td colspan="6" class="text-end">TOTAL MES</td>
                                         <td class="text-end">${{ fmt(emp.grand_total_amount) }}</td>
-                                        <td class="text-center">{{ emp.grand_total_hours }}h</td>
+                                        <td class="text-center">{{ emp.grand_total_workdays }} JH</td>
                                         <td class="text-end">${{ fmt(emp.grand_total_bonus) }}</td>
                                         <td class="text-end text-warning">${{ fmt(emp.grand_total_target_bonus) }}</td>
                                         <td></td>
@@ -407,8 +407,8 @@ function exportPdf(mode) {
                             <tr>
                                 <th>Colaborador</th>
                                 <th>RUT</th>
-                                <th class="text-center">Días Trabajados</th>
-                                <th class="text-center">Horas</th>
+                                <th class="text-center">DÃ­as Trabajados</th>
+                                <th class="text-center">Jornada</th>
                                 <th class="text-end">Total Monto</th>
                                 <th class="text-end">Total Bonos</th>
                                 <th class="text-end">P.Obj</th>
@@ -421,7 +421,7 @@ function exportPdf(mode) {
                                 <td class="fw-semi-bold">{{ emp.full_name }}</td>
                                 <td>{{ emp.rut }}</td>
                                 <td class="text-center">{{ emp.days_worked }}</td>
-                                <td class="text-center">{{ emp.grand_total_hours }}h</td>
+                                <td class="text-center">{{ emp.grand_total_workdays }} JH</td>
                                 <td class="text-end">{{ fmt(emp.grand_total_amount) }}</td>
                                 <td class="text-end">{{ emp.grand_total_bonus ? fmt(emp.grand_total_bonus) : '-' }}</td>
                                 <td class="text-end text-warning">{{ emp.grand_total_target_bonus ? fmt(emp.grand_total_target_bonus) : '-' }}</td>
@@ -436,7 +436,7 @@ function exportPdf(mode) {
                         <tfoot class="bg-100">
                             <tr class="fw-bold">
                                 <td colspan="3">TOTAL</td>
-                                <td class="text-center">{{ reportData.totals.hours }}h</td>
+                                <td class="text-center">{{ reportData.totals.workdays }} JH</td>
                                 <td class="text-end">{{ fmt(reportData.totals.amount) }}</td>
                                 <td class="text-end">{{ fmt(reportData.totals.bonus) }}</td>
                                 <td class="text-end text-warning">{{ fmt(reportData.totals.target_bonus) }}</td>
@@ -466,7 +466,7 @@ function exportPdf(mode) {
                         <span>
                             <span class="badge me-1" :class="line.payment_type === 'dia' ? 'bg-info' : 'bg-primary'"
                                 style="font-size:0.55rem; padding:1px 4px;">
-                                {{ line.payment_type === 'dia' ? 'Día' : 'Trato' }}
+                                {{ line.payment_type === 'dia' ? 'DÃ­a' : 'Trato' }}
                             </span>
                             <span style="font-size:0.78rem;">{{ line.labor_type || 'Labor' }}</span>
                         </span>
@@ -486,7 +486,7 @@ function exportPdf(mode) {
                     <span>Total</span>
                     <span>${{ ((popover.day.amount || 0) + (popover.day.bonus || 0) + (popover.day.target_bonus || 0)).toLocaleString('es-CL') }}</span>
                 </div>
-                <div class="text-muted text-end" style="font-size:0.68rem;">{{ popover.day.hours }}h trabajadas</div>
+                <div class="text-muted text-end" style="font-size:0.68rem;">{{ popover.day.workdays }} JH trabajadas</div>
             </div>
         </div>
     </Teleport>

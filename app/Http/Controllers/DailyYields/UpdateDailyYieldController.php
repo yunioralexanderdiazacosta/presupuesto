@@ -17,14 +17,21 @@ class UpdateDailyYieldController extends Controller
             'rate' => $request->rate,
             'quantity' => $request->quantity,
             'amount' => $request->rate * $request->quantity,
-            'hours' => $request->hours,
+            'workdays' => $request->workdays,
             'bonus_type_id' => $request->bonus_type_id,
             'bonus_amount' => $request->bonus_amount ?? 0,
             'target_price' => $request->target_price ?? null,
             'target_price_bonus' => $request->target_price_bonus ?? null,
-            'cost_center_id' => $request->cost_center_id,
             'observations' => $request->observations,
         ]);
+
+        // Reemplazar centros de costo en pivote
+        $dailyYield->costCenters()->delete();
+        if (!empty($request->cost_center_ids)) {
+            foreach ($request->cost_center_ids as $ccId) {
+                $dailyYield->costCenters()->create(['cost_center_id' => $ccId]);
+            }
+        }
 
         return redirect()->back()
             ->with('success', 'Tarja actualizada.');

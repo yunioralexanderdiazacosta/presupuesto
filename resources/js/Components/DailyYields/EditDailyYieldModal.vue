@@ -19,10 +19,10 @@ const form = useForm({
     rate: 0,
     quantity: 0,
     amount: 0,
-    hours: 8,
+    workdays: 1,
     bonus_type_id: '',
     bonus_amount: 0,
-    cost_center_id: '',
+    cost_center_ids: [],
     observations: '',
 });
 
@@ -32,10 +32,10 @@ watch(() => props.show, (val) => {
         form.rate = props.dailyYield.rate || 0;
         form.quantity = props.dailyYield.quantity || 0;
         form.amount = props.dailyYield.amount || 0;
-        form.hours = props.dailyYield.hours || 8;
+        form.workdays = props.dailyYield.workdays || 1;
         form.bonus_type_id = props.dailyYield.bonus_type_id || '';
         form.bonus_amount = props.dailyYield.bonus_amount || 0;
-        form.cost_center_id = props.dailyYield.cost_center_id || '';
+        form.cost_center_ids = props.dailyYield.cost_center_ids || [];
         form.observations = props.dailyYield.observations || '';
     }
 });

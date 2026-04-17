@@ -40,7 +40,8 @@ class DailyManagementController extends Controller
         );
 
         $dayOfWeek = Carbon::parse($date)->dayOfWeekIso;
-        $maxHoursPerDay = $schedule->hoursForDayOfWeek($dayOfWeek);
+        $scheduleHoursForDay = $schedule->hoursForDayOfWeek($dayOfWeek);
+        $maxWorkdayPerDay = $scheduleHoursForDay > 0 ? 1.0 : 0;
 
         // === ASISTENCIA ===
         $attendances = DailyAttendance::with(['estimatedLaborType', 'estimatedCostCenter.parcel'])
@@ -53,7 +54,7 @@ class DailyManagementController extends Controller
         $hasAttendance = $attendances->isNotEmpty();
 
         // === TARJAS ===
-        $allYields = DailyYield::with(['laborType', 'laborRate', 'bonusType', 'costCenter'])
+        $allYields = DailyYield::with(['laborType', 'laborRate', 'bonusType', 'costCenters.costCenter'])
             ->where('team_id', $user->team_id)
             ->where('season_id', $seasonId)
             ->where('date', $date)
@@ -69,10 +70,10 @@ class DailyManagementController extends Controller
             ->whereHas('activeContract')
             ->orderBy('paternal_surname')
             ->get()
-            ->map(function ($e) use ($attendances, $yieldsByEmployee, $maxHoursPerDay) {
+            ->map(function ($e) use ($attendances, $yieldsByEmployee, $maxWorkdayPerDay) {
                 $att = $attendances->get($e->id);
                 $empYields = $yieldsByEmployee->get($e->id, collect());
-                $totalHours = $empYields->sum('hours');
+                $totalWorkdays = $empYields->sum('workdays');
                 $totalAmount = $empYields->sum('amount');
                 $totalBonus = $empYields->sum('bonus_amount');
                 $totalTargetBonus = $empYields->sum('target_price_bonus');
@@ -98,18 +99,18 @@ class DailyManagementController extends Controller
                         'rate' => $y->rate,
                         'quantity' => $y->quantity,
                         'amount' => $y->amount,
-                        'hours' => $y->hours,
+                        'workdays' => $y->workdays,
                         'bonus_type_id' => $y->bonus_type_id,
                         'bonus_type_name' => $y->bonusType?->name,
                         'bonus_amount' => $y->bonus_amount,
                         'target_price' => $y->target_price,
                         'target_price_bonus' => $y->target_price_bonus,
-                        'cost_center_id' => $y->cost_center_id,
-                        'cost_center_name' => $y->costCenter?->name,
+                        'cost_center_ids' => $y->costCenters->pluck('cost_center_id')->toArray(),
+                        'cost_center_names' => $y->costCenters->map(fn($cc) => $cc->costCenter?->name)->filter()->implode(', '),
                         'observations' => $y->observations,
                     ])->values(),
-                    'total_hours' => round((float) $totalHours, 1),
-                    'remaining_hours' => $maxHoursPerDay > 0 ? round($maxHoursPerDay - (float) $totalHours, 1) : null,
+                    'total_workdays' => round((float) $totalWorkdays, 2),
+                    'remaining_workdays' => $maxWorkdayPerDay > 0 ? round($maxWorkdayPerDay - (float) $totalWorkdays, 2) : null,
                     'total_amount' => $totalAmount,
                     'total_bonus' => $totalBonus,
                     'total_target_bonus' => $totalTargetBonus,
@@ -197,7 +198,7 @@ class DailyManagementController extends Controller
             'activeTab' => $activeTab,
             'costCenters' => $costCenters,
             'parcels' => $parcels,
-            'maxHoursPerDay' => $maxHoursPerDay,
+            'maxWorkdayPerDay' => $maxWorkdayPerDay,
             'hasAttendance' => $hasAttendance,
             // Asistencia
             'attendances' => $attendances,
@@ -233,7 +234,7 @@ class DailyManagementController extends Controller
                 'employeesWithYields' => $allYields->pluck('employee_id')->unique()->count(),
                 'totalAmount' => $allYields->sum('amount'),
                 'totalBonus' => $allYields->sum('bonus_amount'),
-                'totalHours' => round((float) $allYields->sum('hours'), 1),
+                'totalWorkdays' => round((float) $allYields->sum('workdays'), 2),
             ],
             // Selects
             'laborTypes' => $laborTypes,

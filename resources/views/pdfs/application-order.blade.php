@@ -274,123 +274,93 @@
         <h2>:: Información General</h2>
         <table style="border: none; margin: 0;">
             <tr>
-                <td style="width: 25%; border: none; padding: 5px; vertical-align: top;">
-                    <div class="info-label">Fecha de Aplicación:</div>
+                <td style="border: none; padding: 2px 4px; vertical-align: top;">
+                    <div class="info-label">Fecha:</div>
                     <div class="info-value">{{ \Carbon\Carbon::parse($order->date)->format('d/m/Y') }}</div>
                 </td>
                 @if($order->start_date)
-                <td style="width: 25%; border: none; padding: 5px; vertical-align: top;">
-                    <div class="info-label">Fecha Inicio:</div>
+                <td style="border: none; padding: 2px 4px; vertical-align: top;">
+                    <div class="info-label">Inicio:</div>
                     <div class="info-value">{{ \Carbon\Carbon::parse($order->start_date)->format('d/m/Y') }}</div>
                 </td>
                 @endif
                 @if($order->volume)
-                <td style="width: 25%; border: none; padding: 5px; vertical-align: top;">
+                <td style="border: none; padding: 2px 4px; vertical-align: top;">
                     <div class="info-label">Volumen:</div>
-                    <div class="info-value">{{ number_format($order->volume, 0, ',', '.') }}</div>
+                    <div class="info-value">{{ number_format($order->volume, 0, ',', '.') }} L</div>
                 </td>
                 @endif
-                <td style="width: 25%; border: none; padding: 5px; vertical-align: top;">
+                <td style="border: none; padding: 2px 4px; vertical-align: top;">
                     <div class="info-label">Mojamiento:</div>
                     <div class="info-value">{{ number_format($order->mojamiento, 0, ',', '.') }} L</div>
                 </td>
                 @if($order->volume)
-                <td style="width: 25%; border: none; padding: 5px; vertical-align: top;">
+                <td style="border: none; padding: 2px 4px; vertical-align: top;">
                     <div class="info-label">Maquinadas:</div>
                     <div class="info-value" style="color: #007bff; font-weight: bold;">{{ number_format(($order->mojamiento * $totalHectareas) / $order->volume, 1, ',', '.') }}</div>
                 </td>
                 @endif
-            </tr>
-            <tr>
-                <td style="border: none; padding: 5px; vertical-align: top;">
-                    <div class="info-label">Total Hectáreas:</div>
+                <td style="border: none; padding: 2px 4px; vertical-align: top;">
+                    <div class="info-label">Total ha:</div>
                     <div class="info-value" style="color: #28a745; font-weight: bold;">{{ number_format($totalHectareas, 2, ',', '.') }} ha</div>
                 </td>
-                <td colspan="3" style="border: none; padding: 5px; vertical-align: top;">
+                <td style="border: none; padding: 2px 4px; vertical-align: top;">
+                    @php
+                        $statusLabels = [
+                            'pendiente' => 'Pendiente',
+                            'en_proceso' => 'En Proceso',
+                            'completada' => 'Completada',
+                            'cancelada' => 'Cancelada'
+                        ];
+                        $statusClass = 'status-' . $order->status;
+                    @endphp
                     <div class="info-label">Estado:</div>
-                    <div class="info-value">
-                        @php
-                            $statusLabels = [
-                                'pendiente' => 'Pendiente',
-                                'en_proceso' => 'En Proceso',
-                                'completada' => 'Completada',
-                                'cancelada' => 'Cancelada'
-                            ];
-                            $statusClass = 'status-' . $order->status;
-                        @endphp
-                        <span class="status-badge {{ $statusClass }}">
-                            {{ $statusLabels[$order->status] ?? $order->status }}
-                        </span>
-                    </div>
+                    <span class="status-badge {{ $statusClass }}">{{ $statusLabels[$order->status] ?? $order->status }}</span>
                 </td>
             </tr>
-            @if($order->phenologicalStage)
             <tr>
-                <td colspan="4" style="border: none; padding: 5px; vertical-align: top;">
-                    <div class="info-label">Etapa Fenológica:</div>
+                <td style="border: none; padding: 2px 4px; vertical-align: top;">
+                    <div class="info-label">Recomendado por:</div>
+                    <div class="info-value">{{ $order->recomendado }}</div>
+                </td>
+                <td style="border: none; padding: 2px 4px; vertical-align: top;">
+                    <div class="info-label">Responsable:</div>
+                    <div class="info-value">{{ $order->responsable }}</div>
+                </td>
+                @if($order->phenologicalStage)
+                <td style="border: none; padding: 2px 4px; vertical-align: top;">
+                    <div class="info-label">Fenología:</div>
                     <div class="info-value" style="color: #28a745; font-weight: bold;">{{ $order->phenologicalStage->name }}</div>
                 </td>
-            </tr>
-            @endif
-        </table>
-        
-        <table style="border: none; margin: 10px 0 0 0;">
-            <tr>
-                <td style="width: 50%; border: none; padding: 5px; vertical-align: top;">
-                    <table style="border: none; margin: 0;">
-                        <tr>
-                            <td style="border: none; padding: 2px 5px;">
-                                <div class="info-label">Recomendado por:</div>
-                                <div class="info-value">{{ $order->recomendado }}</div>
-                            </td>
-                        </tr>
-                        <tr>
-                            <td style="border: none; padding: 2px 5px;">
-                                <div class="info-label">Responsable:</div>
-                                <div class="info-value">{{ $order->responsable }}</div>
-                            </td>
-                        </tr>
-                    </table>
-                </td>
-                <td style="width: 50%; border: none; padding: 5px; vertical-align: top;">
-                    <table style="border: none; margin: 0;">
-                        @if($order->observations)
-                        <tr>
-                            <td style="border: none; padding: 2px 5px;">
-                                <div class="info-label">Observaciones:</div>
-                                <div class="info-value">{{ $order->observations }}</div>
-                            </td>
-                        </tr>
-                        @endif
-                    </table>
-                </td>
-            </tr>
-        </table>
-
-        @if($order->tractors || $order->equipments || $order->operators)
-        <table style="border: none; margin: 5px 0 0 0;">
-            <tr>
+                @endif
                 @if($order->tractors)
-                <td style="width: 33%; border: none; padding: 2px 5px; vertical-align: top;">
+                <td style="border: none; padding: 2px 4px; vertical-align: top;">
                     <div class="info-label">Tractores:</div>
                     <div class="info-value">{{ $order->tractors }}</div>
                 </td>
                 @endif
                 @if($order->equipments)
-                <td style="width: 33%; border: none; padding: 2px 5px; vertical-align: top;">
+                <td style="border: none; padding: 2px 4px; vertical-align: top;">
                     <div class="info-label">Equipos:</div>
                     <div class="info-value">{{ $order->equipments }}</div>
                 </td>
                 @endif
                 @if($order->operators)
-                <td style="width: 33%; border: none; padding: 2px 5px; vertical-align: top;">
+                <td style="border: none; padding: 2px 4px; vertical-align: top;">
                     <div class="info-label">Operarios:</div>
                     <div class="info-value">{{ $order->operators }}</div>
                 </td>
                 @endif
             </tr>
+            @if($order->observations)
+            <tr>
+                <td colspan="7" style="border: none; padding: 2px 4px; vertical-align: top;">
+                    <div class="info-label">Observaciones:</div>
+                    <div class="info-value">{{ $order->observations }}</div>
+                </td>
+            </tr>
+            @endif
         </table>
-        @endif
     </div>
 
     <!-- Centros de Costo -->
@@ -497,6 +467,90 @@
             </tbody>
         </table>
     </div>
+
+    <!-- Receta por Maquinada -->
+    @if($order->volume && $order->volume > 0 && $order->orderProducts->count() > 0)
+    @php
+        $maquinadas = ($order->mojamiento * $totalHectareas) / $order->volume;
+        $maquinadasCompletas = floor($maquinadas);
+        $fraccionSaldo = round($maquinadas - $maquinadasCompletas, 2);
+        $aguaPorMaquinada = $order->volume;
+        $aguaSaldo = round($aguaPorMaquinada * $fraccionSaldo);
+    @endphp
+    <div class="info-section" style="border-left-color: #ffc107;">
+        <h2>:: Receta por Maquinada</h2>
+        <table style="border: none; margin: 0;">
+            <tr>
+                @if($maquinadasCompletas > 0)
+                <td style="width: {{ $fraccionSaldo > 0 ? '50%' : '100%' }}; border: none; padding: 5px; vertical-align: top;">
+                    <div style="border: 1px solid #007bff; padding: 5px;">
+                        <div style="background-color: #007bff; color: white; padding: 3px 5px; font-weight: bold; font-size: 8px; margin: -5px -5px 5px -5px;">
+                            MAQUINADAS COMPLETAS: {{ $maquinadasCompletas }}
+                        </div>
+                        <div style="margin-bottom: 4px; font-size: 8px;">
+                            <strong>Agua: {{ number_format($aguaPorMaquinada, 0, ',', '.') }} L</strong>
+                        </div>
+                        <table style="margin: 0;">
+                            <thead>
+                                <tr>
+                                    <th style="font-size: 6px;">Producto</th>
+                                    <th class="text-right" style="font-size: 6px;">Cantidad</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach($order->orderProducts as $op)
+                                @php
+                                    $cantPorMaq = ($maquinadas > 0) ? $op->cantidad_total / $maquinadas : 0;
+                                    $converted = convertToPracticalUnit($cantPorMaq, $op->product->unit->name ?? '');
+                                @endphp
+                                <tr>
+                                    <td style="font-size: 7px;">{{ $op->product->name ?? 'N/A' }}</td>
+                                    <td class="text-right" style="font-size: 7px; font-weight: bold;">{{ formatQuantityForPdf($converted['value']) }} {{ $converted['unit'] }}</td>
+                                </tr>
+                                @endforeach
+                            </tbody>
+                        </table>
+                    </div>
+                </td>
+                @endif
+
+                @if($fraccionSaldo > 0)
+                <td style="width: {{ $maquinadasCompletas > 0 ? '50%' : '100%' }}; border: none; padding: 5px; vertical-align: top;">
+                    <div style="border: 1px solid #ffc107; padding: 5px;">
+                        <div style="background-color: #ffc107; color: #000; padding: 3px 5px; font-weight: bold; font-size: 8px; margin: -5px -5px 5px -5px;">
+                            MAQUINADA DE SALDO ({{ number_format($fraccionSaldo, 2, ',', '.') }})
+                        </div>
+                        <div style="margin-bottom: 4px; font-size: 8px;">
+                            <strong>Agua: {{ number_format($aguaSaldo, 0, ',', '.') }} L</strong>
+                        </div>
+                        <table style="margin: 0;">
+                            <thead>
+                                <tr>
+                                    <th style="font-size: 6px;">Producto</th>
+                                    <th class="text-right" style="font-size: 6px;">Cantidad</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach($order->orderProducts as $op)
+                                @php
+                                    $cantPorMaq = ($maquinadas > 0) ? $op->cantidad_total / $maquinadas : 0;
+                                    $cantSaldo = $cantPorMaq * $fraccionSaldo;
+                                    $converted = convertToPracticalUnit($cantSaldo, $op->product->unit->name ?? '');
+                                @endphp
+                                <tr>
+                                    <td style="font-size: 7px;">{{ $op->product->name ?? 'N/A' }}</td>
+                                    <td class="text-right" style="font-size: 7px; font-weight: bold;">{{ formatQuantityForPdf($converted['value']) }} {{ $converted['unit'] }}</td>
+                                </tr>
+                                @endforeach
+                            </tbody>
+                        </table>
+                    </div>
+                </td>
+                @endif
+            </tr>
+        </table>
+    </div>
+    @endif
 
     <!-- Firmas -->
     <div class="signature-section">

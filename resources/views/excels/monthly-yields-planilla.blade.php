@@ -1,4 +1,4 @@
-<table>
+﻿<table>
     <thead>
         <tr>
             <th><b>Colaborador</b></th>
@@ -8,7 +8,7 @@
             @endforeach
             <th><b>Total $</b></th>
             <th><b>Total Bono</b></th>
-            <th><b>Total Hrs</b></th>
+            <th><b>Total JH</b></th>
         </tr>
     </thead>
     <tbody>
@@ -21,7 +21,7 @@
             @endforeach
             <td>{{ $emp['grand_total_amount'] }}</td>
             <td>{{ $emp['grand_total_bonus'] }}</td>
-            <td>{{ $emp['grand_total_hours'] }}</td>
+            <td>{{ $emp['grand_total_workdays'] }}</td>
         </tr>
         @endforeach
     </tbody>

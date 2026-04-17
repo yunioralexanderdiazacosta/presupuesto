@@ -43,6 +43,31 @@ const maquinadas = computed(() => {
     return (mojamiento * hectareas) / volumen;
 });
 
+// Desglose de maquinadas para el tractorero
+const maquinadasCompletas = computed(() => Math.floor(maquinadas.value));
+const fraccionSaldo = computed(() => {
+    const f = maquinadas.value - maquinadasCompletas.value;
+    return Math.round(f * 100) / 100; // redondear a 2 decimales
+});
+const aguaPorMaquinada = computed(() => Number(props.applicationOrder.volume || 0));
+const aguaSaldo = computed(() => Math.round(aguaPorMaquinada.value * fraccionSaldo.value));
+
+function getProductoPorMaquinada(op) {
+    const cantTotal = Number(op.cantidad_total || 0);
+    const maq = maquinadas.value;
+    if (maq === 0) return 0;
+    return cantTotal / maq;
+}
+
+function getProductoSaldo(op) {
+    return getProductoPorMaquinada(op) * fraccionSaldo.value;
+}
+
+function formatDosis(value, unitName) {
+    const converted = getPracticalQuantityPerHa(value, unitName);
+    return converted.value + ' ' + converted.unit;
+}
+
 function openEditModal() {
     showEditModal.value = true;
 }
@@ -182,94 +207,98 @@ function getPracticalQuantityPerHa(value, unitName) {
 
             <!-- Información General -->
             <div class="card mb-3">
-                <div class="card-header bg-light border-bottom">
-                    <h5 class="mb-0 text-dark">
-                        <i class="fas fa-info-circle me-2 text-muted"></i>Información General
-                    </h5>
+                <div class="card-header bg-light border-bottom py-2">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <h5 class="mb-0 text-dark fs-9">
+                            <i class="fas fa-info-circle me-2 text-muted"></i>Información General
+                        </h5>
+                        <span class="badge" :class="getStatusBadgeClass(applicationOrder.status)">
+                            {{ getStatusLabel(applicationOrder.status) }}
+                        </span>
+                    </div>
                 </div>
-                <div class="card-body">
-                    <div class="row g-3">
-                        <div class="col-md-2">
-                            <label class="text-muted small">Fecha:</label>
-                            <p class="fw-bold mb-0">{{ new Date(applicationOrder.date).toLocaleDateString('es-ES') }}</p>
+                <div class="card-body py-2">
+                    <!-- KPIs numéricos -->
+                    <div class="row g-2 mb-2">
+                        <div class="col">
+                            <div class="card bg-soft-primary text-center p-2">
+                                <small class="text-muted fw-bold">Fecha</small>
+                                <strong class="fs-9">{{ new Date(applicationOrder.date).toLocaleDateString('es-ES') }}</strong>
+                            </div>
                         </div>
-                        <div class="col-md-2" v-if="applicationOrder.start_date">
-                            <label class="text-muted small">Fecha Inicio:</label>
-                            <p class="fw-bold mb-0">{{ new Date(applicationOrder.start_date).toLocaleDateString('es-ES') }}</p>
+                        <div class="col" v-if="applicationOrder.start_date">
+                            <div class="card bg-soft-info text-center p-2">
+                                <small class="text-muted fw-bold">Inicio</small>
+                                <strong class="fs-9">{{ new Date(applicationOrder.start_date).toLocaleDateString('es-ES') }}</strong>
+                            </div>
                         </div>
-                        <div class="col-md-2" v-if="applicationOrder.volume">
-                            <label class="text-muted small">Volumen:</label>
-                            <p class="fw-bold mb-0">{{ Number(applicationOrder.volume).toLocaleString('es-ES') }} L</p>
+                        <div class="col" v-if="applicationOrder.volume">
+                            <div class="card bg-soft-secondary text-center p-2">
+                                <small class="text-muted fw-bold">Volumen</small>
+                                <strong class="fs-9">{{ Number(applicationOrder.volume).toLocaleString('es-ES') }} L</strong>
+                            </div>
                         </div>
-                        <div class="col-md-2">
-                            <label class="text-muted small">Mojamiento:</label>
-                            <p class="fw-bold mb-0">{{ Math.round(Number(applicationOrder.mojamiento)).toLocaleString('es-ES') }} L</p>
+                        <div class="col">
+                            <div class="card bg-soft-secondary text-center p-2">
+                                <small class="text-muted fw-bold">Mojamiento</small>
+                                <strong class="fs-9">{{ Math.round(Number(applicationOrder.mojamiento)).toLocaleString('es-ES') }} L</strong>
+                            </div>
                         </div>
-                        <div class="col-md-2" v-if="applicationOrder.volume">
-                            <label class="text-muted small">Maquinadas:</label>
-                            <p class="fw-bold mb-0 text-primary">{{ maquinadas.toLocaleString('es-ES', {minimumFractionDigits: 1, maximumFractionDigits: 1}) }}</p>
+                        <div class="col" v-if="applicationOrder.volume">
+                            <div class="card bg-soft-warning text-center p-2">
+                                <small class="text-muted fw-bold">Maquinadas</small>
+                                <strong class="fs-9 text-primary">{{ maquinadas.toLocaleString('es-ES', {minimumFractionDigits: 1, maximumFractionDigits: 1}) }}</strong>
+                            </div>
                         </div>
-                        <div class="col-md-2">
-                            <label class="text-muted small">Total Hectáreas:</label>
-                            <p class="fw-bold mb-0 text-success">{{ totalHectareas.toLocaleString('es-ES', {minimumFractionDigits: 2}) }} ha</p>
-                        </div>
-                        <div class="col-md-2">
-                            <label class="text-muted small">Estado:</label>
-                            <p class="mb-0">
-                                <span class="badge" :class="getStatusBadgeClass(applicationOrder.status)">
-                                    {{ getStatusLabel(applicationOrder.status) }}
-                                </span>
-                            </p>
+                        <div class="col">
+                            <div class="card bg-soft-success text-center p-2">
+                                <small class="text-muted fw-bold">Total ha</small>
+                                <strong class="fs-9 text-success">{{ totalHectareas.toLocaleString('es-ES', {minimumFractionDigits: 2}) }} ha</strong>
+                            </div>
                         </div>
                     </div>
 
-                    <div class="row g-3 mt-1">
+                    <!-- Detalle texto -->
+                    <div class="row g-2 fs--1">
                         <div class="col-md-3">
-                            <label class="text-muted small">Recomendado por:</label>
-                            <p class="fw-bold mb-0">{{ applicationOrder.recomendado }}</p>
+                            <small class="text-muted d-block fw-bold">Recomendado por</small>
+                            <span class="fw-semi-bold">{{ applicationOrder.recomendado }}</span>
                         </div>
                         <div class="col-md-3">
-                            <label class="text-muted small">Responsable:</label>
-                            <p class="fw-bold mb-0">{{ applicationOrder.responsable }}</p>
+                            <small class="text-muted d-block fw-bold">Responsable</small>
+                            <span class="fw-semi-bold">{{ applicationOrder.responsable }}</span>
                         </div>
                         <div class="col-md-3" v-if="applicationOrder.phenological_stage">
-                            <label class="text-muted small">Etapa Fenológica:</label>
-                            <p class="fw-bold mb-0">
-                                <i class="fas fa-seedling text-success me-1"></i>
-                                {{ applicationOrder.phenological_stage.name }}
-                            </p>
+                            <small class="text-muted d-block fw-bold">Fenología</small>
+                            <span class="fw-semi-bold"><i class="fas fa-seedling text-success me-1"></i>{{ applicationOrder.phenological_stage.name }}</span>
                         </div>
                         <div class="col-md-3">
-                            <label class="text-muted small">Temporada:</label>
-                            <p class="fw-bold mb-0">{{ applicationOrder.season?.name || 'N/A' }}</p>
+                            <small class="text-muted d-block fw-bold">Temporada</small>
+                            <span class="fw-semi-bold">{{ applicationOrder.season?.name || 'N/A' }}</span>
                         </div>
                     </div>
 
-                    <div class="row g-3 mt-1">
+                    <!-- Maquinaria y operarios -->
+                    <div class="row g-2 fs--1 mt-1" v-if="applicationOrder.tractors || applicationOrder.equipments || applicationOrder.operators">
                         <div class="col-md-4" v-if="applicationOrder.tractors">
-                            <label class="text-muted small">Tractores:</label>
-                            <p class="fw-bold mb-0">
-                                <i class="fas fa-tractor text-muted me-1"></i>{{ applicationOrder.tractors }}
-                            </p>
+                            <small class="text-muted d-block fw-bold"><i class="fas fa-tractor me-1"></i>Tractores</small>
+                            <span class="fw-semi-bold">{{ applicationOrder.tractors }}</span>
                         </div>
                         <div class="col-md-4" v-if="applicationOrder.equipments">
-                            <label class="text-muted small">Equipos:</label>
-                            <p class="fw-bold mb-0">
-                                <i class="fas fa-cogs text-muted me-1"></i>{{ applicationOrder.equipments }}
-                            </p>
+                            <small class="text-muted d-block fw-bold"><i class="fas fa-cogs me-1"></i>Equipos</small>
+                            <span class="fw-semi-bold">{{ applicationOrder.equipments }}</span>
                         </div>
                         <div class="col-md-4" v-if="applicationOrder.operators">
-                            <label class="text-muted small">Operarios:</label>
-                            <p class="fw-bold mb-0">
-                                <i class="fas fa-user-hard-hat text-muted me-1"></i>{{ applicationOrder.operators }}
-                            </p>
+                            <small class="text-muted d-block fw-bold"><i class="fas fa-user me-1"></i>Operarios</small>
+                            <span class="fw-semi-bold">{{ applicationOrder.operators }}</span>
                         </div>
                     </div>
 
-                    <div v-if="applicationOrder.observations" class="row g-3 mt-1">
-                        <div class="col-md-12">
-                            <label class="text-muted small">Observaciones:</label>
-                            <p class="text-muted mb-0">{{ applicationOrder.observations }}</p>
+                    <!-- Observaciones -->
+                    <div class="row g-2 fs--1 mt-1" v-if="applicationOrder.observations">
+                        <div class="col-12">
+                            <small class="text-muted d-block fw-bold">Observaciones</small>
+                            <span class="fst-italic">{{ applicationOrder.observations }}</span>
                         </div>
                     </div>
                 </div>
@@ -389,6 +418,68 @@ function getPracticalQuantityPerHa(value, unitName) {
                     <div v-else class="alert alert-warning">
                         <i class="fas fa-exclamation-triangle me-2"></i>
                         No hay productos asociados
+                    </div>
+                </div>
+            </div>
+
+            <!-- Desglose de Maquinadas para el Tractorero -->
+            <div class="card mb-3" v-if="applicationOrder.volume && maquinadas > 0 && applicationOrder.order_products?.length > 0">
+                <div class="card-header bg-light border-bottom">
+                    <h5 class="mb-0 text-dark">
+                        <i class="fas fa-tractor me-2 text-warning"></i>Receta por Maquinada
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="row g-3">
+                        <!-- Maquinadas Completas -->
+                        <div class="col-md-6" v-if="maquinadasCompletas > 0">
+                            <div class="card border-primary h-100">
+                                <div class="card-header bg-primary text-white py-2">
+                                    <strong><i class="fas fa-fill-drip me-1"></i>Maquinadas Completas: {{ maquinadasCompletas }}</strong>
+                                </div>
+                                <div class="card-body py-2">
+                                    <div class="mb-2">
+                                        <i class="fas fa-tint text-primary me-1"></i>
+                                        <strong>Agua: {{ aguaPorMaquinada.toLocaleString('es-CL') }} L</strong>
+                                    </div>
+                                    <table class="table table-sm table-borderless mb-0">
+                                        <tbody>
+                                            <tr v-for="op in applicationOrder.order_products" :key="'full-'+op.id">
+                                                <td class="py-1">{{ op.product?.name }}</td>
+                                                <td class="py-1 text-end fw-bold">
+                                                    {{ formatDosis(getProductoPorMaquinada(op), op.unit?.name || op.product?.unit?.name || '') }}
+                                                </td>
+                                            </tr>
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Maquinada de Saldo -->
+                        <div class="col-md-6" v-if="fraccionSaldo > 0">
+                            <div class="card border-warning h-100">
+                                <div class="card-header bg-warning text-dark py-2">
+                                    <strong><i class="fas fa-fill-drip me-1"></i>Maquinada de Saldo ({{ fraccionSaldo }})</strong>
+                                </div>
+                                <div class="card-body py-2">
+                                    <div class="mb-2">
+                                        <i class="fas fa-tint text-primary me-1"></i>
+                                        <strong>Agua: {{ aguaSaldo.toLocaleString('es-CL') }} L</strong>
+                                    </div>
+                                    <table class="table table-sm table-borderless mb-0">
+                                        <tbody>
+                                            <tr v-for="op in applicationOrder.order_products" :key="'partial-'+op.id">
+                                                <td class="py-1">{{ op.product?.name }}</td>
+                                                <td class="py-1 text-end fw-bold">
+                                                    {{ formatDosis(getProductoSaldo(op), op.unit?.name || op.product?.unit?.name || '') }}
+                                                </td>
+                                            </tr>
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>

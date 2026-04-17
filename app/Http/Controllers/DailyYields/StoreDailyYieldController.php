@@ -13,7 +13,7 @@ class StoreDailyYieldController extends Controller
     {
         $user = Auth::user();
 
-        DailyYield::create([
+        $yield = DailyYield::create([
             'employee_id' => $request->employee_id,
             'date' => $request->date,
             'payment_type' => $request->payment_type,
@@ -22,17 +22,23 @@ class StoreDailyYieldController extends Controller
             'rate' => $request->rate,
             'quantity' => $request->quantity,
             'amount' => $request->rate * $request->quantity,
-            'hours' => $request->hours,
+            'workdays' => $request->workdays,
             'bonus_type_id' => $request->bonus_type_id,
             'bonus_amount' => $request->bonus_amount ?? 0,
             'target_price' => $request->target_price ?? null,
             'target_price_bonus' => $request->target_price_bonus ?? null,
-            'cost_center_id' => $request->cost_center_id,
             'team_id' => $user->team_id,
             'season_id' => session('season_id'),
             'user_id' => $user->id,
             'observations' => $request->observations,
         ]);
+
+        // Guardar centros de costo en tabla pivote
+        if (!empty($request->cost_center_ids)) {
+            foreach ($request->cost_center_ids as $ccId) {
+                $yield->costCenters()->create(['cost_center_id' => $ccId]);
+            }
+        }
 
         return redirect()->back()
             ->with('success', 'Tarja registrada correctamente.');

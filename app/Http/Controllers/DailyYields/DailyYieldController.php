@@ -23,12 +23,13 @@ class DailyYieldController extends Controller
         $seasonId = session('season_id');
         $date = $request->get('date', now()->format('Y-m-d'));
 
-        // Horario de trabajo: obtener horas máximas del día según schedule
+        // Horario de trabajo: determinar si es día laborable
         $schedule = WorkSchedule::where('team_id', $user->team_id)
             ->where('season_id', $seasonId)
             ->first();
         $dayOfWeek = \Carbon\Carbon::parse($date)->dayOfWeekIso; // 1=lunes ... 7=domingo
-        $maxHoursPerDay = $schedule ? $schedule->hoursForDayOfWeek($dayOfWeek) : 8.0;
+        $scheduleHoursForDay = $schedule ? $schedule->hoursForDayOfWeek($dayOfWeek) : 8.0;
+        $maxWorkdayPerDay = $scheduleHoursForDay > 0 ? 1.0 : 0;
 
         // Asistencia del día (keyed by employee_id)
         $attendances = DailyAttendance::where('team_id', $user->team_id)
@@ -40,7 +41,7 @@ class DailyYieldController extends Controller
         $hasAttendance = $attendances->isNotEmpty();
 
         // Tarjas existentes agrupadas por empleado
-        $allYields = DailyYield::with(['laborType', 'laborRate', 'bonusType', 'costCenter'])
+        $allYields = DailyYield::with(['laborType', 'laborRate', 'bonusType', 'costCenters.costCenter'])
             ->where('team_id', $user->team_id)
             ->where('season_id', $seasonId)
             ->where('date', $date)
@@ -56,10 +57,10 @@ class DailyYieldController extends Controller
             ->whereHas('activeContract')
             ->orderBy('paternal_surname')
             ->get()
-            ->map(function ($e) use ($attendances, $yieldsByEmployee, $maxHoursPerDay) {
+            ->map(function ($e) use ($attendances, $yieldsByEmployee, $maxWorkdayPerDay) {
                 $att = $attendances->get($e->id);
                 $empYields = $yieldsByEmployee->get($e->id, collect());
-                $totalHours = $empYields->sum('hours');
+                $totalWorkdays = $empYields->sum('workdays');
                 $totalAmount = $empYields->sum('amount');
                 $totalBonus = $empYields->sum('bonus_amount');
 
@@ -81,16 +82,16 @@ class DailyYieldController extends Controller
                         'rate' => $y->rate,
                         'quantity' => $y->quantity,
                         'amount' => $y->amount,
-                        'hours' => $y->hours,
+                        'workdays' => $y->workdays,
                         'bonus_type_id' => $y->bonus_type_id,
                         'bonus_type_name' => $y->bonusType?->name,
                         'bonus_amount' => $y->bonus_amount,
-                        'cost_center_id' => $y->cost_center_id,
-                        'cost_center_name' => $y->costCenter?->name,
+                        'cost_center_ids' => $y->costCenters->pluck('cost_center_id')->toArray(),
+                        'cost_center_names' => $y->costCenters->map(fn($cc) => $cc->costCenter?->name)->filter()->implode(', '),
                         'observations' => $y->observations,
                     ])->values(),
-                    'total_hours' => round((float)$totalHours, 1),
-                    'remaining_hours' => round($maxHoursPerDay - (float)$totalHours, 1),
+                    'total_workdays' => round((float)$totalWorkdays, 2),
+                    'remaining_workdays' => round($maxWorkdayPerDay - (float)$totalWorkdays, 2),
                     'total_amount' => $totalAmount,
                     'total_bonus' => $totalBonus,
                     'yield_count' => $empYields->count(),
@@ -137,7 +138,7 @@ class DailyYieldController extends Controller
         // Resumen global
         $totalAmount = $allYields->sum('amount');
         $totalBonus = $allYields->sum('bonus_amount');
-        $totalHours = $allYields->sum('hours');
+        $totalWorkdays = $allYields->sum('workdays');
         $employeesWithYields = $allYields->pluck('employee_id')->unique()->count();
         $presentCount = $attendances->where('is_present', true)->count();
         $absentCount = $attendances->where('is_present', false)->count();
@@ -150,7 +151,7 @@ class DailyYieldController extends Controller
             'costCenters' => $costCenters,
             'selectedDate' => $date,
             'hasAttendance' => $hasAttendance,
-            'maxHoursPerDay' => $maxHoursPerDay,
+            'maxWorkdayPerDay' => $maxWorkdayPerDay,
             'summary' => [
                 'totalEmployees' => $employees->count(),
                 'presentCount' => $presentCount,
@@ -158,7 +159,7 @@ class DailyYieldController extends Controller
                 'employeesWithYields' => $employeesWithYields,
                 'totalAmount' => $totalAmount,
                 'totalBonus' => $totalBonus,
-                'totalHours' => round((float)$totalHours, 1),
+                'totalWorkdays' => round((float)$totalWorkdays, 2),
             ],
         ]);
     }

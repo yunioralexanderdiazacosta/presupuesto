@@ -25,12 +25,13 @@ class StoreDailyYieldRequest extends FormRequest
             'labor_rate_id' => 'nullable|required_if:payment_type,trato|exists:labor_rates,id',
             'rate' => 'required|integer|min:0',
             'quantity' => 'required|numeric|min:0',
-            'hours' => 'required|numeric|min:0.5',
+            'workdays' => 'required|numeric|min:0.1|max:1',
             'bonus_type_id' => 'nullable|exists:bonus_types,id',
             'bonus_amount' => 'nullable|integer|min:0',
             'target_price' => 'nullable|integer|min:0',
             'target_price_bonus' => 'nullable|integer|min:0',
-            'cost_center_id' => 'nullable|exists:cost_centers,id',
+            'cost_center_ids' => 'nullable|array',
+            'cost_center_ids.*' => 'exists:cost_centers,id',
             'observations' => 'nullable|string|max:500',
         ];
     }
@@ -38,44 +39,46 @@ class StoreDailyYieldRequest extends FormRequest
     public function withValidator($validator)
     {
         $validator->after(function ($validator) {
-            if ($validator->errors()->hasAny(['employee_id', 'date', 'hours'])) {
+            if ($validator->errors()->hasAny(['employee_id', 'date', 'workdays'])) {
                 return;
             }
 
             $user = Auth::user();
             $date = $this->input('date');
-            $hours = (float) $this->input('hours');
+            $workdays = (float) $this->input('workdays');
             $employeeId = $this->input('employee_id');
 
-            // Obtener máximo de horas según horario del día
+            // Consultar horario solo para saber si es día laborable
             $schedule = WorkSchedule::where('team_id', $user->team_id)
                 ->where('season_id', session('season_id'))
                 ->first();
-            $maxHours = $schedule
+            $scheduleHours = $schedule
                 ? $schedule->hoursForDayOfWeek(Carbon::parse($date)->dayOfWeekIso)
                 : 8.0;
 
-            // Si el horario marca 0h para este día, permitir sin límite
-            if ($maxHours <= 0) {
+            // Si el horario marca 0h para este día (día libre), permitir sin límite
+            if ($scheduleHours <= 0) {
                 return;
             }
 
-            // Validar que las horas de esta línea no excedan el máximo
-            if ($hours > $maxHours) {
-                $validator->errors()->add('hours', "Máximo {$maxHours}h permitidas para este día.");
+            // Tope fijo: 1.0 JH por día laborable
+            $maxWorkday = 1.0;
+
+            if ($workdays > $maxWorkday) {
+                $validator->errors()->add('workdays', "Máximo {$maxWorkday} JH permitidas para este día.");
                 return;
             }
 
-            // Sumar horas ya registradas para este empleado en esta fecha
-            $usedHours = DailyYield::where('employee_id', $employeeId)
+            // Sumar workdays ya registradas para este empleado en esta fecha
+            $usedWorkdays = DailyYield::where('employee_id', $employeeId)
                 ->where('date', $date)
                 ->where('team_id', $user->team_id)
-                ->sum('hours');
+                ->sum('workdays');
 
-            $remaining = round($maxHours - $usedHours, 1);
+            $remaining = round($maxWorkday - $usedWorkdays, 2);
 
-            if ($hours > $remaining) {
-                $validator->errors()->add('hours', "Solo quedan {$remaining}h disponibles (máx {$maxHours}h, usadas {$usedHours}h).");
+            if ($workdays > $remaining) {
+                $validator->errors()->add('workdays', "Solo quedan {$remaining} JH disponibles (usadas {$usedWorkdays} JH).");
             }
         });
     }
@@ -88,8 +91,9 @@ class StoreDailyYieldRequest extends FormRequest
             'labor_rate_id.required_if' => 'El trato es obligatorio cuando el tipo es "a trato".',
             'rate.required' => 'La tarifa es obligatoria.',
             'quantity.required' => 'La cantidad es obligatoria.',
-            'hours.required' => 'Las horas son obligatorias.',
-            'hours.min' => 'Mínimo 0.5 horas.',
+            'workdays.required' => 'La jornada es obligatoria.',
+            'workdays.min' => 'Mínimo 0.1 JH.',
+            'workdays.max' => 'Máximo 1.0 JH por línea.',
             'cost_center_id.required' => 'El centro de costo es obligatorio.',
         ];
     }

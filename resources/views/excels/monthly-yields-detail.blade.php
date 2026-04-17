@@ -1,4 +1,4 @@
-<table>
+﻿<table>
     <thead>
         <tr>
             <th colspan="9"><b>Detalle de Tarjas - {{ \Carbon\Carbon::parse($month . '-01')->translatedFormat('F Y') }}</b></th>
@@ -12,7 +12,7 @@
             <th><b>Tarifa</b></th>
             <th><b>Cant.</b></th>
             <th><b>Monto</b></th>
-            <th><b>Horas</b></th>
+            <th><b>JH</b></th>
             <th><b>Bono</b></th>
             <th><b>C.Costo</b></th>
         </tr>
@@ -27,13 +27,13 @@
                     <tr>
                         <td>{{ $firstRow ? $emp['full_name'] . ' (' . $emp['rut'] . ')' : '' }}</td>
                         <td>{{ \Carbon\Carbon::parse($date)->format('d/m') }}</td>
-                        <td>{{ ($line->payment_type ?? 'trato') === 'dia' ? 'Al día' : 'A trato' }}</td>
+                        <td>{{ ($line->payment_type ?? 'trato') === 'dia' ? 'Al dÃ­a' : 'A trato' }}</td>
                         <td>{{ $line->laborType?->name }}</td>
                         <td>{{ $line->laborRate?->name ?? '-' }}</td>
                         <td>{{ $line->rate }}</td>
                         <td>{{ $line->quantity }}</td>
                         <td>{{ $line->amount }}</td>
-                        <td>{{ $line->hours }}</td>
+                        <td>{{ $line->workdays }}</td>
                         <td>{{ $line->bonus_amount ?: '' }}</td>
                         <td>{{ $line->costCenter?->name }}</td>
                     </tr>
@@ -45,7 +45,7 @@
                 <td><b>TOTAL {{ $emp['full_name'] }}</b></td>
                 <td></td><td></td><td></td><td></td><td></td><td></td>
                 <td><b>{{ $emp['grand_total_amount'] }}</b></td>
-                <td><b>{{ $emp['grand_total_hours'] }}</b></td>
+                <td><b>{{ $emp['grand_total_workdays'] }}</b></td>
                 <td><b>{{ $emp['grand_total_bonus'] }}</b></td>
                 <td></td>
             </tr>

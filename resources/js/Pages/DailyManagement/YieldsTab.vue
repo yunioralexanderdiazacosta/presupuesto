@@ -2,6 +2,7 @@
 import { ref, computed, reactive } from 'vue';
 import { router, useForm } from '@inertiajs/vue3';
 import Swal from 'sweetalert2';
+import Multiselect from '@vueform/multiselect';
 
 const props = defineProps({
     employees: Array,
@@ -12,7 +13,7 @@ const props = defineProps({
     parcels: { type: Array, default: () => [] },
     selectedDate: String,
     hasAttendance: Boolean,
-    maxHoursPerDay: { type: Number, default: 8 },
+    maxWorkdayPerDay: { type: Number, default: 1 },
     summary: Object,
 });
 
@@ -25,8 +26,8 @@ const editingYieldId = ref(null);
 // Formulario inline para editar linea existente
 const editLine = reactive({
     payment_type: 'trato',
-    labor_type_id: '', labor_rate_id: '', rate: 0, quantity: 0, hours: 0,
-    bonus_type_id: '', bonus_amount: 0, target_price: null, target_price_bonus: null, cost_center_id: '', observations: '',
+    labor_type_id: '', labor_rate_id: '', rate: 0, quantity: 0, workdays: 0,
+    bonus_type_id: '', bonus_amount: 0, target_price: null, target_price_bonus: null, cost_center_ids: [], observations: '',
 });
 
 const filteredEmployees = computed(() => {
@@ -50,31 +51,31 @@ function toggleExpand(empId) {
 
 function statusClass(emp) {
     if (emp.is_present === false) return 'table-danger bg-opacity-50';
-    if (emp.is_present === true && emp.remaining_hours <= 0) return 'table-success bg-opacity-25';
+    if (emp.is_present === true && emp.remaining_workdays <= 0) return 'table-success bg-opacity-25';
     return '';
 }
 
 function statusBadge(emp) {
     if (emp.is_present === null) return 'bg-secondary';
     if (!emp.is_present) return 'bg-danger';
-    if (emp.remaining_hours === null) return 'bg-info';
-    if (emp.remaining_hours <= 0) return 'bg-success';
+    if (emp.remaining_workdays === null) return 'bg-info';
+    if (emp.remaining_workdays <= 0) return 'bg-success';
     return 'bg-warning text-dark';
 }
 
 function statusText(emp) {
     if (emp.is_present === null) return 'Sin asist.';
     if (!emp.is_present) return 'Ausente';
-    if (emp.remaining_hours === null) return 'Sin límite';
-    if (emp.remaining_hours <= 0) return 'Completo';
-    return emp.remaining_hours + 'h pend.';
+    if (emp.remaining_workdays === null) return 'Sin límite';
+    if (emp.remaining_workdays <= 0) return 'Completo';
+    return emp.remaining_workdays + ' JH pend.';
 }
 
 // Formulario inline para nueva linea
 const newLine = reactive({
     payment_type: 'trato',
-    labor_type_id: '', labor_rate_id: '', rate: 0, quantity: 0, hours: 0,
-    bonus_type_id: '', bonus_amount: 0, target_price: null, target_price_bonus: null, cost_center_id: '', observations: '',
+    labor_type_id: '', labor_rate_id: '', rate: 0, quantity: 0, workdays: 0,
+    bonus_type_id: '', bonus_amount: 0, target_price: null, target_price_bonus: null, cost_center_ids: [], observations: '',
 });
 
 function onTargetPriceChange() {
@@ -95,16 +96,15 @@ function startAddLine(empId) {
     addingLineFor.value = empId;
     Object.assign(newLine, {
         payment_type: 'trato',
-        labor_type_id: '', labor_rate_id: '', rate: 0, quantity: 0, hours: 0,
-        bonus_type_id: '', bonus_amount: 0, target_price: null, target_price_bonus: null, cost_center_id: '', observations: '',
+        labor_type_id: '', labor_rate_id: '', rate: 0, quantity: 0, workdays: 0,
+        bonus_type_id: '', bonus_amount: 0, target_price: null, target_price_bonus: null, cost_center_ids: [], observations: '',
     });
     const emp = props.employees.find(e => e.id === empId);
     if (emp) {
-        if (emp.remaining_hours === null) {
-            newLine.hours = props.maxHoursPerDay > 0 ? props.maxHoursPerDay : 8;
+        if (emp.remaining_workdays === null) {
+            newLine.workdays = 1.0;
         } else {
-            const maxH = props.maxHoursPerDay > 0 ? props.maxHoursPerDay : 8;
-            newLine.hours = Math.min(maxH, emp.remaining_hours > 0 ? emp.remaining_hours : maxH);
+            newLine.workdays = Math.min(1.0, emp.remaining_workdays > 0 ? emp.remaining_workdays : 1.0);
         }
     }
 }
@@ -130,12 +130,10 @@ function recalcDailyRate() {
     }
     const emp = props.employees.find(e => e.id === addingLineFor.value);
     const fullDayRate = emp ? emp.daily_rate : 0;
-    newLine.rate = props.maxHoursPerDay > 0
-        ? Math.round(fullDayRate * (newLine.hours || 0) / props.maxHoursPerDay)
-        : fullDayRate;
+    newLine.rate = Math.round(fullDayRate * (newLine.workdays || 0));
 }
 
-function onHoursChange() {
+function onWorkdayChange() {
     recalcDailyRate();
 }
 
@@ -152,25 +150,23 @@ function onLaborChange() {
         newLine.target_price = null;
         newLine.target_price_bonus = null;
         if (selectedLabor.is_paid) {
-            // Setear horas al máximo del día para calcular tarifa completa
+            // Setear jornada completa para calcular tarifa
             const emp = props.employees.find(e => e.id === addingLineFor.value);
-            const maxH = props.maxHoursPerDay > 0 ? props.maxHoursPerDay : 8;
-            if (emp && emp.remaining_hours !== null) {
-                newLine.hours = Math.min(maxH, emp.remaining_hours > 0 ? emp.remaining_hours : maxH);
+            if (emp && emp.remaining_workdays !== null) {
+                newLine.workdays = Math.min(1.0, emp.remaining_workdays > 0 ? emp.remaining_workdays : 1.0);
             } else {
-                newLine.hours = maxH;
+                newLine.workdays = 1.0;
             }
             recalcDailyRate();
         } else {
             const emp = props.employees.find(e => e.id === addingLineFor.value);
-            const maxH = props.maxHoursPerDay > 0 ? props.maxHoursPerDay : 8;
-            if (emp && emp.remaining_hours !== null) {
-                newLine.hours = Math.min(maxH, emp.remaining_hours > 0 ? emp.remaining_hours : maxH);
+            if (emp && emp.remaining_workdays !== null) {
+                newLine.workdays = Math.min(1.0, emp.remaining_workdays > 0 ? emp.remaining_workdays : 1.0);
             } else {
-                newLine.hours = maxH;
+                newLine.workdays = 1.0;
             }
             newLine.rate = 0;
-            newLine.cost_center_id = '';
+            newLine.cost_center_ids = [];
         }
         return;
     }
@@ -210,32 +206,32 @@ function onBonusChange() {
 
 const newLineAmount = computed(() => Math.round((newLine.rate || 0) * (newLine.quantity || 0)));
 
-function getRemainingHours(empId) {
+function getRemainingWorkdays(empId) {
     const emp = props.employees.find(e => e.id === empId);
-    if (!emp || emp.remaining_hours === null) return 24;
-    return emp.remaining_hours;
+    if (!emp || emp.remaining_workdays === null) return 1.0;
+    return emp.remaining_workdays;
 }
 
-function hasHourLimit() {
-    return props.maxHoursPerDay > 0;
+function hasWorkdayLimit() {
+    return props.maxWorkdayPerDay > 0;
 }
 
 function saveLine(empId) {
     const emp = props.employees.find(e => e.id === empId);
-    const remaining = (!emp || emp.remaining_hours === null) ? null : emp.remaining_hours;
+    const remaining = (!emp || emp.remaining_workdays === null) ? null : emp.remaining_workdays;
 
     if (remaining !== null && remaining >= 0) {
-        if (newLine.hours > remaining) {
+        if (newLine.workdays > remaining) {
             Swal.fire({
                 icon: 'warning',
-                title: 'Horas excedidas',
-                html: `Solo quedan <b>${remaining}h</b> disponibles de <b>${props.maxHoursPerDay}h</b> para este día.`,
+                title: 'Jornada excedida',
+                html: `Solo quedan <b>${remaining} JH</b> disponibles para este día.`,
             });
             return;
         }
 
-        if (newLine.hours > props.maxHoursPerDay) {
-            Swal.fire({ icon: 'warning', title: 'Horas excedidas', text: `El máximo para este día es ${props.maxHoursPerDay}h.` });
+        if (newLine.workdays > props.maxWorkdayPerDay) {
+            Swal.fire({ icon: 'warning', title: 'Jornada excedida', text: `El máximo para este día es ${props.maxWorkdayPerDay} JH.` });
             return;
         }
     }
@@ -259,12 +255,12 @@ function saveLine(empId) {
         labor_type_id: newLine.labor_type_id,
         labor_rate_id: newLine.payment_type === 'trato' ? newLine.labor_rate_id : null,
         rate: newLine.rate,
-        quantity: newLine.quantity, hours: newLine.hours,
+        quantity: newLine.quantity, workdays: newLine.workdays,
         bonus_type_id: newLine.bonus_type_id || null,
         bonus_amount: newLine.bonus_amount || 0,
         target_price: (newLine.payment_type === 'dia' && newLine.target_price) ? newLine.target_price : null,
         target_price_bonus: (newLine.payment_type === 'dia' && newLine.target_price_bonus) ? newLine.target_price_bonus : null,
-        cost_center_id: newLine.cost_center_id, observations: newLine.observations,
+        cost_center_ids: newLine.cost_center_ids, observations: newLine.observations,
     });
     form.post(route('daily-yields.store'), {
         preserveScroll: true,
@@ -273,7 +269,7 @@ function saveLine(empId) {
             Swal.fire({ icon: 'success', title: 'Tarja guardada', timer: 900, showConfirmButton: false });
         },
         onError: (errors) => {
-            const msg = errors.hours || 'Revisa los campos.';
+            const msg = errors.workdays || 'Revisa los campos.';
             Swal.fire({ icon: 'error', title: 'Error', text: msg });
         },
     });
@@ -289,12 +285,12 @@ function startEditLine(yieldData) {
         labor_rate_id: yieldData.labor_rate_id || '',
         rate: yieldData.rate || 0,
         quantity: yieldData.quantity || 0,
-        hours: yieldData.hours || 0,
+        workdays: yieldData.workdays || 0,
         bonus_type_id: yieldData.bonus_type_id || '',
         bonus_amount: yieldData.bonus_amount || 0,
         target_price: yieldData.target_price || null,
         target_price_bonus: yieldData.target_price_bonus || null,
-        cost_center_id: yieldData.cost_center_id || '',
+        cost_center_ids: yieldData.cost_center_ids || [],
         observations: yieldData.observations || '',
     });
 }
@@ -327,12 +323,10 @@ function recalcEditDailyRate() {
     if (editLine.payment_type !== 'dia') return;
     const emp = props.employees.find(e => e.yields && e.yields.some(y => y.id === editingYieldId.value));
     const fullDayRate = emp ? emp.daily_rate : 0;
-    editLine.rate = props.maxHoursPerDay > 0
-        ? Math.round(fullDayRate * (editLine.hours || 0) / props.maxHoursPerDay)
-        : fullDayRate;
+    editLine.rate = Math.round(fullDayRate * (editLine.workdays || 0));
 }
 
-function onEditHoursChange() {
+function onEditWorkdayChange() {
     recalcEditDailyRate();
 }
 
@@ -391,12 +385,12 @@ function saveEdit() {
         labor_rate_id: editLine.payment_type === 'trato' ? editLine.labor_rate_id : null,
         rate: editLine.rate,
         quantity: editLine.quantity,
-        hours: editLine.hours,
+        workdays: editLine.workdays,
         bonus_type_id: editLine.bonus_type_id || null,
         bonus_amount: editLine.bonus_amount || 0,
         target_price: (editLine.payment_type === 'dia' && editLine.target_price) ? editLine.target_price : null,
         target_price_bonus: (editLine.payment_type === 'dia' && editLine.target_price_bonus) ? editLine.target_price_bonus : null,
-        cost_center_id: editLine.cost_center_id,
+        cost_center_ids: editLine.cost_center_ids,
         observations: editLine.observations,
     });
     form.put(route('daily-yields.update', editingYieldId.value), {
@@ -406,7 +400,7 @@ function saveEdit() {
             Swal.fire({ icon: 'success', title: 'Tarja actualizada', timer: 900, showConfirmButton: false });
         },
         onError: (errors) => {
-            const msg = errors.hours || 'Revisa los campos.';
+            const msg = errors.workdays || 'Revisa los campos.';
             Swal.fire({ icon: 'error', title: 'Error', text: msg });
         },
     });
@@ -452,8 +446,8 @@ function deleteLine(yieldId) {
             </div>
             <div class="col-6 col-md-3">
                 <div class="card bg-soft-warning text-center p-2">
-                    <small class="text-muted">Total Hrs</small>
-                    <strong>{{ summary.totalHours }}</strong>
+                    <small class="text-muted">Total JH</small>
+                    <strong>{{ summary.totalWorkdays }}</strong>
                 </div>
             </div>
         </div>
@@ -502,7 +496,7 @@ function deleteLine(yieldId) {
                             <td><i class="fas fa-fw" :class="expandedEmployee===emp.id?'fa-chevron-down':'fa-chevron-right'"></i></td>
                             <td class="fw-semi-bold">
                                 {{ emp.full_name }}
-                                <span v-if="emp.yields && emp.yields.some(y => !y.cost_center_id && !y.is_absence)"
+                                <span v-if="emp.yields && emp.yields.some(y => (!y.cost_center_ids || y.cost_center_ids.length === 0) && !y.is_absence)"
                                     class="badge bg-soft-warning text-warning ms-1" style="font-size: 0.6rem; vertical-align: middle;">
                                     <i class="fas fa-exclamation-triangle fa-xs me-1"></i>Falta CC
                                 </span>
@@ -511,10 +505,10 @@ function deleteLine(yieldId) {
                             <td class="text-center"><span class="badge" :class="statusBadge(emp)">{{ statusText(emp) }}</span></td>
                             <td class="text-center">{{ emp.yield_count }}</td>
                             <td class="text-center">
-                                <span>{{ emp.total_hours }}/{{ maxHoursPerDay }}h</span>
+                                <span>{{ emp.total_workdays }} JH</span>
                                 <div class="progress mt-1" style="height:4px">
-                                    <div class="progress-bar" :class="emp.remaining_hours<=0?'bg-success':'bg-warning'"
-                                        :style="{width: Math.min(100, emp.total_hours/maxHoursPerDay*100)+'%'}"></div>
+                                    <div class="progress-bar" :class="emp.remaining_workdays<=0?'bg-success':'bg-warning'"
+                                        :style="{width: Math.min(100, emp.total_workdays/maxWorkdayPerDay*100)+'%'}"></div>
                                 </div>
                             </td>
                             <td class="text-end">{{ (emp.total_amount||0).toLocaleString('es-CL') }}</td>
@@ -534,7 +528,7 @@ function deleteLine(yieldId) {
                                         <thead>
                                             <tr class="bg-200">
                                                 <th>Tipo</th><th>Labor</th><th>Trato</th><th class="text-end">Valor</th><th class="text-end">Cant.</th><th class="text-end">Monto</th>
-                                                <th class="text-center">Horas</th><th>C.Costo</th><th class="text-end">Bono</th><th class="text-end">P.Objetivo</th><th class="text-end">Bono Obj.</th><th>Obs.</th><th style="width:60px"></th>
+                                                <th class="text-center">Jornada</th><th>C.Costo</th><th class="text-end">Bono</th><th class="text-end">P.Objetivo</th><th class="text-end">Bono Obj.</th><th>Obs.</th><th style="width:60px"></th>
                                             </tr>
                                         </thead>
                                         <tbody>
@@ -550,8 +544,8 @@ function deleteLine(yieldId) {
                                                 <td class="text-end">{{ (y.rate||0).toLocaleString('es-CL') }}</td>
                                                 <td class="text-end">{{ y.quantity }}</td>
                                                 <td class="text-end fw-semi-bold">{{ (y.amount||0).toLocaleString('es-CL') }}</td>
-                                                <td class="text-center">{{ y.hours }}</td>
-                                                <td>{{ y.cost_center_name }}</td>
+                                                <td class="text-center">{{ y.workdays }}</td>
+                                                <td>{{ y.cost_center_names || '-' }}</td>
                                                 <td class="text-end">{{ y.bonus_amount ? y.bonus_amount.toLocaleString('es-CL') : '-' }}</td>
                                                 <td class="text-end">
                                                     <span v-if="y.target_price" class="badge bg-soft-warning text-warning border border-warning">
@@ -645,15 +639,12 @@ function deleteLine(yieldId) {
                                                             </div>
                                                         </div>
                                                         <div class="col-md-1">
-                                                            <label class="form-label small mb-0">Horas</label>
-                                                            <input type="number" v-model.number="editLine.hours" @change="onEditHoursChange" class="form-control form-control-sm" min="0.5" step="0.5" />
+                                                            <label class="form-label small mb-0">Jornada</label>
+                                                            <input type="number" v-model.number="editLine.workdays" @change="onEditWorkdayChange" class="form-control form-control-sm" min="0.1" max="1" step="0.25" />
                                                         </div>
                                                         <div class="col-md-2">
                                                             <label class="form-label small mb-0">C.Costo</label>
-                                                            <select v-model="editLine.cost_center_id" class="form-select form-select-sm">
-                                                                <option value="" disabled>Seleccione</option>
-                                                                <option v-for="cc in costCenters" :key="cc.value" :value="cc.value">{{ cc.label }}</option>
-                                                            </select>
+                                                            <Multiselect v-model="editLine.cost_center_ids" :options="costCenters" mode="tags" :searchable="true" :close-on-select="false" placeholder="Seleccione" class="multiselect-sm" />
                                                         </div>
                                                         <div class="col-md-1">
                                                             <label class="form-label small mb-0">Bono</label>
@@ -751,15 +742,12 @@ function deleteLine(yieldId) {
                                                 </div>
                                             </div>
                                             <div class="col-md-1">
-                                                <label class="form-label small mb-0">Horas</label>
-                                                <input type="number" v-model.number="newLine.hours" @change="onHoursChange" class="form-control form-control-sm" min="0" :max="getRemainingHours(emp.id)" step="0.5" />
+                                                <label class="form-label small mb-0">Jornada</label>
+                                                <input type="number" v-model.number="newLine.workdays" @change="onWorkdayChange" class="form-control form-control-sm" min="0.1" :max="getRemainingWorkdays(emp.id)" step="0.25" />
                                             </div>
                                             <div class="col-md-2" v-if="!isUnpaidAbsence">
                                                 <label class="form-label small mb-0">C.Costo</label>
-                                                <select v-model="newLine.cost_center_id" class="form-select form-select-sm">
-                                                    <option value="" disabled>Seleccione</option>
-                                                    <option v-for="cc in costCenters" :key="cc.value" :value="cc.value">{{ cc.label }}</option>
-                                                </select>
+                                                <Multiselect v-model="newLine.cost_center_ids" :options="costCenters" mode="tags" :searchable="true" :close-on-select="false" placeholder="Seleccione" class="multiselect-sm" />
                                             </div>
                                             <div class="col-md-1" v-if="!isAbsenceSelected">
                                                 <label class="form-label small mb-0">Bono</label>
@@ -780,10 +768,10 @@ function deleteLine(yieldId) {
                                     </div>
                                     <button v-else class="btn btn-sm btn-falcon-default"
                                         @click.stop="startAddLine(emp.id)"
-                                        :disabled="hasHourLimit() && emp.remaining_hours !== null && emp.remaining_hours <= 0"
-                                        :title="(hasHourLimit() && emp.remaining_hours !== null && emp.remaining_hours <= 0) ? 'Sin horas disponibles' : 'Agregar línea'">
+                                        :disabled="hasWorkdayLimit() && emp.remaining_workdays !== null && emp.remaining_workdays <= 0"
+                                        :title="(hasWorkdayLimit() && emp.remaining_workdays !== null && emp.remaining_workdays <= 0) ? 'Sin jornada disponible' : 'Agregar línea'">
                                         <i class="fas fa-plus me-1"></i>Agregar linea
-                                        <span v-if="hasHourLimit() && emp.remaining_hours !== null && emp.remaining_hours <= 0" class="ms-1 text-danger small">(sin horas)</span>
+                                        <span v-if="hasWorkdayLimit() && emp.remaining_workdays !== null && emp.remaining_workdays <= 0" class="ms-1 text-danger small">(sin JH)</span>
                                     </button>
                                 </div>
                             </td>

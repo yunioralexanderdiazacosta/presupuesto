@@ -68,19 +68,19 @@ class ExportMonthlyPdfController extends Controller
             $days = [];
             $grandTotalAmount = 0;
             $grandTotalBonus = 0;
-            $grandTotalHours = 0;
+            $grandTotalWorkdays = 0;
 
             foreach ($dates as $date) {
                 $dayYields = $yieldsByDate->get($date, collect());
                 $days[$date] = [
                     'amount' => $dayYields->sum('amount'),
                     'bonus' => $dayYields->sum('bonus_amount'),
-                    'hours' => round((float) $dayYields->sum('hours'), 1),
+                    'workdays' => round((float) $dayYields->sum('workdays'), 2),
                     'lines' => $dayYields,
                 ];
                 $grandTotalAmount += $days[$date]['amount'];
                 $grandTotalBonus += $days[$date]['bonus'];
-                $grandTotalHours += $days[$date]['hours'];
+                $grandTotalWorkdays += $days[$date]['workdays'];
             }
 
             return [
@@ -91,7 +91,7 @@ class ExportMonthlyPdfController extends Controller
                 'days' => $days,
                 'grand_total_amount' => $grandTotalAmount,
                 'grand_total_bonus' => $grandTotalBonus,
-                'grand_total_hours' => round((float) $grandTotalHours, 1),
+                'grand_total_workdays' => round((float) $grandTotalWorkdays, 2),
             ];
         })->filter(fn($e) => $e['grand_total_amount'] > 0 || $e['grand_total_bonus'] > 0)
           ->values();

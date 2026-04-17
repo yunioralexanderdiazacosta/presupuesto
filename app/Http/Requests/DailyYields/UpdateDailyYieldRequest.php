@@ -23,12 +23,13 @@ class UpdateDailyYieldRequest extends FormRequest
             'labor_rate_id' => 'nullable|required_if:payment_type,trato|exists:labor_rates,id',
             'rate' => 'required|integer|min:0',
             'quantity' => 'required|numeric|min:0',
-            'hours' => 'required|numeric|min:0.5',
+            'workdays' => 'required|numeric|min:0.1|max:1',
             'bonus_type_id' => 'nullable|exists:bonus_types,id',
             'bonus_amount' => 'nullable|integer|min:0',
             'target_price' => 'nullable|integer|min:0',
             'target_price_bonus' => 'nullable|integer|min:0',
-            'cost_center_id' => 'required|exists:cost_centers,id',
+            'cost_center_ids' => 'nullable|array',
+            'cost_center_ids.*' => 'exists:cost_centers,id',
             'observations' => 'nullable|string|max:500',
         ];
     }
@@ -36,42 +37,46 @@ class UpdateDailyYieldRequest extends FormRequest
     public function withValidator($validator)
     {
         $validator->after(function ($validator) {
-            if ($validator->errors()->has('hours')) {
+            if ($validator->errors()->has('workdays')) {
                 return;
             }
 
             $dailyYield = $this->route('dailyYield');
             $user = Auth::user();
-            $hours = (float) $this->input('hours');
+            $workdays = (float) $this->input('workdays');
 
+            // Consultar horario solo para saber si es día laborable
             $schedule = WorkSchedule::where('team_id', $user->team_id)
                 ->where('season_id', session('season_id'))
                 ->first();
-            $maxHours = $schedule
+            $scheduleHours = $schedule
                 ? $schedule->hoursForDayOfWeek(Carbon::parse($dailyYield->date)->dayOfWeekIso)
                 : 8.0;
 
-            // Si el horario marca 0h para este día, permitir sin límite
-            if ($maxHours <= 0) {
+            // Si el horario marca 0h para este día (día libre), permitir sin límite
+            if ($scheduleHours <= 0) {
                 return;
             }
 
-            if ($hours > $maxHours) {
-                $validator->errors()->add('hours', "Máximo {$maxHours}h permitidas para este día.");
+            // Tope fijo: 1.0 JH por día laborable
+            $maxWorkday = 1.0;
+
+            if ($workdays > $maxWorkday) {
+                $validator->errors()->add('workdays', "Máximo {$maxWorkday} JH permitidas para este día.");
                 return;
             }
 
-            // Sumar horas de otras líneas (excluyendo la actual)
-            $usedHours = DailyYield::where('employee_id', $dailyYield->employee_id)
+            // Sumar workdays de otras líneas (excluyendo la actual)
+            $usedWorkdays = DailyYield::where('employee_id', $dailyYield->employee_id)
                 ->where('date', $dailyYield->date)
                 ->where('team_id', $user->team_id)
                 ->where('id', '!=', $dailyYield->id)
-                ->sum('hours');
+                ->sum('workdays');
 
-            $remaining = round($maxHours - $usedHours, 1);
+            $remaining = round($maxWorkday - $usedWorkdays, 2);
 
-            if ($hours > $remaining) {
-                $validator->errors()->add('hours', "Solo quedan {$remaining}h disponibles (máx {$maxHours}h, otras líneas {$usedHours}h).");
+            if ($workdays > $remaining) {
+                $validator->errors()->add('workdays', "Solo quedan {$remaining} JH disponibles (otras líneas {$usedWorkdays} JH).");
             }
         });
     }

@@ -1,5 +1,6 @@
 <script setup>
 import { watch, computed } from 'vue';
+import Multiselect from '@vueform/multiselect';
 
 const props = defineProps({
     form: { type: Object, required: true },
@@ -89,23 +90,19 @@ function onBonusTypeChange() {
                     :value="'$' + computedAmount.toLocaleString('es-CL')" />
             </div>
 
-            <!-- Horas -->
+            <!-- Jornada -->
             <div class="col-md-2">
-                <label class="form-label small mb-1">Horas <span class="text-danger">*</span></label>
-                <input type="number" v-model="form.hours" class="form-control form-control-sm"
-                    :class="{ 'is-invalid': form.errors?.hours }" step="0.5" min="0.5" max="24" />
-                <div v-if="form.errors?.hours" class="invalid-feedback">{{ form.errors.hours }}</div>
+                <label class="form-label small mb-1">Jornada <span class="text-danger">*</span></label>
+                <input type="number" v-model="form.workdays" class="form-control form-control-sm"
+                    :class="{ 'is-invalid': form.errors?.workdays }" step="0.25" min="0.1" max="1" />
+                <div v-if="form.errors?.workdays" class="invalid-feedback">{{ form.errors.workdays }}</div>
             </div>
 
             <!-- Centro de Costo -->
             <div class="col-md-4">
-                <label class="form-label small mb-1">Centro de Costo <span class="text-danger">*</span></label>
-                <select v-model="form.cost_center_id" class="form-select form-select-sm"
-                    :class="{ 'is-invalid': form.errors?.cost_center_id }">
-                    <option :value="''" disabled selected>Seleccione CC...</option>
-                    <option v-for="cc in costCenters" :key="cc.value" :value="cc.value">{{ cc.label }}</option>
-                </select>
-                <div v-if="form.errors?.cost_center_id" class="invalid-feedback">{{ form.errors.cost_center_id }}</div>
+                <label class="form-label small mb-1">Centro de Costo</label>
+                <Multiselect v-model="form.cost_center_ids" :options="costCenters" mode="tags" :searchable="true" :close-on-select="false" placeholder="Seleccione CC..." class="multiselect-sm" />
+                <div v-if="form.errors?.cost_center_ids" class="text-danger small">{{ form.errors.cost_center_ids }}</div>
             </div>
 
             <!-- Tipo de Bono -->

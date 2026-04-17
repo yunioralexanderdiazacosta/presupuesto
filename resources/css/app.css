@@ -108,3 +108,17 @@ overflow-y: auto;
   line-height: 1 !important;
   
 }
+
+/* Dropdown del Multiselect: z-index alto para que no quede detrás de formularios/modales */
+.multiselect-dropdown {
+  z-index: 9999 !important;
+  max-height: 600px !important; /* ~20 items visibles */
+}
+.multiselect-dropdown .multiselect-options {
+  max-height: 600px !important;
+}
+
+/* Evitar que table-responsive corte el dropdown del Multiselect */
+.table-responsive:has(.multiselect.is-open) {
+  overflow: visible !important;
+}

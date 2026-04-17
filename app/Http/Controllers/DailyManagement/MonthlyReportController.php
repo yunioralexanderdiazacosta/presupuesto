@@ -32,7 +32,7 @@ class MonthlyReportController extends Controller
         }
 
         // Tarjas del mes
-        $yields = DailyYield::with(['laborType', 'laborRate', 'bonusType', 'costCenter'])
+        $yields = DailyYield::with(['laborType', 'laborRate', 'bonusType', 'costCenters.costCenter'])
             ->where('team_id', $user->team_id)
             ->where('season_id', $seasonId)
             ->whereBetween('date', [$startDate->format('Y-m-d'), $endDate->format('Y-m-d')])
@@ -60,7 +60,7 @@ class MonthlyReportController extends Controller
             $grandTotalAmount = 0;
             $grandTotalBonus = 0;
             $grandTotalTargetBonus = 0;
-            $grandTotalHours = 0;
+            $grandTotalWorkdays = 0;
             $daysWorked = 0;
 
             foreach ($dates as $date) {
@@ -68,13 +68,13 @@ class MonthlyReportController extends Controller
                 $dayAmount = $dayYields->sum('amount');
                 $dayBonus = $dayYields->sum('bonus_amount');
                 $dayTargetBonus = $dayYields->sum('target_price_bonus');
-                $dayHours = $dayYields->sum('hours');
+                $dayWorkdays = $dayYields->sum('workdays');
 
                 $days[$date] = [
                     'amount' => $dayAmount,
                     'bonus' => $dayBonus,
                     'target_bonus' => $dayTargetBonus,
-                    'hours' => round((float) $dayHours, 1),
+                    'workdays' => round((float) $dayWorkdays, 2),
                     'lines' => $dayYields->map(fn($y) => [
                         'payment_type' => $y->payment_type ?? 'trato',
                         'labor_type' => $y->laborType?->name,
@@ -82,18 +82,18 @@ class MonthlyReportController extends Controller
                         'rate' => $y->rate,
                         'quantity' => $y->quantity,
                         'amount' => $y->amount,
-                        'hours' => $y->hours,
+                        'workdays' => $y->workdays,
                         'bonus_amount' => $y->bonus_amount,
                         'target_price' => $y->target_price,
                         'target_price_bonus' => $y->target_price_bonus,
-                        'cost_center' => $y->costCenter?->name,
+                        'cost_center' => $y->costCenters->map(fn($cc) => $cc->costCenter?->name)->filter()->implode(', '),
                     ])->values(),
                 ];
 
                 $grandTotalAmount += $dayAmount;
                 $grandTotalBonus += $dayBonus;
                 $grandTotalTargetBonus += $dayTargetBonus;
-                $grandTotalHours += $dayHours;
+                $grandTotalWorkdays += $dayWorkdays;
                 if ($dayYields->isNotEmpty()) $daysWorked++;
             }
 
@@ -107,7 +107,7 @@ class MonthlyReportController extends Controller
                 'grand_total_amount' => $grandTotalAmount,
                 'grand_total_bonus' => $grandTotalBonus,
                 'grand_total_target_bonus' => $grandTotalTargetBonus,
-                'grand_total_hours' => round((float) $grandTotalHours, 1),
+                'grand_total_workdays' => round((float) $grandTotalWorkdays, 2),
                 'days_worked' => $daysWorked,
             ];
         })->filter(fn($e) => $e['grand_total_amount'] > 0 || $e['grand_total_bonus'] > 0 || $e['grand_total_target_bonus'] > 0)
@@ -122,7 +122,7 @@ class MonthlyReportController extends Controller
                 'amount' => $employeesData->sum('grand_total_amount'),
                 'bonus' => $employeesData->sum('grand_total_bonus'),
                 'target_bonus' => $employeesData->sum('grand_total_target_bonus'),
-                'hours' => round($employeesData->sum('grand_total_hours'), 1),
+                'workdays' => round($employeesData->sum('grand_total_workdays'), 2),
             ],
         ]);
     }

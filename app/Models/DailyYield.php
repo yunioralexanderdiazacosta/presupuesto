@@ -18,12 +18,11 @@ class DailyYield extends Model
         'rate',
         'quantity',
         'amount',
-        'hours',
+        'workdays',
         'bonus_type_id',
         'bonus_amount',
         'target_price',
         'target_price_bonus',
-        'cost_center_id',
         'team_id',
         'season_id',
         'user_id',
@@ -35,7 +34,7 @@ class DailyYield extends Model
         'rate' => 'integer',
         'quantity' => 'decimal:2',
         'amount' => 'integer',
-        'hours' => 'decimal:1',
+        'workdays' => 'decimal:2',
         'bonus_amount' => 'integer',
         'target_price' => 'integer',
         'target_price_bonus' => 'integer',
@@ -64,6 +63,11 @@ class DailyYield extends Model
     public function costCenter()
     {
         return $this->belongsTo(CostCenter::class);
+    }
+
+    public function costCenters()
+    {
+        return $this->hasMany(DailyYieldCostCenter::class);
     }
 
     public function team()

@@ -17,7 +17,7 @@ const props = defineProps({
     activeTab: String,
     costCenters: Array,
     parcels: Array,
-    maxHoursPerDay: Number,
+    maxWorkdayPerDay: Number,
     hasAttendance: Boolean,
     attendances: Object,
     attendanceSummary: Object,
@@ -124,7 +124,7 @@ function changeDate() {
                         :parcels="parcels"
                         :selectedDate="selectedDate"
                         :hasAttendance="hasAttendance"
-                        :maxHoursPerDay="maxHoursPerDay"
+                        :maxWorkdayPerDay="maxWorkdayPerDay"
                         :summary="yieldsSummary"
                     />
 
