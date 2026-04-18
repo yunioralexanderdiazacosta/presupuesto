@@ -101,6 +101,10 @@
     border-width: 1px !important;
     font-size: 0.72rem;
 }
+.table.budget-tbl > tfoot > tr > td.col-month {
+    background-color: #2c3e50 !important;
+    color: #fff !important;
+}
 
 /* --- Fila de grupo (CC / Nivel 3) con rowspan --- */
 .table.budget-tbl > tbody > tr > td.cell-group {

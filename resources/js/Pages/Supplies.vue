@@ -38,6 +38,7 @@ const props = defineProps({
 const selectedFruit = ref('');
 const selectedVariety = ref('');
 const selectedCostCenter = ref('');
+const hideCc = ref(false);
 
 // Buscador global para la tabla de insumos
 const search = ref('');
@@ -109,6 +110,66 @@ const totalFilteredData = computed(() => {
   return total.toLocaleString('es-CL', { style: 'currency', currency: 'CLP', maximumFractionDigits: 0 });
 });
 
+// Sumatoria mensual para la pestaña Detalles
+const monthlyTotalsDetails = computed(() => {
+  const totals = new Array(12).fill(0);
+  filteredData.value.forEach(cc => {
+    cc.subfamilies.forEach(subfamily => {
+      subfamily.products.forEach(product => {
+        if (product.months) {
+          product.months.forEach((val, i) => {
+            let num = typeof val === 'string' ? Number(val.replace(/\./g, '').replace(/,/g, '.')) : Number(val);
+            if (!isNaN(num)) totals[i] += num;
+          });
+        }
+      });
+    });
+  });
+  return totals.map(t => t.toLocaleString('es-ES', { maximumFractionDigits: 0 }));
+});
+
+// Helper para parsear números formateados en español
+const parseNum = (val) => {
+  if (typeof val === 'number') return val;
+  if (typeof val !== 'string') return 0;
+  const cleaned = val.replace(/\./g, '').replace(/,/g, '.');
+  const num = Number(cleaned);
+  return isNaN(num) ? 0 : num;
+};
+
+// Vista consolidada: agrupa por subfamilia y suma productos con mismo nombre
+const consolidatedData = computed(() => {
+  const sfMap = {};
+  filteredData.value.forEach(cc => {
+    cc.subfamilies.forEach(sf => {
+      if (!sfMap[sf.id]) {
+        sfMap[sf.id] = { id: sf.id, name: sf.name, productsMap: {} };
+      }
+      sf.products.forEach(p => {
+        const key = p.name + '|' + (p.unit || '');
+        if (!sfMap[sf.id].productsMap[key]) {
+          sfMap[sf.id].productsMap[key] = {
+            name: p.name, unit: p.unit, totalQuantity: 0, totalAmount: 0, months: new Array(12).fill(0)
+          };
+        }
+        const target = sfMap[sf.id].productsMap[key];
+        target.totalQuantity += parseNum(p.totalQuantity);
+        target.totalAmount += parseNum(p.totalAmount);
+        if (p.months) { p.months.forEach((val, i) => { target.months[i] += parseNum(val); }); }
+      });
+    });
+  });
+  return Object.values(sfMap).map(sf => {
+    const products = Object.values(sf.productsMap).map(p => ({
+      name: p.name, unit: p.unit,
+      totalQuantity: p.totalQuantity.toLocaleString('es-ES', { minimumFractionDigits: 2, maximumFractionDigits: 2 }),
+      totalAmount: p.totalAmount.toLocaleString('es-ES', { maximumFractionDigits: 0 }),
+      months: p.months.map(m => m.toLocaleString('es-ES', { maximumFractionDigits: 0 }))
+    }));
+    return { id: sf.id, name: sf.name, products, total: products.length };
+  }).filter(sf => sf.total > 0);
+});
+
 // Filtro por variedad para Gastos por Hectarea
 const selectedVarietyGastos = ref('');
 const filteredVarietiesGastos = computed(() => {
@@ -150,6 +211,36 @@ const totalFilteredDataGastos = computed(() => {
   return total.toLocaleString('es-CL', { style: 'currency', currency: 'CLP', maximumFractionDigits: 0 });
 });
 
+const hideCcGastos = ref(false);
+const consolidatedDataGastos = computed(() => {
+  const sfMap = {};
+  filteredDataGastos.value.forEach(cc => {
+    cc.subfamilies.forEach(sf => {
+      if (!sfMap[sf.id]) {
+        sfMap[sf.id] = { id: sf.id, name: sf.name, productsMap: {} };
+      }
+      sf.products.forEach(p => {
+        const key = p.name + '|' + (p.unit || '');
+        if (!sfMap[sf.id].productsMap[key]) {
+          sfMap[sf.id].productsMap[key] = { name: p.name, unit: p.unit, totalQuantity: 0, totalAmount: 0, months: new Array(12).fill(0) };
+        }
+        const target = sfMap[sf.id].productsMap[key];
+        target.totalQuantity += parseNum(p.totalQuantity);
+        target.totalAmount += parseNum(p.totalAmount);
+        if (p.months) { p.months.forEach((val, i) => { target.months[i] += parseNum(val); }); }
+      });
+    });
+  });
+  return Object.values(sfMap).map(sf => {
+    const products = Object.values(sf.productsMap).map(p => ({
+      name: p.name, unit: p.unit,
+      totalQuantity: p.totalQuantity.toLocaleString('es-ES', { minimumFractionDigits: 2, maximumFractionDigits: 2 }),
+      totalAmount: p.totalAmount.toLocaleString('es-ES', { maximumFractionDigits: 0 }),
+      months: p.months.map(m => m.toLocaleString('es-ES', { maximumFractionDigits: 0 }))
+    }));
+    return { id: sf.id, name: sf.name, products, total: products.length };
+  }).filter(sf => sf.total > 0);
+});
 
 
 // Filtro para Detalle de compra 
@@ -455,17 +546,10 @@ const excelDataResumen = computed(() => {
                                 </div>
                               </div>
                             </div>
-                            <div class="col-md-4 col-lg-2 col-xl-2 col-xxl-2">
+                            <div class="col-md-4 col-lg-3 col-xl-3 col-xxl-3">
                               <div class="card h-100 p-1 small-card">
-                                <div class="card-header pb-0 pt-1 px-2">
-                                  <h6 class="mb-0 mt-1 fs-8 d-flex align-items-center small-card-title">Porc. Monto</h6>
-                                </div>
-                                <div class="card-body d-flex flex-column justify-content-end py-1 px-2">
-                                  <div class="row">
-                                    <div class="col">
-                                      <p class="font-sans-serif lh-1 mb-1 fs-8 small-card-number">{{ percentage }}%</p>
-                                    </div>
-                                  </div>
+                                <div class="card-body d-flex align-items-center justify-content-center py-2 px-2">
+                                  <p class="mb-0 fs-9 text-muted">Corresponde al <strong class="text-dark">{{ percentage }}%</strong> del presupuesto</p>
                                 </div>
                               </div>
                             </div>
@@ -498,6 +582,44 @@ const excelDataResumen = computed(() => {
                               </option>
                             </select>
                           </div>
+                          <div class="col-auto d-flex align-items-end">
+                            <button type="button" class="btn btn-sm d-flex align-items-center gap-1" :class="hideCc ? 'btn-falcon-primary' : 'btn-falcon-default'" @click="hideCc = !hideCc" v-tooltip="'Agrupar productos por subfamilia, omitiendo centros de costo'">
+                              <i class="fas fa-layer-group fa-sm"></i>
+                              <span class="d-none d-md-inline">Agrupar</span>
+                            </button>
+                          </div>
+                          <div class="col d-flex justify-content-end align-items-end gap-1">
+                            <ExportExcelButton
+                              :data="(hideCc ? consolidatedData : filteredData.flatMap(cc => cc.subfamilies.map(sf => ({ ccName: cc.name, ...sf })))).flatMap(item => {
+                                const isConsolidated = hideCc;
+                                const sfName = item.name;
+                                const ccName = isConsolidated ? '' : item.ccName;
+                                return (item.products || []).map(product => {
+                                  const pn = val => { if (typeof val === 'number') return val; if (typeof val !== 'string') return undefined; const c = val.replace(/\./g, '').replace(/,/g, '.'); return c.trim() === '' ? undefined : (isNaN(Number(c)) ? undefined : Number(c)); };
+                                  const row = {};
+                                  if (!isConsolidated) row['CC'] = ccName;
+                                  row['Subfamilia'] = sfName;
+                                  row['Producto'] = product.name;
+                                  row['Cantidad Total'] = pn(product.totalQuantity);
+                                  row['Un'] = product.unit;
+                                  row['Monto Total'] = pn(product.totalAmount);
+                                  ($page.props.months || []).forEach((month, idx) => { row[month.label] = pn(product.months && product.months[idx]); });
+                                  return row;
+                                });
+                              })"
+                              :headers="[
+                                ...(hideCc ? [] : [{ label: 'CC', key: 'CC' }]),
+                                { label: 'Subfamilia', key: 'Subfamilia' },
+                                { label: 'Producto', key: 'Producto' },
+                                { label: 'Cantidad Total', key: 'Cantidad Total', type: 'number' },
+                                { label: 'Un', key: 'Un' },
+                                { label: 'Monto Total', key: 'Monto Total', type: 'number' },
+                                ...($page.props.months || []).map(month => ({ label: month.label, key: month.label, type: 'number' }))
+                              ]"
+                              class="btn btn-success btn-md d-flex align-items-center p-0"
+                              filename="Insumos-Detalles.xlsx"
+                            />
+                          </div>
                         </div>
 
                         <div class="table-responsive budget-table-wrapper mt-1">
@@ -505,7 +627,7 @@ const excelDataResumen = computed(() => {
                                 <!--begin::Table head-->
                                 <thead>
                                     <tr class="fw-bold text-muted">
-                                        <th class="yunior min-w-150px">Centro de costo</th>
+                                        <th v-if="!hideCc" class="yunior min-w-150px">Centro de costo</th>
                                         <th>Subfamilia</th>
                                         <th class="yunior hmin-w-100px">Producto</th>
                                         <th>Cantidad Total</th>
@@ -514,9 +636,7 @@ const excelDataResumen = computed(() => {
                                         <th v-for="month in $page.props.months" class="text-primary yunior">{{month.label}}</th> 
                                     </tr>
                                 </thead>
-                                <!--end::Table head-->
-                                <!--begin::Table body-->
-                                <tbody>
+                                <tbody v-if="!hideCc">
                                     <template v-for="cc in filteredData">
                                         <template v-for="(subfamily, index2) in cc.subfamilies">
                                             <tr>
@@ -540,7 +660,34 @@ const excelDataResumen = computed(() => {
                                         </template>
                                     </template>
                                 </tbody>
-                                <!--end::Table body-->
+                                <tbody v-else>
+                                  <template v-for="sf in consolidatedData" :key="sf.id">
+                                    <tr>
+                                      <td :rowspan="sf.total" class="cell-group">{{ sf.name }}</td>
+                                      <td>{{ sf.products[0].name }}</td>
+                                      <td>{{ sf.products[0].totalQuantity }}</td>
+                                      <td>{{ sf.products[0].unit }}</td>
+                                      <td>{{ sf.products[0].totalAmount }}</td>
+                                      <td class="col-month col-amount" v-for="value in sf.products[0].months">{{ value }}</td>
+                                    </tr>
+                                    <template v-for="(product, idx) in sf.products" :key="idx">
+                                      <tr v-if="idx > 0">
+                                        <td>{{ product.name }}</td>
+                                        <td>{{ product.totalQuantity }}</td>
+                                        <td>{{ product.unit }}</td>
+                                        <td>{{ product.totalAmount }}</td>
+                                        <td class="col-month col-amount" v-for="value in product.months">{{ value }}</td>
+                                      </tr>
+                                    </template>
+                                  </template>
+                                </tbody>
+                                <tfoot>
+                                    <tr class="fw-bold">
+                                        <td :colspan="hideCc ? 4 : 5" class="text-end">Total:</td>
+                                        <td>{{ totalFilteredData }}</td>
+                                        <td class="col-month col-amount" v-for="(val, idx) in monthlyTotalsDetails" :key="idx">{{ val }}</td>
+                                    </tr>
+                                </tfoot>
                             </table>
                         </div>
                     </div>
@@ -562,17 +709,10 @@ const excelDataResumen = computed(() => {
                                 </div>
                               </div>
                             </div>
-                            <div class="col-md-4 col-lg-2 col-xl-2 col-xxl-2">
+                            <div class="col-md-4 col-lg-3 col-xl-3 col-xxl-3">
                               <div class="card h-100 p-1 small-card">
-                                <div class="card-header pb-0 pt-1 px-2">
-                                  <h6 class="mb-0 mt-1 fs-8 d-flex align-items-center small-card-title">Porc. Monto</h6>
-                                </div>
-                                <div class="card-body d-flex flex-column justify-content-end py-1 px-2">
-                                  <div class="row">
-                                    <div class="col">
-                                      <p class="font-sans-serif lh-1 mb-1 fs-8 small-card-number">{{ percentage }}%</p>
-                                    </div>
-                                  </div>
+                                <div class="card-body d-flex align-items-center justify-content-center py-2 px-2">
+                                  <p class="mb-0 fs-9 text-muted">Corresponde al <strong class="text-dark">{{ percentage }}%</strong> del presupuesto</p>
                                 </div>
                               </div>
                             </div>
@@ -605,14 +745,52 @@ const excelDataResumen = computed(() => {
                               </option>
                             </select>
                           </div>
+                          <div class="col-auto d-flex align-items-end">
+                            <button type="button" class="btn btn-sm d-flex align-items-center gap-1"
+                              :class="hideCcGastos ? 'btn-falcon-primary' : 'btn-falcon-default'"
+                              @click="hideCcGastos = !hideCcGastos"
+                              v-tooltip="'Agrupar productos por Subfamilia, omitiendo centros de costo'">
+                              <i class="fas fa-layer-group fa-sm"></i>
+                              <span class="d-none d-md-inline">Agrupar</span>
+                            </button>
+                          </div>
+                          <div class="col d-flex justify-content-end align-items-end gap-1">
+                            <ExportExcelButton
+                              :data="(() => {
+                                const pn = val => { if (typeof val === 'number') return val; if (typeof val !== 'string') return undefined; const c = val.replace(/\./g, '').replace(/,/g, '.'); return c.trim() === '' ? undefined : (isNaN(Number(c)) ? undefined : Number(c)); };
+                                if (hideCcGastos) {
+                                  return consolidatedDataGastos.flatMap(sf => sf.products.map(p => {
+                                    const row = { subfamily: sf.name, producto: p.name, cantidad: pn(p.totalQuantity), unidad: p.unit, monto: pn(p.totalAmount) };
+                                    ($page.props.months || []).forEach((m, i) => { row[m.label] = pn(p.months && p.months[i]); });
+                                    return row;
+                                  }));
+                                }
+                                return filteredDataGastos.flatMap(cc => cc.subfamilies.flatMap(sf => sf.products.map(p => {
+                                  const row = { cc: cc.name, subfamily: sf.name, producto: p.name, cantidad: pn(p.totalQuantity), unidad: p.unit, monto: pn(p.totalAmount) };
+                                  ($page.props.months || []).forEach((m, i) => { row[m.label] = pn(p.months && p.months[i]); });
+                                  return row;
+                                })));
+                              })()"
+                              :headers="[
+                                ...(!hideCcGastos ? [{ label: 'Centro de costo', key: 'cc' }] : []),
+                                { label: 'Subfamilia', key: 'subfamily' },
+                                { label: 'Producto', key: 'producto' },
+                                { label: 'Cantidad Total', key: 'cantidad', type: 'number' },
+                                { label: 'Un', key: 'unidad' },
+                                { label: 'Monto Total', key: 'monto', type: 'number' },
+                                ...($page.props.months || []).map(month => ({ label: month.label, key: month.label, type: 'number' }))
+                              ]"
+                              class="btn btn-success btn-md d-flex align-items-center p-0"
+                              filename="Insumos-GastosPorHectarea.xlsx"
+                            />
+                          </div>
                         </div>
 
                         <div class="table-responsive budget-table-wrapper mt-1">
                             <table id="table_4" class="table budget-tbl">
-                                <!--begin::Table head-->
                                 <thead>
                                     <tr class="fw-bold text-muted">
-                                        <th class="yunior min-w-150px">Centro de costo</th>
+                                        <th v-if="!hideCcGastos" class="yunior min-w-150px">Centro de costo</th>
                                         <th>Subfamilia</th>
                                         <th class="yunior hmin-w-100px">Producto</th>
                                         <th>Cantidad Total</th>
@@ -621,9 +799,7 @@ const excelDataResumen = computed(() => {
                                         <th v-for="month in $page.props.months" class="text-primary yunior">{{month.label}}</th> 
                                     </tr>
                                 </thead>
-                                <!--end::Table head-->
-                                <!--begin::Table body-->
-                                <tbody>
+                                <tbody v-if="!hideCcGastos">
                                     <template v-for="cc in filteredDataGastos">
                                         <template v-for="(subfamily, index2) in cc.subfamilies">
                                             <tr>
@@ -647,7 +823,27 @@ const excelDataResumen = computed(() => {
                                         </template>
                                     </template>
                                 </tbody>
-                                <!--end::Table body-->
+                                <tbody v-else>
+                                  <template v-for="sf in consolidatedDataGastos" :key="sf.id">
+                                    <tr>
+                                      <td :rowspan="sf.total" class="cell-group">{{ sf.name }}</td>
+                                      <td>{{ sf.products[0].name }}</td>
+                                      <td>{{ sf.products[0].totalQuantity }}</td>
+                                      <td>{{ sf.products[0].unit }}</td>
+                                      <td>{{ sf.products[0].totalAmount }}</td>
+                                      <td class="col-month col-amount" v-for="value in sf.products[0].months">{{ value }}</td>
+                                    </tr>
+                                    <template v-for="(product, idx) in sf.products" :key="idx">
+                                      <tr v-if="idx > 0">
+                                        <td>{{ product.name }}</td>
+                                        <td>{{ product.totalQuantity }}</td>
+                                        <td>{{ product.unit }}</td>
+                                        <td>{{ product.totalAmount }}</td>
+                                        <td class="col-month col-amount" v-for="value in product.months">{{ value }}</td>
+                                      </tr>
+                                    </template>
+                                  </template>
+                                </tbody>
                             </table>
                         </div>
                     </div>
@@ -675,17 +871,10 @@ const excelDataResumen = computed(() => {
                                 </div>
                               </div>
                             </div>
-                            <div class="col-md-4 col-lg-2 col-xl-2 col-xxl-2">
+                            <div class="col-md-4 col-lg-3 col-xl-3 col-xxl-3">
                               <div class="card h-100 p-1 small-card">
-                                <div class="card-header pb-0 pt-1 px-2">
-                                  <h6 class="mb-0 mt-1 fs-8 d-flex align-items-center small-card-title">Porc. Monto</h6>
-                                </div>
-                                <div class="card-body d-flex flex-column justify-content-end py-1 px-2">
-                                  <div class="row">
-                                    <div class="col">
-                                      <p class="font-sans-serif lh-1 mb-1 fs-8 small-card-number">{{ percentage }}%</p>
-                                    </div>
-                                  </div>
+                                <div class="card-body d-flex align-items-center justify-content-center py-2 px-2">
+                                  <p class="mb-0 fs-9 text-muted">Corresponde al <strong class="text-dark">{{ percentage }}%</strong> del presupuesto</p>
                                 </div>
                               </div>
                             </div>
@@ -767,17 +956,10 @@ const excelDataResumen = computed(() => {
                                 </div>
                               </div>
                             </div>
-                            <div class="col-md-4 col-lg-2 col-xl-2 col-xxl-2">
+                            <div class="col-md-4 col-lg-3 col-xl-3 col-xxl-3">
                               <div class="card h-100 p-1 small-card">
-                                <div class="card-header pb-0 pt-1 px-2">
-                                  <h6 class="mb-0 mt-1 fs-8 d-flex align-items-center small-card-title">Porc. Monto</h6>
-                                </div>
-                                <div class="card-body d-flex flex-column justify-content-end py-1 px-2">
-                                  <div class="row">
-                                    <div class="col">
-                                      <p class="font-sans-serif lh-1 mb-1 fs-8 small-card-number">{{props.percentage}}%</p>
-                                    </div>
-                                  </div>
+                                <div class="card-body d-flex align-items-center justify-content-center py-2 px-2">
+                                  <p class="mb-0 fs-9 text-muted">Corresponde al <strong class="text-dark">{{props.percentage}}%</strong> del presupuesto</p>
                                 </div>
                               </div>
                             </div>

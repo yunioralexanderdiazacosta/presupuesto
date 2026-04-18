@@ -483,7 +483,7 @@ function deleteLine(yieldId) {
                         <th>RUT</th>
                         <th class="text-center">Estado</th>
                         <th class="text-center">Lineas</th>
-                        <th class="text-center">Horas</th>
+                        <th class="text-center">Jornadas</th>
                         <th class="text-end">Monto $</th>
                         <th class="text-end">Bono $</th>
                         <th class="text-end">P.Obj $</th>

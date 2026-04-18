@@ -177,6 +177,7 @@ const selectedFruit = ref('');
 const selectedVariety = ref('');
 const selectedCostCenter = ref('');
 const selectedProduct = ref('');
+const hideCc = ref(false);
 
 // Lista de productos únicos extraída de data y data3
 const productOptions = computed(() => {
@@ -252,6 +253,73 @@ const totalFilteredData = computed(() => {
   return total.toLocaleString('es-ES', { maximumFractionDigits: 0 });
 });
 
+// Sumatoria mensual para la pestaña Detalles
+const monthlyTotalsDetails = computed(() => {
+  const totals = new Array(12).fill(0);
+  filteredData.value.forEach(cc => {
+    cc.subfamilies.forEach(subfamily => {
+      subfamily.products.forEach(product => {
+        if (product.months) {
+          product.months.forEach((val, i) => {
+            let num = typeof val === 'string' ? Number(val.replace(/\./g, '').replace(/,/g, '.')) : Number(val);
+            if (!isNaN(num)) totals[i] += num;
+          });
+        }
+      });
+    });
+  });
+  return totals.map(t => t.toLocaleString('es-ES', { maximumFractionDigits: 0 }));
+});
+
+// Helper para parsear números formateados en español (ej: "1.234,56" → 1234.56)
+const parseNum = (val) => {
+  if (typeof val === 'number') return val;
+  if (typeof val !== 'string') return 0;
+  const cleaned = val.replace(/\./g, '').replace(/,/g, '.');
+  const num = Number(cleaned);
+  return isNaN(num) ? 0 : num;
+};
+
+// Vista consolidada: agrupa por subfamilia y suma productos con mismo nombre
+const consolidatedData = computed(() => {
+  const sfMap = {};
+  filteredData.value.forEach(cc => {
+    cc.subfamilies.forEach(sf => {
+      if (!sfMap[sf.id]) {
+        sfMap[sf.id] = { id: sf.id, name: sf.name, productsMap: {} };
+      }
+      sf.products.forEach(p => {
+        const key = p.name + '|' + (p.unit || '');
+        if (!sfMap[sf.id].productsMap[key]) {
+          sfMap[sf.id].productsMap[key] = {
+            name: p.name,
+            unit: p.unit,
+            totalQuantity: 0,
+            totalAmount: 0,
+            months: new Array(12).fill(0)
+          };
+        }
+        const target = sfMap[sf.id].productsMap[key];
+        target.totalQuantity += parseNum(p.totalQuantity);
+        target.totalAmount += parseNum(p.totalAmount);
+        if (p.months) {
+          p.months.forEach((val, i) => { target.months[i] += parseNum(val); });
+        }
+      });
+    });
+  });
+  return Object.values(sfMap).map(sf => {
+    const products = Object.values(sf.productsMap).map(p => ({
+      name: p.name,
+      unit: p.unit,
+      totalQuantity: p.totalQuantity.toLocaleString('es-ES', { minimumFractionDigits: 2, maximumFractionDigits: 2 }),
+      totalAmount: p.totalAmount.toLocaleString('es-ES', { maximumFractionDigits: 0 }),
+      months: p.months.map(m => m.toLocaleString('es-ES', { maximumFractionDigits: 0 }))
+    }));
+    return { id: sf.id, name: sf.name, products, total: products.length };
+  }).filter(sf => sf.total > 0);
+});
+
 // Filtro por variedad para Gastos por Hectarea
 const selectedVarietyGastos = ref('');
 const filteredVarietiesGastos = computed(() => {
@@ -307,6 +375,37 @@ const totalFilteredDataGastos = computed(() => {
     });
   });
   return total.toLocaleString('es-ES', { maximumFractionDigits: 0 });
+});
+
+const hideCcGastos = ref(false);
+const consolidatedDataGastos = computed(() => {
+  const sfMap = {};
+  filteredDataGastos.value.forEach(cc => {
+    cc.subfamilies.forEach(sf => {
+      if (!sfMap[sf.id]) {
+        sfMap[sf.id] = { id: sf.id, name: sf.name, productsMap: {} };
+      }
+      sf.products.forEach(p => {
+        const key = p.name + '|' + (p.unit || '');
+        if (!sfMap[sf.id].productsMap[key]) {
+          sfMap[sf.id].productsMap[key] = { name: p.name, unit: p.unit, totalQuantity: 0, totalAmount: 0, months: new Array(12).fill(0) };
+        }
+        const target = sfMap[sf.id].productsMap[key];
+        target.totalQuantity += parseNum(p.totalQuantity);
+        target.totalAmount += parseNum(p.totalAmount);
+        if (p.months) { p.months.forEach((val, i) => { target.months[i] += parseNum(val); }); }
+      });
+    });
+  });
+  return Object.values(sfMap).map(sf => {
+    const products = Object.values(sf.productsMap).map(p => ({
+      name: p.name, unit: p.unit,
+      totalQuantity: p.totalQuantity.toLocaleString('es-ES', { minimumFractionDigits: 2, maximumFractionDigits: 2 }),
+      totalAmount: p.totalAmount.toLocaleString('es-ES', { maximumFractionDigits: 0 }),
+      months: p.months.map(m => m.toLocaleString('es-ES', { maximumFractionDigits: 0 }))
+    }));
+    return { id: sf.id, name: sf.name, products, total: products.length };
+  }).filter(sf => sf.total > 0);
 });
 
 // Monto total dinámico para la pestaña Detalle de compra (de data2)
@@ -489,17 +588,10 @@ const onFilter = () => {
                                 </div>
                               </div>
                             </div>
-                            <div class="col-md-4 col-lg-2 col-xl-2 col-xxl-2">
+                            <div class="col-md-4 col-lg-3 col-xl-3 col-xxl-3">
                               <div class="card h-100 p-1 small-card">
-                                <div class="card-header pb-0 pt-1 px-2">
-                                  <h6 class="mb-0 mt-1 fs-8 d-flex align-items-center small-card-title">Porc. Monto</h6>
-                                </div>
-                                <div class="card-body d-flex flex-column justify-content-end py-1 px-2">
-                                  <div class="row">
-                                    <div class="col">
-                                      <p class="font-sans-serif lh-1 mb-1 fs-8 small-card-number">{{props.percentageAgrochemical}}%</p>
-                                    </div>
-                                  </div>
+                                <div class="card-body d-flex align-items-center justify-content-center py-2 px-2">
+                                  <p class="mb-0 fs-9 text-muted">Corresponde al <strong class="text-dark">{{props.percentageAgrochemical}}%</strong> del presupuesto</p>
                                 </div>
                               </div>
                             </div>
@@ -508,7 +600,7 @@ const onFilter = () => {
                         <div class="mb-3 row g-2 align-items-end flex-wrap">
                           <div class="col-auto">
                             <label for="costCenterSelect" class="form-label">Filtrar por centro de costo:</label>
-                            <select id="costCenterSelect" v-model="selectedCostCenter" class="form-select form-select-sm" style="min-width: 180px; max-width: 220px;">
+                            <select id="costCenterSelect" v-model="selectedCostCenter" class="form-select form-select-sm" style="min-width: 180px; max-width: 220px;" :disabled="hideCc">
                               <option value="">Todos</option>
                               <option v-for="cc in props.costCenters" :key="cc.value" :value="cc.value">{{ cc.label }}</option>
                             </select>
@@ -539,6 +631,18 @@ const onFilter = () => {
                                 {{ product }}
                               </option>
                             </select>
+                          </div>
+                          <div class="col-auto d-flex align-items-end">
+                            <button
+                              type="button"
+                              class="btn btn-sm d-flex align-items-center gap-1"
+                              :class="hideCc ? 'btn-falcon-primary' : 'btn-falcon-default'"
+                              @click="hideCc = !hideCc"
+                              v-tooltip="'Agrupar productos por Nivel 3, omitiendo centros de costo'"
+                            >
+                              <i class="fas fa-layer-group fa-sm"></i>
+                              <span class="d-none d-md-inline">Agrupar</span>
+                            </button>
                           </div>
                           <div class="col d-flex justify-content-end align-items-end gap-1">
                             <ExportExcelButton
@@ -615,7 +719,7 @@ const onFilter = () => {
                                 <!--begin::Table head-->
                                 <thead>
                                     <tr>
-                                        <th class="min-w-150px">CC</th>
+                                        <th v-if="!hideCc" class="min-w-150px">CC</th>
                                         <th>Nivel 3</th>
                                         <th class="min-w-100px">Producto</th>
                                         <th>Cantidad Total</th>
@@ -625,8 +729,8 @@ const onFilter = () => {
                                     </tr>
                                 </thead>
                                 <!--end::Table head-->
-                                <!--begin::Table body-->
-                                <tbody>
+                                <!--begin::Table body - Vista con CC-->
+                                <tbody v-if="!hideCc">
                                   <template v-for="cc in filteredData">
                                     <template v-for="(subfamily, index2) in cc.subfamilies">
                                       <tr>
@@ -640,7 +744,6 @@ const onFilter = () => {
                                       </tr>
                                       <template v-for="(product, index3) in subfamily.products">
                                         <tr v-if="index3 > 0">
-                                          <!-- Aquí NO repetimos las columnas de centro de costo ni subfamilia -->
                                           <td>{{ product.name }}</td>
                                           <td>{{ product.totalQuantity }}</td>
                                           <td>{{ product.unit }}</td>
@@ -651,7 +754,36 @@ const onFilter = () => {
                                     </template>
                                   </template>
                                 </tbody>
+                                <!--begin::Table body - Vista consolidada por Nivel 3-->
+                                <tbody v-else>
+                                  <template v-for="sf in consolidatedData" :key="sf.id">
+                                    <tr>
+                                      <td :rowspan="sf.total" class="cell-group">{{ sf.name }}</td>
+                                      <td>{{ sf.products[0].name }}</td>
+                                      <td>{{ sf.products[0].totalQuantity }}</td>
+                                      <td>{{ sf.products[0].unit }}</td>
+                                      <td>{{ sf.products[0].totalAmount }}</td>
+                                      <td class="col-month col-amount" v-for="value in sf.products[0].months">{{ value }}</td>
+                                    </tr>
+                                    <template v-for="(product, idx) in sf.products" :key="idx">
+                                      <tr v-if="idx > 0">
+                                        <td>{{ product.name }}</td>
+                                        <td>{{ product.totalQuantity }}</td>
+                                        <td>{{ product.unit }}</td>
+                                        <td>{{ product.totalAmount }}</td>
+                                        <td class="col-month col-amount" v-for="value in product.months">{{ value }}</td>
+                                      </tr>
+                                    </template>
+                                  </template>
+                                </tbody>
                                 <!--end::Table body-->
+                                <tfoot>
+                                    <tr class="fw-bold">
+                                        <td :colspan="hideCc ? 4 : 5" class="text-end">Total:</td>
+                                        <td>{{ totalFilteredData }}</td>
+                                        <td class="col-month col-amount" v-for="(val, idx) in monthlyTotalsDetails" :key="idx">{{ val }}</td>
+                                    </tr>
+                                </tfoot>
                             </table>
                         </div>
                     </div>
@@ -671,17 +803,10 @@ const onFilter = () => {
                                 </div>
                               </div>
                             </div>
-                            <div class="col-md-4 col-lg-2 col-xl-2 col-xxl-2">
+                            <div class="col-md-4 col-lg-3 col-xl-3 col-xxl-3">
                               <div class="card h-100 p-1 small-card">
-                                <div class="card-header pb-0 pt-1 px-2">
-                                  <h6 class="mb-0 mt-1 fs-8 d-flex align-items-center small-card-title">Porc. Monto</h6>
-                                </div>
-                                <div class="card-body d-flex flex-column justify-content-end py-1 px-2">
-                                  <div class="row">
-                                    <div class="col">
-                                      <p class="font-sans-serif lh-1 mb-1 fs-8 small-card-number">{{props.percentageAgrochemical}}%</p>
-                                    </div>
-                                  </div>
+                                <div class="card-body d-flex align-items-center justify-content-center py-2 px-2">
+                                  <p class="mb-0 fs-9 text-muted">Corresponde al <strong class="text-dark">{{props.percentageAgrochemical}}%</strong> del presupuesto</p>
                                 </div>
                               </div>
                             </div>
@@ -723,32 +848,35 @@ const onFilter = () => {
                               </option>
                             </select>
                           </div>
+                          <div class="col-auto d-flex align-items-end">
+                            <button type="button" class="btn btn-sm d-flex align-items-center gap-1"
+                              :class="hideCcGastos ? 'btn-falcon-primary' : 'btn-falcon-default'"
+                              @click="hideCcGastos = !hideCcGastos"
+                              v-tooltip="'Agrupar productos por Nivel 3, omitiendo centros de costo'">
+                              <i class="fas fa-layer-group fa-sm"></i>
+                              <span class="d-none d-md-inline">Agrupar</span>
+                            </button>
+                          </div>
                           <div class="col d-flex justify-content-end align-items-end gap-1">
                             <ExportExcelButton
-                              :data="filteredDataGastos.flatMap(cc => cc.subfamilies.flatMap(subfamily => subfamily.products.map(product => {
-                                const parseSpanishNumber = val => {
-                                  if (typeof val === 'number') return val;
-                                  if (typeof val !== 'string') return undefined;
-                                  const cleaned = val.replace(/\./g, '').replace(/,/g, '.');
-                                  if (cleaned.trim() === '') return undefined;
-                                  const num = Number(cleaned);
-                                  return isNaN(num) ? undefined : num;
-                                };
-                                const row = {
-                                  cc: cc.name,
-                                  subfamily: subfamily.name,
-                                  producto: product.name,
-                                  cantidad: parseSpanishNumber(product.totalQuantity),
-                                  unidad: product.unit,
-                                  monto: parseSpanishNumber(product.totalAmount)
-                                };
-                                ($page.props.months || []).forEach((month, idx) => {
-                                  row[month.label] = parseSpanishNumber(product.months && product.months[idx]);
+                              :data="(hideCcGastos ? consolidatedDataGastos : filteredDataGastos).flatMap(item => {
+                                const src = hideCcGastos ? [item] : item.subfamilies;
+                                const ccName = hideCcGastos ? null : item.name;
+                                return (hideCcGastos ? item.products : src.flatMap(sf => sf.products.map(p => ({...p, _sf: sf.name})))).map(product => {
+                                  const pn = val => { if (typeof val === 'number') return val; if (typeof val !== 'string') return undefined; const c = val.replace(/\./g, '').replace(/,/g, '.'); return c.trim() === '' ? undefined : (isNaN(Number(c)) ? undefined : Number(c)); };
+                                  const row = {};
+                                  if (!hideCcGastos) row.cc = ccName;
+                                  row.subfamily = hideCcGastos ? item.name : product._sf;
+                                  row.producto = product.name;
+                                  row.cantidad = pn(product.totalQuantity);
+                                  row.unidad = product.unit;
+                                  row.monto = pn(product.totalAmount);
+                                  ($page.props.months || []).forEach((month, idx) => { row[month.label] = pn(product.months && product.months[idx]); });
+                                  return row;
                                 });
-                                return row;
-                              })))"
+                              }).flat()"
                               :headers="[
-                                { label: 'CC', key: 'cc' },
+                                ...(!hideCcGastos ? [{ label: 'CC', key: 'cc' }] : []),
                                 { label: 'Nivel 3', key: 'subfamily' },
                                 { label: 'Producto', key: 'producto' },
                                 { label: 'Cantidad Total', key: 'cantidad', type: 'number' },
@@ -795,10 +923,9 @@ const onFilter = () => {
                         <!--begin::Table-->
                         <div class="table-responsive budget-table-wrapper mt-1">
                             <table class="table budget-tbl">
-                                <!--begin::Table head-->
                                 <thead>
                                     <tr>
-                                        <th class="min-w-150px">CC</th>
+                                        <th v-if="!hideCcGastos" class="min-w-150px">CC</th>
                                         <th>Nivel 3</th>
                                         <th class="min-w-100px">Producto</th>
                                         <th>Cantidad Total</th>
@@ -807,9 +934,7 @@ const onFilter = () => {
                                         <th v-for="month in $page.props.months" class="col-month">{{month.label}}</th> 
                                     </tr>
                                 </thead>
-                                <!--end::Table head-->
-                                <!--begin::Table body-->
-                                <tbody>
+                                <tbody v-if="!hideCcGastos">
                                   <template v-for="cc in filteredDataGastos">
                                     <template v-for="(subfamily, index2) in cc.subfamilies">
                                       <tr>
@@ -823,7 +948,6 @@ const onFilter = () => {
                                       </tr>
                                       <template v-for="(product, index3) in subfamily.products">
                                         <tr v-if="index3 > 0">
-                                          <!-- Aquí NO repetimos las columnas de centro de costo ni subfamilia -->
                                           <td>{{ product.name }}</td>
                                           <td>{{ product.totalQuantity }}</td>
                                           <td>{{ product.unit }}</td>
@@ -834,7 +958,27 @@ const onFilter = () => {
                                     </template>
                                   </template>
                                 </tbody>
-                                <!--end::Table body-->
+                                <tbody v-else>
+                                  <template v-for="sf in consolidatedDataGastos" :key="sf.id">
+                                    <tr>
+                                      <td :rowspan="sf.total" class="cell-group">{{ sf.name }}</td>
+                                      <td>{{ sf.products[0].name }}</td>
+                                      <td>{{ sf.products[0].totalQuantity }}</td>
+                                      <td>{{ sf.products[0].unit }}</td>
+                                      <td>{{ sf.products[0].totalAmount }}</td>
+                                      <td class="col-month col-amount" v-for="value in sf.products[0].months">{{ value }}</td>
+                                    </tr>
+                                    <template v-for="(product, idx) in sf.products" :key="idx">
+                                      <tr v-if="idx > 0">
+                                        <td>{{ product.name }}</td>
+                                        <td>{{ product.totalQuantity }}</td>
+                                        <td>{{ product.unit }}</td>
+                                        <td>{{ product.totalAmount }}</td>
+                                        <td class="col-month col-amount" v-for="value in product.months">{{ value }}</td>
+                                      </tr>
+                                    </template>
+                                  </template>
+                                </tbody>
                             </table>
                         </div>
                     </div>
@@ -854,17 +998,10 @@ const onFilter = () => {
                                 </div>
                               </div>
                             </div>
-                            <div class="col-md-4 col-lg-2 col-xl-2 col-xxl-2">
+                            <div class="col-md-4 col-lg-3 col-xl-3 col-xxl-3">
                               <div class="card h-100 p-1 small-card">
-                                <div class="card-header pb-0 pt-1 px-2">
-                                  <h6 class="mb-0 mt-1 fs-8 d-flex align-items-center small-card-title">Porc. Monto</h6>
-                                </div>
-                                <div class="card-body d-flex flex-column justify-content-end py-1 px-2">
-                                  <div class="row">
-                                    <div class="col">
-                                      <p class="font-sans-serif lh-1 mb-1 fs-8 small-card-number">{{props.percentageAgrochemical}}%</p>
-                                    </div>
-                                  </div>
+                                <div class="card-body d-flex align-items-center justify-content-center py-2 px-2">
+                                  <p class="mb-0 fs-9 text-muted">Corresponde al <strong class="text-dark">{{props.percentageAgrochemical}}%</strong> del presupuesto</p>
                                 </div>
                               </div>
                             </div>
@@ -1007,17 +1144,10 @@ const onFilter = () => {
                                 </div>
                               </div>
                             </div>
-                            <div class="col-md-4 col-lg-2 col-xl-2 col-xxl-2">
+                            <div class="col-md-4 col-lg-3 col-xl-3 col-xxl-3">
                               <div class="card h-100 p-1 small-card">
-                                <div class="card-header pb-0 pt-1 px-2">
-                                  <h6 class="mb-0 mt-1 fs-8 d-flex align-items-center small-card-title">Porc. Monto</h6>
-                                </div>
-                                <div class="card-body d-flex flex-column justify-content-end py-1 px-2">
-                                  <div class="row">
-                                    <div class="col">
-                                      <p class="font-sans-serif lh-1 mb-1 fs-8 small-card-number">{{props.percentageAgrochemical}}%</p>
-                                    </div>
-                                  </div>
+                                <div class="card-body d-flex align-items-center justify-content-center py-2 px-2">
+                                  <p class="mb-0 fs-9 text-muted">Corresponde al <strong class="text-dark">{{props.percentageAgrochemical}}%</strong> del presupuesto</p>
                                 </div>
                               </div>
                             </div>
