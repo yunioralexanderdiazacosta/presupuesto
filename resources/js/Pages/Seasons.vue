@@ -40,7 +40,8 @@ const form = useForm({
     id: '',
     name: '',
     month_id: '',
-    observations: ''
+    observations: '',
+    color: ''
 });
 
 const formSeason = useForm({
@@ -63,7 +64,8 @@ const openEdit = (season) => {
     form.id = season.id;
     form.name = season.name;
     form.month_id = season.month_id;
-    form.observations = season.observations
+    form.observations = season.observations;
+    form.color = season.color || '';
     $('#editSeasonModal').modal('show');
 }
 
@@ -102,6 +104,7 @@ const msgSuccess = (msg) => {
 const onDeleted = (id) => {
     Swal.fire({
         title: '¿Estás seguro de que quieres eliminar el registro?',
+        text: 'Se eliminará la temporada y todos sus datos asociados. Esta acción no se puede deshacer.',
         icon: 'warning',
         showCancelButton: true,
         confirmButtonColor: 'rgb(0, 158, 247)',
@@ -112,8 +115,17 @@ const onDeleted = (id) => {
         if (result.isConfirmed) {
             router.delete(route('seasons.delete', id), {
                 preserveScroll: true,
-                onSuccess: () => {
-                    msgSuccess('Registro eliminado correctamente');
+                onSuccess: (page) => {
+                    if (page.props.flash.error) {
+                        Swal.fire({
+                            icon: 'error',
+                            title: 'No se puede eliminar',
+                            text: page.props.flash.error,
+                            confirmButtonColor: 'rgb(0, 158, 247)',
+                        });
+                    } else {
+                        msgSuccess('Registro eliminado correctamente');
+                    }
                 }
             });
         }
@@ -213,6 +225,7 @@ const setDefault = (seasonId) => {
                     <template #header>
                         <!--begin::Table row-->
                         <th width="min-w-150px">Nombre</th>
+                        <th width="min-w-50px" class="text-center">Color</th>
                         <th width="min-w-50px" class="text-center">Predeterminada</th>
                         <th width="min-w-150px">Mes de inicio</th>
                         <th width="min-w-150px" class="text-end">Acciones</th>
@@ -222,11 +235,15 @@ const setDefault = (seasonId) => {
                     <!--begin::Table body-->
                     <template #body>
                         <template v-if="seasons.total == 0">
-                            <Empty colspan="4" />
+                            <Empty colspan="5" />
                         </template>
                         <template v-else>
                             <tr v-for="(season, index) in seasons.data" :key="season.id">
                                 <td>{{season.name}}</td>
+                                <td class="text-center">
+                                    <span v-if="season.color" class="d-inline-block rounded-circle" :style="{ backgroundColor: season.color, width: '18px', height: '18px' }"></span>
+                                    <span v-else class="text-muted">—</span>
+                                </td>
                                 <td class="text-center">
                                     <button type="button" @click="setDefault(season.id)" class="btn btn-sm p-0" v-tooltip="isDefault(season.id) ? 'Es la predeterminada' : 'Establecer como predeterminada'">
                                         <i class="fas fa-star" :style="{ color: isDefault(season.id) ? '#f5803e' : '#d8d8d8', fontSize: '1.1rem' }"></i>

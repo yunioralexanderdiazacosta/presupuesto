@@ -13,6 +13,7 @@ class UpdateSeasonController extends Controller
         $season->name = $request->name;
         $season->observations = $request->observations;
         $season->month_id = $request->month_id;
+        $season->color = $request->color;
         $season->save();
     }
 }

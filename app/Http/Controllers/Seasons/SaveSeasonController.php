@@ -21,7 +21,8 @@ class SaveSeasonController extends Controller
         
         session([
             'season_id' => $request->season_id,
-            'season_name' => $season ? $season->name : 'Temporada'
+            'season_name' => $season ? $season->name : 'Temporada',
+            'season_color' => $season ? $season->color : null
         ]);
 
         // Retornar sin hacer nada - el frontend maneja el redirect

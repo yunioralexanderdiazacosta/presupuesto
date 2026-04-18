@@ -21,7 +21,8 @@ class StoreSeasonController extends Controller
             'name' => $request->name,
             'observations' => $request->observations,
             'month_id' => $request->month_id,
-            'team_id' => $user->team_id
+            'team_id' => $user->team_id,
+            'color' => $request->color
         ]);
 
         // Si no hay plantillas definidas, copiar niveles desde la temporada base (id=1)

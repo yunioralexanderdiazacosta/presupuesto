@@ -23,7 +23,8 @@ class FormSeasonRequest extends FormRequest
     {
         return [
             'name' => 'required',
-            'month_id' => 'required'
+            'month_id' => 'required',
+            'color' => 'nullable|string|max:7'
         ];
     }
 }

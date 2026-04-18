@@ -57,7 +57,11 @@ const viewDropdown = () => {
                         <div data-kt-menu-trigger="{default: 'click', lg: 'hover'}" data-kt-menu-placement="bottom-start" class="menu-item here menu-lg-down-accordion menu-here-bg me-0 me-lg-2">
                             <!--begin:Menu link-->
                             <span class="menu-link">
-                                <span class="menu-title fw-bold fs-5">{{$page.props.temporada ?? ''}}</span>
+                                <span v-if="$page.props.seasonColor" class="d-inline-flex align-items-center px-3 py-1 rounded-pill text-white fw-bold fs-5" :style="{ background: `linear-gradient(90deg, ${$page.props.seasonColor}cc 0%, ${$page.props.seasonColor} 100%)` }">
+                                    <span class="fas fa-calendar-alt me-2"></span>
+                                    {{$page.props.temporada ?? ''}}
+                                </span>
+                                <span v-else class="menu-title fw-bold fs-5">{{$page.props.temporada ?? ''}}</span>
                                 <span class="menu-arrow d-lg-none"></span>
                             </span>
                             <!--end:Menu link-->
