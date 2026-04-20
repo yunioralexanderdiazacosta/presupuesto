@@ -881,7 +881,7 @@ const navigateTo = (routeName) => {
             </span>
           </li>
           <li class="nav-item me-0" v-if="$page.props.auth.user.team">
-            <span class="d-inline-flex align-items-center bg-white shadow-sm border rounded-pill px-3 py-1 mb-1 text-primary fw-semibold fs-10 bg-opacity-15">
+            <span class="d-inline-flex align-items-center rounded-pill px-3 py-1 mb-1 fw-semibold fs-10" :style="$page.props.seasonColor ? { background: `linear-gradient(90deg, ${$page.props.seasonColor}cc 0%, ${$page.props.seasonColor} 100%)`, color: '#fff' } : {}" :class="$page.props.seasonColor ? 'shadow-lg' : 'bg-white shadow-sm border text-primary bg-opacity-15'">
               <span class="fas fa-users me-2"></span>
               {{$page.props.auth.user.team.name}}
             </span>

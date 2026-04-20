@@ -88,7 +88,43 @@ class EmployeesImport implements ToModel, WithHeadingRow, WithValidation
             'segundo_nombre' => 'nullable|string|max:100',
             'apellido_paterno' => 'required|string|max:100',
             'apellido_materno' => 'nullable|string|max:100',
-            'fecha_nacimiento' => 'nullable|string',
+            'fecha_nacimiento' => ['nullable', function ($attribute, $value, $fail) {
+                if ($value === null || $value === '') {
+                    return;
+                }
+
+                // Excel often sends dates as numeric serials.
+                if (is_numeric($value)) {
+                    return;
+                }
+
+                if ($value instanceof \DateTimeInterface) {
+                    return;
+                }
+
+                if (!is_string($value)) {
+                    $fail("El campo {$attribute} debe ser una fecha valida.");
+                    return;
+                }
+
+                $rawDate = trim($value);
+                $formats = ['d/m/Y', 'd-m-Y', 'd.m.Y', 'Y-m-d', 'Y/m/d'];
+
+                foreach ($formats as $fmt) {
+                    try {
+                        Carbon::createFromFormat($fmt, $rawDate);
+                        return;
+                    } catch (\Exception $e) {
+                        // Continue trying other formats.
+                    }
+                }
+
+                try {
+                    Carbon::parse($rawDate);
+                } catch (\Exception $e) {
+                    $fail("El campo {$attribute} no tiene un formato de fecha valido.");
+                }
+            }],
             'nacionalidad' => 'nullable|string|max:60',
             'estado' => 'nullable|string',
         ];

@@ -22,7 +22,7 @@ function showMoreCenters(centers) {
 }
 
 const props = defineProps({
-    fuelOutflows: Object,
+    fuelOutflows: Array,
     machineries: Array,
     operators: Array,
     costCenters: Array,
@@ -41,10 +41,10 @@ const links = [
 
 const term = ref('');
 const filteredRows = computed(() => {
-    if (!props.fuelOutflows || !props.fuelOutflows.data) return [];
-    if (!term.value) return props.fuelOutflows.data;
+    if (!props.fuelOutflows || !Array.isArray(props.fuelOutflows)) return [];
+    if (!term.value) return props.fuelOutflows;
     const search = term.value.toLowerCase();
-    return props.fuelOutflows.data.filter(item => {
+    return props.fuelOutflows.filter(item => {
         const machinery = item.machinery?.cod_machinery?.toLowerCase() || '';
         const operator = item.operator?.name?.toLowerCase() || '';
         const costCenter = item.cost_center?.name?.toLowerCase() || '';
@@ -279,18 +279,7 @@ function deleteFuelOutflow(id) {
                     </tbody>
                   </table>
                 </div>
-                <div v-if="props.fuelOutflows && props.fuelOutflows.links" class="mt-3">
-                    <nav>
-                        <ul class="pagination">
-                            <li v-for="link in props.fuelOutflows.links" :key="link.label" :class="['page-item', { active: link.active }]">
-                                <a v-if="link.url" class="page-link" @click.prevent="router.get(link.url)">
-                                    <span v-html="link.label" />
-                                </a>
-                                <span v-else class="page-link" v-html="link.label" />
-                            </li>
-                        </ul>
-                    </nav>
-                </div>
+
             </div>
         </div>
         

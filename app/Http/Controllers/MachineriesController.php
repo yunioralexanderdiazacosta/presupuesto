@@ -38,9 +38,10 @@ class MachineriesController extends Controller
             ];
         });
 
-        $machineries = Machinery::when($request->term, function ($query, $search) {
-            $query->where('cod_machinery', 'like', '%'.$search.'%');
-        })->with(['typeMachinery', 'counter'])->where('team_id', $user->team_id)->paginate(10)->withQueryString();
+        $machineries = Machinery::with(['typeMachinery', 'counter'])
+            ->where('team_id', $user->team_id)
+            ->orderBy('cod_machinery')
+            ->get();
 
         return Inertia::render('Machineries', compact('machineries', 'companyReasons', 'typeMachineries', 'counters', 'term'));
     }

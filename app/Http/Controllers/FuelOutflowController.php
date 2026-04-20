@@ -34,10 +34,10 @@ class FuelOutflowController extends Controller
             ->where('team_id', $user->team_id)
             ->where('season_id', $season_id)
             ->latest('date')
-            ->paginate(20);
+            ->get();
             
-        // Transformar la colección dentro del paginador
-        $fuelOutflows->getCollection()->transform(function ($item) {
+        // Transformar la colección
+        $fuelOutflows->transform(function ($item) {
             // Obtener centros de costo desde el outflow relacionado
             $item->costCenters = $item->outflow && $item->outflow->costCenters 
                 ? $item->outflow->costCenters->map(function($cc) {

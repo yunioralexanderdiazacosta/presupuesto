@@ -10,7 +10,7 @@ import CreateMachineryModal from '@/Components/Machineries/CreateMachineryModal.
 import EditMachineryModal from '@/Components/Machineries/EditMachineryModal.vue';
 
 const props = defineProps({
-    machineries: Object,
+    machineries: Array,
     term: String
 });
 
@@ -30,7 +30,30 @@ const form = useForm({
 
 const title = 'Maquinarias';
 
-const term  = ref(props.term);
+const term  = ref(props.term || '');
+
+const filteredMachineries = computed(() => {
+    if (!Array.isArray(props.machineries)) return [];
+
+    const search = (term.value || '').trim().toLowerCase();
+    if (!search) return props.machineries;
+
+    return props.machineries.filter((machinery) => {
+        const code = machinery.cod_machinery?.toLowerCase() || '';
+        const type = machinery.type_machinery?.name?.toLowerCase() || '';
+        const counter = machinery.counter?.name?.toLowerCase() || '';
+        const brand = machinery.brand?.toLowerCase() || '';
+        const status = machinery.is_active ? 'activo' : 'inactivo';
+
+        return (
+            code.includes(search) ||
+            type.includes(search) ||
+            counter.includes(search) ||
+            brand.includes(search) ||
+            status.includes(search)
+        );
+    });
+});
 
 const links = [{ title: 'Tablero', link: 'dashboard' }, { title: title, active: true }];
 
@@ -108,9 +131,7 @@ const onDeleted = (id) => {
 }
 
 
-const onFilter = () => {
-  router.get(route('machineries.index', {term: term.value}), { preserveState: true});  
-}
+const onFilter = () => {};
 </script>
 <template>
     <Head :title="title" />
@@ -160,13 +181,13 @@ const onFilter = () => {
                 <div class="row justify-content-end g-0">
                     <div class="col-auto col-sm-5 mb-3">
                         <div class="input-group">
-                            <input class="form-control form-control-sm shadow-none search" type="text" placeholder=" Buscar..." @keyup.enter="onFilter()" v-model="term" />
+                            <input class="form-control form-control-sm shadow-none search" type="text" placeholder=" Buscar..." v-model="term" />
                             <div class="input-group-text bg-transparent"><span class="fa fa-search fs-10 text-600"></span></div>
                         </div>
                     </div>
                 </div>
                 
-                <Table :id="'machineries'" :total="machineries.data.length" :links="machineries.links">
+                <Table :id="'machineries'" :total="filteredMachineries.length" :links="[]">
                     <!--begin::Table head-->
                     <template #header>
                         <!--begin::Table row-->
@@ -181,11 +202,11 @@ const onFilter = () => {
                     <!--end::Table head-->
                     <!--begin::Table body-->
                     <template #body>
-                        <template v-if="machineries.total == 0">
+                        <template v-if="filteredMachineries.length === 0">
                             <Empty colspan="3" />
                         </template>
                         <template v-else>
-                            <tr v-for="(machinery, index) in machineries.data" :key="index">
+                            <tr v-for="(machinery, index) in filteredMachineries" :key="index">
                                 <td>{{machinery.cod_machinery}}</td>
                                 <td>{{machinery.type_machinery.name}}</td>
                                 <td>{{machinery.counter?.name || '-'}}</td>
