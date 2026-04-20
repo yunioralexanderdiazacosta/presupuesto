@@ -13,24 +13,15 @@ class TypeDocumentsSeeder extends Seeder
      */
     public function run(): void
     {
-        TypeDocument::create([
-            'name' => 'FACTURA',
-            'code' => '33'
-        ]);
+        $documents = [
+            ['name' => 'FACTURA',      'code' => '33'],
+            ['name' => 'BOLETA',       'code' => '39'],
+            ['name' => 'NOTA CREDITO', 'code' => '61'],
+            ['name' => 'NOTA DEBITO',  'code' => '56'],
+        ];
 
-        TypeDocument::create([
-            'name' => 'BOLETA',
-            'code' => '39'
-        ]);
-
-        TypeDocument::create([
-            'name' => 'NOTA CREDITO',
-            'code' => '61'
-        ]);
-
-        TypeDocument::create([
-            'name' => 'NOTA DEBITO',
-            'code' => '56'
-        ]);
+        foreach ($documents as $doc) {
+            TypeDocument::firstOrCreate(['code' => $doc['code']], $doc);
+        }
     }
 }
