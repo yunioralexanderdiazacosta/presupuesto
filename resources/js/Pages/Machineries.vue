@@ -25,6 +25,8 @@ const form = useForm({
     volume: 0,
     is_active: true,
     brand: '',
+    modelo: '',
+    patente: '',
     observations: ''
 });
 
@@ -73,6 +75,8 @@ const openEdit = (machinery) => {
     form.volume = machinery.volume;
     form.status = machinery.status;
     form.brand = machinery.brand;
+    form.modelo = machinery.modelo;
+    form.patente = machinery.patente;
     form.observations = machinery.observations;
     $('#editMachineryModal').modal('show');
 }

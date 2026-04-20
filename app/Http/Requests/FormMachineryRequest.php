@@ -28,6 +28,8 @@ class FormMachineryRequest extends FormRequest
             'cod_machinery' => 'required', 
             'volume' => 'required',
             'brand' => 'required',
+            'modelo' => 'nullable|string|max:255',
+            'patente' => 'nullable|string|max:255',
             'is_active' => 'required'
         ];
     }

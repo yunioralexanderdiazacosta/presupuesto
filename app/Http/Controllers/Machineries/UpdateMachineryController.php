@@ -16,6 +16,8 @@ class UpdateMachineryController extends Controller
         $machinery->counter_id = $request->counter_id;
         $machinery->volume = $request->volume;
         $machinery->brand = $request->brand;
+        $machinery->modelo = $request->modelo;
+        $machinery->patente = $request->patente;
         $machinery->observations = $request->observations;
         $machinery->is_active = $request->is_active;
         $machinery->save();

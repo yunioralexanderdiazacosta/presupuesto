@@ -19,6 +19,8 @@ class StoreMachineryController extends Controller
             'counter_id' => $request->counter_id,
             'cod_machinery' => $request->cod_machinery,
             'brand' => $request->brand, 
+            'modelo' => $request->modelo,
+            'patente' => $request->patente,
             'volume' => $request->volume,
             'observations' => $request->observations, 
             'is_active' => $request->is_active,

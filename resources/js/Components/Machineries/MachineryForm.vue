@@ -104,6 +104,40 @@ defineProps({
 
         <div class="col-md-6">
             <div class="mb-3">
+                <label for="modelo" class="form-label small fw-bold">
+                    Modelo <span class="text-muted fw-normal">(Opcional)</span>
+                </label>
+                <input
+                    id="modelo"
+                    v-model="form.modelo"
+                    type="text"
+                    class="form-control form-control-sm"
+                    :class="{'is-invalid': form.errors.modelo}"
+                    placeholder="Ej: 6110D"
+                />
+                <InputError class="mt-1" :message="form.errors.modelo" />
+            </div>
+        </div>
+
+        <div class="col-md-6">
+            <div class="mb-3">
+                <label for="patente" class="form-label small fw-bold">
+                    Patente <span class="text-muted fw-normal">(Opcional)</span>
+                </label>
+                <input
+                    id="patente"
+                    v-model="form.patente"
+                    type="text"
+                    class="form-control form-control-sm"
+                    :class="{'is-invalid': form.errors.patente}"
+                    placeholder="Ej: AB-CD-12"
+                />
+                <InputError class="mt-1" :message="form.errors.patente" />
+            </div>
+        </div>
+
+        <div class="col-md-6">
+            <div class="mb-3">
                 <label for="volume" class="form-label small fw-bold">
                     Volumen <span class="text-muted fw-normal">(Opcional)</span>
                 </label>
