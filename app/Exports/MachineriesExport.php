@@ -23,7 +23,7 @@ class MachineriesExport implements FromView, ShouldAutoSize
 
         $machineries = Machinery::when($this->term, function ($query, $search) {
             $query->where('cod_machinery', 'like', '%'.$search.'%');
-        })->with('typeMachinery')->where('team_id', $user->team_id)->get();
+        })->with(['typeMachinery', 'companyReason', 'counter'])->where('team_id', $user->team_id)->get();
 
         return view('excels.machineries', [
             'machineries' => $machineries

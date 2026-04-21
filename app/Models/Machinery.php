@@ -16,6 +16,11 @@ class Machinery extends Model
         return $this->belongsTo(TypeMachinery::class);
     }
 
+    public function companyReason()
+    {
+        return $this->belongsTo(\App\Models\CompanyReason::class);
+    }
+
     // Relación: Una maquinaria pertenece a un counter
     public function counter()
     {

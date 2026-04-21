@@ -284,6 +284,121 @@ const isRowVisible = (index) => {
     return !hiddenRowIndices.value.has(index);
 };
 
+// Estado para detalle mensual (al hacer clic en barra del gráfico)
+const monthlyDetail = ref(null);
+const monthlyDetailLoading = ref(false);
+const monthlyDetailMonthName = ref('');
+const monthlyDetailColumn = ref('invoiced'); // 'invoiced' | 'consumed'
+const monthlyDetailExpandedGroups = ref([]);
+const selectedBarKey = ref(null); // '{datasetIndex}:{barIndex}' de la barra activa
+
+// Colores base de cada dataset
+const DATASET_COLORS = {
+    budget:   { active: 'rgba(54, 162, 235, 0.9)',  dim: 'rgba(54, 162, 235, 0.15)' },
+    invoiced: { active: 'rgba(75, 192, 192, 0.9)',  dim: 'rgba(75, 192, 192, 0.15)' },
+    consumed: { active: 'rgba(255, 159, 64, 0.9)',  dim: 'rgba(255, 159, 64, 0.15)' },
+};
+
+function applyBarHighlight(selDatasetIdx, selBarIdx) {
+    if (!monthlyChart) return;
+    const n = props.monthlyComparison.labels.length;
+    monthlyChart.data.datasets.forEach((ds, dsIdx) => {
+        const type = ds._type;
+        const colors = DATASET_COLORS[type] || DATASET_COLORS.budget;
+        ds.backgroundColor = Array.from({ length: n }, (_, i) =>
+            (dsIdx === selDatasetIdx && i === selBarIdx) ? colors.active : colors.dim
+        );
+        ds.borderColor = Array.from({ length: n }, (_, i) =>
+            (dsIdx === selDatasetIdx && i === selBarIdx) ? colors.active : colors.dim
+        );
+    });
+    monthlyChart.update();
+}
+
+function clearBarHighlight() {
+    if (!monthlyChart) return;
+    monthlyChart.data.datasets.forEach(ds => {
+        const type = ds._type;
+        const colors = DATASET_COLORS[type] || DATASET_COLORS.budget;
+        ds.backgroundColor = colors.active;
+        ds.borderColor = colors.active;
+    });
+    monthlyChart.update();
+}
+
+// Agrupar filas del detalle mensual por nivel 1
+const monthlyDetailGrouped = computed(() => {
+    if (!monthlyDetail.value?.rows) return [];
+    const col = monthlyDetailColumn.value;
+    const map = {};
+    for (const row of monthlyDetail.value.rows) {
+        const val = col === 'invoiced' ? row.total_invoiced : row.total_consumed;
+        if (!val || val <= 0) continue;
+        const key = row.level1 || 'Sin clasificar';
+        if (!map[key]) map[key] = { level1: key, rows: [], subtotal: 0 };
+        map[key].rows.push(row);
+        map[key].subtotal += val;
+    }
+    return Object.values(map).sort((a, b) => a.level1.localeCompare(b.level1));
+});
+
+const loadMonthlyDetail = async (monthId, monthName, column) => {
+    if (monthlyDetailLoading.value) return;
+    // Si ya está cargado el mismo mes Y la misma columna, deseleccionar
+    if (monthlyDetail.value && monthlyDetail.value._month_id === monthId && monthlyDetailColumn.value === column) {
+        monthlyDetail.value = null;
+        monthlyDetailMonthName.value = '';
+        return;
+    }
+    monthlyDetailLoading.value = true;
+    monthlyDetailMonthName.value = monthName;
+    monthlyDetailColumn.value = column;
+    monthlyDetailExpandedGroups.value = [];
+    try {
+        const response = await axios.get(route('api.comparative.monthly-detail'), {
+            params: {
+                month_id: monthId,
+                include_investments: includeInvestments.value ? 1 : 0,
+            }
+        });
+        monthlyDetail.value = { ...response.data, _month_id: monthId };
+        // Expandir todos los grupos por defecto
+        const col = column;
+        const keys = [...new Set(
+            (response.data.rows || [])
+                .filter(r => (col === 'invoiced' ? r.total_invoiced : r.total_consumed) > 0)
+                .map(r => r.level1 || 'Sin clasificar')
+        )];
+        monthlyDetailExpandedGroups.value = keys;
+    } catch (error) {
+        console.error('Error cargando detalle mensual:', error);
+        monthlyDetail.value = null;
+    } finally {
+        monthlyDetailLoading.value = false;
+    }
+};
+
+// Recargar detalle de consumed cuando cambia el toggle de inversiones
+watch(includeInvestments, () => {
+    if (monthlyDetail.value && monthlyDetailColumn.value === 'consumed') {
+        loadMonthlyDetail(
+            monthlyDetail.value._month_id,
+            monthlyDetailMonthName.value,
+            'consumed'
+        );
+    }
+});
+
+// Totales del detalle mensual
+const monthlyDetailTotals = computed(() => {
+    if (!monthlyDetail.value?.rows) return { invoiced: 0, consumed: 0 };
+    return monthlyDetail.value.rows.reduce((acc, row) => {
+        acc.invoiced += row.total_invoiced || 0;
+        acc.consumed += row.total_consumed || 0;
+        return acc;
+    }, { invoiced: 0, consumed: 0 });
+});
+
 // Inicializar mes seleccionado en onMounted
 onMounted(() => {
     const today = new Date();
@@ -502,6 +617,7 @@ const excelData = computed(() => {
 
 // Watch para actualizar gráficos cuando cambie el toggle o la conversión USD
 watch([includeInvestments, dividir, divisor, isEnglish, showBudget, showInvoiced, showConsumed], () => {
+    selectedBarKey.value = null;
     createMonthlyChart();
     createCumulativeChart();
 });
@@ -543,6 +659,7 @@ function createMonthlyChart() {
             labels: props.monthlyComparison.labels,
             datasets: [
                 ...(showBudget.value ? [{
+                    _type: 'budget',
                     label: includeInvestments.value ? t.value.budgetedWithInv : t.value.budgetedLabel,
                     data: convertedBudgetData,
                     backgroundColor: 'rgba(54, 162, 235, 0.7)',
@@ -550,6 +667,7 @@ function createMonthlyChart() {
                     borderWidth: 1
                 }] : []),
                 ...(showInvoiced.value ? [{
+                    _type: 'invoiced',
                     label: t.value.invoicedLabel,
                     data: convertedRealData,
                     backgroundColor: 'rgba(75, 192, 192, 0.7)',
@@ -557,6 +675,7 @@ function createMonthlyChart() {
                     borderWidth: 1
                 }] : []),
                 ...(showConsumed.value ? [{
+                    _type: 'consumed',
                     label: includeInvestments.value ? t.value.consumedWithInvLabel : t.value.consumedLabel,
                     data: convertedConsumedData,
                     backgroundColor: 'rgba(255, 159, 64, 0.7)',
@@ -568,12 +687,28 @@ function createMonthlyChart() {
         options: {
             responsive: true,
             maintainAspectRatio: false,
+            onClick: (event, elements) => {
+                if (elements.length > 0) {
+                    const index = elements[0].index;
+                    const datasetIndex = elements[0].datasetIndex;
+                    const month = props.months[index];
+                    if (month && monthlyChart) {
+                        const clickedType = monthlyChart.data.datasets[datasetIndex]?._type;
+                        if (!clickedType || clickedType === 'budget') return;
+                        const key = `${datasetIndex}:${index}`;
+                        const isDeselect = selectedBarKey.value === key && monthlyDetail.value?._month_id === month.id;
+                        if (isDeselect) {
+                            selectedBarKey.value = null;
+                            clearBarHighlight();
+                        } else {
+                            selectedBarKey.value = key;
+                            applyBarHighlight(datasetIndex, index);
+                        }
+                        loadMonthlyDetail(month.id, month.name, clickedType);
+                    }
+                }
+            },
             plugins: {
-                title: {
-                    display: true,
-                    text: t.value.monthlyTitle + (dividir.value ? ' (USD)' : ' (CLP)'),
-                    font: { size: 16 }
-                },
                 legend: {
                     display: true,
                     position: 'top'
@@ -1015,8 +1150,130 @@ function createCumulativeChart() {
                 <div class="col-12">
                     <div class="card">
                         <div class="card-body">
-                            <div style="height: 400px;">
+                            <div style="height: 400px; cursor: pointer;" title="Haz clic en una barra para ver el detalle">
                                 <canvas id="monthlyChart"></canvas>
+                            </div>
+                            <div class="text-center mt-2">
+                                <small class="text-muted"><i class="fas fa-hand-pointer me-1"></i>Haz clic en una barra de <strong>Facturado</strong> o <strong>Egresos</strong> para ver el detalle por producto</small>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Tabla de Detalle Mensual (aparece al hacer clic en el gráfico) -->
+            <div v-if="monthlyDetail || monthlyDetailLoading" class="row g-3 mb-3">
+                <div class="col-12">
+                    <div class="card">
+                        <div class="card-header">
+                            <div class="row flex-between-center">
+                                <div class="col-auto d-flex align-items-center gap-2">
+                                    <h6 class="mb-0">
+                                        <i class="fas fa-list me-2"></i>
+                                        Detalle de <span :class="monthlyDetailColumn === 'invoiced' ? 'text-success' : ''"
+                                            :style="monthlyDetailColumn === 'consumed' ? 'color: rgb(255, 159, 64)' : ''"
+                                        >{{ monthlyDetailColumn === 'invoiced' ? 'Facturado' : 'Egresos' }}</span>
+                                        — <span class="text-primary">{{ monthlyDetailMonthName }}</span>
+                                    </h6>
+                                    <!-- Badge inversiones -->
+                                    <span
+                                        class="badge rounded-pill"
+                                        :class="includeInvestments ? 'bg-warning text-dark' : 'bg-secondary'"
+                                        style="font-size: 0.7rem; font-weight: 500;"
+                                        v-tooltip="includeInvestments ? 'Incluye inversiones' : 'Sin inversiones'"
+                                    >
+                                        <i class="fas fa-tractor fa-xs me-1"></i>{{ includeInvestments ? 'Con inv.' : 'Sin inv.' }}
+                                    </span>
+                                    <!-- Botones expandir/colapsar todo -->
+                                    <template v-if="monthlyDetail?.rows?.length > 0">
+                                        <button
+                                            @click="monthlyDetailExpandedGroups = monthlyDetailGrouped.map(g => g.level1)"
+                                            class="btn btn-sm btn-falcon-default py-0 px-2"
+                                            style="font-size:0.72rem"
+                                            v-tooltip="'Expandir todo'"
+                                        ><i class="fas fa-expand-alt fa-xs"></i></button>
+                                        <button
+                                            @click="monthlyDetailExpandedGroups = []"
+                                            class="btn btn-sm btn-falcon-default py-0 px-2"
+                                            style="font-size:0.72rem"
+                                            v-tooltip="'Colapsar todo'"
+                                        ><i class="fas fa-compress-alt fa-xs"></i></button>
+                                    </template>
+                                </div>
+                                <div class="col-auto">
+                                    <button
+                                        @click="monthlyDetail = null; monthlyDetailMonthName = ''; monthlyDetailColumn = 'invoiced'; monthlyDetailExpandedGroups = []; selectedBarKey = null; clearBarHighlight()"
+                                        class="btn btn-sm btn-falcon-default"
+                                    >
+                                        <i class="fas fa-times fa-xs me-1"></i>Cerrar
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="card-body p-0">
+                            <!-- Loading -->
+                            <div v-if="monthlyDetailLoading" class="text-center py-4">
+                                <i class="fas fa-spinner fa-spin fa-lg text-primary"></i>
+                                <p class="text-muted mt-2 mb-0">Cargando detalle...</p>
+                            </div>
+                            <!-- Tabla agrupada por Nivel 1 -->
+                            <div v-else-if="monthlyDetail?.rows?.length > 0" class="table-responsive">
+                                <table class="table table-sm table-bordered mb-0" style="font-size: 0.8rem;">
+                                    <thead class="table-dark">
+                                        <tr>
+                                            <th>Nivel 2</th>
+                                            <th>Nivel 3</th>
+                                            <th>Producto</th>
+                                            <th class="text-end">
+                                                {{ monthlyDetailColumn === 'invoiced' ? 'Facturado' : 'Egresos' }}
+                                            </th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <template v-for="group in monthlyDetailGrouped" :key="group.level1">
+                                            <!-- Fila cabecera Nivel 1 -->
+                                            <tr class="table-info cursor-pointer" @click="monthlyDetailExpandedGroups.includes(group.level1) ? monthlyDetailExpandedGroups.splice(monthlyDetailExpandedGroups.indexOf(group.level1), 1) : monthlyDetailExpandedGroups.push(group.level1)">
+                                                <td colspan="3" class="fw-bold">
+                                                    <i class="fas fa-xs me-2"
+                                                        :class="monthlyDetailExpandedGroups.includes(group.level1) ? 'fa-chevron-down' : 'fa-chevron-right'"
+                                                    ></i>
+                                                    {{ group.level1 }}
+                                                </td>
+                                                <td class="text-end fw-bold"
+                                                    :class="monthlyDetailColumn === 'invoiced' ? 'text-success' : ''"
+                                                    :style="monthlyDetailColumn === 'consumed' ? 'color: rgb(255, 159, 64)' : ''"
+                                                >{{ formatCLP(group.subtotal) }}</td>
+                                            </tr>
+                                            <!-- Filas de detalle (expandidas) -->
+                                            <template v-if="monthlyDetailExpandedGroups.includes(group.level1)">
+                                                <tr v-for="(row, i) in group.rows" :key="i">
+                                                    <td class="ps-4 text-muted" style="font-size: 0.75rem;">{{ row.level2 }}</td>
+                                                    <td class="text-muted" style="font-size: 0.75rem;">{{ row.level3 }}</td>
+                                                    <td class="fw-semibold">{{ row.product_name }}</td>
+                                                    <td class="text-end">
+                                                        {{ formatCLP(monthlyDetailColumn === 'invoiced' ? row.total_invoiced : row.total_consumed) }}
+                                                    </td>
+                                                </tr>
+                                            </template>
+                                        </template>
+                                    </tbody>
+                                    <tfoot class="table-light fw-bold">
+                                        <tr>
+                                            <td colspan="3" class="text-end fw-bold">Total</td>
+                                            <td class="text-end"
+                                                :class="monthlyDetailColumn === 'invoiced' ? 'text-success' : ''"
+                                                :style="monthlyDetailColumn === 'consumed' ? 'color: rgb(255, 159, 64)' : ''"
+                                            >
+                                                {{ formatCLP(monthlyDetailColumn === 'invoiced' ? monthlyDetailTotals.invoiced : monthlyDetailTotals.consumed) }}
+                                            </td>
+                                        </tr>
+                                    </tfoot>
+                                </table>
+                            </div>
+                            <!-- Sin datos -->
+                            <div v-else class="text-center py-4 text-muted">
+                                <i class="fas fa-inbox fa-lg"></i>
+                                <p class="mt-2 mb-0">Sin movimientos en este mes</p>
                             </div>
                         </div>
                     </div>

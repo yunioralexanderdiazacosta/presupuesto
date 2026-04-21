@@ -804,6 +804,7 @@ Route::middleware([
     
     // Dashboard Comparativo (Presupuesto vs Real)
     Route::get('/comparative-dashboard', [ComparativeOutflowsDashboardController::class, 'index'])->name('comparative.dashboard');
+    Route::get('/api/comparative-dashboard/monthly-detail', \App\Http\Controllers\Api\GetComparativeMonthlyDetailController::class)->name('api.comparative.monthly-detail');
 
     // Dashboard Gestión por Hectárea
     Route::get('/hectare-dashboard', [HectareDashboardController::class, 'index'])->name('hectare.dashboard');
