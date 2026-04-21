@@ -18,6 +18,11 @@ class InvoiceProduct extends Model
         'original_unit_price',
         'amount',
         'observations',
+        'is_exento',
+    ];
+
+    protected $casts = [
+        'is_exento' => 'boolean',
     ];
 
     public function invoice()

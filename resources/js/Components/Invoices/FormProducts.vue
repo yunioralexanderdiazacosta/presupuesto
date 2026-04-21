@@ -24,7 +24,7 @@ const isProtected = (productId) => {
 const typeDocuments = $page.typeDocuments || [];
 // Mostrar IVA solo si el documento es 'factura'
 const showIVA = computed(() => {
-  const doc = typeDocuments.find(td => td.value === props.form.type_document_id);
+  const doc = typeDocuments.find(td => String(td.value) === String(props.form.type_document_id));
   return doc && doc.label.toLowerCase() === 'factura';
 });
 
@@ -155,10 +155,11 @@ const editProductName = async (index) => {
 const add = () => {
 	props.form.products.push({
 		product_id: '',
-		unit_id: '',                // Unidad seleccionada o nueva
+		unit_id: '',
 		unit_price: 0.00,
 		amount: 1,
-		observations: ''
+		observations: '',
+		is_exento: false,
 	});
 	showProductOptions.value.push(true);
 }
@@ -180,12 +181,16 @@ const onDeleted = (index) => {
 
 
 const calculateTotal = () => {
-	var total = 0;
-	props.form.products.filter(element => {
-		total = total + (element.unit_price * element.amount)
-	});
-	return total;
-}
+	return props.form.products.reduce((sum, el) => sum + (parseFloat(el.unit_price || 0) * parseFloat(el.amount || 0)), 0);
+};
+
+const calculateNetoAfecto = () => {
+	return props.form.products.filter(el => !el.is_exento).reduce((sum, el) => sum + (parseFloat(el.unit_price || 0) * parseFloat(el.amount || 0)), 0);
+};
+
+const calculateExento = () => {
+	return props.form.products.filter(el => el.is_exento).reduce((sum, el) => sum + (parseFloat(el.unit_price || 0) * parseFloat(el.amount || 0)), 0);
+};
 
 // Elimina solo la última línea vacía (sin producto, unidad, cantidad, precio ni observaciones)
 const removeLastEmptyLine = () => {
@@ -237,6 +242,7 @@ watch(
 					   <th class="min-w-90px w-90px">Precio</th>
 					   <th class="min-w-200px w-200px">Observaciones</th>
 					<th class="min-w-100px w-150px text-end">Total</th>
+					<th class="min-w-60px w-60px text-center" style="font-size:0.70em;" title="Exento de IVA">Exento</th>
 					   <th class="min-w-40px w-40px text-end" style="font-size:0.70em;">Acción</th>
 				</tr>
 			</thead>
@@ -317,6 +323,9 @@ watch(
 					<td class="text-end text-nowrap align-middle" style="width:100px; min-width:100px; max-width:100px; margin:0; padding-right:2px;">
 	$<span data-kt-element="total">{{ (product.unit_price * product.amount).toLocaleString('es-ES') }}</span>
 </td>
+<td class="text-center align-middle" style="width:60px; min-width:60px; max-width:60px;">
+	<input type="checkbox" v-model="product.is_exento" :disabled="isProtected(product.product_id)" class="form-check-input" style="width:16px; height:16px; cursor:pointer;" title="Marcar como exento de IVA" />
+</td>
 <td class="text-end align-middle" style="width:40px; min-width:40px; max-width:50px; margin:0; padding:0;">
     <button v-if="!isProtected(product.product_id)" type="button" @click="onDeleted(index)" class="btn btn-sm btn-icon btn-active-color-primary m-0 p-0" style="margin:0; padding:0;" data-kt-element="remove-item">
         <!--begin::Svg Icon | path: icons/duotune/general/gen027.svg-->
@@ -349,22 +358,33 @@ watch(
 									</th>
 					<th colspan="7" class="p-0"></th>
 				</tr>
+				<!-- Neto Afecto -->
 				<tr class="align-top fw-bold text-gray-700">
 					<th colspan="4"></th>
-					<th class="fs-6 ps-0 text-end">Total</th>
-					<th class="text-end fs-6 text-nowrap">$
-						<span data-kt-element="grand-total" style="font-size:0.75em;">{{ calculateTotal().toLocaleString('es-ES', { maximumFractionDigits: 0 }) }}</span>
-					</th>
-					<th></th>
+					<th class="fs-8 ps-0 text-end">Neto Afecto</th>
+					<th class="text-end fs-8 text-nowrap">$<span>{{ calculateNetoAfecto().toLocaleString('es-ES', { maximumFractionDigits: 0 }) }}</span></th>
+					<th colspan="2"></th>
 				</tr>
-				<!-- Fila de Total con IVA -->
-				<tr v-if="showIVA" class="align-top fw-bold text-gray-700">
+				<!-- Exento -->
+				<tr v-if="calculateExento() > 0" class="align-top fw-bold text-gray-700">
 					<th colspan="4"></th>
-					<th class="fs-8 ps-0 text-end">Total con IVA</th>
-					<th class="text-end fs-8 text-nowrap">
-						$<span style="font-size:0.75em;">{{ (calculateTotal() * 1.19).toLocaleString('es-ES', { maximumFractionDigits: 0 }) }}</span>
-					</th>
-					<th></th>
+					<th class="fs-8 ps-0 text-end">Exento</th>
+					<th class="text-end fs-8 text-nowrap">$<span>{{ calculateExento().toLocaleString('es-ES', { maximumFractionDigits: 0 }) }}</span></th>
+					<th colspan="2"></th>
+				</tr>
+				<!-- IVA solo sobre neto afecto -->
+				<tr v-if="showIVA && calculateNetoAfecto() > 0" class="align-top fw-bold text-gray-700">
+					<th colspan="4"></th>
+					<th class="fs-8 ps-0 text-end">IVA (19%)</th>
+					<th class="text-end fs-8 text-nowrap">$<span>{{ (calculateNetoAfecto() * 0.19).toLocaleString('es-ES', { maximumFractionDigits: 0 }) }}</span></th>
+					<th colspan="2"></th>
+				</tr>
+				<!-- Total general -->
+				<tr class="align-top fw-bold text-gray-700 border-top">
+					<th colspan="4"></th>
+					<th class="fs-6 ps-0 text-end">Total</th>
+					<th class="text-end fs-6 text-nowrap">$<span>{{ (showIVA ? calculateNetoAfecto() * 1.19 + calculateExento() : calculateTotal()).toLocaleString('es-ES', { maximumFractionDigits: 0 }) }}</span></th>
+					<th colspan="2"></th>
 				</tr>
 			</tfoot>
 			<!--end::Table foot-->

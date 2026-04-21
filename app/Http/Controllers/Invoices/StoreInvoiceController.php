@@ -42,6 +42,7 @@ class StoreInvoiceController extends Controller
                     'unit_price'   => $productAttach['unit_price'],
                     'amount'       => $productAttach['amount'],
                     'observations' => $productAttach['observations'],
+                    'is_exento'    => $productAttach['is_exento'] ?? false,
                 ]);
             }
 
@@ -115,6 +116,7 @@ class StoreInvoiceController extends Controller
                 'unit_price'   => $item['unit_price'],
                 'amount'       => $item['amount'],
                 'observations' => $item['observations'],
+                'is_exento'    => $item['is_exento'] ?? false,
             ];
         }
         return $data;

@@ -20,26 +20,37 @@ const links = [
     { title: title, active: true }
 ];
 
-// Calcular el total neto de la factura
-const totalNeto = computed(() => {
+// Calcular neto afecto (líneas que SÍ pagan IVA)
+const totalNetoAfecto = computed(() => {
     if (!props.invoiceProducts || props.invoiceProducts.length === 0) return 0;
-    return props.invoiceProducts.reduce((sum, item) => {
-        return sum + (parseFloat(item.amount) * parseFloat(item.unit_price));
-    }, 0);
+    return props.invoiceProducts
+        .filter(item => !item.is_exento)
+        .reduce((sum, item) => sum + (parseFloat(item.amount) * parseFloat(item.unit_price)), 0);
 });
 
-// Calcular IVA (19%) solo si es factura
+// Calcular exento (líneas que NO pagan IVA)
+const totalExento = computed(() => {
+    if (!props.invoiceProducts || props.invoiceProducts.length === 0) return 0;
+    return props.invoiceProducts
+        .filter(item => item.is_exento)
+        .reduce((sum, item) => sum + (parseFloat(item.amount) * parseFloat(item.unit_price)), 0);
+});
+
+// Mantener totalNeto para compatibilidad (afecto + exento)
+const totalNeto = computed(() => totalNetoAfecto.value + totalExento.value);
+
+// IVA solo sobre el neto afecto
 const totalIva = computed(() => {
     const tipoDoc = props.typeDocument?.name?.toLowerCase() || '';
     if (tipoDoc === 'factura') {
-        return totalNeto.value * 0.19;
+        return totalNetoAfecto.value * 0.19;
     }
     return 0;
 });
 
-// Calcular total general (neto + IVA)
+// Total general
 const totalGeneral = computed(() => {
-    return totalNeto.value + totalIva.value;
+    return totalNetoAfecto.value + totalIva.value + totalExento.value;
 });
 
 // Helpers de formateo
@@ -213,8 +224,12 @@ const formatDate = (dateString) => {
                                     </tbody>
                                     <tfoot class="bg-light">
                                         <tr>
-                                            <td colspan="3" class="text-end fw-bold">TOTAL NETO:</td>
-                                            <td class="text-end fw-bold">{{ formatCLP(totalNeto) }}</td>
+                                            <td colspan="3" class="text-end fw-bold">NETO AFECTO:</td>
+                                            <td class="text-end fw-bold">{{ formatCLP(totalNetoAfecto) }}</td>
+                                        </tr>
+                                        <tr v-if="totalExento > 0">
+                                            <td colspan="3" class="text-end fw-bold">EXENTO:</td>
+                                            <td class="text-end fw-bold">{{ formatCLP(totalExento) }}</td>
                                         </tr>
                                         <tr v-if="totalIva > 0">
                                             <td colspan="3" class="text-end fw-bold">IVA (19%):</td>

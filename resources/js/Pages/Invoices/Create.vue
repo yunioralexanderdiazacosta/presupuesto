@@ -43,7 +43,8 @@ const form = useForm({
 				product_id: props.prefill?.product_id || '',
 				unit_price: props.prefill?.amount || 0.00,
 				amount: 1,
-				observations: props.prefill?.description || ''
+				observations: props.prefill?.description || '',
+				is_exento: false
 			}
 		]
 });

@@ -19,7 +19,8 @@ class ShowInvoiceController extends Controller
                 'unit_price'    => $ip->unit_price,
                 'original_unit_price' => $ip->original_unit_price,
                 'amount'        => $ip->amount,
-                'observations'  => $ip->observations
+                'observations'  => $ip->observations,
+                'is_exento'     => (bool) $ip->is_exento,
             ];  
         });
 

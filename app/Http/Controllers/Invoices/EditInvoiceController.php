@@ -59,7 +59,8 @@ class EditInvoiceController extends Controller
                  'unit_id'       => $product->unit_id, 
                 'unit_price'    => $product->pivot->unit_price,
                 'amount'        => $product->pivot->amount,
-                'observations'  => $product->pivot->observations
+                'observations'  => $product->pivot->observations,
+                'is_exento'     => (bool) $product->pivot->is_exento,
             ];  
         });
 

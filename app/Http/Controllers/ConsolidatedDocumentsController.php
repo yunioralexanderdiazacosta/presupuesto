@@ -28,16 +28,22 @@ class ConsolidatedDocumentsController extends Controller
             ->where('season_id', $season_id)
             ->get()
             ->map(function ($invoice) use ($meses) {
-                $monto = DB::table('invoice_products')
+                $neto_afecto = (float)(DB::table('invoice_products')
                     ->where('invoice_id', $invoice->id)
-                    ->select(DB::raw('SUM(amount * unit_price) as total'))
-                    ->value('total');
+                    ->where('is_exento', false)
+                    ->selectRaw('COALESCE(SUM(amount * unit_price), 0) as total')
+                    ->value('total') ?? 0);
+                $exento = (float)(DB::table('invoice_products')
+                    ->where('invoice_id', $invoice->id)
+                    ->where('is_exento', true)
+                    ->selectRaw('COALESCE(SUM(amount * unit_price), 0) as total')
+                    ->value('total') ?? 0);
                 $mes_num = (int)date('n', strtotime($invoice->date));
                 $mes_texto = $meses[$mes_num] ?? '';
                 $tipo_doc = $invoice->typeDocument->name ?? '';
-                $monto_total = $monto ?? 0;
-                // Calcular IVA solo para facturas (19% del monto total)
-                $iva = (strtolower($tipo_doc) === 'factura') ? ($monto_total * 0.19) : null;
+                $monto_total = $neto_afecto + $exento;
+                // IVA solo sobre neto afecto para facturas
+                $iva = (strtolower($tipo_doc) === 'factura') ? ($neto_afecto * 0.19) : null;
                 
                 return [
                     'tipo' => $tipo_doc,
@@ -46,6 +52,8 @@ class ConsolidatedDocumentsController extends Controller
                     'fecha' => date('d-m-Y', strtotime($invoice->date)),
                     'proveedor' => $invoice->supplier->name ?? '',
                     'n_doc' => $invoice->number_document,
+                    'neto_afecto' => $neto_afecto,
+                    'exento' => $exento,
                     'monto_total' => $monto_total,
                     'iva' => $iva,
                 ];
@@ -91,6 +99,8 @@ class ConsolidatedDocumentsController extends Controller
                     'fecha' => date('d-m-Y', strtotime($note->date)),
                     'proveedor' => $note->supplier->name ?? '',
                     'n_doc' => $note->number,
+                    'neto_afecto' => $monto_total,
+                    'exento' => 0,
                     'monto_total' => $monto_total,
                     'iva' => $iva,
                     'is_financial' => $isFinancial,

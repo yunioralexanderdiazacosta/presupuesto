@@ -97,6 +97,29 @@ const totalNetoNC = computed(() => {
     .reduce((sum, doc) => sum + Number(doc.monto_total), 0);
 });
 
+const totalNetoAfectoConsolidado = computed(() => {
+  return filteredDocuments.value.reduce((sum, doc) => {
+    if (doc.is_financial) return sum;
+    const value = Number(doc.neto_afecto || 0);
+    const isCredito = doc.tipo === 'credito' || doc.tipo === 'Crédito';
+    return sum + (isCredito ? -value : value);
+  }, 0);
+});
+const totalExentoConsolidado = computed(() => {
+  return filteredDocuments.value.reduce((sum, doc) => {
+    if (doc.is_financial) return sum;
+    const value = Number(doc.exento || 0);
+    const isCredito = doc.tipo === 'credito' || doc.tipo === 'Crédito';
+    return sum + (isCredito ? -value : value);
+  }, 0);
+});
+const totalIvaConsolidado = computed(() => {
+  return filteredDocuments.value.reduce((sum, doc) => {
+    if (doc.is_financial) return sum;
+    return sum + Number(doc.iva || 0);
+  }, 0);
+});
+
 // NCs financieras (ya aplicadas al precio unitario)
 const financialNCs = computed(() => {
   return filteredDocuments.value.filter(doc => doc.is_financial);
@@ -134,9 +157,10 @@ const consolidatedExcelData = computed(() => {
     fecha: doc.fecha,
     proveedor: doc.proveedor,
     n_doc: doc.n_doc,
-    monto_total: doc.monto_total,
+    neto_afecto: doc.neto_afecto,
+    exento: doc.exento,
     iva: doc.iva,
-    total_general: Number(doc.monto_total || 0) + Number(doc.iva || 0)
+    total_general: Number(doc.neto_afecto || 0) + Number(doc.exento || 0) + Number(doc.iva || 0)
   }));
 });
 
@@ -293,7 +317,8 @@ const getDocTypeBadge = (tipo) => {
                   { label: 'Fecha', key: 'fecha' },
                   { label: 'Proveedor', key: 'proveedor' },
                   { label: 'N° Doc', key: 'n_doc' },
-                  { label: 'Monto Total', key: 'monto_total', type: 'number' },
+                  { label: 'Neto Afecto', key: 'neto_afecto', type: 'number' },
+                  { label: 'Exento', key: 'exento', type: 'number' },
                   { label: 'IVA', key: 'iva', type: 'number' },
                   { label: 'Total General', key: 'total_general', type: 'number' }
                 ]" filename="consolidado.xlsx" class="btn btn-light-primary me-3">
@@ -316,7 +341,8 @@ const getDocTypeBadge = (tipo) => {
                   <tr>
                     <th>Tipo de Documento</th>
                     <th class="text-end">Cantidad</th>
-                    <th class="text-end">Monto Total</th>
+                    <th class="text-end">Neto Afecto</th>
+                    <th class="text-end">Exento</th>
                     <th class="text-end">IVA</th>
                     <th class="text-end">Total General</th>
                   </tr>
@@ -326,13 +352,16 @@ const getDocTypeBadge = (tipo) => {
                     <td><span :class="'badge ' + getDocTypeBadge(tipo).class">{{ getDocTypeBadge(tipo).text }}</span></td>
                     <td class="text-end">{{ docs.length }}</td>
                     <td class="text-end" :class="(tipo === 'credito' || tipo === 'Crédito') ? 'text-danger' : ''">
-                      {{ formatNumber(getSubtotalByType(docs, 'monto_total'), 0) }}
+                      {{ formatNumber(getSubtotalByType(docs, 'neto_afecto'), 0) }}
+                    </td>
+                    <td class="text-end" :class="(tipo === 'credito' || tipo === 'Crédito') ? 'text-danger' : ''">
+                      {{ formatNumber(getSubtotalByType(docs, 'exento'), 0) }}
                     </td>
                     <td class="text-end" :class="(tipo === 'credito' || tipo === 'Crédito') ? 'text-danger' : ''">
                       {{ formatNumber(getSubtotalByType(docs, 'iva'), 0) }}
                     </td>
                     <td class="text-end fw-bold" :class="(tipo === 'credito' || tipo === 'Crédito') ? 'text-danger' : ''">
-                      {{ formatNumber(getSubtotalByType(docs, 'monto_total') + getSubtotalByType(docs, 'iva'), 0) }}
+                      {{ formatNumber(getSubtotalByType(docs, 'neto_afecto') + getSubtotalByType(docs, 'exento') + getSubtotalByType(docs, 'iva'), 0) }}
                     </td>
                   </tr>
                 </tbody>
@@ -340,19 +369,10 @@ const getDocTypeBadge = (tipo) => {
                   <tr>
                     <td class="fw-bold">TOTAL GENERAL</td>
                     <td class="text-end fw-bold">{{ sortedDocuments.length }}</td>
-                    <td class="text-end fw-bold">{{ formatNumber(totalGeneral, 0) }}</td>
-                    <td class="text-end fw-bold">{{ formatNumber(sortedDocuments.reduce((sum, doc) => {
-                      if (doc.is_financial) return sum;
-                      const iva = Number(doc.iva || 0);
-                      const isCredito = doc.tipo === 'credito' || doc.tipo === 'Crédito';
-                      return sum + (isCredito ? -iva : iva);
-                    }, 0), 0) }}</td>
-                    <td class="text-end fw-bold">{{ formatNumber(totalGeneral + sortedDocuments.reduce((sum, doc) => {
-                      if (doc.is_financial) return sum;
-                      const iva = Number(doc.iva || 0);
-                      const isCredito = doc.tipo === 'credito' || doc.tipo === 'Crédito';
-                      return sum + (isCredito ? -iva : iva);
-                    }, 0), 0) }}</td>
+                    <td class="text-end fw-bold">{{ formatNumber(totalNetoAfectoConsolidado, 0) }}</td>
+                    <td class="text-end fw-bold">{{ formatNumber(totalExentoConsolidado, 0) }}</td>
+                    <td class="text-end fw-bold">{{ formatNumber(totalIvaConsolidado, 0) }}</td>
+                    <td class="text-end fw-bold">{{ formatNumber(totalNetoAfectoConsolidado + totalExentoConsolidado + totalIvaConsolidado, 0) }}</td>
                   </tr>
                 </tfoot>
               </table>
@@ -372,7 +392,8 @@ const getDocTypeBadge = (tipo) => {
                   { label: 'Fecha', key: 'fecha' },
                   { label: 'Proveedor', key: 'proveedor' },
                   { label: 'N° Doc', key: 'n_doc' },
-                  { label: 'Monto Total', key: 'monto_total', type: 'number' },
+                  { label: 'Neto Afecto', key: 'neto_afecto', type: 'number' },
+                  { label: 'Exento', key: 'exento', type: 'number' },
                   { label: 'IVA', key: 'iva', type: 'number' },
                   { label: 'Total General', key: 'total_general', type: 'number' }
                 ]" filename="consolidado.xlsx" class="btn btn-light-primary me-3">
@@ -442,7 +463,8 @@ const getDocTypeBadge = (tipo) => {
                     <th style="max-width:100px; min-width:100px; width:100px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis" @click="setSort('fecha')" :class="sortClass('fecha')">Fecha</th>
                     <th style="max-width:100px; min-width:100px; width:100px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis" @click="setSort('n_doc')" :class="sortClass('n_doc')">N° Doc</th>
                     <th style="max-width:200px; min-width:200px; width:200px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis" @click="setSort('proveedor')" :class="sortClass('proveedor')">Proveedor</th>
-                    <th class="text-end" @click="setSort('monto_total')" :class="sortClass('monto_total')">Monto Total</th>
+                    <th class="text-end" @click="setSort('neto_afecto')" :class="sortClass('neto_afecto')">Neto Afecto</th>
+                    <th class="text-end" @click="setSort('exento')" :class="sortClass('exento')">Exento</th>
                     <th class="text-end" @click="setSort('iva')" :class="sortClass('iva')">IVA</th>
                     <th class="text-end">Total General</th>
                   </tr>
@@ -461,40 +483,35 @@ const getDocTypeBadge = (tipo) => {
                       <td style="max-width:100px; min-width:100px; width:100px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">{{ doc.n_doc }}</td>
                       <td style="max-width:200px; min-width:200px; width:200px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">{{ doc.proveedor }}</td>
                       <td class="text-end" :class="(doc.tipo === 'credito' || doc.tipo === 'Crédito') ? 'text-danger' : ''">
-                        {{ (doc.tipo === 'credito' || doc.tipo === 'Crédito') ? '-' + formatNumber(doc.monto_total, 0) : formatNumber(doc.monto_total, 0) }}
+                        {{ (doc.tipo === 'credito' || doc.tipo === 'Crédito') ? '-' + formatNumber(doc.neto_afecto, 0) : formatNumber(doc.neto_afecto, 0) }}
+                      </td>
+                      <td class="text-end" :class="(doc.tipo === 'credito' || doc.tipo === 'Crédito') ? 'text-danger' : ''">
+                        {{ (doc.tipo === 'credito' || doc.tipo === 'Crédito') ? '-' + formatNumber(doc.exento, 0) : formatNumber(doc.exento, 0) }}
                       </td>
                       <td class="text-end" :class="(doc.tipo === 'credito' || doc.tipo === 'Crédito') ? 'text-danger' : ''">
                         {{ doc.iva !== null ? ((doc.tipo === 'credito' || doc.tipo === 'Crédito') ? '-' + formatNumber(Math.abs(doc.iva), 0) : formatNumber(doc.iva, 0)) : '' }}
                       </td>
                       <td class="text-end fw-bold" :class="(doc.tipo === 'credito' || doc.tipo === 'Crédito') ? 'text-danger' : ''">
-                        {{ (doc.tipo === 'credito' || doc.tipo === 'Crédito') ? '-' + formatNumber(Number(doc.monto_total || 0) + Math.abs(Number(doc.iva || 0)), 0) : formatNumber(Number(doc.monto_total || 0) + Number(doc.iva || 0), 0) }}
+                        {{ (doc.tipo === 'credito' || doc.tipo === 'Crédito') ? '-' + formatNumber(Number(doc.neto_afecto || 0) + Number(doc.exento || 0) + Math.abs(Number(doc.iva || 0)), 0) : formatNumber(Number(doc.neto_afecto || 0) + Number(doc.exento || 0) + Number(doc.iva || 0), 0) }}
                       </td>
                     </tr>
                     <!-- Subtotal por tipo -->
                     <tr class="table-secondary fw-bold" style="background-color: #e9ecef !important;">
                       <td colspan="6" class="text-end">Subtotal {{ tipo }}</td>
-                      <td class="text-end">{{ formatNumber(getSubtotalByType(docs, 'monto_total'), 0) }}</td>
+                      <td class="text-end">{{ formatNumber(getSubtotalByType(docs, 'neto_afecto'), 0) }}</td>
+                      <td class="text-end">{{ formatNumber(getSubtotalByType(docs, 'exento'), 0) }}</td>
                       <td class="text-end">{{ formatNumber(getSubtotalByType(docs, 'iva'), 0) }}</td>
-                      <td class="text-end">{{ formatNumber(getSubtotalByType(docs, 'monto_total') + getSubtotalByType(docs, 'iva'), 0) }}</td>
+                      <td class="text-end">{{ formatNumber(getSubtotalByType(docs, 'neto_afecto') + getSubtotalByType(docs, 'exento') + getSubtotalByType(docs, 'iva'), 0) }}</td>
                     </tr>
                   </template>
                 </tbody>
                 <tfoot>
                   <tr>
                     <td colspan="6" class="text-end fw-bold">Total general</td>
-                    <td class="text-end fw-bold">{{ formatNumber(totalGeneral, 0) }}</td>
-                    <td class="text-end fw-bold">{{ formatNumber(sortedDocuments.reduce((sum, doc) => {
-                      if (doc.is_financial) return sum;
-                      const iva = Number(doc.iva || 0);
-                      const isCredito = doc.tipo === 'credito' || doc.tipo === 'Crédito';
-                      return sum + (isCredito ? -iva : iva);
-                    }, 0), 0) }}</td>
-                    <td class="text-end fw-bold">{{ formatNumber(totalGeneral + sortedDocuments.reduce((sum, doc) => {
-                      if (doc.is_financial) return sum;
-                      const iva = Number(doc.iva || 0);
-                      const isCredito = doc.tipo === 'credito' || doc.tipo === 'Crédito';
-                      return sum + (isCredito ? -iva : iva);
-                    }, 0), 0) }}</td>
+                    <td class="text-end fw-bold">{{ formatNumber(totalNetoAfectoConsolidado, 0) }}</td>
+                    <td class="text-end fw-bold">{{ formatNumber(totalExentoConsolidado, 0) }}</td>
+                    <td class="text-end fw-bold">{{ formatNumber(totalIvaConsolidado, 0) }}</td>
+                    <td class="text-end fw-bold">{{ formatNumber(totalNetoAfectoConsolidado + totalExentoConsolidado + totalIvaConsolidado, 0) }}</td>
                   </tr>
                 </tfoot>
               </table>
