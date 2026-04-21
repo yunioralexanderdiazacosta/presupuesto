@@ -28,6 +28,7 @@ const form = useForm({
     brand: '',
     modelo: '',
     patente: '',
+    year: null,
     observations: ''
 });
 
@@ -45,6 +46,7 @@ const filteredMachineries = computed(() => {
         const brand   = machinery.brand?.toLowerCase() || '';
         const modelo  = machinery.modelo?.toLowerCase() || '';
         const patente = machinery.patente?.toLowerCase() || '';
+        const year    = String(machinery.year ?? '');
         const volume  = String(machinery.volume ?? '');
         const status  = machinery.is_active ? 'activo' : 'inactivo';
 
@@ -56,6 +58,7 @@ const filteredMachineries = computed(() => {
             brand.includes(search) ||
             modelo.includes(search) ||
             patente.includes(search) ||
+            year.includes(search) ||
             volume.includes(search) ||
             status.includes(search)
         );
@@ -83,6 +86,7 @@ const openEdit = (machinery) => {
     form.brand = machinery.brand;
     form.modelo = machinery.modelo || '';
     form.patente = machinery.patente || '';
+    form.year = machinery.year || null;
     form.is_active = machinery.is_active;
     form.observations = machinery.observations;
     $('#editMachineryModal').modal('show');
@@ -209,6 +213,7 @@ const onFilter = () => {};
                         <th width="min-w-150px">Marca</th>
                         <th width="min-w-150px">Modelo</th>
                         <th width="min-w-150px">Patente</th>
+                        <th width="min-w-150px">Año</th>
                         <th width="min-w-150px">Volumen</th>
                         <th width="min-w-150px">Status</th>
                         <th width="min-w-150px" class="text-end">Acciones</th>
@@ -229,6 +234,7 @@ const onFilter = () => {};
                                 <td>{{machinery.brand || '-'}}</td>
                                 <td>{{machinery.modelo || '-'}}</td>
                                 <td>{{machinery.patente || '-'}}</td>
+                                <td>{{machinery.year || '-'}}</td>
                                 <td>{{machinery.volume ?? '-'}}</td>
                                 <td>
                                     <span class="badge badge-subtle-success" v-if="machinery.is_active == true">Activo</span>

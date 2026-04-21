@@ -30,6 +30,7 @@ class FormMachineryRequest extends FormRequest
             'brand' => 'required',
             'modelo' => 'nullable|string|max:255',
             'patente' => 'nullable|string|max:255',
+            'year' => 'nullable|integer|min:1970|max:' . date('Y'),
             'is_active' => 'required'
         ];
     }

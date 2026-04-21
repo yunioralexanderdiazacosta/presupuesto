@@ -18,6 +18,7 @@ class UpdateMachineryController extends Controller
         $machinery->brand = $request->brand;
         $machinery->modelo = $request->modelo;
         $machinery->patente = $request->patente;
+        $machinery->year = $request->year;
         $machinery->observations = $request->observations;
         $machinery->is_active = $request->is_active;
         $machinery->save();

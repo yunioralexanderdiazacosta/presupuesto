@@ -8,6 +8,7 @@
             <th><b>Marca</b></th>
             <th><b>Modelo</b></th>
             <th><b>Patente</b></th>
+            <th><b>Año</b></th>
             <th><b>Volumen</b></th>
             <th><b>Status</b></th>
         </tr>
@@ -22,6 +23,7 @@
             <td>{{ $machinary['brand'] ?? '-' }}</td>
             <td>{{ $machinary['modelo'] ?? '-' }}</td>
             <td>{{ $machinary['patente'] ?? '-' }}</td>
+            <td>{{ $machinary['year'] ?? '-' }}</td>
             <td>{{ $machinary['volume'] ?? '-' }}</td>
             <td>{{ $machinary['is_active'] == true ? 'Activo' : 'Inactivo' }}</td>
         </tr>

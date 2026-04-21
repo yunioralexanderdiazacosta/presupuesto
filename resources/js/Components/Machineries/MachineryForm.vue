@@ -1,8 +1,16 @@
 <script setup>
+import { computed } from 'vue';
 import InputError from '@/Components/InputError.vue';
 
 defineProps({
     form: Object
+});
+
+const years = computed(() => {
+    const current = new Date().getFullYear();
+    const list = [];
+    for (let y = current; y >= 1970; y--) list.push(y);
+    return list;
 });
 </script>
 
@@ -133,6 +141,24 @@ defineProps({
                     placeholder="Ej: AB-CD-12"
                 />
                 <InputError class="mt-1" :message="form.errors.patente" />
+            </div>
+        </div>
+
+        <div class="col-md-6">
+            <div class="mb-3">
+                <label for="year" class="form-label small fw-bold">
+                    Año <span class="text-muted fw-normal">(Opcional)</span>
+                </label>
+                <select
+                    id="year"
+                    v-model="form.year"
+                    class="form-select form-select-sm"
+                    :class="{'is-invalid': form.errors.year}"
+                >
+                    <option :value="null">Seleccione año...</option>
+                    <option v-for="y in years" :key="y" :value="y">{{ y }}</option>
+                </select>
+                <InputError class="mt-1" :message="form.errors.year" />
             </div>
         </div>
 

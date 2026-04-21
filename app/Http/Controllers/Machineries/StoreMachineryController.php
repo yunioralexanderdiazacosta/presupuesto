@@ -21,6 +21,7 @@ class StoreMachineryController extends Controller
             'brand' => $request->brand, 
             'modelo' => $request->modelo,
             'patente' => $request->patente,
+            'year' => $request->year,
             'volume' => $request->volume,
             'observations' => $request->observations, 
             'is_active' => $request->is_active,
