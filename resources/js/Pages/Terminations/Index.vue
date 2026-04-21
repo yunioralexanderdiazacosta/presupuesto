@@ -118,10 +118,10 @@ const handleAnular = (t) => {
         <Breadcrumb :links="links" />
 
         <div class="card my-3">
-            <div class="card-header">
+            <div class="card-header" style="background: linear-gradient(135deg, #e4ece6 0%, #f2f6f3 100%); border-bottom: 1px solid #c3d4c7;">
                 <div class="row flex-between-center">
                     <div class="col-6 col-sm-auto d-flex align-items-center pe-0">
-                        <h5 class="fs-9 mb-0 text-nowrap py-2 py-xl-0">
+                        <h5 class="fs-9 mb-0 text-nowrap py-2 py-xl-0" style="color: #3d5c45;">
                             <i class="fas fa-user-slash me-2"></i>{{ title }}
                         </h5>
                     </div>
@@ -131,9 +131,9 @@ const handleAnular = (t) => {
             <div class="card-body bg-body-tertiary">
 
                 <!-- Formulario de Registro -->
-                <div class="card mb-4">
-                    <div class="card-header bg-light">
-                        <h6 class="mb-0 text-dark"><i class="fas fa-plus-circle me-2"></i>Registrar Término de Faena</h6>
+                <div class="card mb-4" style="border: 1px solid #c3d4c7;">
+                    <div class="card-header" style="background-color: #f0f5f1; border-bottom: 1px solid #c3d4c7;">
+                        <h6 class="mb-0" style="color: #3d5c45;"><i class="fas fa-plus-circle me-2"></i>Registrar Término de Faena</h6>
                     </div>
                     <div class="card-body">
                         <form @submit.prevent="handleSubmit">
@@ -199,7 +199,8 @@ const handleAnular = (t) => {
                                 <div class="col-12 text-end">
                                     <button
                                         type="submit"
-                                        class="btn btn-falcon-default btn-sm"
+                                        class="btn btn-sm"
+                                        style="background-color: #4a7055; color: #fff; border-color: #4a7055;"
                                         :disabled="submitting"
                                     >
                                         <span class="fas fa-check" data-fa-transform="shrink-3 down-2"></span>

@@ -12,12 +12,10 @@ class TypeMachineriesController extends Controller
     {
         $user = Auth::user();
 
-        $term = $request->term ?? '';
+        $type_machineries = TypeMachinery::where('team_id', $user->team_id)
+            ->orderBy('name')
+            ->get();
 
-        $type_machineries = TypeMachinery::when($request->term, function ($query, $search) {
-            $query->where('name', 'like', '%'.$search.'%');
-        })->where('team_id', $user->team_id)->paginate(10)->withQueryString();
-
-        return Inertia::render('TypeMachineries', compact('type_machineries', 'term'));
+        return Inertia::render('TypeMachineries', compact('type_machineries'));
     }
 }

@@ -11,8 +11,7 @@ import CreateTypeMachineryModal from '@/Components/TypeMachineries/CreateTypeMac
 import EditTypeMachineryModal from '@/Components/TypeMachineries/EditTypeMachineryModal.vue';
 
 const props = defineProps({
-    type_machineries: Object,
-    term: String
+    type_machineries: Array,
 });
 
 const form = useForm({
@@ -22,7 +21,14 @@ const form = useForm({
 
 const title = 'Tipo de Maquinarias';
 
-const term  = ref(props.term);
+const term = ref('');
+
+const filteredRows = computed(() => {
+    if (!props.type_machineries) return [];
+    const q = (term.value || '').trim().toLowerCase();
+    if (!q) return props.type_machineries;
+    return props.type_machineries.filter(t => t.name?.toLowerCase().includes(q));
+});
 
 const links = [{ title: 'Tablero', link: 'dashboard' }, { title: title, active: true }];
 
@@ -91,9 +97,7 @@ const onDeleted = (id) => {
     });
 }
 
-const onFilter = () => {
-  router.get(route('type.machineries.index', {term: term.value}), { preserveState: true});  
-}
+const onFilter = () => {};
 </script>
 <template>
     <Head :title="title" />
@@ -149,7 +153,7 @@ const onFilter = () => {
                     </div>
                 </div>
                 
-                <Table :id="'type_machineries'" :total="type_machineries.data.length" :links="type_machineries.links">
+                <Table :id="'type_machineries'" :total="filteredRows.length" :links="[]">
                     <!--begin::Table head-->
                     <template #header>
                         <!--begin::Table row-->
@@ -160,11 +164,11 @@ const onFilter = () => {
                     <!--end::Table head-->
                     <!--begin::Table body-->
                     <template #body>
-                        <template v-if="type_machineries.total == 0">
+                        <template v-if="filteredRows.length === 0">
                             <Empty colspan="6" />
                         </template>
                         <template v-else>
-                            <tr v-for="(value, index) in type_machineries.data" :key="index">
+                            <tr v-for="(value, index) in filteredRows" :key="index">
                                 <td>{{value.name}}</td>
                                 <td class="text-end">
                                      
