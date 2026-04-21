@@ -38,7 +38,7 @@ class MachineriesController extends Controller
             ];
         });
 
-        $machineries = Machinery::with(['typeMachinery', 'counter'])
+        $machineries = Machinery::with(['typeMachinery', 'counter', 'companyReason'])
             ->where('team_id', $user->team_id)
             ->orderBy('cod_machinery')
             ->get();

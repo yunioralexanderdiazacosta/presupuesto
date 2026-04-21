@@ -14,6 +14,8 @@ const props = defineProps({
     term: String
 });
 
+const term = ref(props.term || '');
+
 const form = useForm({
     id: '',
     cod_machinery: '',
@@ -21,16 +23,13 @@ const form = useForm({
     company_reason_id: '',
     counter_id: '',
     team_id: '',
-    cod_machinery: '',
     volume: 0,
     is_active: true,
     brand: '',
+    modelo: '',
+    patente: '',
     observations: ''
 });
-
-const title = 'Maquinarias';
-
-const term  = ref(props.term || '');
 
 const filteredMachineries = computed(() => {
     if (!Array.isArray(props.machineries)) return [];
@@ -39,22 +38,31 @@ const filteredMachineries = computed(() => {
     if (!search) return props.machineries;
 
     return props.machineries.filter((machinery) => {
-        const code = machinery.cod_machinery?.toLowerCase() || '';
-        const type = machinery.type_machinery?.name?.toLowerCase() || '';
+        const code    = machinery.cod_machinery?.toLowerCase() || '';
+        const type    = machinery.type_machinery?.name?.toLowerCase() || '';
+        const company = machinery.company_reason?.name?.toLowerCase() || '';
         const counter = machinery.counter?.name?.toLowerCase() || '';
-        const brand = machinery.brand?.toLowerCase() || '';
-        const status = machinery.is_active ? 'activo' : 'inactivo';
+        const brand   = machinery.brand?.toLowerCase() || '';
+        const modelo  = machinery.modelo?.toLowerCase() || '';
+        const patente = machinery.patente?.toLowerCase() || '';
+        const volume  = String(machinery.volume ?? '');
+        const status  = machinery.is_active ? 'activo' : 'inactivo';
 
         return (
             code.includes(search) ||
             type.includes(search) ||
+            company.includes(search) ||
             counter.includes(search) ||
             brand.includes(search) ||
+            modelo.includes(search) ||
+            patente.includes(search) ||
+            volume.includes(search) ||
             status.includes(search)
         );
     });
 });
 
+const title = 'Maquinarias';
 const links = [{ title: 'Tablero', link: 'dashboard' }, { title: title, active: true }];
 
 const openAdd = () => {
@@ -73,6 +81,9 @@ const openEdit = (machinery) => {
     form.volume = machinery.volume;
     form.status = machinery.status;
     form.brand = machinery.brand;
+    form.modelo = machinery.modelo || '';
+    form.patente = machinery.patente || '';
+    form.is_active = machinery.is_active;
     form.observations = machinery.observations;
     $('#editMachineryModal').modal('show');
 }
@@ -193,8 +204,12 @@ const onFilter = () => {};
                         <!--begin::Table row-->
                         <th width="min-w-150px">Código</th>
                         <th width="min-w-150px">Tipo</th>
+                        <th width="min-w-150px">Razón Social</th>
                         <th width="min-w-150px">Contador</th>
                         <th width="min-w-150px">Marca</th>
+                        <th width="min-w-150px">Modelo</th>
+                        <th width="min-w-150px">Patente</th>
+                        <th width="min-w-150px">Volumen</th>
                         <th width="min-w-150px">Status</th>
                         <th width="min-w-150px" class="text-end">Acciones</th>
                         <!--end::Table row-->
@@ -208,9 +223,13 @@ const onFilter = () => {};
                         <template v-else>
                             <tr v-for="(machinery, index) in filteredMachineries" :key="index">
                                 <td>{{machinery.cod_machinery}}</td>
-                                <td>{{machinery.type_machinery.name}}</td>
+                                <td>{{machinery.type_machinery?.name || '-'}}</td>
+                                <td>{{machinery.company_reason?.name || '-'}}</td>
                                 <td>{{machinery.counter?.name || '-'}}</td>
-                                <td>{{machinery.brand}}</td>
+                                <td>{{machinery.brand || '-'}}</td>
+                                <td>{{machinery.modelo || '-'}}</td>
+                                <td>{{machinery.patente || '-'}}</td>
+                                <td>{{machinery.volume ?? '-'}}</td>
                                 <td>
                                     <span class="badge badge-subtle-success" v-if="machinery.is_active == true">Activo</span>
                                     <span class="badge badge-subtle-danger" v-else>Inactivo</span>
