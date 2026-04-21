@@ -260,6 +260,10 @@ use App\Http\Controllers\Employees\EmployeeController;
 use App\Http\Controllers\Employees\StoreEmployeeController;
 use App\Http\Controllers\Employees\UpdateEmployeeController;
 use App\Http\Controllers\Employees\DeleteEmployeeController;
+// Rutas para Terminations (Términos de Faena - Remuneraciones)
+use App\Http\Controllers\Terminations\TerminationController;
+use App\Http\Controllers\Terminations\StoreTerminationController;
+use App\Http\Controllers\Terminations\DeleteTerminationController;
 // Rutas para Contracts (Contratos - Remuneraciones)
 use App\Http\Controllers\Contracts\ContractController;
 use App\Http\Controllers\Contracts\StoreContractController;
@@ -963,6 +967,11 @@ Route::middleware([
     Route::delete('/employees/{employee}', DeleteEmployeeController::class)->name('employees.delete');
     Route::post('/employees/import', [EmployeeController::class, 'import'])->name('employees.import');
     Route::get('/employees/template', [EmployeeController::class, 'template'])->name('employees.template');
+
+    // Terminations (Términos de Faena - Remuneraciones)
+    Route::get('/terminations', [TerminationController::class, 'index'])->name('terminations.index');
+    Route::post('/terminations', StoreTerminationController::class)->name('terminations.store');
+    Route::delete('/terminations/{termination}', DeleteTerminationController::class)->name('terminations.delete');
 
     // Contracts (Contratos - Remuneraciones)
     Route::get('/contracts', [ContractController::class, 'index'])->name('contracts.index');

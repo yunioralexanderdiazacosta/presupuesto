@@ -94,6 +94,7 @@ const menuItems = [
     { label: 'Equipos de Riego', route: 'irrigation-pumps.index', icon: 'fas fa-tint', section: 'Gestión' },
     { label: 'Colaboradores', route: 'employees.index', icon: 'fas fa-user-tie', section: 'Remuneraciones' },
     { label: 'Contratos', route: 'contracts.index', icon: 'fas fa-file-signature', section: 'Remuneraciones' },
+    { label: 'Términos de Faena', route: 'terminations.index', icon: 'fas fa-user-slash', section: 'Remuneraciones' },
     { label: 'Plantillas de Contrato', route: 'contract-templates.index', icon: 'fas fa-file-contract', section: 'Remuneraciones' },
     { label: 'Gestión Diaria', route: 'daily-management.index', icon: 'fas fa-tasks', section: 'Remuneraciones' },
     { label: 'Horarios', route: 'schedules.index', icon: 'fas fa-clock', section: 'Remuneraciones' },
@@ -561,6 +562,11 @@ const navigateTo = (routeName) => {
                 </li>
                 <li class="nav-item"><Link class="nav-link" :href="route('contracts.index')">
                     <div class="d-flex align-items-center"><span class="nav-link-text ps-3">Contratos</span>
+                    </div>
+                  </Link>
+                </li>
+                <li class="nav-item"><Link class="nav-link" :href="route('terminations.index')">
+                    <div class="d-flex align-items-center"><span class="nav-link-text ps-3">Términos de Faena</span>
                     </div>
                   </Link>
                 </li>
