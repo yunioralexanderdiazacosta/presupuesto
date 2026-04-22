@@ -581,6 +581,37 @@ onMounted(() => {
   <Head :title="title" />
   <AppLayout>
     <div class="container-fluid px-0 py-2" style="max-width: 100vw;">
+
+      <!-- Novedades recientes -->
+      <div class="row mb-3">
+        <div class="col-12">
+          <div class="card border-0 shadow-sm" style="background: linear-gradient(135deg, #f0f5ff 0%, #e8f4fd 100%); border-left: 4px solid #2c7be5 !important;">
+            <div class="card-body py-2 px-3">
+              <div class="d-flex align-items-start gap-3 flex-wrap">
+                <div class="d-flex align-items-center gap-2 me-3">
+                  <i class="fas fa-sparkles text-primary" style="font-size:1.1rem;"></i>
+                  <span class="fw-bold text-primary" style="font-size:0.78rem; white-space:nowrap;">Novedades · Abr 2026</span>
+                </div>
+                <div class="d-flex flex-wrap gap-2">
+                  <span class="badge rounded-pill bg-primary bg-opacity-10 text-primary border border-primary border-opacity-25 px-2 py-1" style="font-size:0.72rem;">
+                    <i class="fas fa-file-invoice me-1"></i>Facturas: campo <strong>Exento</strong> por línea — IVA solo sobre neto afecto
+                  </span>
+                  <span class="badge rounded-pill bg-success bg-opacity-10 text-success border border-success border-opacity-25 px-2 py-1" style="font-size:0.72rem;">
+                    <i class="fas fa-folder-open me-1"></i>Consolidado de Documentos: columna <strong>Exento</strong> en tablas y Excel
+                  </span>
+                  <span class="badge rounded-pill bg-warning bg-opacity-10 text-warning border border-warning border-opacity-25 px-2 py-1" style="font-size:0.72rem;">
+                    <i class="fas fa-user-slash me-1"></i>Nuevo módulo <strong>Términos de Faena</strong> en Remuneraciones
+                  </span>
+                  <span class="badge rounded-pill bg-info bg-opacity-10 text-info border border-info border-opacity-25 px-2 py-1" style="font-size:0.72rem;">
+                    <i class="fas fa-calendar-alt me-1"></i>Cambio de temporada restringido a <strong>administradores</strong>
+                  </span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
       <!-- Switch para activar/desactivar la división y divisor slider/input -->
       <div class="row mb-2">
         <div class="col-12">
@@ -1029,6 +1060,82 @@ onMounted(() => {
         </div>
       </div>
 
+      <!-- Fila: 3 cards de estimación y costo kilo -->
+      <div class="row g-2 mb-3">
+        <!-- Card 1: Estimación de kilos por Especie -->
+        <div class="col-12 col-md-4">
+          <div class="card ecommerce-card-min-width h-100">
+            <div class="card-header pb-2 bg-info bg-opacity-10">
+              <div class="d-flex align-items-center justify-content-between">
+                <h5 class="mb-0 mt-1 d-flex align-items-center fs-10">Estimación de kilos por Especie</h5>
+                <select v-if="estimateOptions && estimateOptions.length" v-model="selectedEstimateStatusId" class="form-select form-select-sm" style="width:auto;max-width:200px;font-size:0.75rem;">
+                  <option v-for="opt in estimateOptions" :key="opt.id" :value="opt.id">{{ opt.name }}</option>
+                </select>
+              </div>
+            </div>
+            <div class="card-body d-flex flex-wrap gap-2 align-items-center py-2">
+              <template v-if="Object.keys(activeKilosByFruit).length">
+                <div v-for="(kilos, fruitId) in activeKilosByFruit" :key="fruitId" class="d-flex flex-column align-items-center px-3 border-end">
+                  <span class="fs-10 text-secondary">{{ fruitNames && fruitNames[fruitId] ? fruitNames[fruitId] : ('Fruta ' + fruitId) }}</span>
+                  <span class="fs-9 fw-bold text-primary">{{ Number(kilos).toLocaleString('es-CL', { maximumFractionDigits: 0 }) }} <small class="text-secondary fw-normal">Kg</small></span>
+                </div>
+              </template>
+              <span v-else class="text-muted small">No hay datos.</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Card 2: Costo kilo cosecha -->
+        <div class="col-12 col-md-4">
+          <div class="card ecommerce-card-min-width h-100">
+            <div class="card-header pb-2 bg-info bg-opacity-10">
+              <h5 class="mb-0 mt-1 d-flex align-items-center fs-10">Costo kilo cosecha <small class="ms-1 text-muted fw-normal">(sin admin ni gral campo)</small></h5>
+            </div>
+            <div class="card-body d-flex flex-wrap gap-2 align-items-center py-2">
+              <template v-if="Object.keys(activeKilosByFruit).length && totalHarvestByFruit && Object.keys(totalHarvestByFruit).length">
+                <div v-for="(kilos, fruitId) in activeKilosByFruit" :key="'costo-kilo-' + fruitId" class="d-flex flex-column align-items-center px-3 border-end">
+                  <span class="fs-10 text-secondary">{{ fruitNames && fruitNames[fruitId] ? fruitNames[fruitId] : ('Fruta ' + fruitId) }}</span>
+                  <span class="fs-9 fw-bold text-primary">{{ (() => {
+                    const totalHarvest = props.totalHarvestByFruit && props.totalHarvestByFruit[fruitId] ? Number(props.totalHarvestByFruit[fruitId]) : null;
+                    if (totalHarvest === null) return 'No data';
+                    const total = dividir && divisor ? totalHarvest / Number(divisor) : totalHarvest;
+                    const kilosNum = Number(kilos);
+                    if (!kilosNum || kilosNum === 0) return 'No data';
+                    return (total / kilosNum).toLocaleString('es-CL', { maximumFractionDigits: 2 });
+                  })() }} <small class="text-secondary fw-normal">{{ dividir ? 'USD/Kg' : 'CLP/Kg' }}</small></span>
+                </div>
+              </template>
+              <span v-else class="text-muted small">No hay datos.</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Card 3: Costo kilo total -->
+        <div class="col-12 col-md-4">
+          <div class="card ecommerce-card-min-width h-100">
+            <div class="card-header pb-2 bg-info bg-opacity-10">
+              <h5 class="mb-0 mt-1 d-flex align-items-center fs-10">Costo kilo total <small class="ms-1 text-muted fw-normal">(incluye admin+gral campo)</small></h5>
+            </div>
+            <div class="card-body d-flex flex-wrap gap-2 align-items-center py-2">
+              <template v-if="Object.keys(activeKilosByFruit).length && adminFieldsByFruit && Object.keys(adminFieldsByFruit).length">
+                <div v-for="(kilos, fruitId) in activeKilosByFruit" :key="'costo-kilo-total-' + fruitId" class="d-flex flex-column align-items-center px-3 border-end">
+                  <span class="fs-10 text-secondary">{{ fruitNames && fruitNames[fruitId] ? fruitNames[fruitId] : ('Fruta ' + fruitId) }}</span>
+                  <span class="fs-9 fw-bold text-primary">{{ (() => {
+                    let total = totalByFruit[fruitId] !== undefined ? Number(totalByFruit[fruitId]) : 0;
+                    if (adminFieldsByFruit[fruitId]?.admin_fields_total !== undefined) total += Number(adminFieldsByFruit[fruitId].admin_fields_total);
+                    if (dividir && divisor) total = total / Number(divisor);
+                    const kilosNum = Number(kilos);
+                    if (!kilosNum || kilosNum === 0) return 'No data';
+                    return (total / kilosNum).toLocaleString('es-CL', { maximumFractionDigits: 2 });
+                  })() }} <small class="text-secondary fw-normal">{{ dividir ? 'USD/Kg' : 'CLP/Kg' }}</small></span>
+                </div>
+              </template>
+              <span v-else class="text-muted small">No hay datos.</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
       <div class="row g-2 g-xl-3">
         <!-- Columna izquierda: Weather, superficie, total presupuestos -->
         <div class="col-12 d-flex flex-column">
@@ -1045,109 +1152,6 @@ onMounted(() => {
           </div>
           -->
 
-
-          <div class="card ecommerce-card-min-width mb-3 mt-2">
-            <div class="card-header pb-2 bg-info bg-opacity-10">
-              <div class="d-flex align-items-center justify-content-between">
-                <h5 class="mb-0 mt-1 d-flex align-items-center fs-10">Estimación de kilos por Especie
-                  <span class="ms-1 text-400" data-bs-toggle="tooltip" data-bs-placement="top" title="Kilos estimados agrupados por fruta">
-                    <span class="far fa-question-circle" data-fa-transform="shrink-1"></span>
-                  </span>
-                </h5>
-                <select v-if="estimateOptions && estimateOptions.length" v-model="selectedEstimateStatusId" class="form-select form-select-sm" style="width:auto;max-width:200px;font-size:0.75rem;">
-                  <option v-for="opt in estimateOptions" :key="opt.id" :value="opt.id">{{ opt.name }}</option>
-                </select>
-              </div>
-            </div>
-            <div class="card-body d-flex flex-column justify-content-end py-1 align-items-center">
-              <div v-if="Object.keys(activeKilosByFruit).length" class="d-flex flex-wrap gap-1 align-items-center">
-                <div v-for="(kilos, fruitId, idx) in activeKilosByFruit" :key="fruitId" class="d-flex align-items-center">
-                  <span class="fs-9 text-secondary me-1">{{ fruitNames && fruitNames[fruitId] ? fruitNames[fruitId] : ('Fruta ' + fruitId) }}:</span>
-                  <span class="lh-1 fs-9 text-primary">{{ Number(kilos).toLocaleString('es-CL', { maximumFractionDigits: 0 }) }} <span class="text-secondary">Kg</span></span>
-                  <span v-if="idx < Object.keys(activeKilosByFruit).length - 1" class="mx-4" style="border-left:1px solid #bbb;height:60px;"></span>
-                </div>
-              </div>
-              <div v-else>
-                <span class="text-muted">No hay datos de kilos estimados.</span>
-              </div>
-            </div>
-          </div>
-
-          <!-- Nuevo card: Costo kilo cosecha por especie -->
-          <div class="card ecommerce-card-min-width mb-3">
-            <div class="card-header pb-2 bg-info bg-opacity-10">
-              <h5 class="mb-0 mt-1 d-flex align-items-center fs-10">Costo kilo cosecha (sin admin ni gral campo)
-                <span class="ms-1 text-400" data-bs-toggle="tooltip" data-bs-placement="top" title="Costo de cosecha por kilo, por especie (total cosecha / kilos estimados)">
-                  <span class="far fa-question-circle" data-fa-transform="shrink-1"></span>
-                </span>
-              </h5>
-            </div>
-            <div class="card-body d-flex flex-column justify-content-end py-1 align-items-center">
-              <div v-if="Object.keys(activeKilosByFruit).length && totalByFruit && Object.keys(totalByFruit).length" class="d-flex flex-wrap gap-1 align-items-center">
-                <div v-for="(kilos, fruitId, idx) in activeKilosByFruit" :key="'costo-kilo-' + fruitId" class="d-flex align-items-center">
-                  <span class="fs-9 text-secondary me-1">{{ fruitNames && fruitNames[fruitId] ? fruitNames[fruitId] : ('Fruta ' + fruitId) }}:</span>
-                  <span class="lh-1 fs-9 text-primary">{{ (() => {
-                    // Usar el totalHarvest por especie si existe
-                    let totalHarvestByFruit = (props.totalHarvestByFruit && props.totalHarvestByFruit[fruitId]) ? Number(props.totalHarvestByFruit[fruitId]) : null;
-                    if (totalHarvestByFruit === null) return 'No data';
-                    let total = totalHarvestByFruit;
-                    const kilosNum = Number(kilos);
-                    if (dividir && divisor && !isNaN(Number(divisor))) {
-                      total = total / Number(divisor);
-                    }
-                    if (!kilosNum || isNaN(total) || kilosNum === 0) return 'No data';
-                    const costoKilo = total / kilosNum;
-                    return costoKilo.toLocaleString('es-CL', { maximumFractionDigits: 2 });
-                  })() }} <span class="text-secondary">{{ dividir ? 'USD/Kg' : 'CLP/Kg' }}</span></span>
-                  <span v-if="idx < Object.keys(activeKilosByFruit).length - 1" class="mx-4" style="border-left:1px solid #bbb;height:60px;"></span>
-                </div>
-              </div>
-              <div v-else>
-                <span class="text-muted">No hay datos de costo kilo cosecha.</span>
-              </div>
-            </div>
-          </div>
-
-          <!-- Nuevo card: Costo kilo total (incluye admin+gral campo) -->
-          <div class="card ecommerce-card-min-width mb-3">
-            <div class="card-header pb-2 bg-info bg-opacity-10">
-              <h5 class="mb-0 mt-1 d-flex align-items-center fs-10">Costo kilo total (incluye admin+gral campo)
-                <span class="ms-1 text-400" data-bs-toggle="tooltip" data-bs-placement="top" title="Costo total por kilo, por especie (total especie + admin+gral campo / kilos estimados)">
-                  <span class="far fa-question-circle" data-fa-transform="shrink-1"></span>
-                </span>
-              </h5>
-            </div>
-            <div class="card-body d-flex flex-column justify-content-end py-1 align-items-center">
-              <div v-if="Object.keys(activeKilosByFruit).length && totalByFruit && Object.keys(totalByFruit).length && adminFieldsByFruit && Object.keys(adminFieldsByFruit).length" class="d-flex flex-wrap gap-1 align-items-center">
-                <div v-for="(kilos, fruitId, idx) in activeKilosByFruit" :key="'costo-kilo-total-' + fruitId" class="d-flex align-items-center">
-                  <span class="fs-9 text-secondary me-1">{{ fruitNames && fruitNames[fruitId] ? fruitNames[fruitId] : ('Fruta ' + fruitId) }}:</span>
-                  <span class="lh-1 fs-9 text-primary">{{ (() => {
-                    let total = 0;
-                    if (totalByFruit[fruitId] !== undefined) {
-                      total += Number(totalByFruit[fruitId]);
-                    }
-                    if (adminFieldsByFruit[fruitId] && adminFieldsByFruit[fruitId].admin_fields_total !== undefined) {
-                      total += Number(adminFieldsByFruit[fruitId].admin_fields_total);
-                    }
-                    const kilosNum = Number(kilos);
-                    if (dividir && divisor && !isNaN(Number(divisor))) {
-                      total = total / Number(divisor);
-                    }
-                    if (!kilosNum || isNaN(total) || kilosNum === 0) return 'No data';
-                    const costoKilo = total / kilosNum;
-                    return costoKilo.toLocaleString('es-CL', { maximumFractionDigits: 2 });
-                  })() }} <span class="text-secondary">{{ dividir ? 'USD/Kg' : 'CLP/Kg' }}</span></span>
-                  <span v-if="idx < Object.keys(activeKilosByFruit).length - 1" class="mx-4" style="border-left:1px solid #bbb;height:60px;"></span>
-                </div>
-              </div>
-              <div v-else>
-                <span class="text-muted">No hay datos de costo kilo total.</span>
-              </div>
-            </div>
-          </div>
-
-
-         
           <!-- Tabla Falcon de conteos de entidades -->
           <div class="card shadow-sm h-100 mb-3">
             <div class="card-header pb-2 pt-2">

@@ -13,6 +13,12 @@ class SelectBudgetController extends Controller
     {
         $user = Auth::user();
 
+        abort_if(
+            !$user->hasRole('Admin') && !$user->hasRole('Super Admin'),
+            403,
+            'Solo los administradores pueden cambiar la temporada.'
+        );
+
         $seasons = Season::select('id', 'name')->where('team_id', $user->team_id)->get()->transform(function($season){
             return [
                 'label' => $season->name,

@@ -13,6 +13,14 @@ const lifetime = computed(() =>usePage().props.lifetime);
 // Path base para assets
 const path = '';
 
+// Referencia al componente Link para usar en :is dinámico
+const $page = usePage();
+const isAdminUser = computed(() => {
+  const roles = $page.props.gates?.roles || [];
+  return roles.includes('Admin') || roles.includes('Super Admin');
+});
+const seasonLinkComponent = computed(() => isAdminUser.value ? Link : 'span');
+
  let timeoutId;
   const inactivityTime = (lifetime.value || 30) * 60 * 1000; // Minutos en milisegundos (default 30 min)
 
@@ -774,10 +782,17 @@ const navigateTo = (routeName) => {
           <li class="nav-item">
             <div class="search-box" data-list='{"valueNames":["title"]}'>
               <!-- v2: degradado con color dinámico de temporada -->
-              <span class="d-inline-flex align-items-center px-4 py-2 mb-0 mt-1 rounded-pill shadow-lg me-3" :style="{ background: $page.props.seasonColor ? `linear-gradient(90deg, ${$page.props.seasonColor}cc 0%, ${$page.props.seasonColor} 100%)` : 'linear-gradient(90deg, #6ea8fe 0%, #1e40af 100%)', color: '#fff', whiteSpace: 'nowrap' }">
+              <component
+                :is="seasonLinkComponent"
+                :href="isAdminUser ? route('select.budget') : undefined"
+                class="d-inline-flex align-items-center px-4 py-2 mb-0 mt-1 rounded-pill shadow-lg me-3 text-decoration-none"
+                :style="{ background: $page.props.seasonColor ? `linear-gradient(90deg, ${$page.props.seasonColor}cc 0%, ${$page.props.seasonColor} 100%)` : 'linear-gradient(90deg, #6ea8fe 0%, #1e40af 100%)', color: '#fff', whiteSpace: 'nowrap', cursor: isAdminUser ? 'pointer' : 'default' }"
+                :title="isAdminUser ? 'Cambiar temporada' : ''"
+              >
                 <span class="fas fa-calendar-alt me-2 fs-8"></span>
                 <span class="fw-bold fs-8">{{$page.props.temporada ?? ''}}</span>
-              </span>
+                <span v-if="isAdminUser" class="fas fa-chevron-down ms-2 fs-10 opacity-75"></span>
+              </component>
              
               <div class="dropdown-menu border font-base start-0 mt-2 py-0 overflow-hidden w-100">
                 <div class="scrollbar list py-3" style="max-height: 24rem;">

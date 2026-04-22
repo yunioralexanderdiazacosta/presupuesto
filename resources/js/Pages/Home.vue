@@ -42,19 +42,20 @@ const links = [
                                         <i class="fas fa-info-circle fa-2x text-primary"></i>
                                     </div>
                                     <div class="flex-grow-1 ms-3">
-                                        <h5 class="card-title mb-0">Ultimas Actualizaciones</h5>
+                                        <h5 class="card-title mb-0">Últimas Actualizaciones</h5>
                                     </div>
                                 </div>
-                                <p class="card-text">
-                                    <strong>Marzo 2026:</strong><br>
-                                    • Copia de presupuesto entre temporadas: desde Temporadas puedes copiar agroquímicos, fertilizantes, insumos, servicios, cosecha, mano de obra, administración y campos a otra temporada<br>
-                                    • Copia de centros de costo entre temporadas: desde Centros de Costo puedes copiar todos los cuarteles y sus variedades a la temporada activa con el botón "Copiar CC"<br>
-                                    • Nueva página de inicio de sesión con diseño renovado<br>
-                                    • Despachos de producción ahora con clasificación por tipo de fruta<br>
-                                    • Se puede ver el detalle de cada despacho procesado<br>
-                                    • Se reciben notificaciones por email al aprobar o rechazar rendiciones<br>
-                                    • Pagos de facturas ahora muestran saldo pendiente, estado y vencimiento<br>
-                                </p>
+
+                                <!-- Abril 2026 -->
+                                <p class="mb-1"><strong class="text-primary">Abril 2026:</strong></p>
+                                <ul class="mb-0 ps-3" style="font-size:0.85rem;">
+                                    <li><strong>Facturas</strong> — nuevo campo <em>Exento</em> por línea: el IVA (19%) se calcula solo sobre el neto afecto; las líneas exentas no generan IVA.</li>
+                                    <li><strong>Consolidado de Documentos</strong> — las tablas Resumen y Lista ahora muestran columnas <em>Neto Afecto</em>, <em>Exento</em>, <em>IVA</em> y <em>Total General</em> por separado. El Excel exportado incluye el mismo desglose.</li>
+                                    <li><strong>Términos de Faena</strong> — nuevo módulo en Remuneraciones para registrar términos de contratos en lote (múltiples trabajadores, fecha y causal). Incluye historial y opción de anular.</li>
+                                    <li><strong>Cambio de temporada</strong> — restringido a usuarios con rol <em>Admin</em> o <em>Super Admin</em>. Desde cualquier pantalla puedes cambiarla haciendo clic en el badge de temporada del menú superior.</li>
+                                </ul>
+
+
                             </div>
                         </div>
                     </div>

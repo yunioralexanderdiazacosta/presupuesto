@@ -12,6 +12,14 @@ class SaveSeasonController extends Controller
 {
     public function __invoke(Request $request)
     {
+        $user = $request->user();
+
+        abort_if(
+            !$user->hasRole('Admin') && !$user->hasRole('Super Admin'),
+            403,
+            'Solo los administradores pueden cambiar la temporada.'
+        );
+
         $request->validate([
             'season_id' => 'required'
         ]);
