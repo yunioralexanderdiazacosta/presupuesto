@@ -182,7 +182,8 @@ const filteredExpandedInvoices = computed(() => {
         const supplier = row.supplier?.name?.toLowerCase() || '';
         const number = row.number_document ? String(row.number_document).toLowerCase() : '';
         const product = row.product_name?.toLowerCase() || '';
-        return supplier.includes(search) || number.includes(search) || product.includes(search);
+        const company = row.companyReason?.name?.toLowerCase() || '';
+        return supplier.includes(search) || number.includes(search) || product.includes(search) || company.includes(search);
     });
 });
 
@@ -230,6 +231,7 @@ const excelDetallesData = computed(() => {
         type_document: row.type_document,
         month: row.month,
         supplier: row.supplier ? row.supplier.name : '',
+        company_reason: row.companyReason ? row.companyReason.name : '',
         number_document: row.number_document,
         date: row.date,
         product: row.product_name,
@@ -337,6 +339,7 @@ const formatCurrency = (value) => {
                                     { label: 'Tipo Doc.', key: 'type_document' },
                                     { label: 'Mes', key: 'month' },
                                     { label: 'Proveedor', key: 'supplier' },
+                                    { label: 'Razón Social', key: 'company_reason' },
                                     { label: 'N° Doc', key: 'number_document' },
                                     { label: 'Fecha', key: 'date' },
                                     { label: 'Producto', key: 'product' },
@@ -522,6 +525,7 @@ const formatCurrency = (value) => {
                                 <th style="white-space:nowrap;">Tipo Doc.</th>
                                 <th style="white-space:nowrap;">Mes</th>
                                 <th style="white-space:nowrap; max-width:200px;">Proveedor</th>
+                                <th style="white-space:nowrap; max-width:180px;">Razón Social</th>
                                 <th style="white-space:nowrap;">N° Doc</th>
                                 <th style="white-space:nowrap;">Fecha</th>
                                 <th style="white-space:nowrap;">Vencimiento</th>
@@ -584,6 +588,7 @@ invoice, index
                                         <td style="white-space:nowrap;">{{ invoice.type_document }}</td>
                                         <td style="white-space:nowrap;">{{ invoice.month }}</td>
                                         <td style="white-space:nowrap; max-width:200px; overflow:hidden; text-overflow:ellipsis;">{{ invoice.supplier.name }}</td>
+                                        <td style="white-space:nowrap; max-width:180px; overflow:hidden; text-overflow:ellipsis;">{{ invoice.companyReason?.name || '—' }}</td>
                                         <td style="white-space:nowrap;">{{ invoice.number_document }}</td>
                                         <td style="white-space:nowrap;">{{ invoice.date }}</td>
                                         <td style="white-space:nowrap;">{{ invoice.due_date }}</td>
@@ -742,6 +747,7 @@ invoice, index
                                     <th style="white-space:nowrap;">Tipo Doc.</th>
                                     <th style="white-space:nowrap;">Mes</th>
                                     <th style="white-space:nowrap; max-width:200px;">Proveedor</th>
+                                    <th style="white-space:nowrap; max-width:180px;">Razón Social</th>
                                     <th style="white-space:nowrap;">N° Doc</th>
                                     <th style="white-space:nowrap;">Fecha</th>
                                     <th style="white-space:nowrap; max-width:220px;">Producto</th>
@@ -778,6 +784,7 @@ invoice, index
                                             <td style="white-space:nowrap;">{{ row.type_document }}</td>
                                             <td style="white-space:nowrap;">{{ row.month }}</td>
                                             <td style="white-space:nowrap; max-width:200px; overflow:hidden; text-overflow:ellipsis;">{{ row.supplier.name }}</td>
+                                            <td style="white-space:nowrap; max-width:180px; overflow:hidden; text-overflow:ellipsis;">{{ row.companyReason?.name || '—' }}</td>
                                             <td style="white-space:nowrap;">{{ row.number_document }}</td>
                                             <td style="white-space:nowrap;">{{ row.date }}</td>
                                             <td style="white-space:nowrap; max-width:220px; overflow:hidden; text-overflow:ellipsis;">{{ row.product_name }}</td>
