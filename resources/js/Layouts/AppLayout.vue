@@ -104,6 +104,9 @@ const menuItems = [
     { label: 'Contratos', route: 'contracts.index', icon: 'fas fa-file-signature', section: 'Remuneraciones' },
     { label: 'Términos de Faena', route: 'terminations.index', icon: 'fas fa-user-slash', section: 'Remuneraciones' },
     { label: 'Plantillas de Contrato', route: 'contract-templates.index', icon: 'fas fa-file-contract', section: 'Remuneraciones' },
+    { label: 'Plantillas de Finiquito', route: 'termination-templates.index', icon: 'fas fa-file-signature', section: 'Remuneraciones' },
+    { label: 'Vacaciones', route: 'vacations.index', icon: 'fas fa-umbrella-beach', section: 'Remuneraciones' },
+    { label: 'Feriados', route: 'holidays.index', icon: 'fas fa-calendar-alt', section: 'Remuneraciones' },
     { label: 'Gestión Diaria', route: 'daily-management.index', icon: 'fas fa-tasks', section: 'Remuneraciones' },
     { label: 'Horarios', route: 'schedules.index', icon: 'fas fa-clock', section: 'Remuneraciones' },
     { label: 'Ciudades', route: 'cities.index', icon: 'fas fa-city', section: 'Remuneraciones' },
@@ -336,7 +339,9 @@ const navigateTo = (routeName) => {
                     <li class="nav-item">
                       <Link class="nav-link" :href="route('outflows.dashboard')">
                         <div class="d-flex align-items-center">
-                          <span class="nav-link-text ps-3">Dashboard Gestión</span>
+                          <span class="nav-link-text ps-3">
+                            <i class="fas fa-chart-bar me-2"></i>Dashboard Gestión
+                          </span>
                         </div>
                       </Link>
                     </li>
@@ -578,8 +583,34 @@ const navigateTo = (routeName) => {
                     </div>
                   </Link>
                 </li>
-                <li class="nav-item"><Link class="nav-link" :href="route('contract-templates.index')">
-                    <div class="d-flex align-items-center"><span class="nav-link-text ps-3">Plantillas de Contrato</span>
+                <!-- Plantillas (submenú) -->
+                <li class="nav-item">
+                  <a class="nav-link dropdown-indicator ps-3" href="#plantillas" role="button" data-bs-toggle="collapse" aria-expanded="false" aria-controls="plantillas" style="padding-left: 1rem !important;">
+                    <div class="d-flex align-items-center">
+                      <span class="nav-link-icon"><span class="fas fa-layer-group fa-xs"></span></span>
+                      <span class="nav-link-text ps-1">Plantillas</span>
+                    </div>
+                  </a>
+                  <ul class="nav collapse" id="plantillas">
+                    <li class="nav-item"><Link class="nav-link" :href="route('contract-templates.index')">
+                        <div class="d-flex align-items-center"><span class="nav-link-text ps-4">Plantillas de Contrato</span>
+                        </div>
+                      </Link>
+                    </li>
+                    <li class="nav-item"><Link class="nav-link" :href="route('termination-templates.index')">
+                        <div class="d-flex align-items-center"><span class="nav-link-text ps-4">Plantillas de Finiquito</span>
+                        </div>
+                      </Link>
+                    </li>
+                  </ul>
+                </li>
+                <li class="nav-item"><Link class="nav-link" :href="route('vacations.index')">
+                    <div class="d-flex align-items-center"><span class="nav-link-icon"><span class="fas fa-umbrella-beach"></span></span><span class="nav-link-text ps-1">Vacaciones</span>
+                    </div>
+                  </Link>
+                </li>
+                <li class="nav-item"><Link class="nav-link" :href="route('holidays.index')">
+                    <div class="d-flex align-items-center"><span class="nav-link-icon"><span class="fas fa-calendar-alt"></span></span><span class="nav-link-text ps-1">Feriados</span>
                     </div>
                   </Link>
                 </li>

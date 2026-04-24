@@ -24,14 +24,13 @@ class ContractController extends Controller
     {
         $user = Auth::user();
 
-        $contracts = Contract::with(['employee', 'companyReason', 'schedule', 'afp', 'healthPlan', 'city', 'parcel', 'paymentMethod', 'bank', 'accountType'])
+        $contracts = Contract::with(['employee', 'companyReason', 'schedule', 'afp', 'healthPlan', 'city', 'parcel', 'paymentMethod', 'bank', 'accountType', 'terminations'])
             ->where('team_id', $user->team_id)
             ->latest('contract_date')
             ->get();
 
         $employees = Employee::where('team_id', $user->team_id)
-            ->where('is_active', true)
-            ->whereDoesntHave('activeContract')
+            ->whereDoesntHave('contracts', fn($q) => $q->where('is_active', true))
             ->orderBy('paternal_surname')
             ->get()
             ->map(fn($e) => [
@@ -74,6 +73,7 @@ class ContractController extends Controller
             ->map(fn($c) => ['value' => $c->id, 'label' => $c->name]);
 
         $parcels = Parcel::where('team_id', $user->team_id)
+            ->where('season_id', session('season_id'))
             ->orderBy('name')
             ->get(['id', 'name'])
             ->map(fn($p) => ['value' => $p->id, 'label' => $p->name]);

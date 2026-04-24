@@ -1,11 +1,13 @@
 <script setup>
 import { ref, computed } from 'vue';
 import Swal from 'sweetalert2';
-import { router, Head } from '@inertiajs/vue3';
+import { router, Head, usePage } from '@inertiajs/vue3';
 import AppLayout from '@/Layouts/AppLayout.vue';
 import Breadcrumb from '@/Components/Breadcrumb.vue';
 import CreateContractModal from '@/Components/Contracts/CreateContractModal.vue';
 import EditContractModal from '@/Components/Contracts/EditContractModal.vue';
+
+const page = usePage();
 
 const props = defineProps({
     contracts: Array,
@@ -112,7 +114,12 @@ function deleteContract(id) {
         if (result.isConfirmed) {
             router.delete(route('contracts.delete', id), {
                 onSuccess: () => {
-                    Swal.fire({ icon: 'success', title: 'Eliminado', text: 'Contrato eliminado correctamente', timer: 1500, showConfirmButton: false });
+                    const flashError = page.props.flash?.error;
+                    if (flashError) {
+                        Swal.fire({ icon: 'error', title: 'No se puede eliminar', text: flashError });
+                    } else {
+                        Swal.fire({ icon: 'success', title: 'Eliminado', text: 'Contrato eliminado correctamente', timer: 1500, showConfirmButton: false });
+                    }
                 },
                 onError: () => {
                     Swal.fire({ icon: 'error', title: 'Error', text: 'No se pudo eliminar el registro' });
@@ -269,7 +276,12 @@ function formatCurrency(val) {
                                     }">{{ item.contract_type }}</span>
                                 </td>
                                 <td>{{ formatDate(item.contract_date) }}</td>
-                                <td>{{ formatDate(item.end_date) }}</td>
+                                <td>
+                                    <span v-if="item.contract_type === 'Faena'">
+                                        {{ item.terminations?.length ? formatDate(item.terminations[item.terminations.length-1].fecha_termino) : '-' }}
+                                    </span>
+                                    <span v-else>{{ formatDate(item.end_date) }}</span>
+                                </td>
                                 <td>{{ item.position || '-' }}</td>
                                 <td class="text-end">{{ formatCurrency(item.base_salary) }}</td>
                                 <td class="text-end">{{ formatCurrency(item.net_salary) }}</td>

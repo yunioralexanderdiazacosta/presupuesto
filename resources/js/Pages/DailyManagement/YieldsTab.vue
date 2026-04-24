@@ -481,6 +481,7 @@ function deleteLine(yieldId) {
                         <th style="width:30px"></th>
                         <th>Colaborador</th>
                         <th>RUT</th>
+                        <th class="text-center">Contrato</th>
                         <th class="text-center">Estado</th>
                         <th class="text-center">Lineas</th>
                         <th class="text-center">Jornadas</th>
@@ -502,6 +503,10 @@ function deleteLine(yieldId) {
                                 </span>
                             </td>
                             <td>{{ emp.rut }}</td>
+                            <td class="text-center">
+                                <span v-if="emp.contract_id" class="badge bg-soft-primary text-primary" style="font-size:0.7rem">#{{ emp.contract_id }}</span>
+                                <span v-else class="text-muted">-</span>
+                            </td>
                             <td class="text-center"><span class="badge" :class="statusBadge(emp)">{{ statusText(emp) }}</span></td>
                             <td class="text-center">{{ emp.yield_count }}</td>
                             <td class="text-center">

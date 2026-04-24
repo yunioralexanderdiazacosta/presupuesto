@@ -62,6 +62,11 @@ class ContractTemplateController extends Controller
             ['field' => '${afp}', 'description' => 'AFP'],
             ['field' => '${salud}', 'description' => 'Plan de salud'],
             ['field' => '${fecha_actual}', 'description' => 'Fecha de generación del documento'],
+            // Datos bancarios
+            ['field' => '${forma_pago}', 'description' => 'Forma de pago'],
+            ['field' => '${transferencia}', 'description' => 'Banco / Institución para transferencia'],
+            ['field' => '${tipo_cuenta}', 'description' => 'Tipo de cuenta bancaria'],
+            ['field' => '${numero_cuenta}', 'description' => 'N° de cuenta bancaria'],
         ];
 
         return Inertia::render('ContractTemplates/Index', [

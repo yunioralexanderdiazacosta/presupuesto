@@ -25,6 +25,7 @@ const form = ref({
     causal_termino_id: '',
     fecha_termino: '',
     notas: '',
+    settlement: '',
 });
 
 const submitting = ref(false);
@@ -57,7 +58,7 @@ const handleSubmit = () => {
             submitting.value = true;
             router.post(route('terminations.store'), form.value, {
                 onSuccess: () => {
-                    form.value = { contract_ids: [], causal_termino_id: '', fecha_termino: '', notas: '' };
+                    form.value = { contract_ids: [], causal_termino_id: '', fecha_termino: '', notas: '', settlement: '' };
                     Swal.fire({
                         icon: 'success',
                         title: 'Registrado',
@@ -184,15 +185,27 @@ const handleAnular = (t) => {
                                 </div>
 
                                 <!-- Notas -->
-                                <div class="col-12">
+                                <div class="col-md-8">
                                     <label class="form-label small fw-semibold">Notas (opcional)</label>
                                     <textarea
                                         v-model="form.notas"
                                         class="form-control form-control-sm"
-                                        rows="2"
+                                        rows="1"
                                         maxlength="500"
                                         placeholder="Observaciones adicionales..."
                                     ></textarea>
+                                </div>
+
+                                <!-- Finiquito -->
+                                <div class="col-md-4">
+                                    <label class="form-label small fw-semibold">Finiquito (opcional)</label>
+                                    <input
+                                        v-model="form.settlement"
+                                        type="number"
+                                        min="0"
+                                        class="form-control form-control-sm"
+                                        placeholder="Monto finiquito..."
+                                    />
                                 </div>
 
                                 <!-- Botón -->
@@ -233,6 +246,7 @@ const handleAnular = (t) => {
                                         <th>RUT</th>
                                         <th>Causal</th>
                                         <th>Fecha Término</th>
+                                        <th>Finiquito</th>
                                         <th>Notas</th>
                                         <th>Registrado por</th>
                                         <th>Fecha Registro</th>
@@ -241,13 +255,14 @@ const handleAnular = (t) => {
                                 </thead>
                                 <tbody>
                                     <tr v-if="!filteredTerminations.length">
-                                        <td colspan="8" class="text-center text-muted py-3">No hay registros.</td>
+                                        <td colspan="9" class="text-center text-muted py-3">No hay registros.</td>
                                     </tr>
                                     <tr v-for="t in filteredTerminations" :key="t.id">
                                         <td>{{ t.employee }}</td>
                                         <td>{{ t.rut }}</td>
                                         <td>{{ t.causal }}</td>
                                         <td>{{ t.fecha_termino }}</td>
+                                        <td>{{ t.settlement != null ? '$' + Number(t.settlement).toLocaleString('es-CL') : '—' }}</td>
                                         <td>{{ t.notas ?? '—' }}</td>
                                         <td>{{ t.created_by }}</td>
                                         <td>{{ t.created_at }}</td>

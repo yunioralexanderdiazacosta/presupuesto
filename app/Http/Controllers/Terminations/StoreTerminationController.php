@@ -4,7 +4,6 @@ namespace App\Http\Controllers\Terminations;
 
 use App\Http\Controllers\Controller;
 use App\Models\Contract;
-use App\Models\Employee;
 use App\Models\Termination;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -20,6 +19,7 @@ class StoreTerminationController extends Controller
             'causal_termino_id'  => 'required|integer|exists:causales_termino,id',
             'fecha_termino'      => 'required|date',
             'notas'              => 'nullable|string|max:500',
+            'settlement'         => 'nullable|integer|min:0',
         ]);
 
         $user = Auth::user();
@@ -41,16 +41,12 @@ class StoreTerminationController extends Controller
                     'causal_termino_id' => $request->causal_termino_id,
                     'fecha_termino'     => $request->fecha_termino,
                     'notas'             => $request->notas,
+                    'settlement'        => $request->settlement,
                     'created_by'        => $user->id,
                 ]);
 
-                // Inactivar contrato
+                // Inactivar contrato (el empleado sigue activo para futuros contratos)
                 $contract->update(['is_active' => false]);
-
-                // Inactivar empleado
-                Employee::where('id', $contract->employee_id)
-                    ->where('team_id', $user->team_id)
-                    ->update(['is_active' => false]);
             }
         });
 

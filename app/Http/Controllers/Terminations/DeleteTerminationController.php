@@ -4,7 +4,6 @@ namespace App\Http\Controllers\Terminations;
 
 use App\Http\Controllers\Controller;
 use App\Models\Contract;
-use App\Models\Employee;
 use App\Models\Termination;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
@@ -21,10 +20,6 @@ class DeleteTerminationController extends Controller
         DB::transaction(function () use ($termination) {
             // Reactivar contrato
             Contract::where('id', $termination->contract_id)
-                ->update(['is_active' => true]);
-
-            // Reactivar empleado
-            Employee::where('id', $termination->employee_id)
                 ->update(['is_active' => true]);
 
             // Eliminar el registro de término

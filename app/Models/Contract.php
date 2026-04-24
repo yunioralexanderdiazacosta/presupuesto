@@ -98,4 +98,19 @@ class Contract extends Model
     {
         return $this->belongsTo(AccountType::class);
     }
+
+    public function terminations()
+    {
+        return $this->hasMany(Termination::class);
+    }
+
+    public function vacationEntitlement()
+    {
+        return $this->hasOne(VacationEntitlement::class, 'employee_id', 'employee_id');
+    }
+
+    public function vacations()
+    {
+        return $this->hasMany(Vacation::class);
+    }
 }

@@ -109,6 +109,8 @@ function save() {
                 <div class="modal-body">
                     <ContractForm
                         :form="form"
+                        :isEditing="true"
+                        :employeeName="contract?.employee?.full_name || contract?.employee_name || ''"
                         :employees="employees"
                         :companyReasons="companyReasons"
                         :schedules="schedules"

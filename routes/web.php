@@ -264,6 +264,22 @@ use App\Http\Controllers\Employees\DeleteEmployeeController;
 use App\Http\Controllers\Terminations\TerminationController;
 use App\Http\Controllers\Terminations\StoreTerminationController;
 use App\Http\Controllers\Terminations\DeleteTerminationController;
+// Rutas para Vacaciones
+use App\Http\Controllers\Vacations\VacationController;
+use App\Http\Controllers\Vacations\StoreVacationController;
+use App\Http\Controllers\Vacations\DeleteVacationController;
+// Rutas para Feriados
+use App\Http\Controllers\Holidays\HolidayController;
+use App\Http\Controllers\Holidays\StoreHolidayController;
+use App\Http\Controllers\Holidays\DeleteHolidayController;
+// API: Días hábiles
+use App\Http\Controllers\Api\GetBusinessDaysController;
+use App\Http\Controllers\Api\GetAvailableEmployeesController;
+// Rutas para Termination Templates (Plantillas de Finiquito)
+use App\Http\Controllers\TerminationTemplates\TerminationTemplateController;
+use App\Http\Controllers\TerminationTemplates\StoreTerminationTemplateController;
+use App\Http\Controllers\TerminationTemplates\DeleteTerminationTemplateController;
+use App\Http\Controllers\TerminationTemplates\GenerateTerminationController;
 // Rutas para Contracts (Contratos - Remuneraciones)
 use App\Http\Controllers\Contracts\ContractController;
 use App\Http\Controllers\Contracts\StoreContractController;
@@ -972,6 +988,26 @@ Route::middleware([
     Route::get('/terminations', [TerminationController::class, 'index'])->name('terminations.index');
     Route::post('/terminations', StoreTerminationController::class)->name('terminations.store');
     Route::delete('/terminations/{termination}', DeleteTerminationController::class)->name('terminations.delete');
+
+    // Termination Templates (Plantillas de Finiquito)
+    Route::get('/termination-templates', [TerminationTemplateController::class, 'index'])->name('termination-templates.index');
+    Route::post('/termination-templates', StoreTerminationTemplateController::class)->name('termination-templates.store');
+    Route::delete('/termination-templates/{terminationTemplate}', DeleteTerminationTemplateController::class)->name('termination-templates.delete');
+    Route::post('/termination-templates/{terminationTemplate}/generate', GenerateTerminationController::class)->name('termination-templates.generate');
+
+    // Vacaciones
+    Route::get('/vacations', [VacationController::class, 'index'])->name('vacations.index');
+    Route::post('/vacations', StoreVacationController::class)->name('vacations.store');
+    Route::delete('/vacations/{vacation}', DeleteVacationController::class)->name('vacations.delete');
+
+    // Feriados
+    Route::get('/holidays', [HolidayController::class, 'index'])->name('holidays.index');
+    Route::post('/holidays', StoreHolidayController::class)->name('holidays.store');
+    Route::delete('/holidays/{holiday}', DeleteHolidayController::class)->name('holidays.delete');
+
+    // API: Días hábiles
+    Route::get('/api/business-days', GetBusinessDaysController::class)->name('api.business-days');
+    Route::get('/api/available-employees', GetAvailableEmployeesController::class)->name('api.available-employees');
 
     // Contracts (Contratos - Remuneraciones)
     Route::get('/contracts', [ContractController::class, 'index'])->name('contracts.index');

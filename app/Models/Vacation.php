@@ -5,36 +5,32 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
-class Termination extends Model
+class Vacation extends Model
 {
     protected $fillable = [
         'team_id',
-        'contract_id',
         'employee_id',
-        'causal_termino_id',
-        'fecha_termino',
+        'contract_id',
+        'fecha_inicio',
+        'fecha_fin',
+        'dias_habiles',
         'notas',
-        'settlement',
         'created_by',
     ];
 
     protected $casts = [
-        'fecha_termino' => 'date',
+        'fecha_inicio' => 'date',
+        'fecha_fin'    => 'date',
     ];
-
-    public function contract(): BelongsTo
-    {
-        return $this->belongsTo(Contract::class);
-    }
 
     public function employee(): BelongsTo
     {
         return $this->belongsTo(Employee::class);
     }
 
-    public function causalTermino(): BelongsTo
+    public function contract(): BelongsTo
     {
-        return $this->belongsTo(CausalTermino::class, 'causal_termino_id');
+        return $this->belongsTo(Contract::class);
     }
 
     public function creator(): BelongsTo

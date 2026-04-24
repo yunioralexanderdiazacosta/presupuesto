@@ -26,7 +26,7 @@ class GenerateContractController
             return back()->with('error', 'El archivo de plantilla no fue encontrado.');
         }
 
-        $employees = Employee::with(['activeContract.companyReason', 'activeContract.schedule', 'activeContract.afp', 'activeContract.healthPlan', 'activeContract.city'])
+        $employees = Employee::with(['activeContract.companyReason', 'activeContract.schedule', 'activeContract.afp', 'activeContract.healthPlan', 'activeContract.city', 'activeContract.paymentMethod', 'activeContract.bank', 'activeContract.accountType'])
             ->where('team_id', $user->team_id)
             ->whereIn('id', $request->employee_ids)
             ->get();
@@ -145,6 +145,12 @@ class GenerateContractController
         $template->setValue('afp', $contract?->afp?->name ?? '');
         $template->setValue('salud', $contract?->healthPlan?->name ?? '');
         $template->setValue('fecha_actual', now()->format('d/m/Y'));
+
+        // Datos bancarios
+        $template->setValue('forma_pago', $contract?->paymentMethod?->name ?? '');
+        $template->setValue('transferencia', $contract?->bank?->name ?? '');
+        $template->setValue('tipo_cuenta', $contract?->accountType?->name ?? '');
+        $template->setValue('numero_cuenta', $contract?->account_number ?? '');
 
         $outputPath = tempnam(sys_get_temp_dir(), 'contract_') . '.docx';
         $template->saveAs($outputPath);

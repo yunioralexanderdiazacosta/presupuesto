@@ -11,6 +11,7 @@ class DailyAttendance extends Model
 
     protected $fillable = [
         'employee_id',
+        'contract_id',
         'date',
         'is_present',
         'estimated_labor_type_id',
@@ -28,6 +29,11 @@ class DailyAttendance extends Model
     public function employee()
     {
         return $this->belongsTo(Employee::class);
+    }
+
+    public function contract()
+    {
+        return $this->belongsTo(Contract::class);
     }
 
     public function estimatedLaborType()

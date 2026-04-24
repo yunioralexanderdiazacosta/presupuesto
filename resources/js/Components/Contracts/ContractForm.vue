@@ -5,6 +5,8 @@ import Swal from 'sweetalert2';
 
 const props = defineProps({
     form: { type: Object, required: true },
+    isEditing: { type: Boolean, default: false },
+    employeeName: { type: String, default: '' },
     employees: { type: Array, default: () => [] },
     companyReasons: { type: Array, default: () => [] },
     schedules: { type: Array, default: () => [] },
@@ -21,6 +23,24 @@ const props = defineProps({
 
 const emit = defineEmits(['update:form']);
 const form = props.form;
+
+// Empleados disponibles (sin contrato activo)
+const employeeOptions = ref([...props.employees]);
+const isRefreshingEmployees = ref(false);
+
+async function refreshEmployees() {
+    isRefreshingEmployees.value = true;
+    try {
+        const response = await axios.get(route('api.available-employees'));
+        employeeOptions.value = response.data;
+        form.employee_id = '';
+        Swal.fire({ icon: 'success', title: 'Lista actualizada', showConfirmButton: false, timer: 1000 });
+    } catch (error) {
+        Swal.fire('Error', 'No se pudo refrescar la lista', 'error');
+    } finally {
+        isRefreshingEmployees.value = false;
+    }
+}
 
 const scheduleOptions = ref(props.schedules);
 const isRefreshingSchedules = ref(false);
@@ -61,7 +81,7 @@ const isCuentaRut = computed(() => {
 });
 
 function getRutBody() {
-    const emp = props.employees.find(e => String(e.value) === String(form.employee_id));
+    const emp = employeeOptions.value.find(e => String(e.value) === String(form.employee_id));
     if (!emp) return '';
     const match = emp.label.match(/\(([^)]+)\)/);
     if (!match) return '';
@@ -182,13 +202,29 @@ const refreshParcels = async () => {
             <div class="row mb-2">
                 <!-- Colaborador -->
                 <div class="col-md-6 mb-2">
-                    <label class="form-label small mb-1">Colaborador <span class="text-danger">*</span></label>
-                    <select v-model="form.employee_id" class="form-select form-select-sm"
-                        :class="{ 'is-invalid': form.errors?.employee_id }">
-                        <option value="" disabled selected>Seleccione colaborador</option>
-                        <option v-for="emp in employees" :key="emp.value" :value="emp.value">{{ emp.label }}</option>
-                    </select>
-                    <div v-if="form.errors?.employee_id" class="invalid-feedback">{{ form.errors.employee_id }}</div>
+                    <div class="d-flex align-items-center justify-content-between mb-1">
+                        <label class="form-label small mb-0">Colaborador <span class="text-danger">*</span></label>
+                        <button
+                            v-if="!isEditing"
+                            type="button"
+                            @click="refreshEmployees"
+                            :disabled="isRefreshingEmployees"
+                            class="btn btn-sm btn-light-primary d-flex align-items-center gap-1 py-0 px-2"
+                            v-tooltip="'Refrescar lista'"
+                            style="font-size: 0.75rem;"
+                        >
+                            <i class="fas fa-sync-alt fa-xs" :class="{'fa-spin': isRefreshingEmployees}"></i>
+                        </button>
+                    </div>
+                    <input v-if="isEditing" type="text" class="form-control form-control-sm bg-light" :value="employeeName" disabled />
+                    <template v-else>
+                        <select v-model="form.employee_id" class="form-select form-select-sm"
+                            :class="{ 'is-invalid': form.errors?.employee_id }">
+                            <option value="" disabled selected>Seleccione colaborador</option>
+                            <option v-for="emp in employeeOptions" :key="emp.value" :value="emp.value">{{ emp.label }}</option>
+                        </select>
+                        <div v-if="form.errors?.employee_id" class="invalid-feedback">{{ form.errors.employee_id }}</div>
+                    </template>
                 </div>
 
                 <!-- Empresa -->

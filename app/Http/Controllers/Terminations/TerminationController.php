@@ -16,12 +16,11 @@ class TerminationController extends Controller
     {
         $user = Auth::user();
 
-        // Contratos activos de tipo Faena del equipo, con empleado activo
+        // Contratos activos de tipo Faena del equipo
         $activeContracts = Contract::with('employee')
             ->where('team_id', $user->team_id)
             ->where('is_active', true)
             ->where('contract_type', 'Faena')
-            ->whereHas('employee', fn($q) => $q->where('is_active', true))
             ->orderBy('id')
             ->get()
             ->map(fn($c) => [
@@ -52,6 +51,7 @@ class TerminationController extends Controller
                 'fecha_termino' => $t->fecha_termino->format('d/m/Y'),
                 'causal'       => $t->causalTermino->articulo . ' - ' . $t->causalTermino->nombre,
                 'notas'        => $t->notas,
+                'settlement'   => $t->settlement,
                 'created_by'   => $t->creator->name ?? '',
                 'created_at'   => $t->created_at->format('d/m/Y H:i'),
             ]);

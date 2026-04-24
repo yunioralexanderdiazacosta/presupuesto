@@ -61,6 +61,13 @@ function changeDate() {
         tab: currentTab.value,
     }, { preserveState: false });
 }
+
+function shiftDate(days) {
+    const d = new Date(dateFilter.value + 'T12:00:00');
+    d.setDate(d.getDate() + days);
+    dateFilter.value = d.toISOString().substring(0, 10);
+    changeDate();
+}
 </script>
 
 <template>
@@ -74,8 +81,16 @@ function changeDate() {
                         </h5>
                     </div>
                     <div class="col-6 col-sm-auto ms-auto text-end ps-0">
-                        <input type="date" v-model="dateFilter" @change="changeDate"
-                            class="form-control form-control-sm d-inline-block w-auto" />
+                        <div class="d-flex align-items-center gap-1">
+                            <button type="button" @click="shiftDate(-1)" class="btn btn-sm btn-falcon-default" v-tooltip="'Día anterior'">
+                                <i class="fas fa-chevron-left"></i>
+                            </button>
+                            <input type="date" v-model="dateFilter" @change="changeDate"
+                                class="form-control form-control-sm d-inline-block w-auto" />
+                            <button type="button" @click="shiftDate(1)" class="btn btn-sm btn-falcon-default" v-tooltip="'Día siguiente'">
+                                <i class="fas fa-chevron-right"></i>
+                            </button>
+                        </div>
                     </div>
                 </div>
             </div>
