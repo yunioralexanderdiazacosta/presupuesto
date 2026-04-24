@@ -104,7 +104,7 @@ const menuItems = [
     { label: 'Contratos', route: 'contracts.index', icon: 'fas fa-file-signature', section: 'Remuneraciones' },
     { label: 'Términos de Faena', route: 'terminations.index', icon: 'fas fa-user-slash', section: 'Remuneraciones' },
     { label: 'Plantillas de Contrato', route: 'contract-templates.index', icon: 'fas fa-file-contract', section: 'Remuneraciones' },
-    { label: 'Plantillas de Finiquito', route: 'termination-templates.index', icon: 'fas fa-file-signature', section: 'Remuneraciones' },
+    { label: 'Plantillas Término de Contrato', route: 'termination-templates.index', icon: 'fas fa-file-signature', section: 'Remuneraciones' },
     { label: 'Vacaciones', route: 'vacations.index', icon: 'fas fa-umbrella-beach', section: 'Remuneraciones' },
     { label: 'Feriados', route: 'holidays.index', icon: 'fas fa-calendar-alt', section: 'Remuneraciones' },
     { label: 'Gestión Diaria', route: 'daily-management.index', icon: 'fas fa-tasks', section: 'Remuneraciones' },
@@ -598,7 +598,7 @@ const navigateTo = (routeName) => {
                       </Link>
                     </li>
                     <li class="nav-item"><Link class="nav-link" :href="route('termination-templates.index')">
-                        <div class="d-flex align-items-center"><span class="nav-link-text ps-4">Plantillas de Finiquito</span>
+                        <div class="d-flex align-items-center"><span class="nav-link-text ps-4">Plantillas Término de Contrato</span>
                         </div>
                       </Link>
                     </li>
