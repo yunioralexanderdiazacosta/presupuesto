@@ -16,6 +16,7 @@ class UpdateCompanyReasonController extends Controller
         $companyReason->legal_representative = $request->legal_representative;
         $companyReason->rut_representative = $request->rut_representative;
         $companyReason->address = $request->address;
+        $companyReason->city = $request->city;
         $companyReason->save();
     }
 }

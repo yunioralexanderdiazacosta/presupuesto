@@ -25,8 +25,9 @@ class FormCompanyReasonRequest extends FormRequest
             'name' => 'required',
             'rut' => 'required',
             'legal_representative' => 'required',
-            'rut_representative' => 'required', 
-            'address' => 'required'
+            'rut_representative' => 'required',
+            'address' => 'required',
+            'city' => 'nullable|string|max:100'
         ];
     }
 }

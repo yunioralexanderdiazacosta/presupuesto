@@ -20,6 +20,34 @@ const links = [
 
 const activeTab = ref('saldos');
 
+// ─── Años anteriores (edición inline) ────────────────────────────────────────
+const editingEntitlement = ref(null); // employee_id en edición
+const entitlementValue   = ref(0);
+
+function startEditEntitlement(emp) {
+    editingEntitlement.value = emp.id;
+    entitlementValue.value   = emp.anos_anteriores ?? 0;
+}
+
+function cancelEditEntitlement() {
+    editingEntitlement.value = null;
+}
+
+function saveEntitlement(emp) {
+    router.patch(route('vacation-entitlement.update', emp.id), {
+        anos_anteriores: entitlementValue.value,
+    }, {
+        preserveScroll: true,
+        onSuccess: () => {
+            editingEntitlement.value = null;
+            Swal.fire({ icon: 'success', title: 'Actualizado', showConfirmButton: false, timer: 1000 });
+        },
+        onError: () => {
+            Swal.fire('Error', 'No se pudo actualizar.', 'error');
+        },
+    });
+}
+
 // ─── Pestaña Registrar ────────────────────────────────────────────────────────
 const form = useForm({
     employee_id:  '',
@@ -127,6 +155,11 @@ function deleteVacation(id) {
     });
 }
 
+async function printVacationVoucher(v) {
+    const url = route('vacations.pdf', v.id);
+    window.open(url, '_blank');
+}
+
 // Color de saldo (balance)
 function balanceColor(balance) {
     if (balance === null || balance === undefined) return '';
@@ -199,6 +232,7 @@ function balanceColor(balance) {
                                     <th>Empleado</th>
                                     <th>RUT</th>
                                     <th class="text-center">Meses trabajados</th>
+                                    <th class="text-center">Años anteriores</th>
                                     <th class="text-center">Días/año</th>
                                     <th class="text-center">Días ganados</th>
                                     <th class="text-center">Días tomados</th>
@@ -210,6 +244,35 @@ function balanceColor(balance) {
                                     <td>{{ e.name }}</td>
                                     <td>{{ e.rut }}</td>
                                     <td class="text-center" v-tooltip="'Meses completos para cálculo legal: ' + e.months_worked">{{ e.months_worked_decimal }}</td>
+                                    <!-- Años anteriores reconocidos (editable inline) -->
+                                    <td class="text-center">
+                                        <template v-if="editingEntitlement === e.id">
+                                            <div class="d-flex align-items-center justify-content-center gap-1">
+                                                <input
+                                                    v-model.number="entitlementValue"
+                                                    type="number" min="0" max="50"
+                                                    class="form-control form-control-sm text-center"
+                                                    style="width:60px;"
+                                                    @keyup.enter="saveEntitlement(e)"
+                                                    @keyup.escape="cancelEditEntitlement"
+                                                />
+                                                <button class="btn btn-sm btn-success py-0 px-1" @click="saveEntitlement(e)" title="Guardar">
+                                                    <i class="fas fa-check fa-xs"></i>
+                                                </button>
+                                                <button class="btn btn-sm btn-light py-0 px-1" @click="cancelEditEntitlement" title="Cancelar">
+                                                    <i class="fas fa-times fa-xs"></i>
+                                                </button>
+                                            </div>
+                                        </template>
+                                        <template v-else>
+                                            <span
+                                                class="badge bg-soft-secondary text-secondary"
+                                                style="cursor:pointer;"
+                                                v-tooltip="'Click para editar'"
+                                                @click="startEditEntitlement(e)"
+                                            >{{ e.anos_anteriores ?? 0 }} años</span>
+                                        </template>
+                                    </td>
                                     <td class="text-center">{{ e.rate_per_year }}</td>
                                     <td class="text-center">{{ Number(e.days_earned).toFixed(1) }}</td>
                                     <td class="text-center">{{ e.days_taken }}</td>
@@ -218,7 +281,7 @@ function balanceColor(balance) {
                                     </td>
                                 </tr>
                                 <tr v-if="!employees || !employees.length">
-                                    <td colspan="7" class="text-center text-muted py-3">Sin empleados con contrato indefinido.</td>
+                                    <td colspan="8" class="text-center text-muted py-3">Sin empleados con contrato indefinido.</td>
                                 </tr>
                             </tbody>
                         </table>
@@ -313,9 +376,14 @@ function balanceColor(balance) {
                                     <td>{{ v.created_by }}</td>
                                     <td class="text-center text-nowrap">{{ v.created_at }}</td>
                                     <td>
-                                        <button class="btn btn-sm btn-falcon-default" @click="deleteVacation(v.id)" title="Eliminar">
-                                            <i class="fas fa-trash text-danger fa-xs"></i>
-                                        </button>
+                                        <div class="d-flex gap-1">
+                                            <button class="btn btn-sm btn-falcon-default" @click="printVacationVoucher(v)" title="Comprobante PDF">
+                                                <i class="fas fa-file-pdf text-danger fa-xs"></i>
+                                            </button>
+                                            <button class="btn btn-sm btn-falcon-default" @click="deleteVacation(v.id)" title="Eliminar">
+                                                <i class="fas fa-trash text-danger fa-xs"></i>
+                                            </button>
+                                        </div>
                                     </td>
                                 </tr>
                                 <tr v-if="!filteredHistory.length">

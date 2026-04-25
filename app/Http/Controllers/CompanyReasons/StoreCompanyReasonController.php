@@ -17,8 +17,9 @@ class StoreCompanyReasonController extends Controller
             'name' => $request->name,
             'rut' => $request->rut,
             'legal_representative' => $request->legal_representative,
-            'rut_representative' => $request->rut_representative, 
+            'rut_representative' => $request->rut_representative,
             'address' => $request->address,
+            'city' => $request->city,
             'team_id' => $user->team_id
         ]);
     }

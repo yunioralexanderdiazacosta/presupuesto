@@ -23,7 +23,8 @@ const form = useForm({
     rut: '', 
     legal_representative: '',
     rut_representative: '',
-    address: ''
+    address: '',
+    city: ''
 });
 
 const title = 'Razón Social';
@@ -44,7 +45,8 @@ const openEdit = (companyReason) => {
     form.rut = companyReason.rut;
     form.legal_representative = companyReason.legal_representative;
     form.rut_representative = companyReason.rut_representative;
-    form.address = companyReason.address; 
+    form.address = companyReason.address;
+    form.city = companyReason.city ?? '';
     $('#editCompanyReasonModal').modal('show');
 }
 

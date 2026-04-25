@@ -69,4 +69,16 @@
         <textarea v-model="form.address" rows="3" class="form-control form-control-lg form-control-solid mb-3 mb-lg-0" :class="{'is-invalid': form.errors.address }"></textarea>
         <InputError class="mt-2" :message="form.errors.address" />
     </div>
+    <div class="fv-row mt-2">
+        <label for="city" class="col-form-label">Ciudad</label>
+        <TextInput
+            id="city"
+            v-model="form.city"
+            class="form-control form-control-solid"
+            type="text"
+            placeholder="Ej: Curicó"
+            :class="{'is-invalid': form.errors.city}"
+        />
+        <InputError class="mt-2" :message="form.errors.city" />
+    </div>
 </template>

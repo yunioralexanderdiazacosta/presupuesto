@@ -268,6 +268,8 @@ use App\Http\Controllers\Terminations\DeleteTerminationController;
 use App\Http\Controllers\Vacations\VacationController;
 use App\Http\Controllers\Vacations\StoreVacationController;
 use App\Http\Controllers\Vacations\DeleteVacationController;
+use App\Http\Controllers\Vacations\UpdateVacationEntitlementController;
+use App\Http\Controllers\Vacations\VacationPdfController;
 // Rutas para Feriados
 use App\Http\Controllers\Holidays\HolidayController;
 use App\Http\Controllers\Holidays\StoreHolidayController;
@@ -999,6 +1001,8 @@ Route::middleware([
     Route::get('/vacations', [VacationController::class, 'index'])->name('vacations.index');
     Route::post('/vacations', StoreVacationController::class)->name('vacations.store');
     Route::delete('/vacations/{vacation}', DeleteVacationController::class)->name('vacations.delete');
+    Route::patch('/employees/{employee}/vacation-entitlement', UpdateVacationEntitlementController::class)->name('vacation-entitlement.update');
+    Route::get('/vacations/{vacation}/pdf', VacationPdfController::class)->name('vacations.pdf');
 
     // Feriados
     Route::get('/holidays', [HolidayController::class, 'index'])->name('holidays.index');
