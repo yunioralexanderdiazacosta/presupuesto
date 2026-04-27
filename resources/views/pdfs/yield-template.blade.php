@@ -23,6 +23,7 @@
         .trato-col { width: 50px; }
         .cant-col { width: 35px; text-align: center; }
         .hrs-col { width: 30px; text-align: center; }
+        .precip-col { width: 40px; text-align: center; }
         .obs-col { width: 80px; }
         .labor-header { background-color: #c8d8e8; }
         .labor-header-2 { background-color: #d8e8c8; }
@@ -64,6 +65,7 @@
                         <th class="rut" rowspan="2">RUT</th>
                         <th colspan="4" class="labor-header">Labor 1</th>
                         <th colspan="4" class="labor-header-2">Labor 2</th>
+                        <th class="precip-col" rowspan="2">Precip. Obj.</th>
                         <th class="obs-col" rowspan="2">Obs.</th>
                     </tr>
                     <tr>
@@ -91,6 +93,7 @@
                             <td class="trato-col"></td>
                             <td class="cant-col"></td>
                             <td class="hrs-col"></td>
+                            <td class="precip-col"></td>
                             <td class="obs-col"></td>
                         </tr>
                     @endforeach
@@ -108,6 +111,7 @@
                             <td class="trato-col"></td>
                             <td class="cant-col"></td>
                             <td class="hrs-col"></td>
+                            <td class="precip-col"></td>
                             <td class="obs-col"></td>
                         </tr>
                     @endfor

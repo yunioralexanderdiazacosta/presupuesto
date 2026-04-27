@@ -324,6 +324,7 @@ use App\Http\Controllers\DailyManagement\MonthlyReportController;
 use App\Http\Controllers\DailyManagement\ExportMonthlyExcelController;
 use App\Http\Controllers\DailyManagement\ExportMonthlyPdfController;
 use App\Http\Controllers\DailyManagement\YieldTemplatePdfController;
+use App\Http\Controllers\DailyManagement\YieldTemplateExcelController;
 // Rutas para Project Evaluations (Evaluación de Proyectos Agrícolas)
 use App\Http\Controllers\ProjectEvaluations\ProjectEvaluationController;
 use App\Http\Controllers\ProjectEvaluations\ShowProjectEvaluationController;
@@ -1062,6 +1063,7 @@ Route::middleware([
     Route::get('/daily-management/export-excel', ExportMonthlyExcelController::class)->name('daily-management.export-excel');
     Route::get('/daily-management/export-pdf', ExportMonthlyPdfController::class)->name('daily-management.export-pdf');
     Route::get('/daily-management/yield-template-pdf', YieldTemplatePdfController::class)->name('daily-management.yield-template-pdf');
+    Route::get('/daily-management/yield-template-excel', YieldTemplateExcelController::class)->name('daily-management.yield-template-excel');
 
     // Project Evaluations (Evaluación de Proyectos Agrícolas)
     Route::get('/project-evaluations', [ProjectEvaluationController::class, 'index'])->name('project-evaluations.index');

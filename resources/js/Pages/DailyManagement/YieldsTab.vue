@@ -469,6 +469,10 @@ function deleteLine(yieldId) {
                         target="_blank" class="btn btn-falcon-default btn-sm text-nowrap">
                         <i class="fas fa-file-pdf me-1"></i>PDF
                     </a>
+                    <a :href="route('daily-management.yield-template-excel', { date: selectedDate, ...(selectedParcelId ? { parcel_id: selectedParcelId } : {}) })"
+                        class="btn btn-falcon-default btn-sm text-nowrap">
+                        <i class="fas fa-file-excel me-1"></i>Excel
+                    </a>
                 </div>
             </div>
         </div>
