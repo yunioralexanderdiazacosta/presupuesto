@@ -14,7 +14,7 @@ use PhpOffice\PhpSpreadsheet\Style\Border;
 use PhpOffice\PhpSpreadsheet\Style\Fill;
 use PhpOffice\PhpSpreadsheet\Style\Alignment;
 
-class YieldTemplateExport implements FromArray, WithHeadings, ShouldAutoSize, WithStyles, WithTitle, WithEvents
+class YieldTemplateExport implements FromArray, ShouldAutoSize, WithStyles, WithTitle, WithEvents
 {
     protected $contracts;
     protected $date;
@@ -35,29 +35,6 @@ class YieldTemplateExport implements FromArray, WithHeadings, ShouldAutoSize, Wi
     public function title(): string
     {
         return 'Plantilla Tarjas';
-    }
-
-    /**
-     * Headings se usa como fila de encabezado de columnas (fila de "subheaders").
-     * Retornamos los subheaders de las columnas.
-     */
-    public function headings(): array
-    {
-        return [
-            '#',
-            'Nombre',
-            'RUT',
-            'Labor 1',
-            'Trato 1',
-            'Cant. 1',
-            'Hrs. 1',
-            'Labor 2',
-            'Trato 2',
-            'Cant. 2',
-            'Hrs. 2',
-            'Precip. Obj.',
-            'Obs.',
-        ];
     }
 
     public function array(): array
