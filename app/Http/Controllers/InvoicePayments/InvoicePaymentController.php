@@ -23,75 +23,98 @@ class InvoicePaymentController extends Controller
             return redirect()->route('dashboard')->with('error', 'Debe seleccionar una campaña activa.');
         }
 
-        $term = $request->term ?? '';
-        $dateFrom = $request->date_from ?? '';
-        $dateTo = $request->date_to ?? '';
-        $supplierId = $request->supplier_id ?? '';
-        $paymentMethod = $request->payment_method ?? '';
-        $bankId = $request->bank_id ?? '';
+        $term          = $request->term ?? '';
+        $dateFrom      = $request->date_from ?? '';
+        $dateTo        = $request->date_to ?? '';
+        $supplierId    = $request->supplier_id ?? '';
+        $paymentStatus = $request->payment_status ?? '';
 
-        // Obtener pagos con búsqueda y filtros
-        $payments = InvoicePayment::with(['invoice.supplier', 'invoice.typeDocument', 'invoice.invoiceProducts', 'invoice.payments', 'bank', 'user'])
-            ->where('team_id', $user->team_id)
-            ->where('season_id', $season_id)
-            ->when($term, function ($query, $search) {
-                $query->where(function($q) use ($search) {
-                    $q->where('transaction_number', 'like', '%'.$search.'%')
-                      ->orWhereHas('invoice', function($query) use ($search){
-                          $query->where('number_document', 'like', '%'.$search.'%');
-                      })
-                      ->orWhereHas('invoice.supplier', function($query) use ($search){
-                          $query->where('name', 'like', '%'.$search.'%');
-                      });
+        // Query base: Facturas del equipo/temporada con totales calculados via subquery
+        $query = Invoice::select('invoices.*')
+            ->selectRaw('(SELECT COALESCE(SUM(ip.unit_price * ip.amount), 0) FROM invoice_products ip WHERE ip.invoice_id = invoices.id) as total_invoice')
+            ->selectRaw('(SELECT COALESCE(SUM(pay.amount), 0) FROM invoice_payments pay WHERE pay.invoice_id = invoices.id) as total_paid')
+            ->with(['supplier', 'typeDocument', 'payments.bank', 'payments.user'])
+            ->where('invoices.team_id', $user->team_id)
+            ->where('invoices.season_id', $season_id)
+            ->when($term, function ($q, $search) {
+                $q->where(function($q2) use ($search) {
+                    $q2->where('invoices.number_document', 'like', '%'.$search.'%')
+                       ->orWhereHas('supplier', fn($sq) => $sq->where('name', 'like', '%'.$search.'%'));
                 });
             })
-            ->when($dateFrom, function($query, $date) {
-                $query->whereDate('payment_date', '>=', $date);
-            })
-            ->when($dateTo, function($query, $date) {
-                $query->whereDate('payment_date', '<=', $date);
-            })
-            ->when($supplierId, function($query, $id) {
-                $query->whereHas('invoice', function($q) use ($id) {
-                    $q->where('supplier_id', $id);
-                });
-            })
-            ->when($paymentMethod, function($query, $method) {
-                $query->where('payment_method', $method);
-            })
-            ->when($bankId, function($query, $id) {
-                $query->where('bank_id', $id);
-            })
-            ->latest('payment_date')
+            ->when($dateFrom, fn($q, $date) => $q->whereDate('invoices.date', '>=', $date))
+            ->when($dateTo,   fn($q, $date) => $q->whereDate('invoices.date', '<=', $date))
+            ->when($supplierId, fn($q, $id) => $q->where('invoices.supplier_id', $id));
+
+        // Filtro por estado de pago usando HAVING (sobre los subqueries)
+        if ($paymentStatus === 'pending') {
+            $query->havingRaw('total_paid = 0');
+        } elseif ($paymentStatus === 'paid') {
+            $query->havingRaw('total_paid >= total_invoice AND total_invoice > 0');
+        } elseif ($paymentStatus === 'partial') {
+            $query->havingRaw('total_paid > 0 AND total_paid < total_invoice');
+        }
+
+        $invoices = $query->orderByDesc('invoices.date')
             ->paginate(50)
-            ->through(function ($payment) {
-                if ($payment->invoice) {
-                    $payment->invoice->append(['total_invoice', 'total_paid', 'balance', 'payment_status']);
+            ->through(function ($invoice) {
+                $totalInvoice = (float) $invoice->total_invoice;
+                $totalPaid    = (float) $invoice->total_paid;
+                $balance      = $totalInvoice - $totalPaid;
+
+                if ($totalPaid >= $totalInvoice && $totalInvoice > 0) {
+                    $status = 'paid';
+                } elseif ($totalPaid > 0) {
+                    $status = 'partial';
+                } else {
+                    $status = 'pending';
                 }
-                return $payment;
+
+                return [
+                    'id'              => $invoice->id,
+                    'number_document' => $invoice->number_document,
+                    'date'            => $invoice->date,
+                    'due_date'        => $invoice->due_date,
+                    'supplier'        => $invoice->supplier
+                        ? ['id' => $invoice->supplier->id, 'name' => $invoice->supplier->name]
+                        : null,
+                    'type_document'   => $invoice->typeDocument?->name,
+                    'total_invoice'   => $totalInvoice,
+                    'total_paid'      => $totalPaid,
+                    'balance'         => $balance,
+                    'payment_status'  => $status,
+                    'payments'        => $invoice->payments->map(fn($p) => [
+                        'id'                  => $p->id,
+                        'payment_date'        => $p->payment_date,
+                        'amount'              => $p->amount,
+                        'payment_method'      => $p->payment_method,
+                        'payment_method_name' => $p->payment_method_name,
+                        'bank_id'             => $p->bank_id,
+                        'bank'                => $p->bank?->name,
+                        'transaction_number'  => $p->transaction_number,
+                        'observations'        => $p->observations,
+                        'user'                => $p->user?->name,
+                        'number_document'     => $invoice->number_document,
+                    ])->values(),
+                ];
             });
 
         // Obtener bancos activos
-        $banks = Bank::where('active', true)
-            ->orderBy('name')
-            ->get(['id', 'name']);
+        $banks = Bank::where('active', true)->orderBy('name')->get(['id', 'name']);
 
         // Obtener proveedores del equipo
-        $suppliers = Supplier::where('team_id', $user->team_id)
-            ->orderBy('name')
-            ->get(['id', 'name']);
+        $suppliers = Supplier::where('team_id', $user->team_id)->orderBy('name')->get(['id', 'name']);
 
         return Inertia::render('InvoicePayments/Index', [
-            'payments' => $payments,
-            'banks' => $banks,
+            'invoices'  => $invoices,
+            'banks'     => $banks,
             'suppliers' => $suppliers,
-            'filters' => [
-                'term' => $term,
-                'date_from' => $dateFrom,
-                'date_to' => $dateTo,
-                'supplier_id' => $supplierId,
-                'payment_method' => $paymentMethod,
-                'bank_id' => $bankId,
+            'filters'   => [
+                'term'           => $term,
+                'date_from'      => $dateFrom,
+                'date_to'        => $dateTo,
+                'supplier_id'    => $supplierId,
+                'payment_status' => $paymentStatus,
             ],
         ]);
     }

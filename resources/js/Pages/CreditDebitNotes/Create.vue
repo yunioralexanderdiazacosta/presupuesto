@@ -24,7 +24,7 @@ const form = useForm({
   number: '',
   reason: '',
   items: [],
-  is_annulment: false,
+  is_annulment: true,
   affects_inventory: true
 });
 

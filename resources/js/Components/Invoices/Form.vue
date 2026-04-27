@@ -138,14 +138,16 @@ const handleDataExtracted = (result) => {
     if (data.payment_term !== undefined) props.form.payment_term = data.payment_term;
 
     // Autocompletar productos si se extrajeron del PDF
+    const toTitleCase = (str) => str.toLowerCase().replace(/\b\w/g, c => c.toUpperCase());
+
     if (data.products && data.products.length > 0) {
         // Reemplazar todos los productos con los nuevos del PDF
         props.form.products = data.products.map(p => ({
-            product_id: p.product_id || (p.pdf_name ? p.pdf_name.trim() : ''),
+            product_id: p.product_id || (p.pdf_name ? toTitleCase(p.pdf_name.trim()) : ''),
             unit_id: p.unit_id || '',
             unit_price: p.unit_price || 0,
             amount: p.amount || 1,
-            observations: p.observations || '',
+            observations: p.observations ? toTitleCase(p.observations.trim()) : '',
         }));
 
         // Si no quedó ningún producto, agregar una línea vacía

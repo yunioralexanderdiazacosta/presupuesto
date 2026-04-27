@@ -1,4 +1,4 @@
-<script setup>
+﻿<script setup>
 import { ref } from 'vue';
 import Swal from 'sweetalert2';
 import { Link, router, Head } from '@inertiajs/vue3';
@@ -9,44 +9,45 @@ import PaymentStatusBadge from '@/Components/InvoicePayments/PaymentStatusBadge.
 import ExportExcelButton from '@/Components/ExportExcelButton.vue';
 
 const props = defineProps({
-    payments: Object,
+    invoices: Object,
     banks: Array,
     suppliers: Array,
     filters: Object,
 });
 
-const title = 'Pagos de Facturas';
-const links = [
-    { title: 'Tablero', link: 'dashboard' },
-    { title, active: true },
-];
+const title = 'Facturas';
 
-const term = ref(props.filters.term || '');
-const filterDateFrom = ref(props.filters.date_from || '');
-const filterDateTo = ref(props.filters.date_to || '');
-const filterSupplierId = ref(props.filters.supplier_id || null);
-const filterPaymentMethod = ref(props.filters.payment_method || null);
-const filterBankId = ref(props.filters.bank_id || null);
-const showFilters = ref(false);
+const term                 = ref(props.filters.term || '');
+const filterDateFrom       = ref(props.filters.date_from || '');
+const filterDateTo         = ref(props.filters.date_to || '');
+const filterSupplierId     = ref(props.filters.supplier_id || null);
+const filterPaymentStatus  = ref(props.filters.payment_status || null);
+const showFilters          = ref(false);
 
+// Filas expandidas (para ver pagos de una factura)
+const expandedRows = ref({});
+function toggleRow(id) {
+    expandedRows.value[id] = !expandedRows.value[id];
+}
+
+// Modales
 const showCreateModal = ref(false);
-const showEditModal = ref(false);
-const editingPayment = ref(null);
+const showEditModal   = ref(false);
+const editingPayment  = ref(null);
+const preselectedInvoice = ref(null);
 
-function openCreateModal() {
+function openCreateModal(invoice = null) {
+    preselectedInvoice.value = invoice;
     showCreateModal.value = true;
 }
-
 function closeCreateModal() {
     showCreateModal.value = false;
+    preselectedInvoice.value = null;
 }
-
 function openEditModal(payment) {
-    console.log('Opening edit modal for payment:', payment);
     editingPayment.value = payment;
     showEditModal.value = true;
 }
-
 function closeEditModal() {
     showEditModal.value = false;
     editingPayment.value = null;
@@ -54,93 +55,83 @@ function closeEditModal() {
 
 function search() {
     router.get(route('invoice-payments.index'), {
-        term: term.value,
-        date_from: filterDateFrom.value,
-        date_to: filterDateTo.value,
-        supplier_id: filterSupplierId.value,
-        payment_method: filterPaymentMethod.value,
-        bank_id: filterBankId.value
-    }, {
-        preserveState: true,
-        replace: true,
-    });
+        term:           term.value,
+        date_from:      filterDateFrom.value,
+        date_to:        filterDateTo.value,
+        supplier_id:    filterSupplierId.value,
+        payment_status: filterPaymentStatus.value,
+    }, { preserveState: true, replace: true });
 }
 
 function clearFilters() {
-    term.value = '';
-    filterDateFrom.value = '';
-    filterDateTo.value = '';
-    filterSupplierId.value = null;
-    filterPaymentMethod.value = null;
-    filterBankId.value = null;
+    term.value                = '';
+    filterDateFrom.value      = '';
+    filterDateTo.value        = '';
+    filterSupplierId.value    = null;
+    filterPaymentStatus.value = null;
     search();
 }
 
 function deletePayment(paymentId) {
     Swal.fire({
         title: '¿Está seguro?',
-        text: "Esta acción eliminará el registro de pago",
+        text: 'Esta acción eliminará el registro de pago',
         icon: 'warning',
         showCancelButton: true,
         confirmButtonColor: '#3085d6',
         cancelButtonColor: '#d33',
         confirmButtonText: 'Sí, eliminar',
-        cancelButtonText: 'Cancelar'
+        cancelButtonText: 'Cancelar',
     }).then((result) => {
         if (result.isConfirmed) {
             router.delete(route('invoice-payments.delete', paymentId), {
-                onSuccess: () => {
-                    Swal.fire('Eliminado!', 'El pago ha sido eliminado.', 'success');
-                }
+                onSuccess: () => Swal.fire('Eliminado', 'El pago ha sido eliminado.', 'success'),
             });
         }
     });
 }
 
 function formatCurrency(value) {
-    return new Intl.NumberFormat('es-ES', {
-        minimumFractionDigits: 0,
-        maximumFractionDigits: 0
-    }).format(value || 0);
+    return new Intl.NumberFormat('es-ES', { minimumFractionDigits: 0, maximumFractionDigits: 0 }).format(value || 0);
 }
 
 function formatDate(dateStr) {
     if (!dateStr) return '-';
-    const date = new Date(dateStr);
-    return date.toLocaleDateString('es-CL');
+    return new Date(dateStr).toLocaleDateString('es-CL');
 }
 
-function getDueDateStatus(payment) {
-    if (!payment.invoice?.due_date) return null;
-    if (payment.invoice?.payment_status === 'paid') return 'paid';
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-    const due = new Date(payment.invoice.due_date);
-    due.setHours(0, 0, 0, 0);
-    const diffDays = Math.ceil((due - today) / (1000 * 60 * 60 * 24));
-    if (diffDays < 0) return 'overdue';
-    if (diffDays <= 7) return 'soon';
+function getDueDateStatus(invoice) {
+    if (!invoice.due_date) return null;
+    if (invoice.payment_status === 'paid') return 'paid';
+    const today = new Date(); today.setHours(0,0,0,0);
+    const due   = new Date(invoice.due_date); due.setHours(0,0,0,0);
+    const diff  = Math.ceil((due - today) / 86400000);
+    if (diff < 0) return 'overdue';
+    if (diff <= 7) return 'soon';
     return 'ok';
 }
 
-function getDueDateDays(payment) {
-    if (!payment.invoice?.due_date) return '';
-    if (payment.invoice?.payment_status === 'paid') return '';
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-    const due = new Date(payment.invoice.due_date);
-    due.setHours(0, 0, 0, 0);
-    const diffDays = Math.ceil((due - today) / (1000 * 60 * 60 * 24));
-    if (diffDays < 0) return `${Math.abs(diffDays)}d atraso`;
-    if (diffDays === 0) return 'Hoy';
-    return `${diffDays}d`;
+function getDueDateDays(invoice) {
+    if (!invoice.due_date || invoice.payment_status === 'paid') return '';
+    const today = new Date(); today.setHours(0,0,0,0);
+    const due   = new Date(invoice.due_date); due.setHours(0,0,0,0);
+    const diff  = Math.ceil((due - today) / 86400000);
+    if (diff < 0) return `${Math.abs(diff)}d atraso`;
+    if (diff === 0) return 'Hoy';
+    return `${diff}d`;
 }
 
 const dueDateConfig = {
-    overdue: { label: 'Vencida', class: 'bg-danger text-white' },
-    soon: { label: 'Por vencer', class: 'bg-warning text-dark' },
-    ok: { label: 'Vigente', class: 'bg-success text-white' },
-    paid: { label: 'Saldada', class: 'bg-secondary text-white' },
+    overdue: { label: 'Vencida',    class: 'bg-danger text-white' },
+    soon:    { label: 'Por vencer', class: 'bg-warning text-dark' },
+    ok:      { label: 'Vigente',    class: 'bg-success text-white' },
+    paid:    { label: 'Saldada',    class: 'bg-secondary text-white' },
+};
+
+const statusLabels = {
+    pending: 'Pendiente',
+    partial: 'Parcial',
+    paid:    'Pagada',
 };
 </script>
 
@@ -152,26 +143,17 @@ const dueDateConfig = {
                 <div class="row flex-between-center">
                     <div class="col-6 col-sm-auto d-flex align-items-center pe-0">
                         <h5 class="fs-9 mb-0 text-nowrap py-2 py-xl-0">
-                            <i class="fas fa-money-bill-wave me-2"></i>{{ title }}
+                            <i class="fas fa-file-invoice-dollar me-2"></i>{{ title }}
                         </h5>
                     </div>
                     <div class="col-6 col-sm-auto ms-auto text-end ps-0">
                         <div class="d-flex align-items-center gap-2">
-                            <Link 
-                                :href="route('invoice-payments.dashboard')"
-                                class="btn btn-falcon-default btn-sm"
-                            >
+                            <Link :href="route('invoice-payments.dashboard')" class="btn btn-falcon-default btn-sm">
                                 <span class="fas fa-chart-line" data-fa-transform="shrink-3 down-2"></span>
                                 <span class="d-none d-sm-inline-block ms-1">Dashboard</span>
                             </Link>
-                            <ExportExcelButton 
-                                :route="route('invoice-payments.excel')"
-                                class="btn btn-falcon-default btn-sm"
-                            />
-                            <button 
-                                @click="openCreateModal" 
-                                class="btn btn-falcon-default btn-sm"
-                            >
+                            <ExportExcelButton :route="route('invoice-payments.excel')" class="btn btn-falcon-default btn-sm" />
+                            <button @click="openCreateModal()" class="btn btn-falcon-default btn-sm">
                                 <span class="fas fa-plus" data-fa-transform="shrink-3 down-2"></span>
                                 <span class="d-none d-sm-inline-block ms-1">Registrar Pago</span>
                             </button>
@@ -185,27 +167,32 @@ const dueDateConfig = {
                 <div class="row mb-3">
                     <div class="col-md-8">
                         <div class="input-group input-group-sm">
-                            <input 
-                                v-model="term" 
-                                @keyup.enter="search"
-                                type="text" 
-                                class="form-control" 
-                                placeholder="Buscar por número de documento, proveedor o número de transacción..."
-                            >
+                            <input v-model="term" @keyup.enter="search" type="text" class="form-control"
+                                placeholder="Buscar por número de documento o proveedor...">
                             <button @click="search" class="btn btn-outline-secondary" type="button">
                                 <i class="fas fa-search"></i>
                             </button>
                         </div>
                     </div>
                     <div class="col-md-4 text-end">
-                        <button 
-                            @click="showFilters = !showFilters" 
-                            class="btn btn-falcon-default btn-sm"
-                        >
+                        <button @click="showFilters = !showFilters" class="btn btn-falcon-default btn-sm">
                             <i class="fas fa-filter me-1"></i>
                             {{ showFilters ? 'Ocultar' : 'Mostrar' }} Filtros
                         </button>
                     </div>
+                </div>
+
+                <!-- Filtros rápidos de estado -->
+                <div class="d-flex gap-2 mb-3 flex-wrap">
+                    <button
+                        v-for="(label, key) in { '': 'Todos', pending: 'Pendientes', partial: 'Parciales', paid: 'Pagadas' }"
+                        :key="key"
+                        @click="filterPaymentStatus = key || null; search()"
+                        class="btn btn-sm"
+                        :class="filterPaymentStatus === (key || null) ? 'btn-primary' : 'btn-falcon-default'"
+                    >
+                        {{ label }}
+                    </button>
                 </div>
 
                 <!-- Panel de Filtros Avanzados -->
@@ -214,59 +201,22 @@ const dueDateConfig = {
                         <div class="row g-3">
                             <div class="col-md-3">
                                 <label class="form-label small">Fecha Desde</label>
-                                <input 
-                                    v-model="filterDateFrom" 
-                                    type="date" 
-                                    class="form-control form-control-sm"
-                                >
+                                <input v-model="filterDateFrom" type="date" class="form-control form-control-sm">
                             </div>
                             <div class="col-md-3">
                                 <label class="form-label small">Fecha Hasta</label>
-                                <input 
-                                    v-model="filterDateTo" 
-                                    type="date" 
-                                    class="form-control form-control-sm"
-                                >
+                                <input v-model="filterDateTo" type="date" class="form-control form-control-sm">
                             </div>
                             <div class="col-md-3">
                                 <label class="form-label small">Proveedor</label>
-                                <select
-                                    v-model="filterSupplierId"
-                                    class="form-select form-select-sm"
-                                >
+                                <select v-model="filterSupplierId" class="form-select form-select-sm">
                                     <option :value="null">Todos</option>
-                                    <option v-for="supplier in suppliers" :key="supplier.id" :value="supplier.id">
-                                        {{ supplier.name }}
-                                    </option>
+                                    <option v-for="s in suppliers" :key="s.id" :value="s.id">{{ s.name }}</option>
                                 </select>
                             </div>
-                            <div class="col-md-3">
-                                <label class="form-label small">Método de Pago</label>
-                                <select
-                                    v-model="filterPaymentMethod"
-                                    class="form-select form-select-sm"
-                                >
-                                    <option :value="null">Todos</option>
-                                    <option value="1">Transferencia</option>
-                                    <option value="2">Efectivo</option>
-                                    <option value="3">Cheque</option>
-                                </select>
-                            </div>
-                            <div class="col-md-3">
-                                <label class="form-label small">Banco</label>
-                                <select
-                                    v-model="filterBankId"
-                                    class="form-select form-select-sm"
-                                >
-                                    <option :value="null">Todos</option>
-                                    <option v-for="bank in banks" :key="bank.id" :value="bank.id">
-                                        {{ bank.name }}
-                                    </option>
-                                </select>
-                            </div>
-                            <div class="col-md-9 d-flex align-items-end justify-content-end gap-2">
+                            <div class="col-md-3 d-flex align-items-end justify-content-end gap-2">
                                 <button @click="search" class="btn btn-primary btn-sm">
-                                    <i class="fas fa-search me-1"></i> Aplicar Filtros
+                                    <i class="fas fa-search me-1"></i> Aplicar
                                 </button>
                                 <button @click="clearFilters" class="btn btn-secondary btn-sm">
                                     <i class="fas fa-times me-1"></i> Limpiar
@@ -278,89 +228,129 @@ const dueDateConfig = {
             </div>
 
             <div class="card-body bg-body-tertiary">
-                <!-- Tabla de pagos -->
                 <div class="table-responsive">
-                    <table class="table table-sm table-striped table-hover fs-10">
+                    <table class="table table-sm table-hover fs-10">
                         <thead class="bg-200 text-900">
                             <tr>
-                                <th>Fecha Pago</th>
-                                <th>Factura</th>
+                                <th style="width:30px;"></th>
+                                <th>Fecha</th>
+                                <th>N° Documento</th>
                                 <th>Proveedor</th>
                                 <th>Tipo Doc.</th>
                                 <th class="text-end">Total Factura</th>
-                                <th class="text-end">Monto Pagado</th>
+                                <th class="text-end">Total Pagado</th>
                                 <th class="text-end">Saldo</th>
                                 <th class="text-center">Estado Pago</th>
                                 <th>Vencimiento</th>
                                 <th class="text-center">Estado Vcto.</th>
-                                <th>Método</th>
-                                <th>Banco</th>
-                                <th>Nro. Transacción</th>
-                                <th>Usuario</th>
                                 <th class="text-center">Acciones</th>
                             </tr>
                         </thead>
                         <tbody>
-                            <tr v-for="payment in payments.data" :key="payment.id">
-                                <td>{{ formatDate(payment.payment_date) }}</td>
-                                <td>{{ payment.invoice.number_document }}</td>
-                                <td>{{ payment.invoice.supplier?.name ?? '-' }}</td>
-                                <td>{{ payment.invoice.type_document?.name ?? '-' }}</td>
-                                <td class="text-end">$ {{ formatCurrency(payment.invoice?.total_invoice) }}</td>
-                                <td class="text-end">$ {{ formatCurrency(payment.amount) }}</td>
-                                <td class="text-end">$ {{ formatCurrency(payment.invoice?.balance) }}</td>
-                                <td class="text-center">
-                                    <PaymentStatusBadge :status="payment.invoice?.payment_status ?? 'pending'" />
-                                </td>
-                                <td class="text-nowrap">
-                                    {{ formatDate(payment.invoice?.due_date) }}
-                                </td>
-                                <td class="text-center text-nowrap">
-                                    <template v-if="getDueDateStatus(payment)">
-                                        <span class="badge" :class="dueDateConfig[getDueDateStatus(payment)].class">
-                                            {{ dueDateConfig[getDueDateStatus(payment)].label }}
-                                        </span>
-                                        <small v-if="getDueDateDays(payment)" class="d-block text-muted mt-1" style="font-size: 0.7rem;">
-                                            {{ getDueDateDays(payment) }}
-                                        </small>
-                                    </template>
-                                    <span v-else>-</span>
-                                </td>
-                                <td>
-                                    <span 
-                                        class="badge" 
-                                        :class="{
-                                            'bg-info text-white': payment.payment_method == 1,
-                                            'bg-success text-white': payment.payment_method == 2,
-                                            'bg-warning text-dark': payment.payment_method == 3
-                                        }"
-                                    >
-                                        {{ payment.payment_method_name }}
-                                    </span>
-                                </td>
-                                <td>{{ payment.bank ? payment.bank.name : '-' }}</td>
-                                <td>{{ payment.transaction_number || '-' }}</td>
-                                <td>{{ payment.user?.name ?? '-' }}</td>
-                                <td class="text-center">
-                                    <button 
-                                        @click="openEditModal(payment)" 
-                                        class="btn btn-falcon-default btn-sm me-1"
-                                        title="Editar"
-                                    >
-                                        <i class="fas fa-edit"></i>
-                                    </button>
-                                    <button 
-                                        @click="deletePayment(payment.id)" 
-                                        class="btn btn-falcon-default btn-sm"
-                                        title="Eliminar"
-                                    >
-                                        <i class="fas fa-trash"></i>
-                                    </button>
-                                </td>
-                            </tr>
-                            <tr v-if="payments.data.length === 0">
-                                <td colspan="15" class="text-center text-muted py-4">
-                                    No hay pagos registrados
+                            <template v-for="invoice in invoices.data" :key="invoice.id">
+                                <!-- Fila principal de factura -->
+                                <tr
+                                    :class="{ 'table-active': expandedRows[invoice.id] }"
+                                    :style="invoice.payments?.length > 0 ? 'cursor:pointer;' : ''"
+                                    @click="invoice.payments?.length > 0 && toggleRow(invoice.id)"
+                                >
+                                    <td class="text-center">
+                                        <i v-if="invoice.payments?.length > 0"
+                                            class="fas text-muted"
+                                            :class="expandedRows[invoice.id] ? 'fa-chevron-up' : 'fa-chevron-down'"
+                                        ></i>
+                                    </td>
+                                    <td class="text-nowrap">{{ formatDate(invoice.date) }}</td>
+                                    <td class="fw-semibold">{{ invoice.number_document }}</td>
+                                    <td>{{ invoice.supplier?.name ?? '-' }}</td>
+                                    <td>{{ invoice.type_document ?? '-' }}</td>
+                                    <td class="text-end text-nowrap">$ {{ formatCurrency(invoice.total_invoice) }}</td>
+                                    <td class="text-end text-nowrap">$ {{ formatCurrency(invoice.total_paid) }}</td>
+                                    <td class="text-end text-nowrap" :class="{ 'text-danger fw-bold': invoice.balance > 0 }">
+                                        $ {{ formatCurrency(invoice.balance) }}
+                                    </td>
+                                    <td class="text-center">
+                                        <PaymentStatusBadge :status="invoice.payment_status" />
+                                    </td>
+                                    <td class="text-nowrap">{{ formatDate(invoice.due_date) }}</td>
+                                    <td class="text-center text-nowrap">
+                                        <template v-if="getDueDateStatus(invoice)">
+                                            <span class="badge" :class="dueDateConfig[getDueDateStatus(invoice)].class">
+                                                {{ dueDateConfig[getDueDateStatus(invoice)].label }}
+                                            </span>
+                                            <small v-if="getDueDateDays(invoice)" class="d-block text-muted mt-1" style="font-size:0.7rem;">
+                                                {{ getDueDateDays(invoice) }}
+                                            </small>
+                                        </template>
+                                        <span v-else>-</span>
+                                    </td>
+                                    <td class="text-center">
+                                        <button
+                                            v-if="invoice.payment_status !== 'paid'"
+                                            @click.stop="openCreateModal(invoice)"
+                                            class="btn btn-falcon-default btn-sm"
+                                            v-tooltip="'Registrar pago'"
+                                        >
+                                            <i class="fas fa-dollar-sign"></i>
+                                        </button>
+                                    </td>
+                                </tr>
+
+                                <!-- Fila expandida: detalle de pagos -->
+                                <tr v-if="expandedRows[invoice.id]" class="bg-100">
+                                    <td colspan="12" class="p-0">
+                                        <div class="px-4 py-2">
+                                            <p class="text-muted small mb-2 fw-semibold">
+                                                <i class="fas fa-list me-1"></i> Pagos registrados
+                                            </p>
+                                            <table class="table table-sm table-bordered mb-0 fs-10">
+                                                <thead class="bg-200">
+                                                    <tr>
+                                                        <th>Fecha Pago</th>
+                                                        <th class="text-end">Monto</th>
+                                                        <th>Método</th>
+                                                        <th>Banco</th>
+                                                        <th>Nro. Transacción</th>
+                                                        <th>Usuario</th>
+                                                        <th class="text-center">Acciones</th>
+                                                    </tr>
+                                                </thead>
+                                                <tbody>
+                                                    <tr v-for="payment in invoice.payments" :key="payment.id">
+                                                        <td>{{ formatDate(payment.payment_date) }}</td>
+                                                        <td class="text-end">$ {{ formatCurrency(payment.amount) }}</td>
+                                                        <td>
+                                                            <span class="badge"
+                                                                :class="{
+                                                                    'bg-info text-white':    payment.payment_method == 1,
+                                                                    'bg-success text-white': payment.payment_method == 2,
+                                                                    'bg-warning text-dark':  payment.payment_method == 3
+                                                                }">
+                                                                {{ payment.payment_method_name }}
+                                                            </span>
+                                                        </td>
+                                                        <td>{{ payment.bank ?? '-' }}</td>
+                                                        <td>{{ payment.transaction_number || '-' }}</td>
+                                                        <td>{{ payment.user ?? '-' }}</td>
+                                                        <td class="text-center">
+                                                            <button @click="openEditModal(payment)" class="btn btn-falcon-default btn-sm me-1" title="Editar">
+                                                                <i class="fas fa-edit"></i>
+                                                            </button>
+                                                            <button @click="deletePayment(payment.id)" class="btn btn-falcon-default btn-sm" title="Eliminar">
+                                                                <i class="fas fa-trash"></i>
+                                                            </button>
+                                                        </td>
+                                                    </tr>
+                                                </tbody>
+                                            </table>
+                                        </div>
+                                    </td>
+                                </tr>
+                            </template>
+
+                            <tr v-if="invoices.data.length === 0">
+                                <td colspan="12" class="text-center text-muted py-4">
+                                    No hay facturas registradas con los filtros seleccionados
                                 </td>
                             </tr>
                         </tbody>
@@ -368,22 +358,13 @@ const dueDateConfig = {
                 </div>
 
                 <!-- Paginación -->
-                <div v-if="payments.links && payments.links.length > 3" class="d-flex justify-content-center mt-3">
+                <div v-if="invoices.links && invoices.links.length > 3" class="d-flex justify-content-center mt-3">
                     <nav>
                         <ul class="pagination pagination-sm">
-                            <li 
-                                v-for="(link, index) in payments.links" 
-                                :key="index"
+                            <li v-for="(link, index) in invoices.links" :key="index"
                                 class="page-item"
-                                :class="{ 'active': link.active, 'disabled': !link.url }"
-                            >
-                                <Link 
-                                    v-if="link.url"
-                                    :href="link.url" 
-                                    class="page-link"
-                                    v-html="link.label"
-                                    preserve-state
-                                />
+                                :class="{ 'active': link.active, 'disabled': !link.url }">
+                                <Link v-if="link.url" :href="link.url" class="page-link" v-html="link.label" preserve-state />
                                 <span v-else class="page-link" v-html="link.label"></span>
                             </li>
                         </ul>
@@ -393,12 +374,12 @@ const dueDateConfig = {
         </div>
 
         <!-- Modales -->
-        <CreateInvoicePaymentModal 
+        <CreateInvoicePaymentModal
             :show="showCreateModal"
             :banks="banks"
+            :preselected-invoice="preselectedInvoice"
             @close="closeCreateModal"
         />
-
         <EditInvoicePaymentModal
             :show="showEditModal"
             :payment="editingPayment"

@@ -16,7 +16,7 @@ class FormCreditDebitNoteRequest extends FormRequest
     {
         return [
             'type'              => 'required|in:credito,debito',
-            'invoice_id'        => 'required|exists:invoices,id',
+            'invoice_id'        => $this->type === 'credito' ? 'required|exists:invoices,id' : 'nullable|exists:invoices,id',
             'supplier_id'       => 'required|exists:suppliers,id',
             'number'            => 'required|string',
             'date'              => 'required|date',

@@ -51,10 +51,14 @@ const filteredInvoiceLines = computed(() => {
 });
 
 // Forzar affects_inventory a true si es crédito y anulación total
+// Resetear is_annulment si cambia a débito
 watch(
     [() => props.form.type, () => props.form.is_annulment],
     ([type, isAnnulment]) => {
-        if (type === "credito" && isAnnulment) {
+        if (type === 'debito') {
+            props.form.is_annulment = false;
+        }
+        if (type === 'credito' && isAnnulment) {
             props.form.affects_inventory = true;
         }
     }
@@ -202,6 +206,34 @@ watch(
     <!-- Ambos checkboxes en cards, en la misma fila -->
     <div class="row mb-3 mt-3">
       <div class="col-lg-6">
+        <div class="card h-100" :class="form.is_annulment ? 'border-danger' : ''">
+          <div class="card-body p-3">
+            <div class="form-check">
+              <input
+                class="form-check-input mt-2"
+                type="checkbox"
+                v-model="form.is_annulment"
+                id="is_annulment"
+                :disabled="form.type !== 'credito'"
+              />
+              <label class="form-check-label mt-1 mb-1" for="is_annulment">
+                <strong>Anula factura completa</strong>
+              </label>
+            </div>
+            <div v-if="form.is_annulment && form.type === 'credito'" class="alert alert-danger py-1 px-2 mb-0 mt-2" style="font-size: 0.75rem;">
+              <i class="fas fa-undo me-1"></i>
+              Se revertirá TODO el stock y montos de la factura. Los items se autocompletarán.
+            </div>
+            <div v-else-if="form.type !== 'credito'" class="mt-2">
+              <small class="text-muted"><i class="fas fa-info-circle me-1"></i>Solo disponible para notas de crédito</small>
+            </div>
+            <div v-else class="mt-2">
+              <small class="text-muted"><i class="fas fa-info-circle me-1"></i>Marcar si la NC anula la factura por completo</small>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="col-lg-6">
         <div class="card h-100" :class="!form.affects_inventory ? 'border-warning' : ''">
           <div class="card-body p-3">
             <div class="form-check">
@@ -226,34 +258,6 @@ watch(
               <i class="fas fa-exclamation-triangle me-1"></i>
               <strong>NC Financiera:</strong> No moverá stock. El descuento se aplicará directamente al precio unitario de la factura.
               <br><small class="text-muted">Los items se autocompletarán con las líneas de la factura.</small>
-            </div>
-          </div>
-        </div>
-      </div>
-      <div class="col-lg-6">
-        <div class="card h-100" :class="form.is_annulment ? 'border-danger' : ''">
-          <div class="card-body p-3">
-            <div class="form-check">
-              <input
-                class="form-check-input mt-2"
-                type="checkbox"
-                v-model="form.is_annulment"
-                id="is_annulment"
-                :disabled="form.type !== 'credito'"
-              />
-              <label class="form-check-label mt-1 mb-1" for="is_annulment">
-                <strong>Anula factura completa</strong>
-              </label>
-            </div>
-            <div v-if="form.is_annulment && form.type === 'credito'" class="alert alert-danger py-1 px-2 mb-0 mt-2" style="font-size: 0.75rem;">
-              <i class="fas fa-undo me-1"></i>
-              Se revertirá TODO el stock y montos de la factura. Los items se autocompletarán.
-            </div>
-            <div v-else-if="form.type !== 'credito'" class="mt-2">
-              <small class="text-muted"><i class="fas fa-info-circle me-1"></i>Solo disponible para notas de crédito</small>
-            </div>
-            <div v-else class="mt-2">
-              <small class="text-muted"><i class="fas fa-info-circle me-1"></i>Marcar si la NC anula la factura por completo</small>
             </div>
           </div>
         </div>

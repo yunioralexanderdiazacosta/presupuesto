@@ -9,6 +9,7 @@ import Modal from '@/Components/Modal.vue';
 const props = defineProps({
     show: Boolean,
     banks: Array,
+    preselectedInvoice: { type: Object, default: null },
 });
 
 const emit = defineEmits(['close']);
@@ -176,9 +177,15 @@ function formatCurrency(value) {
     }).format(value || 0);
 }
 
-// Cuando se cierra el modal
+// Cuando se abre el modal: pre-llenar si viene una factura desde la fila
 watch(() => props.show, (newVal) => {
     if (newVal) {
+        if (props.preselectedInvoice) {
+            selectedInvoice.value = props.preselectedInvoice;
+            form.invoice_id = props.preselectedInvoice.id;
+            form.amount = props.preselectedInvoice.balance;
+            searchNumber.value = props.preselectedInvoice.number_document;
+        }
         $('#createInvoicePaymentModal').modal('show');
     } else {
         $('#createInvoicePaymentModal').modal('hide');

@@ -122,6 +122,31 @@ class ExtractInvoiceFromPdfController extends Controller
             if ($supplier) {
                 return $supplier;
             }
+
+            // Fallback: matching por palabras clave (tolera nombres con palabras extra o faltantes)
+            // Ej: BD tiene "Maria Urrea Beltran" y OCR extrajo "Maria Elba Urrea Beltran" → score 3/3 = 100%
+            $allSuppliers = Supplier::where('team_id', $teamId)->get();
+            $extractedWords = array_filter(explode(' ', strtolower($ocrData['supplier_name'])));
+
+            $bestMatch = null;
+            $bestScore = 0;
+
+            foreach ($allSuppliers as $s) {
+                $dbWords = array_filter(explode(' ', strtolower($s->name ?? '')));
+                if (empty($dbWords)) continue;
+
+                $matches = count(array_intersect($dbWords, $extractedWords));
+                $score = $matches / count($dbWords);
+
+                if ($score > $bestScore && $score >= 0.6) {
+                    $bestScore = $score;
+                    $bestMatch = $s;
+                }
+            }
+
+            if ($bestMatch) {
+                return $bestMatch;
+            }
         }
 
         return null;
@@ -131,17 +156,47 @@ class ExtractInvoiceFromPdfController extends Controller
     {
         $teamId = Auth::user()->team_id;
 
-        if (!$ocrData['customer_tax_id']) {
-            return null;
+        // Primero intentar por RUT
+        if ($ocrData['customer_tax_id']) {
+            $cleanRut = preg_replace('/[^0-9kK]/', '', $ocrData['customer_tax_id']);
+
+            $found = CompanyReason::where('team_id', $teamId)->get()->first(function ($cr) use ($cleanRut) {
+                $dbRut = preg_replace('/[^0-9kK]/', '', strtolower($cr->rut ?? ''));
+                return strtolower($cleanRut) === $dbRut;
+            });
+
+            if ($found) {
+                return $found;
+            }
         }
 
-        // Normalizar RUT del cliente para comparar
-        $cleanRut = preg_replace('/[^0-9kK]/', '', $ocrData['customer_tax_id']);
+        // Fallback: buscar por nombre (palabras clave, case-insensitive)
+        if (!empty($ocrData['customer_name'])) {
+            $extractedWords = array_filter(explode(' ', strtolower($ocrData['customer_name'])));
 
-        return CompanyReason::where('team_id', $teamId)->get()->first(function ($cr) use ($cleanRut) {
-            $dbRut = preg_replace('/[^0-9kK]/', '', strtolower($cr->rut ?? ''));
-            return strtolower($cleanRut) === $dbRut;
-        });
+            $allReasons = CompanyReason::where('team_id', $teamId)->get();
+            $bestMatch = null;
+            $bestScore = 0;
+
+            foreach ($allReasons as $cr) {
+                $dbWords = array_filter(explode(' ', strtolower($cr->name ?? '')));
+                if (empty($dbWords)) continue;
+
+                $matches = count(array_intersect($dbWords, $extractedWords));
+                $score = $matches / count($dbWords);
+
+                if ($score > $bestScore && $score >= 0.6) {
+                    $bestScore = $score;
+                    $bestMatch = $cr;
+                }
+            }
+
+            if ($bestMatch) {
+                return $bestMatch;
+            }
+        }
+
+        return null;
     }
 
     private function findTypeDocument($ocrData)

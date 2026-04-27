@@ -1,5 +1,5 @@
 <script setup>
-import { ref, watch, nextTick } from 'vue';
+import { ref, watch } from 'vue';
 import { useForm } from '@inertiajs/vue3';
 import Swal from 'sweetalert2';
 import InvoicePaymentForm from './InvoicePaymentForm.vue';
@@ -25,20 +25,12 @@ const form = useForm({
 // Actualizar form cuando cambia el payment
 watch(() => props.payment, (newPayment) => {
     if (newPayment) {
-        // Convertir fecha de DD-MM-YYYY a YYYY-MM-DD
-        let paymentDate = newPayment.payment_date || '';
-        if (paymentDate && paymentDate.includes('-')) {
-            const parts = paymentDate.split('-');
-            if (parts.length === 3 && parts[0].length === 2) {
-                // Si está en formato DD-MM-YYYY, convertir a YYYY-MM-DD
-                paymentDate = `${parts[2]}-${parts[1]}-${parts[0]}`;
-            }
-        }
-        
-        form.payment_date = paymentDate;
+        // Tomar solo los primeros 10 caracteres (YYYY-MM-DD) independiente del formato
+        const rawDate = newPayment.payment_date || '';
+        form.payment_date = rawDate ? rawDate.substring(0, 10) : '';
         form.amount = newPayment.amount || '';
         form.payment_method = newPayment.payment_method || null;
-        form.bank_id = newPayment.bank?.id || null;
+        form.bank_id = newPayment.bank_id || null;
         form.transaction_number = newPayment.transaction_number || '';
         form.observations = newPayment.observations || '';
         form.clearErrors();
@@ -62,25 +54,11 @@ function submitUpdate() {
 
 // Control de modal
 watch(() => props.show, (newVal) => {
-    console.log('EditModal show changed to:', newVal);
-    nextTick(() => {
-        const modalElement = document.getElementById('editInvoicePaymentModal');
-        console.log('Modal element found:', modalElement);
-        if (newVal) {
-            if (modalElement) {
-                const modal = new bootstrap.Modal(modalElement);
-                modal.show();
-                console.log('Modal should be visible now');
-            }
-        } else {
-            if (modalElement) {
-                const modalInstance = bootstrap.Modal.getInstance(modalElement);
-                if (modalInstance) {
-                    modalInstance.hide();
-                }
-            }
-        }
-    });
+    if (newVal) {
+        $('#editInvoicePaymentModal').modal('show');
+    } else {
+        $('#editInvoicePaymentModal').modal('hide');
+    }
 });
 </script>
 
@@ -98,7 +76,7 @@ watch(() => props.show, (newVal) => {
                     </span>
                     <br>
                     <span class="text-muted" style="font-size: 0.85rem;">
-                        Factura: {{ payment?.invoice.number_document }}
+                        Factura: {{ payment?.number_document }}
                     </span>
                 </span>
             </div>
