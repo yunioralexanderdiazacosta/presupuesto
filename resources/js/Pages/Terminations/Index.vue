@@ -143,7 +143,7 @@ const handleAnular = (t) => {
                                 <!-- Colaboradores -->
                                 <div class="col-12">
                                     <label class="form-label small fw-semibold">
-                                        Colaboradores (contrato Faena activos)
+                                        Colaboradores con contrato activo
                                         <span class="text-danger">*</span>
                                     </label>
                                     <Multiselect
@@ -156,9 +156,15 @@ const handleAnular = (t) => {
                                         no-options-text="Sin resultados"
                                         no-results-text="Sin coincidencias"
                                     />
-                                    <small v-if="form.contract_ids.length" class="text-muted">
-                                        {{ form.contract_ids.length }} seleccionado(s)
-                                    </small>
+                                    <div class="mt-1 d-flex align-items-center gap-2">
+                                        <small class="text-muted fst-italic">
+                                            <i class="fas fa-info-circle me-1"></i>
+                                            Actualmente se cargan todos los tipos de contrato activos. El tipo de contrato se indica entre paréntesis.
+                                        </small>
+                                        <small v-if="form.contract_ids.length" class="text-muted">
+                                            &mdash; {{ form.contract_ids.length }} seleccionado(s)
+                                        </small>
+                                    </div>
                                 </div>
 
                                 <!-- Causal -->

@@ -16,16 +16,15 @@ class TerminationController extends Controller
     {
         $user = Auth::user();
 
-        // Contratos activos de tipo Faena del equipo
+        // Contratos activos del equipo (todos los tipos de contrato)
         $activeContracts = Contract::with('employee')
             ->where('team_id', $user->team_id)
             ->where('is_active', true)
-            ->where('contract_type', 'Faena')
             ->orderBy('id')
             ->get()
             ->map(fn($c) => [
                 'value'    => $c->id,
-                'label'    => $c->employee->paternal_surname . ' ' . ($c->employee->maternal_surname ?? '') . ', ' . $c->employee->first_name . ' (' . $c->employee->rut . ')',
+                'label'    => $c->employee->paternal_surname . ' ' . ($c->employee->maternal_surname ?? '') . ', ' . $c->employee->first_name . ' (' . $c->employee->rut . ') - ' . $c->contract_type,
                 'employee_id' => $c->employee_id,
                 'contract_date' => $c->contract_date,
             ]);
