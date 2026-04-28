@@ -61,6 +61,11 @@ class Invoice extends Model
         return $this->hasMany(InvoicePayment::class);
     }
 
+    public function creditDebitNotes()
+    {
+        return $this->hasMany(CreditDebitNote::class);
+    }
+
     public function getTotalPaidAttribute()
     {
         return $this->payments()->sum('amount');

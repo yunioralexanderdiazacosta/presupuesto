@@ -105,6 +105,8 @@ const menuItems = [
     { label: 'Términos de Faena', route: 'terminations.index', icon: 'fas fa-user-slash', section: 'Remuneraciones' },
     { label: 'Plantillas de Contrato', route: 'contract-templates.index', icon: 'fas fa-file-contract', section: 'Remuneraciones' },
     { label: 'Plantillas Término de Contrato', route: 'termination-templates.index', icon: 'fas fa-file-signature', section: 'Remuneraciones' },
+    { label: 'Bonos y Descuentos', route: 'monthly-bonuses.index', icon: 'fas fa-hand-holding-usd', section: 'Remuneraciones' },
+    { label: 'Horas Extras', route: 'overtime-hours.index', icon: 'fas fa-clock', section: 'Remuneraciones' },
     { label: 'Vacaciones', route: 'vacations.index', icon: 'fas fa-umbrella-beach', section: 'Remuneraciones' },
     { label: 'Feriados', route: 'holidays.index', icon: 'fas fa-calendar-alt', section: 'Remuneraciones' },
     { label: 'Gestión Diaria', route: 'daily-management.index', icon: 'fas fa-tasks', section: 'Remuneraciones' },
@@ -626,6 +628,16 @@ const navigateTo = (routeName) => {
                 </li>
                 <li class="nav-item"><Link class="nav-link" :href="route('cities.index')">
                     <div class="d-flex align-items-center"><span class="nav-link-text ps-3">Ciudades</span>
+                    </div>
+                  </Link>
+                </li>
+                <li class="nav-item"><Link class="nav-link" :href="route('monthly-bonuses.index')">
+                    <div class="d-flex align-items-center"><span class="nav-link-icon"><span class="fas fa-hand-holding-usd"></span></span><span class="nav-link-text ps-1">Bonos y Descuentos</span>
+                    </div>
+                  </Link>
+                </li>
+                <li class="nav-item"><Link class="nav-link" :href="route('overtime-hours.index')">
+                    <div class="d-flex align-items-center"><span class="nav-link-icon"><span class="fas fa-clock"></span></span><span class="nav-link-text ps-1">Horas Extras</span>
                     </div>
                   </Link>
                 </li>

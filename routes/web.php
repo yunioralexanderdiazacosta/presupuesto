@@ -299,6 +299,31 @@ use App\Http\Controllers\BonusTypes\BonusTypeController;
 use App\Http\Controllers\BonusTypes\StoreBonusTypeController;
 use App\Http\Controllers\BonusTypes\UpdateBonusTypeController;
 use App\Http\Controllers\BonusTypes\DeleteBonusTypeController;
+// Rutas para Monthly Bonus Types (Tipos de Bono Mensual - Remuneraciones)
+use App\Http\Controllers\MonthlyBonusTypes\MonthlyBonusTypeController;
+use App\Http\Controllers\MonthlyBonusTypes\StoreMonthlyBonusTypeController;
+use App\Http\Controllers\MonthlyBonusTypes\UpdateMonthlyBonusTypeController;
+use App\Http\Controllers\MonthlyBonusTypes\DeleteMonthlyBonusTypeController;
+// Rutas para Monthly Discount Types (Tipos de Descuento Mensual - Remuneraciones)
+use App\Http\Controllers\MonthlyDiscountTypes\MonthlyDiscountTypeController;
+use App\Http\Controllers\MonthlyDiscountTypes\StoreMonthlyDiscountTypeController;
+use App\Http\Controllers\MonthlyDiscountTypes\UpdateMonthlyDiscountTypeController;
+use App\Http\Controllers\MonthlyDiscountTypes\DeleteMonthlyDiscountTypeController;
+// Rutas para Monthly Bonuses (Bonos Mensuales - Remuneraciones)
+use App\Http\Controllers\MonthlyBonuses\MonthlyBonusController;
+use App\Http\Controllers\MonthlyBonuses\StoreMonthlyBonusController;
+use App\Http\Controllers\MonthlyBonuses\UpdateMonthlyBonusController;
+use App\Http\Controllers\MonthlyBonuses\DeleteMonthlyBonusController;
+// Rutas para Overtime Hours (Horas Extras - Remuneraciones)
+use App\Http\Controllers\OvertimeHours\OvertimeHourController;
+use App\Http\Controllers\OvertimeHours\StoreOvertimeHourController;
+use App\Http\Controllers\OvertimeHours\UpdateOvertimeHourController;
+use App\Http\Controllers\OvertimeHours\DeleteOvertimeHourController;
+// Rutas para Monthly Discounts (Descuentos Mensuales - Remuneraciones)
+use App\Http\Controllers\MonthlyDiscounts\MonthlyDiscountController;
+use App\Http\Controllers\MonthlyDiscounts\StoreMonthlyDiscountController;
+use App\Http\Controllers\MonthlyDiscounts\UpdateMonthlyDiscountController;
+use App\Http\Controllers\MonthlyDiscounts\DeleteMonthlyDiscountController;
 // Rutas para Labor Rates (Tarifas de Labor - Remuneraciones)
 use App\Http\Controllers\LaborRates\LaborRateController;
 use App\Http\Controllers\LaborRates\StoreLaborRateController;
@@ -1033,6 +1058,36 @@ Route::middleware([
     Route::post('/bonus-types', StoreBonusTypeController::class)->name('bonus-types.store');
     Route::put('/bonus-types/{bonusType}', UpdateBonusTypeController::class)->name('bonus-types.update');
     Route::delete('/bonus-types/{bonusType}', DeleteBonusTypeController::class)->name('bonus-types.delete');
+
+    // Monthly Bonus Types (Tipos de Bono Mensual - Remuneraciones)
+    Route::get('/monthly-bonus-types', fn() => redirect()->route('monthly-bonuses.index', ['tab' => 'bonus-types']))->name('monthly-bonus-types.index');
+    Route::post('/monthly-bonus-types', StoreMonthlyBonusTypeController::class)->name('monthly-bonus-types.store');
+    Route::put('/monthly-bonus-types/{monthlyBonusType}', UpdateMonthlyBonusTypeController::class)->name('monthly-bonus-types.update');
+    Route::delete('/monthly-bonus-types/{monthlyBonusType}', DeleteMonthlyBonusTypeController::class)->name('monthly-bonus-types.delete');
+
+    // Monthly Discount Types (Tipos de Descuento Mensual - Remuneraciones)
+    Route::get('/monthly-discount-types', fn() => redirect()->route('monthly-bonuses.index', ['tab' => 'discount-types']))->name('monthly-discount-types.index');
+    Route::post('/monthly-discount-types', StoreMonthlyDiscountTypeController::class)->name('monthly-discount-types.store');
+    Route::put('/monthly-discount-types/{monthlyDiscountType}', UpdateMonthlyDiscountTypeController::class)->name('monthly-discount-types.update');
+    Route::delete('/monthly-discount-types/{monthlyDiscountType}', DeleteMonthlyDiscountTypeController::class)->name('monthly-discount-types.delete');
+
+    // Monthly Bonuses (Bonos Mensuales - Remuneraciones)
+    Route::get('/monthly-bonuses', [MonthlyBonusController::class, 'index'])->name('monthly-bonuses.index');
+    Route::post('/monthly-bonuses', StoreMonthlyBonusController::class)->name('monthly-bonuses.store');
+    Route::put('/monthly-bonuses/{monthlyBonus}', UpdateMonthlyBonusController::class)->name('monthly-bonuses.update');
+    Route::delete('/monthly-bonuses/{monthlyBonus}', DeleteMonthlyBonusController::class)->name('monthly-bonuses.delete');
+
+    // Overtime Hours (Horas Extras - Remuneraciones)
+    Route::get('/overtime-hours', [OvertimeHourController::class, 'index'])->name('overtime-hours.index');
+    Route::post('/overtime-hours', StoreOvertimeHourController::class)->name('overtime-hours.store');
+    Route::put('/overtime-hours/{overtimeHour}', UpdateOvertimeHourController::class)->name('overtime-hours.update');
+    Route::delete('/overtime-hours/{overtimeHour}', DeleteOvertimeHourController::class)->name('overtime-hours.delete');
+
+    // Monthly Discounts (Descuentos Mensuales - Remuneraciones)
+    Route::get('/monthly-discounts', fn() => redirect()->route('monthly-bonuses.index', ['tab' => 'discounts']))->name('monthly-discounts.index');
+    Route::post('/monthly-discounts', StoreMonthlyDiscountController::class)->name('monthly-discounts.store');
+    Route::put('/monthly-discounts/{monthlyDiscount}', UpdateMonthlyDiscountController::class)->name('monthly-discounts.update');
+    Route::delete('/monthly-discounts/{monthlyDiscount}', DeleteMonthlyDiscountController::class)->name('monthly-discounts.delete');
 
     // Labor Rates (Tarifas de Labor - Remuneraciones)
     Route::get('/labor-rates', [LaborRateController::class, 'index'])->name('labor-rates.index');

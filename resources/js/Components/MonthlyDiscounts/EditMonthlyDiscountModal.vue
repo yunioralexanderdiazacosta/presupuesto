@@ -1,0 +1,80 @@
+<script setup>
+import { watch } from 'vue';
+import { useForm } from '@inertiajs/vue3';
+import Swal from 'sweetalert2';
+import MonthlyDiscountForm from './MonthlyDiscountForm.vue';
+
+const props = defineProps({
+    show: Boolean,
+    discount: Object,
+    contracts: Array,
+    discountTypes: Array,
+    months: Array,
+});
+
+const emit = defineEmits(['close', 'saved']);
+
+const form = useForm({
+    contract_id: null,
+    monthly_discount_type_id: null,
+    month_id: null,
+    amount: '',
+    observations: '',
+});
+
+watch(() => props.discount, (newDiscount) => {
+    if (newDiscount) {
+        form.contract_id              = newDiscount.contract_id      ?? null;
+        form.monthly_discount_type_id = newDiscount.discount_type_id ?? null;
+        form.month_id                 = newDiscount.month_id         ?? null;
+        form.amount                   = newDiscount.amount           ?? '';
+        form.observations             = newDiscount.observations     ?? '';
+    }
+}, { immediate: true });
+
+function closeModal() {
+    emit('close');
+}
+
+function save() {
+    form.put(route('monthly-discounts.update', props.discount.id), {
+        onSuccess: () => {
+            Swal.fire({ icon: 'success', title: 'Guardado', text: 'Descuento actualizado correctamente.', timer: 1200, showConfirmButton: false });
+            emit('saved');
+        },
+        onError: () => {
+            Swal.fire({ icon: 'error', title: 'Error', text: 'Revisa los campos e inténtalo de nuevo.' });
+        },
+    });
+}
+</script>
+
+<template>
+    <div class="modal fade show" tabindex="-1" style="display:block; background:rgba(0,0,0,0.2);" v-if="show">
+        <div class="modal-dialog modal-md">
+            <div class="modal-content" style="background-color: #f8f9fa;">
+                <div class="modal-header bg-white border-bottom">
+                    <h5 class="modal-title d-flex align-items-center">
+                        <i class="fas fa-edit text-warning me-2 fs-8"></i>
+                        Editar Descuento Mensual
+                    </h5>
+                    <button type="button" class="btn-close" @click="closeModal"></button>
+                </div>
+                <div class="modal-body">
+                    <MonthlyDiscountForm
+                        :form="form"
+                        :contracts="contracts"
+                        :discountTypes="discountTypes"
+                        :months="months"
+                    />
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-sm btn-secondary" @click="closeModal">Cancelar</button>
+                    <button type="button" class="btn btn-sm btn-primary" @click="save" :disabled="form.processing">
+                        <i class="fas fa-save me-1"></i>Guardar
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+</template>

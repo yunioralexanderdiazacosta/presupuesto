@@ -1,5 +1,5 @@
 <script setup>
-import { computed, ref, watch } from "vue";
+import { computed, ref, watch, onMounted, onUpdated, nextTick } from "vue";
 import { Link, router, Head, usePage, useForm } from "@inertiajs/vue3";
 import Swal from "sweetalert2";
 import axios from "axios";
@@ -104,6 +104,30 @@ const filteredInvoices = computed(() => {
 });
 
 
+// --- POPOVER PARA BADGES NC/ND ---
+function formatNotesPopover(notes) {
+    if (!notes || !Array.isArray(notes) || notes.length === 0) return '';
+    return notes.map(n => {
+        const dateFormatted = n.date ? n.date.split('-').reverse().join('-') : '';
+        return `<div><b>${n.type === 'credito' ? 'NC' : 'ND'}</b> N°${n.number} &mdash; ${dateFormatted}<br><small class="text-muted">${n.supplier}</small></div>`;
+    }).join('<hr style="margin:4px 0">');
+}
+
+function initPopovers() {
+    nextTick(() => {
+        if (window.bootstrap) {
+            document.querySelectorAll('[data-bs-toggle="popover"]').forEach(el => {
+                if (!el._popover) {
+                    el._popover = new window.bootstrap.Popover(el);
+                }
+            });
+        }
+    });
+}
+
+onMounted(initPopovers);
+onUpdated(initPopovers);
+
 // Suma simple de la columna total
 const totalFacturas = computed(() => {
     if (!filteredInvoices.value.length) return 0;
@@ -141,6 +165,9 @@ const expandedInvoices = computed(() => {
             number_document: invoice.number_document,
             total: invoice.total,
             expense_report: invoice.expense_report,
+            has_credit_notes: invoice.has_credit_notes,
+            has_debit_notes: invoice.has_debit_notes,
+            notes_info: invoice.notes_info,
         };
         if (invoice.products && invoice.products.length) {
             invoice.products.forEach(prod => {
@@ -589,7 +616,29 @@ invoice, index
                                         <td style="white-space:nowrap;">{{ invoice.month }}</td>
                                         <td style="white-space:nowrap; max-width:200px; overflow:hidden; text-overflow:ellipsis;">{{ invoice.supplier.name }}</td>
                                         <td style="white-space:nowrap; max-width:180px; overflow:hidden; text-overflow:ellipsis;">{{ invoice.companyReason?.name || '—' }}</td>
-                                        <td style="white-space:nowrap;">{{ invoice.number_document }}</td>
+                                        <td style="white-space:nowrap;">
+                                            {{ invoice.number_document }}
+                                            <span
+                                                v-if="invoice.has_credit_notes"
+                                                class="badge bg-warning text-dark ms-1"
+                                                tabindex="0"
+                                                data-bs-toggle="popover"
+                                                data-bs-html="true"
+                                                :data-bs-content="formatNotesPopover(invoice.notes_info?.filter(n => n.type === 'credito'))"
+                                                data-bs-trigger="focus hover"
+                                                style="cursor:pointer;"
+                                            >NC</span>
+                                            <span
+                                                v-if="invoice.has_debit_notes"
+                                                class="badge bg-info text-dark ms-1"
+                                                tabindex="0"
+                                                data-bs-toggle="popover"
+                                                data-bs-html="true"
+                                                :data-bs-content="formatNotesPopover(invoice.notes_info?.filter(n => n.type === 'debito'))"
+                                                data-bs-trigger="focus hover"
+                                                style="cursor:pointer;"
+                                            >ND</span>
+                                        </td>
                                         <td style="white-space:nowrap;">{{ invoice.date }}</td>
                                         <td style="white-space:nowrap;">{{ invoice.due_date }}</td>
                                         <td style="white-space:nowrap;">
@@ -785,7 +834,29 @@ invoice, index
                                             <td style="white-space:nowrap;">{{ row.month }}</td>
                                             <td style="white-space:nowrap; max-width:200px; overflow:hidden; text-overflow:ellipsis;">{{ row.supplier.name }}</td>
                                             <td style="white-space:nowrap; max-width:180px; overflow:hidden; text-overflow:ellipsis;">{{ row.companyReason?.name || '—' }}</td>
-                                            <td style="white-space:nowrap;">{{ row.number_document }}</td>
+                                            <td style="white-space:nowrap;">
+                                                {{ row.number_document }}
+                                                <span
+                                                    v-if="row.has_credit_notes"
+                                                    class="badge bg-warning text-dark ms-1"
+                                                    tabindex="0"
+                                                    data-bs-toggle="popover"
+                                                    data-bs-html="true"
+                                                    :data-bs-content="formatNotesPopover(row.notes_info?.filter(n => n.type === 'credito'))"
+                                                    data-bs-trigger="focus hover"
+                                                    style="cursor:pointer;"
+                                                >NC</span>
+                                                <span
+                                                    v-if="row.has_debit_notes"
+                                                    class="badge bg-info text-dark ms-1"
+                                                    tabindex="0"
+                                                    data-bs-toggle="popover"
+                                                    data-bs-html="true"
+                                                    :data-bs-content="formatNotesPopover(row.notes_info?.filter(n => n.type === 'debito'))"
+                                                    data-bs-trigger="focus hover"
+                                                    style="cursor:pointer;"
+                                                >ND</span>
+                                            </td>
                                             <td style="white-space:nowrap;">{{ row.date }}</td>
                                             <td style="white-space:nowrap; max-width:220px; overflow:hidden; text-overflow:ellipsis;">{{ row.product_name }}</td>
                                             <td class="text-end" style="white-space:nowrap;">{{ row.product_amount.toLocaleString('es-ES') }}</td>

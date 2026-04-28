@@ -25,7 +25,9 @@ class InvoicesController extends Controller
             'month:id,name',
             'user:id,name',
             'invoiceProducts.product:id,name,level1_id',
-            'expenseReport:id,number'
+            'expenseReport:id,number',
+            'creditDebitNotes:id,invoice_id,type,number,date,supplier_id',
+            'creditDebitNotes.supplier:id,name',
         ])
         ->where('team_id', $user->team_id)
         ->where('season_id', $season_id)
@@ -100,6 +102,14 @@ class InvoicesController extends Controller
                 'total'             => '$' . number_format($total, 0, ',', '.'),
                 'expense_report'    => $invoice->expenseReport ? $invoice->expenseReport->number : null,
                 'user_name'         => $invoice->user ? $invoice->user->name : null,
+                'has_credit_notes'  => $invoice->creditDebitNotes->where('type', 'credito')->count() > 0,
+                'has_debit_notes'   => $invoice->creditDebitNotes->where('type', 'debito')->count() > 0,
+                'notes_info'        => $invoice->creditDebitNotes->map(fn($n) => [
+                    'type'     => $n->type,
+                    'number'   => $n->number,
+                    'date'     => $n->date?->format('Y-m-d'),
+                    'supplier' => $n->supplier?->name ?? '',
+                ])->values(),
             ];
         });
 
