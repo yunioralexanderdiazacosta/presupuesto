@@ -23,7 +23,7 @@ class Level3Controller extends Controller
                 $query->where('name', 'like', '%'.$search.'%');
             })
             ->where('level2_id', $level2->id)
-            ->paginate(10);
+            ->paginate(1000);
 
         // Nueva lógica: total = cantidad de Level3 para este Level2
         $total = Level3::where('level2_id', $level2->id)->count();

@@ -16,7 +16,7 @@ class Level2Controller extends Controller
 
         $levels = Level2::with('level1')->when($request->term, function ($query, $search) {
             $query->where('name', 'like', '%'.$search.'%');
-        })->where('level1_id', $level1->id)->paginate(10);
+        })->where('level1_id', $level1->id)->paginate(1000);
 
         return Inertia::render('Levels/Level2', compact('level1', 'levels', 'term'));
     }

@@ -20,7 +20,7 @@ class LevelsController extends Controller
 
         $levels = Level1::where('team_id', $user->team_id)->when($request->term, function ($query, $search) {
             $query->where('name', 'like', '%'.$search.'%');
-        })->where('season_id', $season_id)->paginate(10)->withQueryString();
+        })->where('season_id', $season_id)->paginate(1000)->withQueryString();
 
         return Inertia::render('Levels', compact('levels', 'term'));
     }
