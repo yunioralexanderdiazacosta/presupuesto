@@ -110,6 +110,7 @@ const menuItems = [
     { label: 'Vacaciones', route: 'vacations.index', icon: 'fas fa-umbrella-beach', section: 'Remuneraciones' },
     { label: 'Feriados', route: 'holidays.index', icon: 'fas fa-calendar-alt', section: 'Remuneraciones' },
     { label: 'Gestión Diaria', route: 'daily-management.index', icon: 'fas fa-tasks', section: 'Remuneraciones' },
+    { label: 'Reporte Mensual', route: 'payroll-reports.index', icon: 'fas fa-file-invoice-dollar', section: 'Remuneraciones' },
     { label: 'Horarios', route: 'schedules.index', icon: 'fas fa-clock', section: 'Remuneraciones' },
     { label: 'Ciudades', route: 'cities.index', icon: 'fas fa-city', section: 'Remuneraciones' },
     { label: 'Evaluación de Proyectos', route: 'project-evaluations.index', icon: 'fas fa-seedling', section: 'Planificación' },
@@ -618,6 +619,11 @@ const navigateTo = (routeName) => {
                 </li>
                 <li class="nav-item"><Link class="nav-link" :href="route('daily-management.index')">
                     <div class="d-flex align-items-center"><span class="nav-link-text ps-3">Gestión Diaria</span>
+                    </div>
+                  </Link>
+                </li>
+                <li class="nav-item"><Link class="nav-link" :href="route('payroll-reports.index')">
+                    <div class="d-flex align-items-center"><span class="nav-link-icon"><span class="fas fa-file-invoice-dollar"></span></span><span class="nav-link-text ps-1">Reporte Mensual</span>
                     </div>
                   </Link>
                 </li>

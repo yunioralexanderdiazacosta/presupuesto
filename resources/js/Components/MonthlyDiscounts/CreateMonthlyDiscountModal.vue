@@ -45,7 +45,7 @@ function save() {
 
 <template>
     <div class="modal fade show" tabindex="-1" style="display:block; background:rgba(0,0,0,0.2);" v-if="show">
-        <div class="modal-dialog modal-md">
+        <div class="modal-dialog modal-lg">
             <div class="modal-content" style="background-color: #f8f9fa;">
                 <div class="modal-header bg-white border-bottom">
                     <h5 class="modal-title d-flex align-items-center">

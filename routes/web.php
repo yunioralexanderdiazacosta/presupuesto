@@ -350,6 +350,10 @@ use App\Http\Controllers\DailyManagement\ExportMonthlyExcelController;
 use App\Http\Controllers\DailyManagement\ExportMonthlyPdfController;
 use App\Http\Controllers\DailyManagement\YieldTemplatePdfController;
 use App\Http\Controllers\DailyManagement\YieldTemplateExcelController;
+// Rutas para Payroll Reports (Reportes de Remuneraciones)
+use App\Http\Controllers\PayrollReports\PayrollReportController;
+use App\Http\Controllers\PayrollReports\ShowPayrollReportController;
+use App\Http\Controllers\PayrollReports\ExportPayrollReportPdfController;
 // Rutas para Project Evaluations (Evaluación de Proyectos Agrícolas)
 use App\Http\Controllers\ProjectEvaluations\ProjectEvaluationController;
 use App\Http\Controllers\ProjectEvaluations\ShowProjectEvaluationController;
@@ -1119,6 +1123,11 @@ Route::middleware([
     Route::get('/daily-management/export-pdf', ExportMonthlyPdfController::class)->name('daily-management.export-pdf');
     Route::get('/daily-management/yield-template-pdf', YieldTemplatePdfController::class)->name('daily-management.yield-template-pdf');
     Route::get('/daily-management/yield-template-excel', YieldTemplateExcelController::class)->name('daily-management.yield-template-excel');
+
+    // Payroll Reports (Reportes Mensuales de Remuneraciones)
+    Route::get('/payroll-reports', [PayrollReportController::class, 'index'])->name('payroll-reports.index');
+    Route::get('/payroll-reports/{employee}/pdf', ExportPayrollReportPdfController::class)->name('payroll-reports.pdf');
+    Route::get('/payroll-reports/{employee}', ShowPayrollReportController::class)->name('payroll-reports.show');
 
     // Project Evaluations (Evaluación de Proyectos Agrícolas)
     Route::get('/project-evaluations', [ProjectEvaluationController::class, 'index'])->name('project-evaluations.index');
