@@ -15,6 +15,11 @@ class Termination extends Model
         'fecha_termino',
         'notas',
         'settlement',
+        'vacation_days',
+        'indemnification',
+        'notice_month',
+        'years_of_service',
+        'afc_discount',
         'created_by',
     ];
 

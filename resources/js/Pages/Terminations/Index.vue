@@ -5,6 +5,7 @@ import { router, Head } from '@inertiajs/vue3';
 import AppLayout from '@/Layouts/AppLayout.vue';
 import Breadcrumb from '@/Components/Breadcrumb.vue';
 import Multiselect from '@vueform/multiselect';
+import ExportExcelButton from '@/Components/ExportExcelButton.vue';
 
 const props = defineProps({
     activeContracts: Array,
@@ -26,9 +27,15 @@ const form = ref({
     fecha_termino: '',
     notas: '',
     settlement: '',
+    vacation_days: '',
+    indemnification: '',
+    notice_month: '',
+    years_of_service: '',
+    afc_discount: '',
 });
 
 const submitting = ref(false);
+const formCollapsed = ref(false);
 
 const handleSubmit = () => {
     if (!form.value.contract_ids.length) {
@@ -58,7 +65,7 @@ const handleSubmit = () => {
             submitting.value = true;
             router.post(route('terminations.store'), form.value, {
                 onSuccess: () => {
-                    form.value = { contract_ids: [], causal_termino_id: '', fecha_termino: '', notas: '', settlement: '' };
+                    form.value = { contract_ids: [], causal_termino_id: '', fecha_termino: '', notas: '', settlement: '', vacation_days: '', indemnification: '', notice_month: '', years_of_service: '', afc_discount: '' };
                     Swal.fire({
                         icon: 'success',
                         title: 'Registrado',
@@ -75,16 +82,66 @@ const handleSubmit = () => {
 
 // Historial filtro
 const term = ref('');
+const monthFilter = ref('');
+
 const filteredTerminations = computed(() => {
     if (!props.terminations) return [];
-    if (!term.value) return props.terminations;
-    const q = term.value.toLowerCase();
-    return props.terminations.filter(t =>
-        t.employee?.toLowerCase().includes(q) ||
-        t.rut?.toLowerCase().includes(q) ||
-        t.causal?.toLowerCase().includes(q)
-    );
+    let rows = props.terminations;
+
+    if (monthFilter.value) {
+        const [yyyy, mm] = monthFilter.value.split('-');
+        rows = rows.filter(t => {
+            if (!t.fecha_termino) return false;
+            const parts = t.fecha_termino.split('/'); // dd/mm/yyyy
+            return parts[1] === mm && parts[2] === yyyy;
+        });
+    }
+
+    if (term.value) {
+        const q = term.value.toLowerCase();
+        rows = rows.filter(t =>
+            t.employee?.toLowerCase().includes(q) ||
+            t.rut?.toLowerCase().includes(q) ||
+            t.causal?.toLowerCase().includes(q)
+        );
+    }
+
+    return rows;
 });
+
+const excelHeaders = [
+    { label: 'Colaborador',     key: 'employee' },
+    { label: 'RUT',             key: 'rut' },
+    { label: 'Causal',          key: 'causal' },
+    { label: 'Fecha Término',   key: 'fecha_termino' },
+    { label: 'Finiquito',       key: 'settlement',       type: 'number' },
+    { label: 'Indemnización',   key: 'indemnification',  type: 'number' },
+    { label: 'Mes de Aviso',    key: 'notice_month',     type: 'number' },
+    { label: 'Días Vacaciones', key: 'vacation_days',    type: 'number' },
+    { label: 'Años Servicio',   key: 'years_of_service', type: 'number' },
+    { label: 'Descuento AFC',   key: 'afc_discount',     type: 'number' },
+    { label: 'Notas',           key: 'notas' },
+    { label: 'Registrado por',  key: 'created_by' },
+    { label: 'Fecha Registro',  key: 'created_at' },
+];
+
+const excelData = computed(() =>
+    filteredTerminations.value.map(t => ({
+        employee:        t.employee || '',
+        rut:             t.rut || '',
+        causal:          t.causal || '',
+        fecha_termino:   t.fecha_termino || '',
+        settlement:      t.settlement != null ? Number(t.settlement) : '',
+        indemnification: t.indemnification != null ? Number(t.indemnification) : '',
+        notice_month:    t.notice_month != null ? Number(t.notice_month) : '',
+        vacation_days:   t.vacation_days != null ? Number(t.vacation_days) : '',
+        years_of_service: t.years_of_service != null ? Number(t.years_of_service) : '',
+        afc_discount:    t.afc_discount != null ? Number(t.afc_discount) : '',
+        notas:           t.notas || '',
+        created_by:      t.created_by || '',
+        created_at:      t.created_at || '',
+    }))
+);
 
 const handleAnular = (t) => {
     Swal.fire({
@@ -133,10 +190,11 @@ const handleAnular = (t) => {
 
                 <!-- Formulario de Registro -->
                 <div class="card mb-4" style="border: 1px solid #c3d4c7;">
-                    <div class="card-header" style="background-color: #f0f5f1; border-bottom: 1px solid #c3d4c7;">
+                    <div class="card-header d-flex justify-content-between align-items-center" style="background-color: #f0f5f1; border-bottom: 1px solid #c3d4c7; cursor: pointer;" @click="formCollapsed = !formCollapsed">
                         <h6 class="mb-0" style="color: #3d5c45;"><i class="fas fa-plus-circle me-2"></i>Registrar Término de Faena</h6>
+                        <i class="fas text-muted" :class="formCollapsed ? 'fa-chevron-down' : 'fa-chevron-up'"></i>
                     </div>
-                    <div class="card-body">
+                    <div v-show="!formCollapsed" class="card-body">
                         <form @submit.prevent="handleSubmit">
                             <div class="row g-3">
 
@@ -205,13 +263,79 @@ const handleAnular = (t) => {
                                 <!-- Finiquito -->
                                 <div class="col-md-4">
                                     <label class="form-label small fw-semibold">Finiquito (opcional)</label>
+                                    <div class="input-group input-group-sm">
+                                        <span class="input-group-text">$</span>
+                                        <input
+                                            v-model="form.settlement"
+                                            type="number"
+                                            min="0"
+                                            class="form-control form-control-sm"
+                                            placeholder="0"
+                                        />
+                                    </div>
+                                </div>
+
+                                <!-- Años de servicio + Vacaciones -->
+                                <div class="col-md-3">
+                                    <label class="form-label small fw-semibold">Años de Servicio</label>
                                     <input
-                                        v-model="form.settlement"
+                                        v-model="form.years_of_service"
                                         type="number"
                                         min="0"
                                         class="form-control form-control-sm"
-                                        placeholder="Monto finiquito..."
+                                        placeholder="0"
                                     />
+                                </div>
+                                <div class="col-md-3">
+                                    <label class="form-label small fw-semibold">Días de Vacaciones</label>
+                                    <input
+                                        v-model="form.vacation_days"
+                                        type="number"
+                                        min="0"
+                                        class="form-control form-control-sm"
+                                        placeholder="0"
+                                    />
+                                </div>
+
+                                <!-- Indemnización + Mes de aviso + AFC -->
+                                <div class="col-md-2">
+                                    <label class="form-label small fw-semibold">Indemnización</label>
+                                    <div class="input-group input-group-sm">
+                                        <span class="input-group-text">$</span>
+                                        <input
+                                            v-model="form.indemnification"
+                                            type="number"
+                                            min="0"
+                                            class="form-control form-control-sm"
+                                            placeholder="0"
+                                        />
+                                    </div>
+                                </div>
+                                <div class="col-md-2">
+                                    <label class="form-label small fw-semibold">Mes de Aviso</label>
+                                    <div class="input-group input-group-sm">
+                                        <span class="input-group-text">$</span>
+                                        <input
+                                            v-model="form.notice_month"
+                                            type="number"
+                                            min="0"
+                                            class="form-control form-control-sm"
+                                            placeholder="0"
+                                        />
+                                    </div>
+                                </div>
+                                <div class="col-md-2">
+                                    <label class="form-label small fw-semibold">Descuento AFC</label>
+                                    <div class="input-group input-group-sm">
+                                        <span class="input-group-text">$</span>
+                                        <input
+                                            v-model="form.afc_discount"
+                                            type="number"
+                                            min="0"
+                                            class="form-control form-control-sm"
+                                            placeholder="0"
+                                        />
+                                    </div>
                                 </div>
 
                                 <!-- Botón -->
@@ -233,26 +357,46 @@ const handleAnular = (t) => {
 
                 <!-- Historial -->
                 <div class="card">
-                    <div class="card-header bg-light d-flex justify-content-between align-items-center">
-                        <h6 class="mb-0 text-dark"><i class="fas fa-history me-2"></i>Historial de Términos</h6>
-                        <input
-                            v-model="term"
-                            type="text"
-                            class="form-control form-control-sm w-auto"
-                            placeholder="Buscar..."
-                            style="min-width: 200px;"
-                        />
+                    <div class="card-header bg-light d-flex justify-content-between align-items-center gap-2">
+                        <h6 class="mb-0 text-dark text-nowrap"><i class="fas fa-history me-2"></i>Historial de Términos</h6>
+                        <div class="d-flex align-items-center gap-2 ms-auto">
+                            <input
+                                v-model="monthFilter"
+                                type="month"
+                                class="form-control form-control-sm"
+                                style="min-width: 150px;"
+                                title="Filtrar por mes"
+                            />
+                            <input
+                                v-model="term"
+                                type="text"
+                                class="form-control form-control-sm"
+                                placeholder="Buscar..."
+                                style="min-width: 180px;"
+                            />
+                            <ExportExcelButton
+                                :data="excelData"
+                                :headers="excelHeaders"
+                                filename="terminos_faena.xlsx"
+                                class="btn btn-falcon-default btn-sm text-nowrap"
+                            />
+                        </div>
                     </div>
                     <div class="card-body p-0">
-                        <div class="table-responsive">
-                            <table class="table table-sm table-hover mb-0 fs-10">
+                        <div class="table-responsive" style="overflow-x: auto; white-space: nowrap;">
+                            <table class="table table-sm table-hover mb-0 fs-10" style="min-width: 1200px;">
                                 <thead class="table-light">
                                     <tr>
                                         <th>Colaborador</th>
                                         <th>RUT</th>
-                                        <th>Causal</th>
+                                        <th style="max-width: 180px;">Causal</th>
                                         <th>Fecha Término</th>
-                                        <th>Finiquito</th>
+                                        <th class="text-end">Finiquito</th>
+                                        <th class="text-end">Indemnización</th>
+                                        <th class="text-end">Mes de Aviso</th>
+                                        <th class="text-center">Días Vacaciones</th>
+                                        <th class="text-center">Años Servicio</th>
+                                        <th class="text-end">Descuento AFC</th>
                                         <th>Notas</th>
                                         <th>Registrado por</th>
                                         <th>Fecha Registro</th>
@@ -261,14 +405,19 @@ const handleAnular = (t) => {
                                 </thead>
                                 <tbody>
                                     <tr v-if="!filteredTerminations.length">
-                                        <td colspan="9" class="text-center text-muted py-3">No hay registros.</td>
+                                        <td colspan="14" class="text-center text-muted py-3">No hay registros.</td>
                                     </tr>
                                     <tr v-for="t in filteredTerminations" :key="t.id">
                                         <td>{{ t.employee }}</td>
                                         <td>{{ t.rut }}</td>
-                                        <td>{{ t.causal }}</td>
+                                        <td style="max-width: 180px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;" :title="t.causal">{{ t.causal }}</td>
                                         <td>{{ t.fecha_termino }}</td>
-                                        <td>{{ t.settlement != null ? '$' + Number(t.settlement).toLocaleString('es-CL') : '—' }}</td>
+                                        <td class="text-end">{{ t.settlement != null ? '$' + Number(t.settlement).toLocaleString('es-CL') : '—' }}</td>
+                                        <td class="text-end">{{ t.indemnification != null ? '$' + Number(t.indemnification).toLocaleString('es-CL') : '—' }}</td>
+                                        <td class="text-end">{{ t.notice_month != null ? '$' + Number(t.notice_month).toLocaleString('es-CL') : '—' }}</td>
+                                        <td class="text-center">{{ t.vacation_days ?? '—' }}</td>
+                                        <td class="text-center">{{ t.years_of_service ?? '—' }}</td>
+                                        <td class="text-end">{{ t.afc_discount != null ? '$' + Number(t.afc_discount).toLocaleString('es-CL') : '—' }}</td>
                                         <td>{{ t.notas ?? '—' }}</td>
                                         <td>{{ t.created_by }}</td>
                                         <td>{{ t.created_at }}</td>

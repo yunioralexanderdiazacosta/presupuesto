@@ -66,6 +66,11 @@ class TerminationTemplateController extends Controller
             ['field' => '${causal_nombre}',      'description' => 'Nombre/descripción de la causal'],
             ['field' => '${fecha_termino}',      'description' => 'Fecha de término del contrato'],
             ['field' => '${finiquito}',          'description' => 'Monto del finiquito (formateado)'],
+            ['field' => '${indemnizacion}',      'description' => 'Indemnización (formateado)'],
+            ['field' => '${mes_aviso}',          'description' => 'Mes de aviso (formateado)'],
+            ['field' => '${descuento_afc}',      'description' => 'Descuento AFC (formateado)'],
+            ['field' => '${dias_vacaciones}',    'description' => 'Días de vacaciones pendientes'],
+            ['field' => '${anos_servicio}',      'description' => 'Años de servicio'],
             ['field' => '${notas}',              'description' => 'Notas del término'],
             // Datos de la empresa
             ['field' => '${razon_social}',       'description' => 'Razón social de la empresa'],

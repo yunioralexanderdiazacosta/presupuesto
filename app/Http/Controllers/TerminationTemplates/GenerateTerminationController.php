@@ -145,6 +145,11 @@ class GenerateTerminationController
         $template->setValue('causal_nombre',      $causal?->nombre ?? '');
         $template->setValue('fecha_termino',      optional($termination->fecha_termino)->format('d/m/Y') ?? '');
         $template->setValue('finiquito',          $termination->settlement !== null ? number_format($termination->settlement, 0, ',', '.') : '');
+        $template->setValue('indemnizacion',      $termination->indemnification !== null ? number_format($termination->indemnification, 0, ',', '.') : '');
+        $template->setValue('mes_aviso',          $termination->notice_month !== null ? number_format($termination->notice_month, 0, ',', '.') : '');
+        $template->setValue('descuento_afc',      $termination->afc_discount !== null ? number_format($termination->afc_discount, 0, ',', '.') : '');
+        $template->setValue('dias_vacaciones',    $termination->vacation_days !== null ? (string) $termination->vacation_days : '');
+        $template->setValue('anos_servicio',      $termination->years_of_service !== null ? (string) $termination->years_of_service : '');
         $template->setValue('notas',              $termination->notas ?? '');
 
         // Datos de la empresa

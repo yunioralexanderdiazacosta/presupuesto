@@ -51,6 +51,11 @@ class TerminationController extends Controller
                 'causal'       => $t->causalTermino->articulo . ' - ' . $t->causalTermino->nombre,
                 'notas'        => $t->notas,
                 'settlement'   => $t->settlement,
+                'vacation_days'    => $t->vacation_days,
+                'indemnification'  => $t->indemnification,
+                'notice_month'     => $t->notice_month,
+                'years_of_service' => $t->years_of_service,
+                'afc_discount'     => $t->afc_discount,
                 'created_by'   => $t->creator->name ?? '',
                 'created_at'   => $t->created_at->format('d/m/Y H:i'),
             ]);

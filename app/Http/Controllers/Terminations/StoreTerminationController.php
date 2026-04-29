@@ -20,6 +20,11 @@ class StoreTerminationController extends Controller
             'fecha_termino'      => 'required|date',
             'notas'              => 'nullable|string|max:500',
             'settlement'         => 'nullable|integer|min:0',
+            'vacation_days'      => 'nullable|integer|min:0',
+            'indemnification'    => 'nullable|integer|min:0',
+            'notice_month'       => 'nullable|integer|min:0',
+            'years_of_service'   => 'nullable|integer|min:0',
+            'afc_discount'       => 'nullable|integer|min:0',
         ]);
 
         $user = Auth::user();
@@ -42,6 +47,11 @@ class StoreTerminationController extends Controller
                     'fecha_termino'     => $request->fecha_termino,
                     'notas'             => $request->notas,
                     'settlement'        => $request->settlement,
+                    'vacation_days'     => $request->vacation_days,
+                    'indemnification'   => $request->indemnification,
+                    'notice_month'      => $request->notice_month,
+                    'years_of_service'  => $request->years_of_service,
+                    'afc_discount'      => $request->afc_discount,
                     'created_by'        => $user->id,
                 ]);
 

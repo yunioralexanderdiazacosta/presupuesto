@@ -37,6 +37,7 @@ const term = ref('');
 const statusFilter = ref('');
 const typeFilter = ref('');
 const parcelFilter = ref('');
+const companyReasonFilter = ref('');
 
 const filteredRows = computed(() => {
     if (!props.contracts) return [];
@@ -49,6 +50,10 @@ const filteredRows = computed(() => {
 
     if (parcelFilter.value) {
         rows = rows.filter(item => String(item.parcel_id) === String(parcelFilter.value));
+    }
+
+    if (companyReasonFilter.value) {
+        rows = rows.filter(item => String(item.company_reason_id) === String(companyReasonFilter.value));
     }
 
     if (typeFilter.value) {
@@ -265,12 +270,12 @@ const excelData = computed(() =>
                 <!-- Filtros -->
                 <div class="row mb-3 g-2">
                     <div class="col-md-4">
-                        <input v-model="term" class="form-control form-control-sm" placeholder="Buscar por nombre, RUT, empresa, cargo..." />
+                        <input v-model="term" class="form-control form-control-sm" placeholder="Buscar por nombre, RUT, cargo..." />
                     </div>
                     <div class="col-md-3">
-                        <select v-model="parcelFilter" class="form-select form-select-sm">
-                            <option value="">Todas las parcelas</option>
-                            <option v-for="p in parcels" :key="p.value" :value="p.value">{{ p.label }}</option>
+                        <select v-model="companyReasonFilter" class="form-select form-select-sm">
+                            <option value="">Todas las razones sociales</option>
+                            <option v-for="c in companyReasons" :key="c.value" :value="c.value">{{ c.label.replace(/\s*\([^)]*\)/, '') }}</option>
                         </select>
                     </div>
                     <div class="col-md-3">
