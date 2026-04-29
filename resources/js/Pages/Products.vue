@@ -333,7 +333,17 @@ const sortClass = (field) => ({
                             <template v-else>
                                 <tr v-for="(product, index) in filteredProducts" :key="index">
                                     <td>{{ product.id }}</td>
-                                    <td>{{ product.name }}</td>
+                                    <td>
+                                        {{ product.name }}
+                                        <span
+                                            v-if="product.invoices_count > 0 && (!product.level1_id || !product.level2_id || !product.level3_id)"
+                                            class="badge bg-warning text-dark ms-1"
+                                            style="font-size: 0.65rem;"
+                                            :title="'Tiene ' + product.invoices_count + ' factura(s) asociada(s) pero niveles incompletos'"
+                                        >
+                                            <i class="fas fa-exclamation-triangle me-1"></i>Sin clasificar
+                                        </span>
+                                    </td>
                                     <td>{{ product.unit ? product.unit.name : '—' }}</td>
                                     <td>{{ product.level1 ? product.level1.name : '—' }}</td>
                                     <td>{{ product.level2 ? product.level2.name : '—' }}</td>

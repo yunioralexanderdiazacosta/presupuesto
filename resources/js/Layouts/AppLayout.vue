@@ -340,53 +340,48 @@ const navigateTo = (routeName) => {
               <ul class="nav collapse" id="pricing">
 
                     <li class="nav-item">
-                      <Link class="nav-link" :href="route('outflows.dashboard')">
+                      <a class="nav-link dropdown-indicator" href="#dashboards-kpi" data-bs-toggle="collapse" aria-expanded="false" aria-controls="dashboards-kpi">
                         <div class="d-flex align-items-center">
-                          <span class="nav-link-text ps-3">
-                            <i class="fas fa-chart-bar me-2"></i>Dashboard Gestión
-                          </span>
+                          <span class="nav-link-text ps-3"><i class="fas fa-tachometer-alt me-2"></i>Dashboard y KPI</span>
                         </div>
-                      </Link>
-                    </li>
-
-                    <li class="nav-item">
-                      <Link class="nav-link" :href="route('comparative.dashboard')">
-                        <div class="d-flex align-items-center">
-                          <span class="nav-link-text ps-3">
-                            <i class="fas fa-chart-line me-2"></i>Comparativo Presupuesto vs Real
-                          </span>
-                        </div>
-                      </Link>
-                    </li>
-
-                    <li class="nav-item">
-                      <Link class="nav-link" :href="route('hectare.dashboard')">
-                        <div class="d-flex align-items-center">
-                          <span class="nav-link-text ps-3">
-                            <i class="fas fa-seedling me-2"></i>Gestión por Hectárea
-                          </span>
-                        </div>
-                      </Link>
-                    </li>
-
-                    <li class="nav-item">
-                      <Link class="nav-link" :href="route('investment.dashboard')">
-                        <div class="d-flex align-items-center">
-                          <span class="nav-link-text ps-3">
-                            <i class="fas fa-chart-pie me-2"></i>Dashboard Inversiones
-                          </span>
-                        </div>
-                      </Link>
-                    </li>
-
-                    <li class="nav-item">
-                      <Link class="nav-link" :href="route('profit-loss.index')">
-                        <div class="d-flex align-items-center">
-                          <span class="nav-link-text ps-3">
-                            <i class="fas fa-balance-scale me-2"></i>Utilidad / Pérdida
-                          </span>
-                        </div>
-                      </Link>
+                      </a>
+                      <ul class="nav collapse" id="dashboards-kpi">
+                        <li class="nav-item">
+                          <Link class="nav-link" :href="route('outflows.dashboard')">
+                            <div class="d-flex align-items-center">
+                              <span class="nav-link-text ps-4"><i class="fas fa-chart-bar me-2"></i>Dashboard Gestión</span>
+                            </div>
+                          </Link>
+                        </li>
+                        <li class="nav-item">
+                          <Link class="nav-link" :href="route('comparative.dashboard')">
+                            <div class="d-flex align-items-center">
+                              <span class="nav-link-text ps-4"><i class="fas fa-chart-line me-2"></i>Comparativo Presupuesto vs Real</span>
+                            </div>
+                          </Link>
+                        </li>
+                        <li class="nav-item">
+                          <Link class="nav-link" :href="route('hectare.dashboard')">
+                            <div class="d-flex align-items-center">
+                              <span class="nav-link-text ps-4"><i class="fas fa-seedling me-2"></i>Gestión por Hectárea</span>
+                            </div>
+                          </Link>
+                        </li>
+                        <li class="nav-item">
+                          <Link class="nav-link" :href="route('investment.dashboard')">
+                            <div class="d-flex align-items-center">
+                              <span class="nav-link-text ps-4"><i class="fas fa-chart-pie me-2"></i>Dashboard Inversiones</span>
+                            </div>
+                          </Link>
+                        </li>
+                        <li class="nav-item">
+                          <Link class="nav-link" :href="route('profit-loss.index')">
+                            <div class="d-flex align-items-center">
+                              <span class="nav-link-text ps-4"><i class="fas fa-balance-scale me-2"></i>Utilidad / Pérdida</span>
+                            </div>
+                          </Link>
+                        </li>
+                      </ul>
                     </li>
 
                   <li class="nav-item">

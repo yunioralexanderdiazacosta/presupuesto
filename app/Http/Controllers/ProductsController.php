@@ -72,6 +72,7 @@ class ProductsController extends Controller
             });
         })
         ->with('unit','level1','level2','level3')
+        ->withCount('invoices')
         ->where('team_id', $user->team_id)
         ->paginate(5000)
         ->withQueryString();

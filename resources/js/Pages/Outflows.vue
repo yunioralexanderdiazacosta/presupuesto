@@ -61,6 +61,7 @@ const filterSupplier = ref(null);
 const filterLevel1 = ref(null);
 const filterLevel2 = ref(null);
 const filterLevel3 = ref(null);
+const filterProject = ref(null);
 
 // Opciones únicas extraídas de los datos ya cargados
 const mesOptions = computed(() => {
@@ -100,6 +101,11 @@ const level3Options = computed(() => {
   const unique = [...new Set(source.map(i => i.level3_name).filter(Boolean))];
   return unique.sort().map(v => ({ value: v, label: v }));
 });
+const projectOptions = computed(() => {
+  if (!props.outflowDetails?.length) return [];
+  const unique = [...new Set(props.outflowDetails.map(i => i.project).filter(Boolean))];
+  return unique.sort().map(v => ({ value: v, label: v }));
+});
 
 // Limpiar niveles hijos al cambiar padre
 watch(filterLevel1, () => { filterLevel2.value = null; filterLevel3.value = null; });
@@ -107,7 +113,7 @@ watch(filterLevel2, () => { filterLevel3.value = null; });
 
 const hasActiveFilters = computed(() => {
   return filterMes.value || filterOperation.value || filterSupplier.value 
-      || filterLevel1.value || filterLevel2.value || filterLevel3.value;
+      || filterLevel1.value || filterLevel2.value || filterLevel3.value || filterProject.value;
 });
 
 const isReloading = ref(false);
@@ -128,6 +134,7 @@ const filteredOutflowDetails = computed(() => {
   if (filterLevel1.value) result = result.filter(i => i.level1_name === filterLevel1.value);
   if (filterLevel2.value) result = result.filter(i => i.level2_name === filterLevel2.value);
   if (filterLevel3.value) result = result.filter(i => i.level3_name === filterLevel3.value);
+  if (filterProject.value) result = result.filter(i => i.project === filterProject.value);
 
   // Filtro de texto
   if (termEdicion.value) {
@@ -840,6 +847,18 @@ function copyToAllCards(sourceCardId) {
                         <Multiselect
                           v-model="filterLevel3"
                           :options="level3Options"
+                          :searchable="true"
+                          placeholder="Todos"
+                          :canClear="true"
+                          :canDeselect="true"
+                          class="multiselect-sm"
+                        />
+                      </div>
+                      <div style="min-width: 130px; flex: 0 1 160px;">
+                        <label class="form-label small mb-0">Proyecto</label>
+                        <Multiselect
+                          v-model="filterProject"
+                          :options="projectOptions"
                           :searchable="true"
                           placeholder="Todos"
                           :canClear="true"
