@@ -6,6 +6,7 @@ import AppLayout from '@/Layouts/AppLayout.vue';
 import Breadcrumb from '@/Components/Breadcrumb.vue';
 import CreateContractModal from '@/Components/Contracts/CreateContractModal.vue';
 import EditContractModal from '@/Components/Contracts/EditContractModal.vue';
+import ExportExcelButton from '@/Components/ExportExcelButton.vue';
 
 const page = usePage();
 
@@ -35,6 +36,7 @@ const links = [
 const term = ref('');
 const statusFilter = ref('');
 const typeFilter = ref('');
+const parcelFilter = ref('');
 
 const filteredRows = computed(() => {
     if (!props.contracts) return [];
@@ -43,6 +45,10 @@ const filteredRows = computed(() => {
     if (statusFilter.value !== '') {
         const isActive = statusFilter.value === 'active';
         rows = rows.filter(item => item.is_active === isActive);
+    }
+
+    if (parcelFilter.value) {
+        rows = rows.filter(item => String(item.parcel_id) === String(parcelFilter.value));
     }
 
     if (typeFilter.value) {
@@ -138,6 +144,36 @@ function formatCurrency(val) {
     if (val === null || val === undefined) return '-';
     return '$' + Number(val).toLocaleString('es-CL');
 }
+
+const excelHeaders = [
+    { label: 'Estado',          key: '__estado' },
+    { label: 'Colaborador',     key: '__nombre' },
+    { label: 'RUT',             key: '__rut' },
+    { label: 'Empresa',         key: '__empresa' },
+    { label: 'Tipo',            key: 'contract_type' },
+    { label: 'Fecha Contrato',  key: 'contract_date' },
+    { label: 'Fecha Término',   key: 'end_date' },
+    { label: 'Cargo',           key: 'position' },
+    { label: 'Sueldo Base',     key: 'base_salary',  type: 'number' },
+    { label: 'Sueldo Líquido',  key: 'net_salary',   type: 'number' },
+    { label: 'Horario',         key: '__horario' },
+];
+
+const excelData = computed(() =>
+    filteredRows.value.map(c => ({
+        __estado:  c.is_active ? 'Vigente' : 'Finalizado',
+        __nombre:  c.employee?.full_name || '',
+        __rut:     c.employee?.rut || '',
+        __empresa: c.company_reason?.name || '',
+        contract_type: c.contract_type || '',
+        contract_date: c.contract_date || '',
+        end_date:  c.end_date || '',
+        position:  c.position || '',
+        base_salary:  c.base_salary ? Number(c.base_salary) : 0,
+        net_salary:   c.net_salary  ? Number(c.net_salary)  : 0,
+        __horario: c.schedule?.name || '',
+    }))
+);
 </script>
 
 <template>
@@ -154,6 +190,12 @@ function formatCurrency(val) {
                     </div>
                     <div class="col-6 col-sm-auto ms-auto text-end ps-0">
                         <div class="d-flex align-items-center gap-2">
+                            <ExportExcelButton
+                                :data="excelData"
+                                :headers="excelHeaders"
+                                filename="contratos.xlsx"
+                                class="btn btn-falcon-default btn-sm"
+                            />
                             <button class="btn btn-falcon-default btn-sm" @click="openCreateModal">
                                 <span class="fas fa-plus" data-fa-transform="shrink-3 down-2"></span>
                                 <span class="d-none d-sm-inline-block ms-1">Nuevo</span>
@@ -222,8 +264,14 @@ function formatCurrency(val) {
 
                 <!-- Filtros -->
                 <div class="row mb-3 g-2">
-                    <div class="col-md-6">
+                    <div class="col-md-4">
                         <input v-model="term" class="form-control form-control-sm" placeholder="Buscar por nombre, RUT, empresa, cargo..." />
+                    </div>
+                    <div class="col-md-3">
+                        <select v-model="parcelFilter" class="form-select form-select-sm">
+                            <option value="">Todas las parcelas</option>
+                            <option v-for="p in parcels" :key="p.value" :value="p.value">{{ p.label }}</option>
+                        </select>
                     </div>
                     <div class="col-md-3">
                         <select v-model="typeFilter" class="form-select form-select-sm">
@@ -231,7 +279,7 @@ function formatCurrency(val) {
                             <option v-for="t in contractTypes" :key="t" :value="t">{{ t }}</option>
                         </select>
                     </div>
-                    <div class="col-md-3">
+                    <div class="col-md-2">
                         <select v-model="statusFilter" class="form-select form-select-sm">
                             <option value="">Todos</option>
                             <option value="active">Vigentes</option>

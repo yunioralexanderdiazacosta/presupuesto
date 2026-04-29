@@ -8,6 +8,7 @@ use App\Models\DailyYield;
 use App\Models\Employee;
 use App\Models\MonthlyBonus;
 use App\Models\MonthlyDiscount;
+use App\Models\MonthlyDiscountType;
 use App\Models\OvertimeHour;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
@@ -29,7 +30,10 @@ class PayrollReportController extends Controller
         $endDate = $startDate->copy()->endOfMonth();
 
         // Employees with active contract for this team
-        $employees = Employee::with('activeContract')
+        $employees = Employee::with([
+                'activeContract.bank', 'activeContract.accountType', 'activeContract.paymentMethod',
+                'latestContract.bank', 'latestContract.accountType', 'latestContract.paymentMethod',
+            ])
             ->where('team_id', $user->team_id)
             ->where('is_active', true)
             ->orderBy('paternal_surname')
@@ -115,11 +119,18 @@ class PayrollReportController extends Controller
                 return null;
             }
 
+            $contract = $emp->activeContract ?? $emp->latestContract;
+
             return [
                 'id' => $emp->id,
                 'full_name' => $emp->full_name,
                 'rut' => $emp->rut,
-                'position' => $emp->activeContract?->position ?? '',
+                'position' => $contract?->position ?? '',
+                'contract_id' => $contract?->id ?? null,
+                'bank_name' => $contract?->bank?->name ?? '—',
+                'account_type_name' => $contract?->accountType?->name ?? '—',
+                'account_number' => $contract?->account_number ?? '—',
+                'payment_method_name' => $contract?->paymentMethod?->name ?? '—',
                 'total_tratos' => $totalTratos,
                 'total_monto_dia' => $totalMontoDia,
                 'total_bonus_diario' => $totalBonusDiario,
@@ -132,8 +143,40 @@ class PayrollReportController extends Controller
             ];
         })->filter()->values();
 
+        // Anticipos (descuentos tipo "aguinaldo")
+        $aguinaldoTypeIds = MonthlyDiscountType::where('team_id', $user->team_id)
+            ->whereRaw('LOWER(name) LIKE ?', ['%aguinaldo%'])
+            ->pluck('id');
+
+        $anticiposData = collect();
+        if ($aguinaldoTypeIds->isNotEmpty()) {
+            $anticiposRaw = MonthlyDiscount::with([
+                    'contract.employee',
+                    'contract.bank',
+                    'contract.accountType',
+                    'contract.paymentMethod',
+                ])
+                ->where('team_id', $user->team_id)
+                ->whereIn('monthly_discount_type_id', $aguinaldoTypeIds)
+                ->where('month_id', $monthId)
+                ->get();
+
+            $anticiposData = $anticiposRaw->map(fn($d) => [
+                'contract_id'         => $d->contract_id,
+                'rut'                 => $d->contract?->employee?->rut ?? '—',
+                'full_name'           => $d->contract?->employee?->full_name ?? '—',
+                'bank_name'           => $d->contract?->bank?->name ?? '—',
+                'account_type_name'   => $d->contract?->accountType?->name ?? '—',
+                'account_number'      => $d->contract?->account_number ?? '—',
+                'payment_method_name' => $d->contract?->paymentMethod?->name ?? '—',
+                'amount'              => $d->amount,
+                'observations'        => $d->observations ?? '',
+            ])->values();
+        }
+
         return Inertia::render('PayrollReports/Index', [
             'employees' => $employeesData,
+            'anticipos' => $anticiposData,
             'month' => $month,
             'totals' => [
                 'tratos' => $employeesData->sum('total_tratos'),

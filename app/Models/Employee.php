@@ -43,6 +43,11 @@ class Employee extends Model
         return $this->hasOne(Contract::class)->where('is_active', true)->latestOfMany('contract_date');
     }
 
+    public function latestContract()
+    {
+        return $this->hasOne(Contract::class)->latestOfMany('contract_date');
+    }
+
     public function getFullNameAttribute()
     {
         $parts = array_filter([

@@ -25,6 +25,7 @@ const props = defineProps({
     laborTypes: Array,
     laborRates: Array,
     bonusTypes: Array,
+    groupings: Array,
     laborTypesCatalog: Array,
     laborRatesCatalog: Array,
     bonusTypesCatalog: Array,
@@ -97,15 +98,15 @@ function shiftDate(days) {
 
             <div class="card-body bg-body-tertiary p-0">
                 <!-- Nav Pills -->
-                <ul class="nav nav-pills nav-fill border-bottom px-3 pt-3 pb-0">
+                <ul class="nav nav-pills nav-fill border-bottom px-3 pt-2 pb-0" style="font-size: 0.82rem;">
                     <li class="nav-item" v-for="tab in tabs" :key="tab.key">
                         <button
-                            class="nav-link py-2 px-3 rounded-bottom-0"
+                            class="nav-link py-1 px-2"
                             :class="{ active: currentTab === tab.key }"
                             @click="switchTab(tab.key)"
                         >
                             <i :class="tab.icon" class="me-1"></i>
-                            <span class="d-none d-md-inline">{{ tab.label }}</span>
+                            {{ tab.label }}
                         </button>
                     </li>
                 </ul>
@@ -118,6 +119,7 @@ function shiftDate(days) {
                         :attendances="attendances"
                         :laborTypes="laborTypes"
                         :costCenters="costCenters"
+                        :parcels="parcels"
                         :selectedDate="selectedDate"
                         :summary="attendanceSummary"
                     />
@@ -137,6 +139,7 @@ function shiftDate(days) {
                         :bonusTypes="bonusTypes"
                         :costCenters="costCenters"
                         :parcels="parcels"
+                        :groupings="groupings"
                         :selectedDate="selectedDate"
                         :hasAttendance="hasAttendance"
                         :maxWorkdayPerDay="maxWorkdayPerDay"

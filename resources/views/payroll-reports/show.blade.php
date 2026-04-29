@@ -212,9 +212,11 @@
                     <th style="width:10%" class="right">Tarifa $</th>
                     <th style="width:7%" class="right">Cantidad</th>
                     <th style="width:7%" class="right">Jornada</th>
-                    <th style="width:10%" class="right">Monto</th>
-                    <th style="width:14%">Bono</th>
-                    <th style="width:10%" class="right">Monto Bono</th>
+                    <th style="width:9%" class="right">Total Trato</th>
+                    <th style="width:10%" class="center">Nombre Bono</th>
+                    <th style="width:8%" class="right">Monto Bono</th>
+                    <th style="width:8%" class="right">Precio Objetivo</th>
+                    <th style="width:8%" class="right">Total</th>
                 </tr>
             </thead>
             <tbody>
@@ -242,16 +244,17 @@
                                     {{ $li['payment_type'] === 'dia' ? $li['workdays'] : '—' }}
                                 </td>
                                 <td class="right">$ {{ number_format($li['amount'], 0, ',', '.') }}</td>
-                                <td>{{ $li['bonus_type'] ?? '' }}</td>
+                                <td class="center">{{ $li['bonus_type'] ?? '' }}</td>
                                 <td class="right">
-                                    @if($li['bonus_amount'] > 0)
-                                        $ {{ number_format($li['bonus_amount'], 0, ',', '.') }}
-                                    @elseif($li['target_price_bonus'] > 0)
-                                        $ {{ number_format($li['target_price_bonus'], 0, ',', '.') }}
-                                    @else
-                                        —
-                                    @endif
+                                    {{ $li['bonus_amount'] > 0 ? '$ '.number_format($li['bonus_amount'], 0, ',', '.') : '—' }}
                                 </td>
+                                <td class="right">
+                                    {{ $li['target_price_bonus'] > 0 ? '$ '.number_format($li['target_price_bonus'], 0, ',', '.') : '—' }}
+                                </td>
+                                @php
+                                    $bonoParcial = $li['bonus_amount'] + $li['target_price_bonus'];
+                                @endphp
+                                <td class="right"><strong>$ {{ number_format($li['amount'] + $bonoParcial, 0, ',', '.') }}</strong></td>
                             </tr>
                         @endforeach
                     @endif
@@ -263,7 +266,9 @@
                     <td colspan="6">TOTALES</td>
                     <td class="right">$ {{ number_format($totals['tratos'] + $totals['monto_dia'], 0, ',', '.') }}</td>
                     <td></td>
-                    <td class="right">$ {{ number_format($totals['bonus_diario'] + $totals['bonus_objetivo'], 0, ',', '.') }}</td>
+                    <td class="right">$ {{ number_format($totals['bonus_diario'], 0, ',', '.') }}</td>
+                    <td class="right">$ {{ number_format($totals['bonus_objetivo'], 0, ',', '.') }}</td>
+                    <td class="right">$ {{ number_format($totals['tratos'] + $totals['monto_dia'] + $totals['bonus_diario'] + $totals['bonus_objetivo'], 0, ',', '.') }}</td>
                 </tr>
             </tfoot>
         </table>
@@ -273,29 +278,27 @@
     <div style="margin-top: 12px;">
 
         {{-- Columna izquierda: Descuentos --}}
-        <div class="col-left">
+        <div class="col-left" style="width:32%; margin-right:2%;">
             @if(count($monthlyDiscounts) > 0)
                 <div class="section-title">Descuentos Mensuales</div>
                 <table>
                     <thead class="thead-orange">
                         <tr>
-                            <th style="width:40%">Tipo de Descuento</th>
-                            <th style="width:40%">Observaciones</th>
-                            <th style="width:20%" class="right">Monto</th>
+                            <th style="width:55%">Tipo de Descuento</th>
+                            <th style="width:45%" class="right">Monto</th>
                         </tr>
                     </thead>
                     <tbody>
                         @foreach($monthlyDiscounts as $d)
                             <tr>
                                 <td>{{ $d['type'] }}</td>
-                                <td>{{ $d['observations'] ?: '—' }}</td>
                                 <td class="right">- $ {{ number_format($d['amount'], 0, ',', '.') }}</td>
                             </tr>
                         @endforeach
                     </tbody>
                     <tfoot class="tfoot-orange">
                         <tr>
-                            <td colspan="2">TOTAL DESCUENTOS</td>
+                            <td>TOTAL DESCUENTOS</td>
                             <td class="right">- $ {{ number_format($totals['descuentos'], 0, ',', '.') }}</td>
                         </tr>
                     </tfoot>
@@ -303,17 +306,16 @@
             @endif
         </div>
 
-        {{-- Columna derecha: Bonos Mensuales + Horas Extra --}}
-        <div class="col-right">
+        {{-- Columna central: Bonos Mensuales --}}
+        <div class="col-left" style="width:34%; margin-right:2%;">
             @if(count($monthlyBonuses) > 0)
                 <div class="section-title">Bonos Mensuales</div>
                 <table>
                     <thead class="thead-green">
                         <tr>
-                            <th style="width:30%">Tipo de Bono</th>
+                            <th style="width:45%">Tipo de Bono</th>
                             <th style="width:30%">Labor</th>
-                            <th style="width:20%">Observaciones</th>
-                            <th style="width:20%" class="right">Monto</th>
+                            <th style="width:25%" class="right">Monto</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -321,46 +323,45 @@
                             <tr>
                                 <td>{{ $b['type'] }}</td>
                                 <td>{{ $b['labor_type'] ?? '—' }}</td>
-                                <td>{{ $b['observations'] ?: '—' }}</td>
                                 <td class="right">$ {{ number_format($b['amount'], 0, ',', '.') }}</td>
                             </tr>
                         @endforeach
                     </tbody>
                     <tfoot class="tfoot-green">
                         <tr>
-                            <td colspan="3">TOTAL BONOS MENSUALES</td>
+                            <td colspan="2">TOTAL BONOS MENSUALES</td>
                             <td class="right">$ {{ number_format($totals['bonus_mensual'], 0, ',', '.') }}</td>
                         </tr>
                     </tfoot>
                 </table>
             @endif
 
+        </div>
+
+        {{-- Columna derecha: Horas Extra --}}
+        <div class="col-right" style="width:30%;">
             @if(count($overtimeHours) > 0)
-                <div class="section-title" style="margin-top: 8px;">Horas Extra</div>
+                <div class="section-title">Horas Extra</div>
                 <table>
                     <thead class="thead-green">
                         <tr>
-                            <th style="width:30%">Tipo</th>
-                            <th style="width:25%">Labor</th>
-                            <th style="width:10%" class="center">Horas</th>
-                            <th style="width:15%">Observaciones</th>
-                            <th style="width:20%" class="right">Monto</th>
+                            <th style="width:50%">Tipo</th>
+                            <th style="width:20%" class="center">Horas</th>
+                            <th style="width:30%" class="right">Monto</th>
                         </tr>
                     </thead>
                     <tbody>
                         @foreach($overtimeHours as $o)
                             <tr>
                                 <td>{{ $o['type'] }}</td>
-                                <td>{{ $o['labor_type'] ?? '—' }}</td>
                                 <td class="center">{{ $o['hours'] }}</td>
-                                <td>{{ $o['observations'] ?: '—' }}</td>
                                 <td class="right">$ {{ number_format($o['amount'], 0, ',', '.') }}</td>
                             </tr>
                         @endforeach
                     </tbody>
                     <tfoot class="tfoot-green">
                         <tr>
-                            <td colspan="4">TOTAL HORAS EXTRA</td>
+                            <td colspan="2">TOTAL HORAS EXTRA</td>
                             <td class="right">$ {{ number_format($totals['horas_extra'], 0, ',', '.') }}</td>
                         </tr>
                     </tfoot>

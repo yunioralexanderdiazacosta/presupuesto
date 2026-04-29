@@ -8,11 +8,13 @@ const props = defineProps({
     attendances: Object,
     laborTypes: Array,
     costCenters: Array,
+    parcels: Array, // <-- nuevo
     selectedDate: String,
     summary: Object,
 });
 
 const searchQuery = ref('');
+const filterParcel = ref('');
 
 const localData = reactive({});
 
@@ -47,11 +49,17 @@ function applyGlobalCostCenter() {
 }
 
 const filteredEmployees = computed(() => {
-    if (!searchQuery.value) return props.employees;
-    const q = searchQuery.value.toLowerCase();
-    return props.employees.filter(e =>
-        e.full_name.toLowerCase().includes(q) || e.rut.toLowerCase().includes(q)
-    );
+    let list = props.employees;
+    if (filterParcel.value) {
+        list = list.filter(e => String(e.parcel_id) === String(filterParcel.value));
+    }
+    if (searchQuery.value) {
+        const q = searchQuery.value.toLowerCase();
+        list = list.filter(e =>
+            e.full_name.toLowerCase().includes(q) || e.rut.toLowerCase().includes(q)
+        );
+    }
+    return list;
 });
 
 const presentCount = computed(() => props.employees.filter(e => localData[e.id]?.is_present).length);
@@ -131,6 +139,13 @@ function deleteAttendance() {
             <div class="col-md-3">
                 <label class="form-label small mb-1">Buscar trabajador</label>
                 <input type="text" v-model="searchQuery" class="form-control form-control-sm" placeholder="Nombre o RUT..." />
+            </div>
+            <div class="col-md-3">
+                <label class="form-label small mb-1">Filtrar por parcela</label>
+                <select v-model="filterParcel" class="form-select form-select-sm">
+                    <option value="">Todas las parcelas</option>
+                    <option v-for="p in parcels" :key="p.value" :value="p.value">{{ p.label }}</option>
+                </select>
             </div>
             <div class="col-md-3">
                 <label class="form-label small mb-1">Aplicar labor a todos</label>

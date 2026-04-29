@@ -319,6 +319,7 @@ use App\Http\Controllers\OvertimeHours\OvertimeHourController;
 use App\Http\Controllers\OvertimeHours\StoreOvertimeHourController;
 use App\Http\Controllers\OvertimeHours\UpdateOvertimeHourController;
 use App\Http\Controllers\OvertimeHours\DeleteOvertimeHourController;
+use App\Http\Controllers\OvertimeHours\ExportOvertimeHourPdfController;
 // Rutas para Monthly Discounts (Descuentos Mensuales - Remuneraciones)
 use App\Http\Controllers\MonthlyDiscounts\MonthlyDiscountController;
 use App\Http\Controllers\MonthlyDiscounts\StoreMonthlyDiscountController;
@@ -354,6 +355,8 @@ use App\Http\Controllers\DailyManagement\YieldTemplateExcelController;
 use App\Http\Controllers\PayrollReports\PayrollReportController;
 use App\Http\Controllers\PayrollReports\ShowPayrollReportController;
 use App\Http\Controllers\PayrollReports\ExportPayrollReportPdfController;
+use App\Http\Controllers\PayrollReports\ExportPayrollNominaPdfController;
+use App\Http\Controllers\PayrollReports\ExportPayrollAnticiposPdfController;
 // Rutas para Project Evaluations (Evaluación de Proyectos Agrícolas)
 use App\Http\Controllers\ProjectEvaluations\ProjectEvaluationController;
 use App\Http\Controllers\ProjectEvaluations\ShowProjectEvaluationController;
@@ -1086,6 +1089,7 @@ Route::middleware([
     Route::post('/overtime-hours', StoreOvertimeHourController::class)->name('overtime-hours.store');
     Route::put('/overtime-hours/{overtimeHour}', UpdateOvertimeHourController::class)->name('overtime-hours.update');
     Route::delete('/overtime-hours/{overtimeHour}', DeleteOvertimeHourController::class)->name('overtime-hours.delete');
+    Route::get('/overtime-hours/pdf', ExportOvertimeHourPdfController::class)->name('overtime-hours.pdf');
 
     // Monthly Discounts (Descuentos Mensuales - Remuneraciones)
     Route::get('/monthly-discounts', fn() => redirect()->route('monthly-bonuses.index', ['tab' => 'discounts']))->name('monthly-discounts.index');
@@ -1126,6 +1130,8 @@ Route::middleware([
 
     // Payroll Reports (Reportes Mensuales de Remuneraciones)
     Route::get('/payroll-reports', [PayrollReportController::class, 'index'])->name('payroll-reports.index');
+    Route::get('/payroll-reports/nomina-pdf', ExportPayrollNominaPdfController::class)->name('payroll-reports.nomina-pdf');
+    Route::get('/payroll-reports/anticipos-pdf', ExportPayrollAnticiposPdfController::class)->name('payroll-reports.anticipos-pdf');
     Route::get('/payroll-reports/{employee}/pdf', ExportPayrollReportPdfController::class)->name('payroll-reports.pdf');
     Route::get('/payroll-reports/{employee}', ShowPayrollReportController::class)->name('payroll-reports.show');
 

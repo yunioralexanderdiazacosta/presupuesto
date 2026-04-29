@@ -12,6 +12,7 @@ use App\Models\Employee;
 use App\Models\LaborRate;
 use App\Models\LaborType;
 use App\Models\Level3;
+use App\Models\Grouping;
 use App\Models\Parcel;
 use App\Models\Unit;
 use App\Models\WorkSchedule;
@@ -159,6 +160,24 @@ class DailyManagementController extends Controller
             ->get(['id', 'name'])
             ->map(fn($p) => ['value' => $p->id, 'label' => $p->name]);
 
+        // === AGRUPACIONES ===
+        $groupings = Grouping::with(['costCenters' => function ($q) use ($seasonId) {
+                $q->select('cost_centers.id', 'cost_centers.name')
+                  ->where('season_id', $seasonId);
+            }])
+            ->where('season_id', $seasonId)
+            ->whereHas('season.team', fn($q) => $q->where('team_id', $user->team_id))
+            ->orderBy('name')
+            ->get()
+            ->map(fn($g) => [
+                'id'           => $g->id,
+                'name'         => $g->name,
+                'cost_centers' => $g->costCenters->map(fn($cc) => [
+                    'id'   => $cc->id,
+                    'name' => $cc->name,
+                ])->values(),
+            ]);
+
         // === CATÁLOGOS (formato select) ===
         $laborTypes = LaborType::where('team_id', $user->team_id)
             ->where('is_active', true)
@@ -269,6 +288,7 @@ class DailyManagementController extends Controller
             'laborTypes' => $laborTypes,
             'laborRates' => $laborRates,
             'bonusTypes' => $bonusTypes,
+            'groupings'  => $groupings,
             // Catálogos CRUD
             'laborTypesCatalog' => $laborTypesCatalog,
             'laborRatesCatalog' => $laborRatesCatalog,

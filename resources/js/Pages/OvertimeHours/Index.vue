@@ -4,6 +4,7 @@ import { router } from '@inertiajs/vue3';
 import AppLayout from '@/Layouts/AppLayout.vue';
 import CreateOvertimeHourModal from '@/Components/OvertimeHours/CreateOvertimeHourModal.vue';
 import EditOvertimeHourModal from '@/Components/OvertimeHours/EditOvertimeHourModal.vue';
+import ExportExcelButton from '@/Components/ExportExcelButton.vue';
 import Swal from 'sweetalert2';
 
 const props = defineProps({
@@ -73,6 +74,25 @@ function formatCLP(value) {
     if (value === null || value === undefined) return '-';
     return Math.round(value).toLocaleString('es-CL');
 }
+
+const excelHeaders = [
+    { label: 'ID',            key: 'id' },
+    { label: 'Colaborador',   key: 'employee_name' },
+    { label: 'Mes',           key: 'month_name' },
+    { label: 'Tipo HE',       key: 'overtime_type_name' },
+    { label: 'Labor',         key: 'labor_type_name' },
+    { label: 'Centros de Costo', key: 'cost_center_names' },
+    { label: 'Horas',         key: 'hours', type: 'number' },
+    { label: 'Costo Estimado', key: '__cost' },
+    { label: 'Ingresado por', key: 'created_by' },
+];
+
+const excelData = computed(() =>
+    filteredOvertimeHours.value.map(r => ({
+        ...r,
+        __cost: calcCost(r) !== null ? Math.round(calcCost(r)) : 0,
+    }))
+);
 </script>
 
 <template>
@@ -86,10 +106,27 @@ function formatCLP(value) {
                         </h5>
                     </div>
                     <div class="col-6 col-sm-auto ms-auto text-end ps-0">
-                        <button class="btn btn-falcon-default btn-sm" @click="showCreate = true">
-                            <span class="fas fa-plus" data-fa-transform="shrink-3 down-2"></span>
-                            <span class="d-none d-sm-inline-block ms-1">Nueva</span>
-                        </button>
+                        <div class="d-flex align-items-center gap-2">
+                            <ExportExcelButton
+                                :data="excelData"
+                                :headers="excelHeaders"
+                                filename="horas-extras.xlsx"
+                                class="btn btn-falcon-default btn-sm"
+                            />
+                            <a
+                                :href="route('overtime-hours.pdf', { contract_id: filterContract || '', month_id: filterMonth || '' })"
+                                target="_blank"
+                                class="btn btn-falcon-default btn-sm"
+                                v-tooltip="'Exportar PDF con los filtros activos'"
+                            >
+                                <span class="fas fa-file-pdf" data-fa-transform="shrink-3 down-2"></span>
+                                <span class="d-none d-sm-inline-block ms-1">PDF</span>
+                            </a>
+                            <button class="btn btn-falcon-default btn-sm" @click="showCreate = true">
+                                <span class="fas fa-plus" data-fa-transform="shrink-3 down-2"></span>
+                                <span class="d-none d-sm-inline-block ms-1">Nueva</span>
+                            </button>
+                        </div>
                     </div>
                 </div>
                 <!-- Filtros -->

@@ -1,5 +1,5 @@
 <script setup>
-import { ref, computed, reactive } from 'vue';
+import { ref, computed, reactive, watch } from 'vue';
 import { router, useForm } from '@inertiajs/vue3';
 import Swal from 'sweetalert2';
 import Multiselect from '@vueform/multiselect';
@@ -11,6 +11,7 @@ const props = defineProps({
     bonusTypes: Array,
     costCenters: Array,
     parcels: { type: Array, default: () => [] },
+    groupings: { type: Array, default: () => [] },
     selectedDate: String,
     hasAttendance: Boolean,
     maxWorkdayPerDay: { type: Number, default: 1 },
@@ -22,6 +23,28 @@ const selectedParcelId = ref('');
 const expandedEmployee = ref(null);
 const addingLineFor = ref(null);
 const editingYieldId = ref(null);
+
+// Agrupación rápida de CC para nueva línea y para edición
+const newLineGrouping = ref('');
+const editLineGrouping = ref('');
+const newLineExpandedCC = ref(false);
+const editLineExpandedCC = ref(false);
+
+watch(newLineGrouping, (groupingId) => {
+    if (!groupingId) return;
+    const grouping = props.groupings?.find(g => g.id == groupingId);
+    if (grouping && Array.isArray(grouping.cost_centers)) {
+        newLine.cost_center_ids = grouping.cost_centers.map(cc => cc.id);
+    }
+});
+
+watch(editLineGrouping, (groupingId) => {
+    if (!groupingId) return;
+    const grouping = props.groupings?.find(g => g.id == groupingId);
+    if (grouping && Array.isArray(grouping.cost_centers)) {
+        editLine.cost_center_ids = grouping.cost_centers.map(cc => cc.id);
+    }
+});
 
 // Formulario inline para editar linea existente
 const editLine = reactive({
@@ -652,8 +675,32 @@ function deleteLine(yieldId) {
                                                             <input type="number" v-model.number="editLine.workdays" @change="onEditWorkdayChange" class="form-control form-control-sm" min="0.1" max="1" step="0.25" />
                                                         </div>
                                                         <div class="col-md-2">
-                                                            <label class="form-label small mb-0">C.Costo</label>
-                                                            <Multiselect v-model="editLine.cost_center_ids" :options="costCenters" mode="tags" :searchable="true" :close-on-select="false" placeholder="Seleccione" class="multiselect-sm" />
+                                                            <label class="form-label small mb-0">
+                                                                <i class="fas fa-layer-group fa-xs me-1 text-muted"></i>Agrup.
+                                                            </label>
+                                                            <select v-model="editLineGrouping" class="form-select form-select-sm" style="font-size:0.7rem;">
+                                                                <option value="">Agrupación...</option>
+                                                                <option v-for="g in groupings" :key="g.id" :value="g.id">{{ g.name }}</option>
+                                                            </select>
+                                                        </div>
+                                                        <div class="col-md-2">
+                                                            <div class="d-flex align-items-center justify-content-between mb-0">
+                                                                <label class="form-label small mb-0">
+                                                                    C.Costo
+                                                                    <span v-if="editLine.cost_center_ids && editLine.cost_center_ids.length > 0" class="badge bg-primary ms-1" style="font-size:0.6rem; vertical-align:middle;">{{ editLine.cost_center_ids.length }}</span>
+                                                                </label>
+                                                                <button
+                                                                    v-if="editLine.cost_center_ids && editLine.cost_center_ids.length > 3"
+                                                                    type="button"
+                                                                    @click.stop="editLineExpandedCC = !editLineExpandedCC"
+                                                                    class="btn btn-link btn-sm p-0 text-muted"
+                                                                    style="font-size:0.65rem; text-decoration:none;"
+                                                                >
+                                                                    <i class="fas" :class="editLineExpandedCC ? 'fa-compress-alt' : 'fa-expand-alt'" style="font-size:0.6rem;"></i>
+                                                                    {{ editLineExpandedCC ? 'Colapsar' : 'Ver' }}
+                                                                </button>
+                                                            </div>
+                                                            <Multiselect v-model="editLine.cost_center_ids" :options="costCenters" mode="tags" :searchable="true" :close-on-select="false" placeholder="Seleccione" :class="['multiselect-sm', 'multiselect-tags-limited', { 'multiselect-tags-expanded': editLineExpandedCC }]" />
                                                         </div>
                                                         <div class="col-md-1">
                                                             <label class="form-label small mb-0">Bono</label>
@@ -755,8 +802,32 @@ function deleteLine(yieldId) {
                                                 <input type="number" v-model.number="newLine.workdays" @change="onWorkdayChange" class="form-control form-control-sm" min="0.1" :max="getRemainingWorkdays(emp.id)" step="0.25" />
                                             </div>
                                             <div class="col-md-2" v-if="!isUnpaidAbsence">
-                                                <label class="form-label small mb-0">C.Costo</label>
-                                                <Multiselect v-model="newLine.cost_center_ids" :options="costCenters" mode="tags" :searchable="true" :close-on-select="false" placeholder="Seleccione" class="multiselect-sm" />
+                                                <label class="form-label small mb-0">
+                                                    <i class="fas fa-layer-group fa-xs me-1 text-muted"></i>Agrup.
+                                                </label>
+                                                <select v-model="newLineGrouping" class="form-select form-select-sm" style="font-size:0.7rem;">
+                                                    <option value="">Agrupación...</option>
+                                                    <option v-for="g in groupings" :key="g.id" :value="g.id">{{ g.name }}</option>
+                                                </select>
+                                            </div>
+                                            <div class="col-md-2" v-if="!isUnpaidAbsence">
+                                                <div class="d-flex align-items-center justify-content-between mb-0">
+                                                    <label class="form-label small mb-0">
+                                                        C.Costo
+                                                        <span v-if="newLine.cost_center_ids && newLine.cost_center_ids.length > 0" class="badge bg-primary ms-1" style="font-size:0.6rem; vertical-align:middle;">{{ newLine.cost_center_ids.length }}</span>
+                                                    </label>
+                                                    <button
+                                                        v-if="newLine.cost_center_ids && newLine.cost_center_ids.length > 3"
+                                                        type="button"
+                                                        @click.stop="newLineExpandedCC = !newLineExpandedCC"
+                                                        class="btn btn-link btn-sm p-0 text-muted"
+                                                        style="font-size:0.65rem; text-decoration:none;"
+                                                    >
+                                                        <i class="fas" :class="newLineExpandedCC ? 'fa-compress-alt' : 'fa-expand-alt'" style="font-size:0.6rem;"></i>
+                                                        {{ newLineExpandedCC ? 'Colapsar' : 'Ver' }}
+                                                    </button>
+                                                </div>
+                                                <Multiselect v-model="newLine.cost_center_ids" :options="costCenters" mode="tags" :searchable="true" :close-on-select="false" placeholder="Seleccione" :class="['multiselect-sm', 'multiselect-tags-limited', { 'multiselect-tags-expanded': newLineExpandedCC }]" />
                                             </div>
                                             <div class="col-md-1" v-if="!isAbsenceSelected">
                                                 <label class="form-label small mb-0">Bono</label>
@@ -792,3 +863,55 @@ function deleteLine(yieldId) {
         <p v-if="!filteredEmployees.length" class="text-muted text-center py-4">No hay colaboradores para mostrar.</p>
     </div>
 </template>
+
+<style scoped>
+/* Estado colapsado: el componente raíz NO crece */
+.multiselect-tags-limited {
+    max-height: 36px !important;
+    min-height: 26px !important;
+    overflow: hidden !important;
+    transition: max-height 0.3s ease;
+}
+
+/* El wrapper interno tampoco crece */
+.multiselect-tags-limited :deep(.multiselect-wrapper) {
+    max-height: 34px !important;
+    overflow: hidden !important;
+    align-items: flex-start !important;
+}
+
+/* Los tags quedan en una sola fila recortada */
+.multiselect-tags-limited :deep(.multiselect-tags) {
+    max-height: 30px !important;
+    overflow: hidden !important;
+    flex-wrap: nowrap !important;
+}
+
+/* Estado expandido: permite crecer */
+.multiselect-tags-expanded {
+    max-height: 210px !important;
+    overflow: visible !important;
+}
+
+.multiselect-tags-expanded :deep(.multiselect-wrapper) {
+    max-height: 200px !important;
+    overflow: visible !important;
+    height: auto !important;
+    align-items: flex-start !important;
+}
+
+.multiselect-tags-expanded :deep(.multiselect-tags) {
+    max-height: 190px !important;
+    overflow-y: auto !important;
+    overflow-x: hidden !important;
+    flex-wrap: wrap !important;
+}
+
+.multiselect-tags-expanded :deep(.multiselect-tags)::-webkit-scrollbar {
+    width: 4px;
+}
+.multiselect-tags-expanded :deep(.multiselect-tags)::-webkit-scrollbar-thumb {
+    background: rgba(0,0,0,0.2);
+    border-radius: 4px;
+}
+</style>

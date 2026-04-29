@@ -127,9 +127,11 @@
                                         <th class="text-end">Tarifa $</th>
                                         <th class="text-end">Cantidad</th>
                                         <th class="text-end">Jornada</th>
-                                        <th class="text-end">Monto</th>
-                                        <th>Bono</th>
+                                        <th class="text-end">Total Trato</th>
+                                        <th class="text-center">Nombre Bono</th>
                                         <th class="text-end">Monto Bono</th>
+                                        <th class="text-end">Precio Objetivo</th>
+                                        <th class="text-end">Total</th>
                                     </tr>
                                 </thead>
                                 <tbody>
@@ -154,11 +156,17 @@
                                                     {{ line.payment_type === 'dia' ? line.workdays : '—' }}
                                                 </td>
                                                 <td class="text-end fw-semibold">$ {{ fmt(line.amount) }}</td>
-                                                <td>{{ line.bonus_type || '' }}</td>
+                                                <td class="text-center">{{ line.bonus_type || '' }}</td>
                                                 <td class="text-end">
                                                     <span v-if="line.bonus_amount > 0">$ {{ fmt(line.bonus_amount) }}</span>
-                                                    <span v-else-if="line.target_price_bonus > 0">$ {{ fmt(line.target_price_bonus) }}</span>
                                                     <span v-else class="text-muted">—</span>
+                                                </td>
+                                                <td class="text-end">
+                                                    <span v-if="line.target_price_bonus > 0">$ {{ fmt(line.target_price_bonus) }}</span>
+                                                    <span v-else class="text-muted">—</span>
+                                                </td>
+                                                <td class="text-end fw-bold">
+                                                    $ {{ fmt(line.amount + line.bonus_amount + line.target_price_bonus) }}
                                                 </td>
                                             </tr>
                                         </template>
@@ -168,8 +176,10 @@
                                     <tr class="fw-bold payroll-foot">
                                         <td colspan="6">TOTALES</td>
                                         <td class="text-end">$ {{ fmt(totals.tratos + totals.monto_dia) }}</td>
-                                        <td></td>
-                                        <td class="text-end">$ {{ fmt(totals.bonus_diario + totals.bonus_objetivo) }}</td>
+                                        <td class="text-center"></td>
+                                        <td class="text-end">$ {{ fmt(totals.bonus_diario) }}</td>
+                                        <td class="text-end">$ {{ fmt(totals.bonus_objetivo) }}</td>
+                                        <td class="text-end">$ {{ fmt(totals.tratos + totals.monto_dia + totals.bonus_diario + totals.bonus_objetivo) }}</td>
                                     </tr>
                                 </tfoot>
                             </table>
@@ -177,10 +187,10 @@
                     </div>
                 </div>
 
-                <!-- Fila: Descuentos (izq) + Bonos Mensuales (der) -->
+                <!-- Fila: Descuentos + Bonos Mensuales + Horas Extra en 1 fila -->
                 <div class="row g-3 mb-3">
                     <!-- Descuentos Mensuales -->
-                    <div class="col-12 col-lg-6" v-if="monthlyDiscounts.length > 0">
+                    <div class="col-12 col-lg-4" v-if="monthlyDiscounts.length > 0">
                         <div class="card h-100">
                             <div class="card-header py-2 d-flex align-items-center gap-2">
                                 <i class="fas fa-minus-circle text-danger"></i>
@@ -193,20 +203,18 @@
                                         <thead class="head-danger">
                                             <tr>
                                                 <th>Tipo de Descuento</th>
-                                                <th>Observaciones</th>
                                                 <th class="text-end">Monto</th>
                                             </tr>
                                         </thead>
                                         <tbody>
                                             <tr v-for="d in monthlyDiscounts" :key="d.id">
                                                 <td class="fw-semibold">{{ d.type }}</td>
-                                                <td class="text-muted">{{ d.observations || '—' }}</td>
                                                 <td class="text-end fw-semibold text-danger">- $ {{ fmt(d.amount) }}</td>
                                             </tr>
                                         </tbody>
                                         <tfoot>
                                             <tr class="fw-bold foot-danger">
-                                                <td colspan="2">TOTAL DESCUENTOS</td>
+                                                <td>TOTAL DESCUENTOS</td>
                                                 <td class="text-end">- $ {{ fmt(totals.descuentos) }}</td>
                                             </tr>
                                         </tfoot>
@@ -217,7 +225,7 @@
                     </div>
 
                     <!-- Bonos Mensuales -->
-                    <div class="col-12 col-lg-6" v-if="monthlyBonuses.length > 0">
+                    <div class="col-12 col-lg-4" v-if="monthlyBonuses.length > 0">
                         <div class="card h-100">
                             <div class="card-header py-2 d-flex align-items-center gap-2">
                                 <i class="fas fa-gift text-success"></i>
@@ -231,7 +239,6 @@
                                             <tr>
                                                 <th>Tipo de Bono</th>
                                                 <th>Labor</th>
-                                                <th>Observaciones</th>
                                                 <th class="text-end">Monto</th>
                                             </tr>
                                         </thead>
@@ -239,13 +246,12 @@
                                             <tr v-for="b in monthlyBonuses" :key="b.id">
                                                 <td class="fw-semibold">{{ b.type }}</td>
                                                 <td>{{ b.labor_type || '—' }}</td>
-                                                <td class="text-muted">{{ b.observations || '—' }}</td>
                                                 <td class="text-end fw-semibold">$ {{ fmt(b.amount) }}</td>
                                             </tr>
                                         </tbody>
                                         <tfoot>
                                             <tr class="fw-bold foot-success">
-                                                <td colspan="3">TOTAL BONOS MENSUALES</td>
+                                                <td colspan="2">TOTAL BONOS MENSUALES</td>
                                                 <td class="text-end">$ {{ fmt(totals.bonus_mensual) }}</td>
                                             </tr>
                                         </tfoot>
@@ -254,12 +260,10 @@
                             </div>
                         </div>
                     </div>
-                </div>
 
-                <!-- Horas Extra (debajo de Bonos, lado derecho = col-lg-6 offset) -->
-                <div class="row g-3 mb-3" v-if="overtimeHours.length > 0">
-                    <div class="col-12 col-lg-6 ms-auto">
-                        <div class="card">
+                    <!-- Horas Extra -->
+                    <div class="col-12 col-lg-4" v-if="overtimeHours.length > 0">
+                        <div class="card h-100">
                             <div class="card-header py-2 d-flex align-items-center gap-2">
                                 <i class="fas fa-clock text-warning"></i>
                                 <strong style="font-size: 0.85rem;">Horas Extra</strong>
@@ -271,24 +275,20 @@
                                         <thead class="head-warning">
                                             <tr>
                                                 <th>Tipo</th>
-                                                <th>Labor</th>
                                                 <th class="text-center">Horas</th>
-                                                <th>Observaciones</th>
                                                 <th class="text-end">Monto</th>
                                             </tr>
                                         </thead>
                                         <tbody>
                                             <tr v-for="o in overtimeHours" :key="o.id">
                                                 <td class="fw-semibold">{{ o.type }}</td>
-                                                <td>{{ o.labor_type || '—' }}</td>
                                                 <td class="text-center">{{ o.hours }}</td>
-                                                <td class="text-muted">{{ o.observations || '—' }}</td>
                                                 <td class="text-end fw-semibold">$ {{ fmt(o.amount) }}</td>
                                             </tr>
                                         </tbody>
                                         <tfoot>
                                             <tr class="fw-bold foot-warning">
-                                                <td colspan="4">TOTAL HORAS EXTRA</td>
+                                                <td colspan="2">TOTAL HORAS EXTRA</td>
                                                 <td class="text-end">$ {{ fmt(totals.horas_extra) }}</td>
                                             </tr>
                                         </tfoot>
@@ -374,29 +374,35 @@ const formatDate = (date) => {
 }
 /* Descuentos */
 .head-danger th {
-    background-color: #1a3c5e !important;
-    color: #fff !important;
+    background-color: transparent !important;
+    color: #333 !important;
+    border-bottom: 2px solid #dee2e6;
 }
 .foot-danger td {
-    background-color: #1a3c5e !important;
-    color: #fff !important;
+    background-color: transparent !important;
+    color: #333 !important;
+    border-top: 2px solid #dee2e6;
 }
 /* Bonos Mensuales */
 .head-success th {
-    background-color: #1a3c5e !important;
-    color: #fff !important;
+    background-color: transparent !important;
+    color: #333 !important;
+    border-bottom: 2px solid #dee2e6;
 }
 .foot-success td {
-    background-color: #1a3c5e !important;
-    color: #fff !important;
+    background-color: transparent !important;
+    color: #333 !important;
+    border-top: 2px solid #dee2e6;
 }
 /* Horas Extra */
 .head-warning th {
-    background-color: #1a3c5e !important;
-    color: #fff !important;
+    background-color: transparent !important;
+    color: #333 !important;
+    border-bottom: 2px solid #dee2e6;
 }
 .foot-warning td {
-    background-color: #1a3c5e !important;
-    color: #fff !important;
+    background-color: transparent !important;
+    color: #333 !important;
+    border-top: 2px solid #dee2e6;
 }
 </style>

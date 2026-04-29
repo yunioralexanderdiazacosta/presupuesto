@@ -34,6 +34,30 @@
             </div>
 
             <div class="card-body bg-body-tertiary">
+                <!-- Tabs -->
+                <ul class="nav nav-pills mb-3" style="font-size: 0.82rem;">
+                    <li class="nav-item">
+                        <a class="nav-link py-1 px-3" :class="{ active: activeTab === 'resumen' }"
+                            href="#" @click.prevent="activeTab = 'resumen'">
+                            <i class="fas fa-table me-1"></i>Resumen Mensual
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link py-1 px-3" :class="{ active: activeTab === 'nomina' }"
+                            href="#" @click.prevent="activeTab = 'nomina'">
+                            <i class="fas fa-file-invoice-dollar me-1"></i>Nómina de Pago
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link py-1 px-3" :class="{ active: activeTab === 'anticipos' }"
+                            href="#" @click.prevent="activeTab = 'anticipos'">
+                            <i class="fas fa-hand-holding-usd me-1"></i>Anticipos
+                        </a>
+                    </li>
+                </ul>
+
+                <!-- TAB: Resumen Mensual -->
+                <div v-show="activeTab === 'resumen'">
                 <div class="row g-2 mb-3" v-if="filteredEmployees.length > 0">
                     <div class="col-6 col-md-3 col-xl">
                         <div class="card text-center py-2 px-1">
@@ -95,6 +119,7 @@
                     <table class="table table-sm table-hover mb-0" style="font-size: 0.8rem;">
                         <thead class="payroll-head">
                             <tr>
+                                <th class="text-center">Contrato</th>
                                 <th>RUT</th>
                                 <th>Nombre</th>
                                 <th>Cargo</th>
@@ -111,6 +136,10 @@
                         </thead>
                         <tbody>
                             <tr v-for="emp in filteredEmployees" :key="emp.id">
+                                <td class="text-center">
+                                    <span v-if="emp.contract_id" class="badge bg-soft-primary text-primary" style="font-size:0.7rem;">#{{ emp.contract_id }}</span>
+                                    <span v-else class="text-muted">—</span>
+                                </td>
                                 <td class="text-nowrap">{{ emp.rut }}</td>
                                 <td class="text-nowrap fw-semibold">{{ emp.full_name }}</td>
                                 <td class="text-nowrap text-muted">{{ emp.position || '—' }}</td>
@@ -136,7 +165,7 @@
                         </tbody>
                         <tfoot>
                             <tr class="fw-bold payroll-foot">
-                                <td colspan="3">TOTALES</td>
+                                <td colspan="4">TOTALES</td>
                                 <td class="text-end">$ {{ fmt(filteredTotals.tratos) }}</td>
                                 <td class="text-end">$ {{ fmt(filteredTotals.monto_dia) }}</td>
                                 <td class="text-end">$ {{ fmt(filteredTotals.bonus_diario) }}</td>
@@ -150,6 +179,18 @@
                         </tfoot>
                     </table>
                 </div>
+                </div><!-- /TAB resumen -->
+
+                <!-- TAB: Nómina de Pago -->
+                <div v-show="activeTab === 'nomina'">
+                    <PayrollNominaTab :employees="filteredEmployees" :month="selectedMonth" />
+                </div><!-- /TAB nomina -->
+
+                <!-- TAB: Anticipos -->
+                <div v-show="activeTab === 'anticipos'">
+                    <PayrollAnticiposTab :anticipos="anticipos" :month="selectedMonth" />
+                </div><!-- /TAB anticipos -->
+
             </div>
         </div>
     </AppLayout>
@@ -159,15 +200,19 @@
 import { ref, computed } from 'vue';
 import { Link, router } from '@inertiajs/vue3';
 import AppLayout from '@/Layouts/AppLayout.vue';
+import PayrollNominaTab from './PayrollNominaTab.vue';
+import PayrollAnticiposTab from './PayrollAnticiposTab.vue';
 
 const props = defineProps({
     employees: { type: Array, default: () => [] },
+    anticipos: { type: Array, default: () => [] },
     month: { type: String, required: true },
     totals: { type: Object, required: true },
 });
 
 const selectedMonth = ref(props.month);
 const selectedEmployee = ref('');
+const activeTab = ref('resumen');
 
 const monthNames = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio',
     'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'];
