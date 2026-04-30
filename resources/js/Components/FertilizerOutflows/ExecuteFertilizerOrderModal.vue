@@ -8,6 +8,7 @@ const props = defineProps({
     show: Boolean,
     availableOrders: Array,
     availableStocksByProduct: Object,
+    branches: { type: Array, default: () => [] },
 });
 
 const emit = defineEmits(['close', 'order-executed']);
@@ -76,9 +77,26 @@ function executeOrder() {
             return;
         }
 
+        const realQty = parseFloat(product.real_quantity || 0);
+        if (realQty <= 0) {
+            Swal.fire('Error', `Debe ingresar una cantidad real para el producto ${product.product_name}`, 'error');
+            return;
+        }
+
+        // Validar que cada línea tenga factura seleccionada
+        for (let line of product.lines) {
+            if (!line.invoice_product_id) {
+                Swal.fire('Error', `Debe seleccionar una factura en todas las líneas del producto ${product.product_name}`, 'error');
+                return;
+            }
+            if (parseFloat(line.quantity || 0) <= 0) {
+                Swal.fire('Error', `La cantidad de cada línea debe ser mayor a 0 en el producto ${product.product_name}`, 'error');
+                return;
+            }
+        }
+
         // Validar que la suma de líneas coincida con cantidad real
         const totalUsed = product.lines.reduce((sum, line) => sum + parseFloat(line.quantity || 0), 0);
-        const realQty = parseFloat(product.real_quantity || 0);
         
         if (Math.abs(totalUsed - realQty) > 0.01) {
             Swal.fire('Error', `La suma de líneas del producto ${product.product_name} (${totalUsed}) no coincide con la cantidad real (${realQty})`, 'error');
@@ -127,6 +145,7 @@ function executeOrder() {
                         :form="form"
                         :available-orders="availableOrders"
                         :available-stocks-by-product="availableStocksByProduct"
+                        :branches="branches"
                     />
                 </div>
 

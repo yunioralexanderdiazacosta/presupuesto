@@ -19,11 +19,11 @@ class StoreFertilizerOutflowRequest extends FormRequest
             'observations' => 'nullable|string',
             'products' => 'required|array|min:1',
             'products.*.product_id' => 'required|exists:products,id',
-            'products.*.real_quantity' => 'required|numeric|min:0',
-            'products.*.cost_center_id' => 'required|exists:cost_centers,id',
+            'products.*.real_quantity' => 'required|numeric|min:0.01',
+            'products.*.cost_center_id' => 'nullable|exists:cost_centers,id',
             'products.*.lines' => 'required|array|min:1',
-            'products.*.lines.*.invoice_product_id' => 'nullable|exists:invoice_products,id',
-            'products.*.lines.*.quantity' => 'required|numeric|min:0',
+            'products.*.lines.*.invoice_product_id' => 'required|exists:invoice_products,id',
+            'products.*.lines.*.quantity' => 'required|numeric|min:0.01',
         ];
     }
 

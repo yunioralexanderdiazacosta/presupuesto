@@ -6,6 +6,7 @@ import Breadcrumb from '@/Components/Breadcrumb.vue';
 import CreateFertilizerOrderModal from '@/Components/FertilizerOrders/CreateFertilizerOrderModal.vue';
 import EditFertilizerOrderModal from '@/Components/FertilizerOrders/EditFertilizerOrderModal.vue';
 import ExportExcelButton from '@/Components/ExportExcelButton.vue';
+import FertilizerNavBar from '@/Components/FertilizerOutflows/FertilizerNavBar.vue';
 import Swal from 'sweetalert2';
 import axios from 'axios';
 
@@ -123,6 +124,8 @@ const excelFilename = computed(() => `ordenes_fertilizantes_${new Date().toISOSt
     <AppLayout :title="title">
         <Head :title="title" />
         
+        <FertilizerNavBar />
+
         <Breadcrumb :title="title" :links="links" />
 
         <div class="container-fluid mt-3">

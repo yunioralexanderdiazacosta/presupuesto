@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\FertilizerOutflows;
 
+use App\Models\Branch;
 use App\Models\FertilizerOutflow;
 use App\Models\FertilizerOrder;
 use App\Models\Invoice;
@@ -51,10 +52,17 @@ class FertilizerOutflowController
         // Calcular stock disponible de fertilizantes por producto
         $availableStocksByProduct = $this->getAvailableStocksByInvoiceProduct($teamId, $seasonId);
 
+        $branches = Branch::where('team_id', $teamId)
+            ->where('season_id', $seasonId)
+            ->orderBy('name')
+            ->get(['id', 'name'])
+            ->map(fn($b) => ['value' => $b->id, 'label' => $b->name]);
+
         return Inertia::render('FertilizerOutflows/Index', [
             'outflows' => $outflows,
             'availableOrders' => $availableOrders,
             'availableStocksByProduct' => $availableStocksByProduct,
+            'branches' => $branches,
         ]);
     }
 }

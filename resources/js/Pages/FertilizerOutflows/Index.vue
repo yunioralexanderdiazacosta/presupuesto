@@ -6,11 +6,13 @@ import Swal from 'sweetalert2';
 import ExportExcelButton from '@/Components/ExportExcelButton.vue';
 import ExecuteFertilizerOrderModal from '@/Components/FertilizerOutflows/ExecuteFertilizerOrderModal.vue';
 import EditFertilizerOutflowModal from '@/Components/FertilizerOutflows/EditFertilizerOutflowModal.vue';
+import FertilizerNavBar from '@/Components/FertilizerOutflows/FertilizerNavBar.vue';
 
 const props = defineProps({
     outflows: Object,
     availableOrders: Array,
     availableStocksByProduct: Object,
+    branches: { type: Array, default: () => [] },
 });
 
 const showExecuteModal = ref(false);
@@ -89,6 +91,8 @@ const excelData = computed(() => {
 
 <template>
     <AppLayout title="Aplicaciones de Fertilizantes">
+        <FertilizerNavBar />
+
         <div class="card my-3">
             <div class="card-header">
                 <div class="row flex-between-center">
@@ -181,6 +185,7 @@ const excelData = computed(() => {
             :show="showExecuteModal"
             :available-orders="availableOrders"
             :available-stocks-by-product="availableStocksByProduct"
+            :branches="branches"
             @close="showExecuteModal = false"
             @order-executed="handleOrderExecuted"
         />
