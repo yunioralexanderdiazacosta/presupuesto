@@ -12,6 +12,7 @@ use App\Models\Product;
 use App\Models\Unit;
 use Inertia\Inertia;
 use App\Models\Month;
+use App\Models\Branch;
 use App\Models\ExpenseReportItem;
 use App\Models\PurchaseOrder;
 
@@ -89,6 +90,16 @@ class CreateInvoiceController extends Controller
                 ];
             });
 
-        return Inertia::render('Invoices/Create', compact('typeDocuments', 'suppliers', 'companyReasons', 'products', 'units', 'months', 'prefill', 'purchaseOrders'));
+        $seasonId = session('season_id');
+        $branches = Branch::where('team_id', $user->team_id)
+            ->where('season_id', $seasonId)
+            ->orderBy('name')
+            ->get()
+            ->map(fn($b) => ['label' => $b->name, 'value' => $b->id, 'is_default' => $b->is_default]);
+
+        $defaultBranch = $branches->firstWhere('is_default', true);
+        $defaultBranchId = $defaultBranch ? $defaultBranch['value'] : null;
+
+        return Inertia::render('Invoices/Create', compact('typeDocuments', 'suppliers', 'companyReasons', 'products', 'units', 'months', 'prefill', 'purchaseOrders', 'branches', 'defaultBranchId'));
     }
 }

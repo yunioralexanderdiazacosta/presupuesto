@@ -14,6 +14,8 @@ const props = defineProps({
 	months: Array,
 	prefill: Object,
 	purchaseOrders: Array,
+	branches: Array,
+	defaultBranchId: [Number, String, null],
 });
 
 const title = props.prefill?.is_duplicate
@@ -44,7 +46,8 @@ const form = useForm({
 				unit_price: props.prefill?.amount || 0.00,
 				amount: 1,
 				observations: props.prefill?.description || '',
-				is_exento: false
+				is_exento: false,
+				branch_id: props.defaultBranchId || null,
 			}
 		]
 });

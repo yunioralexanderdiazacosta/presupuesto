@@ -23,7 +23,8 @@ class StoreCostCenterController extends Controller
             'development_state_id' => $request->development_state_id,
             'year_plantation' => $request->year_plantation,
             'company_reason_id' => $request->company_reason_id,
-            'status' => $request->status ?? false
+            'status' => $request->status ?? false,
+            'branch_id' => $request->branch_id ?: null,
         ]);
     }
 }

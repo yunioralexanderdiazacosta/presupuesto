@@ -50,6 +50,7 @@ const search = ref("");
 // Estado para ordenamiento
 const sortBy = ref('id');
 const sortDesc = ref(true);
+const sortUnclassifiedFirst = ref(false);
 
 // Función para ejecutar la búsqueda cuando se presiona el botón o Enter
 const executeSearch = () => {
@@ -171,6 +172,13 @@ const filteredProducts = computed(() => {
     // Ordenar los productos
     const arr = [...data];
     arr.sort((a, b) => {
+        // Si está activo el toggle, los sin clasificar con facturas van primero
+        if (sortUnclassifiedFirst.value) {
+            const aUnclassified = a.invoices_count > 0 && (!a.level1_id || !a.level2_id || !a.level3_id);
+            const bUnclassified = b.invoices_count > 0 && (!b.level1_id || !b.level2_id || !b.level3_id);
+            if (aUnclassified && !bUnclassified) return -1;
+            if (!aUnclassified && bUnclassified) return 1;
+        }
         let aVal = a[sortBy.value];
         let bVal = b[sortBy.value];
         
@@ -277,6 +285,16 @@ const sortClass = (field) => ({
                   
 
                         <div class="d-flex align-items-center gap-1">
+                        <button
+                            type="button"
+                            @click="sortUnclassifiedFirst = !sortUnclassifiedFirst"
+                            class="btn btn-sm mb-2"
+                            :class="sortUnclassifiedFirst ? 'btn-warning text-dark' : 'btn-falcon-default'"
+                            v-tooltip="'Mostrar sin clasificar primero'"
+                        >
+                            <i class="fas fa-exclamation-triangle me-1"></i>
+                            <span class="d-none d-sm-inline-block">Sin clasificar</span>
+                        </button>
                         <ExportExcelButton
                             :data="filteredProducts"
                             :headers="[

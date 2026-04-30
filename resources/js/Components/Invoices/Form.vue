@@ -84,7 +84,7 @@ watch(
 const filteredPurchaseOrders = computed(() => {
     const allOrders = page.props.purchaseOrders || [];
     if (!props.form.supplier_id) return allOrders;
-    return allOrders.filter(po => po.supplier_id === props.form.supplier_id);
+    return allOrders.filter(po => String(po.supplier_id) === String(props.form.supplier_id));
 });
 
 // Cuando cambia el proveedor, limpiar la OC si no corresponde al nuevo proveedor
@@ -93,8 +93,8 @@ watch(
     (newSupplierId) => {
         if (props.form.purchase_order_id) {
             const allOrders = page.props.purchaseOrders || [];
-            const currentPO = allOrders.find(po => po.value === props.form.purchase_order_id);
-            if (currentPO && currentPO.supplier_id !== newSupplierId) {
+            const currentPO = allOrders.find(po => String(po.value) === String(props.form.purchase_order_id));
+            if (currentPO && String(currentPO.supplier_id) !== String(newSupplierId)) {
                 props.form.purchase_order_id = null;
             }
         }

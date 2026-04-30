@@ -29,7 +29,8 @@ class FormCostCenterRequest extends FormRequest
             'parcel_id' => 'required',
             'development_state_id' => 'required',
             'year_plantation' => 'required',
-            'company_reason_id' => 'required'
+            'company_reason_id' => 'required',
+            'branch_id' => 'nullable|exists:branches,id',
         ];
     }
 }

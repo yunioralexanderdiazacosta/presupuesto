@@ -23,7 +23,7 @@ class Invoice extends Model
 
     public function products()
     {
-        return $this->belongsToMany(Product::class, 'invoice_products')->withPivot(['id', 'unit_price', 'amount', 'observations', 'is_exento'])->withTimestamps();
+        return $this->belongsToMany(Product::class, 'invoice_products')->withPivot(['id', 'unit_price', 'amount', 'observations', 'is_exento', 'branch_id'])->withTimestamps();
     }
 
     public function supplier()

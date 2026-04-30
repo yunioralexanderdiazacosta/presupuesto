@@ -8,6 +8,7 @@ use Illuminate\Support\Facades\Auth;
 use App\Traits\HasInventory;
 use App\Models\Unit;
 use App\Models\Level1;
+use App\Models\Branch;
 
 class InventoryController extends Controller
 {
@@ -41,6 +42,11 @@ class InventoryController extends Controller
             'inventory' => $inventory,
             'units' => $units,
             'level1s' => $level1s,
+            'branches' => Branch::where('team_id', $team_id)
+                ->where('season_id', $season_id)
+                ->orderBy('name')
+                ->get(['id', 'name'])
+                ->map(fn($b) => ['value' => $b->id, 'label' => $b->name]),
         ]);
     }
 }

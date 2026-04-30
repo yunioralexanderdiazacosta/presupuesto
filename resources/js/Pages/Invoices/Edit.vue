@@ -17,7 +17,9 @@ const props = defineProps({
 	protectedProductIds: {
 		type: Array,
 		default: () => []
-	}
+	},
+	branches: Array,
+	defaultBranchId: [Number, String, null],
 })
 
 // Mostrar mensaje de error si existe

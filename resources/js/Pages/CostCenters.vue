@@ -34,7 +34,8 @@ const form = useForm({
     status: true,
     year_plantation: '',
     development_state_id: '',
-    company_reason_id: ''
+    company_reason_id: '',
+    branch_id: '',
 });
 
 const path = computed(() =>usePage().props.public_path);
@@ -61,6 +62,7 @@ const openEdit = (costCenter) => {
     form.development_state_id = costCenter.development_state_id;
     form.year_plantation = costCenter.year_plantation;
     form.company_reason_id = costCenter.company_reason_id;
+    form.branch_id = costCenter.branch_id ?? '';
     nextTick(() => {
         form.variety_id = costCenter.variety_id;
     });
@@ -240,6 +242,7 @@ const openVarietyModal = (costCenterId = null) => {
                               :data="costCenters.data"
                               :headers="[
                                 { label: 'Nombre', key: 'name' },
+                                { label: 'Sucursal', key: 'branch.name' },
                                 { label: 'Frutal', key: 'fruit.name' },
                                 { label: 'Variedad', key: 'variety.name' },
                                 { label: 'Superficie', key: 'surface', type: 'number' },
@@ -256,6 +259,7 @@ const openVarietyModal = (costCenterId = null) => {
                               :data="costCenters.data"
                               :headers="[
                                 { label: 'Nombre', key: 'name' },
+                                { label: 'Sucursal', key: 'branch.name' },
                                 { label: 'Frutal', key: 'fruit.name' },
                                 { label: 'Variedad', key: 'variety.name' },
                                 { label: 'Superficie', key: 'surface', type: 'number' },
@@ -283,6 +287,7 @@ const openVarietyModal = (costCenterId = null) => {
                     <template #header>
                         <!--begin::Table row-->
                         <th width="min-w-150px">Nombre</th>
+                        <th width="min-w-150px">Sucursal</th>
                         <th width="min-w-150px">Parcela</th>
                         <th width="min-w-150px">Frutal</th>
                         <th width="min-w-150px">Variedad</th>
@@ -298,11 +303,12 @@ const openVarietyModal = (costCenterId = null) => {
                     <!--begin::Table body-->
                     <template #body>
                         <template v-if="costCenters.total == 0">
-                            <Empty colspan="9" />
+                            <Empty colspan="10" />
                         </template>
                         <template v-else>
                             <tr v-for="(costCenter, index) in costCenters.data" :key="index">
                                 <td><span class="text-dark text-hover-primary fw-bold mb-1">{{costCenter.name}}</span></td>
+                                <td>{{ costCenter.branch ? costCenter.branch.name : '—' }}</td>
                                 <td>{{costCenter.parcel ? costCenter.parcel.name : ''}}</td>
                                 <td>{{costCenter.fruit.name}}</td>
                                 <td>{{costCenter.variety.name}}</td>

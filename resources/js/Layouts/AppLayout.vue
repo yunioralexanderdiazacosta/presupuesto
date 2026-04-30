@@ -115,6 +115,7 @@ const menuItems = [
     { label: 'Ciudades', route: 'cities.index', icon: 'fas fa-city', section: 'Remuneraciones' },
     { label: 'Evaluación de Proyectos', route: 'project-evaluations.index', icon: 'fas fa-seedling', section: 'Planificación' },
     { label: 'Centros de Costos', route: 'cost.centers.index', icon: 'fas fa-sitemap', section: 'Parámetros' },
+    { label: 'Sucursales', route: 'branches.index', icon: 'fas fa-code-branch', section: 'Parámetros' },
     { label: 'Grupos de CC', route: 'groupings.index', icon: 'fas fa-layer-group', section: 'Parámetros' },
     { label: 'Variedades por Cuartel', route: 'cost-center-varieties.index', icon: 'fas fa-th', section: 'Parámetros' },
     { label: 'Niveles', route: 'levels.index', icon: 'fas fa-stream', section: 'Parámetros' },
@@ -642,6 +643,26 @@ const navigateTo = (routeName) => {
                     </div>
                   </Link>
                 </li>
+                <li class="nav-item"><Link class="nav-link" :href="route('vacations.index')">
+                    <div class="d-flex align-items-center"><span class="nav-link-icon"><span class="fas fa-umbrella-beach"></span></span><span class="nav-link-text ps-1">Vacaciones</span>
+                    </div>
+                  </Link>
+                </li>
+                <li class="nav-item"><Link class="nav-link" :href="route('holidays.index')">
+                    <div class="d-flex align-items-center"><span class="nav-link-icon"><span class="fas fa-calendar-day"></span></span><span class="nav-link-text ps-1">Feriados</span>
+                    </div>
+                  </Link>
+                </li>
+                <li class="nav-item"><Link class="nav-link" :href="route('schedules.index')">
+                    <div class="d-flex align-items-center"><span class="nav-link-icon"><span class="fas fa-business-time"></span></span><span class="nav-link-text ps-1">Horario</span>
+                    </div>
+                  </Link>
+                </li>
+                <li class="nav-item"><Link class="nav-link" :href="route('cities.index')">
+                    <div class="d-flex align-items-center"><span class="nav-link-icon"><span class="fas fa-city"></span></span><span class="nav-link-text ps-1">Ciudades</span>
+                    </div>
+                  </Link>
+                </li>
               </ul>
               <!-- parent pages--><a class="nav-link dropdown-indicator" href="#planificacion" role="button" data-bs-toggle="collapse" aria-expanded="false" aria-controls="planificacion">
                 <div class="d-flex align-items-center"><span class="nav-link-icon"><span class="fas fa-seedling"></span></span><span class="nav-link-text text-dark ps-1">Evaluación de Proyectos</span>
@@ -688,6 +709,13 @@ const navigateTo = (routeName) => {
                       <Link class="nav-link" :href="route('cost-center-varieties.index')">
                         <div class="d-flex align-items-center">
                           <span class="nav-link-text ps-4">Variedades por Cuartel</span>
+                        </div>
+                      </Link>
+                    </li>
+                    <li class="nav-item">
+                      <Link class="nav-link" :href="route('branches.index')">
+                        <div class="d-flex align-items-center">
+                          <span class="nav-link-text ps-4">Sucursales</span>
                         </div>
                       </Link>
                     </li>

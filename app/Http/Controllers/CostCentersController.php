@@ -12,6 +12,7 @@ use App\Models\Parcel;
 use App\Models\DevelopmentState;
 use App\Models\Rootstock;
 use App\Models\Variety;
+use App\Models\Branch;
 use Inertia\Inertia;
 use App\Exports\CostCentersTemplateExport;
 use Maatwebsite\Excel\Facades\Excel;
@@ -64,7 +65,7 @@ class CostCentersController extends Controller
 
 
 
-        $costCenters = CostCenter::with('fruit:id,name', 'variety:id,name', 'parcel:id,name', 'developmentState:id,name','companyReason:id,name','groupings:id,name')
+        $costCenters = CostCenter::with('fruit:id,name', 'variety:id,name', 'parcel:id,name', 'developmentState:id,name','companyReason:id,name','groupings:id,name','branch:id,name')
             ->where('season_id', $season_id)
             ->when($request->term, function ($query, $search) {
                 $query->where('name', 'like', '%'.$search.'%');
@@ -105,7 +106,13 @@ class CostCentersController extends Controller
             ->get(['id', 'name'])
             ->map(fn($s) => ['label' => $s->name, 'value' => $s->id]);
 
-        return Inertia::render('CostCenters', compact('costCenters', 'season', 'parcels', 'developmentStates', 'fruits', 'term', 'companyReasons', 'varieties', 'rootstocks', 'costCentersSelect', 'seasons'));
+        $branches = Branch::where('team_id', $user->team_id)
+            ->where('season_id', $season_id)
+            ->orderBy('name')
+            ->get(['id', 'name'])
+            ->map(fn($b) => ['label' => $b->name, 'value' => $b->id]);
+
+        return Inertia::render('CostCenters', compact('costCenters', 'season', 'parcels', 'developmentStates', 'fruits', 'term', 'companyReasons', 'varieties', 'rootstocks', 'costCentersSelect', 'seasons', 'branches'));
     }   
 
     public function import(Request $request)

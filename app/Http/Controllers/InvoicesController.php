@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use App\Models\Invoice;
+use App\Models\Branch;
 use Inertia\Inertia;
 
 class InvoicesController extends Controller
@@ -25,6 +26,7 @@ class InvoicesController extends Controller
             'month:id,name',
             'user:id,name',
             'invoiceProducts.product:id,name,level1_id',
+            'invoiceProducts.branch:id,name',
             'expenseReport:id,number',
             'creditDebitNotes:id,invoice_id,type,number,date,supplier_id',
             'creditDebitNotes.supplier:id,name',
@@ -97,6 +99,8 @@ class InvoicesController extends Controller
                         'amount' => $ip->amount,
                         'unit_price' => $ip->unit_price,
                         'original_unit_price' => $ip->original_unit_price,
+                        'branch_id' => $ip->branch_id,
+                        'branch_name' => $ip->branch ? $ip->branch->name : null,
                     ];
                 }),
                 'total'             => '$' . number_format($total, 0, ',', '.'),
@@ -121,7 +125,12 @@ class InvoicesController extends Controller
             'term' => $term,
             'totalFacturas' => $totalFacturas,
             'totalIva' => $totalIva,
-            'totalGeneral' => $totalGeneral
+            'totalGeneral' => $totalGeneral,
+            'branches' => Branch::where('team_id', $user->team_id)
+                ->where('season_id', $season_id)
+                ->orderBy('name')
+                ->get(['id', 'name'])
+                ->map(fn($b) => ['value' => $b->id, 'label' => $b->name]),
         ]);
     }
 }

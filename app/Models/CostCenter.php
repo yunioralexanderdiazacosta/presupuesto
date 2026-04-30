@@ -9,7 +9,7 @@ class CostCenter extends Model
 {
     use HasFactory;
 
-    protected $fillable = ['name', 'surface', 'season_id', 'observations', 'fruit_id', 'variety_id', 'parcel_id', 'year_plantation', 'development_state_id','company_reason_id', 'status'];
+    protected $fillable = ['name', 'surface', 'season_id', 'observations', 'fruit_id', 'variety_id', 'parcel_id', 'year_plantation', 'development_state_id','company_reason_id', 'status', 'branch_id'];
 
     protected $casts = [ 'status' => 'boolean'];
 
@@ -63,5 +63,10 @@ public function consumptions()
     public function costCenterVarieties()
     {
         return $this->hasMany(CostCenterVariety::class);
+    }
+
+    public function branch()
+    {
+        return $this->belongsTo(Branch::class);
     }
 }

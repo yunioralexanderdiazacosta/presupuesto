@@ -16,6 +16,7 @@ const props = defineProps({
     totalFacturas: Number,
     totalIva: Number,
     totalGeneral: Number,
+    branches: Array,
 });
 
 const title = "Facturas";
@@ -28,6 +29,7 @@ const filterMonth = ref('');
 const filterDateFrom = ref('');
 const filterDateTo = ref('');
 const filterDocType = ref('');
+const filterBranch = ref('');
 const filterExpenseReport = ref(''); // '' = todos, 'con' = con rendición, 'sin' = sin rendición
 
 // Opciones dinámicas generadas a partir de los datos cargados
@@ -44,7 +46,7 @@ const availableDocTypes = computed(() => {
 });
 
 const activeFiltersCount = computed(() => {
-    return [filterMonth.value, filterDateFrom.value, filterDateTo.value, filterDocType.value, filterExpenseReport.value]
+    return [filterMonth.value, filterDateFrom.value, filterDateTo.value, filterDocType.value, filterBranch.value, filterExpenseReport.value]
         .filter(v => v !== '').length;
 });
 
@@ -53,6 +55,7 @@ const clearAdvancedFilters = () => {
     filterDateFrom.value = '';
     filterDateTo.value = '';
     filterDocType.value = '';
+    filterBranch.value = '';
     filterExpenseReport.value = '';
 };
 
@@ -91,6 +94,11 @@ const filteredInvoices = computed(() => {
     // Filtro por tipo de documento
     if (filterDocType.value) {
         data = data.filter(i => i.type_document === filterDocType.value);
+    }
+
+    // Filtro por sucursal
+    if (filterBranch.value) {
+        data = data.filter(i => i.products && i.products.some(p => String(p.branch_id) === String(filterBranch.value)));
     }
 
     // Filtro por rendición
@@ -183,6 +191,7 @@ const expandedInvoices = computed(() => {
                     product_subtotal: subtotal,
                     product_iva: iva,
                     product_total: subtotal + iva,
+                    branch_name: prod.branch_name || null,
                 });
             });
         } else {
@@ -210,7 +219,8 @@ const filteredExpandedInvoices = computed(() => {
         const number = row.number_document ? String(row.number_document).toLowerCase() : '';
         const product = row.product_name?.toLowerCase() || '';
         const company = row.companyReason?.name?.toLowerCase() || '';
-        return supplier.includes(search) || number.includes(search) || product.includes(search) || company.includes(search);
+        const branch = row.branch_name?.toLowerCase() || '';
+        return supplier.includes(search) || number.includes(search) || product.includes(search) || company.includes(search) || branch.includes(search);
     });
 });
 
@@ -261,6 +271,7 @@ const excelDetallesData = computed(() => {
         company_reason: row.companyReason ? row.companyReason.name : '',
         number_document: row.number_document,
         date: row.date,
+        branch_name: row.branch_name || '',
         product: row.product_name,
         amount: row.product_amount,
         unit_price: Math.round(row.product_unit_price),
@@ -369,6 +380,7 @@ const formatCurrency = (value) => {
                                     { label: 'Razón Social', key: 'company_reason' },
                                     { label: 'N° Doc', key: 'number_document' },
                                     { label: 'Fecha', key: 'date' },
+                                    { label: 'Sucursal', key: 'branch_name' },
                                     { label: 'Producto', key: 'product' },
                                     { label: 'Cantidad', key: 'amount' },
                                     { label: 'P. Unit', key: 'unit_price' },
@@ -484,35 +496,37 @@ const formatCurrency = (value) => {
                         <!-- Panel de filtros avanzados colapsable -->
                         <div v-show="showAdvancedFilters" class="card border mb-3" style="background: #f9f9fb;">
                             <div class="card-body py-2 px-3">
-                                <div class="row g-2 align-items-end">
-                                    <!-- Mes -->
-                                    <div class="col-6 col-md-2">
+                                <div class="d-flex gap-2 align-items-end flex-nowrap" style="overflow-x:auto;">
+                                    <div style="min-width:90px; flex:1;">
                                         <label class="form-label mb-1 small fw-semibold">Mes</label>
                                         <select v-model="filterMonth" class="form-select form-select-sm">
                                             <option value="">Todos</option>
                                             <option v-for="m in availableMonths" :key="m" :value="m">{{ m }}</option>
                                         </select>
                                     </div>
-                                    <!-- Fecha desde -->
-                                    <div class="col-6 col-md-2">
+                                    <div style="min-width:120px; flex:1;">
                                         <label class="form-label mb-1 small fw-semibold">Fecha desde</label>
                                         <input type="date" v-model="filterDateFrom" class="form-control form-control-sm" />
                                     </div>
-                                    <!-- Fecha hasta -->
-                                    <div class="col-6 col-md-2">
+                                    <div style="min-width:120px; flex:1;">
                                         <label class="form-label mb-1 small fw-semibold">Fecha hasta</label>
                                         <input type="date" v-model="filterDateTo" class="form-control form-control-sm" />
                                     </div>
-                                    <!-- Tipo Doc -->
-                                    <div class="col-6 col-md-2">
+                                    <div style="min-width:100px; flex:1;">
                                         <label class="form-label mb-1 small fw-semibold">Tipo doc.</label>
                                         <select v-model="filterDocType" class="form-select form-select-sm">
                                             <option value="">Todos</option>
                                             <option v-for="dt in availableDocTypes" :key="dt" :value="dt">{{ dt }}</option>
                                         </select>
                                     </div>
-                                    <!-- Rendición -->
-                                    <div class="col-6 col-md-2">
+                                    <div style="min-width:110px; flex:1;">
+                                        <label class="form-label mb-1 small fw-semibold">Sucursal</label>
+                                        <select v-model="filterBranch" class="form-select form-select-sm">
+                                            <option value="">Todas</option>
+                                            <option v-for="b in (props.branches || [])" :key="b.value" :value="b.value">{{ b.label }}</option>
+                                        </select>
+                                    </div>
+                                    <div style="min-width:110px; flex:1;">
                                         <label class="form-label mb-1 small fw-semibold">Rendición</label>
                                         <select v-model="filterExpenseReport" class="form-select form-select-sm">
                                             <option value="">Todas</option>
@@ -520,20 +534,19 @@ const formatCurrency = (value) => {
                                             <option value="sin">Sin rendición</option>
                                         </select>
                                     </div>
-                                    <!-- Limpiar -->
-                                    <div class="col-6 col-md-2 d-flex align-items-end">
+                                    <div class="d-flex align-items-end" style="flex-shrink:0;">
                                         <button
                                             type="button"
-                                            class="btn btn-sm btn-outline-secondary w-100"
+                                            class="btn btn-sm btn-outline-secondary text-nowrap"
                                             @click="clearAdvancedFilters"
                                             :disabled="activeFiltersCount === 0"
                                             style="font-size: 0.75rem;"
                                         >
-                                            <i class="fas fa-times me-1"></i>Limpiar filtros
+                                            <i class="fas fa-times me-1"></i>Limpiar
                                         </button>
                                     </div>
                                 </div>
-                                <div class="mt-2">
+                                <div class="mt-1">
                                     <small class="text-muted">
                                         Mostrando <b>{{ filteredInvoices.length }}</b> de <b>{{ props.invoices?.data?.length || 0 }}</b> facturas
                                         <span v-if="activeFiltersCount > 0" class="text-primary ms-1">· {{ activeFiltersCount }} filtro(s) activo(s)</span>
@@ -552,6 +565,7 @@ const formatCurrency = (value) => {
                                 <th style="white-space:nowrap;">Tipo Doc.</th>
                                 <th style="white-space:nowrap;">Mes</th>
                                 <th style="white-space:nowrap; max-width:200px;">Proveedor</th>
+                                <th style="white-space:nowrap;">Sucursal</th>
                                 <th style="white-space:nowrap; max-width:180px;">Razón Social</th>
                                 <th style="white-space:nowrap;">N° Doc</th>
                                 <th style="white-space:nowrap;">Fecha</th>
@@ -615,6 +629,12 @@ invoice, index
                                         <td style="white-space:nowrap;">{{ invoice.type_document }}</td>
                                         <td style="white-space:nowrap;">{{ invoice.month }}</td>
                                         <td style="white-space:nowrap; max-width:200px; overflow:hidden; text-overflow:ellipsis;">{{ invoice.supplier.name }}</td>
+                                        <td style="white-space:nowrap;">
+                                            <template v-if="invoice.products && invoice.products.some(p => p.branch_name)">
+                                                {{ [...new Set(invoice.products.filter(p => p.branch_name).map(p => p.branch_name))].join(', ') }}
+                                            </template>
+                                            <span v-else class="text-muted">—</span>
+                                        </td>
                                         <td style="white-space:nowrap; max-width:180px; overflow:hidden; text-overflow:ellipsis;">{{ invoice.companyReason?.name || '—' }}</td>
                                         <td style="white-space:nowrap;">
                                             {{ invoice.number_document }}
@@ -726,30 +746,37 @@ invoice, index
                         <!-- Panel de filtros avanzados colapsable (Detalles) -->
                         <div v-show="showAdvancedFilters" class="card border mb-2" style="background: #f9f9fb;">
                             <div class="card-body py-2 px-3">
-                                <div class="row g-2 align-items-end">
-                                    <div class="col-6 col-md-2">
+                                <div class="d-flex gap-2 align-items-end flex-nowrap" style="overflow-x:auto;">
+                                    <div style="min-width:90px; flex:1;">
                                         <label class="form-label mb-1 small fw-semibold">Mes</label>
                                         <select v-model="filterMonth" class="form-select form-select-sm">
                                             <option value="">Todos</option>
                                             <option v-for="m in availableMonths" :key="m" :value="m">{{ m }}</option>
                                         </select>
                                     </div>
-                                    <div class="col-6 col-md-2">
+                                    <div style="min-width:120px; flex:1;">
                                         <label class="form-label mb-1 small fw-semibold">Fecha desde</label>
                                         <input type="date" v-model="filterDateFrom" class="form-control form-control-sm" />
                                     </div>
-                                    <div class="col-6 col-md-2">
+                                    <div style="min-width:120px; flex:1;">
                                         <label class="form-label mb-1 small fw-semibold">Fecha hasta</label>
                                         <input type="date" v-model="filterDateTo" class="form-control form-control-sm" />
                                     </div>
-                                    <div class="col-6 col-md-2">
+                                    <div style="min-width:100px; flex:1;">
                                         <label class="form-label mb-1 small fw-semibold">Tipo doc.</label>
                                         <select v-model="filterDocType" class="form-select form-select-sm">
                                             <option value="">Todos</option>
                                             <option v-for="dt in availableDocTypes" :key="dt" :value="dt">{{ dt }}</option>
                                         </select>
                                     </div>
-                                    <div class="col-6 col-md-2">
+                                    <div style="min-width:110px; flex:1;">
+                                        <label class="form-label mb-1 small fw-semibold">Sucursal</label>
+                                        <select v-model="filterBranch" class="form-select form-select-sm">
+                                            <option value="">Todas</option>
+                                            <option v-for="b in (props.branches || [])" :key="b.value" :value="b.value">{{ b.label }}</option>
+                                        </select>
+                                    </div>
+                                    <div style="min-width:110px; flex:1;">
                                         <label class="form-label mb-1 small fw-semibold">Rendición</label>
                                         <select v-model="filterExpenseReport" class="form-select form-select-sm">
                                             <option value="">Todas</option>
@@ -757,19 +784,19 @@ invoice, index
                                             <option value="sin">Sin rendición</option>
                                         </select>
                                     </div>
-                                    <div class="col-6 col-md-2 d-flex align-items-end">
+                                    <div class="d-flex align-items-end" style="flex-shrink:0;">
                                         <button
                                             type="button"
-                                            class="btn btn-sm btn-outline-secondary w-100"
+                                            class="btn btn-sm btn-outline-secondary text-nowrap"
                                             @click="clearAdvancedFilters"
                                             :disabled="activeFiltersCount === 0"
                                             style="font-size: 0.75rem;"
                                         >
-                                            <i class="fas fa-times me-1"></i>Limpiar filtros
+                                            <i class="fas fa-times me-1"></i>Limpiar
                                         </button>
                                     </div>
                                 </div>
-                                <div class="mt-2">
+                                <div class="mt-1">
                                     <small class="text-muted">
                                         Mostrando <b>{{ filteredExpandedInvoices.length }}</b> filas
                                         <span v-if="activeFiltersCount > 0" class="text-primary ms-1">· {{ activeFiltersCount }} filtro(s) activo(s)</span>
@@ -796,6 +823,7 @@ invoice, index
                                     <th style="white-space:nowrap;">Tipo Doc.</th>
                                     <th style="white-space:nowrap;">Mes</th>
                                     <th style="white-space:nowrap; max-width:200px;">Proveedor</th>
+                                    <th style="white-space:nowrap;">Sucursal</th>
                                     <th style="white-space:nowrap; max-width:180px;">Razón Social</th>
                                     <th style="white-space:nowrap;">N° Doc</th>
                                     <th style="white-space:nowrap;">Fecha</th>
@@ -809,7 +837,7 @@ invoice, index
                                 </template>
                                 <template #body>
                                     <template v-if="pagedDetalles.length == 0">
-                                        <Empty colspan="14" />
+                                        <Empty colspan="16" />
                                     </template>
                                     <template v-else>
                                         <tr v-for="(row, index) in pagedDetalles" :key="'det-' + index">
@@ -833,6 +861,7 @@ invoice, index
                                             <td style="white-space:nowrap;">{{ row.type_document }}</td>
                                             <td style="white-space:nowrap;">{{ row.month }}</td>
                                             <td style="white-space:nowrap; max-width:200px; overflow:hidden; text-overflow:ellipsis;">{{ row.supplier.name }}</td>
+                                            <td style="white-space:nowrap;">{{ row.branch_name || '—' }}</td>
                                             <td style="white-space:nowrap; max-width:180px; overflow:hidden; text-overflow:ellipsis;">{{ row.companyReason?.name || '—' }}</td>
                                             <td style="white-space:nowrap;">
                                                 {{ row.number_document }}

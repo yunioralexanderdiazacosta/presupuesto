@@ -19,6 +19,7 @@ trait HasInventory
             ->leftJoin('units', 'products.unit_id', '=', 'units.id')
             ->leftJoin('level2s', 'products.level2_id', '=', 'level2s.id')
             ->leftJoin('level3s', 'products.level3_id', '=', 'level3s.id')
+            ->leftJoin('branches', 'invoice_products.branch_id', '=', 'branches.id')
             ->where('invoices.team_id', $team_id)
             ->where('invoices.season_id', $season_id)
             ->select(
@@ -29,9 +30,11 @@ trait HasInventory
                 'products.id as product_id',
                 'products.name as product_name',
                 'units.name as unit_name',
+                'invoice_products.branch_id',
+                'branches.name as branch_name',
                 DB::raw('SUM(invoice_products.amount) as cantidad')
             )
-            ->groupBy('products.level2_id', 'level2s.name', 'products.level3_id', 'level3s.name', 'products.id', 'products.name');
+            ->groupBy('products.level2_id', 'level2s.name', 'products.level3_id', 'level3s.name', 'products.id', 'products.name', 'invoice_products.branch_id', 'branches.name');
 
         // Notas de débito (tipo = "debito")
         $debitNotes = DB::table('credit_debit_note_items')
@@ -52,6 +55,8 @@ trait HasInventory
                 'products.id as product_id',
                 'products.name as product_name',
                 'units.name as unit_name',
+                DB::raw('NULL as branch_id'),
+                DB::raw('NULL as branch_name'),
                 DB::raw('SUM(credit_debit_note_items.quantity) as cantidad')
             )
             ->groupBy('products.level2_id', 'level2s.name', 'products.level3_id', 'level3s.name', 'products.id', 'products.name');
@@ -64,6 +69,7 @@ trait HasInventory
             ->leftJoin('units', 'products.unit_id', '=', 'units.id')
             ->leftJoin('level2s', 'products.level2_id', '=', 'level2s.id')
             ->leftJoin('level3s', 'products.level3_id', '=', 'level3s.id')
+            ->leftJoin('branches', 'invoice_products.branch_id', '=', 'branches.id')
             ->where('outflows.team_id', $team_id)
             ->where('outflows.season_id', $season_id)
             ->whereNotNull('outflows.invoice_product_id')
@@ -75,9 +81,11 @@ trait HasInventory
                 'products.id as product_id',
                 'products.name as product_name',
                 'units.name as unit_name',
+                'invoice_products.branch_id',
+                'branches.name as branch_name',
                 DB::raw('SUM(outflows.quantity) as cantidad')
             )
-            ->groupBy('products.level2_id', 'level2s.name', 'products.level3_id', 'level3s.name', 'products.id', 'products.name');
+            ->groupBy('products.level2_id', 'level2s.name', 'products.level3_id', 'level3s.name', 'products.id', 'products.name', 'invoice_products.branch_id', 'branches.name');
 
         // Salidas asociadas a nota de débito
         $salidasND = DB::table('outflows')
@@ -97,6 +105,8 @@ trait HasInventory
                 'products.id as product_id',
                 'products.name as product_name',
                 'units.name as unit_name',
+                DB::raw('NULL as branch_id'),
+                DB::raw('NULL as branch_name'),
                 DB::raw('SUM(outflows.quantity) as cantidad')
             )
             ->groupBy('products.level2_id', 'level2s.name', 'products.level3_id', 'level3s.name', 'products.id', 'products.name');
@@ -120,6 +130,8 @@ trait HasInventory
                 'products.id as product_id',
                 'products.name as product_name',
                 'units.name as unit_name',
+                DB::raw('NULL as branch_id'),
+                DB::raw('NULL as branch_name'),
                 DB::raw('SUM(credit_debit_note_items.quantity) as cantidad')
             )
             ->groupBy('products.level2_id', 'level2s.name', 'products.level3_id', 'level3s.name', 'products.id', 'products.name');
@@ -130,11 +142,11 @@ trait HasInventory
     $salidasArr = array_merge($salidasFactura->get()->toArray(), $salidasND->get()->toArray());
     $creditArr = $creditNotes->get()->toArray();
 
-        // Agrupar por nivel2, nivel3, producto
+        // Agrupar por nivel2, nivel3, producto, sucursal
         $inventario = [];
     foreach ([$entradasArr, $debitArr] as $arr) {
             foreach ($arr as $row) {
-                $key = $row->level2_id.'-'.$row->level3_id.'-'.$row->product_id;
+                $key = $row->level2_id.'-'.$row->level3_id.'-'.$row->product_id.'-'.($row->branch_id ?? 'null');
                 if (!isset($inventario[$key])) {
                     $inventario[$key] = [
                         'level2_id' => $row->level2_id,
@@ -144,6 +156,8 @@ trait HasInventory
                         'product_id' => $row->product_id,
                         'product_name' => $row->product_name,
                         'unit_name' => property_exists($row, 'unit_name') ? $row->unit_name : null,
+                        'branch_id' => $row->branch_id ?? null,
+                        'branch_name' => $row->branch_name ?? null,
                         'cantidad' => 0
                     ];
                 }
@@ -152,7 +166,7 @@ trait HasInventory
         }
     foreach ([$salidasArr, $creditArr] as $arr) {
             foreach ($arr as $row) {
-                $key = $row->level2_id.'-'.$row->level3_id.'-'.$row->product_id;
+                $key = $row->level2_id.'-'.$row->level3_id.'-'.$row->product_id.'-'.($row->branch_id ?? 'null');
                 if (!isset($inventario[$key])) {
                     $inventario[$key] = [
                         'level2_id' => $row->level2_id,
@@ -161,6 +175,8 @@ trait HasInventory
                         'level3_name' => property_exists($row, 'level3_name') ? $row->level3_name : null,
                         'product_id' => $row->product_id,
                         'product_name' => $row->product_name,
+                        'branch_id' => $row->branch_id ?? null,
+                        'branch_name' => $row->branch_name ?? null,
                         'cantidad' => 0
                     ];
                 }

@@ -100,6 +100,24 @@ watch(() => props.form.fruit_id, (newVal, oldVal) => {
             <InputError class="mt-1" :message="form.errors.variety_id" />
         </div>
 
+        <!-- Sucursal -->
+        <div class="col-lg-4">
+            <label class="col-form-label fw-bold">
+                <i class="fas fa-building text-primary me-1"></i>Sucursal
+            </label>
+            <select
+                v-model="form.branch_id"
+                class="form-select form-select-solid"
+                :class="{ 'is-invalid': form.errors.branch_id }"
+            >
+                <option value="">Seleccione sucursal</option>
+                <option v-for="b in $page.props.branches" :key="b.value" :value="b.value">
+                    {{ b.label }}
+                </option>
+            </select>
+            <InputError class="mt-1" :message="form.errors.branch_id" />
+        </div>
+
         <!-- Parcela -->
         <div class="col-lg-4">
             <label class="col-form-label fw-bold">

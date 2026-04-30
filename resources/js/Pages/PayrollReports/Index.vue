@@ -54,6 +54,12 @@
                             <i class="fas fa-hand-holding-usd me-1"></i>Anticipos
                         </a>
                     </li>
+                    <li class="nav-item">
+                        <a class="nav-link py-1 px-3" :class="{ active: activeTab === 'sueldos' }"
+                            href="#" @click.prevent="activeTab = 'sueldos'">
+                            <i class="fas fa-money-check-alt me-1"></i>Resumen de Sueldos
+                        </a>
+                    </li>
                 </ul>
 
                 <!-- TAB: Resumen Mensual -->
@@ -191,6 +197,11 @@
                     <PayrollAnticiposTab :anticipos="anticipos" :month="selectedMonth" />
                 </div><!-- /TAB anticipos -->
 
+                <!-- TAB: Resumen de Sueldos -->
+                <div v-show="activeTab === 'sueldos'">
+                    <PayrollSueldosTab :employees="filteredEmployees" :month="selectedMonth" />
+                </div><!-- /TAB sueldos -->
+
             </div>
         </div>
     </AppLayout>
@@ -202,6 +213,7 @@ import { Link, router } from '@inertiajs/vue3';
 import AppLayout from '@/Layouts/AppLayout.vue';
 import PayrollNominaTab from './PayrollNominaTab.vue';
 import PayrollAnticiposTab from './PayrollAnticiposTab.vue';
+import PayrollSueldosTab from './PayrollSueldosTab.vue';
 
 const props = defineProps({
     employees: { type: Array, default: () => [] },

@@ -357,6 +357,7 @@ use App\Http\Controllers\PayrollReports\ShowPayrollReportController;
 use App\Http\Controllers\PayrollReports\ExportPayrollReportPdfController;
 use App\Http\Controllers\PayrollReports\ExportPayrollNominaPdfController;
 use App\Http\Controllers\PayrollReports\ExportPayrollAnticiposPdfController;
+use App\Http\Controllers\PayrollReports\ExportPayrollSueldosPdfController;
 // Rutas para Project Evaluations (Evaluación de Proyectos Agrícolas)
 use App\Http\Controllers\ProjectEvaluations\ProjectEvaluationController;
 use App\Http\Controllers\ProjectEvaluations\ShowProjectEvaluationController;
@@ -628,6 +629,12 @@ Route::middleware([
     Route::post('/cities/store', \App\Http\Controllers\Cities\StoreCityController::class)->name('cities.store');
     Route::post('/cities/{city}/update', \App\Http\Controllers\Cities\UpdateCityController::class)->name('cities.update');
     Route::delete('/cities/{city}/delete', \App\Http\Controllers\Cities\DeleteCityController::class)->name('cities.delete');
+
+    // Rutas para Branches (Sucursales)
+    Route::get('/branches', \App\Http\Controllers\Branches\BranchController::class)->name('branches.index');
+    Route::post('/branches/store', \App\Http\Controllers\Branches\StoreBranchController::class)->name('branches.store');
+    Route::post('/branches/{branch}/update', \App\Http\Controllers\Branches\UpdateBranchController::class)->name('branches.update');
+    Route::delete('/branches/{branch}/delete', \App\Http\Controllers\Branches\DeleteBranchController::class)->name('branches.delete');
 
     Route::get('/invoices/pdf', InvoicesPdfController::class)->name('invoices.pdf');
     Route::get('/invoices/excel', InvoicesExcelController::class)->name('invoices.excel');
@@ -1132,6 +1139,7 @@ Route::middleware([
     Route::get('/payroll-reports', [PayrollReportController::class, 'index'])->name('payroll-reports.index');
     Route::get('/payroll-reports/nomina-pdf', ExportPayrollNominaPdfController::class)->name('payroll-reports.nomina-pdf');
     Route::get('/payroll-reports/anticipos-pdf', ExportPayrollAnticiposPdfController::class)->name('payroll-reports.anticipos-pdf');
+    Route::get('/payroll-reports/sueldos-pdf', ExportPayrollSueldosPdfController::class)->name('payroll-reports.sueldos-pdf');
     Route::get('/payroll-reports/{employee}/pdf', ExportPayrollReportPdfController::class)->name('payroll-reports.pdf');
     Route::get('/payroll-reports/{employee}', ShowPayrollReportController::class)->name('payroll-reports.show');
 

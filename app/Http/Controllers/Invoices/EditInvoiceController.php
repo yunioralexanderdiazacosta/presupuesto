@@ -12,6 +12,7 @@ use App\Models\Month;
 use App\Models\Product;
 use App\Models\Outflow;
 use App\Models\PurchaseOrder;
+use App\Models\Branch;
 use Illuminate\Support\Facades\DB;
 use Inertia\Inertia;
 
@@ -61,6 +62,7 @@ class EditInvoiceController extends Controller
                 'amount'        => $product->pivot->amount,
                 'observations'  => $product->pivot->observations,
                 'is_exento'     => (bool) $product->pivot->is_exento,
+                'branch_id'     => $product->pivot->branch_id,
             ];  
         });
 
@@ -113,6 +115,15 @@ class EditInvoiceController extends Controller
                 ];
             });
 
+        $branches = Branch::where('team_id', $user->team_id)
+            ->where('season_id', session('season_id'))
+            ->orderBy('name')
+            ->get()
+            ->map(fn($b) => ['label' => $b->name, 'value' => $b->id, 'is_default' => $b->is_default]);
+
+        $defaultBranch = $branches->firstWhere('is_default', true);
+        $defaultBranchId = $defaultBranch ? $defaultBranch['value'] : null;
+
         return Inertia::render('Invoices/Edit', compact(
             'invoice',
             'invoiceProducts',
@@ -123,7 +134,9 @@ class EditInvoiceController extends Controller
             'companyReasons',
             'months',
             'protectedProductIds',
-            'purchaseOrders'
+            'purchaseOrders',
+            'branches',
+            'defaultBranchId'
         ));
     }
 }

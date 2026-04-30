@@ -15,7 +15,8 @@ import Swal from 'sweetalert2';
 
 const props = defineProps({
   inventory: Array,
-  kardex: Array
+  kardex: Array,
+  branches: { type: Array, default: () => [] },
 });
 
 // Form para editar clasificación del producto
@@ -34,20 +35,24 @@ const productForm = useForm({
 
 // Filtro local
 const term = ref('');
+const filterBranch = ref('');
 const filteredInventory = computed(() => {
   if (!props.inventory || !props.inventory.length) return [];
-  if (!term.value) return props.inventory;
-  const search = term.value.toLowerCase();
-  return props.inventory.filter(item => {
-    const level2 = item.level2_name ? item.level2_name.toLowerCase() : '';
-    const level3 = item.level3_name ? item.level3_name.toLowerCase() : '';
-    const product = item.product_name ? item.product_name.toLowerCase() : '';
-    return (
-      level2.includes(search) ||
-      level3.includes(search) ||
-      product.includes(search)
-    );
-  });
+  let data = props.inventory;
+  if (term.value) {
+    const search = term.value.toLowerCase();
+    data = data.filter(item => {
+      const level2 = item.level2_name ? item.level2_name.toLowerCase() : '';
+      const level3 = item.level3_name ? item.level3_name.toLowerCase() : '';
+      const product = item.product_name ? item.product_name.toLowerCase() : '';
+      const branch = item.branch_name ? item.branch_name.toLowerCase() : '';
+      return level2.includes(search) || level3.includes(search) || product.includes(search) || branch.includes(search);
+    });
+  }
+  if (filterBranch.value) {
+    data = data.filter(item => String(item.branch_id) === String(filterBranch.value));
+  }
+  return data;
 });
 // El kardexView ahora será un diccionario: { [product_id]: movimientos[] }
 const kardexView = ref({});
@@ -221,18 +226,25 @@ function printKardex(productId) {
        
               <div class="tab-pane fade show active" id="pill-tab-edicion" role="tabpanel" aria-labelledby="pill-edicion">
                 <!-- Search Input para tab Edición -->
-                <div class="row align-items-center mb-3">
-                  <div class="col-md-12 col-12 mb-2 mb-md-0">
+                <div class="d-flex align-items-center gap-2 mb-3">
+                  <div style="flex:1;">
                     <SearchInput
                       v-model="term"
-                      placeholder="Buscar por producto, nivel 2 o nivel 3..."
+                      placeholder="Buscar por producto, nivel 2, nivel 3 o sucursal..."
                     />
+                  </div>
+                  <div style="width:180px; flex-shrink:0;">
+                    <select v-model="filterBranch" class="form-select form-select-sm">
+                      <option value="">Todas las sucursales</option>
+                      <option v-for="b in props.branches" :key="b.value" :value="b.value">{{ b.label }}</option>
+                    </select>
                   </div>
                 </div>
                 <div class="table-responsive mb-4">
                 <table class="table table-bordered table-striped table-sm small">
                   <thead class="table-primary text-white">
                     <tr>
+                      <th>Sucursal</th>
                       <th>Nivel 2</th>
                       <th>Nivel 3</th>
                       <th>Producto</th>
@@ -242,7 +254,11 @@ function printKardex(productId) {
                     </tr>
                   </thead>
                   <tbody>
-                    <tr v-for="item in filteredInventory" :key="item.product_id">
+                    <tr v-for="item in filteredInventory" :key="item.product_id + '-' + (item.branch_id ?? 'null')">
+                      <td>
+                        <span v-if="item.branch_name">{{ item.branch_name }}</span>
+                        <span v-else class="text-muted">—</span>
+                      </td>
                       <td>{{ item.level2_name || '--' }}</td>
                       <td>{{ item.level3_name || '--' }}</td>
                       <td>{{ item.product_name }}</td>
@@ -261,7 +277,7 @@ function printKardex(productId) {
                       </td>
                     </tr>
                     <tr v-if="!filteredInventory.length">
-                      <td colspan="6" class="text-center text-muted">No hay datos de inventario.</td>
+                      <td colspan="7" class="text-center text-muted">No hay datos de inventario.</td>
                     </tr>
                   </tbody>
                 </table>
@@ -272,18 +288,25 @@ function printKardex(productId) {
 
                <div class="tab-pane fade" id="pill-tab-kardex" role="tabpanel" aria-labelledby="pill-kardex">
                   <!-- Search Input para Kardex -->
-                  <div class="row align-items-center mb-3">
-                    <div class="col-md-12 col-12 mb-2 mb-md-0">
+                  <div class="d-flex align-items-center gap-2 mb-3">
+                    <div style="flex:1;">
                       <SearchInput
                         v-model="term"
-                        placeholder="Buscar por producto, nivel 2 o nivel 3..."
+                        placeholder="Buscar por producto, nivel 2, nivel 3 o sucursal..."
                       />
+                    </div>
+                    <div style="width:180px; flex-shrink:0;">
+                      <select v-model="filterBranch" class="form-select form-select-sm">
+                        <option value="">Todas las sucursales</option>
+                        <option v-for="b in props.branches" :key="b.value" :value="b.value">{{ b.label }}</option>
+                      </select>
                     </div>
                   </div>
                   <div class="table-responsive mb-4">
                     <table class="table table-bordered table-striped table-sm small">
                       <thead class="table-primary text-white">
                         <tr>
+                          <th>Sucursal</th>
                           <th>Nivel 2</th>
                           <th>Nivel 3</th>
                           <th>Producto</th>
@@ -292,8 +315,12 @@ function printKardex(productId) {
                         </tr>
                       </thead>
                       <tbody>
-                        <template v-for="item in filteredInventory" :key="'kardex-' + item.product_id">
+                        <template v-for="item in filteredInventory" :key="'kardex-' + item.product_id + '-' + (item.branch_id ?? 'null')">
                           <tr>
+                            <td>
+                              <span v-if="item.branch_name">{{ item.branch_name }}</span>
+                              <span v-else class="text-muted">—</span>
+                            </td>
                             <td>{{ item.level2_name || '--' }}</td>
                             <td>{{ item.level3_name || '--' }}</td>
                             <td>{{ item.product_name }}</td>
@@ -312,7 +339,7 @@ function printKardex(productId) {
                             </td>
                           </tr>
                           <tr v-if="expandedRows.includes(item.product_id)">
-                            <td colspan="5" class="p-0">
+                            <td colspan="6" class="p-0">
                               <div class="p-2">
                                 <div class="d-flex justify-content-between align-items-center mb-2">
                                   <strong>Kardex de {{ item.product_name }}</strong>

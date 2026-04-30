@@ -84,6 +84,7 @@ class UpdateInvoiceController extends Controller
                     'amount'       => $productAttach['amount'],
                     'observations' => $productAttach['observations'],
                     'is_exento'    => $productAttach['is_exento'] ?? false,
+                    'branch_id'    => $productAttach['branch_id'] ?? null,
                 ]);
             }
         }
@@ -146,6 +147,7 @@ class UpdateInvoiceController extends Controller
                 'amount'       => $item['amount'],
                 'observations' => $item['observations'],
                 'is_exento'    => $item['is_exento'] ?? false,
+                'branch_id'    => $item['branch_id'] ?? null,
             ];
         }
         return $data;

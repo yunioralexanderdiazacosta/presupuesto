@@ -160,6 +160,7 @@ const add = () => {
 		amount: 1,
 		observations: '',
 		is_exento: false,
+		branch_id: $page.defaultBranchId || null,
 	});
 	showProductOptions.value.push(true);
 }
@@ -235,31 +236,40 @@ watch(
 	<table class="table g-2 gs-0 mb-0 fw-bold text-gray-700" data-kt-element="items" style="font-size:0.85rem;">
 			<!--begin::Table head-->
 			<thead>
-				<tr class="border-bottom fs-10 fw-bold text-gray-700 text-uppercase">
-					   <th class="min-w-250px w-250px">Producto</th>
-					   <th class="min-w-150px w-150px">Unidad</th>
-					   <th class="min-w-60px w-60px">Cantidad</th>
-					   <th class="min-w-90px w-90px">Precio</th>
-					   <th class="min-w-200px w-200px">Observaciones</th>
-					<th class="min-w-100px w-150px text-end">Total</th>
-					<th class="min-w-60px w-60px text-center" style="font-size:0.70em;" title="Exento de IVA">Exento</th>
-					   <th class="min-w-40px w-40px text-end" style="font-size:0.70em;">Acción</th>
+				<tr class="border-bottom fs-11 fw-bold text-gray-700 text-uppercase">
+					<th style="width:110px; min-width:110px; padding-bottom:2px;">Sucursal</th>
+					<th style="width:200px; min-width:200px; padding-bottom:2px;">Producto</th>
+					<th style="width:95px; min-width:95px; padding-bottom:2px;">Unidad</th>
+					<th style="width:65px; min-width:65px; padding-bottom:2px;">Cant.</th>
+					<th style="width:95px; min-width:95px; padding-bottom:2px;">Precio</th>
+					<th style="width:130px; min-width:130px; padding-bottom:2px;">Observaciones</th>
+					<th style="width:80px; min-width:80px; padding-bottom:2px;" class="text-end">Total</th>
+					<th style="width:45px; min-width:45px; padding-bottom:2px;" class="text-center" title="Exento de IVA">Exento</th>
+					<th style="width:35px; min-width:35px; padding-bottom:2px;" class="text-end">Acción</th>
 				</tr>
 			</thead>
 			<!--end::Table head-->
 			<!--begin::Table body-->
 			<tbody>
 				   <tr class="border-bottom border-bottom-dashed align-top" v-for="(product, index) in form.products" :key="index" data-kt-element="item" style="vertical-align: top;" :class="{'bg-light': isProtected(product.product_id)}">
-						<td class="ps-0 text-start pe-0" style="width:250px; min-width:250px; max-width:250px;">
+						<!-- Sucursal -->
+						<td class="ps-1 pe-1 align-top" style="width:110px; min-width:110px; max-width:110px;">
+							<select v-model="product.branch_id" class="form-select form-select-sm" style="font-size:0.78rem;" :disabled="isProtected(product.product_id)">
+								<option :value="null">— Sin suc. —</option>
+								<option v-for="b in ($page.branches || [])" :key="b.value" :value="b.value">{{ b.label }}</option>
+							</select>
+						</td>
+
+						<td class="ps-0 pe-1" style="width:200px; min-width:200px; max-width:200px;">
 							<div v-if="isProtected(product.product_id)" class="d-flex align-items-center gap-1">
 								<i class="fas fa-lock text-warning" style="font-size:0.7rem;" v-tooltip="'Producto con salidas asociadas'"></i>
-								<span class="form-control form-control-solid bg-light" style="font-size:0.75rem; height:26px; min-height:26px; cursor:not-allowed; opacity:0.8;">{{ productOptions.find(p => p.value === product.product_id)?.label || product.product_id }}</span>
+								<span class="form-control form-control-sm bg-light" style="font-size:0.75rem; cursor:not-allowed; opacity:0.8;">{{ productOptions.find(p => p.value === product.product_id)?.label || product.product_id }}</span>
 							</div>
 							<div v-if="!isProtected(product.product_id)" class="d-flex align-items-center gap-1">
 								<Multiselect
 									:taggable="true"
 									:create-tag="newTag"
-									placeholder="Seleccione o escriba producto"
+									placeholder="Producto..."
 									v-model="product.product_id"
 									:options="productOptions"
 									:searchable="true"
@@ -269,7 +279,7 @@ watch(
 									:canDeselect="true"
 									:allowAbsent="true"
 									:showOptions="showProductOptions[index] !== false"
-									class="multiselect-blue form-control"
+									class="multiselect-blue form-control form-control-sm"
 									style="flex: 1;"
 									required
 									:class="{'is-invalid': showProductValidation && !product.product_id}"
@@ -279,18 +289,18 @@ watch(
 									type="button"
 									@click="editProductName(index)"
 									class="btn btn-sm btn-light-primary p-0 d-flex align-items-center justify-content-center"
-									style="width:24px; height:24px; min-width:24px; flex-shrink:0;"
+									style="width:22px; height:22px; min-width:22px; flex-shrink:0;"
 									v-tooltip="'Editar nombre'"
 								>
-									<i class="fas fa-pencil-alt" style="font-size:0.65rem;"></i>
+									<i class="fas fa-pencil-alt" style="font-size:0.6rem;"></i>
 								</button>
 							</div>
-							<span v-if="!isProtected(product.product_id) && showProductValidation && !product.product_id" class="text-danger" style="font-size:0.7em;">Campo obligatorio</span>
+							<span v-if="!isProtected(product.product_id) && showProductValidation && !product.product_id" class="text-danger" style="font-size:0.7em;">Obligatorio</span>
 					   </td>
-                     
+
 					   <!-- Columna Unidad -->
-					   <td class="ps-1 pe-1 " style="width:120px; min-width:120px; max-width:120px;">
-					<Multiselect
+					   <td class="ps-1 pe-1" style="width:95px; min-width:95px; max-width:95px;">
+						<Multiselect
 							placeholder="Unidad"
 							v-model="product.unit_id"
 							:options="$page.units"
@@ -299,49 +309,57 @@ watch(
 							:searchable="false"
 							:close-on-select="true"
 							:hide-selected="false"
-							class="multiselect-blue form-control"
+							class="multiselect-blue form-control form-control-sm"
 							required
 							:disabled="isProtected(product.product_id)"
 							:class="{'is-invalid': showProductValidation && !product.unit_id}"
 						/>
-						<span v-if="showProductValidation && !product.unit_id" class="text-danger" style="font-size:0.7em;">Campo obligatorio</span>
+						<span v-if="showProductValidation && !product.unit_id" class="text-danger" style="font-size:0.7em;">Obligatorio</span>
 					   </td>
-					<td class="ps-0 pe-1" style="width:120px; min-width:100px; max-width:100px;">
-					<input class="form-control form-control-solid" :class="{'is-invalid': showProductValidation && (!product.amount || product.amount < 1), 'bg-light': isProtected(product.product_id)}" style="width:55px; min-width:120px; max-width:100px; font-size:0.93em;" type="number" min="1" v-model="product.amount" value="1" data-kt-element="quantity" required
-							step="0.01"
-							:disabled="isProtected(product.product_id)" />
-						<span v-if="showProductValidation && (!product.amount || product.amount < 1)" class="text-danger" style="font-size:0.7em;">Campo obligatorio</span>
+
+					   <!-- Cantidad -->
+					   <td class="ps-1 pe-1" style="width:65px; min-width:65px; max-width:65px;">
+						<input class="form-control form-control-sm" :class="{'is-invalid': showProductValidation && (!product.amount || product.amount < 1), 'bg-light': isProtected(product.product_id)}" type="number" min="1" v-model="product.amount" step="0.01" required :disabled="isProtected(product.product_id)" />
+						<span v-if="showProductValidation && (!product.amount || product.amount < 1)" class="text-danger" style="font-size:0.7em;">Obligatorio</span>
 					</td>
-					<td class="ps-0 pe-0" style="width:120px; min-width:100px; max-width:100px;">
-					<input type="number" class="form-control form-control-solid unit_price" :class="{'is-invalid': showProductValidation && (!product.unit_price || product.unit_price <= 0), 'bg-light': isProtected(product.product_id)}" style="width:120px; min-width:120px; max-width:100px; font-size:0.93em;" v-model="product.unit_price" value="0" step="0.01" required
-						:disabled="isProtected(product.product_id)" />
-						<span v-if="showProductValidation && (!product.unit_price || product.unit_price <= 0)" class="text-danger" style="font-size:0.7em;">Campo obligatorio</span>
+
+					<!-- Precio -->
+					<td class="ps-1 pe-1" style="width:95px; min-width:95px; max-width:95px;">
+						<input type="number" class="form-control form-control-sm unit_price" :class="{'is-invalid': showProductValidation && (!product.unit_price || product.unit_price <= 0), 'bg-light': isProtected(product.product_id)}" v-model="product.unit_price" step="0.01" required :disabled="isProtected(product.product_id)" />
+						<span v-if="showProductValidation && (!product.unit_price || product.unit_price <= 0)" class="text-danger" style="font-size:0.7em;">Obligatorio</span>
 					</td>
-					  <td class="ps-0 pe-0" style="width:150px; min-width:150px; max-width:150px;">
-                           <input type="text" class="form-control form-control-solid" :class="{'bg-light': isProtected(product.product_id)}" v-model="product.observations" :disabled="isProtected(product.product_id)" placeholder="Observaciones..." />
-                       </td>
-					<td class="text-end text-nowrap align-middle" style="width:100px; min-width:100px; max-width:100px; margin:0; padding-right:2px;">
-	$<span data-kt-element="total">{{ (product.unit_price * product.amount).toLocaleString('es-ES') }}</span>
-</td>
-<td class="text-center align-middle" style="width:60px; min-width:60px; max-width:60px;">
-	<input type="checkbox" v-model="product.is_exento" :disabled="isProtected(product.product_id)" class="form-check-input" style="width:16px; height:16px; cursor:pointer;" title="Marcar como exento de IVA" />
-</td>
-<td class="text-end align-middle" style="width:40px; min-width:40px; max-width:50px; margin:0; padding:0;">
-    <button v-if="!isProtected(product.product_id)" type="button" @click="onDeleted(index)" class="btn btn-sm btn-icon btn-active-color-primary m-0 p-0" style="margin:0; padding:0;" data-kt-element="remove-item">
-        <!--begin::Svg Icon | path: icons/duotune/general/gen027.svg-->
-        <span class="svg-icon svg-icon-3">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                <path d="M5 9C5 8.44772 5.44772 8 6 8H18C18.5523 8 19 8.44772 19 9V18C19 19.6569 17.6569 21 16 21H8C6.34315 21 5 19.6569 5 18V9Z" fill="currentColor" />
-                <path opacity="0.5" d="M5 5C5 4.44772 5.44772 4 6 4H18C18.5523 4 19 4.44772 19 5V5C19 5.55228 18.5523 6 18 6H6C5.44772 6 5 5.55228 5 5V5Z" fill="currentColor" />
-                <path opacity="0.5" d="M9 4C9 3.44772 9.44772 3 10 3H14C14.5523 3 15 3.44772 15 4V4H9V4Z" fill="currentColor" />
-            </svg>
-        </span>
-        <!--end::Svg Icon-->
-    </button>
-    <span v-else class="text-warning" v-tooltip="'Producto protegido: tiene salidas asociadas'" style="font-size:0.75rem;">
-        <i class="fas fa-lock"></i>
-    </span>
-</td>
+
+					<!-- Observaciones -->
+					<td class="ps-1 pe-1" style="width:130px; min-width:130px; max-width:130px;">
+						<input type="text" class="form-control form-control-sm" :class="{'bg-light': isProtected(product.product_id)}" v-model="product.observations" :disabled="isProtected(product.product_id)" placeholder="Observaciones..." />
+					</td>
+
+					<!-- Total -->
+					<td class="text-end text-nowrap align-middle pe-1" style="width:80px; min-width:80px; max-width:80px; font-size:0.85em;">
+						$<span data-kt-element="total">{{ (product.unit_price * product.amount).toLocaleString('es-ES') }}</span>
+					</td>
+
+					<!-- Exento -->
+					<td class="text-center align-middle" style="width:45px; min-width:45px; max-width:45px;">
+						<input type="checkbox" v-model="product.is_exento" :disabled="isProtected(product.product_id)" class="form-check-input" style="width:15px; height:15px; cursor:pointer;" title="Exento de IVA" />
+					</td>
+
+
+					<!-- Acción -->
+					<td class="text-end align-middle" style="width:35px; min-width:35px; max-width:35px; padding:0;">
+						<button v-if="!isProtected(product.product_id)" type="button" @click="onDeleted(index)" class="btn btn-sm btn-icon btn-active-color-primary m-0 p-0" data-kt-element="remove-item">
+							<span class="svg-icon svg-icon-3">
+								<svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+									<path d="M5 9C5 8.44772 5.44772 8 6 8H18C18.5523 8 19 8.44772 19 9V18C19 19.6569 17.6569 21 16 21H8C6.34315 21 5 19.6569 5 18V9Z" fill="currentColor" />
+									<path opacity="0.5" d="M5 5C5 4.44772 5.44772 4 6 4H18C18.5523 4 19 4.44772 19 5V5C19 5.55228 18.5523 6 18 6H6C5.44772 6 5 5.55228 5 5V5Z" fill="currentColor" />
+									<path opacity="0.5" d="M9 4C9 3.44772 9.44772 3 10 3H14C14.5523 3 15 3.44772 15 4V4H9V4Z" fill="currentColor" />
+								</svg>
+							</span>
+						</button>
+						<span v-else class="text-warning" v-tooltip="'Producto protegido: tiene salidas asociadas'" style="font-size:0.75rem;">
+							<i class="fas fa-lock"></i>
+						</span>
+					</td>
 				</tr>
 			</tbody>
 			<!--end::Table body-->
@@ -356,35 +374,35 @@ watch(
 											<i class="fa fa-minus"></i>
 										</button>
 									</th>
-					<th colspan="7" class="p-0"></th>
+					<th colspan="8" class="p-0"></th>
 				</tr>
 				<!-- Neto Afecto -->
 				<tr class="align-top fw-bold text-gray-700">
 					<th colspan="4"></th>
 					<th class="fs-8 ps-0 text-end">Neto Afecto</th>
 					<th class="text-end fs-8 text-nowrap">$<span>{{ calculateNetoAfecto().toLocaleString('es-ES', { maximumFractionDigits: 0 }) }}</span></th>
-					<th colspan="2"></th>
+					<th colspan="3"></th>
 				</tr>
 				<!-- Exento -->
 				<tr v-if="calculateExento() > 0" class="align-top fw-bold text-gray-700">
 					<th colspan="4"></th>
 					<th class="fs-8 ps-0 text-end">Exento</th>
 					<th class="text-end fs-8 text-nowrap">$<span>{{ calculateExento().toLocaleString('es-ES', { maximumFractionDigits: 0 }) }}</span></th>
-					<th colspan="2"></th>
+					<th colspan="3"></th>
 				</tr>
 				<!-- IVA solo sobre neto afecto -->
 				<tr v-if="showIVA && calculateNetoAfecto() > 0" class="align-top fw-bold text-gray-700">
 					<th colspan="4"></th>
 					<th class="fs-8 ps-0 text-end">IVA (19%)</th>
 					<th class="text-end fs-8 text-nowrap">$<span>{{ (calculateNetoAfecto() * 0.19).toLocaleString('es-ES', { maximumFractionDigits: 0 }) }}</span></th>
-					<th colspan="2"></th>
+					<th colspan="3"></th>
 				</tr>
 				<!-- Total general -->
 				<tr class="align-top fw-bold text-gray-700 border-top">
 					<th colspan="4"></th>
 					<th class="fs-6 ps-0 text-end">Total</th>
 					<th class="text-end fs-6 text-nowrap">$<span>{{ (showIVA ? calculateNetoAfecto() * 1.19 + calculateExento() : calculateTotal()).toLocaleString('es-ES', { maximumFractionDigits: 0 }) }}</span></th>
-					<th colspan="2"></th>
+					<th colspan="3"></th>
 				</tr>
 			</tfoot>
 			<!--end::Table foot-->
@@ -481,6 +499,7 @@ input.form-control::placeholder {
 .col-form-label,
 label {
     font-size: 0.8rem;
+    margin-bottom: 0.1rem;
 }
 /* Opciones del multiselect */
 .multiselect__option {

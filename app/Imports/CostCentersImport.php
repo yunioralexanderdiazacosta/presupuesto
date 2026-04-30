@@ -7,6 +7,7 @@ use App\Models\Fruit;
 use App\Models\Variety;
 use App\Models\Parcel;
 use App\Models\DevelopmentState;
+use App\Models\Branch;
 use App\Models\CompanyReason;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Log;
@@ -27,6 +28,9 @@ class CostCentersImport implements ToModel, WithHeadingRow, WithValidation
         $parcel_id = Parcel::where('name', $row['parcela'] ?? '')->where('team_id', $user->team_id)->where('season_id', $season_id)->value('id');
         $development_state_id = DevelopmentState::where('name', $row['estado_de_desarrollo'] ?? '')->value('id');
         $company_reason_id = CompanyReason::where('name', $row['razon_social'] ?? '')->where('team_id', $user->team_id)->value('id');
+        $branch_id = !empty($row['sucursal'])
+            ? Branch::where('name', $row['sucursal'])->where('team_id', $user->team_id)->where('season_id', $season_id)->value('id')
+            : null;
 
         return new CostCenter([
             'name' => $row['nombre_de_cc'] ?? '',
@@ -38,6 +42,7 @@ class CostCentersImport implements ToModel, WithHeadingRow, WithValidation
             'development_state_id' => $development_state_id,
             'year_plantation' => $row['ano_de_plantacion'] ?? null,
             'company_reason_id' => $company_reason_id,
+            'branch_id' => $branch_id,
             'season_id' => $season_id,
         ]);
     }

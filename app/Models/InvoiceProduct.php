@@ -19,6 +19,7 @@ class InvoiceProduct extends Model
         'amount',
         'observations',
         'is_exento',
+        'branch_id',
     ];
 
     protected $casts = [
@@ -33,6 +34,11 @@ class InvoiceProduct extends Model
     public function product()
     {
         return $this->belongsTo(Product::class);
+    }
+
+    public function branch()
+    {
+        return $this->belongsTo(Branch::class);
     }
     // Relación a unidad
     public function unit()
