@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use App\Models\CreditDebitNote;
+use App\Models\Branch;
 use App\Models\Supplier;
 use App\Models\Invoice;
 use App\Models\Product;
@@ -19,7 +20,7 @@ class CreditDebitNotesController extends Controller
         $season_id = session('season_id');
         $term = $request->term ?? '';
 
-        $notes = CreditDebitNote::with(['supplier', 'invoice', 'items.product'])
+        $notes = CreditDebitNote::with(['supplier', 'invoice', 'items.product', 'items.branch:id,name'])
             ->where('team_id', $user->team_id)
             ->where('season_id', $season_id)
             ->when($request->term, function ($query, $search) {
@@ -52,6 +53,7 @@ class CreditDebitNotesController extends Controller
                     'affects_inventory' => $note->affects_inventory,
                     'products'    => implode(', ', $productNames),
                     'total'       => $total,
+                    'branch_name' => $note->items->first(fn($i) => $i->branch_id)?->branch?->name,
                 ];
             });
 
@@ -95,6 +97,12 @@ class CreditDebitNotesController extends Controller
             ];
         });
 
-        return Inertia::render('CreditDebitNotes', compact('notes', 'term', 'suppliers', 'invoices', 'products', 'units'));
+        $branches = Branch::where('team_id', $user->team_id)
+            ->where('season_id', $season_id)
+            ->orderBy('name')
+            ->get(['id', 'name'])
+            ->map(fn($b) => ['value' => $b->id, 'label' => $b->name]);
+
+        return Inertia::render('CreditDebitNotes', compact('notes', 'term', 'suppliers', 'invoices', 'products', 'units', 'branches'));
     }
 }

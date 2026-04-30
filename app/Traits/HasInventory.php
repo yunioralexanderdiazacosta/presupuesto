@@ -237,6 +237,8 @@ trait HasInventory
         // Traer facturas con productos
         $stocksByProduct = [];
 
+        $branches = \App\Models\Branch::pluck('name', 'id');
+
         $invoices = \App\Models\Invoice::with(['supplier', 'typeDocument', 'products.unit'])
             ->where('team_id', $teamId)
             ->where('season_id', $seasonId)
@@ -287,6 +289,8 @@ trait HasInventory
                     'unit_price' => $unitPrice,
                     'effective_unit_price' => $effectiveUnitPrice,
                     'date' => $invoice->date instanceof \Carbon\Carbon ? $invoice->date->format('Y-m-d') : $invoice->date,
+                    'branch_id' => $product->pivot->branch_id,
+                    'branch_name' => $product->pivot->branch_id ? ($branches[$product->pivot->branch_id] ?? null) : null,
                 ];
             }
         }

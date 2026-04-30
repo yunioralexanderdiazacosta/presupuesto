@@ -4,6 +4,7 @@ namespace App\Http\Controllers\AgrochemicalOutflows;
 
 use App\Models\AgrochemicalOutflow;
 use App\Models\ApplicationOrder;
+use App\Models\Branch;
 use App\Models\Invoice;
 use App\Models\Product;
 use App\Traits\HasInventory;
@@ -83,10 +84,17 @@ class AgrochemicalOutflowController
         // Calcular stock disponible de agroquímicos por producto
         $availableStocksByProduct = $this->getAvailableStocksByInvoiceProduct($teamId, $seasonId);
 
+        $branches = Branch::where('team_id', $teamId)
+            ->where('season_id', $seasonId)
+            ->orderBy('name')
+            ->get(['id', 'name'])
+            ->map(fn($b) => ['value' => $b->id, 'label' => $b->name]);
+
         return Inertia::render('AgrochemicalOutflows/Index', [
             'outflows' => $groupedOutflows,
             'availableOrders' => $availableOrders,
             'availableStocksByProduct' => $availableStocksByProduct,
+            'branches' => $branches,
         ]);
     }
 }

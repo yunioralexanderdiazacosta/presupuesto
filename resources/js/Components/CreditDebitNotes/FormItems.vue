@@ -4,6 +4,10 @@ const props = defineProps({
   items: Array,
   products: Array,  // líneas de factura (crédito) o productos (débito)
   units: Array,
+  branchId: {
+    type: [String, Number],
+    default: ''
+  },
   is_annulment: Boolean,
   type: String, // 'credito' o 'debito'
   affects_inventory: {
@@ -33,6 +37,7 @@ function add() {
     unit_id: '',
     quantity: 0,
     unit_price: 0,
+    branch_id: props.branchId || '',
   });
   emit('update:items', newItems);
 }

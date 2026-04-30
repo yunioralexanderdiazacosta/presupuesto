@@ -4,6 +4,7 @@ namespace App\Http\Controllers\CreditDebitNotes;
 
 use App\Http\Controllers\Controller;
 use Illuminate\Support\Facades\Auth;
+use App\Models\Branch;
 use App\Models\Supplier;
 use App\Models\Invoice;
 use App\Models\Product;
@@ -58,6 +59,13 @@ class CreateCreditDebitNoteController extends Controller
             ];
         });
 
-        return Inertia::render('CreditDebitNotes/Create', compact('suppliers', 'invoices', 'products', 'units'));
+        $season_id = session('season_id');
+        $branches = Branch::where('team_id', $user->team_id)
+            ->where('season_id', $season_id)
+            ->orderBy('name')
+            ->get(['id', 'name'])
+            ->map(fn($b) => ['value' => $b->id, 'label' => $b->name]);
+
+        return Inertia::render('CreditDebitNotes/Create', compact('suppliers', 'invoices', 'products', 'units', 'branches'));
     }
 }

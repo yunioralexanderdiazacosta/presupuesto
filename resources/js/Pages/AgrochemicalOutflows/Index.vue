@@ -11,6 +11,7 @@ const props = defineProps({
     outflows: Array,
     availableOrders: Array,
     availableStocksByProduct: Object,
+    branches: { type: Array, default: () => [] },
 });
 
 const showExecuteModal = ref(false);
@@ -268,6 +269,7 @@ const excelData = computed(() => {
             :show="showExecuteModal"
             :available-orders="availableOrders"
             :available-stocks-by-product="availableStocksByProduct"
+            :branches="branches"
             :preselected-order-id="preselectedOrderId"
             @close="showExecuteModal = false; preselectedOrderId = null;"
             @saved="handleOrderExecuted"

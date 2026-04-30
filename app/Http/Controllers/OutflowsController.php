@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use Illuminate\Http\Request;
 use App\Models\Outflow;
 use App\Models\Invoice;
+use App\Models\Branch;
 use Inertia\Inertia;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Auth;
@@ -34,7 +35,7 @@ class OutflowsController extends Controller
             ->pluck('total_devuelto', 'credit_debit_note_items.invoice_product_id');
 
         // Traer productos de facturas
-        $invoices = Invoice::with(['supplier', 'typeDocument', 'invoiceProducts.product.unit'])
+        $invoices = Invoice::with(['supplier', 'typeDocument', 'invoiceProducts.product.unit', 'invoiceProducts.branch:id,name'])
             ->where('team_id', $user->team_id)
             ->where('season_id', $season_id)
             ->get();
@@ -130,12 +131,14 @@ class OutflowsController extends Controller
                     'has_credit_note'   => ($devuelto > 0),
                     'credit_note_info'  => $creditNoteInfo,
                     'mes_contable'      => $invoice->month?->name ?? '',
+                    'branch_id'         => $invoiceProduct->branch_id,
+                    'branch_name'       => $invoiceProduct->branch?->name,
                 ];
             }
         }
 
         // Traer productos de notas de débito (tipo = debito)
-        $debitNotes = \App\Models\CreditDebitNote::with(['supplier', 'items.product.unit'])
+        $debitNotes = \App\Models\CreditDebitNote::with(['supplier', 'items.product.unit', 'items.branch:id,name'])
             ->where('team_id', $user->team_id)
             ->where('season_id', $season_id)
             ->where('type', 'debito')
@@ -163,6 +166,8 @@ class OutflowsController extends Controller
                     'quantity'                => $cantidadOriginal,
                     'credit_debit_note_item_id'=> $item->id,
                     'stock'                   => $stockLinea,
+                    'branch_id'               => $item->branch_id,
+                    'branch_name'             => $item->branch?->name,
                 ];
             }
         }
@@ -208,9 +213,11 @@ class OutflowsController extends Controller
             'machinery',
             'user',
             'invoiceProduct.product',
+            'invoiceProduct.branch:id,name',
             'invoiceProduct.invoice.supplier',
             'invoiceProduct.invoice.month',
             'creditDebitNoteItem.product',
+            'creditDebitNoteItem.branch:id,name',
             'creditDebitNoteItem.creditDebitNote.supplier',
             'creditDebitNoteItem.creditDebitNote.month',
             'level3.level2.level1',
@@ -271,6 +278,11 @@ class OutflowsController extends Controller
                     'level1_name' => $outflow->level3->level2->level1->name ?? null,
                     'level2_name' => $outflow->level3->level2->name ?? null,
                     'level3_name' => $outflow->level3->name ?? null,
+                    'branch_name' => $outflow->invoiceProduct
+                        ? ($outflow->invoiceProduct->branch?->name ?? null)
+                        : ($outflow->creditDebitNoteItem
+                            ? ($outflow->creditDebitNoteItem->branch?->name ?? null)
+                            : null),
                 ];
             });
 
@@ -340,11 +352,15 @@ class OutflowsController extends Controller
             'investments' => $investments,
             'machineries' => $machineries,
             'cost_centers' => $cost_centers,
-            // Detalles de salidas ya mapeados incluyendo 'product'
             'outflowDetails' => $outflowDetails,
             'groupings' => $groupings,
             'levels2' => $levels2,
             'levels3' => $levels3,
+            'branches' => Branch::where('team_id', $user->team_id)
+                ->where('season_id', $season_id)
+                ->orderBy('name')
+                ->get(['id', 'name'])
+                ->map(fn($b) => ['value' => $b->id, 'label' => $b->name]),
         ]);
     }
 }

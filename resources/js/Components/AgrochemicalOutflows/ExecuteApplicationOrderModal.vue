@@ -8,6 +8,7 @@ const props = defineProps({
     show: Boolean,
     availableOrders: Array,
     availableStocksByProduct: Object,
+    branches: { type: Array, default: () => [] },
     preselectedOrderId: { type: Number, default: null },
 });
 
@@ -191,6 +192,7 @@ function save() {
                         :form="form"
                         :available-orders="availableOrders"
                         :available-stocks-by-product="availableStocksByProduct"
+                        :branches="branches"
                     />
                 </div>
 

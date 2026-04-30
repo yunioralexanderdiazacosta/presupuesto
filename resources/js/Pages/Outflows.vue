@@ -62,6 +62,7 @@ const filterLevel1 = ref(null);
 const filterLevel2 = ref(null);
 const filterLevel3 = ref(null);
 const filterProject = ref(null);
+const filterBranchEdicion = ref(null);
 
 // Opciones únicas extraídas de los datos ya cargados
 const mesOptions = computed(() => {
@@ -106,6 +107,11 @@ const projectOptions = computed(() => {
   const unique = [...new Set(props.outflowDetails.map(i => i.project).filter(Boolean))];
   return unique.sort().map(v => ({ value: v, label: v }));
 });
+const branchEdicionOptions = computed(() => {
+  if (!props.outflowDetails?.length) return [];
+  const unique = [...new Set(props.outflowDetails.map(i => i.branch_name).filter(Boolean))];
+  return unique.sort().map(v => ({ value: v, label: v }));
+});
 
 // Limpiar niveles hijos al cambiar padre
 watch(filterLevel1, () => { filterLevel2.value = null; filterLevel3.value = null; });
@@ -113,7 +119,7 @@ watch(filterLevel2, () => { filterLevel3.value = null; });
 
 const hasActiveFilters = computed(() => {
   return filterMes.value || filterOperation.value || filterSupplier.value 
-      || filterLevel1.value || filterLevel2.value || filterLevel3.value || filterProject.value;
+      || filterLevel1.value || filterLevel2.value || filterLevel3.value || filterProject.value || filterBranchEdicion.value;
 });
 
 const isReloading = ref(false);
@@ -135,6 +141,7 @@ const filteredOutflowDetails = computed(() => {
   if (filterLevel2.value) result = result.filter(i => i.level2_name === filterLevel2.value);
   if (filterLevel3.value) result = result.filter(i => i.level3_name === filterLevel3.value);
   if (filterProject.value) result = result.filter(i => i.project === filterProject.value);
+  if (filterBranchEdicion.value) result = result.filter(i => i.branch_name === filterBranchEdicion.value);
 
   // Filtro de texto
   if (termEdicion.value) {
@@ -202,17 +209,23 @@ const props = defineProps({
   outflowDetails: { type: Array, default: () => [] },
   levels2: { type: Array, default: () => [] },
   levels3: { type: Array, default: () => [] },
-  investments: { type: Array, default: () => [] }
+  investments: { type: Array, default: () => [] },
+  branches: { type: Array, default: () => [] },
 });
 
 const title = 'Salidas de productos';
 const term  = ref("");
+const filterBranch = ref('');
 const filteredOutflows = computed(() => {
   // Primero filtrar solo los outflows con stock numérico > 0
-  const stockFiltered = props.outflows.data.filter(outflow => {
+  let stockFiltered = props.outflows.data.filter(outflow => {
     const stockNum = Number(outflow.stock);
     return isFinite(stockNum) && stockNum > 0;
   });
+  // Filtro por sucursal
+  if (filterBranch.value) {
+    stockFiltered = stockFiltered.filter(outflow => String(outflow.branch_id) === String(filterBranch.value));
+  }
   // Si no hay término de búsqueda, retornar solo stockFiltered
   if (!term.value) return stockFiltered;
   // Si hay búsqueda, aplicar filtro de texto sobre stockFiltered
@@ -866,6 +879,18 @@ function copyToAllCards(sourceCardId) {
                           class="multiselect-sm"
                         />
                       </div>
+                      <div style="min-width: 120px; flex: 0 1 150px;">
+                        <label class="form-label small mb-0">Sucursal</label>
+                        <Multiselect
+                          v-model="filterBranchEdicion"
+                          :options="branchEdicionOptions"
+                          :searchable="true"
+                          placeholder="Todas"
+                          :canClear="true"
+                          :canDeselect="true"
+                          class="multiselect-sm"
+                        />
+                      </div>
                       <div class="d-flex align-items-end gap-1" style="flex-shrink: 0;">
                         <button 
                           v-if="hasActiveFilters || isReloading"
@@ -899,6 +924,7 @@ function copyToAllCards(sourceCardId) {
                             { label: 'Total', key: 'total' },
                             { label: 'Notas', key: 'notes' },
                             { label: 'Centros de Costo', key: 'centros_costo' },
+                            { label: 'Sucursal', key: 'branch_name' },
                             { label: 'Usuario', key: 'user' }
                           ]"
                           filename="salidas.xlsx"
@@ -943,6 +969,7 @@ function copyToAllCards(sourceCardId) {
                             <th @click="setSort('total')" :class="sortClass('total')">Total</th>
                             <th @click="setSort('notes')" :class="sortClass('notes')">Notas</th>
                             <th @click="setSort('centros_costo')" :class="sortClass('centros_costo')">Centros de Costo</th>
+                            <th @click="setSort('branch_name')" :class="sortClass('branch_name')">Sucursal</th>
                             <th @click="setSort('user')" :class="sortClass('user')">Usuario</th>
                             <th class="text-center">Acciones</th>
                           </tr>
@@ -1024,6 +1051,7 @@ function copyToAllCards(sourceCardId) {
                                 </li>
                               </ul>
                             </td>
+                            <td>{{ outflow.branch_name || '—' }}</td>
                             <td style="white-space:nowrap;">{{ outflow.user }}</td>
                             <td class="text-center" style="white-space:nowrap;">
                               <button type="button" class="btn btn-icon btn-active-light-primary w-20px h-20px me-1" @click.stop="editOutflow(outflow)">
@@ -1044,8 +1072,16 @@ function copyToAllCards(sourceCardId) {
                   </div>
                   <div class="tab-pane fade" id="pill-tab-salidas" role="tabpanel" aria-labelledby="salidas-tab">
                     <div style="max-height: 450px; overflow-y: auto; overflow-x: auto;">
-                      <div class="mb-2">
-                        <SearchInput v-model="term" placeholder="Buscar por producto, proveedor, documento..." />
+                      <div class="d-flex align-items-center gap-2 mb-2">
+                        <div style="flex:1;">
+                          <SearchInput v-model="term" placeholder="Buscar por producto, proveedor, documento..." />
+                        </div>
+                        <div style="width:200px; flex-shrink:0;">
+                          <select v-model="filterBranch" class="form-select form-select-sm">
+                            <option value="">Todas las sucursales</option>
+                            <option v-for="b in props.branches" :key="b.value" :value="b.value">{{ b.label }}</option>
+                          </select>
+                        </div>
                       </div>
                       <Table :id="'outflows'" :total="filteredOutflows.length" :links="outflows.links">
                           <template #header>
@@ -1053,6 +1089,7 @@ function copyToAllCards(sourceCardId) {
                             <th>Factura / N° Nota</th>
                             <th>Mes contable</th>
                             <th>Proveedor</th>
+                            <th>Sucursal</th>
                             <th>Producto</th>
                             <th>Cantidad</th>
                             <th>Stock</th>
@@ -1080,6 +1117,7 @@ function copyToAllCards(sourceCardId) {
                                 </td>
                                 <td>{{ outflow.mes_contable || '-' }}</td>
                                 <td>{{ outflow.supplier }}</td>
+                                <td>{{ outflow.branch_name || '—' }}</td>
                                 <td>{{ outflow.product }}</td>
                                 <td>{{ (+outflow.quantity).toFixed(2) }}</td>
                                 <td>{{ outflow.stock }}</td>

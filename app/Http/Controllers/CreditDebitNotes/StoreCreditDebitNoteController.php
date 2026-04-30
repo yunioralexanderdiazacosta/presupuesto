@@ -41,11 +41,12 @@ class StoreCreditDebitNoteController extends Controller
 
             foreach ($request->items as $item) {
                 $note->items()->create([
-                    'product_id' => $item['product_id'],
-                    'unit_id'    => $item['unit_id'],
-                    'quantity'   => $item['quantity'],
-                    'unit_price' => $item['unit_price'],
+                    'product_id'         => $item['product_id'],
+                    'unit_id'            => $item['unit_id'],
+                    'quantity'           => $item['quantity'],
+                    'unit_price'         => $item['unit_price'],
                     'invoice_product_id' => $item['invoice_product_id'] ?? null,
+                    'branch_id'          => strtolower($request->type) === 'debito' ? ($item['branch_id'] ?? null) : null,
                 ]);
 
                 // NC financiera: ajustar unit_price del invoice_product

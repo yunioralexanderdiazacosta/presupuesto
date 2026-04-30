@@ -6,13 +6,22 @@ const props = defineProps({
     form: Object,
     availableOrders: Array,
     availableStocksByProduct: Object,
+    branches: { type: Array, default: () => [] },
 });
 
 const selectedOrder = ref(null);
 const expandedProducts = ref({}); // Track which products are expanded
+const filterBranch = ref(''); // Filtro de sucursal global para facturas
+
+// Facturas de un producto filtradas por sucursal
+function getFilteredInvoices(availableInvoices) {
+    if (!filterBranch.value) return availableInvoices;
+    return availableInvoices.filter(inv => String(inv.branch_id) === String(filterBranch.value));
+}
 
 // Cuando cambia la orden seleccionada, inicializar productos
 watch(() => props.form.application_order_id, (orderId) => {
+    filterBranch.value = '';
     if (orderId) {
         selectedOrder.value = props.availableOrders.find(o => o.id === orderId);
         if (selectedOrder.value) {
@@ -95,10 +104,11 @@ function isLineOverStock(product, line) {
     return parseFloat(line.quantity || 0) > stock;
 }
 
-// Calcular stock total disponible de un producto
+// Calcular stock total disponible de un producto (respeta filtro de sucursal)
 function getTotalStockAvailable(product) {
-    if (!product.availableInvoices || product.availableInvoices.length === 0) return 0;
-    return product.availableInvoices.reduce((sum, invoice) => sum + parseFloat(invoice.stock_disponible || 0), 0);
+    const invoices = getFilteredInvoices(product.availableInvoices || []);
+    if (!invoices.length) return 0;
+    return invoices.reduce((sum, invoice) => sum + parseFloat(invoice.stock_disponible || 0), 0);
 }
 
 // Calcular totales
@@ -233,6 +243,17 @@ function formatNumber(value) {
 
             <!-- Productos -->
             <div class="mt-4">
+                <!-- Filtro de Sucursal -->
+                <div v-if="branches.length > 0" class="mb-3 d-flex align-items-center gap-2">
+                    <label class="form-label small mb-0 fw-bold text-nowrap">
+                        <i class="fas fa-building me-1 text-primary"></i>Filtrar facturas por sucursal:
+                    </label>
+                    <select v-model="filterBranch" class="form-select form-select-sm" style="max-width: 220px;">
+                        <option value="">Todas las sucursales</option>
+                        <option v-for="b in branches" :key="b.value" :value="b.value">{{ b.label }}</option>
+                    </select>
+                </div>
+
                 <!-- Centros de Costo -->
                 <div v-if="selectedOrder && selectedOrder.order_cost_centers?.length > 0" class="mb-3">
                     <h6 class="mb-2">Centros de Costo de la Orden</h6>
@@ -348,7 +369,7 @@ function formatNumber(value) {
                                                 >
                                                     <option :value="null">Seleccione factura...</option>
                                                     <option 
-                                                        v-for="invoice in product.availableInvoices" 
+                                                        v-for="invoice in getFilteredInvoices(product.availableInvoices)" 
                                                         :key="invoice.invoice_product_id" 
                                                         :value="invoice.invoice_product_id"
                                                     >

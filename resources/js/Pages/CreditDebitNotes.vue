@@ -17,11 +17,13 @@ const props = defineProps({
   suppliers: Array,
   invoices: Array,
   products: Array,
-  units: Array
+  units: Array,
+  branches: { type: Array, default: () => [] }
 });
 
 const title = 'Notas de Crédito/Débito';
 const term  = ref(props.term);
+const filterBranch = ref('');
 const links = [{ title: 'Tablero', link: 'dashboard' }, { title: title, active: true }];
 
 // Form para edición
@@ -50,14 +52,23 @@ const msgSuccess = (msg) => {
 };
 
 // --- Totales de notas de débito y crédito ---
+const filteredNotes = computed(() => {
+  if (!filterBranch.value) return props.notes;
+  return props.notes.filter(n => n.branch_name === filterBranch.value);
+});
+
+const branchOptions = computed(() => {
+  const unique = [...new Set(props.notes.map(n => n.branch_name).filter(Boolean))];
+  return unique.sort();
+});
+
 const totalDebito = computed(() => {
-  if (!props.notes.length) return 0;
-  return props.notes.filter(n => n.type === 'debito').reduce((sum, n) => sum + (parseFloat(n.total) || 0), 0);
+  if (!filteredNotes.value.length) return 0;
+  return filteredNotes.value.filter(n => n.type === 'debito').reduce((sum, n) => sum + (parseFloat(n.total) || 0), 0);
 });
 const totalCredito = computed(() => {
-  if (!props.notes.length) return 0;
-  // Se muestra como negativo
-  return props.notes.filter(n => n.type === 'credito').reduce((sum, n) => sum + (parseFloat(n.total) || 0), 0) * -1;
+  if (!filteredNotes.value.length) return 0;
+  return filteredNotes.value.filter(n => n.type === 'credito').reduce((sum, n) => sum + (parseFloat(n.total) || 0), 0) * -1;
 });
 const totalDebitoFormatted = computed(() => {
   return new Intl.NumberFormat('es-ES', { style: 'decimal', minimumFractionDigits: 0, maximumFractionDigits: 2 }).format(totalDebito.value);
@@ -184,6 +195,30 @@ const updateNote = () => {
                 </div>
 
                 <div class="tab-content border p-3 mt-3" id="pill-myTabContent">
+                    <!-- Filtros -->
+                    <div class="d-flex align-items-center gap-2 mb-2 flex-wrap">
+                        <div style="flex:1; min-width:200px;">
+                            <input
+                                v-model="term"
+                                @keyup.enter="onFilter"
+                                type="text"
+                                class="form-control form-control-sm"
+                                placeholder="Buscar por número o proveedor..."
+                            />
+                        </div>
+                        <div v-if="branches.length > 0" style="min-width:180px;">
+                            <select v-model="filterBranch" class="form-select form-select-sm">
+                                <option value="">Todas las sucursales</option>
+                                <option v-for="b in branches" :key="b.value" :value="b.label">{{ b.label }}</option>
+                            </select>
+                        </div>
+                        <button @click="onFilter" class="btn btn-falcon-default btn-sm">
+                            <i class="fas fa-search fa-xs"></i>
+                        </button>
+                        <button v-if="filterBranch" @click="filterBranch = ''" class="btn btn-falcon-default btn-sm" title="Limpiar filtro">
+                            <i class="fas fa-times fa-xs"></i>
+                        </button>
+                    </div>
                     <div class="table-responsive mt-1" style="max-height: 450px; overflow-y: auto;">
                         <table class="table table-bordered table-hover table-sm custom-striped fs-10 mb-0">
                             <thead>
@@ -192,6 +227,7 @@ const updateNote = () => {
                                     <th>Tipo</th>
                                     <th>Proveedor</th>
                                     <th>Factura</th>
+                                    <th>Sucursal</th>
                                     <th>Productos</th>
             <th>Afecta inventario</th>
             <th>Fecha</th>
@@ -200,11 +236,12 @@ const updateNote = () => {
           </tr>
         </thead>
         <tbody>
-          <tr v-for="note in notes" :key="note.id">
+          <tr v-for="note in filteredNotes" :key="note.id">
             <td>{{ note.number }}</td>
             <td>{{ note.type }}</td>
             <td>{{ note.supplier?.name }}</td>
             <td>{{ note.invoice?.number_document }}</td>
+            <td>{{ note.branch_name || '—' }}</td>
             <td>{{ note.products }}</td>
             <td class="text-center align-middle">
               <span v-if="note.affects_inventory" class="badge bg-success">Sí</span>

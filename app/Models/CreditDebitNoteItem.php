@@ -16,7 +16,13 @@ class CreditDebitNoteItem extends Model
         'unit_id',
         'quantity',
         'unit_price',
+        'branch_id',
     ];
+    public function branch()
+    {
+        return $this->belongsTo(Branch::class);
+    }
+
     public function invoiceProduct()
     {
         return $this->belongsTo(InvoiceProduct::class);

@@ -10,7 +10,16 @@ const props = defineProps({
     invoices: Array,
     products: Array, // todos los productos del catálogo
     units: Array,
+    branches: {
+        type: Array,
+        default: () => []
+    },
 });
+
+// Asegurar branch_id en el form
+if (props.form && props.form.branch_id === undefined) {
+    props.form.branch_id = '';
+}
 
 // Forzar valor inicial vacío en el select tipo solo si no hay valor previo (modo creación)
 if (props.form && props.form.type === undefined) {
@@ -58,8 +67,24 @@ watch(
         if (type === 'debito') {
             props.form.is_annulment = false;
         }
-        if (type === 'credito' && isAnnulment) {
-            props.form.affects_inventory = true;
+        if (type === 'credito') {
+            props.form.branch_id = '';
+            if (isAnnulment) {
+                props.form.affects_inventory = true;
+            }
+        }
+    }
+);
+
+// Al cambiar la sucursal, actualizar branch_id en TODOS los ítems existentes
+watch(
+    () => props.form.branch_id,
+    (newBranchId) => {
+        if (props.form.type !== 'debito') return;
+        if (props.form.items && props.form.items.length > 0) {
+            props.form.items.forEach(item => {
+                item.branch_id = newBranchId || '';
+            });
         }
     }
 );
@@ -203,6 +228,21 @@ watch(
         </div>
     </div>
 
+    <!-- Sucursal (solo para tipo débito) -->
+    <div v-if="form.type === 'debito' && branches.length > 0" class="row mb-2">
+        <div class="col-lg-4">
+            <div class="fv-row">
+                <label class="col-form-label fw-bold">
+                    <i class="fas fa-building text-primary me-1"></i>Sucursal
+                </label>
+                <select v-model="form.branch_id" class="form-select form-control">
+                    <option value="">Sin sucursal</option>
+                    <option v-for="b in branches" :key="b.value" :value="b.value">{{ b.label }}</option>
+                </select>
+            </div>
+        </div>
+    </div>
+
     <!-- Ambos checkboxes en cards, en la misma fila -->
     <div class="row mb-3 mt-3">
       <div class="col-lg-6">
@@ -302,6 +342,7 @@ watch(
         v-model:items="form.items"
         :products="form.type === 'credito' ? filteredInvoiceLines : products"
         :units="units"
+        :branch-id="form.branch_id"
         :is_annulment="form.is_annulment"
         :type="form.type"
         :affects_inventory="form.affects_inventory"

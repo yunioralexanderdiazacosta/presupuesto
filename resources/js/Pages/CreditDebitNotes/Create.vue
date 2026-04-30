@@ -14,7 +14,7 @@ const links = [
   { title: title, active: true }
 ];
 
-const props = defineProps({ suppliers: Array, invoices: Array, products: Array, units: Array });
+const props = defineProps({ suppliers: Array, invoices: Array, products: Array, units: Array, branches: { type: Array, default: () => [] } });
 
 const form = useForm({
   type: 'credito',
@@ -25,7 +25,8 @@ const form = useForm({
   reason: '',
   items: [],
   is_annulment: true,
-  affects_inventory: true
+  affects_inventory: true,
+  branch_id: '',
 });
 
 
@@ -153,7 +154,7 @@ const msgSuccess = (msg) => {
       </div>
       <div class="card-body bg-body-tertiary">
         <form @submit.prevent="save()">
-          <FormCreditDebitNote :form="form" :suppliers="suppliers" :invoices="invoices" :products="products" :units="units" />
+          <FormCreditDebitNote :form="form" :suppliers="suppliers" :invoices="invoices" :products="products" :units="units" :branches="branches" />
           <div class="mb-0 text-end">
             <button type="submit" class="btn btn-primary mt-3" :disabled="hasInvalidDebitQty || hasExceedingQuantity || exceedsInvoiceTotal || form.items.length === 0">
               <span class="fas fa-save"></span> Guardar
