@@ -582,36 +582,6 @@ onMounted(() => {
   <AppLayout>
     <div class="container-fluid px-0 py-2" style="max-width: 100vw;">
 
-      <!-- Novedades recientes -->
-      <div class="row mb-3">
-        <div class="col-12">
-          <div class="card border-0 shadow-sm" style="background: linear-gradient(135deg, #f0f5ff 0%, #e8f4fd 100%); border-left: 4px solid #2c7be5 !important;">
-            <div class="card-body py-2 px-3">
-              <div class="d-flex align-items-start gap-3 flex-wrap">
-                <div class="d-flex align-items-center gap-2 me-3">
-                  <i class="fas fa-sparkles text-primary" style="font-size:1.1rem;"></i>
-                  <span class="fw-bold text-primary" style="font-size:0.78rem; white-space:nowrap;">Novedades · Abr 2026</span>
-                </div>
-                <div class="d-flex flex-wrap gap-2">
-                  <span class="badge rounded-pill bg-primary bg-opacity-10 text-primary border border-primary border-opacity-25 px-2 py-1" style="font-size:0.72rem;">
-                    <i class="fas fa-file-invoice me-1"></i>Facturas: campo <strong>Exento</strong> por línea — IVA solo sobre neto afecto
-                  </span>
-                  <span class="badge rounded-pill bg-success bg-opacity-10 text-success border border-success border-opacity-25 px-2 py-1" style="font-size:0.72rem;">
-                    <i class="fas fa-folder-open me-1"></i>Consolidado de Documentos: columna <strong>Exento</strong> en tablas y Excel
-                  </span>
-                  <span class="badge rounded-pill bg-warning bg-opacity-10 text-warning border border-warning border-opacity-25 px-2 py-1" style="font-size:0.72rem;">
-                    <i class="fas fa-user-slash me-1"></i>Nuevo módulo <strong>Términos de Faena</strong> en Remuneraciones
-                  </span>
-                  <span class="badge rounded-pill bg-info bg-opacity-10 text-info border border-info border-opacity-25 px-2 py-1" style="font-size:0.72rem;">
-                    <i class="fas fa-calendar-alt me-1"></i>Cambio de temporada restringido a <strong>administradores</strong>
-                  </span>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-
       <!-- Switch para activar/desactivar la división y divisor slider/input -->
       <div class="row mb-2">
         <div class="col-12">

@@ -92,6 +92,13 @@ const onDeleted = (id) => {
                 preserveScroll: true,
                 onSuccess: () => {
                     msgSuccess('Registro eliminado correctamente');
+                },
+                onError: (errors) => {
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'No se puede eliminar',
+                        text: errors.variety || 'Ocurrió un error al intentar eliminar la variedad.',
+                    });
                 }
             });
         }
