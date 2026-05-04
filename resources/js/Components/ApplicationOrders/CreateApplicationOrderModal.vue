@@ -8,6 +8,7 @@ const props = defineProps({
     show: Boolean,
     products: Array,
     costCenters: Array,
+    branches: Array,
     units: Array,
     groupings: Array,
     fruits: Array,
@@ -33,6 +34,7 @@ const form = useForm({
     operators: '',
     products: [],
     cost_centers: [],
+    superficie_total: null,
 });
 
 watch(() => props.show, (val) => {
@@ -118,6 +120,7 @@ function save() {
                         :form="form"
                         :products="products"
                         :cost-centers="costCenters"
+                        :branches="branches"
                         :units="units"
                         :groupings="groupings"
                         :fruits="fruits"

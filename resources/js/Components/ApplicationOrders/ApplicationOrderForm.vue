@@ -10,6 +10,7 @@ const props = defineProps({
     form: Object,
     products: Array,
     costCenters: Array,
+    branches: Array,
     units: Array,
     groupings: Array,
     fruits: Array,
@@ -90,9 +91,28 @@ const totalHectareas = computed(() => {
     return props.form.cost_centers.reduce((sum, cc) => sum + Number(cc.surface || 0), 0);
 });
 
+// Si es edición, el usuario ya tiene un valor guardado — no sobreescribir automáticamente
+const manualOverride = ref(props.isEditing);
+
+// Cuando cambian los CCs, auto-sincronizar superficie_total solo si no fue editado manualmente
+watch(totalHectareas, (newVal) => {
+    if (!manualOverride.value) {
+        props.form.superficie_total = newVal;
+    }
+});
+
+function resetSuperficie() {
+    props.form.superficie_total = totalHectareas.value;
+    manualOverride.value = false;
+}
+
+const effectiveHectareas = computed(() => {
+    return Number(props.form.superficie_total || totalHectareas.value);
+});
+
 const maquinadas = computed(() => {
     const mojamiento = Number(props.form.mojamiento || 0);
-    const hectareas = totalHectareas.value;
+    const hectareas = effectiveHectareas.value;
     const volumen = Number(props.form.volume || 0);
     
     if (volumen === 0 || hectareas === 0) return 0;
@@ -111,7 +131,7 @@ const calculatedQuantityPerHa = computed(() => {
 });
 
 const calculatedTotalQuantity = computed(() => {
-    return calculatedQuantityPerHa.value * totalHectareas.value;
+    return calculatedQuantityPerHa.value * effectiveHectareas.value;
 });
 
 // Computed para obtener la unidad base del producto seleccionado
@@ -252,6 +272,23 @@ function getUnitName(unitId) {
     return unit?.label || '';
 }
 
+// ==== SUCURSAL (prellenado de CCs) ====
+const selectedBranch = ref(null);
+
+// CCs filtrados por sucursal seleccionada
+const filteredCostCenters = computed(() => {
+    if (!selectedBranch.value || !props.costCenters) return props.costCenters || [];
+    return props.costCenters.filter(cc => String(cc.branch_id) === String(selectedBranch.value));
+});
+
+// Cuando cambia la sucursal, limpiar CCs seleccionados que no pertenezcan a ella
+watch(selectedBranch, (branchId) => {
+    if (!branchId) return;
+    const validIds = filteredCostCenters.value.map(cc => cc.value);
+    const filtered = props.form.cost_centers.filter(cc => validIds.includes(cc.cost_center_id));
+    props.form.cost_centers.splice(0, props.form.cost_centers.length, ...filtered);
+});
+
 // ==== CENTROS DE COSTO ====
 const selectedCostCenters = computed({
     get: () => props.form.cost_centers.map(cc => cc.cost_center_id),
@@ -263,13 +300,13 @@ const selectedCostCenters = computed({
             if (existing) return existing;
             
             // Si no existe, crear nuevo
-            const cc = props.costCenters.find(c => c.value === ccId);
+            const cc = (props.costCenters || []).find(c => c.value === ccId);
             return {
                 cost_center_id: ccId,
                 surface: cc?.surface || 0,
             };
         });
-        
+
         props.form.cost_centers.splice(0, props.form.cost_centers.length, ...newCostCenters);
     }
 });
@@ -320,7 +357,7 @@ function getProductQuantityPerHa(product) {
 }
 
 function getProductTotalQuantity(product) {
-    return getProductQuantityPerHa(product) * totalHectareas.value;
+    return getProductQuantityPerHa(product) * effectiveHectareas.value;
 }
 
 // Función para obtener cantidad con unidad base del producto
@@ -533,6 +570,24 @@ function getSimplifiedQuantity(product) {
         <div class="row mb-2">
             <div class="col-md-4">
                 <label class="form-label small mb-1">
+                    <i class="fas fa-building me-1"></i>Sucursal (filtro de CC)
+                </label>
+                <select 
+                    v-model="selectedBranch" 
+                    class="form-select form-select-sm"
+                >
+                    <option :value="null">Todas las sucursales</option>
+                    <option v-for="b in (branches || [])" :key="b.value" :value="b.value">
+                        {{ b.label }}
+                    </option>
+                </select>
+                <small class="text-muted d-block mt-1">
+                    <i class="fas fa-info-circle me-1"></i>
+                    Filtra los centros de costo disponibles
+                </small>
+            </div>
+            <div class="col-md-4">
+                <label class="form-label small mb-1">
                     <i class="fas fa-layer-group me-1"></i>Agrupación (Preselección rápida)
                 </label>
                 <select 
@@ -549,7 +604,7 @@ function getSimplifiedQuantity(product) {
                     Preselección rápida
                 </small>
             </div>
-            <div class="col-md-8">
+            <div class="col-md-4">
                 <div class="d-flex align-items-center justify-content-between mb-0">
                     <label class="form-label small mb-0">Seleccionar Centros de Costo <span class="text-danger">*</span>
                         <span v-if="selectedCostCenters.length > 0" class="badge bg-primary ms-1" style="font-size: 0.6rem; vertical-align: middle;">
@@ -569,7 +624,7 @@ function getSimplifiedQuantity(product) {
                 </div>
                 <Multiselect
                     v-model="selectedCostCenters"
-                    :options="costCenters"
+                    :options="filteredCostCenters"
                     mode="tags"
                     :searchable="true"
                     :close-on-select="false"
@@ -580,21 +635,40 @@ function getSimplifiedQuantity(product) {
             </div>
         </div>
 
-        <div class="row mb-2 mt-3" v-if="form.volume && totalHectareas > 0">
+        <div class="row mb-2 mt-3" v-if="form.cost_centers.length > 0">
             <div class="col-md-3 mb-2">
-                <div class="p-1 border border-success rounded bg-light-success" style="background-color: #d1f4d1;">
-                    <small class="text-muted d-block" style="margin-bottom: 2px;">
-                        <i class="fas fa-calculator me-1"></i>Total Hectáreas
-                    </small>
-                    <span class="h6 mb-0 text-success fw-bold">
-                        {{ totalHectareas.toLocaleString('es-ES', {minimumFractionDigits: 2, maximumFractionDigits: 2}) }}
-                    </span>
-                    <small class="text-success ms-1">ha</small>
+                <div class="d-flex align-items-center justify-content-between mb-1">
+                    <label class="form-label small mb-0">
+                        <i class="fas fa-ruler-combined me-1 text-success"></i>Superficie a aplicar (ha)
+                    </label>
+                    <button
+                        v-if="manualOverride"
+                        type="button"
+                        @click="resetSuperficie"
+                        class="btn btn-sm btn-light d-flex align-items-center gap-1 py-0 px-2"
+                        style="font-size: 0.7rem;"
+                        title="Restaurar al valor automático de los CCs"
+                    >
+                        <i class="fas fa-sync-alt fa-xs"></i> Auto
+                    </button>
                 </div>
+                <input
+                    v-model="form.superficie_total"
+                    type="number"
+                    step="0.01"
+                    min="0"
+                    class="form-control form-control-sm"
+                    :class="{'border-warning': manualOverride}"
+                    placeholder="Ha"
+                    @input="manualOverride = true"
+                />
+                <small class="text-muted" style="font-size: 0.7rem;">
+                    Auto (CCs): {{ totalHectareas.toLocaleString('es-ES', {minimumFractionDigits: 2, maximumFractionDigits: 2}) }} ha
+                </small>
             </div>
-            
-            <div class="col-md-3 mb-2">
-                <div class="p-1 border border-primary rounded bg-light-primary" style="background-color: #cfe2ff;">
+
+            <div class="col-md-3 mb-2" v-if="form.volume">
+                <div class="p-1 border border-primary rounded" style="background-color: #cfe2ff;">
                     <small class="text-muted d-block" style="margin-bottom: 2px;">
                         <i class="fas fa-tractor me-1"></i>Maquinadas
                     </small>

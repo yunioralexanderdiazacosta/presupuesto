@@ -26,8 +26,8 @@ class PdfApplicationOrderController
             'season'
         ]);
         
-        // Calcular total de hectáreas
-        $totalHectareas = $applicationOrder->orderCostCenters->sum(function($occ) {
+        // Calcular total de hectáreas: usar superficie_total guardada o sumar desde CCs como fallback
+        $totalHectareas = $applicationOrder->superficie_total ?? $applicationOrder->orderCostCenters->sum(function($occ) {
             return $occ->costCenter->surface ?? 0;
         });
         

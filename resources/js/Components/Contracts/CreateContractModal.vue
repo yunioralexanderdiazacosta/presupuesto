@@ -14,6 +14,7 @@ const props = defineProps({
     healthPlans: Array,
     cities: Array,
     parcels: Array,
+    branches: { type: Array, default: () => [] },
     maritalStatuses: Array,
     banks: Array,
     paymentMethods: Array,
@@ -36,6 +37,7 @@ const form = useForm({
     health_plan_id: '',
     city_id: '',
     parcel_id: '',
+    branch_id: '',
     marital_status: '',
     phone: '',
     address: '',
@@ -93,6 +95,7 @@ function save() {
                         :healthPlans="healthPlans"
                         :cities="cities"
                         :parcels="parcels"
+                        :branches="branches"
                         :maritalStatuses="maritalStatuses"
                         :banks="banks"
                         :paymentMethods="paymentMethods"

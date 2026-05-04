@@ -15,6 +15,7 @@ const props = defineProps({
     healthPlans: Array,
     cities: Array,
     parcels: Array,
+    branches: { type: Array, default: () => [] },
     maritalStatuses: Array,
     banks: Array,
     paymentMethods: Array,
@@ -37,6 +38,7 @@ const form = useForm({
     health_plan_id: '',
     city_id: '',
     parcel_id: '',
+    branch_id: '',
     marital_status: '',
     phone: '',
     address: '',
@@ -64,6 +66,7 @@ watch(() => props.show, (val) => {
         form.health_plan_id = props.contract.health_plan_id || '';
         form.city_id = props.contract.city_id || '';
         form.parcel_id = props.contract.parcel_id || '';
+        form.branch_id = props.contract.branch_id || '';
         form.marital_status = props.contract.marital_status || '';
         form.phone = props.contract.phone || '';
         form.address = props.contract.address || '';
@@ -119,6 +122,7 @@ function save() {
                         :healthPlans="healthPlans"
                         :cities="cities"
                         :parcels="parcels"
+                        :branches="branches"
                         :maritalStatuses="maritalStatuses"
                         :banks="banks"
                         :paymentMethods="paymentMethods"

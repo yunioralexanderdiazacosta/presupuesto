@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\DailyManagement;
 
 use App\Http\Controllers\Controller;
+use App\Models\Branch;
 use App\Models\Contract;
 use App\Models\Parcel;
 use Barryvdh\DomPDF\Facade\Pdf;
@@ -17,6 +18,7 @@ class YieldTemplatePdfController extends Controller
         $request->validate([
             'date' => 'required|date',
             'parcel_id' => 'nullable|integer|exists:parcels,id',
+            'branch_id' => 'nullable|integer|exists:branches,id',
         ]);
 
         $user = Auth::user();
@@ -31,15 +33,21 @@ class YieldTemplatePdfController extends Controller
             $query->where('parcel_id', $request->parcel_id);
         }
 
+        if ($request->branch_id) {
+            $query->where('branch_id', $request->branch_id);
+        }
+
         $contracts = $query->get()
             ->sortBy(fn($c) => $c->employee->paternal_surname . ' ' . $c->employee->first_name);
 
         $parcel = $request->parcel_id ? Parcel::find($request->parcel_id) : null;
+        $branch = $request->branch_id ? Branch::find($request->branch_id) : null;
 
         $pdf = Pdf::loadView('pdfs.yield-template', [
             'contracts' => $contracts,
             'date' => $date,
             'parcelName' => $parcel ? $parcel->name : 'Todas',
+            'branchName' => $branch ? $branch->name : null,
             'teamName' => $user->currentTeam->name ?? '',
         ]);
 

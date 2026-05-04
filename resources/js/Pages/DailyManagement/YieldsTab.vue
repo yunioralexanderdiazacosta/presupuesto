@@ -11,6 +11,7 @@ const props = defineProps({
     bonusTypes: Array,
     costCenters: Array,
     parcels: { type: Array, default: () => [] },
+    branches: { type: Array, default: () => [] },
     groupings: { type: Array, default: () => [] },
     selectedDate: String,
     hasAttendance: Boolean,
@@ -20,9 +21,113 @@ const props = defineProps({
 
 const searchQuery = ref('');
 const selectedParcelId = ref('');
+const selectedBranchId = ref('');
 const expandedEmployee = ref(null);
 const addingLineFor = ref(null);
 const editingYieldId = ref(null);
+
+// === REGISTRO MASIVO ===
+const showBulkPanel = ref(false);
+const bulkSelectedIds = ref([]);
+const bulkGrouping = ref('');
+const bulkExpandedCC = ref(false);
+const bulkLine = reactive({
+    labor_type_id: '',
+    workdays: 1,
+    bonus_type_id: '',
+    bonus_amount: 0,
+    cost_center_ids: [],
+    observations: '',
+});
+
+watch(bulkGrouping, (groupingId) => {
+    if (!groupingId) return;
+    const grouping = props.groupings?.find(g => g.id == groupingId);
+    if (grouping && Array.isArray(grouping.cost_centers)) {
+        bulkLine.cost_center_ids = grouping.cost_centers.map(cc => cc.id);
+    }
+});
+
+// Empleados elegibles para registro masivo: sin tarja "al día" ese día
+const bulkEligibleEmployees = computed(() => {
+    return props.employees.filter(emp => {
+        if (!emp.yields) return true;
+        return !emp.yields.some(y => y.payment_type === 'dia');
+    });
+});
+
+const bulkAllSelected = computed(() =>
+    bulkEligibleEmployees.value.length > 0 &&
+    bulkEligibleEmployees.value.every(e => bulkSelectedIds.value.includes(e.id))
+);
+
+function toggleBulkAll() {
+    if (bulkAllSelected.value) {
+        bulkSelectedIds.value = [];
+    } else {
+        bulkSelectedIds.value = bulkEligibleEmployees.value.map(e => e.id);
+    }
+}
+
+function bulkRate(emp) {
+    const selectedLabor = props.laborTypes.find(lt => String(lt.value) === String(bulkLine.labor_type_id));
+    if (selectedLabor?.is_absence && !selectedLabor?.is_paid) return 0;
+    return Math.round((emp.daily_rate || 0) * (bulkLine.workdays || 1));
+}
+
+function openBulkPanel() {
+    showBulkPanel.value = true;
+    bulkSelectedIds.value = bulkEligibleEmployees.value.map(e => e.id);
+    Object.assign(bulkLine, {
+        labor_type_id: '',
+        workdays: 1,
+        bonus_type_id: '',
+        bonus_amount: 0,
+        cost_center_ids: [],
+        observations: '',
+    });
+    bulkGrouping.value = '';
+    bulkExpandedCC.value = false;
+}
+
+function saveBulk() {
+    if (!bulkLine.labor_type_id) {
+        Swal.fire({ icon: 'warning', title: 'Selecciona un tipo de labor', timer: 1500, showConfirmButton: false });
+        return;
+    }
+    if (bulkSelectedIds.value.length === 0) {
+        Swal.fire({ icon: 'warning', title: 'Selecciona al menos un colaborador', timer: 1500, showConfirmButton: false });
+        return;
+    }
+
+    const employees = bulkSelectedIds.value.map(id => {
+        const emp = props.employees.find(e => e.id === id);
+        return { employee_id: id, rate: bulkRate(emp) };
+    });
+
+    const form = useForm({
+        date: props.selectedDate,
+        labor_type_id: bulkLine.labor_type_id,
+        workdays: bulkLine.workdays,
+        bonus_type_id: bulkLine.bonus_type_id || null,
+        bonus_amount: bulkLine.bonus_amount || 0,
+        cost_center_ids: bulkLine.cost_center_ids,
+        observations: bulkLine.observations || null,
+        employees,
+    });
+
+    form.post(route('daily-yields.bulk-store'), {
+        preserveScroll: true,
+        onSuccess: () => {
+            showBulkPanel.value = false;
+            Swal.fire({ icon: 'success', title: `${employees.length} tarjas guardadas`, timer: 1200, showConfirmButton: false });
+        },
+        onError: (errors) => {
+            const msg = Object.values(errors)[0] || 'Revisa los campos.';
+            Swal.fire({ icon: 'error', title: 'Error', text: msg });
+        },
+    });
+}
 
 // Agrupación rápida de CC para nueva línea y para edición
 const newLineGrouping = ref('');
@@ -48,7 +153,7 @@ watch(editLineGrouping, (groupingId) => {
 
 // Formulario inline para editar linea existente
 const editLine = reactive({
-    payment_type: 'trato',
+    payment_type: 'dia',
     labor_type_id: '', labor_rate_id: '', rate: 0, quantity: 0, workdays: 0,
     bonus_type_id: '', bonus_amount: 0, target_price: null, target_price_bonus: null, cost_center_ids: [], observations: '',
 });
@@ -57,6 +162,9 @@ const filteredEmployees = computed(() => {
     let result = props.employees;
     if (selectedParcelId.value) {
         result = result.filter(e => String(e.parcel_id) === String(selectedParcelId.value));
+    }
+    if (selectedBranchId.value) {
+        result = result.filter(e => String(e.branch_id) === String(selectedBranchId.value));
     }
     if (searchQuery.value) {
         const q = searchQuery.value.toLowerCase();
@@ -96,7 +204,7 @@ function statusText(emp) {
 
 // Formulario inline para nueva linea
 const newLine = reactive({
-    payment_type: 'trato',
+    payment_type: 'dia',
     labor_type_id: '', labor_rate_id: '', rate: 0, quantity: 0, workdays: 0,
     bonus_type_id: '', bonus_amount: 0, target_price: null, target_price_bonus: null, cost_center_ids: [], observations: '',
 });
@@ -118,7 +226,7 @@ function onTargetPriceChange() {
 function startAddLine(empId) {
     addingLineFor.value = empId;
     Object.assign(newLine, {
-        payment_type: 'trato',
+        payment_type: 'dia',
         labor_type_id: '', labor_rate_id: '', rate: 0, quantity: 0, workdays: 0,
         bonus_type_id: '', bonus_amount: 0, target_price: null, target_price_bonus: null, cost_center_ids: [], observations: '',
     });
@@ -130,6 +238,7 @@ function startAddLine(empId) {
             newLine.workdays = Math.min(1.0, emp.remaining_workdays > 0 ? emp.remaining_workdays : 1.0);
         }
     }
+    onPaymentTypeChange();
 }
 
 function onPaymentTypeChange() {
@@ -482,20 +591,150 @@ function deleteLine(yieldId) {
                     placeholder="Buscar colaborador..." />
             </div>
             <div class="col-auto">
+                <button @click="openBulkPanel" class="btn btn-falcon-default btn-sm">
+                    <i class="fas fa-layer-group me-1"></i>Registro masivo
+                </button>
+            </div>
+            <div class="col-auto">
                 <div class="d-flex align-items-center gap-2 border rounded px-2 py-1 bg-light">
                     <small class="text-muted text-nowrap"><i class="fas fa-print me-1"></i></small>
+                    <select v-if="branches && branches.length" v-model="selectedBranchId" class="form-select form-select-sm" style="min-width: 140px;">
+                        <option value="">Todas las sucursales</option>
+                        <option v-for="b in branches" :key="b.value" :value="b.value">{{ b.label }}</option>
+                    </select>
                     <select v-model="selectedParcelId" class="form-select form-select-sm" style="min-width: 140px;">
                         <option value="">Todas las parcelas</option>
                         <option v-for="p in parcels" :key="p.value" :value="p.value">{{ p.label }}</option>
                     </select>
-                    <a :href="route('daily-management.yield-template-pdf', { date: selectedDate, ...(selectedParcelId ? { parcel_id: selectedParcelId } : {}) })"
+                    <a :href="route('daily-management.yield-template-pdf', { date: selectedDate, ...(selectedParcelId ? { parcel_id: selectedParcelId } : {}), ...(selectedBranchId ? { branch_id: selectedBranchId } : {}) })"
                         target="_blank" class="btn btn-falcon-default btn-sm text-nowrap">
                         <i class="fas fa-file-pdf me-1"></i>PDF
                     </a>
-                    <a :href="route('daily-management.yield-template-excel', { date: selectedDate, ...(selectedParcelId ? { parcel_id: selectedParcelId } : {}) })"
+                    <a :href="route('daily-management.yield-template-excel', { date: selectedDate, ...(selectedParcelId ? { parcel_id: selectedParcelId } : {}), ...(selectedBranchId ? { branch_id: selectedBranchId } : {}) })"
                         class="btn btn-falcon-default btn-sm text-nowrap">
                         <i class="fas fa-file-excel me-1"></i>Excel
                     </a>
+                </div>
+            </div>
+        </div>
+
+        <!-- Panel Registro Masivo -->
+        <div v-if="showBulkPanel" class="card mb-3" style="border: 2px solid #8B6914;">
+            <div class="card-header py-2 d-flex justify-content-between align-items-center" style="background-color: #fdf3dc;">
+                <span class="fw-semi-bold fs--1" style="color:#7a5c0f;"><i class="fas fa-layer-group me-2"></i>Registro masivo — Al día</span>
+                <button type="button" @click="showBulkPanel = false" class="btn-close btn-close-sm"></button>
+            </div>
+            <div class="card-body py-2">
+                <!-- Datos compartidos -->
+                <div class="row g-2 mb-2 align-items-end">
+                    <div class="col-md-3">
+                        <label class="form-label small mb-0">Labor <span class="text-danger">*</span></label>
+                        <select v-model="bulkLine.labor_type_id" class="form-select form-select-sm">
+                            <option value="" disabled>Seleccione</option>
+                            <option v-for="lt in laborTypes" :key="lt.value" :value="lt.value">{{ lt.label }}</option>
+                        </select>
+                    </div>
+                    <div class="col-md-1">
+                        <label class="form-label small mb-1">Jornadas</label>
+                        <input type="number" v-model="bulkLine.workdays" class="form-control form-control-sm text-center"
+                            min="0.1" max="1" step="0.1" />
+                    </div>
+                    <div class="col-md-2">
+                        <label class="form-label small mb-1">Agrupación CC</label>
+                        <select v-model="bulkGrouping" class="form-select form-select-sm">
+                            <option value="">Sin agrupación</option>
+                            <option v-for="g in props.groupings" :key="g.id" :value="g.id">{{ g.name }}</option>
+                        </select>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="d-flex align-items-center justify-content-between mb-1">
+                            <label class="form-label small mb-0">
+                                Centros de costo
+                                <span v-if="bulkLine.cost_center_ids && bulkLine.cost_center_ids.length > 0" class="badge bg-primary ms-1" style="font-size:0.6rem; vertical-align:middle;">{{ bulkLine.cost_center_ids.length }}</span>
+                            </label>
+                            <button
+                                v-if="bulkLine.cost_center_ids && bulkLine.cost_center_ids.length > 3"
+                                type="button"
+                                @click.stop="bulkExpandedCC = !bulkExpandedCC"
+                                class="btn btn-link btn-sm p-0 text-muted"
+                                style="font-size:0.65rem; text-decoration:none;"
+                            >
+                                <i class="fas" :class="bulkExpandedCC ? 'fa-compress-alt' : 'fa-expand-alt'" style="font-size:0.6rem;"></i>
+                                {{ bulkExpandedCC ? 'Colapsar' : 'Ver' }}
+                            </button>
+                        </div>
+                        <Multiselect
+                            v-model="bulkLine.cost_center_ids"
+                            :options="costCenters"
+                            mode="tags"
+                            :searchable="true"
+                            :close-on-select="false"
+                            placeholder="Seleccione CC..."
+                            :class="['multiselect-sm', 'multiselect-tags-limited', { 'multiselect-tags-expanded': bulkExpandedCC }]"
+                        />
+                    </div>
+                    <div class="col-md-2">
+                        <label class="form-label small mb-1">Bono</label>
+                        <select v-model="bulkLine.bonus_type_id" class="form-select form-select-sm">
+                            <option value="">Sin bono</option>
+                            <option v-for="b in bonusTypes" :key="b.value" :value="b.value">{{ b.label }}</option>
+                        </select>
+                    </div>
+                    <div class="col-md-1">
+                        <label class="form-label small mb-1">Monto bono</label>
+                        <input type="number" v-model="bulkLine.bonus_amount" class="form-control form-control-sm text-end" min="0" />
+                    </div>
+                    <div class="col-md-2">
+                        <label class="form-label small mb-1">Observaciones</label>
+                        <input type="text" v-model="bulkLine.observations" class="form-control form-control-sm" maxlength="500" />
+                    </div>
+                </div>
+
+                <!-- Lista de empleados elegibles -->
+                <div class="border rounded" style="max-height: 320px; overflow-y: auto;">
+                    <table class="table table-sm table-hover fs--1 mb-0">
+                        <thead class="table-light sticky-top">
+                            <tr>
+                                <th style="width:36px" class="text-center">
+                                    <input type="checkbox" class="form-check-input" :checked="bulkAllSelected" @change="toggleBulkAll" />
+                                </th>
+                                <th>Colaborador</th>
+                                <th>RUT</th>
+                                <th class="text-end">Monto calculado</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr v-if="bulkEligibleEmployees.length === 0">
+                                <td colspan="4" class="text-center text-muted py-2">Todos los colaboradores ya tienen tarja al día registrada.</td>
+                            </tr>
+                            <tr v-for="emp in bulkEligibleEmployees" :key="emp.id"
+                                :class="bulkSelectedIds.includes(emp.id) ? 'table-primary bg-opacity-25' : ''"
+                                style="cursor:pointer"
+                                @click="bulkSelectedIds.includes(emp.id) ? bulkSelectedIds.splice(bulkSelectedIds.indexOf(emp.id), 1) : bulkSelectedIds.push(emp.id)">
+                                <td class="text-center">
+                                    <input type="checkbox" class="form-check-input" :checked="bulkSelectedIds.includes(emp.id)" @click.stop />
+                                </td>
+                                <td class="fw-semi-bold">{{ emp.full_name }}</td>
+                                <td class="text-muted">{{ emp.rut }}</td>
+                                <td class="text-end fw-semi-bold">
+                                    <span v-if="bulkLine.labor_type_id">
+                                        ${{ bulkRate(emp).toLocaleString('es-CL') }}
+                                    </span>
+                                    <span v-else class="text-muted">—</span>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <div class="d-flex justify-content-between align-items-center mt-2">
+                    <small class="text-muted">{{ bulkSelectedIds.length }} colaborador(es) seleccionado(s)</small>
+                    <div class="d-flex gap-2">
+                        <button type="button" @click="showBulkPanel = false" class="btn btn-falcon-default btn-sm">Cancelar</button>
+                        <button type="button" @click="saveBulk" class="btn btn-primary btn-sm" :disabled="bulkSelectedIds.length === 0 || !bulkLine.labor_type_id">
+                            <i class="fas fa-save me-1"></i>Guardar {{ bulkSelectedIds.length }} tarja(s)
+                        </button>
+                    </div>
                 </div>
             </div>
         </div>

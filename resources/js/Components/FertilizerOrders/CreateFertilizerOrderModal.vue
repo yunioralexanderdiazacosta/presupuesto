@@ -7,6 +7,7 @@ const props = defineProps({
     products: Array,
     irrigationPumps: Array,
     costCenters: Array,
+    branches: { type: Array, default: () => [] },
     units: Array,
     groupings: { type: Array, default: () => [] },
 });
@@ -52,6 +53,7 @@ onMounted(() => {
                         :products="products"
                         :irrigation-pumps="irrigationPumps"
                         :cost-centers="costCenters"
+                        :branches="branches"
                         :units="units"
                         :groupings="groupings"
                         modal-id="createFertilizerOrderModal"

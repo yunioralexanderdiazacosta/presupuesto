@@ -10,6 +10,7 @@ const props = defineProps({
     applicationOrder: Object,
     products: Array,
     costCenters: Array,
+    branches: Array,
     units: Array,
     groupings: Array,
     fruits: Array,
@@ -27,10 +28,23 @@ const links = [
 
 const showEditModal = ref(false);
 
-const totalHectareas = computed(() => {
+const totalHectareasCCs = computed(() => {
     return props.applicationOrder.order_cost_centers?.reduce((sum, occ) => {
         return sum + Number(occ.cost_center?.surface || 0);
     }, 0) || 0;
+});
+
+// Usar superficie_total guardada si existe, si no sumar desde CCs
+const totalHectareas = computed(() => {
+    const saved = props.applicationOrder.superficie_total;
+    return (saved !== null && saved !== undefined) ? Number(saved) : totalHectareasCCs.value;
+});
+
+// Indica si se usó un valor personalizado (distinto a la suma de CCs)
+const superficiePersonalizada = computed(() => {
+    const saved = props.applicationOrder.superficie_total;
+    if (saved === null || saved === undefined) return false;
+    return Math.abs(Number(saved) - totalHectareasCCs.value) > 0.0001;
 });
 
 // Dividir CC en columnas de máximo 10
@@ -265,6 +279,9 @@ function getPracticalQuantityPerHa(value, unitName) {
                             <div class="card bg-soft-success text-center p-2">
                                 <small class="text-muted fw-bold">Total ha</small>
                                 <strong class="fs-9 text-success">{{ totalHectareas.toLocaleString('es-ES', {minimumFractionDigits: 2}) }} ha</strong>
+                                <small v-if="superficiePersonalizada" class="text-warning" style="font-size:0.65rem;" title="Superficie personalizada (difiere de la suma de los CCs)">
+                                    <i class="fas fa-edit"></i> personalizada
+                                </small>
                             </div>
                         </div>
                     </div>
@@ -356,8 +373,12 @@ function getPracticalQuantityPerHa(value, unitName) {
                         </div>
                         <div class="col-12">
                             <div class="bg-primary text-white fw-bold d-flex justify-content-between px-3 py-1 rounded-bottom" style="font-size: 0.85rem;">
-                                <span>TOTAL:</span>
-                                <span>{{ totalHectareas.toLocaleString('es-ES', {minimumFractionDigits: 2}) }} ha</span>
+                                <span>TOTAL CCs:</span>
+                                <span>{{ totalHectareasCCs.toLocaleString('es-ES', {minimumFractionDigits: 2}) }} ha</span>
+                            </div>
+                            <div v-if="superficiePersonalizada" class="bg-warning text-dark d-flex justify-content-between px-3 py-1 rounded" style="font-size: 0.8rem; margin-top: 2px;">
+                                <span><i class="fas fa-edit me-1"></i>Superficie usada en cálculos:</span>
+                                <span class="fw-bold">{{ totalHectareas.toLocaleString('es-ES', {minimumFractionDigits: 2}) }} ha</span>
                             </div>
                         </div>
                     </div>
@@ -529,6 +550,7 @@ function getPracticalQuantityPerHa(value, unitName) {
             :order="applicationOrder"
             :products="products"
             :cost-centers="costCenters"
+            :branches="branches"
             :units="units"
             :groupings="groupings"
             :fruits="fruits"

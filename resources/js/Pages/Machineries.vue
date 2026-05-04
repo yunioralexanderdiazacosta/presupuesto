@@ -21,6 +21,7 @@ const form = useForm({
     cod_machinery: '',
     type_machinery_id: '', 
     company_reason_id: '',
+    branch_id: null,
     counter_id: '',
     team_id: '',
     volume: 0,
@@ -79,6 +80,7 @@ const openEdit = (machinery) => {
     form.cod_machinery = machinery.cod_machinery;
     form.type_machinery_id = machinery.type_machinery_id;
     form.company_reason_id = machinery.company_reason_id;
+    form.branch_id = machinery.branch_id || null;
     form.counter_id = machinery.counter_id;
     form.team_id = machinery.team_id;
     form.volume = machinery.volume;
@@ -209,6 +211,7 @@ const onFilter = () => {};
                         <th width="min-w-150px">Código</th>
                         <th width="min-w-150px">Tipo</th>
                         <th width="min-w-150px">Razón Social</th>
+                        <th width="min-w-150px">Sucursal</th>
                         <th width="min-w-150px">Contador</th>
                         <th width="min-w-150px">Marca</th>
                         <th width="min-w-150px">Modelo</th>
@@ -230,6 +233,7 @@ const onFilter = () => {};
                                 <td>{{machinery.cod_machinery}}</td>
                                 <td>{{machinery.type_machinery?.name || '-'}}</td>
                                 <td>{{machinery.company_reason?.name || '-'}}</td>
+                                <td>{{machinery.branch?.name || '-'}}</td>
                                 <td>{{machinery.counter?.name || '-'}}</td>
                                 <td>{{machinery.brand || '-'}}</td>
                                 <td>{{machinery.modelo || '-'}}</td>

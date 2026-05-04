@@ -1,4 +1,4 @@
-﻿<table>
+<table>
     <thead>
         <tr>
             <th><b>Colaborador</b></th>
@@ -12,7 +12,7 @@
         </tr>
     </thead>
     <tbody>
-        @foreach($employees as $emp)
+        @forelse($employees as $emp)
         <tr>
             <td>{{ $emp['full_name'] }}</td>
             <td>{{ $emp['rut'] }}</td>
@@ -23,6 +23,10 @@
             <td>{{ $emp['grand_total_bonus'] }}</td>
             <td>{{ $emp['grand_total_workdays'] }}</td>
         </tr>
-        @endforeach
+        @empty
+        <tr>
+            <td colspan="50">Sin datos para el período seleccionado</td>
+        </tr>
+        @endforelse
     </tbody>
 </table>

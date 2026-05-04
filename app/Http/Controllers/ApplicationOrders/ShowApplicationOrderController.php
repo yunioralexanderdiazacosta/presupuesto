@@ -5,6 +5,7 @@ namespace App\Http\Controllers\ApplicationOrders;
 use App\Models\ApplicationOrder;
 use App\Models\Product;
 use App\Models\CostCenter;
+use App\Models\Branch;
 use App\Models\Unit;
 use App\Models\Machinery;
 use App\Models\Operator;
@@ -51,14 +52,22 @@ class ShowApplicationOrderController
             ->whereHas('season', function($q) use ($user) {
                 $q->where('team_id', $user->team_id);
             })
-            ->get(['id', 'name', 'surface'])
+            ->get(['id', 'name', 'surface', 'branch_id'])
             ->map(function($cc) {
                 return [
                     'value' => $cc->id,
                     'label' => $cc->name,
                     'surface' => $cc->surface ?? 0,
+                    'branch_id' => $cc->branch_id,
                 ];
             });
+
+        // Obtener sucursales del equipo y temporada
+        $branches = Branch::where('team_id', $user->team_id)
+            ->where('season_id', $seasonId)
+            ->orderBy('name')
+            ->get(['id', 'name'])
+            ->map(fn($b) => ['value' => $b->id, 'label' => $b->name]);
 
         // Obtener unidades
         $units = Unit::orderBy('name')->get(['id', 'name'])->map(function($unit) {
@@ -137,6 +146,7 @@ class ShowApplicationOrderController
             'applicationOrder' => $applicationOrder,
             'products' => $products,
             'costCenters' => $costCenters,
+            'branches' => $branches,
             'units' => $units,
             'groupings' => $groupings,
             'fruits' => $fruits,

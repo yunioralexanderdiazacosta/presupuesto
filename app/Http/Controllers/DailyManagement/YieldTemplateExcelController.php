@@ -4,6 +4,7 @@ namespace App\Http\Controllers\DailyManagement;
 
 use App\Exports\YieldTemplateExport;
 use App\Http\Controllers\Controller;
+use App\Models\Branch;
 use App\Models\Contract;
 use App\Models\Parcel;
 use Carbon\Carbon;
@@ -18,6 +19,7 @@ class YieldTemplateExcelController extends Controller
         $request->validate([
             'date'      => 'required|date',
             'parcel_id' => 'nullable|integer|exists:parcels,id',
+            'branch_id' => 'nullable|integer|exists:branches,id',
         ]);
 
         $user = Auth::user();
@@ -30,6 +32,10 @@ class YieldTemplateExcelController extends Controller
 
         if ($request->parcel_id) {
             $query->where('parcel_id', $request->parcel_id);
+        }
+
+        if ($request->branch_id) {
+            $query->where('branch_id', $request->branch_id);
         }
 
         $contracts = $query->get()

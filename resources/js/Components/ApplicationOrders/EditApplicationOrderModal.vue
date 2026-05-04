@@ -9,6 +9,7 @@ const props = defineProps({
     order: Object,
     products: Array,
     costCenters: Array,
+    branches: Array,
     units: Array,
     groupings: Array,
     fruits: Array,
@@ -34,6 +35,7 @@ const form = useForm({
     operators: '',
     products: [],
     cost_centers: [],
+    superficie_total: null,
 });
 
 watch(() => props.show, (val) => {
@@ -62,6 +64,7 @@ watch(() => props.show, (val) => {
         form.tractors = props.order.tractors || '';
         form.equipments = props.order.equipments || '';
         form.operators = props.order.operators || '';
+        form.superficie_total = props.order.superficie_total ?? null;
         
         // Cargar productos
         form.products = (props.order.order_products || []).map(op => ({
@@ -164,6 +167,7 @@ function save() {
                         :form="form"
                         :products="products"
                         :cost-centers="costCenters"
+                        :branches="branches"
                         :units="units"
                         :groupings="groupings"
                         :fruits="fruits"

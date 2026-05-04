@@ -45,10 +45,10 @@ class MonthlyYieldsExport implements FromView, ShouldAutoSize
 
         $yieldsByEmployee = $yields->groupBy('employee_id');
 
-        $employees = Employee::with('activeContract')
-            ->where('team_id', $user->team_id)
-            ->where('is_active', true)
-            ->whereHas('activeContract')
+        // Empleados con tarjas en el mes (independiente de si tienen contrato activo ahora)
+        $employeeIds = $yieldsByEmployee->keys();
+        $employees = Employee::with('latestContract')
+            ->whereIn('id', $employeeIds)
             ->orderBy('paternal_surname')
             ->get();
 
@@ -78,13 +78,13 @@ class MonthlyYieldsExport implements FromView, ShouldAutoSize
                 'id' => $e->id,
                 'full_name' => $e->full_name,
                 'rut' => $e->rut,
-                'position' => $e->activeContract?->position ?? '',
+                'position' => $e->latestContract?->position ?? '',
                 'days' => $days,
                 'grand_total_amount' => $grandTotalAmount,
                 'grand_total_bonus' => $grandTotalBonus,
                 'grand_total_workdays' => round((float) $grandTotalWorkdays, 2),
             ];
-        })->filter(fn($e) => $e['grand_total_amount'] > 0 || $e['grand_total_bonus'] > 0)
+        })->filter(fn($e) => $e['grand_total_amount'] > 0 || $e['grand_total_bonus'] > 0 || $e['grand_total_workdays'] > 0)
           ->values();
 
         $viewName = $this->mode === 'detalle'

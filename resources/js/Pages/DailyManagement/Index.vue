@@ -17,6 +17,7 @@ const props = defineProps({
     activeTab: String,
     costCenters: Array,
     parcels: Array,
+    branches: Array,
     maxWorkdayPerDay: Number,
     hasAttendance: Boolean,
     attendances: Object,
@@ -139,6 +140,7 @@ function shiftDate(days) {
                         :bonusTypes="bonusTypes"
                         :costCenters="costCenters"
                         :parcels="parcels"
+                        :branches="branches"
                         :groupings="groupings"
                         :selectedDate="selectedDate"
                         :hasAttendance="hasAttendance"

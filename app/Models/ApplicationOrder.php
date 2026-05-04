@@ -24,6 +24,7 @@ class ApplicationOrder extends Model
         'tractors',
         'equipments',
         'operators',
+        'superficie_total',
     ];
 
     protected $casts = [
@@ -31,6 +32,7 @@ class ApplicationOrder extends Model
         'start_date' => 'date',
         'mojamiento' => 'decimal:2',
         'volume' => 'integer',
+        'superficie_total' => 'decimal:4',
     ];
 
     /**

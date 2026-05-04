@@ -6,6 +6,7 @@ use Illuminate\Http\Request;
 use App\Models\Machinery;
 use App\Models\TypeMachinery;
 use App\Models\CompanyReason;
+use App\Models\Branch;
 use App\Models\Counter;
 use Inertia\Inertia;
 
@@ -38,11 +39,16 @@ class MachineriesController extends Controller
             ];
         });
 
-        $machineries = Machinery::with(['typeMachinery', 'counter', 'companyReason'])
+        $machineries = Machinery::with(['typeMachinery', 'counter', 'companyReason', 'branch'])
             ->where('team_id', $user->team_id)
             ->orderBy('cod_machinery')
             ->get();
 
-        return Inertia::render('Machineries', compact('machineries', 'companyReasons', 'typeMachineries', 'counters', 'term'));
+        $branches = Branch::where('team_id', $user->team_id)
+            ->orderBy('name')
+            ->get(['id', 'name'])
+            ->map(fn($b) => ['label' => $b->name, 'value' => $b->id]);
+
+        return Inertia::render('Machineries', compact('machineries', 'companyReasons', 'typeMachineries', 'counters', 'branches', 'term'));
     }
 }

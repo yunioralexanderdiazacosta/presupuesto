@@ -14,6 +14,7 @@ use App\Models\Parcel;
 use App\Models\Bank;
 use App\Models\PaymentMethod;
 use App\Models\AccountType;
+use App\Models\Branch;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Inertia\Inertia;
@@ -24,7 +25,7 @@ class ContractController extends Controller
     {
         $user = Auth::user();
 
-        $contracts = Contract::with(['employee', 'companyReason', 'schedule', 'afp', 'healthPlan', 'city', 'parcel', 'paymentMethod', 'bank', 'accountType', 'terminations'])
+        $contracts = Contract::with(['employee', 'companyReason', 'schedule', 'afp', 'healthPlan', 'city', 'parcel', 'branch', 'paymentMethod', 'bank', 'accountType', 'terminations'])
             ->where('team_id', $user->team_id)
             ->latest('contract_date')
             ->get();
@@ -78,6 +79,12 @@ class ContractController extends Controller
             ->get(['id', 'name'])
             ->map(fn($p) => ['value' => $p->id, 'label' => $p->name]);
 
+        $branches = Branch::where('team_id', $user->team_id)
+            ->where('season_id', session('season_id'))
+            ->orderBy('name')
+            ->get(['id', 'name'])
+            ->map(fn($b) => ['value' => $b->id, 'label' => $b->name]);
+
         $maritalStatuses = [
             'Soltero/a', 'Casado/a', 'Divorciado/a', 'Viudo/a', 'Separado/a', 'Unión Civil',
         ];
@@ -107,6 +114,7 @@ class ContractController extends Controller
             'healthPlans' => $healthPlans,
             'cities' => $cities,
             'parcels' => $parcels,
+            'branches' => $branches,
             'maritalStatuses' => $maritalStatuses,
             'banks' => $banks,
             'paymentMethods' => $paymentMethods,

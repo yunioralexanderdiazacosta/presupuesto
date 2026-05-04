@@ -1,4 +1,4 @@
-﻿<table>
+<table>
     <thead>
         <tr>
             <th colspan="9"><b>Detalle de Tarjas - {{ \Carbon\Carbon::parse($month . '-01')->translatedFormat('F Y') }}</b></th>
@@ -18,7 +18,7 @@
         </tr>
     </thead>
     <tbody>
-        @foreach($employees as $emp)
+        @forelse($employees as $emp)
             @php $firstRow = true; @endphp
             @foreach($dates as $date)
                 @php $dayData = $emp['days'][$date]; @endphp
@@ -27,7 +27,7 @@
                     <tr>
                         <td>{{ $firstRow ? $emp['full_name'] . ' (' . $emp['rut'] . ')' : '' }}</td>
                         <td>{{ \Carbon\Carbon::parse($date)->format('d/m') }}</td>
-                        <td>{{ ($line->payment_type ?? 'trato') === 'dia' ? 'Al dÃ­a' : 'A trato' }}</td>
+                        <td>{{ ($line->payment_type ?? 'trato') === 'dia' ? 'Al día' : 'A trato' }}</td>
                         <td>{{ $line->laborType?->name }}</td>
                         <td>{{ $line->laborRate?->name ?? '-' }}</td>
                         <td>{{ $line->rate }}</td>
@@ -49,6 +49,10 @@
                 <td><b>{{ $emp['grand_total_bonus'] }}</b></td>
                 <td></td>
             </tr>
-        @endforeach
+        @empty
+        <tr>
+            <td colspan="11">Sin datos para el período seleccionado</td>
+        </tr>
+        @endforelse
     </tbody>
 </table>

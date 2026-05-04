@@ -27,6 +27,7 @@ class StoreContractRequest extends FormRequest
             'health_plan_id' => 'nullable|exists:health_plans,id',
             'city_id' => 'nullable|exists:cities,id',
             'parcel_id' => 'nullable|exists:parcels,id',
+            'branch_id' => 'nullable|exists:branches,id',
             'marital_status' => 'nullable|string|max:30',
             'phone' => 'nullable|string|max:20',
             'address' => 'nullable|string|max:255',

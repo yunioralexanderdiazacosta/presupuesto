@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\FertilizerOrder;
 use App\Models\Product;
 use App\Models\CostCenter;
+use App\Models\Branch;
 use App\Models\IrrigationPump;
 use App\Models\Unit;
 use Illuminate\Support\Facades\Auth;
@@ -49,18 +50,27 @@ class ShowFertilizerOrderController extends Controller
             });
 
         // Obtener centros de costo
-        $costCenters = CostCenter::where('season_id', session('season_id'))
+        $season_id_cc = session('season_id');
+        $costCenters = CostCenter::where('season_id', $season_id_cc)
             ->whereHas('season', function($q) use ($user) {
                 $q->where('team_id', $user->team_id);
             })
-            ->get(['id', 'name', 'surface'])
+            ->get(['id', 'name', 'surface', 'branch_id'])
             ->map(function($cc) {
                 return [
                     'value' => $cc->id,
                     'label' => $cc->name,
                     'surface' => $cc->surface ?? 0,
+                    'branch_id' => $cc->branch_id,
                 ];
             });
+
+        // Obtener sucursales del equipo y temporada
+        $branches = Branch::where('team_id', $user->team_id)
+            ->where('season_id', $season_id_cc)
+            ->orderBy('name')
+            ->get(['id', 'name'])
+            ->map(fn($b) => ['value' => $b->id, 'label' => $b->name]);
 
         // Obtener bombas de riego
         $irrigationPumps = IrrigationPump::with('sectors')
@@ -109,6 +119,7 @@ class ShowFertilizerOrderController extends Controller
             'fertilizerOrder' => $fertilizerOrder,
             'products' => $products,
             'costCenters' => $costCenters,
+            'branches' => $branches,
             'irrigationPumps' => $irrigationPumps,
             'units' => $units,
             'groupings' => $groupings,

@@ -10,6 +10,7 @@ const props = defineProps({
     products: { type: Array, default: () => [] },
     irrigationPumps: { type: Array, default: () => [] },
     costCenters: { type: Array, default: () => [] },
+    branches: { type: Array, default: () => [] },
     units: { type: Array, default: () => [] },
     groupings: { type: Array, default: () => [] },
     modalId: String,
@@ -33,6 +34,20 @@ const form = localForm;
 const selectedPump = ref(null);
 const selectedGrouping = ref(null);
 const expandedCC = ref(false);
+
+// ==== SUCURSAL (prellenado de CCs) ====
+const selectedBranch = ref(null);
+
+const filteredCostCenters = computed(() => {
+    if (!selectedBranch.value || !props.costCenters) return props.costCenters || [];
+    return props.costCenters.filter(cc => String(cc.branch_id) === String(selectedBranch.value));
+});
+
+watch(selectedBranch, (branchId) => {
+    if (!branchId) return;
+    const validIds = filteredCostCenters.value.map(cc => cc.value);
+    form.cost_centers = form.cost_centers.filter(id => validIds.includes(id));
+});
 
 // Inicializar selectedPump si estamos en modo edición
 if (props.fertilizerOrder && props.fertilizerOrder.irrigation_pump_id) {
@@ -295,6 +310,24 @@ onMounted(() => {
             <div class="row mb-2">
                 <div class="col-md-4">
                     <label class="form-label small mb-1">
+                        <i class="fas fa-building me-1"></i>Sucursal (filtro de CC)
+                    </label>
+                    <select 
+                        v-model="selectedBranch" 
+                        class="form-select form-select-sm"
+                    >
+                        <option :value="null">Todas las sucursales</option>
+                        <option v-for="b in (branches || [])" :key="b.value" :value="b.value">
+                            {{ b.label }}
+                        </option>
+                    </select>
+                    <small class="text-muted d-block mt-1">
+                        <i class="fas fa-info-circle me-1"></i>
+                        Filtra los centros de costo disponibles
+                    </small>
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label small mb-1">
                         <i class="fas fa-layer-group me-1"></i>Agrupación (Preselección rápida)
                     </label>
                     <select 
@@ -311,7 +344,7 @@ onMounted(() => {
                         Preselección rápida
                     </small>
                 </div>
-                <div class="col-md-8">
+                <div class="col-md-4">
                     <div class="d-flex align-items-center justify-content-between mb-1">
                         <label class="form-label small mb-0">Centros de Costo</label>
                         <div class="d-flex align-items-center gap-1">
@@ -332,7 +365,7 @@ onMounted(() => {
                     </div>
                     <Multiselect
                         v-model="form.cost_centers"
-                        :options="props.costCenters"
+                        :options="filteredCostCenters"
                         mode="tags"
                         :searchable="true"
                         :close-on-select="false"

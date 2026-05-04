@@ -11,6 +11,7 @@ const props = defineProps({
     products: Array,
     irrigationPumps: Array,
     costCenters: Array,
+    branches: { type: Array, default: () => [] },
     units: Array,
     groupings: { type: Array, default: () => [] },
 });
@@ -258,6 +259,7 @@ function confirmDelete() {
             :products="products"
             :irrigation-pumps="irrigationPumps"
             :cost-centers="costCenters"
+            :branches="branches"
             :units="units"
             :groupings="groupings"
         />

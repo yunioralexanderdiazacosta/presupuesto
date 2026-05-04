@@ -15,6 +15,7 @@ const props = defineProps({
     products: { type: Array, default: () => [] },
     irrigationPumps: { type: Array, default: () => [] },
     costCenters: { type: Array, default: () => [] },
+    branches: { type: Array, default: () => [] },
     units: { type: Array, default: () => [] },
     groupings: { type: Array, default: () => [] },
 });
@@ -247,6 +248,7 @@ const excelFilename = computed(() => `ordenes_fertilizantes_${new Date().toISOSt
             :products="products"
             :irrigation-pumps="irrigationPumps"
             :cost-centers="costCenters"
+            :branches="branches"
             :units="units"
             :groupings="groupings"
         />
@@ -258,6 +260,7 @@ const excelFilename = computed(() => `ordenes_fertilizantes_${new Date().toISOSt
             :products="products"
             :irrigation-pumps="irrigationPumps"
             :cost-centers="costCenters"
+            :branches="branches"
             :units="units"
             :groupings="groupings"
         />

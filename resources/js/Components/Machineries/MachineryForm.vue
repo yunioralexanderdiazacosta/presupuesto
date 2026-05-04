@@ -18,6 +18,26 @@ const years = computed(() => {
     <div class="row g-3 mt-2">
         <div class="col-md-6">
             <div class="mb-3">
+                <label for="branch_id" class="form-label small fw-bold">
+                    Sucursal <span class="text-muted fw-normal">(Opcional)</span>
+                </label>
+                <select
+                    id="branch_id"
+                    v-model="form.branch_id"
+                    class="form-select form-select-sm"
+                    :class="{'is-invalid': form.errors.branch_id}"
+                >
+                    <option :value="null">Sin sucursal</option>
+                    <option v-for="branch in $page.props.branches" :key="branch.value" :value="branch.value">
+                        {{ branch.label }}
+                    </option>
+                </select>
+                <InputError class="mt-1" :message="form.errors.branch_id" />
+            </div>
+        </div>
+
+        <div class="col-md-6">
+            <div class="mb-3">
                 <label for="type_machinery_id" class="form-label small fw-bold">
                     Tipo Maquinaria <span class="text-danger">*</span>
                 </label>

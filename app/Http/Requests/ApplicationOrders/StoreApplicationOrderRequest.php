@@ -24,6 +24,7 @@ class StoreApplicationOrderRequest extends FormRequest
             'start_date' => 'nullable|date',
             'volume' => 'nullable|integer|min:0',
             'mojamiento' => 'required|numeric|min:0',
+            'superficie_total' => 'nullable|numeric|min:0',
             'recomendado' => 'required|string|max:255',
             'status' => 'required|in:pendiente,completada,cancelada',
             'responsable' => 'required|string|max:255',

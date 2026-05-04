@@ -42,11 +42,10 @@ class MonthlyReportController extends Controller
 
         $yieldsByEmployee = $yields->groupBy('employee_id');
 
-        // Empleados con contrato activo
-        $employees = Employee::with('activeContract')
-            ->where('team_id', $user->team_id)
-            ->where('is_active', true)
-            ->whereHas('activeContract')
+        // Empleados con tarjas en el mes (independiente de si tienen contrato activo ahora)
+        $employeeIds = $yieldsByEmployee->keys();
+        $employees = Employee::with('latestContract')
+            ->whereIn('id', $employeeIds)
             ->orderBy('paternal_surname')
             ->get();
 
@@ -101,8 +100,8 @@ class MonthlyReportController extends Controller
                 'id' => $e->id,
                 'full_name' => $e->full_name,
                 'rut' => $e->rut,
-                'position' => $e->activeContract?->position ?? '',
-                'net_salary' => $e->activeContract?->net_salary ?? 0,
+                'position' => $e->latestContract?->position ?? '',
+                'net_salary' => $e->latestContract?->net_salary ?? 0,
                 'days' => $days,
                 'grand_total_amount' => $grandTotalAmount,
                 'grand_total_bonus' => $grandTotalBonus,
@@ -110,7 +109,7 @@ class MonthlyReportController extends Controller
                 'grand_total_workdays' => round((float) $grandTotalWorkdays, 2),
                 'days_worked' => $daysWorked,
             ];
-        })->filter(fn($e) => $e['grand_total_amount'] > 0 || $e['grand_total_bonus'] > 0 || $e['grand_total_target_bonus'] > 0)
+        })->filter(fn($e) => $e['grand_total_amount'] > 0 || $e['grand_total_bonus'] > 0 || $e['grand_total_target_bonus'] > 0 || $e['grand_total_workdays'] > 0)
           ->values();
 
         return response()->json([

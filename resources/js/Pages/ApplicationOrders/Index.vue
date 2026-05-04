@@ -12,6 +12,7 @@ const props = defineProps({
     applicationOrders: Object,
     products: Array,
     costCenters: Array,
+    branches: Array,
     units: Array,
     groupings: Array,
     fruits: Array,
@@ -293,6 +294,7 @@ watch(filteredRows, () => {
             :show="showCreateModal"
             :products="products"
             :cost-centers="costCenters"
+            :branches="branches"
             :units="units"
             :groupings="groupings"
             :fruits="fruits"
@@ -307,6 +309,7 @@ watch(filteredRows, () => {
             :order="editingOrder"
             :products="products"
             :cost-centers="costCenters"
+            :branches="branches"
             :units="units"
             :groupings="groupings"
             :fruits="fruits"

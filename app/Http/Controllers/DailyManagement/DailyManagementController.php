@@ -5,6 +5,7 @@ namespace App\Http\Controllers\DailyManagement;
 use App\Http\Controllers\Controller;
 use App\Models\Contract;
 use App\Models\BonusType;
+use App\Models\Branch;
 use App\Models\CostCenter;
 use App\Models\DailyAttendance;
 use App\Models\DailyYield;
@@ -114,6 +115,7 @@ class DailyManagementController extends Controller
                     'net_salary' => $contract?->net_salary ?? 0,
                     'daily_rate' => $contract?->net_salary ? round($contract->net_salary / 30) : 0,
                     'parcel_id' => $contract?->parcel_id,
+                    'branch_id' => $contract?->branch_id,
                     'is_present' => $att ? $att->is_present : null,
                     'yields' => $empYields->map(fn($y) => [
                         'id' => $y->id,
@@ -159,6 +161,13 @@ class DailyManagementController extends Controller
             ->orderBy('name')
             ->get(['id', 'name'])
             ->map(fn($p) => ['value' => $p->id, 'label' => $p->name]);
+
+        // === SUCURSALES ===
+        $branches = Branch::where('team_id', $user->team_id)
+            ->where('season_id', $seasonId)
+            ->orderBy('name')
+            ->get(['id', 'name'])
+            ->map(fn($b) => ['value' => $b->id, 'label' => $b->name]);
 
         // === AGRUPACIONES ===
         $groupings = Grouping::with(['costCenters' => function ($q) use ($seasonId) {
@@ -246,6 +255,7 @@ class DailyManagementController extends Controller
             'activeTab' => $activeTab,
             'costCenters' => $costCenters,
             'parcels' => $parcels,
+            'branches' => $branches,
             'maxWorkdayPerDay' => $maxWorkdayPerDay,
             'hasAttendance' => $hasAttendance,
             // Asistencia

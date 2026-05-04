@@ -35,8 +35,8 @@ class UpdateApplicationOrderController
             // Actualizar datos principales
             $applicationOrder->update($validated);
             
-            // Calcular suma de hectáreas
-            $totalHectareas = collect($costCenters)->sum('surface');
+            // Calcular suma de hectáreas: usar superficie_total si fue enviada, si no sumar CCs
+            $totalHectareas = $validated['superficie_total'] ?? collect($costCenters)->sum('surface');
             
             // Eliminar productos y centros de costo existentes
             $applicationOrder->orderProducts()->delete();

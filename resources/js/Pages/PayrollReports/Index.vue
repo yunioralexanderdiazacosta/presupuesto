@@ -28,6 +28,16 @@
                                     {{ emp.full_name }} &mdash; {{ emp.rut }}
                                 </option>
                             </select>
+                            <!-- Botón imprimir seleccionados -->
+                            <button
+                                v-if="selectedIds.length > 0"
+                                class="btn btn-falcon-default btn-sm"
+                                @click="printSelected"
+                                title="Imprimir PDF de los seleccionados"
+                            >
+                                <i class="fas fa-print me-1"></i>
+                                Imprimir ({{ selectedIds.length }})
+                            </button>
                         </div>
                     </div>
                 </div>
@@ -125,6 +135,9 @@
                     <table class="table table-sm table-hover mb-0" style="font-size: 0.8rem;">
                         <thead class="payroll-head">
                             <tr>
+                                <th class="text-center" style="width:36px;">
+                                    <input type="checkbox" :checked="allSelected" @change="toggleAll" title="Seleccionar todos" />
+                                </th>
                                 <th class="text-center">Contrato</th>
                                 <th>RUT</th>
                                 <th>Nombre</th>
@@ -142,6 +155,9 @@
                         </thead>
                         <tbody>
                             <tr v-for="emp in filteredEmployees" :key="emp.id">
+                                <td class="text-center">
+                                    <input type="checkbox" :value="emp.id" v-model="selectedIds" />
+                                </td>
                                 <td class="text-center">
                                     <span v-if="emp.contract_id" class="badge bg-soft-primary text-primary" style="font-size:0.7rem;">#{{ emp.contract_id }}</span>
                                     <span v-else class="text-muted">—</span>
@@ -171,6 +187,7 @@
                         </tbody>
                         <tfoot>
                             <tr class="fw-bold payroll-foot">
+                                <td></td>
                                 <td colspan="4">TOTALES</td>
                                 <td class="text-end">$ {{ fmt(filteredTotals.tratos) }}</td>
                                 <td class="text-end">$ {{ fmt(filteredTotals.monto_dia) }}</td>
@@ -225,6 +242,7 @@ const props = defineProps({
 const selectedMonth = ref(props.month);
 const selectedEmployee = ref('');
 const activeTab = ref('resumen');
+const selectedIds = ref([]);
 
 const monthNames = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio',
     'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'];
@@ -262,10 +280,31 @@ const fmt = (val) => {
 
 const filterByMonth = () => {
     selectedEmployee.value = '';
+    selectedIds.value = [];
     router.get(route('payroll-reports.index'), { month: selectedMonth.value }, {
         preserveState: true,
         preserveScroll: true,
     });
+};
+
+const allSelected = computed(() =>
+    filteredEmployees.value.length > 0 &&
+    filteredEmployees.value.every(e => selectedIds.value.includes(e.id))
+);
+
+const toggleAll = () => {
+    if (allSelected.value) {
+        selectedIds.value = [];
+    } else {
+        selectedIds.value = filteredEmployees.value.map(e => e.id);
+    }
+};
+
+const printSelected = () => {
+    if (selectedIds.value.length === 0) return;
+    let url = route('payroll-reports.bulk-pdf') + '?month=' + selectedMonth.value;
+    selectedIds.value.forEach(id => { url += '&employee_ids[]=' + id; });
+    window.open(url, '_blank');
 };
 </script>
 

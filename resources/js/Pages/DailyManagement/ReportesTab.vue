@@ -52,7 +52,7 @@ const employeeOptions = computed(() => {
     return reportData.value.employees.map(e => ({ value: e.id, label: e.full_name + ' (' + e.rut + ')' }));
 });
 
-// DÃ­as cortos para header planilla
+// Días cortos para header planilla
 function dayShort(dateStr) {
     const d = new Date(dateStr + 'T12:00:00');
     return d.getDate();
@@ -60,7 +60,7 @@ function dayShort(dateStr) {
 
 function dayName(dateStr) {
     const d = new Date(dateStr + 'T12:00:00');
-    const names = ['Do', 'Lu', 'Ma', 'Mi', 'Ju', 'Vi', 'SÃ¡'];
+    const names = ['Do', 'Lu', 'Ma', 'Mi', 'Ju', 'Vi', 'Sá'];
     return names[d.getDay()];
 }
 
@@ -291,9 +291,19 @@ function exportPdf(mode) {
             <!-- Si hay empleados seleccionados: detalle de cada uno -->
             <template v-if="selectedEmployees.length > 0">
                 <div v-for="emp in selectedEmployees" :key="emp.id" class="card border mb-3">
-                    <div class="card-header bg-primary text-white py-2">
-                        <strong>{{ emp.full_name }}</strong>
-                        <span class="ms-2 small">{{ emp.rut }} | {{ emp.position || '-' }}</span>
+                    <div class="card-header bg-primary text-white py-2 d-flex align-items-center justify-content-between">
+                        <div>
+                            <strong>{{ emp.full_name }}</strong>
+                            <span class="ms-2 small">{{ emp.rut }} | {{ emp.position || '-' }}</span>
+                        </div>
+                        <button
+                            class="btn btn-sm btn-light py-0 px-2"
+                            style="font-size:0.75rem;"
+                            @click="selectedEmployeeIds = selectedEmployeeIds.filter(id => id !== emp.id)"
+                            title="Cerrar detalle"
+                        >
+                            <i class="fas fa-arrow-left me-1"></i>Volver
+                        </button>
                     </div>
                     <div class="card-body p-2">
                         <!-- Resumen personal -->
@@ -324,13 +334,13 @@ function exportPdf(mode) {
                             </div>
                             <div class="col">
                                 <div class="card bg-soft-primary text-center p-2">
-                                    <small class="text-muted">DÃ­as Trabajados</small>
+                                    <small class="text-muted">Días Trabajados</small>
                                     <strong>{{ emp.days_worked }}</strong>
                                 </div>
                             </div>
                         </div>
 
-                        <!-- Tabla detalle dÃ­a a dÃ­a -->
+                        <!-- Tabla detalle día a día -->
                         <div class="table-responsive">
                             <table class="table table-sm table-bordered fs--2 mb-0">
                                 <thead class="bg-200">
@@ -355,7 +365,7 @@ function exportPdf(mode) {
                                                 <td>{{ new Date(date + 'T12:00:00').toLocaleDateString('es-CL', { day: '2-digit', month: '2-digit' }) }}</td>
                                                 <td class="text-center">
                                                     <span class="badge" :class="line.payment_type === 'dia' ? 'bg-info' : 'bg-primary'" style="font-size:0.6rem;">
-                                                        {{ line.payment_type === 'dia' ? 'DÃ­a' : 'Trato' }}
+                                                        {{ line.payment_type === 'dia' ? 'Día' : 'Trato' }}
                                                     </span>
                                                 </td>
                                                 <td>{{ line.labor_type }}</td>
@@ -368,11 +378,11 @@ function exportPdf(mode) {
                                                 <td class="text-end text-warning">{{ line.target_price_bonus ? fmt(line.target_price_bonus) : '' }}</td>
                                                 <td>{{ line.cost_center }}</td>
                                             </tr>
-                                            <!-- Subtotal del dÃ­a (solo si hay mÃ¡s de 1 lÃ­nea) -->
+                                            <!-- Subtotal del día (solo si hay más de 1 línea) -->
                                             <tr v-if="emp.days[date].lines.length > 1" class="bg-100">
                                                 <td colspan="6" class="fw-semi-bold small text-end">
                                                     {{ new Date(date + 'T12:00:00').toLocaleDateString('es-CL', { weekday: 'short', day: '2-digit', month: '2-digit' }) }}
-                                                    â€” Subtotal:
+                                                    — Subtotal:
                                                 </td>
                                                 <td class="text-end fw-bold small">${{ fmt(emp.days[date].amount) }}</td>
                                                 <td class="text-center fw-bold small">{{ emp.days[date].workdays }} JH</td>
@@ -407,7 +417,7 @@ function exportPdf(mode) {
                             <tr>
                                 <th>Colaborador</th>
                                 <th>RUT</th>
-                                <th class="text-center">DÃ­as Trabajados</th>
+                                <th class="text-center">Días Trabajados</th>
                                 <th class="text-center">Jornada</th>
                                 <th class="text-end">Total Monto</th>
                                 <th class="text-end">Total Bonos</th>
@@ -466,7 +476,7 @@ function exportPdf(mode) {
                         <span>
                             <span class="badge me-1" :class="line.payment_type === 'dia' ? 'bg-info' : 'bg-primary'"
                                 style="font-size:0.55rem; padding:1px 4px;">
-                                {{ line.payment_type === 'dia' ? 'DÃ­a' : 'Trato' }}
+                                {{ line.payment_type === 'dia' ? 'Día' : 'Trato' }}
                             </span>
                             <span style="font-size:0.78rem;">{{ line.labor_type || 'Labor' }}</span>
                         </span>

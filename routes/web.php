@@ -339,6 +339,7 @@ use App\Http\Controllers\DailyAttendances\DeleteDailyAttendanceController;
 // Rutas para Daily Yields (Tarjas Diarias - Remuneraciones)
 use App\Http\Controllers\DailyYields\DailyYieldController;
 use App\Http\Controllers\DailyYields\StoreDailyYieldController;
+use App\Http\Controllers\DailyYields\BulkStoreDailyYieldController;
 use App\Http\Controllers\DailyYields\UpdateDailyYieldController;
 use App\Http\Controllers\DailyYields\DeleteDailyYieldController;
 // Rutas para Work Schedules (Horario de Trabajo - Remuneraciones)
@@ -355,6 +356,7 @@ use App\Http\Controllers\DailyManagement\YieldTemplateExcelController;
 use App\Http\Controllers\PayrollReports\PayrollReportController;
 use App\Http\Controllers\PayrollReports\ShowPayrollReportController;
 use App\Http\Controllers\PayrollReports\ExportPayrollReportPdfController;
+use App\Http\Controllers\PayrollReports\ExportPayrollBulkPdfController;
 use App\Http\Controllers\PayrollReports\ExportPayrollNominaPdfController;
 use App\Http\Controllers\PayrollReports\ExportPayrollAnticiposPdfController;
 use App\Http\Controllers\PayrollReports\ExportPayrollSueldosPdfController;
@@ -1120,6 +1122,7 @@ Route::middleware([
     // Daily Yields (Tarjas Diarias - Remuneraciones)
     Route::get('/daily-yields', [DailyYieldController::class, 'index'])->name('daily-yields.index');
     Route::post('/daily-yields', StoreDailyYieldController::class)->name('daily-yields.store');
+    Route::post('/daily-yields/bulk', BulkStoreDailyYieldController::class)->name('daily-yields.bulk-store');
     Route::put('/daily-yields/{dailyYield}', UpdateDailyYieldController::class)->name('daily-yields.update');
     Route::delete('/daily-yields/{dailyYield}', DeleteDailyYieldController::class)->name('daily-yields.delete');
 
@@ -1140,6 +1143,7 @@ Route::middleware([
     Route::get('/payroll-reports/nomina-pdf', ExportPayrollNominaPdfController::class)->name('payroll-reports.nomina-pdf');
     Route::get('/payroll-reports/anticipos-pdf', ExportPayrollAnticiposPdfController::class)->name('payroll-reports.anticipos-pdf');
     Route::get('/payroll-reports/sueldos-pdf', ExportPayrollSueldosPdfController::class)->name('payroll-reports.sueldos-pdf');
+    Route::get('/payroll-reports/bulk-pdf', ExportPayrollBulkPdfController::class)->name('payroll-reports.bulk-pdf');
     Route::get('/payroll-reports/{employee}/pdf', ExportPayrollReportPdfController::class)->name('payroll-reports.pdf');
     Route::get('/payroll-reports/{employee}', ShowPayrollReportController::class)->name('payroll-reports.show');
 

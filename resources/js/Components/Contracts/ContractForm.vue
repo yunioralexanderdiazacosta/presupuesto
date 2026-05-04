@@ -15,6 +15,7 @@ const props = defineProps({
     healthPlans: { type: Array, default: () => [] },
     cities: { type: Array, default: () => [] },
     parcels: { type: Array, default: () => [] },
+    branches: { type: Array, default: () => [] },
     maritalStatuses: { type: Array, default: () => [] },
     banks: { type: Array, default: () => [] },
     paymentMethods: { type: Array, default: () => [] },
@@ -236,6 +237,15 @@ const refreshParcels = async () => {
                         <option v-for="c in companyReasons" :key="c.value" :value="c.value">{{ c.label }}</option>
                     </select>
                     <div v-if="form.errors?.company_reason_id" class="invalid-feedback">{{ form.errors.company_reason_id }}</div>
+                </div>
+
+                <!-- Sucursal -->
+                <div class="col-md-2 mb-2">
+                    <label class="form-label small mb-1">Sucursal</label>
+                    <select v-model="form.branch_id" class="form-select form-select-sm">
+                        <option value="">Sin sucursal</option>
+                        <option v-for="b in branches" :key="b.value" :value="b.value">{{ b.label }}</option>
+                    </select>
                 </div>
 
                 <!-- Parcela -->

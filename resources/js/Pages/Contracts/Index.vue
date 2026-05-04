@@ -20,6 +20,7 @@ const props = defineProps({
     healthPlans: Array,
     cities: Array,
     parcels: Array,
+    branches: { type: Array, default: () => [] },
     maritalStatuses: Array,
     banks: Array,
     paymentMethods: Array,
@@ -37,6 +38,7 @@ const term = ref('');
 const statusFilter = ref('');
 const typeFilter = ref('');
 const parcelFilter = ref('');
+const branchFilter = ref('');
 const companyReasonFilter = ref('');
 
 const filteredRows = computed(() => {
@@ -50,6 +52,10 @@ const filteredRows = computed(() => {
 
     if (parcelFilter.value) {
         rows = rows.filter(item => String(item.parcel_id) === String(parcelFilter.value));
+    }
+
+    if (branchFilter.value) {
+        rows = rows.filter(item => String(item.branch_id) === String(branchFilter.value));
     }
 
     if (companyReasonFilter.value) {
@@ -162,6 +168,7 @@ const excelHeaders = [
     { label: 'Sueldo Base',     key: 'base_salary',  type: 'number' },
     { label: 'Sueldo Líquido',  key: 'net_salary',   type: 'number' },
     { label: 'Horario',         key: '__horario' },
+    { label: 'Sucursal',        key: '__sucursal' },
 ];
 
 const excelData = computed(() =>
@@ -177,6 +184,7 @@ const excelData = computed(() =>
         base_salary:  c.base_salary ? Number(c.base_salary) : 0,
         net_salary:   c.net_salary  ? Number(c.net_salary)  : 0,
         __horario: c.schedule?.name || '',
+        __sucursal: c.branch?.name || '',
     }))
 );
 </script>
@@ -291,6 +299,12 @@ const excelData = computed(() =>
                             <option value="inactive">Finalizados</option>
                         </select>
                     </div>
+                    <div class="col-md-2" v-if="branches && branches.length">
+                        <select v-model="branchFilter" class="form-select form-select-sm">
+                            <option value="">Todas las sucursales</option>
+                            <option v-for="b in branches" :key="b.value" :value="b.value">{{ b.label }}</option>
+                        </select>
+                    </div>
                 </div>
 
                 <div class="table-responsive">
@@ -308,6 +322,7 @@ const excelData = computed(() =>
                                 <th class="text-end">Sueldo Base</th>
                                 <th class="text-end">Sueldo Líquido</th>
                                 <th>Horario</th>
+                                <th>Sucursal</th>
                                 <th style="width: 100px;">Acciones</th>
                             </tr>
                         </thead>
@@ -339,6 +354,7 @@ const excelData = computed(() =>
                                 <td class="text-end">{{ formatCurrency(item.base_salary) }}</td>
                                 <td class="text-end">{{ formatCurrency(item.net_salary) }}</td>
                                 <td>{{ item.schedule?.name || '-' }}</td>
+                                <td>{{ item.branch?.name || '-' }}</td>
                                 <td>
                                     <div class="d-flex gap-1 justify-content-center">
                                         <button @click="openEditModal(item)" class="btn btn-sm btn-falcon-default p-1" title="Editar" style="width: 28px; height: 28px; display: flex; align-items: center; justify-content: center;">
@@ -351,7 +367,7 @@ const excelData = computed(() =>
                                 </td>
                             </tr>
                             <tr v-if="filteredRows.length === 0">
-                                <td colspan="12" class="text-center text-muted">No hay contratos registrados.</td>
+                                <td colspan="13" class="text-center text-muted">No hay contratos registrados.</td>
                             </tr>
                         </tbody>
                     </table>
@@ -370,6 +386,7 @@ const excelData = computed(() =>
             :healthPlans="props.healthPlans"
             :cities="props.cities"
             :parcels="props.parcels"
+            :branches="props.branches"
             :maritalStatuses="props.maritalStatuses"
             :banks="props.banks"
             :paymentMethods="props.paymentMethods"
@@ -389,6 +406,7 @@ const excelData = computed(() =>
             :healthPlans="props.healthPlans"
             :cities="props.cities"
             :parcels="props.parcels"
+            :branches="props.branches"
             :maritalStatuses="props.maritalStatuses"
             :banks="props.banks"
             :paymentMethods="props.paymentMethods"

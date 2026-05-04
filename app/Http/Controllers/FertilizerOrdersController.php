@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\FertilizerOrder;
 use App\Models\Product;
 use App\Models\CostCenter;
+use App\Models\Branch;
 use App\Models\IrrigationPump;
 use App\Models\Unit;
 use Illuminate\Http\Request;
@@ -55,14 +56,22 @@ class FertilizerOrdersController extends Controller
             ->whereHas('season', function($q) use ($user) {
                 $q->where('team_id', $user->team_id);
             })
-            ->get(['id', 'name', 'surface'])
+            ->get(['id', 'name', 'surface', 'branch_id'])
             ->map(function($cc) {
                 return [
                     'value' => $cc->id,
                     'label' => $cc->name,
                     'surface' => $cc->surface ?? 0,
+                    'branch_id' => $cc->branch_id,
                 ];
             });
+
+        // Obtener sucursales del equipo y temporada
+        $branches = Branch::where('team_id', $user->team_id)
+            ->where('season_id', $season_id)
+            ->orderBy('name')
+            ->get(['id', 'name'])
+            ->map(fn($b) => ['value' => $b->id, 'label' => $b->name]);
 
         // Obtener bombas de riego
         $irrigationPumps = IrrigationPump::with('sectors')
@@ -111,6 +120,7 @@ class FertilizerOrdersController extends Controller
             'fertilizerOrders' => $fertilizerOrders,
             'products' => $products,
             'costCenters' => $costCenters,
+            'branches' => $branches,
             'irrigationPumps' => $irrigationPumps,
             'units' => $units,
             'groupings' => $groupings,

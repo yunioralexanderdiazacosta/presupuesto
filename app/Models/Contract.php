@@ -24,6 +24,7 @@ class Contract extends Model
         'health_plan_id',
         'city_id',
         'parcel_id',
+        'branch_id',
         'marital_status',
         'phone',
         'address',
@@ -82,6 +83,11 @@ class Contract extends Model
     public function parcel()
     {
         return $this->belongsTo(Parcel::class);
+    }
+
+    public function branch()
+    {
+        return $this->belongsTo(Branch::class);
     }
 
     public function paymentMethod()

@@ -34,8 +34,8 @@ class StoreApplicationOrderController
             // Crear la orden de aplicación
             $applicationOrder = ApplicationOrder::create($validated);
             
-            // Calcular suma de hectáreas de los centros de costo seleccionados
-            $totalHectareas = collect($costCenters)->sum('surface');
+            // Calcular suma de hectáreas: usar superficie_total si fue enviada, si no sumar CCs
+            $totalHectareas = $validated['superficie_total'] ?? collect($costCenters)->sum('surface');
             
             // Guardar productos con cálculos
             foreach ($products as $productData) {
