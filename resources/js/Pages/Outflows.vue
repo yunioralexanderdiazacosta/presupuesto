@@ -1375,6 +1375,7 @@ function copyToAllCards(sourceCardId) {
             </div>
        
        </AppLayout>
+
        <OutflowEditModal
         :show="showEditModal"
         :form="{ ...editForm }"

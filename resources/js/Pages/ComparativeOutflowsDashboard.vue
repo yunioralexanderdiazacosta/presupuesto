@@ -284,13 +284,18 @@ const isRowVisible = (index) => {
     return !hiddenRowIndices.value.has(index);
 };
 
-// Estado para detalle mensual (al hacer clic en barra del gráfico)
-const monthlyDetail = ref(null);
+// Estado para detalle mensual (multi-selección estilo Power BI)
+// selectedBars: array de barras activas [{ key, datasetIndex, barIndex, monthId, monthName, column }]
+const selectedBars = ref([]);
+const monthlyDetailCache = ref({}); // { [monthId]: responseData }
 const monthlyDetailLoading = ref(false);
-const monthlyDetailMonthName = ref('');
 const monthlyDetailColumn = ref('invoiced'); // 'invoiced' | 'consumed'
 const monthlyDetailExpandedGroups = ref([]);
-const selectedBarKey = ref(null); // '{datasetIndex}:{barIndex}' de la barra activa
+
+// Nombres de meses seleccionados para el título
+const monthlyDetailMonthNames = computed(() =>
+    selectedBars.value.map(b => b.monthName).join(' + ')
+);
 
 // Colores base de cada dataset
 const DATASET_COLORS = {
@@ -299,17 +304,18 @@ const DATASET_COLORS = {
     consumed: { active: 'rgba(255, 159, 64, 0.9)',  dim: 'rgba(255, 159, 64, 0.15)' },
 };
 
-function applyBarHighlight(selDatasetIdx, selBarIdx) {
+function applyMultiBarHighlight() {
     if (!monthlyChart) return;
     const n = props.monthlyComparison.labels.length;
+    const activeSet = new Set(selectedBars.value.map(b => b.key));
     monthlyChart.data.datasets.forEach((ds, dsIdx) => {
         const type = ds._type;
         const colors = DATASET_COLORS[type] || DATASET_COLORS.budget;
         ds.backgroundColor = Array.from({ length: n }, (_, i) =>
-            (dsIdx === selDatasetIdx && i === selBarIdx) ? colors.active : colors.dim
+            activeSet.has(`${dsIdx}:${i}`) ? colors.active : colors.dim
         );
         ds.borderColor = Array.from({ length: n }, (_, i) =>
-            (dsIdx === selDatasetIdx && i === selBarIdx) ? colors.active : colors.dim
+            activeSet.has(`${dsIdx}:${i}`) ? colors.active : colors.dim
         );
     });
     monthlyChart.update();
@@ -326,75 +332,141 @@ function clearBarHighlight() {
     monthlyChart.update();
 }
 
-// Agrupar filas del detalle mensual por nivel 1
+// Agrupar y acumular filas de TODOS los meses seleccionados por nivel 1
 const monthlyDetailGrouped = computed(() => {
-    if (!monthlyDetail.value?.rows) return [];
     const col = monthlyDetailColumn.value;
-    const map = {};
-    for (const row of monthlyDetail.value.rows) {
-        const val = col === 'invoiced' ? row.total_invoiced : row.total_consumed;
-        if (!val || val <= 0) continue;
-        const key = row.level1 || 'Sin clasificar';
-        if (!map[key]) map[key] = { level1: key, rows: [], subtotal: 0 };
-        map[key].rows.push(row);
-        map[key].subtotal += val;
+    const selectedMonthIds = selectedBars.value.map(b => b.monthId);
+    if (selectedMonthIds.length === 0) return [];
+
+    // Merge: acumular por (level1, level2, level3, product_name) entre meses
+    const productMap = {};
+    for (const monthId of selectedMonthIds) {
+        const data = monthlyDetailCache.value[monthId];
+        if (!data?.rows) continue;
+        for (const row of data.rows) {
+            const val = col === 'invoiced' ? row.total_invoiced : row.total_consumed;
+            if (!val || val <= 0) continue;
+            const l1 = row.level1 || 'Sin clasificar';
+            const productKey = `${l1}||${row.level2}||${row.level3}||${row.product_name}`;
+            if (!productMap[productKey]) {
+                productMap[productKey] = { ...row, total_invoiced: 0, total_consumed: 0, _l1: l1 };
+            }
+            productMap[productKey].total_invoiced += row.total_invoiced || 0;
+            productMap[productKey].total_consumed += row.total_consumed || 0;
+        }
     }
-    return Object.values(map).sort((a, b) => a.level1.localeCompare(b.level1));
+
+    // Reagrupar por level1
+    const l1Map = {};
+    for (const item of Object.values(productMap)) {
+        const val = col === 'invoiced' ? item.total_invoiced : item.total_consumed;
+        if (val <= 0) continue;
+        const key = item._l1;
+        if (!l1Map[key]) l1Map[key] = { level1: key, rows: [], subtotal: 0 };
+        l1Map[key].rows.push(item);
+        l1Map[key].subtotal += val;
+    }
+    return Object.values(l1Map).sort((a, b) => a.level1.localeCompare(b.level1));
 });
 
-const loadMonthlyDetail = async (monthId, monthName, column) => {
+// Seleccionar/deseleccionar barra con soporte Ctrl+Clic multi-selección
+const toggleBarSelection = async (event, datasetIndex, barIndex, month, clickedType) => {
     if (monthlyDetailLoading.value) return;
-    // Si ya está cargado el mismo mes Y la misma columna, deseleccionar
-    if (monthlyDetail.value && monthlyDetail.value._month_id === monthId && monthlyDetailColumn.value === column) {
-        monthlyDetail.value = null;
-        monthlyDetailMonthName.value = '';
+    const key = `${datasetIndex}:${barIndex}`;
+    const isCtrl = event.ctrlKey || event.metaKey;
+
+    // Si se cambia de columna (invoiced ↔ consumed), limpiar todo y empezar de cero
+    if (selectedBars.value.length > 0 && clickedType !== monthlyDetailColumn.value) {
+        selectedBars.value = [];
+        monthlyDetailCache.value = {};
+        monthlyDetailExpandedGroups.value = [];
+    }
+    monthlyDetailColumn.value = clickedType;
+
+    if (isCtrl) {
+        // Ctrl+Clic: toggle esta barra en la selección múltiple
+        const idx = selectedBars.value.findIndex(b => b.key === key);
+        if (idx > -1) {
+            selectedBars.value.splice(idx, 1);
+        } else {
+            selectedBars.value.push({ key, datasetIndex, barIndex, monthId: month.id, monthName: month.name, column: clickedType });
+        }
+    } else {
+        // Clic normal: si ya es la única seleccionada, deseleccionar; sino seleccionar solo esta
+        const alreadyAlone = selectedBars.value.length === 1 && selectedBars.value[0].key === key;
+        if (alreadyAlone) {
+            selectedBars.value = [];
+        } else {
+            selectedBars.value = [{ key, datasetIndex, barIndex, monthId: month.id, monthName: month.name, column: clickedType }];
+        }
+    }
+
+    // Actualizar highlight
+    if (selectedBars.value.length === 0) {
+        clearBarHighlight();
         return;
     }
-    monthlyDetailLoading.value = true;
-    monthlyDetailMonthName.value = monthName;
-    monthlyDetailColumn.value = column;
-    monthlyDetailExpandedGroups.value = [];
-    try {
-        const response = await axios.get(route('api.comparative.monthly-detail'), {
-            params: {
-                month_id: monthId,
-                include_investments: includeInvestments.value ? 1 : 0,
-            }
-        });
-        monthlyDetail.value = { ...response.data, _month_id: monthId };
-        // Expandir todos los grupos por defecto
-        const col = column;
-        const keys = [...new Set(
-            (response.data.rows || [])
-                .filter(r => (col === 'invoiced' ? r.total_invoiced : r.total_consumed) > 0)
-                .map(r => r.level1 || 'Sin clasificar')
-        )];
-        monthlyDetailExpandedGroups.value = keys;
-    } catch (error) {
-        console.error('Error cargando detalle mensual:', error);
-        monthlyDetail.value = null;
-    } finally {
-        monthlyDetailLoading.value = false;
+    applyMultiBarHighlight();
+
+    // Cargar datos de meses que no están en caché
+    const toFetch = selectedBars.value.filter(b => !monthlyDetailCache.value[b.monthId]);
+    if (toFetch.length > 0) {
+        monthlyDetailLoading.value = true;
+        try {
+            await Promise.all(toFetch.map(async (bar) => {
+                const response = await axios.get(route('api.comparative.monthly-detail'), {
+                    params: { month_id: bar.monthId, include_investments: includeInvestments.value ? 1 : 0 }
+                });
+                monthlyDetailCache.value = { ...monthlyDetailCache.value, [bar.monthId]: response.data };
+            }));
+            // Auto-expandir grupos nuevos
+            const allKeys = [...new Set(
+                Object.values(monthlyDetailCache.value)
+                    .flatMap(d => (d.rows || []))
+                    .filter(r => (monthlyDetailColumn.value === 'invoiced' ? r.total_invoiced : r.total_consumed) > 0)
+                    .map(r => r.level1 || 'Sin clasificar')
+            )];
+            monthlyDetailExpandedGroups.value = allKeys;
+        } catch (error) {
+            console.error('Error cargando detalle mensual:', error);
+        } finally {
+            monthlyDetailLoading.value = false;
+        }
     }
 };
 
-// Recargar detalle de consumed cuando cambia el toggle de inversiones
-watch(includeInvestments, () => {
-    if (monthlyDetail.value && monthlyDetailColumn.value === 'consumed') {
-        loadMonthlyDetail(
-            monthlyDetail.value._month_id,
-            monthlyDetailMonthName.value,
-            'consumed'
-        );
+// Al cambiar toggle de inversiones, limpiar caché y recargar meses seleccionados
+watch(includeInvestments, async () => {
+    if (selectedBars.value.length > 0) {
+        const barsSnapshot = [...selectedBars.value];
+        monthlyDetailCache.value = {};
+        monthlyDetailLoading.value = true;
+        try {
+            await Promise.all(barsSnapshot.map(async (bar) => {
+                const response = await axios.get(route('api.comparative.monthly-detail'), {
+                    params: { month_id: bar.monthId, include_investments: includeInvestments.value ? 1 : 0 }
+                });
+                monthlyDetailCache.value = { ...monthlyDetailCache.value, [bar.monthId]: response.data };
+            }));
+        } catch (error) {
+            console.error('Error recargando detalles:', error);
+        } finally {
+            monthlyDetailLoading.value = false;
+        }
     }
 });
 
-// Totales del detalle mensual
+// Totales acumulados de todos los meses seleccionados
 const monthlyDetailTotals = computed(() => {
-    if (!monthlyDetail.value?.rows) return { invoiced: 0, consumed: 0 };
-    return monthlyDetail.value.rows.reduce((acc, row) => {
-        acc.invoiced += row.total_invoiced || 0;
-        acc.consumed += row.total_consumed || 0;
+    const selectedMonthIds = selectedBars.value.map(b => b.monthId);
+    if (selectedMonthIds.length === 0) return { invoiced: 0, consumed: 0 };
+    return selectedMonthIds.reduce((acc, monthId) => {
+        const data = monthlyDetailCache.value[monthId];
+        if (!data?.rows) return acc;
+        data.rows.forEach(row => {
+            acc.invoiced += row.total_invoiced || 0;
+            acc.consumed += row.total_consumed || 0;
+        });
         return acc;
     }, { invoiced: 0, consumed: 0 });
 });
@@ -617,7 +689,9 @@ const excelData = computed(() => {
 
 // Watch para actualizar gráficos cuando cambie el toggle o la conversión USD
 watch([includeInvestments, dividir, divisor, isEnglish, showBudget, showInvoiced, showConsumed], () => {
-    selectedBarKey.value = null;
+    selectedBars.value = [];
+    monthlyDetailCache.value = {};
+    clearBarHighlight();
     createMonthlyChart();
     createCumulativeChart();
 });
@@ -695,16 +769,7 @@ function createMonthlyChart() {
                     if (month && monthlyChart) {
                         const clickedType = monthlyChart.data.datasets[datasetIndex]?._type;
                         if (!clickedType || clickedType === 'budget') return;
-                        const key = `${datasetIndex}:${index}`;
-                        const isDeselect = selectedBarKey.value === key && monthlyDetail.value?._month_id === month.id;
-                        if (isDeselect) {
-                            selectedBarKey.value = null;
-                            clearBarHighlight();
-                        } else {
-                            selectedBarKey.value = key;
-                            applyBarHighlight(datasetIndex, index);
-                        }
-                        loadMonthlyDetail(month.id, month.name, clickedType);
+                        toggleBarSelection(event.native, datasetIndex, index, month, clickedType);
                     }
                 }
             },
@@ -1154,7 +1219,7 @@ function createCumulativeChart() {
                                 <canvas id="monthlyChart"></canvas>
                             </div>
                             <div class="text-center mt-2">
-                                <small class="text-muted"><i class="fas fa-hand-pointer me-1"></i>Haz clic en una barra de <strong>Facturado</strong> o <strong>Egresos</strong> para ver el detalle por producto</small>
+                                <small class="text-muted"><i class="fas fa-hand-pointer me-1"></i>Clic en barra de <strong>Facturado</strong> o <strong>Egresos</strong> para ver detalle &nbsp;·&nbsp; <kbd>Ctrl</kbd>+Clic para seleccionar múltiples meses</small>
                             </div>
                         </div>
                     </div>
@@ -1162,7 +1227,7 @@ function createCumulativeChart() {
             </div>
 
             <!-- Tabla de Detalle Mensual (aparece al hacer clic en el gráfico) -->
-            <div v-if="monthlyDetail || monthlyDetailLoading" class="row g-3 mb-3">
+            <div v-if="selectedBars.length > 0 || monthlyDetailLoading" class="row g-3 mb-3">
                 <div class="col-12">
                     <div class="card">
                         <div class="card-header">
@@ -1173,7 +1238,8 @@ function createCumulativeChart() {
                                         Detalle de <span :class="monthlyDetailColumn === 'invoiced' ? 'text-success' : ''"
                                             :style="monthlyDetailColumn === 'consumed' ? 'color: rgb(255, 159, 64)' : ''"
                                         >{{ monthlyDetailColumn === 'invoiced' ? 'Facturado' : 'Egresos' }}</span>
-                                        — <span class="text-primary">{{ monthlyDetailMonthName }}</span>
+                                        — <span class="text-primary">{{ monthlyDetailMonthNames }}</span>
+                                        <span v-if="selectedBars.length > 1" class="badge bg-primary ms-1" style="font-size:0.68rem;">{{ selectedBars.length }} meses</span>
                                     </h6>
                                     <!-- Badge inversiones -->
                                     <span
@@ -1185,7 +1251,7 @@ function createCumulativeChart() {
                                         <i class="fas fa-tractor fa-xs me-1"></i>{{ includeInvestments ? 'Con inv.' : 'Sin inv.' }}
                                     </span>
                                     <!-- Botones expandir/colapsar todo -->
-                                    <template v-if="monthlyDetail?.rows?.length > 0">
+                                    <template v-if="monthlyDetailGrouped.length > 0">
                                         <button
                                             @click="monthlyDetailExpandedGroups = monthlyDetailGrouped.map(g => g.level1)"
                                             class="btn btn-sm btn-falcon-default py-0 px-2"
@@ -1202,7 +1268,7 @@ function createCumulativeChart() {
                                 </div>
                                 <div class="col-auto">
                                     <button
-                                        @click="monthlyDetail = null; monthlyDetailMonthName = ''; monthlyDetailColumn = 'invoiced'; monthlyDetailExpandedGroups = []; selectedBarKey = null; clearBarHighlight()"
+                                        @click="selectedBars = []; monthlyDetailCache = {}; monthlyDetailColumn = 'invoiced'; monthlyDetailExpandedGroups = []; clearBarHighlight()"
                                         class="btn btn-sm btn-falcon-default"
                                     >
                                         <i class="fas fa-times fa-xs me-1"></i>Cerrar
@@ -1217,7 +1283,7 @@ function createCumulativeChart() {
                                 <p class="text-muted mt-2 mb-0">Cargando detalle...</p>
                             </div>
                             <!-- Tabla agrupada por Nivel 1 -->
-                            <div v-else-if="monthlyDetail?.rows?.length > 0" class="table-responsive">
+                            <div v-else-if="monthlyDetailGrouped.length > 0" class="table-responsive">
                                 <table class="table table-sm table-bordered mb-0" style="font-size: 0.8rem;">
                                     <thead class="table-dark">
                                         <tr>
@@ -1273,7 +1339,7 @@ function createCumulativeChart() {
                             <!-- Sin datos -->
                             <div v-else class="text-center py-4 text-muted">
                                 <i class="fas fa-inbox fa-lg"></i>
-                                <p class="mt-2 mb-0">Sin movimientos en este mes</p>
+                                <p class="mt-2 mb-0">Sin movimientos en el período seleccionado</p>
                             </div>
                         </div>
                     </div>

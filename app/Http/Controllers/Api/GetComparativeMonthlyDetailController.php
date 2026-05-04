@@ -112,7 +112,8 @@ class GetComparativeMonthlyDetailController extends Controller
             ->leftJoin('credit_debit_note_items as cdni', 'o.credit_debit_note_item_id', '=', 'cdni.id')
             ->leftJoin('credit_debit_notes as cdn', 'cdni.credit_debit_note_id', '=', 'cdn.id')
             ->leftJoin('products as p', DB::raw('COALESCE(ip.product_id, cdni.product_id)'), '=', 'p.id')
-            ->leftJoin('level3s as l3', 'p.level3_id', '=', 'l3.id')
+            // Usar solo la clasificación propia del outflow (o.level3_id)
+            ->leftJoin('level3s as l3', 'l3.id', '=', 'o.level3_id')
             ->leftJoin('level2s as l2', 'l3.level2_id', '=', 'l2.id')
             ->leftJoin('level1s as l1', 'l2.level1_id', '=', 'l1.id')
             ->leftJoin('operations as op', 'o.operation_id', '=', 'op.id')
@@ -143,49 +144,71 @@ class GetComparativeMonthlyDetailController extends Controller
                 END) as total_consumed')
             )
             ->groupBy(DB::raw('COALESCE(ip.product_id, cdni.product_id)'), 'p.name', 'l3.name', 'l2.name', 'l1.name')
-            ->get()
-            ->keyBy('product_id');
+            ->get(); // No keyBy: el mismo producto puede tener múltiples filas con distintos level3
 
         // -------------------------------------------------------
-        // 3. Combinar en una sola colección por product_id
-        //    Incluye productos de facturas, notas y outflows
+        // 3. Construir filas separadas para consumed e invoiced
+        //    Consumed: una fila por (product_id + level3_outflow) — no se colapsan
+        //    Invoiced: una fila por product_id — usando level3 del catálogo
+        //    El frontend filtra por columna activa (invoiced vs consumed)
         // -------------------------------------------------------
-        $allProductIds = $invoicedRows->keys()
-            ->merge($consumedRows->keys())
-            ->merge(array_keys($noteAdjustmentsByProduct))
-            ->unique();
 
-        $rows = $allProductIds->map(function ($productId) use ($invoicedRows, $consumedRows, $noteAdjustmentsByProduct) {
-            $inv = $invoicedRows->get($productId);
-            $con = $consumedRows->get($productId);
-            $note = $noteAdjustmentsByProduct[$productId] ?? null;
-            $base = $inv ?? $con ?? (object) $note;
-
-            $baseLevel1 = $inv->level1 ?? $con->level1 ?? ($note['level1'] ?? 'Sin clasificar');
-            $baseLevel2 = $inv->level2 ?? $con->level2 ?? ($note['level2'] ?? 'Sin clasificar');
-            $baseLevel3 = $inv->level3 ?? $con->level3 ?? ($note['level3'] ?? 'Sin clasificar');
-            $baseName   = $inv->product_name ?? $con->product_name ?? ($note['product_name'] ?? '-');
-
-            $totalInvoiced = floatval($inv->total_invoiced ?? 0) + ($note['adjustment'] ?? 0.0);
-
+        // Filas de consumed (preservando todas las combinaciones product+level3)
+        $consumedResultRows = $consumedRows->map(function ($con) {
             return [
-                'level1'          => $baseLevel1,
-                'level2'          => $baseLevel2,
-                'level3'          => $baseLevel3,
-                'product_name'    => $baseName,
-                'total_invoiced'  => round($totalInvoiced, 0),
-                'total_consumed'  => round((float) ($con->total_consumed ?? 0), 0),
+                'level1'         => $con->level1,
+                'level2'         => $con->level2,
+                'level3'         => $con->level3,
+                'product_name'   => $con->product_name,
+                'total_invoiced' => 0,
+                'total_consumed' => round((float) $con->total_consumed, 0),
             ];
-        })->sortBy([
-            ['level1', 'asc'],
-            ['level2', 'asc'],
-            ['level3', 'asc'],
-            ['product_name', 'asc'],
-        ])->values();
+        });
+
+        // Filas de invoiced (una por producto, usando level3 del producto)
+        $invoicedResultRows = $invoicedRows->map(function ($inv) use ($noteAdjustmentsByProduct) {
+            $note = $noteAdjustmentsByProduct[$inv->product_id] ?? null;
+            $totalInvoiced = floatval($inv->total_invoiced) + ($note['adjustment'] ?? 0.0);
+            return [
+                'level1'         => $inv->level1,
+                'level2'         => $inv->level2,
+                'level3'         => $inv->level3,
+                'product_name'   => $inv->product_name,
+                'total_invoiced' => round($totalInvoiced, 0),
+                'total_consumed' => 0,
+            ];
+        })->values();
+
+        // Filas de notas sin factura asociada
+        $consumedProductIds = $consumedRows->pluck('product_id')->unique();
+        $noteOnlyRows = collect();
+        foreach ($noteAdjustmentsByProduct as $productId => $note) {
+            if (!$invoicedRows->has($productId) && $note['adjustment'] != 0) {
+                $noteOnlyRows->push([
+                    'level1'         => $note['level1'],
+                    'level2'         => $note['level2'],
+                    'level3'         => $note['level3'],
+                    'product_name'   => $note['product_name'],
+                    'total_invoiced' => round($note['adjustment'], 0),
+                    'total_consumed' => 0,
+                ]);
+            }
+        }
+
+        $rows = $consumedResultRows
+            ->merge($invoicedResultRows)
+            ->merge($noteOnlyRows)
+            ->sortBy([
+                ['level1', 'asc'],
+                ['level2', 'asc'],
+                ['level3', 'asc'],
+                ['product_name', 'asc'],
+            ])->values();
 
         return response()->json([
-            'rows'  => $rows,
+            'rows'     => $rows,
             'month_id' => $month_id,
         ]);
     }
 }
+
