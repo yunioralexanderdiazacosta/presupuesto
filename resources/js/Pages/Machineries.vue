@@ -11,10 +11,12 @@ import EditMachineryModal from '@/Components/Machineries/EditMachineryModal.vue'
 
 const props = defineProps({
     machineries: Array,
+    branches: Array,
     term: String
 });
 
 const term = ref(props.term || '');
+const selectedBranch = ref('');
 
 const form = useForm({
     id: '',
@@ -36,10 +38,16 @@ const form = useForm({
 const filteredMachineries = computed(() => {
     if (!Array.isArray(props.machineries)) return [];
 
-    const search = (term.value || '').trim().toLowerCase();
-    if (!search) return props.machineries;
+    let list = props.machineries;
 
-    return props.machineries.filter((machinery) => {
+    if (selectedBranch.value) {
+        list = list.filter(m => String(m.branch_id) === String(selectedBranch.value));
+    }
+
+    const search = (term.value || '').trim().toLowerCase();
+    if (!search) return list;
+
+    return list.filter((machinery) => {
         const code    = machinery.cod_machinery?.toLowerCase() || '';
         const type    = machinery.type_machinery?.name?.toLowerCase() || '';
         const company = machinery.company_reason?.name?.toLowerCase() || '';
@@ -195,8 +203,14 @@ const onFilter = () => {};
                 </div>
             </div>
             <div class="card-body pt-0"> 
-                <div class="row justify-content-end g-0">
-                    <div class="col-auto col-sm-5 mb-3">
+                <div class="row justify-content-between g-0 mb-3">
+                    <div class="col-auto col-sm-4">
+                        <select class="form-select form-select-sm" v-model="selectedBranch">
+                            <option value="">Todas las sucursales</option>
+                            <option v-for="b in branches" :key="b.value" :value="b.value">{{ b.label }}</option>
+                        </select>
+                    </div>
+                    <div class="col-auto col-sm-4">
                         <div class="input-group">
                             <input class="form-control form-control-sm shadow-none search" type="text" placeholder=" Buscar..." v-model="term" />
                             <div class="input-group-text bg-transparent"><span class="fa fa-search fs-10 text-600"></span></div>
