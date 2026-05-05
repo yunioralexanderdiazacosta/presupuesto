@@ -8,9 +8,11 @@ return new class extends Migration
 {
     public function up(): void
     {
-        Schema::table('application_orders', function (Blueprint $table) {
-            $table->decimal('superficie_total', 10, 2)->nullable()->after('mojamiento');
-        });
+        if (!Schema::hasColumn('application_orders', 'superficie_total')) {
+            Schema::table('application_orders', function (Blueprint $table) {
+                $table->decimal('superficie_total', 10, 2)->nullable()->after('mojamiento');
+            });
+        }
     }
 
     public function down(): void
