@@ -30,9 +30,13 @@ class InvoicePaymentController extends Controller
         $paymentStatus = $request->payment_status ?? '';
 
         // Query base: Facturas del equipo/temporada con totales calculados via subquery
+        // total_neto: suma pura de productos (sin IVA)
+        // total_invoice: neto × 1.19 para FACTURA/NOTA CREDITO/NOTA DEBITO, neto para el resto
         $query = Invoice::select('invoices.*')
-            ->selectRaw('(SELECT COALESCE(SUM(ip.unit_price * ip.amount), 0) FROM invoice_products ip WHERE ip.invoice_id = invoices.id) as total_invoice')
+            ->selectRaw('(SELECT COALESCE(SUM(ip.unit_price * ip.amount), 0) FROM invoice_products ip WHERE ip.invoice_id = invoices.id) as total_neto')
+            ->selectRaw("(SELECT COALESCE(SUM(ip.unit_price * ip.amount), 0) FROM invoice_products ip WHERE ip.invoice_id = invoices.id) * CASE WHEN UPPER(td.name) IN ('FACTURA', 'NOTA CREDITO', 'NOTA DEBITO') THEN 1.19 ELSE 1.0 END as total_invoice")
             ->selectRaw('(SELECT COALESCE(SUM(pay.amount), 0) FROM invoice_payments pay WHERE pay.invoice_id = invoices.id) as total_paid')
+            ->leftJoin('type_documents as td', 'td.id', '=', 'invoices.type_document_id')
             ->with(['supplier', 'typeDocument', 'payments.bank', 'payments.user'])
             ->where('invoices.team_id', $user->team_id)
             ->where('invoices.season_id', $season_id)
@@ -58,8 +62,14 @@ class InvoicePaymentController extends Controller
         $invoices = $query->orderByDesc('invoices.date')
             ->paginate(50)
             ->through(function ($invoice) {
-                $totalInvoice = (float) $invoice->total_invoice;
+                $totalNeto    = (float) $invoice->total_neto;
                 $totalPaid    = (float) $invoice->total_paid;
+
+                // Calcular IVA en PHP con el typeDocument ya cargado (más fiable que el CASE SQL)
+                $tipoDoc      = strtoupper($invoice->typeDocument?->name ?? '');
+                $hasIva       = in_array($tipoDoc, ['FACTURA', 'NOTA CREDITO', 'NOTA DEBITO']);
+                $iva          = $hasIva ? round($totalNeto * 0.19) : 0;
+                $totalInvoice = $totalNeto + $iva;
                 $balance      = $totalInvoice - $totalPaid;
 
                 if ($totalPaid >= $totalInvoice && $totalInvoice > 0) {
@@ -79,6 +89,8 @@ class InvoicePaymentController extends Controller
                         ? ['id' => $invoice->supplier->id, 'name' => $invoice->supplier->name]
                         : null,
                     'type_document'   => $invoice->typeDocument?->name,
+                    'total_neto'      => $totalNeto,
+                    'iva'             => $iva,
                     'total_invoice'   => $totalInvoice,
                     'total_paid'      => $totalPaid,
                     'balance'         => $balance,
@@ -140,10 +152,13 @@ class InvoicePaymentController extends Controller
 
         // Obtener resultados limitados a 50
         $invoices = $query->limit(50)->get()->map(function($invoice) {
-            $totalInvoice = $invoice->invoiceProducts->sum(function($ip) {
-                return $ip->unit_price * $ip->amount;
-            });
-            
+            $totalNeto = $invoice->invoiceProducts->sum(fn($ip) => $ip->unit_price * $ip->amount);
+
+            $tipoDoc = strtoupper($invoice->typeDocument?->name ?? '');
+            $hasIva  = in_array($tipoDoc, ['FACTURA', 'NOTA CREDITO', 'NOTA DEBITO']);
+            $iva     = $hasIva ? round($totalNeto * 0.19) : 0;
+            $totalInvoice = $totalNeto + $iva;
+
             $totalPaid = $invoice->payments()->sum('amount');
             $balance = $totalInvoice - $totalPaid;
 
@@ -155,6 +170,8 @@ class InvoicePaymentController extends Controller
                 'supplier' => $invoice->supplier ? ['id' => $invoice->supplier->id, 'name' => $invoice->supplier->name] : null,
                 'type_document' => $invoice->typeDocument ? $invoice->typeDocument->name : null,
                 'company_reason' => $invoice->companyReason ? $invoice->companyReason->name : null,
+                'total_neto'    => $totalNeto,
+                'iva'           => $iva,
                 'total_invoice' => $totalInvoice,
                 'total_paid' => $totalPaid,
                 'balance' => $balance,

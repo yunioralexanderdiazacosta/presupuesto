@@ -3,7 +3,8 @@ import TextInput from '@/Components/TextInput.vue';
 import InputError from '@/Components/InputError.vue';
 
 defineProps({
-    form: Object
+    form: Object,
+    branches: { type: Array, default: () => [] }
 });
 </script>
 <template>
@@ -42,6 +43,18 @@ defineProps({
                 :class="{'is-invalid': form.errors.position}"
             />
             <InputError class="mt-1" :message="form.errors.position" />
+        </div>
+    </div>
+    <div class="row mb-3">
+        <div class="col-lg-6">
+            <label class="col-form-label fw-bold">
+                <i class="fas fa-building text-primary me-1"></i>Sucursal
+            </label>
+            <select v-model="form.branch_id" class="form-select form-select-sm" :class="{'is-invalid': form.errors.branch_id}">
+                <option :value="null">Sin sucursal</option>
+                <option v-for="b in branches" :key="b.id" :value="b.id">{{ b.name }}</option>
+            </select>
+            <InputError class="mt-1" :message="form.errors.branch_id" />
         </div>
     </div>
 </template>

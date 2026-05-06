@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="es">
 <head>
     <meta charset="UTF-8">
@@ -59,7 +59,7 @@
         
         body {
             font-family: Arial, sans-serif;
-            font-size: 9px;
+            font-size: 10px;
             line-height: 1.2;
             color: #333;
             padding: 10px;
@@ -79,7 +79,7 @@
         }
         
         .header p {
-            font-size: 8px;
+            font-size: 10px;
             color: #666;
         }
         
@@ -91,7 +91,7 @@
         }
         
         .info-section h2 {
-            font-size: 10px;
+            font-size: 12px;
             color: #007bff;
             margin-bottom: 4px;
             text-transform: uppercase;
@@ -110,13 +110,13 @@
         .info-label {
             font-weight: bold;
             color: #666;
-            font-size: 7px;
+            font-size: 9px;
             text-transform: uppercase;
         }
         
         .info-value {
             color: #333;
-            font-size: 8px;
+            font-size: 10px;
             margin-top: 1px;
         }
         
@@ -125,7 +125,7 @@
             padding: 2px 6px;
             border-radius: 2px;
             font-weight: bold;
-            font-size: 7px;
+            font-size: 9px;
         }
         
         .status-pendiente {
@@ -160,14 +160,14 @@
             color: white;
             padding: 4px;
             text-align: left;
-            font-size: 7px;
+            font-size: 9px;
             text-transform: uppercase;
         }
         
         table td {
             padding: 3px 4px;
             border-bottom: 1px solid #dee2e6;
-            font-size: 7px;
+            font-size: 9px;
         }
         
         table tbody tr:nth-child(even) {
@@ -192,7 +192,7 @@
             color: white;
             padding: 1px 3px;
             border-radius: 2px;
-            font-size: 6px;
+            font-size: 8.5px;
         }
         
         .badge-info {
@@ -200,7 +200,7 @@
             color: white;
             padding: 1px 3px;
             border-radius: 2px;
-            font-size: 6px;
+            font-size: 8.5px;
         }
         
         .badge-warning {
@@ -208,7 +208,7 @@
             color: #000;
             padding: 1px 3px;
             border-radius: 2px;
-            font-size: 6px;
+            font-size: 8.5px;
         }
         
         .badge-secondary {
@@ -216,7 +216,7 @@
             color: white;
             padding: 1px 3px;
             border-radius: 2px;
-            font-size: 6px;
+            font-size: 8.5px;
         }
         
         .footer {
@@ -224,7 +224,7 @@
             padding-top: 6px;
             border-top: 1px solid #dee2e6;
             text-align: center;
-            font-size: 6px;
+            font-size: 8px;
             color: #666;
         }
         
@@ -242,7 +242,7 @@
         }
         
         .signature-label {
-            font-size: 8px;
+            font-size: 10px;
             font-weight: bold;
             color: #666;
         }
@@ -266,7 +266,7 @@
     <div class="header">
         <h1>ORDEN DE APLICACIÓN</h1>
         <p>{{ $order->team->name ?? 'Equipo' }} - Temporada: {{ $order->season->name ?? 'N/A' }}</p>
-        <p style="font-size: 10px; color: #999;">Orden #{{ $order->id }} - Fecha de emisión: {{ now()->format('d/m/Y H:i') }}</p>
+        <p style="font-size: 11px; color: #999;">Orden #{{ $order->id }} - Fecha de emisión: {{ now()->format('d/m/Y H:i') }}</p>
     </div>
 
     <!-- Información General -->
@@ -413,7 +413,7 @@
     <!-- Productos a Aplicar -->
     <div class="info-section" style="border-left-color: #17a2b8;">
         <h2>:: Productos a Aplicar</h2>
-        <p style="font-size: 6px; color: #666; margin-bottom: 3px; font-style: italic;">
+        <p style="font-size: 8.5px; color: #666; margin-bottom: 3px; font-style: italic;">
             * Cantidades mostradas en unidades prácticas para aplicación en campo (cc, gr, etc.)
         </p>
         <table>
@@ -500,17 +500,17 @@
                 @if($maquinadasCompletas > 0)
                 <td style="width: {{ $fraccionSaldo > 0 ? '50%' : '100%' }}; border: none; padding: 5px; vertical-align: top;">
                     <div style="border: 1px solid #007bff; padding: 5px;">
-                        <div style="background-color: #007bff; color: white; padding: 3px 5px; font-weight: bold; font-size: 8px; margin: -5px -5px 5px -5px;">
+                        <div style="background-color: #007bff; color: white; padding: 3px 5px; font-weight: bold; font-size: 9px; margin: -5px -5px 5px -5px;">
                             MAQUINADAS COMPLETAS: {{ $maquinadasCompletas }}
                         </div>
-                        <div style="margin-bottom: 4px; font-size: 8px;">
+                        <div style="margin-bottom: 4px; font-size: 9px;">
                             <strong>Agua: {{ number_format($aguaPorMaquinada, 0, ',', '.') }} L</strong>
                         </div>
                         <table style="margin: 0;">
                             <thead>
                                 <tr>
-                                    <th style="font-size: 6px;">Producto</th>
-                                    <th class="text-right" style="font-size: 6px;">Cantidad</th>
+                                    <th style="font-size: 8.5px;">Producto</th>
+                                    <th class="text-right" style="font-size: 8.5px;">Cantidad</th>
                                 </tr>
                             </thead>
                             <tbody>
@@ -520,8 +520,8 @@
                                     $converted = convertToPracticalUnit($cantPorMaq, $op->product->unit->name ?? '');
                                 @endphp
                                 <tr>
-                                    <td style="font-size: 7px;">{{ $op->product->name ?? 'N/A' }}</td>
-                                    <td class="text-right" style="font-size: 7px; font-weight: bold;">{{ formatQuantityForPdf($converted['value']) }} {{ $converted['unit'] }}</td>
+                                    <td style="font-size: 8px;">{{ $op->product->name ?? 'N/A' }}</td>
+                                    <td class="text-right" style="font-size: 8px; font-weight: bold;">{{ formatQuantityForPdf($converted['value']) }} {{ $converted['unit'] }}</td>
                                 </tr>
                                 @endforeach
                             </tbody>
@@ -533,17 +533,17 @@
                 @if($fraccionSaldo > 0)
                 <td style="width: {{ $maquinadasCompletas > 0 ? '50%' : '100%' }}; border: none; padding: 5px; vertical-align: top;">
                     <div style="border: 1px solid #ffc107; padding: 5px;">
-                        <div style="background-color: #ffc107; color: #000; padding: 3px 5px; font-weight: bold; font-size: 8px; margin: -5px -5px 5px -5px;">
+                        <div style="background-color: #ffc107; color: #000; padding: 3px 5px; font-weight: bold; font-size: 9px; margin: -5px -5px 5px -5px;">
                             MAQUINADA DE SALDO ({{ number_format($fraccionSaldo, 2, ',', '.') }})
                         </div>
-                        <div style="margin-bottom: 4px; font-size: 8px;">
+                        <div style="margin-bottom: 4px; font-size: 9px;">
                             <strong>Agua: {{ number_format($aguaSaldo, 0, ',', '.') }} L</strong>
                         </div>
                         <table style="margin: 0;">
                             <thead>
                                 <tr>
-                                    <th style="font-size: 6px;">Producto</th>
-                                    <th class="text-right" style="font-size: 6px;">Cantidad</th>
+                                    <th style="font-size: 8.5px;">Producto</th>
+                                    <th class="text-right" style="font-size: 8.5px;">Cantidad</th>
                                 </tr>
                             </thead>
                             <tbody>
@@ -554,8 +554,8 @@
                                     $converted = convertToPracticalUnit($cantSaldo, $op->product->unit->name ?? '');
                                 @endphp
                                 <tr>
-                                    <td style="font-size: 7px;">{{ $op->product->name ?? 'N/A' }}</td>
-                                    <td class="text-right" style="font-size: 7px; font-weight: bold;">{{ formatQuantityForPdf($converted['value']) }} {{ $converted['unit'] }}</td>
+                                    <td style="font-size: 8px;">{{ $op->product->name ?? 'N/A' }}</td>
+                                    <td class="text-right" style="font-size: 8px; font-weight: bold;">{{ formatQuantityForPdf($converted['value']) }} {{ $converted['unit'] }}</td>
                                 </tr>
                                 @endforeach
                             </tbody>
@@ -568,17 +568,164 @@
     </div>
     @endif
 
+    <!-- Condiciones Climáticas -->
+    <div class="info-section" style="border-left-color: #6c757d; margin-top: 6px; page-break-inside: avoid;">
+        <h2 style="color: #555; margin-bottom: 4px;">:: Condiciones Climáticas</h2>
+        <table style="border: none; margin: 0; width: 100%; border-collapse: collapse;">
+            <tr>
+                <!-- VIENTO -->
+                <td style="border: none; vertical-align: top; padding-right: 8px; width: 40%; border-right: 1px solid #ddd;">
+                    <div style="font-size: 9px; font-weight: bold; color: #0055aa; text-transform: uppercase; margin-bottom: 3px;">Viento</div>
+                    @php
+                        $windLevels = [
+                            ['label' => 'Calma',    'range' => '0-0,5',  'points' => '5,3 9,3 8,14'],
+                            ['label' => 'Leve',     'range' => '0,5-2',  'points' => '4.5,3.5 8.5,2 14,11'],
+                            ['label' => 'Moderado', 'range' => '2-3',    'points' => '4,4.5 8,1 17,9'],
+                            ['label' => 'Fuerte',   'range' => '3-5',    'points' => '4.5,6 7.5,1 20,7'],
+                            ['label' => 'M. fuerte','range' => '> 5',    'points' => '5,7 7,2 22,5'],
+                        ];
+                    @endphp
+                    <table style="border: none; margin: 0; width: 100%;">
+                        <tr>
+                            @foreach($windLevels as $wind)
+                            <td style="border: none; text-align: center; vertical-align: bottom; padding: 0 2px;">
+                                <svg width="26" height="20" viewBox="0 0 26 20">
+                                    <circle cx="7" cy="19" r="2" fill="#555"/>
+                                    <line x1="7" y1="19" x2="7" y2="3" stroke="#555" stroke-width="1.5"/>
+                                    <polygon points="{{ $wind['points'] }}" fill="#3a7bd5" stroke="#1a5bc5" stroke-width="0.5"/>
+                                </svg>
+                                <div style="width: 10px; height: 10px; border: 1.5px solid #333; background: white; margin: 2px auto;"></div>
+                                <div style="font-size: 7.5px; color: #333; font-weight: bold; line-height: 1.1;">{{ $wind['label'] }}</div>
+                                <div style="font-size: 7px; color: #888;">{{ $wind['range'] }}</div>
+                            </td>
+                            @endforeach
+                        </tr>
+                    </table>
+                </td>
+
+                <!-- TEMPERATURA -->
+                <td style="border: none; vertical-align: top; padding: 0 8px; width: 32%; border-right: 1px solid #ddd;">
+                    <div style="font-size: 9px; font-weight: bold; color: #cc2200; text-transform: uppercase; margin-bottom: 3px;">Temperatura (°C)</div>
+                    @php
+                        $tempRanges = [
+                            ['label' => '< 5°',     'color' => '#4a90e2'],
+                            ['label' => '5-10°',    'color' => '#74c0e0'],
+                            ['label' => '10-15°',   'color' => '#a8d5a2'],
+                            ['label' => '15-20°',   'color' => '#c8e86c'],
+                            ['label' => '20-25°',   'color' => '#ffd04a'],
+                            ['label' => '25-30°',   'color' => '#ff9020'],
+                            ['label' => '> 30°',    'color' => '#e63900'],
+                        ];
+                    @endphp
+                    <table style="border: none; margin: 0; width: 100%;">
+                        <tr>
+                            @foreach($tempRanges as $temp)
+                            <td style="border: none; text-align: center; padding: 0 1px;">
+                                <div style="width: 13px; height: 13px; border-radius: 50%; background: {{ $temp['color'] }}; margin: 0 auto; border: 0.5px solid rgba(0,0,0,0.2);"></div>
+                                <div style="width: 10px; height: 10px; border: 1.5px solid #333; background: white; margin: 2px auto;"></div>
+                                <div style="font-size: 7px; color: #444; white-space: nowrap;">{{ $temp['label'] }}</div>
+                            </td>
+                            @endforeach
+                        </tr>
+                    </table>
+                </td>
+
+                <!-- CONDICIÓN CLIMÁTICA -->
+                <td style="border: none; vertical-align: top; padding-left: 8px; width: 28%;">
+                    <div style="font-size: 9px; font-weight: bold; color: #cc7700; text-transform: uppercase; margin-bottom: 3px;">Condición</div>
+                    <table style="border: none; margin: 0; width: 100%;">
+                        <tr>
+                            <td style="border: none; text-align: center; padding: 0 4px;">
+                                <svg width="22" height="22" viewBox="0 0 30 30">
+                                    <circle cx="15" cy="15" r="7" fill="#FFD700"/>
+                                    <line x1="15" y1="1" x2="15" y2="5"   stroke="#FFD700" stroke-width="2"/>
+                                    <line x1="15" y1="25" x2="15" y2="29" stroke="#FFD700" stroke-width="2"/>
+                                    <line x1="1"  y1="15" x2="5"  y2="15" stroke="#FFD700" stroke-width="2"/>
+                                    <line x1="25" y1="15" x2="29" y2="15" stroke="#FFD700" stroke-width="2"/>
+                                    <line x1="4.5" y1="4.5" x2="7.3" y2="7.3" stroke="#FFD700" stroke-width="2"/>
+                                    <line x1="22.7" y1="22.7" x2="25.5" y2="25.5" stroke="#FFD700" stroke-width="2"/>
+                                    <line x1="25.5" y1="4.5" x2="22.7" y2="7.3" stroke="#FFD700" stroke-width="2"/>
+                                    <line x1="7.3" y1="22.7" x2="4.5" y2="25.5" stroke="#FFD700" stroke-width="2"/>
+                                </svg>
+                                <div style="width: 10px; height: 10px; border: 1.5px solid #333; background: white; margin: 2px auto;"></div>
+                                <div style="font-size: 7.5px; color: #444;">Soleado</div>
+                            </td>
+                            <td style="border: none; text-align: center; padding: 0 4px;">
+                                <svg width="28" height="22" viewBox="0 0 38 28">
+                                    <circle cx="10" cy="12" r="7" fill="#FFD700"/>
+                                    <circle cx="15" cy="20" r="6" fill="#ccc"/>
+                                    <circle cx="24" cy="17" r="8" fill="#ddd"/>
+                                    <circle cx="32" cy="20" r="5" fill="#ccc"/>
+                                    <rect x="9" y="20" width="25" height="6" fill="#ddd"/>
+                                </svg>
+                                <div style="width: 10px; height: 10px; border: 1.5px solid #333; background: white; margin: 2px auto;"></div>
+                                <div style="font-size: 7.5px; color: #444;">Parcial</div>
+                            </td>
+                            <td style="border: none; text-align: center; padding: 0 4px;">
+                                <svg width="28" height="20" viewBox="0 0 38 24">
+                                    <circle cx="10" cy="13" r="8" fill="#aaa"/>
+                                    <circle cx="21" cy="10" r="9" fill="#bbb"/>
+                                    <circle cx="31" cy="13" r="7" fill="#aaa"/>
+                                    <rect x="2" y="13" width="34" height="7" fill="#aaa"/>
+                                </svg>
+                                <div style="width: 10px; height: 10px; border: 1.5px solid #333; background: white; margin: 2px auto;"></div>
+                                <div style="font-size: 7.5px; color: #444;">Nublado</div>
+                            </td>
+                            <td style="border: none; text-align: center; padding: 0 4px;">
+                                <svg width="28" height="22" viewBox="0 0 38 28">
+                                    <circle cx="10" cy="10" r="7" fill="#888"/>
+                                    <circle cx="20" cy="8"  r="8" fill="#999"/>
+                                    <circle cx="30" cy="11" r="6" fill="#888"/>
+                                    <rect x="3" y="11" width="30" height="4" fill="#888"/>
+                                    <line x1="10" y1="19" x2="7"  y2="27" stroke="#4a90d9" stroke-width="1.5" stroke-linecap="round"/>
+                                    <line x1="19" y1="19" x2="16" y2="27" stroke="#4a90d9" stroke-width="1.5" stroke-linecap="round"/>
+                                    <line x1="28" y1="19" x2="25" y2="27" stroke="#4a90d9" stroke-width="1.5" stroke-linecap="round"/>
+                                </svg>
+                                <div style="width: 10px; height: 10px; border: 1.5px solid #333; background: white; margin: 2px auto;"></div>
+                                <div style="font-size: 7.5px; color: #444;">Lluvia</div>
+                            </td>
+                        </tr>
+                    </table>
+                </td>
+            </tr>
+        </table>
+        <div style="margin-top: 4px; padding: 2px 4px; border: 1px dashed #ccc; background: #fafafa;">
+            <span style="font-size: 8.5px; color: #888; font-weight: bold;">Obs. climáticas:</span>
+            <div style="height: 10px;"></div>
+        </div>
+
+        <!-- Elementos de Protección -->
+        <div style="margin-top: 5px; border: 1px solid #ccc; padding: 4px 6px;">
+            <div style="font-size: 9px; font-weight: bold; color: #333; text-transform: uppercase; margin-bottom: 4px;">
+                Elemento de protección
+            </div>
+            <table style="border: none; margin: 0; width: 100%;">
+                <tr>
+                    @php
+                        $epps = ['Guantes', 'Mascarilla', 'Traje impermeable', 'Botas de agua', 'Otros'];
+                    @endphp
+                    @foreach($epps as $epp)
+                    <td style="border: none; white-space: nowrap; padding: 0 6px 0 0;">
+                        <span style="font-size: 9px; color: #333;">{{ $epp }}</span>
+                        <span style="display: inline-block; width: 11px; height: 11px; border: 1.5px solid #333; background: white; vertical-align: middle; margin-left: 2px;"></span>
+                    </td>
+                    @endforeach
+                </tr>
+            </table>
+        </div>
+    </div>
+
     <!-- Firmas -->
     <div class="signature-section">
         <div class="signature-box">
             <div style="height: 20px;"></div>
             <div class="signature-label">{{ $order->responsable }}</div>
-            <div style="font-size: 6px; color: #999;">Responsable</div>
+            <div style="font-size: 8.5px; color: #999;">Responsable</div>
         </div>
         <div class="signature-box">
             <div style="height: 20px;"></div>
             <div class="signature-label">_________________</div>
-            <div style="font-size: 6px; color: #999;">Aplicador</div>
+            <div style="font-size: 8.5px; color: #999;">Aplicador</div>
         </div>
     </div>
 

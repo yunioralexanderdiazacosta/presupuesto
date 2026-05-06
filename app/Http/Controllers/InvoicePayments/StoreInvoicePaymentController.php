@@ -7,6 +7,7 @@ use App\Http\Requests\InvoicePayments\StoreInvoicePaymentRequest;
 use App\Models\InvoicePayment;
 use App\Models\Invoice;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
 
 class StoreInvoicePaymentController extends Controller
 {
@@ -16,13 +17,17 @@ class StoreInvoicePaymentController extends Controller
         $season_id = session('season_id');
 
         // Validar que la factura existe y pertenece al equipo
-        $invoice = Invoice::where('id', $request->invoice_id)
+        $invoice = Invoice::with(['typeDocument', 'invoiceProducts'])
+            ->where('id', $request->invoice_id)
             ->where('team_id', $user->team_id)
             ->where('season_id', $season_id)
             ->firstOrFail();
 
-        // Validar saldo pendiente
-        $totalInvoice = $invoice->invoiceProducts()->sum(\DB::raw('unit_price * amount'));
+        // Calcular total real de la factura (neto + IVA si aplica)
+        $totalNeto = $invoice->invoiceProducts->sum(fn($ip) => $ip->unit_price * $ip->amount);
+        $tipoDoc   = strtoupper($invoice->typeDocument?->name ?? '');
+        $hasIva    = in_array($tipoDoc, ['FACTURA', 'NOTA CREDITO', 'NOTA DEBITO']);
+        $totalInvoice = $totalNeto + ($hasIva ? round($totalNeto * 0.19) : 0);
         $totalPaid = $invoice->payments()->sum('amount');
         $balance = $totalInvoice - $totalPaid;
 

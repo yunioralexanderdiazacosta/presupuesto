@@ -14,7 +14,13 @@ class Operator extends Model
         'position',
         'team_id',
         'season_id',
+        'branch_id',
     ];
+
+    public function branch()
+    {
+        return $this->belongsTo(Branch::class);
+    }
 
     public function fuelOutflows()
     {

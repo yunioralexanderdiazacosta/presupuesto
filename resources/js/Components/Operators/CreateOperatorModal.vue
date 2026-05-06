@@ -3,7 +3,8 @@ import OperatorForm from './OperatorForm.vue';
 import Modal from '@/Components/Modal.vue';
 
 const props = defineProps({
-    form: Object
+    form: Object,
+    branches: { type: Array, default: () => [] }
 });
 
 defineEmits(['store']);
@@ -17,7 +18,7 @@ defineEmits(['store']);
             </h5>
         </template>
         <template #body>
-            <OperatorForm :form="form" />
+            <OperatorForm :form="form" :branches="branches" />
         </template>
         <template #footer>
             <button

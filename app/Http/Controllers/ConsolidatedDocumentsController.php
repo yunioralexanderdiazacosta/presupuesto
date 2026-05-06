@@ -23,7 +23,7 @@ class ConsolidatedDocumentsController extends Controller
             5 => 'Mayo', 6 => 'Junio', 7 => 'Julio', 8 => 'Agosto',
             9 => 'Septiembre', 10 => 'Octubre', 11 => 'Noviembre', 12 => 'Diciembre'
         ];
-        $invoices = Invoice::with(['supplier', 'companyReason', 'typeDocument'])
+        $invoices = Invoice::with(['supplier', 'companyReason', 'typeDocument', 'invoiceProducts.branch'])
             ->where('team_id', $user->team_id)
             ->where('season_id', $season_id)
             ->get()
@@ -45,6 +45,13 @@ class ConsolidatedDocumentsController extends Controller
                 // IVA solo sobre neto afecto para facturas
                 $iva = (strtolower($tipo_doc) === 'factura') ? ($neto_afecto * 0.19) : null;
                 
+                $sucursal = $invoice->invoiceProducts
+                    ->filter(fn($ip) => $ip->branch)
+                    ->pluck('branch.name')
+                    ->unique()
+                    ->values()
+                    ->implode(', ') ?: null;
+
                 return [
                     'tipo' => $tipo_doc,
                     'razon_social' => $invoice->companyReason->name ?? '',
@@ -56,6 +63,7 @@ class ConsolidatedDocumentsController extends Controller
                     'exento' => $exento,
                     'monto_total' => $monto_total,
                     'iva' => $iva,
+                    'sucursal' => $sucursal,
                 ];
             });
 
@@ -104,6 +112,7 @@ class ConsolidatedDocumentsController extends Controller
                     'monto_total' => $monto_total,
                     'iva' => $iva,
                     'is_financial' => $isFinancial,
+                    'sucursal' => null,
                 ];
             });
 

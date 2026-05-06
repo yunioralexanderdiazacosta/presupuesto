@@ -264,7 +264,14 @@ const statusLabels = {
                                     <td class="fw-semibold">{{ invoice.number_document }}</td>
                                     <td>{{ invoice.supplier?.name ?? '-' }}</td>
                                     <td>{{ invoice.type_document ?? '-' }}</td>
-                                    <td class="text-end text-nowrap">$ {{ formatCurrency(invoice.total_invoice) }}</td>
+                                    <td class="text-end text-nowrap">
+                                        $ {{ formatCurrency(invoice.total_invoice) }}
+                                        <span v-if="invoice.iva > 0"
+                                            v-tooltip="'Neto: $' + formatCurrency(invoice.total_neto) + ' + IVA: $' + formatCurrency(invoice.iva)"
+                                            class="text-muted ms-1" style="font-size:0.7rem; cursor:help;">
+                                            <i class="fas fa-info-circle fa-xs"></i>
+                                        </span>
+                                    </td>
                                     <td class="text-end text-nowrap">$ {{ formatCurrency(invoice.total_paid) }}</td>
                                     <td class="text-end text-nowrap" :class="{ 'text-danger fw-bold': invoice.balance > 0 }">
                                         $ {{ formatCurrency(invoice.balance) }}

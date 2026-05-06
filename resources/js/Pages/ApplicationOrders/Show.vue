@@ -287,48 +287,46 @@ function getPracticalQuantityPerHa(value, unitName) {
                     </div>
 
                     <!-- Detalle texto -->
-                    <div class="row g-2 fs--1">
-                        <div class="col-md-3">
-                            <small class="text-muted d-block fw-bold">Recomendado por</small>
-                            <span class="fw-semi-bold">{{ applicationOrder.recomendado }}</span>
-                        </div>
-                        <div class="col-md-3">
-                            <small class="text-muted d-block fw-bold">Responsable</small>
-                            <span class="fw-semi-bold">{{ applicationOrder.responsable }}</span>
-                        </div>
-                        <div class="col-md-3" v-if="applicationOrder.phenological_stage">
-                            <small class="text-muted d-block fw-bold">Fenología</small>
-                            <span class="fw-semi-bold"><i class="fas fa-seedling text-success me-1"></i>{{ applicationOrder.phenological_stage.name }}</span>
-                        </div>
-                        <div class="col-md-3">
-                            <small class="text-muted d-block fw-bold">Temporada</small>
-                            <span class="fw-semi-bold">{{ applicationOrder.season?.name || 'N/A' }}</span>
-                        </div>
-                    </div>
-
-                    <!-- Maquinaria y operarios -->
-                    <div class="row g-2 fs--1 mt-1" v-if="applicationOrder.tractors || applicationOrder.equipments || applicationOrder.operators">
-                        <div class="col-md-4" v-if="applicationOrder.tractors">
-                            <small class="text-muted d-block fw-bold"><i class="fas fa-tractor me-1"></i>Tractores</small>
-                            <span class="fw-semi-bold">{{ applicationOrder.tractors }}</span>
-                        </div>
-                        <div class="col-md-4" v-if="applicationOrder.equipments">
-                            <small class="text-muted d-block fw-bold"><i class="fas fa-cogs me-1"></i>Equipos</small>
-                            <span class="fw-semi-bold">{{ applicationOrder.equipments }}</span>
-                        </div>
-                        <div class="col-md-4" v-if="applicationOrder.operators">
-                            <small class="text-muted d-block fw-bold"><i class="fas fa-user me-1"></i>Operarios</small>
-                            <span class="fw-semi-bold">{{ applicationOrder.operators }}</span>
-                        </div>
-                    </div>
-
-                    <!-- Observaciones -->
-                    <div class="row g-2 fs--1 mt-1" v-if="applicationOrder.observations">
-                        <div class="col-12">
-                            <small class="text-muted d-block fw-bold">Observaciones</small>
-                            <span class="fst-italic">{{ applicationOrder.observations }}</span>
-                        </div>
-                    </div>
+                    <table class="w-100 fs--1 mt-1" style="border-collapse: collapse;">
+                        <tr>
+                            <td class="py-1 pe-3" style="width:33%; border-top: 1px solid #eee;">
+                                <small class="text-muted fw-bold d-block">Recomendado por</small>
+                                <span>{{ applicationOrder.recomendado || '—' }}</span>
+                            </td>
+                            <td class="py-1 pe-3" style="width:33%; border-top: 1px solid #eee;">
+                                <small class="text-muted fw-bold d-block">Responsable</small>
+                                <span>{{ applicationOrder.responsable || '—' }}</span>
+                            </td>
+                            <td class="py-1" style="width:34%; border-top: 1px solid #eee;">
+                                <small class="text-muted fw-bold d-block">Temporada</small>
+                                <span>{{ applicationOrder.season?.name || '—' }}</span>
+                            </td>
+                        </tr>
+                        <tr v-if="applicationOrder.tractors || applicationOrder.equipments || applicationOrder.operators">
+                            <td class="py-1 pe-3" style="border-top: 1px solid #eee;">
+                                <small class="text-muted fw-bold d-block"><i class="fas fa-tractor me-1"></i>Tractores</small>
+                                <span>{{ applicationOrder.tractors || '—' }}</span>
+                            </td>
+                            <td class="py-1 pe-3" style="border-top: 1px solid #eee;">
+                                <small class="text-muted fw-bold d-block"><i class="fas fa-cogs me-1"></i>Equipos</small>
+                                <span>{{ applicationOrder.equipments || '—' }}</span>
+                            </td>
+                            <td class="py-1" style="border-top: 1px solid #eee;">
+                                <small class="text-muted fw-bold d-block"><i class="fas fa-user me-1"></i>Operarios</small>
+                                <span>{{ applicationOrder.operators || '—' }}</span>
+                            </td>
+                        </tr>
+                        <tr v-if="applicationOrder.phenological_stage || applicationOrder.observations">
+                            <td class="py-1 pe-3" style="border-top: 1px solid #eee;" v-if="applicationOrder.phenological_stage">
+                                <small class="text-muted fw-bold d-block">Fenología</small>
+                                <span><i class="fas fa-seedling text-success me-1"></i>{{ applicationOrder.phenological_stage.name }}</span>
+                            </td>
+                            <td class="py-1 pe-3" :colspan="applicationOrder.phenological_stage ? 2 : 3" style="border-top: 1px solid #eee;" v-if="applicationOrder.observations">
+                                <small class="text-muted fw-bold d-block">Observaciones</small>
+                                <span class="fst-italic">{{ applicationOrder.observations }}</span>
+                            </td>
+                        </tr>
+                    </table>
                 </div>
             </div>
 

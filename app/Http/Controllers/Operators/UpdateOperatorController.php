@@ -10,8 +10,9 @@ class UpdateOperatorController extends Controller
 {
     public function __invoke(Operator $operator, FormOperatorRequest $request)
     {
-        $operator->name     = $request->name;
-        $operator->position = $request->position;
+        $operator->name      = $request->name;
+        $operator->position  = $request->position;
+        $operator->branch_id = $request->branch_id;
         $operator->save();
     }
 }

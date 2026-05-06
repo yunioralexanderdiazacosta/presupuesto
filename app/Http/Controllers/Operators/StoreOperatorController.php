@@ -19,6 +19,7 @@ class StoreOperatorController extends Controller
             'position'  => $request->position,
             'team_id'   => $user->team_id,
             'season_id' => $season_id,
+            'branch_id' => $request->branch_id,
         ]);
     }
 }

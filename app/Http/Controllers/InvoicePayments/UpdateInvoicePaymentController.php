@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\InvoicePayments\UpdateInvoicePaymentRequest;
 use App\Models\InvoicePayment;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
 
 class UpdateInvoicePaymentController extends Controller
 {
@@ -18,11 +19,14 @@ class UpdateInvoicePaymentController extends Controller
             abort(403, 'No tiene permisos para editar este pago.');
         }
 
-        // Validar saldo pendiente (excluyendo el pago actual)
-        $invoice = $payment->invoice;
-        $totalInvoice = $invoice->invoiceProducts()->sum(\DB::raw('unit_price * amount'));
-        $totalPaid = $invoice->payments()->where('id', '!=', $payment->id)->sum('amount');
-        $balance = $totalInvoice - $totalPaid;
+        // Calcular total real (neto + IVA si aplica)
+        $invoice      = $payment->invoice()->with(['typeDocument', 'invoiceProducts'])->first();
+        $totalNeto    = $invoice->invoiceProducts->sum(fn($ip) => $ip->unit_price * $ip->amount);
+        $tipoDoc      = strtoupper($invoice->typeDocument?->name ?? '');
+        $hasIva       = in_array($tipoDoc, ['FACTURA', 'NOTA CREDITO', 'NOTA DEBITO']);
+        $totalInvoice = $totalNeto + ($hasIva ? round($totalNeto * 0.19) : 0);
+        $totalPaid    = $invoice->payments()->where('id', '!=', $payment->id)->sum('amount');
+        $balance      = $totalInvoice - $totalPaid;
 
         if ($request->amount > $balance) {
             return back()->withErrors(['amount' => 'El monto no puede exceder el saldo pendiente de '.number_format($balance, 2)]);

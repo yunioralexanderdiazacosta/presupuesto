@@ -66,9 +66,10 @@ class InvoicesController extends Controller
             }
             
             $totalFacturas += $total;
-            
-            // Solo agregar IVA si es factura
-            if ($invoice->typeDocument && strtolower($invoice->typeDocument->name) === 'factura') {
+
+            // Agregar IVA si es factura, nota de crédito o nota de débito
+            $tipoDoc = strtoupper($invoice->typeDocument?->name ?? '');
+            if (in_array($tipoDoc, ['FACTURA', 'NOTA CREDITO', 'NOTA DEBITO'])) {
                 $totalIva += $total * 0.19;
             }
         }
@@ -77,10 +78,14 @@ class InvoicesController extends Controller
 
         // Preparar datos para la vista
         $invoices = $allInvoices->map(function($invoice) {
-            $total = 0;
+            $neto = 0;
             foreach ($invoice->invoiceProducts as $ip) {
-                $total += $ip->unit_price * $ip->amount;
+                $neto += $ip->unit_price * $ip->amount;
             }
+            $tipoDoc = strtoupper($invoice->typeDocument?->name ?? '');
+            $hasIva = in_array($tipoDoc, ['FACTURA', 'NOTA CREDITO', 'NOTA DEBITO']);
+            $iva = $hasIva ? round($neto * 0.19) : 0;
+            $total = $neto + $iva;
 
             return [
                 'id'                => $invoice->id,
@@ -103,6 +108,8 @@ class InvoicesController extends Controller
                         'branch_name' => $ip->branch ? $ip->branch->name : null,
                     ];
                 }),
+                'neto'              => $neto,
+                'iva'               => $iva,
                 'total'             => '$' . number_format($total, 0, ',', '.'),
                 'expense_report'    => $invoice->expenseReport ? $invoice->expenseReport->number : null,
                 'user_name'         => $invoice->user ? $invoice->user->name : null,

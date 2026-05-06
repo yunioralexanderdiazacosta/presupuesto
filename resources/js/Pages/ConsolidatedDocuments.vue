@@ -51,19 +51,54 @@ const props = defineProps({
 });
 
 const term = ref("");
+const filterSucursal = ref('');
+const filterMes = ref('');
+
+// Opciones dinámicas para los selects, generadas desde los datos del prop
+const availableSucursales = computed(() => {
+  if (!props.documents) return [];
+  const set = new Set();
+  props.documents.forEach(doc => {
+    if (doc.sucursal) {
+      doc.sucursal.split(', ').forEach(s => s.trim() && set.add(s.trim()));
+    }
+  });
+  return [...set].sort();
+});
+
+const availableMeses = computed(() => {
+  if (!props.documents) return [];
+  const set = new Set();
+  props.documents.forEach(doc => { if (doc.mes_contable) set.add(doc.mes_contable); });
+  // Ordenar según posición en mesesPivot
+  return mesesPivot.filter(m => set.has(m));
+});
 
 const filteredDocuments = computed(() => {
-  if (!term.value) return props.documents;
-  const search = term.value.toLowerCase();
-  return props.documents.filter(doc => {
-    return (
+  let data = props.documents ?? [];
+
+  if (term.value) {
+    const search = term.value.toLowerCase();
+    data = data.filter(doc =>
       (doc.proveedor && doc.proveedor.toLowerCase().includes(search)) ||
       (doc.n_doc && doc.n_doc.toLowerCase().includes(search)) ||
       (doc.razon_social && doc.razon_social.toLowerCase().includes(search)) ||
       (doc.mes_contable && doc.mes_contable.toLowerCase().includes(search)) ||
       (doc.tipo && doc.tipo.toLowerCase().includes(search))
     );
-  });
+  }
+
+  if (filterSucursal.value) {
+    data = data.filter(doc =>
+      doc.sucursal && doc.sucursal.split(', ').map(s => s.trim()).includes(filterSucursal.value)
+    );
+  }
+
+  if (filterMes.value) {
+    data = data.filter(doc => doc.mes_contable === filterMes.value);
+  }
+
+  return data;
 });
 
 const totalGeneral = computed(() => {
@@ -305,11 +340,22 @@ const getDocTypeBadge = (tipo) => {
         <div class="tab-content" id="pill-consolidado-content">
           <!-- PILL RESUMEN -->
           <div class="tab-pane fade show active" id="pill-tab-resumen" role="tabpanel" aria-labelledby="pill-resumen">
-            <div class="row mb-3">
-              <div class="col-md-4 col-12">
+            <div class="d-flex align-items-center gap-2 mb-3 flex-wrap">
+              <div style="flex: 1; min-width: 200px; max-width: 320px;">
                 <SearchInput v-model="term" placeholder="Buscar por proveedor, número, razón social..." />
               </div>
-              <div class="col-md-8 col-12 text-end d-flex flex-wrap justify-content-end gap-2">
+              <select v-model="filterSucursal" class="form-select form-select-sm" style="width: auto; min-width: 140px;">
+                <option value="">Todas las sucursales</option>
+                <option v-for="s in availableSucursales" :key="s" :value="s">{{ s }}</option>
+              </select>
+              <select v-model="filterMes" class="form-select form-select-sm" style="width: auto; min-width: 130px;">
+                <option value="">Todos los meses</option>
+                <option v-for="m in availableMeses" :key="m" :value="m">{{ m }}</option>
+              </select>
+              <button v-if="filterSucursal || filterMes || term" type="button" @click="filterSucursal = ''; filterMes = ''; term = ''" class="btn btn-sm btn-outline-secondary" style="font-size:0.75rem;">
+                <i class="fas fa-times me-1"></i>Limpiar
+              </button>
+              <div class="ms-auto">
                 <ExportExcelButton :data="consolidatedExcelData" :headers=" [
                   { label: 'Tipo', key: 'tipo' },
                   { label: 'Razón Social', key: 'razon_social' },
@@ -321,7 +367,7 @@ const getDocTypeBadge = (tipo) => {
                   { label: 'Exento', key: 'exento', type: 'number' },
                   { label: 'IVA', key: 'iva', type: 'number' },
                   { label: 'Total General', key: 'total_general', type: 'number' }
-                ]" filename="consolidado.xlsx" class="btn btn-light-primary me-3">
+                ]" filename="consolidado.xlsx" class="btn btn-light-primary">
                   <span class="svg-icon svg-icon-2"></span>
                   Exportar Excel
                 </ExportExcelButton>
@@ -380,11 +426,22 @@ const getDocTypeBadge = (tipo) => {
           </div>
           <!-- PILL LISTA -->
           <div class="tab-pane fade" id="pill-tab-lista" role="tabpanel" aria-labelledby="pill-lista">
-            <div class="row mb-3">
-              <div class="col-md-4 col-12">
+            <div class="d-flex align-items-center gap-2 mb-3 flex-wrap">
+              <div style="flex: 1; min-width: 200px; max-width: 320px;">
                 <SearchInput v-model="term" placeholder="Buscar por proveedor, número, razón social..." />
               </div>
-              <div class="col-md-8 col-12 text-end d-flex flex-wrap justify-content-end gap-2">
+              <select v-model="filterSucursal" class="form-select form-select-sm" style="width: auto; min-width: 140px;">
+                <option value="">Todas las sucursales</option>
+                <option v-for="s in availableSucursales" :key="s" :value="s">{{ s }}</option>
+              </select>
+              <select v-model="filterMes" class="form-select form-select-sm" style="width: auto; min-width: 130px;">
+                <option value="">Todos los meses</option>
+                <option v-for="m in availableMeses" :key="m" :value="m">{{ m }}</option>
+              </select>
+              <button v-if="filterSucursal || filterMes || term" type="button" @click="filterSucursal = ''; filterMes = ''; term = ''" class="btn btn-sm btn-outline-secondary" style="font-size:0.75rem;">
+                <i class="fas fa-times me-1"></i>Limpiar
+              </button>
+              <div class="ms-auto">
                 <ExportExcelButton :data="consolidatedExcelData" :headers=" [
                   { label: 'Tipo', key: 'tipo' },
                   { label: 'Razón Social', key: 'razon_social' },
@@ -396,7 +453,7 @@ const getDocTypeBadge = (tipo) => {
                   { label: 'Exento', key: 'exento', type: 'number' },
                   { label: 'IVA', key: 'iva', type: 'number' },
                   { label: 'Total General', key: 'total_general', type: 'number' }
-                ]" filename="consolidado.xlsx" class="btn btn-light-primary me-3">
+                ]" filename="consolidado.xlsx" class="btn btn-light-primary">
                   <span class="svg-icon svg-icon-2"></span>
                   Exportar Excel
                 </ExportExcelButton>
@@ -519,11 +576,22 @@ const getDocTypeBadge = (tipo) => {
           </div>
           <!-- PILL MENSUAL -->
           <div class="tab-pane fade" id="pill-tab-pivot" role="tabpanel" aria-labelledby="pill-pivot">
-            <div class="row mb-3">
-              <div class="col-md-4 col-12">
+            <div class="d-flex align-items-center gap-2 mb-3 flex-wrap">
+              <div style="flex: 1; min-width: 200px; max-width: 320px;">
                 <SearchInput v-model="term" placeholder="Buscar por proveedor, número, razón social..." />
               </div>
-              <div class="col-md-8 col-12 text-end d-flex flex-wrap justify-content-end gap-2">
+              <select v-model="filterSucursal" class="form-select form-select-sm" style="width: auto; min-width: 140px;">
+                <option value="">Todas las sucursales</option>
+                <option v-for="s in availableSucursales" :key="s" :value="s">{{ s }}</option>
+              </select>
+              <select v-model="filterMes" class="form-select form-select-sm" style="width: auto; min-width: 130px;">
+                <option value="">Todos los meses</option>
+                <option v-for="m in availableMeses" :key="m" :value="m">{{ m }}</option>
+              </select>
+              <button v-if="filterSucursal || filterMes || term" type="button" @click="filterSucursal = ''; filterMes = ''; term = ''" class="btn btn-sm btn-outline-secondary" style="font-size:0.75rem;">
+                <i class="fas fa-times me-1"></i>Limpiar
+              </button>
+              <div class="ms-auto">
                 <ExportExcelButton :data="pivotExcelData" :headers="[
                   { label: 'Tipo', key: 'tipo' },
                   { label: 'Fecha', key: 'fecha' },
@@ -541,7 +609,7 @@ const getDocTypeBadge = (tipo) => {
                   { label: 'Octubre', key: 'Octubre', type: 'number' },
                   { label: 'Noviembre', key: 'Noviembre', type: 'number' },
                   { label: 'Diciembre', key: 'Diciembre', type: 'number' }
-                ]" filename="consolidado_mensual.xlsx" class="btn btn-light-primary me-3">
+                ]" filename="consolidado_mensual.xlsx" class="btn btn-light-primary">
                   <span class="svg-icon svg-icon-2"></span>
                   Exportar Excel
                 </ExportExcelButton>

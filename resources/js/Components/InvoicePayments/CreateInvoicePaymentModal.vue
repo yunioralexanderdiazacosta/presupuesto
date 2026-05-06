@@ -1,5 +1,5 @@
 <script setup>
-import { ref, computed, watch } from 'vue';
+import { ref, computed, watch, onMounted } from 'vue';
 import { useForm } from '@inertiajs/vue3';
 import Swal from 'sweetalert2';
 import axios from 'axios';
@@ -172,10 +172,20 @@ function resetForm() {
 
 function formatCurrency(value) {
     return new Intl.NumberFormat('es-ES', {
-        minimumFractionDigits: 2,
-        maximumFractionDigits: 2
+        minimumFractionDigits: 0,
+        maximumFractionDigits: 0
     }).format(value || 0);
 }
+
+// Sincronizar estado Vue cuando Bootstrap cierra el modal (botón X o clic fuera)
+onMounted(() => {
+    const el = document.getElementById('createInvoicePaymentModal');
+    if (el) {
+        el.addEventListener('hidden.bs.modal', () => {
+            emit('close');
+        });
+    }
+});
 
 // Cuando se abre el modal: pre-llenar si viene una factura desde la fila
 watch(() => props.show, (newVal) => {
@@ -255,13 +265,22 @@ watch(() => props.show, (newVal) => {
                             <p class="mb-1"><strong>Número:</strong> {{ selectedInvoice.number_document }}</p>
                             <p class="mb-1"><strong>Proveedor:</strong> {{ selectedInvoice.supplier.name }}</p>
                             <p class="mb-1"><strong>Fecha:</strong> {{ selectedInvoice.date }}</p>
+                            <p class="mb-1"><strong>Tipo:</strong> {{ selectedInvoice.type_document }}</p>
                         </div>
                         <div class="col-md-6">
-                            <p class="mb-1"><strong>Total Factura:</strong> $ {{ formatCurrency(selectedInvoice.total_invoice) }}</p>
+                            <p class="mb-1">
+                                <strong>Neto:</strong> $ {{ formatCurrency(selectedInvoice.total_neto) }}
+                            </p>
+                            <p class="mb-1" v-if="selectedInvoice.iva > 0">
+                                <strong>IVA (19%):</strong> $ {{ formatCurrency(selectedInvoice.iva) }}
+                            </p>
+                            <p class="mb-1">
+                                <strong>Total Factura:</strong> $ {{ formatCurrency(selectedInvoice.total_invoice) }}
+                            </p>
                             <p class="mb-1"><strong>Total Pagado:</strong> $ {{ formatCurrency(selectedInvoice.total_paid) }}</p>
                             <p class="mb-1">
-                                <strong>Saldo Pendiente:</strong> 
-                                <span class="text-danger fw-bold">$ {{ formatCurrency(selectedInvoice.balance) }}</span>
+                                <strong>Saldo Pendiente:</strong>
+                                <span class="text-danger fw-bold"> $ {{ formatCurrency(selectedInvoice.balance) }}</span>
                             </p>
                         </div>
                     </div>
