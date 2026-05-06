@@ -509,8 +509,8 @@
                         <table style="margin: 0;">
                             <thead>
                                 <tr>
-                                    <th style="font-size: 8.5px;">Producto</th>
-                                    <th class="text-right" style="font-size: 8.5px;">Cantidad</th>
+                                    <th style="font-size: 7.5px;">Producto</th>
+                                    <th class="text-right" style="font-size: 7.5px;">Cantidad</th>
                                 </tr>
                             </thead>
                             <tbody>
@@ -520,8 +520,8 @@
                                     $converted = convertToPracticalUnit($cantPorMaq, $op->product->unit->name ?? '');
                                 @endphp
                                 <tr>
-                                    <td style="font-size: 8px;">{{ $op->product->name ?? 'N/A' }}</td>
-                                    <td class="text-right" style="font-size: 8px; font-weight: bold;">{{ formatQuantityForPdf($converted['value']) }} {{ $converted['unit'] }}</td>
+                                    <td style="font-size: 10px;">{{ $op->product->name ?? 'N/A' }}</td>
+                                    <td class="text-right" style="font-size: 10px; font-weight: bold;">{{ formatQuantityForPdf($converted['value']) }} {{ $converted['unit'] }}</td>
                                 </tr>
                                 @endforeach
                             </tbody>
@@ -542,8 +542,8 @@
                         <table style="margin: 0;">
                             <thead>
                                 <tr>
-                                    <th style="font-size: 8.5px;">Producto</th>
-                                    <th class="text-right" style="font-size: 8.5px;">Cantidad</th>
+                                    <th style="font-size: 7.5px;">Producto</th>
+                                    <th class="text-right" style="font-size: 7.5px;">Cantidad</th>
                                 </tr>
                             </thead>
                             <tbody>
@@ -554,8 +554,8 @@
                                     $converted = convertToPracticalUnit($cantSaldo, $op->product->unit->name ?? '');
                                 @endphp
                                 <tr>
-                                    <td style="font-size: 8px;">{{ $op->product->name ?? 'N/A' }}</td>
-                                    <td class="text-right" style="font-size: 8px; font-weight: bold;">{{ formatQuantityForPdf($converted['value']) }} {{ $converted['unit'] }}</td>
+                                    <td style="font-size: 10px;">{{ $op->product->name ?? 'N/A' }}</td>
+                                    <td class="text-right" style="font-size: 10px; font-weight: bold;">{{ formatQuantityForPdf($converted['value']) }} {{ $converted['unit'] }}</td>
                                 </tr>
                                 @endforeach
                             </tbody>
@@ -595,8 +595,8 @@
                                     <polygon points="{{ $wind['points'] }}" fill="#3a7bd5" stroke="#1a5bc5" stroke-width="0.5"/>
                                 </svg>
                                 <div style="width: 10px; height: 10px; border: 1.5px solid #333; background: white; margin: 2px auto;"></div>
-                                <div style="font-size: 7.5px; color: #333; font-weight: bold; line-height: 1.1;">{{ $wind['label'] }}</div>
-                                <div style="font-size: 7px; color: #888;">{{ $wind['range'] }}</div>
+                                <div style="font-size: 8.5px; color: #333; font-weight: bold; line-height: 1.1;">{{ $wind['label'] }}</div>
+                                <div style="font-size: 8px; color: #888;">{{ $wind['range'] }}</div>
                             </td>
                             @endforeach
                         </tr>
@@ -623,7 +623,7 @@
                             <td style="border: none; text-align: center; padding: 0 1px;">
                                 <div style="width: 13px; height: 13px; border-radius: 50%; background: {{ $temp['color'] }}; margin: 0 auto; border: 0.5px solid rgba(0,0,0,0.2);"></div>
                                 <div style="width: 10px; height: 10px; border: 1.5px solid #333; background: white; margin: 2px auto;"></div>
-                                <div style="font-size: 7px; color: #444; white-space: nowrap;">{{ $temp['label'] }}</div>
+                                <div style="font-size: 8px; color: #444; white-space: nowrap;">{{ $temp['label'] }}</div>
                             </td>
                             @endforeach
                         </tr>
@@ -648,7 +648,7 @@
                                     <line x1="7.3" y1="22.7" x2="4.5" y2="25.5" stroke="#FFD700" stroke-width="2"/>
                                 </svg>
                                 <div style="width: 10px; height: 10px; border: 1.5px solid #333; background: white; margin: 2px auto;"></div>
-                                <div style="font-size: 7.5px; color: #444;">Soleado</div>
+                                <div style="font-size: 8.5px; color: #444;">Soleado</div>
                             </td>
                             <td style="border: none; text-align: center; padding: 0 4px;">
                                 <svg width="28" height="22" viewBox="0 0 38 28">
@@ -659,7 +659,7 @@
                                     <rect x="9" y="20" width="25" height="6" fill="#ddd"/>
                                 </svg>
                                 <div style="width: 10px; height: 10px; border: 1.5px solid #333; background: white; margin: 2px auto;"></div>
-                                <div style="font-size: 7.5px; color: #444;">Parcial</div>
+                                <div style="font-size: 8.5px; color: #444;">Parcial</div>
                             </td>
                             <td style="border: none; text-align: center; padding: 0 4px;">
                                 <svg width="28" height="20" viewBox="0 0 38 24">
@@ -669,7 +669,7 @@
                                     <rect x="2" y="13" width="34" height="7" fill="#aaa"/>
                                 </svg>
                                 <div style="width: 10px; height: 10px; border: 1.5px solid #333; background: white; margin: 2px auto;"></div>
-                                <div style="font-size: 7.5px; color: #444;">Nublado</div>
+                                <div style="font-size: 8.5px; color: #444;">Nublado</div>
                             </td>
                             <td style="border: none; text-align: center; padding: 0 4px;">
                                 <svg width="28" height="22" viewBox="0 0 38 28">
@@ -682,7 +682,7 @@
                                     <line x1="28" y1="19" x2="25" y2="27" stroke="#4a90d9" stroke-width="1.5" stroke-linecap="round"/>
                                 </svg>
                                 <div style="width: 10px; height: 10px; border: 1.5px solid #333; background: white; margin: 2px auto;"></div>
-                                <div style="font-size: 7.5px; color: #444;">Lluvia</div>
+                                <div style="font-size: 8.5px; color: #444;">Lluvia</div>
                             </td>
                         </tr>
                     </table>
