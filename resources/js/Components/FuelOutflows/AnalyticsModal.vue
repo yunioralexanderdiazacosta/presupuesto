@@ -132,7 +132,7 @@ function closeModal() {
                                 </div>
                             </div>
 
-                            <div class="row">
+                            <div class="row mb-4">
                                 <div class="col-12">
                                     <h6 class="mb-3">Detalle por Producto</h6>
                                     <div class="table-responsive">
@@ -165,6 +165,61 @@ function closeModal() {
                                                 </tr>
                                             </tbody>
                                         </table>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Stock por Estanque -->
+                            <div class="row">
+                                <div class="col-12">
+                                    <h6 class="mb-3"><i class="fas fa-drum me-2 text-warning"></i>Stock por Estanque</h6>
+                                    <div v-if="loadingAnalytics" class="text-center py-3">
+                                        <div class="spinner-border spinner-border-sm text-primary" role="status"></div>
+                                        <span class="ms-2 text-muted">Cargando...</span>
+                                    </div>
+                                    <div v-else-if="analyticsData?.stock_por_estanque?.length" class="table-responsive">
+                                        <table class="table table-bordered table-hover table-sm">
+                                            <thead class="table-warning">
+                                                <tr>
+                                                    <th>Estanque</th>
+                                                    <th>Sucursal</th>
+                                                    <th>Combustible</th>
+                                                    <th class="text-end">Ingresado (L)</th>
+                                                    <th class="text-end">Consumido (L)</th>
+                                                    <th class="text-end">Stock (L)</th>
+                                                    <th class="text-end">Capacidad (L)</th>
+                                                    <th class="text-center">% Lleno</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                <tr v-for="t in analyticsData.stock_por_estanque" :key="t.tank_id"
+                                                    :class="{ 'table-danger': t.stock < 0, 'table-success': t.stock > 0 && t.porcentaje >= 50, 'table-warning': t.stock >= 0 && t.porcentaje !== null && t.porcentaje < 50 }">
+                                                    <td><strong>{{ t.tank_name }}</strong></td>
+                                                    <td>{{ t.branch_name ?? '—' }}</td>
+                                                    <td>{{ t.product_name ?? '—' }}</td>
+                                                    <td class="text-end">{{ t.ingresado.toFixed(2) }}</td>
+                                                    <td class="text-end">{{ t.consumido.toFixed(2) }}</td>
+                                                    <td class="text-end fw-bold">{{ t.stock.toFixed(2) }}</td>
+                                                    <td class="text-end">{{ t.capacity ? t.capacity.toFixed(2) : '—' }}</td>
+                                                    <td class="text-center">
+                                                        <template v-if="t.porcentaje !== null">
+                                                            <div class="progress" style="height:14px; min-width:60px;">
+                                                                <div class="progress-bar"
+                                                                    :class="t.porcentaje >= 50 ? 'bg-success' : t.porcentaje >= 20 ? 'bg-warning' : 'bg-danger'"
+                                                                    :style="{ width: Math.min(t.porcentaje, 100) + '%' }"
+                                                                    style="font-size:0.7rem; line-height:14px;">
+                                                                    {{ t.porcentaje }}%
+                                                                </div>
+                                                            </div>
+                                                        </template>
+                                                        <span v-else class="text-muted">—</span>
+                                                    </td>
+                                                </tr>
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                    <div v-else class="text-muted small">
+                                        No hay estanques registrados.
                                     </div>
                                 </div>
                             </div>

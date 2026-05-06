@@ -44,6 +44,7 @@ class StoreInvoiceController extends Controller
                     'observations' => $productAttach['observations'],
                     'is_exento'    => $productAttach['is_exento'] ?? false,
                     'branch_id'    => $productAttach['branch_id'] ?? null,
+                    'tank_id'      => $productAttach['tank_id'] ?? null,
                 ]);
             }
 
@@ -119,6 +120,7 @@ class StoreInvoiceController extends Controller
                 'observations' => $item['observations'],
                 'is_exento'    => $item['is_exento'] ?? false,
                 'branch_id'    => $item['branch_id'] ?? null,
+                'tank_id'      => $item['tank_id'] ?? null,
             ];
         }
         return $data;

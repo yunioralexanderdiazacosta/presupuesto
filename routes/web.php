@@ -41,6 +41,13 @@ use App\Http\Controllers\Products2\DeleteProduct2Controller;
     use App\Http\Controllers\Api\GetPendingExpenseReportItemsController;
     use App\Http\Controllers\Api\StoreSupplierApiController;
     use App\Http\Controllers\Api\GetCostCenterVarietiesController;
+    use App\Http\Controllers\Api\GetFuelTanksController;
+
+// Rutas para FuelTanks
+    use App\Http\Controllers\FuelTanks\FuelTanksController;
+    use App\Http\Controllers\FuelTanks\StoreFuelTankController;
+    use App\Http\Controllers\FuelTanks\UpdateFuelTankController;
+    use App\Http\Controllers\FuelTanks\DeleteFuelTankController;
 
 // Rutas AI Chat
     use App\Http\Controllers\AiChat\AiDatabaseChatController;
@@ -542,6 +549,13 @@ Route::middleware([
     Route::get('/api/pending-expense-items', GetPendingExpenseReportItemsController::class)->name('api.pending-expense-items');
     Route::post('/api/suppliers', StoreSupplierApiController::class)->name('api.suppliers.store');
     Route::get('/api/cost-center-varieties/{costCenterId}', GetCostCenterVarietiesController::class)->name('api.cost-center-varieties');
+    Route::get('/api/fuel-tanks', GetFuelTanksController::class)->name('api.fuel-tanks');
+
+    // Fuel Tanks (estanques)
+    Route::get('/fuel-tanks', [FuelTanksController::class, 'index'])->name('fuel-tanks.index');
+    Route::post('/fuel-tanks', StoreFuelTankController::class)->name('fuel-tanks.store');
+    Route::put('/fuel-tanks/{fuelTank}', UpdateFuelTankController::class)->name('fuel-tanks.update');
+    Route::delete('/fuel-tanks/{fuelTank}', DeleteFuelTankController::class)->name('fuel-tanks.delete');
 
     // AI Chat - consultas en lenguaje natural sobre la base de datos
     Route::post('/api/ai-chat', AiDatabaseChatController::class)->name('api.ai-chat');

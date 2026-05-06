@@ -15,6 +15,7 @@ use App\Models\Product;
 use App\Models\Counter;
 use App\Models\Invoice;
 use App\Models\Level3;
+use App\Models\FuelTank;
 
 // ...existing code...
 
@@ -192,6 +193,7 @@ class FuelOutflowController extends Controller
                     'stock_disponible' => $stockDisponible,
                     'unit_price' => $unitPrice,
                     'effective_unit_price' => $effectiveUnitPrice,
+                    'tank_id' => $invoiceProduct->tank_id,
                     'date' => $invoice->date instanceof \Carbon\Carbon ? $invoice->date->format('Y-m-d') : $invoice->date,
                 ];
             }
@@ -231,6 +233,7 @@ class FuelOutflowController extends Controller
                     'cantidad_original' => $cantidadOriginal,
                     'stock_disponible' => $stockDisponible,
                     'unit_price' => 0,
+                    'tank_id' => null,
                     'date' => $note->date instanceof \Carbon\Carbon ? $note->date->format('Y-m-d') : $note->date,
                 ];
             }
@@ -272,6 +275,21 @@ class FuelOutflowController extends Controller
             ->map(fn($o) => ['value' => $o->id, 'label' => $o->name])
             ->values();
 
+        // Estanques activos del equipo
+        $fuelTanks = FuelTank::with(['branch', 'product'])
+            ->where('team_id', $user->team_id)
+            ->where('active', true)
+            ->orderBy('name')
+            ->get()
+            ->map(fn($t) => [
+                'value'        => $t->id,
+                'label'        => $t->name,
+                'branch_id'    => $t->branch_id,
+                'branch_name'  => $t->branch?->name,
+                'product_id'   => $t->product_id,
+                'product_name' => $t->product?->name,
+            ]);
+
         return Inertia::render('FuelOutflows/Index', [
             'fuelOutflows' => $fuelOutflows,
             'availableFuelStocks' => $availableFuelStocks,
@@ -282,6 +300,7 @@ class FuelOutflowController extends Controller
             'counters' => $counters,
             'projects' => $projects,
             'operations' => $operations,
+            'fuelTanks' => $fuelTanks,
         ]);
     }
     
@@ -308,9 +327,46 @@ class FuelOutflowController extends Controller
             ->groupBy('machineries.id', 'machineries.cod_machinery')
             ->orderByDesc('total_litros')
             ->get();
-        
+
+        // Stock por estanque
+        $tanks = FuelTank::with(['branch', 'product'])
+            ->where('team_id', $user->team_id)
+            ->where('active', true)
+            ->orderBy('name')
+            ->get();
+
+        $stockPorEstanque = $tanks->map(function ($tank) use ($season_id) {
+            // Litros ingresados al estanque (de facturas)
+            $ingresado = DB::table('invoice_products')
+                ->join('invoices', 'invoice_products.invoice_id', '=', 'invoices.id')
+                ->where('invoice_products.tank_id', $tank->id)
+                ->where('invoices.season_id', $season_id)
+                ->sum('invoice_products.amount');
+
+            // Litros consumidos desde el estanque
+            $consumido = DB::table('fuel_outflows')
+                ->where('tank_id', $tank->id)
+                ->where('season_id', $season_id)
+                ->sum('liters');
+
+            $stock = round($ingresado - $consumido, 2);
+
+            return [
+                'tank_id'      => $tank->id,
+                'tank_name'    => $tank->name,
+                'branch_name'  => $tank->branch?->name,
+                'product_name' => $tank->product?->name,
+                'capacity'     => $tank->capacity,
+                'ingresado'    => round($ingresado, 2),
+                'consumido'    => round($consumido, 2),
+                'stock'        => $stock,
+                'porcentaje'   => $tank->capacity > 0 ? round(($stock / $tank->capacity) * 100, 1) : null,
+            ];
+        });
+
         return response()->json([
-            'consumo_por_maquinaria' => $consumoPorMaquinaria
+            'consumo_por_maquinaria' => $consumoPorMaquinaria,
+            'stock_por_estanque'     => $stockPorEstanque,
         ]);
     }
 }

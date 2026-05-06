@@ -14,6 +14,7 @@ const props = defineProps({
     availableFuelStocks: Array,
     projects: Array,
     operations: Array,
+    fuelTanks: { type: Array, default: () => [] },
 });
 
 const emit = defineEmits(['close', 'saved']);
@@ -26,6 +27,7 @@ const form = useForm({
     invoice_product_id: null,
     credit_debit_note_item_id: null,
     product_id: '',
+    tank_id: null,
     project_id: null,
     operation_id: null,
     liters: '',
@@ -53,6 +55,7 @@ function onStockLineSelected() {
         form.product_id = selectedStockLine.value.product_id;
         form.invoice_product_id = selectedStockLine.value.invoice_product_id;
         form.credit_debit_note_item_id = selectedStockLine.value.credit_debit_note_item_id;
+        form.tank_id = selectedStockLine.value.tank_id ?? null;
         maxLiters.value = selectedStockLine.value.stock_disponible;
         form.liters = selectedStockLine.value.stock_disponible;
     } else {
@@ -60,6 +63,7 @@ function onStockLineSelected() {
         form.product_id = '';
         form.invoice_product_id = null;
         form.credit_debit_note_item_id = null;
+        form.tank_id = null;
         maxLiters.value = null;
         form.liters = '';
     }
@@ -164,6 +168,16 @@ function save() {
                 </select>
               </div>
               
+              <div class="col-md-4">
+                <label class="form-label">Estanque</label>
+                <select v-model="form.tank_id" class="form-select">
+                  <option :value="null">Sin estanque</option>
+                  <option v-for="t in props.fuelTanks" :key="t.value" :value="t.value">
+                    {{ t.label }}<span v-if="t.branch_name"> ({{ t.branch_name }})</span>
+                  </option>
+                </select>
+              </div>
+
               <div class="col-md-4">
                 <label class="form-label">Fecha</label>
                 <input type="date" v-model="form.date" class="form-control" required />

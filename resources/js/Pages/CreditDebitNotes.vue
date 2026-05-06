@@ -158,11 +158,23 @@ const updateNote = () => {
         <!-- Aquí irá el listado de notas -->
         <div class="card my-3">
             <div class="card-header">
-                <div class="mb-4 d-flex justify-content-between align-items-center">
-                    <h5 class="fs-9 mb-0 text-nowrap py-2 py-xl-0">
-                        <i class="fas fa-chess text-primary me-2"></i>Notas de Credito/Debito
-                    </h5>
-                    <Link class="btn btn-primary" :href="route('credit_debit_notes.create')">Nueva Nota</Link>
+                <div class="row flex-between-center">
+                    <div class="col-6 col-sm-auto d-flex align-items-center pe-0">
+                        <h5 class="fs-9 mb-0 text-nowrap py-2 py-xl-0">
+                            <i class="fas fa-file-alt me-2"></i>Notas de Crédito/Débito
+                        </h5>
+                    </div>
+                    <div class="col-6 col-sm-auto ms-auto text-end ps-0">
+                        <div class="d-flex align-items-center gap-2 justify-content-end">
+                            <Link :href="route('invoices.index')" class="btn btn-falcon-default btn-sm">
+                                <i class="fas fa-arrow-left me-1"></i>Volver
+                            </Link>
+                            <Link class="btn btn-falcon-default btn-sm" :href="route('credit_debit_notes.create')">
+                                <span class="fas fa-plus" data-fa-transform="shrink-3 down-2"></span>
+                                <span class="d-none d-sm-inline-block ms-1">Nueva Nota</span>
+                            </Link>
+                        </div>
+                    </div>
                 </div>
             </div>
             

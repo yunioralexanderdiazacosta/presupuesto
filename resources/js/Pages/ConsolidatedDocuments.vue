@@ -4,7 +4,7 @@ import AppLayout from '@/Layouts/AppLayout.vue';
 import CardHeader from '@/Components/CardHeader.vue';
 import SearchInput from '@/Components/SearchInput.vue';
 import ExportExcelButton from '@/Components/ExportExcelButton.vue';
-import { Head } from '@inertiajs/vue3';
+import { Head, Link } from '@inertiajs/vue3';
 import { defineProps, ref, computed } from 'vue';
 
 
@@ -324,7 +324,14 @@ const getDocTypeBadge = (tipo) => {
   <Head :title="'Documentos Consolidados'" />
   <AppLayout>
     <div class="card my-3">
-      <CardHeader title="Consolidado" />
+      <CardHeader title="Consolidado">
+        <template #actions>
+          <Link :href="route('invoices.index')" class="btn btn-falcon-default btn-sm">
+            <span class="fas fa-arrow-left" data-fa-transform="shrink-3 down-2"></span>
+            <span class="d-none d-sm-inline-block ms-1">Volver</span>
+          </Link>
+        </template>
+      </CardHeader>
       <div class="card-body bg-body-tertiary">
         <ul class="nav nav-pills mb-3" id="pill-consolidado" role="tablist">
           <li class="nav-item">

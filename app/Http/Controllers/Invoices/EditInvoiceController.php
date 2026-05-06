@@ -15,6 +15,7 @@ use App\Models\PurchaseOrder;
 use App\Models\Branch;
 use Illuminate\Support\Facades\DB;
 use Inertia\Inertia;
+use App\Models\FuelTank;
 
 class EditInvoiceController extends Controller
 {
@@ -63,6 +64,7 @@ class EditInvoiceController extends Controller
                 'observations'  => $product->pivot->observations,
                 'is_exento'     => (bool) $product->pivot->is_exento,
                 'branch_id'     => $product->pivot->branch_id,
+                'tank_id'       => $product->pivot->tank_id ?? null,
             ];  
         });
 
@@ -124,6 +126,20 @@ class EditInvoiceController extends Controller
         $defaultBranch = $branches->firstWhere('is_default', true);
         $defaultBranchId = $defaultBranch ? $defaultBranch['value'] : null;
 
+        $fuelTanks = FuelTank::where('team_id', $user->team_id)
+            ->where('active', true)
+            ->orderBy('name')
+            ->get()
+            ->map(fn($t) => ['value' => $t->id, 'label' => $t->name, 'product_id' => $t->product_id, 'branch_id' => $t->branch_id]);
+
+        $fuelLevel3Ids = \App\Models\Level3::whereHas('level2.level1', fn($q) => $q->where('team_id', $user->team_id))
+            ->where('name', 'like', '%combustible%')
+            ->pluck('id');
+        $fuelProductIds = Product::where('team_id', $user->team_id)
+            ->whereIn('level3_id', $fuelLevel3Ids)
+            ->pluck('id')
+            ->toArray();
+
         return Inertia::render('Invoices/Edit', compact(
             'invoice',
             'invoiceProducts',
@@ -136,7 +152,9 @@ class EditInvoiceController extends Controller
             'protectedProductIds',
             'purchaseOrders',
             'branches',
-            'defaultBranchId'
+            'defaultBranchId',
+            'fuelTanks',
+            'fuelProductIds'
         ));
     }
 }

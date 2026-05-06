@@ -78,11 +78,8 @@ const menuItems = [
     { label: 'Dashboard Inversiones', route: 'investment.dashboard', icon: 'fas fa-chart-pie', section: 'Gestión' },
     { label: 'Utilidad / Pérdida', route: 'profit-loss.index', icon: 'fas fa-balance-scale', section: 'Gestión' },
     { label: 'Facturas y otros', route: 'invoices.index', icon: 'fas fa-file-invoice', section: 'Registro de Gastos' },
-    { label: 'Pagos de Facturas', route: 'invoice-payments.index', icon: 'fas fa-money-bill-wave', section: 'Registro de Gastos' },
-    { label: 'Notas de Crédito/Débito', route: 'credit_debit_notes.index', icon: 'fas fa-file-alt', section: 'Registro de Gastos' },
     { label: 'Rendiciones de Gastos', route: 'expense-reports.index', icon: 'fas fa-receipt', section: 'Registro de Gastos' },
     { label: 'Órdenes de Compra', route: 'purchase-orders.index', icon: 'fas fa-shopping-cart', section: 'Registro de Gastos' },
-    { label: 'Consolidado de Documentos', route: 'consolidated-documents.index', icon: 'fas fa-folder-open', section: 'Registro de Gastos' },
     { label: 'Inversiones', route: 'investments.index', icon: 'fas fa-chart-pie', section: 'Gestión' },
     { label: 'Proyectos', route: 'projects.index', icon: 'fas fa-folder-open', section: 'Gestión' },
     { label: 'Consolidado de Salidas', route: 'consolidated-outflows.index', icon: 'fas fa-sign-out-alt', section: 'Salidas' },
@@ -99,6 +96,7 @@ const menuItems = [
     { label: 'Maquinarias', route: 'machineries.index', icon: 'fas fa-cogs', section: 'Maquinarias' },
     { label: 'Tipo de Maquinarias', route: 'type.machineries.index', icon: 'fas fa-wrench', section: 'Maquinarias' },
     { label: 'Operarios', route: 'operators.index', icon: 'fas fa-id-badge', section: 'Maquinarias' },
+    { label: 'Estanques de Combustible', route: 'fuel-tanks.index', icon: 'fas fa-drum', section: 'Maquinarias' },
     { label: 'Equipos de Riego', route: 'irrigation-pumps.index', icon: 'fas fa-tint', section: 'Gestión' },
     { label: 'Colaboradores', route: 'employees.index', icon: 'fas fa-user-tie', section: 'Remuneraciones' },
     { label: 'Contratos', route: 'contracts.index', icon: 'fas fa-file-signature', section: 'Remuneraciones' },
@@ -398,16 +396,6 @@ const navigateTo = (routeName) => {
                       </Link>
                     </li>
                     <li class="nav-item">
-                      <Link class="nav-link" :href="route('invoice-payments.index')">
-                        <div class="d-flex align-items-center"><span class="nav-link-text ps-4">Pagos de Facturas</span></div>
-                      </Link>
-                    </li>
-                    <li class="nav-item">
-                      <Link class="nav-link" :href="route('credit_debit_notes.index')">
-                        <div class="d-flex align-items-center"><span class="nav-link-text ps-4">Notas de Crédito/Débito</span></div>
-                      </Link>
-                    </li>
-                    <li class="nav-item">
                       <Link class="nav-link" :href="route('expense-reports.index')">
                         <div class="d-flex align-items-center"><span class="nav-link-text ps-4">Rendiciones de Gastos</span></div>
                       </Link>
@@ -415,11 +403,6 @@ const navigateTo = (routeName) => {
                     <li class="nav-item">
                       <Link class="nav-link" :href="route('purchase-orders.index')">
                         <div class="d-flex align-items-center"><span class="nav-link-text ps-4">Órdenes de Compra</span></div>
-                      </Link>
-                    </li>
-                    <li class="nav-item">
-                      <Link class="nav-link" :href="route('consolidated-documents.index')">
-                        <div class="d-flex align-items-center"><span class="nav-link-text ps-4">Consolidado de Documentos</span></div>
                       </Link>
                     </li>
                    
@@ -551,6 +534,10 @@ const navigateTo = (routeName) => {
                     </li>
                     <li class="nav-item"><Link class="nav-link" :href="route('operators.index')">
                         <div class="d-flex align-items-center"><span class="nav-link-text ps-4">Operarios</span></div>
+                      </Link>
+                    </li>
+                    <li class="nav-item"><Link class="nav-link" :href="route('fuel-tanks.index')">
+                        <div class="d-flex align-items-center"><span class="nav-link-text ps-4">Estanques de Combustible</span></div>
                       </Link>
                     </li>
                   </ul>

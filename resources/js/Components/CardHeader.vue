@@ -6,7 +6,7 @@
           <slot name="icon"><i class="fas fa-people-carry text-primary me-2"></i></slot>{{ title }}
         </h3>
       </div>
-      <div class="col">
+      <div class="col-6 col-sm-auto ms-auto text-end ps-0">
         <slot name="actions"></slot>
       </div>
     </div>

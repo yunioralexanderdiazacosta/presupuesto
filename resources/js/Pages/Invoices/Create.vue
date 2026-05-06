@@ -16,6 +16,8 @@ const props = defineProps({
 	purchaseOrders: Array,
 	branches: Array,
 	defaultBranchId: [Number, String, null],
+	fuelTanks: { type: Array, default: () => [] },
+	fuelProductIds: { type: Array, default: () => [] },
 });
 
 const title = props.prefill?.is_duplicate
@@ -48,6 +50,7 @@ const form = useForm({
 				observations: props.prefill?.description || '',
 				is_exento: false,
 				branch_id: props.defaultBranchId || null,
+				tank_id: null,
 			}
 		]
 });

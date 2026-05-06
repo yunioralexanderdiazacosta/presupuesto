@@ -16,6 +16,7 @@ class FuelOutflow extends Model
         'operator_id',
         'cost_center_id',
         'product_id',
+        'tank_id',
         'invoice_product_id',
         'credit_debit_note_item_id',
         'counter_id',
@@ -55,6 +56,11 @@ class FuelOutflow extends Model
     public function product()
     {
         return $this->belongsTo(Product::class);
+    }
+
+    public function tank()
+    {
+        return $this->belongsTo(FuelTank::class, 'tank_id');
     }
 
     public function counter()

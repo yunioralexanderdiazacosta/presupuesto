@@ -21,6 +21,7 @@ class UpdateFuelOutflowRequest extends FormRequest
             'invoice_product_id' => 'nullable|exists:invoice_products,id',
             'credit_debit_note_item_id' => 'nullable|exists:credit_debit_note_items,id',
             'product_id' => 'required|exists:products,id',
+            'tank_id' => 'nullable|exists:fuel_tanks,id',
             'project_id' => 'nullable|exists:projects,id',
             'operation_id' => 'nullable|exists:operations,id',
             'liters' => 'required|numeric|min:0.01',

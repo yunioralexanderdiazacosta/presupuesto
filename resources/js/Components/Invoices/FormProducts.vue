@@ -161,6 +161,7 @@ const add = () => {
 		observations: '',
 		is_exento: false,
 		branch_id: $page.defaultBranchId || null,
+		tank_id: null,
 	});
 	showProductOptions.value.push(true);
 }
@@ -204,6 +205,17 @@ const removeLastEmptyLine = () => {
 	}
 }
 
+const isFuelProduct = (productId) => {
+	if (!productId) return false;
+	return ($page.fuelProductIds || []).some(id => String(id) === String(productId));
+};
+
+const tanksForBranch = (branchId) => {
+	const tanks = $page.fuelTanks || [];
+	if (!branchId) return tanks;
+	return tanks.filter(t => t.branch_id == null || String(t.branch_id) === String(branchId));
+};
+
 // Crear diccionario de productos para búsqueda instantánea por id
 const productDict = {};
 ($page.products || []).forEach(p => {
@@ -226,6 +238,23 @@ watch(
 	},
 	{ deep: true }
 );
+
+// Limpiar tank_id si cambia la sucursal y el estanque no pertenece a la nueva sucursal
+watch(
+	() => props.form.products.map(p => p.branch_id),
+	(newBranchIds, oldBranchIds) => {
+		newBranchIds.forEach((branchId, idx) => {
+			if (branchId !== oldBranchIds[idx]) {
+				const product = props.form.products[idx];
+				if (product.tank_id) {
+					const valid = tanksForBranch(branchId).some(t => String(t.value) === String(product.tank_id));
+					if (!valid) product.tank_id = null;
+				}
+			}
+		});
+	},
+	{ deep: true }
+);
 </script>
 <template>
 	<div class="elegant-divider my-2"></div>
@@ -242,8 +271,7 @@ watch(
 					<th style="width:95px; min-width:95px; padding-bottom:2px;">Unidad</th>
 					<th style="width:65px; min-width:65px; padding-bottom:2px;">Cant.</th>
 					<th style="width:95px; min-width:95px; padding-bottom:2px;">Precio</th>
-					<th style="width:130px; min-width:130px; padding-bottom:2px;">Observaciones</th>
-					<th style="width:80px; min-width:80px; padding-bottom:2px;" class="text-end">Total</th>
+					<th style="width:130px; min-width:130px; padding-bottom:2px;">Observaciones</th>						<th style="width:110px; min-width:110px; padding-bottom:2px;">Estanque</th>					<th style="width:80px; min-width:80px; padding-bottom:2px;" class="text-end">Total</th>
 					<th style="width:45px; min-width:45px; padding-bottom:2px;" class="text-center" title="Exento de IVA">Exento</th>
 					<th style="width:35px; min-width:35px; padding-bottom:2px;" class="text-end">Acción</th>
 				</tr>
@@ -332,6 +360,16 @@ watch(
 					<!-- Observaciones -->
 					<td class="ps-1 pe-1" style="width:130px; min-width:130px; max-width:130px;">
 						<input type="text" class="form-control form-control-sm" :class="{'bg-light': isProtected(product.product_id)}" v-model="product.observations" :disabled="isProtected(product.product_id)" placeholder="Observaciones..." />
+					</td>
+
+					<!-- Estanque (solo combustible) -->
+					<td class="ps-1 pe-1 align-top" style="width:110px; min-width:110px; max-width:110px;">
+						<select v-if="isFuelProduct(product.product_id)" v-model="product.tank_id" class="form-select form-select-sm" style="font-size:0.78rem;" :disabled="isProtected(product.product_id)"
+							@change="() => { /* tank_id ya vinculado */ }">
+							<option :value="null">— Sin estanque —</option>
+							<option v-for="t in tanksForBranch(product.branch_id)" :key="t.value" :value="t.value">{{ t.label }}</option>
+						</select>
+						<span v-else class="text-muted" style="font-size:0.75rem;">—</span>
 					</td>
 
 					<!-- Total -->

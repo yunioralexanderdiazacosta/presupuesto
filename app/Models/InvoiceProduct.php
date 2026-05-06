@@ -20,6 +20,7 @@ class InvoiceProduct extends Model
         'observations',
         'is_exento',
         'branch_id',
+        'tank_id',
     ];
 
     protected $casts = [
@@ -39,6 +40,11 @@ class InvoiceProduct extends Model
     public function branch()
     {
         return $this->belongsTo(Branch::class);
+    }
+
+    public function tank()
+    {
+        return $this->belongsTo(FuelTank::class, 'tank_id');
     }
     // Relación a unidad
     public function unit()

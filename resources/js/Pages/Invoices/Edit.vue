@@ -20,6 +20,8 @@ const props = defineProps({
 	},
 	branches: Array,
 	defaultBranchId: [Number, String, null],
+	fuelTanks: { type: Array, default: () => [] },
+	fuelProductIds: { type: Array, default: () => [] },
 })
 
 // Mostrar mensaje de error si existe

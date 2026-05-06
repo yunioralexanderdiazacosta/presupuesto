@@ -14,6 +14,7 @@ const props = defineProps({
     counters: Array,
     projects: Array,
     operations: Array,
+    fuelTanks: { type: Array, default: () => [] },
 });
 
 const emit = defineEmits(['close', 'saved']);
@@ -33,6 +34,7 @@ const form = useForm({
     counter_id: '',
     counter_value: '',
     observations: '',
+    tank_id: null,
 });
 
 const selectedMachinery = ref(null);
@@ -66,6 +68,7 @@ watch(() => props.show, (val) => {
         form.counter_id = props.fuelOutflow.counter_id || '';
         form.counter_value = props.fuelOutflow.counter_value || '';
         form.observations = props.fuelOutflow.observations || '';
+        form.tank_id = props.fuelOutflow.tank_id || null;
         
         // Cargar machinery seleccionada
         const machinery = props.machineries.find(m => m.value === props.fuelOutflow.machinery_id);
@@ -119,6 +122,16 @@ function update() {
               <div class="col-md-4">
                 <label class="form-label">Fecha</label>
                 <input type="date" v-model="form.date" class="form-control" required />
+              </div>
+
+              <div class="col-md-4">
+                <label class="form-label">Estanque</label>
+                <select v-model="form.tank_id" class="form-select">
+                  <option :value="null">Sin estanque</option>
+                  <option v-for="t in props.fuelTanks" :key="t.value" :value="t.value">
+                    {{ t.label }}<template v-if="t.branch_name"> ({{ t.branch_name }})</template>
+                  </option>
+                </select>
               </div>
              
               <div class="col-md-4">

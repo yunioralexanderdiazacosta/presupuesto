@@ -31,6 +31,7 @@ const props = defineProps({
     availableFuelStocks: Array,
     projects: Array,
     operations: Array,
+    fuelTanks: { type: Array, default: () => [] },
 });
 
 const title = 'Consumos de Combustible';
@@ -294,6 +295,7 @@ function deleteFuelOutflow(id) {
             :availableFuelStocks="props.availableFuelStocks"
             :projects="props.projects"
             :operations="props.operations"
+            :fuelTanks="props.fuelTanks"
             @close="closeCreateModal"
             @saved="reloadAfterSave"
         />
@@ -309,6 +311,7 @@ function deleteFuelOutflow(id) {
             :counters="props.counters"
             :projects="props.projects"
             :operations="props.operations"
+            :fuelTanks="props.fuelTanks"
             @close="closeEditModal"
             @saved="reloadAfterSave"
         />

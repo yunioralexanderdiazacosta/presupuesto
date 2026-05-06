@@ -409,6 +409,30 @@ const formatCurrency = (value) => {
             </div>
 
             <div class="card-body bg-body-tertiary">
+                <!-- Nav de módulos: acceso rápido -->
+                <ul class="nav nav-pills mb-3 border-bottom pb-2" style="font-size: 0.82rem;">
+                    <li class="nav-item">
+                        <Link class="nav-link py-1 px-3 active" :href="route('invoices.index')">
+                            <i class="fas fa-file-invoice me-1"></i>Facturas
+                        </Link>
+                    </li>
+                    <li class="nav-item">
+                        <Link class="nav-link py-1 px-3" :href="route('credit_debit_notes.index')">
+                            <i class="fas fa-file-alt me-1"></i>Notas de Crédito/Débito
+                        </Link>
+                    </li>
+                    <li class="nav-item">
+                        <Link class="nav-link py-1 px-3" :href="route('invoice-payments.index')">
+                            <i class="fas fa-money-bill-wave me-1"></i>Pagos de Facturas
+                        </Link>
+                    </li>
+                    <li class="nav-item">
+                        <Link class="nav-link py-1 px-3" :href="route('consolidated-documents.index')">
+                            <i class="fas fa-folder-open me-1"></i>Consolidado Documentos
+                        </Link>
+                    </li>
+                </ul>
+
                 <div class="d-flex align-items-center justify-content-between mb-2">
                     <ul class="nav nav-pills nav-pills-sm" id="pill-myTab" role="tablist" style="font-size: 0.75rem;">
                         <li class="nav-item">
@@ -418,14 +442,6 @@ const formatCurrency = (value) => {
                         <li class="nav-item">
                             <a class="nav-link py-1 px-2" :class="{ active: activeTab === 'detalles' }" id="pill-detalles"
                                 href="#pill-tab-detalles" role="tab" @click.prevent="activeTab = 'detalles'">Detalles</a>
-                        </li>
-                        <li class="nav-item">
-                            <a class="nav-link py-1 px-2" :class="{ active: activeTab === 'gastos' }" id="pill-gastos"
-                                href="#pill-tab-gastos" role="tab" @click.prevent="activeTab = 'gastos'">Gastos x Ha</a>
-                        </li>
-                        <li class="nav-item">
-                            <a class="nav-link py-1 px-2" :class="{ active: activeTab === 'detalles-compra' }" id="pill-detalles-compra"
-                                href="#pill-tab-detalles-compra" role="tab" @click.prevent="activeTab = 'detalles-compra'">Det. compra</a>
                         </li>
                     </ul>
                     <!-- Cards de totales alineados a la derecha -->

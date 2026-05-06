@@ -148,6 +148,10 @@ const statusLabels = {
                     </div>
                     <div class="col-6 col-sm-auto ms-auto text-end ps-0">
                         <div class="d-flex align-items-center gap-2">
+                            <Link :href="route('invoices.index')" class="btn btn-falcon-default btn-sm">
+                                <span class="fas fa-arrow-left" data-fa-transform="shrink-3 down-2"></span>
+                                <span class="d-none d-sm-inline-block ms-1">Volver</span>
+                            </Link>
                             <Link :href="route('invoice-payments.dashboard')" class="btn btn-falcon-default btn-sm">
                                 <span class="fas fa-chart-line" data-fa-transform="shrink-3 down-2"></span>
                                 <span class="d-none d-sm-inline-block ms-1">Dashboard</span>

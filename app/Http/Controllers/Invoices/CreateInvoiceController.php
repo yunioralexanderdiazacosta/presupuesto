@@ -15,6 +15,8 @@ use App\Models\Month;
 use App\Models\Branch;
 use App\Models\ExpenseReportItem;
 use App\Models\PurchaseOrder;
+use App\Models\FuelTank;
+use App\Models\Level3;
 
 class CreateInvoiceController extends Controller
 {
@@ -100,6 +102,20 @@ class CreateInvoiceController extends Controller
         $defaultBranch = $branches->firstWhere('is_default', true);
         $defaultBranchId = $defaultBranch ? $defaultBranch['value'] : null;
 
-        return Inertia::render('Invoices/Create', compact('typeDocuments', 'suppliers', 'companyReasons', 'products', 'units', 'months', 'prefill', 'purchaseOrders', 'branches', 'defaultBranchId'));
+        $fuelTanks = FuelTank::where('team_id', $user->team_id)
+            ->where('active', true)
+            ->orderBy('name')
+            ->get()
+            ->map(fn($t) => ['value' => $t->id, 'label' => $t->name, 'product_id' => $t->product_id, 'branch_id' => $t->branch_id]);
+
+        $fuelLevel3Ids = Level3::whereHas('level2.level1', fn($q) => $q->where('team_id', $user->team_id))
+            ->where('name', 'like', '%combustible%')
+            ->pluck('id');
+        $fuelProductIds = Product::where('team_id', $user->team_id)
+            ->whereIn('level3_id', $fuelLevel3Ids)
+            ->pluck('id')
+            ->toArray();
+
+        return Inertia::render('Invoices/Create', compact('typeDocuments', 'suppliers', 'companyReasons', 'products', 'units', 'months', 'prefill', 'purchaseOrders', 'branches', 'defaultBranchId', 'fuelTanks', 'fuelProductIds'));
     }
 }
