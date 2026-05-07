@@ -13,12 +13,14 @@
     <div class="margin-top">
         <table class="table table-bordered">
             <tr align="left">
+                <th>ID</th>
                 <th>Nombre</th>
                 <th>Superficie</th>
                 <th>Observaciones</th>
             </tr>
              @foreach($costCenters as $costCenter)
             <tr class="items">
+                    <td>{{ $costCenter['id'] }}</td>
                     <td>{{ $costCenter['name'] }}</td>
                     <td>{{ $costCenter['surface'] }}</td>
                      <td>{{ $costCenter['observations'] }}</td>

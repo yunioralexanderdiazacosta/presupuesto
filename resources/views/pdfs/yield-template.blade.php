@@ -17,8 +17,9 @@
         th { background-color: #e0e0e0; font-size: 7px; text-align: center; font-weight: bold; }
         td { font-size: 8px; height: 20px; }
         .num { text-align: center; width: 25px; }
-        .name { min-width: 120px; }
+        .name { min-width: 60px; }
         .rut { width: 65px; font-size: 7px; }
+        .cc-col { width: 30px; text-align: center; }
         .labor-col { width: 70px; }
         .trato-col { width: 50px; }
         .cant-col { width: 35px; text-align: center; }
@@ -63,16 +64,18 @@
                         <th class="num" rowspan="2">#</th>
                         <th class="name" rowspan="2">Nombre</th>
                         <th class="rut" rowspan="2">RUT</th>
-                        <th colspan="4" class="labor-header">Labor 1</th>
-                        <th colspan="4" class="labor-header-2">Labor 2</th>
+                        <th colspan="5" class="labor-header">Labor 1</th>
+                        <th colspan="5" class="labor-header-2">Labor 2</th>
                         <th class="precip-col" rowspan="2">Precip. Obj.</th>
                         <th class="obs-col" rowspan="2">Obs.</th>
                     </tr>
                     <tr>
+                        <th class="cc-col labor-header">CC</th>
                         <th class="labor-col labor-header">Labor</th>
                         <th class="trato-col labor-header">Trato</th>
                         <th class="cant-col labor-header">Cant</th>
                         <th class="hrs-col labor-header">Hrs</th>
+                        <th class="cc-col labor-header-2">CC</th>
                         <th class="labor-col labor-header-2">Labor</th>
                         <th class="trato-col labor-header-2">Trato</th>
                         <th class="cant-col labor-header-2">Cant</th>
@@ -85,10 +88,12 @@
                             <td class="num">{{ ($pageNum - 1) * $perPage + $loop->iteration }}</td>
                             <td class="name">{{ $contract->employee->paternal_surname }} {{ $contract->employee->maternal_surname }}, {{ $contract->employee->first_name }}</td>
                             <td class="rut">{{ $contract->employee->rut }}</td>
+                            <td class="cc-col"></td>
                             <td class="labor-col"></td>
                             <td class="trato-col"></td>
                             <td class="cant-col"></td>
                             <td class="hrs-col"></td>
+                            <td class="cc-col"></td>
                             <td class="labor-col"></td>
                             <td class="trato-col"></td>
                             <td class="cant-col"></td>
@@ -103,10 +108,12 @@
                             <td class="num">{{ ($pageNum - 1) * $perPage + $i + 1 }}</td>
                             <td class="name"></td>
                             <td class="rut"></td>
+                            <td class="cc-col"></td>
                             <td class="labor-col"></td>
                             <td class="trato-col"></td>
                             <td class="cant-col"></td>
                             <td class="hrs-col"></td>
+                            <td class="cc-col"></td>
                             <td class="labor-col"></td>
                             <td class="trato-col"></td>
                             <td class="cant-col"></td>

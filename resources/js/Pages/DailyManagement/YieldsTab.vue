@@ -884,7 +884,7 @@ function deleteLine(yieldId) {
                                                             <input type="text" :value="editLineAmount.toLocaleString('es-CL')" class="form-control form-control-sm bg-light" readonly />
                                                         </div>
                                                         <!-- Precio objetivo: solo en modo 'Al día' -->
-                                                        <div class="col-md-2" v-if="editLine.payment_type === 'dia'">
+                                                        <div class="col-md-1" v-if="editLine.payment_type === 'dia'">
                                                             <label class="form-label small mb-0 text-warning fw-semi-bold">
                                                                 <i class="fas fa-bullseye fa-xs me-1"></i>Precio Objetivo
                                                             </label>
@@ -894,7 +894,7 @@ function deleteLine(yieldId) {
                                                                     type="number"
                                                                     v-model.number="editLine.target_price"
                                                                     @input="onEditTargetPriceChange"
-                                                                    class="form-control form-control-sm"
+                                                                    class="form-control form-control-sm no-spinner"
                                                                     :class="{'border-danger': editLine.target_price && editLine.target_price <= emp.daily_rate}"
                                                                     placeholder="ej: 30000"
                                                                     min="0"
@@ -1010,7 +1010,7 @@ function deleteLine(yieldId) {
                                                 <input type="text" :value="newLineAmount.toLocaleString('es-CL')" class="form-control form-control-sm bg-light" readonly />
                                             </div>
                                             <!-- Precio objetivo: solo en modo 'Al día' y NO ausencia -->
-                                            <div class="col-md-2" v-if="newLine.payment_type === 'dia' && !isAbsenceSelected">
+                                            <div class="col-md-1" v-if="newLine.payment_type === 'dia' && !isAbsenceSelected">
                                                 <label class="form-label small mb-0 text-warning fw-semi-bold">
                                                     <i class="fas fa-bullseye fa-xs me-1"></i>Precio Objetivo
                                                 </label>
@@ -1020,7 +1020,7 @@ function deleteLine(yieldId) {
                                                         type="number"
                                                         v-model.number="newLine.target_price"
                                                         @input="onTargetPriceChange"
-                                                        class="form-control form-control-sm"
+                                                        class="form-control form-control-sm no-spinner"
                                                         :class="{'border-danger': newLine.target_price && newLine.target_price <= (props.employees.find(e => e.id === addingLineFor)?.daily_rate || 0)}"
                                                         placeholder="ej: 30000"
                                                         min="0"
@@ -1104,11 +1104,20 @@ function deleteLine(yieldId) {
 </template>
 
 <style scoped>
-/* Estado colapsado: el componente raíz NO crece */
+.no-spinner::-webkit-outer-spin-button,
+.no-spinner::-webkit-inner-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+}
+.no-spinner {
+    -moz-appearance: textfield;
+}
+
+/* Estado colapsado: el componente raíz NO crece, pero overflow visible para que el dropdown no quede clipado */
 .multiselect-tags-limited {
     max-height: 36px !important;
     min-height: 26px !important;
-    overflow: hidden !important;
+    overflow: visible !important;
     transition: max-height 0.3s ease;
 }
 

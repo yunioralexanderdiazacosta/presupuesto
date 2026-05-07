@@ -241,6 +241,7 @@ const openVarietyModal = (costCenterId = null) => {
                             <ExportExcelButton
                               :data="costCenters.data"
                               :headers="[
+                                { label: 'ID', key: 'id' },
                                 { label: 'Nombre', key: 'name' },
                                 { label: 'Sucursal', key: 'branch.name' },
                                 { label: 'Frutal', key: 'fruit.name' },
@@ -258,6 +259,7 @@ const openVarietyModal = (costCenterId = null) => {
                             <ExportPdfButton
                               :data="costCenters.data"
                               :headers="[
+                                { label: 'ID', key: 'id' },
                                 { label: 'Nombre', key: 'name' },
                                 { label: 'Sucursal', key: 'branch.name' },
                                 { label: 'Frutal', key: 'fruit.name' },
@@ -286,6 +288,7 @@ const openVarietyModal = (costCenterId = null) => {
                     <!--begin::Table head-->
                     <template #header>
                         <!--begin::Table row-->
+                        <th width="min-w-150px">ID</th>
                         <th width="min-w-150px">Nombre</th>
                         <th width="min-w-150px">Sucursal</th>
                         <th width="min-w-150px">Parcela</th>
@@ -307,6 +310,7 @@ const openVarietyModal = (costCenterId = null) => {
                         </template>
                         <template v-else>
                             <tr v-for="(costCenter, index) in costCenters.data" :key="index">
+                                <td>{{costCenter.id}}</td>
                                 <td><span class="text-dark text-hover-primary fw-bold mb-1">{{costCenter.name}}</span></td>
                                 <td>{{ costCenter.branch ? costCenter.branch.name : '—' }}</td>
                                 <td>{{costCenter.parcel ? costCenter.parcel.name : ''}}</td>
