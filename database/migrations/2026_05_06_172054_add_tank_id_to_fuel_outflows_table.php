@@ -12,8 +12,10 @@ return new class extends Migration
     public function up(): void
     {
         Schema::table('fuel_outflows', function (Blueprint $table) {
-            $table->foreignId('tank_id')->nullable()->after('product_id')
-                ->constrained('fuel_tanks')->onDelete('set null');
+            if (!Schema::hasColumn('fuel_outflows', 'tank_id')) {
+                $table->foreignId('tank_id')->nullable()->after('product_id')
+                    ->constrained('fuel_tanks')->onDelete('set null');
+            }
         });
     }
 
