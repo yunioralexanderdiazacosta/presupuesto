@@ -25,7 +25,7 @@ class FuelTanksController
             ->get(['id', 'name']);
 
         // Productos de combustible del equipo
-        $combustibleLevel3Ids = Level3::where('name', 'combustible')
+        $combustibleLevel3Ids = Level3::whereRaw('LOWER(name) LIKE ?', ['%combustible%'])
             ->whereHas('level2.level1', function ($q) use ($user) {
                 $q->where('team_id', $user->team_id);
             })

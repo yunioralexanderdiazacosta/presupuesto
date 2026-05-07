@@ -131,7 +131,9 @@ function deleteFuelOutflow(id) {
     }).then((result) => {
         if (result.isConfirmed) {
             router.delete(route('fuel-outflows.delete', id), {
+                preserveScroll: true,
                 onSuccess: () => {
+                    router.reload({ preserveScroll: true });
                     Swal.fire({
                         icon: 'success',
                         title: 'Eliminado',
@@ -140,11 +142,11 @@ function deleteFuelOutflow(id) {
                         showConfirmButton: false
                     });
                 },
-                onError: () => {
+                onError: (errors) => {
                     Swal.fire({
                         icon: 'error',
                         title: 'Error',
-                        text: 'No se pudo eliminar el registro'
+                        text: errors.error || 'No se pudo eliminar el registro'
                     });
                 }
             });
@@ -214,6 +216,7 @@ function deleteFuelOutflow(id) {
                   <table class="table table-bordered table-striped table-hover table-sm fs-10 mb-0">
                     <thead class="table-primary">
                       <tr>
+                        <th>#</th>
                         <th>Fecha</th>
                         <th>Código Maquinaria</th>
                         <th>Operario</th>
@@ -228,6 +231,7 @@ function deleteFuelOutflow(id) {
                     </thead>
                     <tbody>
                       <tr v-for="item in filteredRows" :key="item.id">
+                        <td>{{ item.id }}</td>
                         <td>{{ item.date }}</td>
                         <td>{{ item.machinery?.cod_machinery || '-' }}</td>
                         <td>{{ item.operator?.name || '-' }}</td>

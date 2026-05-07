@@ -313,6 +313,13 @@ const onDeleted = (id) => {
                 onSuccess: () => {
                     msgSuccess("Registro eliminado correctamente");
                 },
+                onError: (errors) => {
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'No se puede eliminar',
+                        text: errors.error || 'Esta factura tiene salidas registradas asociadas.',
+                    });
+                },
             });
         }
     });
