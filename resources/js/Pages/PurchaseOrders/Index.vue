@@ -96,7 +96,13 @@ function deleteOrder(orderId) {
         if (result.isConfirmed) {
             router.delete(route('purchase-orders.delete', orderId), {
                 onSuccess: () => {
-                    Swal.fire('Eliminada!', 'La orden de compra ha sido eliminada.', 'success');
+                    Swal.fire({
+                        icon: 'success',
+                        title: 'Eliminada',
+                        text: 'La orden de compra ha sido eliminada.',
+                        timer: 2000,
+                        showConfirmButton: false
+                    });
                 },
                 onError: (errors) => {
                     Swal.fire('Error', Object.values(errors)[0], 'error');
@@ -381,6 +387,12 @@ function getProductsList(order) {
                                                             <i class="fas fa-truck me-1"></i> Marcar como Enviada
                                                         </a>
                                                     </li>
+                                                    <li><hr class="dropdown-divider"></li>
+                                                    <li>
+                                                        <a class="dropdown-item text-danger" href="#" @click.prevent="deleteOrder(order.id)">
+                                                            <i class="fas fa-trash me-1"></i> Eliminar
+                                                        </a>
+                                                    </li>
                                                 </template>
                                                 <template v-else-if="order.status === 'sent'">
                                                     <li>
@@ -388,11 +400,23 @@ function getProductsList(order) {
                                                             <i class="fas fa-check-double me-1"></i> Marcar como Completada
                                                         </a>
                                                     </li>
+                                                    <li><hr class="dropdown-divider"></li>
+                                                    <li>
+                                                        <a class="dropdown-item text-danger" href="#" @click.prevent="deleteOrder(order.id)">
+                                                            <i class="fas fa-trash me-1"></i> Eliminar
+                                                        </a>
+                                                    </li>
                                                 </template>
                                                 <template v-else-if="order.status === 'received_partial'">
                                                     <li>
                                                         <a class="dropdown-item" href="#" @click.prevent="updateStatus(order.id, 'completed')">
                                                             <i class="fas fa-check-double me-1"></i> Marcar como Completada
+                                                        </a>
+                                                    </li>
+                                                    <li><hr class="dropdown-divider"></li>
+                                                    <li>
+                                                        <a class="dropdown-item text-danger" href="#" @click.prevent="deleteOrder(order.id)">
+                                                            <i class="fas fa-trash me-1"></i> Eliminar
                                                         </a>
                                                     </li>
                                                 </template>
@@ -421,6 +445,12 @@ function getProductsList(order) {
                                                         <span class="dropdown-item-text text-muted">
                                                             <i class="fas fa-check-circle me-1"></i> Orden completada
                                                         </span>
+                                                    </li>
+                                                    <li><hr class="dropdown-divider"></li>
+                                                    <li>
+                                                        <a class="dropdown-item text-danger" href="#" @click.prevent="deleteOrder(order.id)">
+                                                            <i class="fas fa-trash me-1"></i> Eliminar
+                                                        </a>
                                                     </li>
                                                 </template>
                                                 <template v-else>

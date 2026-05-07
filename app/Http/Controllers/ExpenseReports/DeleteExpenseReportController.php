@@ -16,10 +16,6 @@ class DeleteExpenseReportController extends Controller
             abort(403);
         }
 
-        if ($expenseReport->status !== 'borrador') {
-            return back()->withErrors(['status' => 'Solo se pueden eliminar rendiciones en borrador.']);
-        }
-
         // Eliminar archivos físicos de los items
         foreach ($expenseReport->items as $item) {
             if ($item->receipt_path) {

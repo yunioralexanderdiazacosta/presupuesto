@@ -178,7 +178,6 @@ const statusOptions = [
                                         <i class="fas fa-eye"></i>
                                     </Link>
                                     <button 
-                                        v-if="report.status === 'borrador'"
                                         class="btn btn-sm btn-falcon-default" 
                                         @click="deleteReport(report)"
                                         v-tooltip="'Eliminar'"
@@ -221,7 +220,6 @@ const statusOptions = [
                                     <i class="fas fa-eye me-1"></i>Ver
                                 </Link>
                                 <button 
-                                    v-if="report.status === 'borrador'"
                                     class="btn btn-sm btn-falcon-default" 
                                     @click="deleteReport(report)"
                                 >

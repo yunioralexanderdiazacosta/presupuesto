@@ -18,12 +18,7 @@ class DeletePurchaseOrderController extends Controller
             return back()->withErrors(['error' => 'No tiene permisos para eliminar esta orden.']);
         }
 
-        // Solo permitir eliminación si está en borrador o pendiente
-        if (!in_array($purchaseOrder->status, ['draft', 'pending'])) {
-            return back()->withErrors(['error' => 'Solo se pueden eliminar órdenes en estado borrador o pendiente.']);
-        }
-
-        $purchaseOrder->delete();
+            $purchaseOrder->delete();
 
         return redirect()->route('purchase-orders.index')->with('success', 'Orden de compra eliminada exitosamente.');
     }
