@@ -75,8 +75,25 @@ class UpdateInvoiceController extends Controller
             ->whereNotIn('id', $protectedInvoiceProductIds->toArray())
             ->delete();
 
-        // Re-agregar solo los productos que no están protegidos
+        // Re-agregar productos no protegidos y actualizar tank_id/branch_id en protegidos
         $protectedProductIdsArray = $protectedProductIds->toArray();
+        foreach ($request->products as $rawItem) {
+            $productId = (int) $rawItem['product_id'];
+            if (in_array($productId, $protectedProductIdsArray)) {
+                // Solo actualizar tank_id y branch_id (el resto está bloqueado por tener outflows)
+                $invoiceProductId = $rawItem['invoice_product_id'] ?? null;
+                if ($invoiceProductId) {
+                    DB::table('invoice_products')
+                        ->where('id', $invoiceProductId)
+                        ->where('invoice_id', $invoice->id)
+                        ->update([
+                            'tank_id'   => $rawItem['tank_id'] ?? null,
+                            'branch_id' => $rawItem['branch_id'] ?? null,
+                        ]);
+                }
+            }
+        }
+
         foreach ($this->products($request->products) as $productAttach) {
             if (!in_array((int) $productAttach['product_id'], $protectedProductIdsArray)) {
                 $invoice->products()->attach($productAttach['product_id'], [

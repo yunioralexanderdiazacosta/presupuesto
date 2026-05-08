@@ -57,15 +57,16 @@ class EditInvoiceController extends Controller
 
     $invoiceProducts = $invoice->products()->get()->transform(function($product){
             return [
+                'invoice_product_id' => $product->pivot->id,
                 'product_id'    => $product->id,
-                 'unit_id'       => $product->unit_id, 
+                'unit_id'       => $product->unit_id,
                 'unit_price'    => $product->pivot->unit_price,
                 'amount'        => $product->pivot->amount,
                 'observations'  => $product->pivot->observations,
                 'is_exento'     => (bool) $product->pivot->is_exento,
                 'branch_id'     => $product->pivot->branch_id,
                 'tank_id'       => $product->pivot->tank_id ?? null,
-            ];  
+            ];
         });
 
         // Listado de unidades para llenar el select

@@ -169,8 +169,22 @@ function save() {
               </div>
               
               <div class="col-md-4">
-                <label class="form-label">Estanque</label>
-                <select v-model="form.tank_id" class="form-select">
+                <label class="form-label">
+                  Estanque
+                  <span v-if="selectedStockLine?.tank_id" class="badge bg-info ms-1" style="font-size:0.65rem;">Auto</span>
+                </label>
+                <!-- Auto-asignado desde la factura -->
+                <div v-if="selectedStockLine?.tank_id" class="input-group">
+                  <span class="form-control bg-light text-muted" style="font-size:0.9rem;">
+                    <i class="fas fa-drum me-1 text-warning"></i>
+                    {{ props.fuelTanks.find(t => String(t.value) === String(selectedStockLine.tank_id))?.label ?? 'Estanque #' + selectedStockLine.tank_id }}
+                    <span class="text-muted small ms-1">
+                      ({{ props.fuelTanks.find(t => String(t.value) === String(selectedStockLine.tank_id))?.branch_name ?? '' }})
+                    </span>
+                  </span>
+                </div>
+                <!-- Sin tank en la factura: selección manual -->
+                <select v-else v-model="form.tank_id" class="form-select">
                   <option :value="null">Sin estanque</option>
                   <option v-for="t in props.fuelTanks" :key="t.value" :value="t.value">
                     {{ t.label }}<span v-if="t.branch_name"> ({{ t.branch_name }})</span>
