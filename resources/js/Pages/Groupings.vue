@@ -1,5 +1,5 @@
 <script setup>
-import { ref } from 'vue';
+import { ref, computed } from 'vue';
 import { Link, router, Head, useForm } from '@inertiajs/vue3';
 import Swal from 'sweetalert2';
 import AppLayout from '@/Layouts/AppLayout.vue';
@@ -8,6 +8,8 @@ import Empty from '@/Components/Empty.vue';
 import Breadcrumb from '@/Components/Breadcrumb.vue';
 import CreateGroupingModal from '@/Components/Groupings/CreateGroupingModal.vue';
 import EditGroupingModal from '@/Components/Groupings/EditGroupingModal.vue';
+import ExportExcelButton from '@/Components/ExportExcelButton.vue';
+import ExportPdfButton from '@/Components/ExportPdfButton.vue';
 
 const props = defineProps({
   groupings: Object,
@@ -107,6 +109,20 @@ const onDeleted = (id) => {
 const onFilter = () => {
   router.get(route('groupings.index', { term: term.value }), { preserveState: true });
 };
+
+const excelHeaders = [
+  { label: 'ID', key: 'id' },
+  { label: 'Nombre', key: 'name' },
+  { label: 'Centro de Costo', key: 'cc_name' },
+];
+
+const excelData = computed(() =>
+  props.groupings.data.flatMap(g => {
+    const ccs = g.cost_centers ?? [];
+    if (!ccs.length) return [{ id: g.id, name: g.name, cc_name: '-' }];
+    return ccs.map(cc => ({ id: g.id, name: g.name, cc_name: cc.name }));
+  })
+);
 </script>
 
 <template>
@@ -120,10 +136,25 @@ const onFilter = () => {
             <h5 class="mb-0">{{ title }}</h5>
           </div>
           <div class="col-auto ms-auto">
-            <button class="btn btn-falcon-default btn-sm" @click="openAdd()">
-              <span class="fas fa-plus"></span>
-              <span class="d-none d-sm-inline-block ms-1">Nuevo</span>
-            </button>
+            <div class="d-flex align-items-center gap-2">
+              <ExportExcelButton
+                :data="excelData"
+                :headers="excelHeaders"
+                filename="Grupos.xlsx"
+                class="btn btn-falcon-default btn-sm"
+              />
+              <ExportPdfButton
+                :data="excelData"
+                :headers="excelHeaders"
+                filename="Grupos.pdf"
+                title="Agrupaciones"
+                class="btn btn-falcon-default btn-sm"
+              />
+              <button class="btn btn-falcon-default btn-sm" @click="openAdd()">
+                <span class="fas fa-plus" data-fa-transform="shrink-3 down-2"></span>
+                <span class="d-none d-sm-inline-block ms-1">Nuevo</span>
+              </button>
+            </div>
           </div>
         </div>
       </div>
@@ -146,25 +177,34 @@ const onFilter = () => {
         </div>
         <Table :id="'groupings'" :total="groupings.data.length" :links="groupings.links">
           <template #header>
+            <th width="50px">#</th>
             <th width="min-w-150px">Nombre</th>
-            <th width="min-w-150px">Temporada</th>
-            <th width="min-w-150px">Equipo</th>
-            <th width="min-w-150px">IDs Centros</th>
+            <th width="min-w-150px">Centros de Costo</th>
             <th class="text-end">Acciones</th>
           </template>
           <template #body>
             <template v-if="groupings.total === 0">
-              <Empty :colspan="5" />
+              <Empty :colspan="4" />
             </template>
             <template v-else>
               <tr v-for="(grouping, i) in groupings.data" :key="i">
+                <td>{{ grouping.id }}</td>
                 <td>{{ grouping.name }}</td>
-                <td>{{ grouping.season?.name }}</td>
-                <td>{{ grouping.team?.name }}</td>
                 <td>
-                  <span v-if="grouping.cost_centers && grouping.cost_centers.length">
-                    {{ grouping.cost_centers.map(cc => cc.name).join(', ') }}
-                  </span>
+                  <template v-if="grouping.cost_centers && grouping.cost_centers.length">
+                    <div
+                      :style="grouping.cost_centers.length > 10
+                        ? 'column-count:2; column-gap:0.5rem;'
+                        : ''"
+                    >
+                      <div
+                        v-for="cc in grouping.cost_centers"
+                        :key="cc.id"
+                        class="text-nowrap"
+                        style="font-size:0.8rem; line-height:1.6;"
+                      >{{ cc.name }}</div>
+                    </div>
+                  </template>
                   <span v-else>-</span>
                 </td>
                 <td class="text-end">

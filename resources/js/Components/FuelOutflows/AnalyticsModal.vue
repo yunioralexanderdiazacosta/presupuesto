@@ -91,7 +91,7 @@ function closeModal() {
         <div class="modal-dialog modal-xl modal-dialog-centered modal-dialog-scrollable">
             <div class="modal-content">
                 <div class="modal-header bg-primary text-white">
-                    <h5 class="modal-title">
+                    <h5 class="modal-title text-white">
                         <i class="fas fa-chart-line me-2"></i>
                         Análisis Detallado de Consumo de Combustible
                     </h5>
@@ -399,13 +399,82 @@ function closeModal() {
                             </div>
                         </div>
 
-                        <!-- Tab 3: Promedios (placeholder) -->
+                        <!-- Tab 3: Averages -->
                         <div class="tab-pane fade" id="promedios-tab">
-                            <div class="alert alert-info">
-                                <i class="fas fa-info-circle me-2"></i>
-                                <strong>En desarrollo:</strong> Aquí se mostrarán promedios de consumo por maquinaria, operario, etc.
+                            <div v-if="loadingAnalytics" class="text-center py-5">
+                                <div class="spinner-border text-primary" role="status"></div>
+                                <p class="mt-2 text-muted">Cargando datos...</p>
                             </div>
-                            <!-- Aquí irán las tablas de promedios -->
+
+                            <div v-else-if="analyticsData?.consumption_averages?.length">
+                                <p class="text-muted small mb-3">
+                                    <i class="fas fa-info-circle me-1"></i>
+                                    Calculado en base al rango entre la primera y última lectura del contador por maquinaria en esta temporada.
+                                </p>
+
+                                <div class="row g-3">
+                                    <div
+                                        v-for="(m, i) in analyticsData.consumption_averages"
+                                        :key="m.machinery_id"
+                                        class="col-12 col-sm-6 col-md-4"
+                                    >
+                                        <div class="card border-0 shadow-sm h-100">
+                                            <div class="card-body py-3 px-3">
+                                                <!-- Header -->
+                                                <div class="d-flex align-items-center gap-2 mb-3">
+                                                    <div
+                                                        class="rounded-circle d-flex align-items-center justify-content-center fw-bold flex-shrink-0"
+                                                        :style="{ background: BAR_COLORS[i % BAR_COLORS.length], color: '#fff', width: '28px', height: '28px', fontSize: '0.75rem' }"
+                                                    >#{{ i + 1 }}</div>
+                                                    <div>
+                                                        <div class="fw-semibold" style="font-size:0.88rem;">{{ m.machinery_name }}</div>
+                                                        <div class="text-muted" style="font-size:0.72rem;">{{ m.counter_name }}</div>
+                                                    </div>
+                                                </div>
+
+                                                <!-- Main KPI -->
+                                                <div class="text-center py-2 mb-2 rounded" :style="{ background: BAR_COLORS[i % BAR_COLORS.length] + '15' }">
+                                                    <div class="text-muted" style="font-size:0.7rem; text-transform:uppercase; letter-spacing:0.05em;">Consumo promedio</div>
+                                                    <div v-if="m.avg_per_unit !== null" class="fw-bold" :style="{ fontSize: '1.4rem', color: BAR_COLORS[i % BAR_COLORS.length] }">
+                                                        {{ m.avg_per_unit.toLocaleString('es-CL', { minimumFractionDigits: 3, maximumFractionDigits: 3 }) }}
+                                                        <span style="font-size:0.75rem;">{{ m.unit_label }}</span>
+                                                    </div>
+                                                    <div v-else class="text-muted" style="font-size:0.85rem;">Sin datos de contador</div>
+                                                </div>
+
+                                                <!-- Detail rows -->
+                                                <div style="font-size:0.74rem;">
+                                                    <div class="d-flex justify-content-between border-bottom pb-1 mb-1">
+                                                        <span class="text-muted">Litros consumidos</span>
+                                                        <strong>{{ m.effective_liters.toLocaleString('es-CL', { minimumFractionDigits: 1 }) }} L</strong>
+                                                    </div>
+                                                    <div class="d-flex justify-content-between border-bottom pb-1 mb-1">
+                                                        <span class="text-muted">Último llenado (excluido)</span>
+                                                        <span class="text-muted">{{ m.last_liters.toLocaleString('es-CL', { minimumFractionDigits: 1 }) }} L</span>
+                                                    </div>
+                                                    <div class="d-flex justify-content-between border-bottom pb-1 mb-1">
+                                                        <span class="text-muted">Rango contador</span>
+                                                        <span>{{ m.min_counter.toLocaleString('es-CL') }} → {{ m.max_counter.toLocaleString('es-CL') }}</span>
+                                                    </div>
+                                                    <div class="d-flex justify-content-between border-bottom pb-1 mb-1">
+                                                        <span class="text-muted">Total {{ m.unit_label === 'L/km' ? 'km' : 'horas' }}</span>
+                                                        <span>{{ m.counter_delta.toLocaleString('es-CL', { minimumFractionDigits: 1 }) }}</span>
+                                                    </div>
+                                                    <div class="d-flex justify-content-between">
+                                                        <span class="text-muted">Registros</span>
+                                                        <span>{{ m.record_count }}</span>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div v-else-if="analyticsData && !analyticsData.consumption_averages?.length" class="alert alert-warning mt-3">
+                                <i class="fas fa-exclamation-triangle me-2"></i>
+                                No se encontraron registros con lecturas de contador en esta temporada.
+                            </div>
                         </div>
                     </div>
                 </div>

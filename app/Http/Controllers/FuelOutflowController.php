@@ -364,9 +364,75 @@ class FuelOutflowController extends Controller
             ];
         });
 
+        // Consumption averages per machinery (L/hour or L/km)
+        // Logic: liters loaded at reading N are consumed between reading N and N+1.
+        // Therefore the last record's liters must be excluded (no next reading yet).
+        $consumptionAverages = DB::table('fuel_outflows')
+            ->join('machineries', 'fuel_outflows.machinery_id', '=', 'machineries.id')
+            ->leftJoin('counters', 'fuel_outflows.counter_id', '=', 'counters.id')
+            ->where('fuel_outflows.team_id', $user->team_id)
+            ->where('fuel_outflows.season_id', $season_id)
+            ->whereNotNull('fuel_outflows.counter_value')
+            ->select(
+                'machineries.id as machinery_id',
+                'machineries.cod_machinery as machinery_name',
+                'counters.id as counter_id',
+                'counters.name as counter_name',
+                DB::raw('SUM(fuel_outflows.liters) as total_liters'),
+                DB::raw('COUNT(*) as record_count'),
+                DB::raw('MIN(fuel_outflows.counter_value) as min_counter'),
+                DB::raw('MAX(fuel_outflows.counter_value) as max_counter')
+            )
+            ->groupBy('machineries.id', 'machineries.cod_machinery', 'counters.id', 'counters.name')
+            ->orderByDesc('total_liters')
+            ->get();
+
+        // Get liters from the LAST counter reading per machinery (to exclude — not yet consumed)
+        $lastReadingLiters = DB::table('fuel_outflows as a')
+            ->join(
+                DB::raw('(SELECT machinery_id, MAX(counter_value) as max_cv FROM fuel_outflows WHERE team_id = ' . (int)$user->team_id . ' AND season_id = ' . (int)$season_id . ' AND counter_value IS NOT NULL GROUP BY machinery_id) as b'),
+                function ($join) {
+                    $join->on('a.machinery_id', '=', 'b.machinery_id')
+                         ->on('a.counter_value', '=', 'b.max_cv');
+                }
+            )
+            ->where('a.team_id', $user->team_id)
+            ->where('a.season_id', $season_id)
+            ->select('a.machinery_id', 'a.liters as last_liters')
+            ->pluck('last_liters', 'machinery_id');
+
+        $consumptionAverages = $consumptionAverages->map(function ($row) use ($lastReadingLiters) {
+            $totalLiters     = (float) $row->total_liters;
+            $lastLiters      = (float) ($lastReadingLiters[$row->machinery_id] ?? 0);
+            $effectiveLiters = max(0, $totalLiters - $lastLiters);
+            $counterDelta    = (float) $row->max_counter - (float) $row->min_counter;
+            $unit            = $row->counter_name ?? '—';
+            $isKm            = str_contains(strtolower($unit), 'odom') || str_contains(strtolower($unit), 'km');
+            $unitLabel       = $isKm ? 'L/km' : 'L/h';
+
+            return [
+                'machinery_id'     => $row->machinery_id,
+                'machinery_name'   => $row->machinery_name,
+                'counter_name'     => $unit,
+                'unit_label'       => $unitLabel,
+                'total_liters'     => round($totalLiters, 2),
+                'effective_liters' => round($effectiveLiters, 2),
+                'last_liters'      => round($lastLiters, 2),
+                'record_count'     => (int) $row->record_count,
+                'counter_delta'    => round($counterDelta, 1),
+                'min_counter'      => round((float) $row->min_counter, 1),
+                'max_counter'      => round((float) $row->max_counter, 1),
+                // Need at least 2 records and valid delta to compute average
+                'avg_per_unit'     => ($counterDelta > 0 && (int)$row->record_count >= 2)
+                                        ? round($effectiveLiters / $counterDelta, 3)
+                                        : null,
+            ];
+        });
+
         return response()->json([
-            'consumo_por_maquinaria' => $consumoPorMaquinaria,
-            'stock_por_estanque'     => $stockPorEstanque,
+            'consumo_por_maquinaria'  => $consumoPorMaquinaria,
+            'stock_por_estanque'      => $stockPorEstanque,
+            'consumption_averages'    => $consumptionAverages,
         ]);
     }
 }
