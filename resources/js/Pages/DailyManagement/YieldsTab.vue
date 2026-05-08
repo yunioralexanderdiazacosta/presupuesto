@@ -643,7 +643,7 @@ function deleteLine(yieldId) {
                         <label class="form-label small mb-1">Agrupación CC</label>
                         <select v-model="bulkGrouping" class="form-select form-select-sm">
                             <option value="">Sin agrupación</option>
-                            <option v-for="g in props.groupings" :key="g.id" :value="g.id">{{ g.name }}</option>
+                            <option v-for="g in props.groupings" :key="g.id" :value="g.id">{{ g.id }}-{{ g.name }}</option>
                         </select>
                     </div>
                     <div class="col-md-4">
@@ -919,7 +919,7 @@ function deleteLine(yieldId) {
                                                             </label>
                                                             <select v-model="editLineGrouping" class="form-select form-select-sm" style="font-size:0.7rem;">
                                                                 <option value="">Agrupación...</option>
-                                                                <option v-for="g in groupings" :key="g.id" :value="g.id">{{ g.name }}</option>
+                                                                <option v-for="g in groupings" :key="g.id" :value="g.id">{{ g.id }}-{{ g.name }}</option>
                                                             </select>
                                                         </div>
                                                         <div class="col-md-2">
@@ -1046,7 +1046,7 @@ function deleteLine(yieldId) {
                                                 </label>
                                                 <select v-model="newLineGrouping" class="form-select form-select-sm" style="font-size:0.7rem;">
                                                     <option value="">Agrupación...</option>
-                                                    <option v-for="g in groupings" :key="g.id" :value="g.id">{{ g.name }}</option>
+                                                    <option v-for="g in groupings" :key="g.id" :value="g.id">{{ g.id }}-{{ g.name }}</option>
                                                 </select>
                                             </div>
                                             <div class="col-md-2" v-if="!isUnpaidAbsence">
