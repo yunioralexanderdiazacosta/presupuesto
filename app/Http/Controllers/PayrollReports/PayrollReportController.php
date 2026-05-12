@@ -143,9 +143,9 @@ class PayrollReportController extends Controller
             ];
         })->filter()->values();
 
-        // Anticipos (descuentos tipo "aguinaldo")
+        // Anticipos
         $aguinaldoTypeIds = MonthlyDiscountType::where('team_id', $user->team_id)
-            ->whereRaw('LOWER(name) LIKE ?', ['%aguinaldo%'])
+            ->whereRaw('LOWER(name) LIKE ?', ['%anticipo%'])
             ->pluck('id');
 
         $anticiposData = collect();

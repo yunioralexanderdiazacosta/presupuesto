@@ -21,7 +21,7 @@ class ExportPayrollAnticiposPdfController extends Controller
         $monthId = (int) substr($month, 5);
 
         $aguinaldoTypeIds = MonthlyDiscountType::where('team_id', $user->team_id)
-            ->whereRaw('LOWER(name) LIKE ?', ['%aguinaldo%'])
+            ->whereRaw('LOWER(name) LIKE ?', ['%anticipo%'])
             ->pluck('id');
 
         $rows = collect();

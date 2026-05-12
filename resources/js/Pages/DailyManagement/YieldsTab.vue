@@ -336,6 +336,11 @@ function onBonusChange() {
     newLine.bonus_amount = bt ? (bt.default_amount || 0) : 0;
 }
 
+function onBulkBonusChange() {
+    const bt = props.bonusTypes.find(b => String(b.value) === String(bulkLine.bonus_type_id));
+    bulkLine.bonus_amount = bt ? (bt.default_amount || 0) : 0;
+}
+
 const newLineAmount = computed(() => Math.round((newLine.rate || 0) * (newLine.quantity || 0)));
 
 function getRemainingWorkdays(empId) {
@@ -673,16 +678,12 @@ function deleteLine(yieldId) {
                             :class="['multiselect-sm', 'multiselect-tags-limited', { 'multiselect-tags-expanded': bulkExpandedCC }]"
                         />
                     </div>
-                    <div class="col-md-2">
+                    <div class="col-md-3">
                         <label class="form-label small mb-1">Bono</label>
-                        <select v-model="bulkLine.bonus_type_id" class="form-select form-select-sm">
+                        <select v-model="bulkLine.bonus_type_id" class="form-select form-select-sm" @change="onBulkBonusChange">
                             <option value="">Sin bono</option>
                             <option v-for="b in bonusTypes" :key="b.value" :value="b.value">{{ b.label }}</option>
                         </select>
-                    </div>
-                    <div class="col-md-1">
-                        <label class="form-label small mb-1">Monto bono</label>
-                        <input type="number" v-model="bulkLine.bonus_amount" class="form-control form-control-sm text-end" min="0" />
                     </div>
                     <div class="col-md-2">
                         <label class="form-label small mb-1">Observaciones</label>

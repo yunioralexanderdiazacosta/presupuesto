@@ -5,7 +5,7 @@
     <title>Plantilla Tarjas - {{ $date->format('d/m/Y') }}</title>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
-        body { font-family: Arial, sans-serif; font-size: 8px; }
+        body { font-family: Arial, sans-serif; font-size: 8px; padding: 20px 30px; }
         .header { text-align: center; margin-bottom: 8px; }
         .header h2 { font-size: 14px; margin-bottom: 2px; }
         .header .info { font-size: 10px; color: #333; }
@@ -52,8 +52,8 @@
                 <h2>PLANTILLA DE TARJAS</h2>
                 <div class="info">
                     <strong>{{ $teamName }}</strong> &nbsp;|&nbsp;
-                    Fecha: <strong>{{ $date->format('d/m/Y') }}</strong> &nbsp;|&nbsp;
-                    Día: <strong>{{ ucfirst($date->locale('es')->isoFormat('dddd')) }}</strong> &nbsp;|&nbsp;
+                    Fecha: _____ / _____ / ___________ &nbsp;|&nbsp;
+                    Día: __________________________ &nbsp;|&nbsp;
                     Parcela: <strong>{{ $parcelName }}</strong> &nbsp;|&nbsp;
                     Pág {{ $pageNum }}/{{ $totalPages }}
                 </div>
@@ -151,5 +151,54 @@
             <p>No hay trabajadores con contrato activo{{ $parcelName !== 'Todas' ? ' en parcela ' . $parcelName : '' }}.</p>
         </div>
     @endforelse
+
+    {{-- Hoja de Horas Extras --}}
+    <div class="page-break"></div>
+    <div style="padding: 20px 30px;">
+        <div class="header" style="margin-bottom: 12px;">
+            <h2>REGISTRO DE HORAS EXTRAS</h2>
+            <div class="info"><strong>{{ $teamName }}</strong></div>
+        </div>
+
+        {{-- Fecha --}}
+        <div style="font-size: 10px; margin-bottom: 14px;">
+            Fecha: _____ / _____ / ___________
+            &nbsp;&nbsp;&nbsp;&nbsp;
+            Supervisado por: ____________________________________
+        </div>
+
+        <table style="width: 100%; border-collapse: collapse;">
+            <thead>
+                <tr>
+                    <th style="width: 25px; background:#e0e0e0; border:1px solid #333; padding:4px 3px; font-size:7px;">#</th>
+                    <th style="background:#c8d8e8; border:1px solid #333; padding:4px 6px; font-size:7px; text-align:left;">Nombre Completo / ID</th>
+                    <th style="width: 80px; background:#c8d8e8; border:1px solid #333; padding:4px 3px; font-size:7px; text-align:center;">ID Labor</th>
+                    <th style="width: 65px; background:#c8d8e8; border:1px solid #333; padding:4px 3px; font-size:7px; text-align:center;">Horas</th>
+                </tr>
+            </thead>
+            <tbody>
+                @for($i = 1; $i <= 20; $i++)
+                <tr>
+                    <td style="text-align:center; border:1px solid #333; padding:2px 3px; font-size:8px; height:22px;">{{ $i }}</td>
+                    <td style="border:1px solid #333; padding:2px 3px; height:22px;"></td>
+                    <td style="border:1px solid #333; padding:2px 3px; height:22px;"></td>
+                    <td style="border:1px solid #333; padding:2px 3px; height:22px;"></td>
+                </tr>
+                @endfor
+            </tbody>
+        </table>
+
+        <div class="footer" style="margin-top: 20px;">
+            <div class="meta-row">
+                <div class="meta-cell">
+                    <span class="signature-line">&nbsp;</span><br>
+                    <small>Firma Supervisor</small>
+                </div>
+                <div class="meta-cell right">
+                    <small>Generado: {{ now()->format('d/m/Y H:i') }}</small>
+                </div>
+            </div>
+        </div>
+    </div>
 </body>
 </html>
