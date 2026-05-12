@@ -79,7 +79,7 @@
 <body>
 
     <div class="page-header">
-        <h1>Reporte de Anticipos (Aguinaldo) &mdash; {{ $monthLabel }}</h1>
+        <h1>Reporte de Anticipos &mdash; {{ $monthLabel }}</h1>
         <p>Generado el {{ now()->format('d/m/Y H:i') }} &bull; {{ count($rows) }} registro(s)</p>
     </div>
 
