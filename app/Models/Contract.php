@@ -119,4 +119,29 @@ class Contract extends Model
     {
         return $this->hasMany(Vacation::class);
     }
+
+    public function monthlyBonuses()
+    {
+        return $this->hasMany(MonthlyBonus::class);
+    }
+
+    public function monthlyDiscounts()
+    {
+        return $this->hasMany(MonthlyDiscount::class);
+    }
+
+    public function overtimeHours()
+    {
+        return $this->hasMany(OvertimeHour::class);
+    }
+
+    public function dailyYields()
+    {
+        return $this->hasMany(DailyYield::class);
+    }
+
+    public function dailyAttendances()
+    {
+        return $this->hasMany(DailyAttendance::class);
+    }
 }
