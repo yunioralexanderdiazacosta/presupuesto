@@ -299,6 +299,84 @@
                     </div>
                 </div>
 
+                <!-- ======================================================= -->
+                <!-- TABLA: LABORES POR CENTRO DE COSTO                       -->
+                <!-- ======================================================= -->
+                <div class="row g-2 mt-2">
+                    <div class="col-12">
+                        <div class="d-flex justify-content-between align-items-center mb-1">
+                            <h6 class="mb-0" style="font-size:0.82rem;">
+                                <i class="fas fa-map-marker-alt me-1 text-primary"></i>
+                                Labores por Centro de Costo
+                                <span v-if="selectedMonth !== 'all'" class="badge bg-soft-primary text-primary ms-1" style="font-size:0.7rem;">
+                                    {{ currentMonthName }}
+                                </span>
+                                <span v-if="selectedParcel" @click="selectedParcel = ''" title="Quitar filtro" class="badge bg-soft-success text-success ms-1" style="font-size:0.68rem;cursor:pointer;">
+                                    {{ selectedParcelName }} ×
+                                </span>
+                            </h6>
+                            <ExportExcelButton
+                                :data="currentByCostCenter"
+                                :headers="[
+                                    { label: 'Sucursal',        key: 'branch' },
+                                    { label: 'Parcela',         key: 'parcel' },
+                                    { label: 'Centro de Costo', key: 'cost_center' },
+                                    { label: 'Level 1',         key: 'level1' },
+                                    { label: 'Level 2',         key: 'level2' },
+                                    { label: 'Level 3',         key: 'level3' },
+                                    { label: 'Labor',           key: 'labor_type' },
+                                    { label: 'Jornadas',        key: 'workdays',  type: 'number' },
+                                    { label: 'Valor Total',     key: 'amount',    type: 'number' },
+                                ]"
+                                filename="Labores_por_CC.xlsx"
+                                class="btn btn-falcon-default btn-sm"
+                            />
+                        </div>
+                        <div class="table-responsive" style="max-height:500px; overflow-y:auto;">
+                            <table class="table table-sm table-hover mb-0" style="font-size:0.78rem;">
+                                <thead style="position:sticky; top:0; z-index:2; background:#eaf0f6;">
+                                    <tr>
+                                        <th>Sucursal</th>
+                                        <th>Parcela</th>
+                                        <th>Centro de Costo</th>
+                                        <th>Level 1</th>
+                                        <th>Level 2</th>
+                                        <th>Level 3</th>
+                                        <th>Labor</th>
+                                        <th class="text-end">Jornadas</th>
+                                        <th class="text-end">Valor Total</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <template v-if="currentByCostCenter.length === 0">
+                                        <tr>
+                                            <td colspan="9" class="text-center text-muted py-3">Sin datos para el período seleccionado</td>
+                                        </tr>
+                                    </template>
+                                    <tr v-for="(row, idx) in currentByCostCenter" :key="idx">
+                                        <td>{{ row.branch }}</td>
+                                        <td>{{ row.parcel }}</td>
+                                        <td class="fw-semibold">{{ row.cost_center }}</td>
+                                        <td>{{ row.level1 }}</td>
+                                        <td>{{ row.level2 }}</td>
+                                        <td>{{ row.level3 }}</td>
+                                        <td>{{ row.labor_type }}</td>
+                                        <td class="text-end">{{ fmtDec(row.workdays) }}</td>
+                                        <td class="text-end">$ {{ fmt(Math.round(row.amount)) }}</td>
+                                    </tr>
+                                </tbody>
+                                <tfoot v-if="currentByCostCenter.length > 0" style="background:#dce8f5; font-weight:600;">
+                                    <tr>
+                                        <td colspan="7" class="text-end">Totales</td>
+                                        <td class="text-end">{{ fmtDec(ccTotals.workdays) }}</td>
+                                        <td class="text-end">$ {{ fmt(Math.round(ccTotals.amount)) }}</td>
+                                    </tr>
+                                </tfoot>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+
             </div><!-- card-body -->
         </div><!-- card -->
     </AppLayout>
@@ -308,6 +386,7 @@
 import { ref, computed, onMounted, watch } from 'vue';
 import AppLayout from '@/Layouts/AppLayout.vue';
 import { Chart, registerables } from 'chart.js';
+import ExportExcelButton from '@/Components/ExportExcelButton.vue';
 
 Chart.register(...registerables);
 
@@ -317,6 +396,7 @@ const props = defineProps({
     byParcel:         { type: Object, default: () => ({}) },
     byBranch:         { type: Object, default: () => ({}) },
     byTrato:          { type: Object, default: () => ({}) },
+    byCostCenter:     { type: Object, default: () => ({}) },
     seasonTotals:     { type: Object, default: () => ({ amount: 0, workdays: 0 }) },
     chartData:        { type: Object, default: () => ({ labels: [], amounts: [], workdays: [] }) },
     months:           { type: Array,  default: () => [] },
@@ -468,6 +548,22 @@ const tratoTotals = computed(() => currentByTrato.value.reduce(
 ));
 
 const parcelTotals = computed(() => currentByParcel.value.reduce(
+    (acc, r) => ({ amount: acc.amount + r.amount, workdays: acc.workdays + r.workdays }),
+    { amount: 0, workdays: 0 }
+));
+
+const currentByCostCenter = computed(() => {
+    const key = selectedMonth.value === 'all' ? 'all' : selectedMonth.value;
+    let rows = props.byCostCenter[key] ?? [];
+    if (selectedParcel.value) {
+        rows = rows.filter(r => String(r.parcel_id) === String(selectedParcel.value));
+    } else if (selectedBranch.value) {
+        rows = rows.filter(r => String(r.branch_id) === String(selectedBranch.value));
+    }
+    return rows;
+});
+
+const ccTotals = computed(() => currentByCostCenter.value.reduce(
     (acc, r) => ({ amount: acc.amount + r.amount, workdays: acc.workdays + r.workdays }),
     { amount: 0, workdays: 0 }
 ));

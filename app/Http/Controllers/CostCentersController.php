@@ -143,4 +143,5 @@ class CostCentersController extends Controller
     {
         return Excel::download(new CostCentersTemplateExport, 'plantilla_centros_costo.xlsx');
     }
+
 }

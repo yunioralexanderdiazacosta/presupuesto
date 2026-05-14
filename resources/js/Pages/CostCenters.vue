@@ -231,6 +231,7 @@ const openVarietyModal = (costCenterId = null) => {
                      Aquí se crean las <strong>unidades de asignación de costos</strong> (cuarteles, sectores, etc.). Representan la <strong>unidad productiva</strong>, no el detalle varietal. Para asignar variedades a cada centro de costo, utilice <strong>Variedades por Cuartel</strong>.
                    </div>
                  </div>
+
                  <div class="tab-content border p-3 mt-3" id="pill-myTabContent">
                <div class="d-flex justify-content-between align-items-center gap-1 mb-1">
                           <SearchInput
@@ -353,6 +354,7 @@ const openVarietyModal = (costCenterId = null) => {
             </div>
                 </div>
         </div>
+
         <CreateCostCenterModal @store="storeCostCenter" :form="form" />
         <EditCostCenterModal @update="updateCostCenter" @open-variety="openVarietyModal" :form="form" />
         <CostCenterVarietiesDetailModal :costCenter="selectedCostCenter" />

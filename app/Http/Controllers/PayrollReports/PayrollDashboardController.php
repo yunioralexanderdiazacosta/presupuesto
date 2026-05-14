@@ -69,6 +69,7 @@ class PayrollDashboardController extends Controller
             ->join('labor_types as lt', 'dy.labor_type_id', '=', 'lt.id')
             ->leftJoin('level3s as l3', 'lt.level3_id', '=', 'l3.id')
             ->leftJoin('level2s as l2', 'l3.level2_id', '=', 'l2.id')
+            ->leftJoin('level1s as l1', 'l2.level1_id', '=', 'l1.id')
             ->leftJoin('labor_rates as lr', 'dy.labor_rate_id', '=', 'lr.id')
             ->where('dy.team_id', $teamId)
             ->where('dy.season_id', $seasonId)
@@ -87,7 +88,10 @@ class PayrollDashboardController extends Controller
                 'l3.id as level3_id',
                 'l3.name as level3_name',
                 'l2.id as level2_id',
-                'l2.name as level2_name'
+                'l2.name as level2_name',
+                'lt.id as labor_type_id',
+                'lt.name as labor_type_name',
+                'l1.name as level1_name'
             )
             ->get();
 
@@ -107,6 +111,7 @@ class PayrollDashboardController extends Controller
             ->join('labor_types as lt', 'mb.labor_type_id', '=', 'lt.id')
             ->leftJoin('level3s as l3', 'lt.level3_id', '=', 'l3.id')
             ->leftJoin('level2s as l2', 'l3.level2_id', '=', 'l2.id')
+            ->leftJoin('level1s as l1', 'l2.level1_id', '=', 'l1.id')
             ->where('mb.team_id', $teamId)
             ->whereIn('mb.contract_id', $contractIds)
             ->select(
@@ -116,7 +121,10 @@ class PayrollDashboardController extends Controller
                 'l3.id as level3_id',
                 'l3.name as level3_name',
                 'l2.id as level2_id',
-                'l2.name as level2_name'
+                'l2.name as level2_name',
+                'lt.id as labor_type_id',
+                'lt.name as labor_type_name',
+                'l1.name as level1_name'
             )
             ->get();
 
@@ -135,6 +143,7 @@ class PayrollDashboardController extends Controller
             ->join('labor_types as lt', 'oh.labor_type_id', '=', 'lt.id')
             ->leftJoin('level3s as l3', 'lt.level3_id', '=', 'l3.id')
             ->leftJoin('level2s as l2', 'l3.level2_id', '=', 'l2.id')
+            ->leftJoin('level1s as l1', 'l2.level1_id', '=', 'l1.id')
             ->where('oh.team_id', $teamId)
             ->whereIn('oh.contract_id', $contractIds)
             ->select(
@@ -144,7 +153,10 @@ class PayrollDashboardController extends Controller
                 'l3.id as level3_id',
                 'l3.name as level3_name',
                 'l2.id as level2_id',
-                'l2.name as level2_name'
+                'l2.name as level2_name',
+                'lt.id as labor_type_id',
+                'lt.name as labor_type_name',
+                'l1.name as level1_name'
             )
             ->get();
 
@@ -164,6 +176,24 @@ class PayrollDashboardController extends Controller
         $byParcel     = $this->buildByParcel($yields, $yieldCCs, $bonuses, $bonusCCs, $overtimes, $overtimeCCs, $parcels, $months);
         $byBranch     = $this->buildByBranch($yields, $yieldCCs, $bonuses, $bonusCCs, $overtimes, $overtimeCCs, $branchNames, $months);
         $byTrato      = $this->buildByTrato($yields, $yieldCCs, $months);
+
+        // Detalles de CC para el reporte de labores por CC
+        $ccDetails = DB::table('cost_centers as cc')
+            ->leftJoin('branches as br', 'cc.branch_id', '=', 'br.id')
+            ->leftJoin('parcels as pa', 'cc.parcel_id', '=', 'pa.id')
+            ->where('cc.season_id', $seasonId)
+            ->select(
+                'cc.id',
+                'cc.name',
+                'cc.branch_id',
+                'cc.parcel_id',
+                DB::raw("COALESCE(br.name, 'Sin Sucursal') as branch_name"),
+                DB::raw("COALESCE(pa.name, 'Sin Parcela') as parcel_name")
+            )
+            ->get()
+            ->keyBy('id');
+
+        $byCostCenter = $this->buildByCostCenter($yields, $yieldCCs, $bonuses, $bonusCCs, $overtimes, $overtimeCCs, $months, $ccDetails);
         $seasonTotals = $this->buildSeasonTotals($byMonth);
         $chartData    = $this->buildChartData($byMonth, $months);
 
@@ -173,6 +203,7 @@ class PayrollDashboardController extends Controller
             'byParcel'       => $byParcel,
             'byBranch'       => $byBranch,
             'byTrato'        => $byTrato,
+            'byCostCenter'   => $byCostCenter,
             'seasonTotals'   => $seasonTotals,
             'chartData'      => $chartData,
             'months'         => $months,
@@ -636,5 +667,112 @@ class PayrollDashboardController extends Controller
         }
 
         return compact('labels', 'amounts', 'workdays');
+    }
+
+    /**
+     * Reporte de labores distribuidas por centro de costo.
+     * Retorna array indexado por 'all' + month_id.
+     * Cada bucket es un array de filas ordenadas.
+     */
+    private function buildByCostCenter($yields, $yieldCCs, $bonuses, $bonusCCs, $overtimes, $overtimeCCs, array $months, $ccDetails): array
+    {
+        $monthIds = array_column($months, 'id');
+
+        $result = ['all' => []];
+        foreach ($monthIds as $mid) {
+            $result[$mid] = [];
+        }
+
+        $addToCC = function (array &$bucket, int|string $ccId, string $costCenter, string $branch, string $parcel,
+                             int|string|null $branchId, int|string|null $parcelId,
+                             string $laborType, int|string $laborTypeId, string $level3, string $level2, string $level1,
+                             float $amount, float $workdays) {
+            $key = (string)$ccId . '||' . (string)$laborTypeId;
+            if (!isset($bucket[$key])) {
+                $bucket[$key] = [
+                    'cost_center_id' => $ccId,
+                    'cost_center'    => $costCenter,
+                    'branch_id'      => $branchId,
+                    'parcel_id'      => $parcelId,
+                    'branch'         => $branch,
+                    'parcel'         => $parcel,
+                    'labor_type'     => $laborType,
+                    'level3'         => $level3,
+                    'level2'         => $level2,
+                    'level1'         => $level1,
+                    'workdays'       => 0.0,
+                    'amount'         => 0.0,
+                ];
+            }
+            $bucket[$key]['workdays'] += $workdays;
+            $bucket[$key]['amount']   += $amount;
+        };
+
+        $prorate = function ($record, $ccGrouped, float $totalAmt, float $wd) use (&$result, &$addToCC, $ccDetails) {
+            $mid         = $record->month_id ?? null;
+            $ccs         = $ccGrouped->get($record->id, collect());
+            $totalSurf   = $ccs->sum('surface');
+            $nCCs        = count($ccs);
+            $laborType   = $record->labor_type_name ?? 'Sin Labor';
+            $laborTypeId = $record->labor_type_id   ?? 0;
+            $level3      = $record->level3_name     ?? 'Sin Clasificar';
+            $level2      = $record->level2_name     ?? 'Sin Clasificar';
+            $level1      = $record->level1_name     ?? 'Sin Clasificar';
+
+            if ($nCCs === 0) {
+                if ($mid !== null && isset($result[$mid])) {
+                    $addToCC($result[$mid], 0, 'Sin CC', 'Sin Sucursal', 'Sin Parcela', null, null, $laborType, $laborTypeId, $level3, $level2, $level1, $totalAmt, $wd);
+                }
+                $addToCC($result['all'], 0, 'Sin CC', 'Sin Sucursal', 'Sin Parcela', null, null, $laborType, $laborTypeId, $level3, $level2, $level1, $totalAmt, $wd);
+                return;
+            }
+
+            foreach ($ccs as $cc) {
+                $ccId     = $cc->cost_center_id;
+                $detail   = $ccDetails->get($ccId);
+                $ccName   = $detail?->name        ?? ('CC ' . $ccId);
+                $branch   = $detail?->branch_name ?? 'Sin Sucursal';
+                $parcel   = $detail?->parcel_name ?? 'Sin Parcela';
+                $branchId = $detail?->branch_id   ?? null;
+                $parcelId = $detail?->parcel_id   ?? null;
+                $surf     = (float) $cc->surface;
+                $prop     = $totalSurf > 0 ? $surf / $totalSurf : 1.0 / $nCCs;
+                $amtSlice = $totalAmt * $prop;
+                $wdSlice  = $wd * $prop;
+
+                if ($mid !== null && isset($result[$mid])) {
+                    $addToCC($result[$mid], $ccId, $ccName, $branch, $parcel, $branchId, $parcelId, $laborType, $laborTypeId, $level3, $level2, $level1, $amtSlice, $wdSlice);
+                }
+                $addToCC($result['all'], $ccId, $ccName, $branch, $parcel, $branchId, $parcelId, $laborType, $laborTypeId, $level3, $level2, $level1, $amtSlice, $wdSlice);
+            }
+        };
+
+        foreach ($yields as $y) {
+            $totalAmt = (float)(($y->amount ?? 0) + ($y->bonus_amount ?? 0) + ($y->target_price_bonus ?? 0));
+            $prorate($y, $yieldCCs, $totalAmt, (float)($y->workdays ?? 0));
+        }
+
+        foreach ($bonuses as $b) {
+            $prorate($b, $bonusCCs, (float)($b->amount ?? 0), 0.0);
+        }
+
+        foreach ($overtimes as $o) {
+            $prorate($o, $overtimeCCs, (float)($o->amount ?? 0), 0.0);
+        }
+
+        $format = function (array $bucket): array {
+            $rows = array_values($bucket);
+            usort($rows, fn($a, $b) => strcmp(
+                ($a['level1'] ?? '') . ($a['level2'] ?? '') . ($a['level3'] ?? '') . ($a['labor_type'] ?? '') . ($a['cost_center'] ?? ''),
+                ($b['level1'] ?? '') . ($b['level2'] ?? '') . ($b['level3'] ?? '') . ($b['labor_type'] ?? '') . ($b['cost_center'] ?? '')
+            ));
+            return $rows;
+        };
+
+        $formatted = [];
+        foreach ($result as $mid => $bucket) {
+            $formatted[$mid] = $format($bucket);
+        }
+        return $formatted;
     }
 }
