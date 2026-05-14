@@ -618,6 +618,8 @@ Route::middleware([
 
     Route::get('/suppliers/pdf', SuppliersPdfController::class)->name('suppliers.pdf');
     Route::get('/suppliers/excel', SuppliersExcelController::class)->name('suppliers.excel');
+    Route::get('/suppliers/template', [SuppliersController::class, 'template'])->name('suppliers.template');
+    Route::post('/suppliers/import', [SuppliersController::class, 'import'])->name('suppliers.import');
     Route::post('/suppliers/store', StoreSupplierController::class)->name('suppliers.store');
     Route::post('/suppliers/{supplier}/update', UpdateSupplierController::class)->name('suppliers.update');
     Route::delete('/suppliers/{supplier}/delete', DeleteSupplierController::class)->name('suppliers.delete');

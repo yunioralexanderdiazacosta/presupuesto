@@ -1,5 +1,6 @@
 <script setup>
 import { computed, ref } from 'vue';
+import axios from 'axios';
 import ExportExcelButton from '@/Components/ExportExcelButton.vue';
 import ExportPdfButton from '@/Components/ExportPdfButton.vue';
 import SearchInput from '@/Components/SearchInput.vue';
@@ -124,6 +125,51 @@ const onDeleted = (id) => {
     });
 }
 
+// ── Importación masiva Excel ─────────────────────────────────
+const importFile = ref(null);
+const selectedFileName = ref('');
+const isImporting = ref(false);
+
+function onFileSelected(event) {
+    const file = event.target.files[0];
+    if (file) selectedFileName.value = file.name;
+}
+
+async function importExcel() {
+    const file = importFile.value?.files[0];
+    if (!file) {
+        Swal.fire('Atención', 'Primero selecciona un archivo Excel.', 'warning');
+        return;
+    }
+
+    isImporting.value = true;
+    const formData = new FormData();
+    formData.append('file', file);
+
+    try {
+        await axios.post(route('suppliers.import'), formData, {
+            headers: { 'Content-Type': 'multipart/form-data' },
+        });
+        Swal.fire({ icon: 'success', title: 'Importación exitosa', showConfirmButton: false, timer: 1500 });
+        importFile.value.value = '';
+        selectedFileName.value = '';
+        router.reload({ preserveScroll: true });
+    } catch (error) {
+        if (error.response?.status === 422 && error.response.data.failures) {
+            const failures = error.response.data.failures;
+            let html = '<div style="text-align:left;max-height:300px;overflow:auto;font-size:0.85rem;">';
+            failures.forEach(f => {
+                html += `<b>Fila ${f.row}:</b> ${f.errors.join(', ')}<br>`;
+            });
+            html += '</div>';
+            Swal.fire({ icon: 'error', title: 'Errores en el archivo', html, width: 600 });
+        } else {
+            Swal.fire('Error', 'No se pudo procesar el archivo.', 'error');
+        }
+    } finally {
+        isImporting.value = false;
+    }
+}
 </script>
 <template>
 
@@ -141,11 +187,24 @@ const onDeleted = (id) => {
                     </div>
                     <div class="col-auto ms-auto">
 
-                        <div class="d-flex justify-content-end" data-kt-customer-table-toolbar="base">
-                            
-                            <button class="btn btn-falcon-default btn-sm" type="button" @click="openAdd()"><span
-                                    class="fas fa-plus" data-fa-transform="shrink-3 down-2"></span><span
-                                    class="d-none d-sm-inline-block ms-1">Nuevo</span></button>
+                        <div class="d-flex align-items-center gap-2 flex-wrap" data-kt-customer-table-toolbar="base">
+                            <a :href="route('suppliers.template')" class="btn btn-falcon-default btn-sm">
+                                <span class="fas fa-file-download" data-fa-transform="shrink-3 down-2"></span>
+                                <span class="d-none d-sm-inline-block ms-1">Plantilla</span>
+                            </a>
+                            <label for="suppliers-import-file" class="btn btn-falcon-default btn-sm mb-0">
+                                <span class="fas fa-file-upload" data-fa-transform="shrink-3 down-2"></span>
+                                <span class="d-none d-sm-inline-block ms-1">{{ selectedFileName || 'Seleccionar' }}</span>
+                            </label>
+                            <input id="suppliers-import-file" type="file" ref="importFile" accept=".xlsx,.xls,.csv" class="d-none" @change="onFileSelected" />
+                            <button class="btn btn-falcon-default btn-sm" @click="importExcel" :disabled="isImporting">
+                                <span class="fas fa-file-import" data-fa-transform="shrink-3 down-2" :class="{'fa-spin': isImporting}"></span>
+                                <span class="d-none d-sm-inline-block ms-1">Importar</span>
+                            </button>
+                            <button class="btn btn-falcon-default btn-sm" type="button" @click="openAdd()">
+                                <span class="fas fa-plus" data-fa-transform="shrink-3 down-2"></span>
+                                <span class="d-none d-sm-inline-block ms-1">Nuevo</span>
+                            </button>
                         </div>
 
                     </div>
@@ -162,12 +221,16 @@ const onDeleted = (id) => {
                         <ExportExcelButton :data="filteredSuppliers" :headers="[
                             { label: 'Nombre', key: 'name' },
                             { label: 'Rut', key: 'rut' },
-                            { label: 'Contacto', key: 'contact' }
+                            { label: 'Contacto', key: 'contact' },
+                            { label: 'Email', key: 'email' },
+                            { label: 'Teléfono', key: 'phone' }
                         ]" class="btn btn-light-primary me-3 d-flex align-items-center p-0" filename="Proveedores.xlsx" />
                         <ExportPdfButton :data="filteredSuppliers" :headers="[
                             { label: 'Nombre', key: 'name' },
                             { label: 'Rut', key: 'rut' },
-                            { label: 'Contacto', key: 'contact' }
+                            { label: 'Contacto', key: 'contact' },
+                            { label: 'Email', key: 'email' },
+                            { label: 'Teléfono', key: 'phone' }
                         ]" class="btn btn-light-primary me-3 d-flex align-items-center p-0" filename="Proveedores.pdf" />
                     </div>
                 </div>
@@ -176,13 +239,15 @@ const onDeleted = (id) => {
                         <template #header>
                             <th style="max-width:200px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">
                                 Nombre</th>
-                            <th width="min-w-150px">Rut</th>
-                            <th width="min-w-150px">Contacto</th>
-                            <th width="min-w-150px" class="text-center">Acciones</th>
+                            <th>Rut</th>
+                            <th>Contacto</th>
+                            <th>Email</th>
+                            <th>Teléfono</th>
+                            <th class="text-center">Acciones</th>
                         </template>
                         <template #body>
                             <template v-if="filteredSuppliers.length === 0">
-                                <Empty colspan="4" />
+                                <Empty colspan="6" />
                             </template>
                             <template v-else>
                                 <tr v-for="(supplier, index) in filteredSuppliers" :key="index">
@@ -191,6 +256,8 @@ const onDeleted = (id) => {
                                         {{ supplier.name }}</td>
                                     <td>{{ supplier.rut }}</td>
                                     <td>{{ supplier.contact }}</td>
+                                    <td>{{ supplier.email }}</td>
+                                    <td>{{ supplier.phone }}</td>
                                     <td class="text-center">
                                         <button type="button" v-tooltip="'Editar'" class="btn btn-link me-2 p-0"
                                             @click="openEdit(supplier)">
