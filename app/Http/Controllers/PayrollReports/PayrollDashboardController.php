@@ -254,9 +254,9 @@ class PayrollDashboardController extends Controller
             $result[$mid] = [];
         }
 
-        $addToLevel = function (&$bucket, string $key, string $l2, string $l3, int|string $branchId, float $amount, float $workdays = 0) {
+        $addToLevel = function (&$bucket, string $key, string $l2, string $l3, int|string $branchId, int|string $parcelId, float $amount, float $workdays = 0) {
             if (!isset($bucket[$key])) {
-                $bucket[$key] = ['amount' => 0.0, 'workdays' => 0.0, 'level2' => $l2, 'level3' => $l3, 'by_branch' => []];
+                $bucket[$key] = ['amount' => 0.0, 'workdays' => 0.0, 'level2' => $l2, 'level3' => $l3, 'by_branch' => [], 'by_parcel' => []];
             }
             $bucket[$key]['amount']   += $amount;
             $bucket[$key]['workdays'] += $workdays;
@@ -267,6 +267,13 @@ class PayrollDashboardController extends Controller
             }
             $bucket[$key]['by_branch'][$bKey]['amount']   += $amount;
             $bucket[$key]['by_branch'][$bKey]['workdays'] += $workdays;
+
+            $pKey = (string) ($parcelId ?: 0);
+            if (!isset($bucket[$key]['by_parcel'][$pKey])) {
+                $bucket[$key]['by_parcel'][$pKey] = ['amount' => 0.0, 'workdays' => 0.0];
+            }
+            $bucket[$key]['by_parcel'][$pKey]['amount']   += $amount;
+            $bucket[$key]['by_parcel'][$pKey]['workdays'] += $workdays;
         };
 
         // Helper: prorate a record through its CCs and call $addToLevel for each slice
@@ -278,16 +285,17 @@ class PayrollDashboardController extends Controller
             $nCCs      = count($ccs);
 
             if ($nCCs === 0) {
-                // Sin CCs: acumular todo bajo branch 0
+                // Sin CCs: acumular todo bajo branch 0 y parcel 0
                 if ($mid && isset($result[$mid])) {
-                    $addToLevel($result[$mid], $key, $l2, $l3, 0, $totalAmount, $workdays);
+                    $addToLevel($result[$mid], $key, $l2, $l3, 0, 0, $totalAmount, $workdays);
                 }
-                $addToLevel($result['all'], $key, $l2, $l3, 0, $totalAmount, $workdays);
+                $addToLevel($result['all'], $key, $l2, $l3, 0, 0, $totalAmount, $workdays);
                 return;
             }
 
             foreach ($ccs as $cc) {
                 $branchId = $cc->branch_id ?? 0;
+                $parcelId = $cc->parcel_id ?? 0;
                 $surf     = (float) $cc->surface;
                 $prop     = $totalSurf > 0 ? $surf / $totalSurf : 1 / $nCCs;
 
@@ -295,9 +303,9 @@ class PayrollDashboardController extends Controller
                 $wdSlice  = $workdays * $prop;
 
                 if ($mid && isset($result[$mid])) {
-                    $addToLevel($result[$mid], $key, $l2, $l3, $branchId, $amtSlice, $wdSlice);
+                    $addToLevel($result[$mid], $key, $l2, $l3, $branchId, $parcelId, $amtSlice, $wdSlice);
                 }
-                $addToLevel($result['all'], $key, $l2, $l3, $branchId, $amtSlice, $wdSlice);
+                $addToLevel($result['all'], $key, $l2, $l3, $branchId, $parcelId, $amtSlice, $wdSlice);
             }
         };
 
@@ -432,13 +440,20 @@ class PayrollDashboardController extends Controller
             $result[$mid] = [];
         }
 
-        $addToBranch = function (&$bucket, int|string $branchId, string $branchName, float $amount, float $workdays = 0) {
+        $addToBranch = function (&$bucket, int|string $branchId, string $branchName, int|string $parcelId, float $amount, float $workdays = 0) {
             $key = $branchId;
             if (!isset($bucket[$key])) {
-                $bucket[$key] = ['branch_id' => $branchId, 'branch_name' => $branchName, 'amount' => 0.0, 'workdays' => 0.0];
+                $bucket[$key] = ['branch_id' => $branchId, 'branch_name' => $branchName, 'amount' => 0.0, 'workdays' => 0.0, 'by_parcel' => []];
             }
             $bucket[$key]['amount']   += $amount;
             $bucket[$key]['workdays'] += $workdays;
+
+            $pKey = (string) ($parcelId ?: 0);
+            if (!isset($bucket[$key]['by_parcel'][$pKey])) {
+                $bucket[$key]['by_parcel'][$pKey] = ['amount' => 0.0, 'workdays' => 0.0];
+            }
+            $bucket[$key]['by_parcel'][$pKey]['amount']   += $amount;
+            $bucket[$key]['by_parcel'][$pKey]['workdays'] += $workdays;
         };
 
         $prorate = function ($record, $ccGrouped, float $totalAmount, float $workdays = 0) use (&$result, &$addToBranch, $branchNames) {
@@ -461,9 +476,9 @@ class PayrollDashboardController extends Controller
                 $wdSlice  = $workdays * $proportion;
 
                 if ($mid && isset($result[$mid])) {
-                    $addToBranch($result[$mid], $branchId, $branchName, $amtSlice, $wdSlice);
+                    $addToBranch($result[$mid], $branchId, $branchName, $cc->parcel_id ?? 0, $amtSlice, $wdSlice);
                 }
-                $addToBranch($result['all'], $branchId, $branchName, $amtSlice, $wdSlice);
+                $addToBranch($result['all'], $branchId, $branchName, $cc->parcel_id ?? 0, $amtSlice, $wdSlice);
             }
         };
 
@@ -505,7 +520,7 @@ class PayrollDashboardController extends Controller
             $result[$mid] = [];
         }
 
-        $addToTrato = function (&$bucket, int|string $tratoId, string $tratoName, int $price, int|string $branchId, float $quantity, float $amount) {
+        $addToTrato = function (&$bucket, int|string $tratoId, string $tratoName, int $price, int|string $branchId, int|string $parcelId, float $quantity, float $amount) {
             $key = (string) $tratoId;
             if (!isset($bucket[$key])) {
                 $bucket[$key] = [
@@ -515,6 +530,7 @@ class PayrollDashboardController extends Controller
                     'quantity'   => 0.0,
                     'amount'     => 0.0,
                     'by_branch'  => [],
+                    'by_parcel'  => [],
                 ];
             }
             $bucket[$key]['quantity'] += $quantity;
@@ -526,6 +542,13 @@ class PayrollDashboardController extends Controller
             }
             $bucket[$key]['by_branch'][$bKey]['quantity'] += $quantity;
             $bucket[$key]['by_branch'][$bKey]['amount']   += $amount;
+
+            $pKey = (string) ($parcelId ?: 0);
+            if (!isset($bucket[$key]['by_parcel'][$pKey])) {
+                $bucket[$key]['by_parcel'][$pKey] = ['quantity' => 0.0, 'amount' => 0.0];
+            }
+            $bucket[$key]['by_parcel'][$pKey]['quantity'] += $quantity;
+            $bucket[$key]['by_parcel'][$pKey]['amount']   += $amount;
         };
 
         foreach ($yields as $y) {
@@ -544,14 +567,15 @@ class PayrollDashboardController extends Controller
                 $qty = (float) ($y->quantity ?? 0);
                 $amt = (float) ($y->amount ?? 0);
                 if ($mid && isset($result[$mid])) {
-                    $addToTrato($result[$mid], $tratoId, $tratoName, $price, 0, $qty, $amt);
+                    $addToTrato($result[$mid], $tratoId, $tratoName, $price, 0, 0, $qty, $amt);
                 }
-                $addToTrato($result['all'], $tratoId, $tratoName, $price, 0, $qty, $amt);
+                $addToTrato($result['all'], $tratoId, $tratoName, $price, 0, 0, $qty, $amt);
                 continue;
             }
 
             foreach ($ccs as $cc) {
                 $branchId = $cc->branch_id ?? 0;
+                $parcelId = $cc->parcel_id ?? 0;
                 $surf     = (float) $cc->surface;
                 $prop     = $totalSurf > 0 ? $surf / $totalSurf : 1 / $nCCs;
 
@@ -559,9 +583,9 @@ class PayrollDashboardController extends Controller
                 $amt = (float) ($y->amount ?? 0) * $prop;
 
                 if ($mid && isset($result[$mid])) {
-                    $addToTrato($result[$mid], $tratoId, $tratoName, $price, $branchId, $qty, $amt);
+                    $addToTrato($result[$mid], $tratoId, $tratoName, $price, $branchId, $parcelId, $qty, $amt);
                 }
-                $addToTrato($result['all'], $tratoId, $tratoName, $price, $branchId, $qty, $amt);
+                $addToTrato($result['all'], $tratoId, $tratoName, $price, $branchId, $parcelId, $qty, $amt);
             }
         }
 

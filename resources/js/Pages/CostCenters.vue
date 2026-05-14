@@ -228,7 +228,7 @@ const openVarietyModal = (costCenterId = null) => {
                  <div class="alert alert-info d-flex align-items-start py-2 px-3 mb-2 mt-2" role="alert" style="font-size: 0.82rem;">
                    <i class="fas fa-info-circle text-info me-2 mt-1"></i>
                    <div>
-                     Aquí se crean las <strong>unidades de asignación de costos</strong> (cuarteles, sectores, lotes, etc.). Representan la <strong>unidad productiva</strong>, no el detalle varietal. Para asignar variedades a cada centro de costo, utilice <strong>Variedades por Cuartel</strong>.
+                     Aquí se crean las <strong>unidades de asignación de costos</strong> (cuarteles, sectores, etc.). Representan la <strong>unidad productiva</strong>, no el detalle varietal. Para asignar variedades a cada centro de costo, utilice <strong>Variedades por Cuartel</strong>.
                    </div>
                  </div>
                  <div class="tab-content border p-3 mt-3" id="pill-myTabContent">
