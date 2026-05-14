@@ -360,6 +360,7 @@ use App\Http\Controllers\DailyManagement\ExportMonthlyPdfController;
 use App\Http\Controllers\DailyManagement\YieldTemplatePdfController;
 use App\Http\Controllers\DailyManagement\YieldTemplateExcelController;
 // Rutas para Payroll Reports (Reportes de Remuneraciones)
+use App\Http\Controllers\PayrollReports\PayrollDashboardController;
 use App\Http\Controllers\PayrollReports\PayrollReportController;
 use App\Http\Controllers\PayrollReports\ShowPayrollReportController;
 use App\Http\Controllers\PayrollReports\ExportPayrollReportPdfController;
@@ -1153,6 +1154,7 @@ Route::middleware([
     Route::get('/daily-management/yield-template-excel', YieldTemplateExcelController::class)->name('daily-management.yield-template-excel');
 
     // Payroll Reports (Reportes Mensuales de Remuneraciones)
+    Route::get('/payroll-dashboard', PayrollDashboardController::class)->name('payroll-dashboard');
     Route::get('/payroll-reports', [PayrollReportController::class, 'index'])->name('payroll-reports.index');
     Route::get('/payroll-reports/nomina-pdf', ExportPayrollNominaPdfController::class)->name('payroll-reports.nomina-pdf');
     Route::get('/payroll-reports/anticipos-pdf', ExportPayrollAnticiposPdfController::class)->name('payroll-reports.anticipos-pdf');
