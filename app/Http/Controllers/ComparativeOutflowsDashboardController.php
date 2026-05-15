@@ -18,10 +18,11 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Inertia\Inertia;
 use App\Http\Controllers\Traits\BudgetTotalsTrait;
+use App\Http\Controllers\Traits\PayrollDataTrait;
 
 class ComparativeOutflowsDashboardController extends Controller
 {
-    use BudgetTotalsTrait;
+    use BudgetTotalsTrait, PayrollDataTrait;
 
     public function index()
     {
@@ -61,6 +62,7 @@ class ComparativeOutflowsDashboardController extends Controller
             'detailedTable' => $comparisonByLevel1,
             'months' => $months,
             'seasonStartMonth' => $startMonthId,
+            'payrollSummary'   => $this->getPayrollSummary($team_id, $season_id),
         ]);
     }
 

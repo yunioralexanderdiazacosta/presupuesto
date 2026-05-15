@@ -19,6 +19,10 @@ const props = defineProps({
     detailedTable: Array,
     months: Array,
     seasonStartMonth: Number,
+    payrollSummary: {
+        type: Object,
+        default: () => ({ total: 0, workdays: 0 })
+    },
 });
 
 let monthlyChart = null;
@@ -48,6 +52,8 @@ const t = computed(() => isEnglish.value ? {
     withoutInvestments: 'Without investments',
     investmentsBudgeted: 'Budgeted investments',
     investmentsConsumed: 'Consumed investments',
+    payroll: 'Payroll',
+    payrollWorkdays: 'workdays',
     // Gráfico mensual
     monthlyTitle: 'Monthly Comparison: Budget vs Invoiced vs Outflows',
     budgetedLabel: 'Budget',
@@ -78,6 +84,8 @@ const t = computed(() => isEnglish.value ? {
     withoutInvestments: 'Sin inversiones',
     investmentsBudgeted: 'Inversiones presupuestadas',
     investmentsConsumed: 'Inversiones consumidas',
+    payroll: 'Remuneraciones',
+    payrollWorkdays: 'jornadas',
     // Gráfico mensual
     monthlyTitle: 'Comparativo Mensual: Presupuesto vs Facturado vs Egresos',
     budgetedLabel: 'Presupuestado',
@@ -1129,6 +1137,22 @@ function createCumulativeChart() {
                                     {{ t.investmentsConsumed }}: {{ formatCLP(summary.consumed_investments_total) }}
                                 </small>
                             </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Remuneraciones Card -->
+                <div class="col-lg col-md-6">
+                    <div class="card h-100 border-start border-success border-2">
+                        <div class="card-body">
+                            <div class="d-flex justify-content-between align-items-center mb-2">
+                                <h6 class="mb-0 text-muted">{{ t.payroll }}</h6>
+                                <i class="fas fa-users text-success fa-lg"></i>
+                            </div>
+                            <h4 class="mb-0 text-success text-nowrap" style="font-size: 1.15rem;">{{ formatCLP(payrollSummary?.total || 0) }}</h4>
+                            <small class="text-muted" style="font-size: 0.75rem;">
+                                {{ new Intl.NumberFormat('es-CL').format(Math.round(payrollSummary?.workdays || 0)) }} {{ t.payrollWorkdays }}
+                            </small>
                         </div>
                     </div>
                 </div>

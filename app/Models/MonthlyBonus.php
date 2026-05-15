@@ -11,6 +11,7 @@ class MonthlyBonus extends Model
 
     protected $fillable = [
         'team_id',
+        'season_id',
         'contract_id',
         'monthly_bonus_type_id',
         'month_id',
@@ -27,6 +28,11 @@ class MonthlyBonus extends Model
     public function team()
     {
         return $this->belongsTo(Team::class);
+    }
+
+    public function season()
+    {
+        return $this->belongsTo(Season::class);
     }
 
     public function contract()

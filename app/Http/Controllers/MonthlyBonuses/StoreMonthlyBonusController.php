@@ -15,8 +15,9 @@ class StoreMonthlyBonusController
         $costCenterIds = $validated['cost_center_ids'];
         unset($validated['cost_center_ids']);
 
-        $validated['team_id'] = $user->team_id;
-        $validated['user_id'] = $user->id;
+        $validated['team_id']   = $user->team_id;
+        $validated['season_id']  = session('season_id');
+        $validated['user_id']    = $user->id;
 
         $bonus = MonthlyBonus::create($validated);
         $bonus->costCenters()->sync($costCenterIds);

@@ -11,10 +11,11 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Inertia\Inertia;
 use App\Http\Controllers\Traits\BudgetTotalsTrait;
+use App\Http\Controllers\Traits\PayrollDataTrait;
 
 class OutflowsDashboardController extends Controller
 {
-    use BudgetTotalsTrait;
+    use BudgetTotalsTrait, PayrollDataTrait;
     public function index(Request $request)
     {
         $season_id = session('season_id');
@@ -49,6 +50,8 @@ class OutflowsDashboardController extends Controller
             'byDevelopmentState' => $this->getTotalsByDevelopmentState($season_id, $team_id),
             'byDevelopmentStateWithoutInvestments' => $this->getTotalsByDevelopmentStateWithoutInvestments($season_id, $team_id),
             'costoKiloAcumulado' => $this->getCostoKiloAcumulado($season_id, $team_id),
+            'payrollSummary'    => $this->getPayrollSummary($team_id, $season_id),
+            'payrollByDevState' => $this->getPayrollByDevelopmentState($team_id, $season_id),
         ]);
     }
 

@@ -10,6 +10,7 @@ class OvertimeHour extends Model
 {
     protected $fillable = [
         'team_id',
+        'season_id',
         'contract_id',
         'month_id',
         'labor_type_id',
@@ -32,6 +33,11 @@ class OvertimeHour extends Model
     public function team(): BelongsTo
     {
         return $this->belongsTo(Team::class);
+    }
+
+    public function season(): BelongsTo
+    {
+        return $this->belongsTo(Season::class);
     }
 
     public function contract(): BelongsTo

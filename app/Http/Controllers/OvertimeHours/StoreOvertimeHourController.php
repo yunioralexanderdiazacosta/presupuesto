@@ -26,8 +26,9 @@ class StoreOvertimeHourController
         $validated['hourly_rate_factor_snapshot']  = $overtimeType?->hourly_rate_factor;
         $validated['overtime_multiplier_snapshot'] = $overtimeType?->overtime_multiplier;
 
-        $validated['team_id'] = $user->team_id;
-        $validated['user_id'] = $user->id;
+        $validated['team_id']   = $user->team_id;
+        $validated['season_id']  = session('season_id');
+        $validated['user_id']    = $user->id;
 
         $overtimeHour = OvertimeHour::create($validated);
         $overtimeHour->costCenters()->sync($costCenterIds);

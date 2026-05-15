@@ -95,6 +95,14 @@ const props = defineProps({
             costoKilo: 0
         })
     },
+    payrollSummary: {
+        type: Object,
+        default: () => ({ total: 0, workdays: 0 })
+    },
+    payrollByDevState: {
+        type: Array,
+        default: () => []
+    },
     dollarPrice: { type: Number, default: 970 },
     isAdmin:     { type: Boolean, default: false },
 });
@@ -117,6 +125,8 @@ const t = computed(() => isEnglish.value ? {
     totalConsumed: 'Total Consumed',
     totalInvestments: 'Total Investments',
     totalExpenses: 'Total Expenses',
+    totalPayroll: 'Payroll',
+    payrollWorkdays: 'workdays',
     records: 'records',
     // Sección compras
     sectionPurchases: 'Purchase Detail',
@@ -179,6 +189,8 @@ const t = computed(() => isEnglish.value ? {
     totalConsumed: 'Total Consumido',
     totalInvestments: 'Total Inversiones',
     totalExpenses: 'Total Gastos',
+    totalPayroll: 'Remuneraciones',
+    payrollWorkdays: 'jornadas',
     records: 'registros',
     // Sección compras
     sectionPurchases: 'Detalle de Compras',
@@ -244,6 +256,7 @@ const divisorMax = 1300;
 const dividir = ref(false);
 const incluirAdmin = ref(false);
 const selectedExtraStates = ref({});
+const showDevStateBreakdown = ref(false); // switch para mostrar/ocultar Salidas y Remun. en cards de estados
 const savingDollar = ref(false);
 
 const saveDollarPrice = async () => {
@@ -270,13 +283,25 @@ const activeTotalKilos = computed(() => {
 
 // Admin prorrateado por hectáreas: suma admin_share de producción + extras activos
 const normalize = (s) => s.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
-// Estados adicionales generados automáticamente (ej: año 1, año 2, año 3, año 4) excluyendo produccion y administracion
+// Estados adicionales: unión de outflows + payroll, excluyendo produccion y administracion
+// Permite que estados con solo payroll (ej. Año 4 sin outflows) también aparezcan como checkboxes
 const extraStates = computed(() => {
-    if (!props.byDevelopmentStateWithoutInvestments?.length) return [];
-    return props.byDevelopmentStateWithoutInvestments.filter(s => {
+    const map = {};
+    // Primero los estados de outflows (tienen total y admin_share)
+    (props.byDevelopmentStateWithoutInvestments || []).forEach(s => {
         const n = normalize(s.name);
-        return !n.includes('produccion') && !n.includes('administracion');
+        if (!n.includes('produccion') && !n.includes('administracion')) {
+            map[s.id] = { id: s.id, name: s.name, total: s.total, admin_share: s.admin_share ?? 0 };
+        }
     });
+    // Agregar estados de payroll que no estén ya en outflows
+    (props.payrollByDevState || []).forEach(s => {
+        const n = normalize(s.name);
+        if (!n.includes('produccion') && !n.includes('administracion') && !map[s.id]) {
+            map[s.id] = { id: s.id, name: s.name, total: 0, admin_share: 0 };
+        }
+    });
+    return Object.values(map).sort((a, b) => a.name.localeCompare(b.name, 'es'));
 });
 const totalAdministracion = computed(() => {
     if (!props.byDevelopmentStateWithoutInvestments?.length) return 0;
@@ -303,10 +328,33 @@ const costoLabelSuffix = computed(() => {
     extraStates.value.filter(s => selectedExtraStates.value[s.id]).forEach(s => parts.push(s.name));
     return parts.length ? `(Prod. + ${parts.join(' + ')})` : null;
 });
+// Payroll por estado de desarrollo para Costo Kilo Acumulado
+const payrollProduccion = computed(() => {
+    if (!props.payrollByDevState?.length) return 0;
+    const s = props.payrollByDevState.find(s => normalize(s.name).includes('produccion'));
+    return s?.total ?? 0;
+});
+const payrollAdministracion = computed(() => {
+    if (!props.payrollByDevState?.length) return 0;
+    const s = props.payrollByDevState.find(s => normalize(s.name).includes('administracion'));
+    return s?.total ?? 0;
+});
+const payrollExtrasTotal = computed(() =>
+    extraStates.value.reduce((sum, s) =>
+        sum + (selectedExtraStates.value[s.id] ? (payrollDevStateMap.value[s.id] ?? 0) : 0), 0)
+);
+// Suma de payroll incluida en el cálculo (para mostrar en desglose)
+const totalPayrollInCosto = computed(() =>
+    payrollProduccion.value
+    + (incluirAdmin.value ? payrollAdministracion.value : 0)
+    + payrollExtrasTotal.value
+);
 const totalProduccionEfectivo = computed(() =>
     props.costoKiloAcumulado.totalProduccion
-    + (incluirAdmin.value ? totalAdministracion.value : 0)
+    + payrollProduccion.value
+    + (incluirAdmin.value ? totalAdministracion.value + payrollAdministracion.value : 0)
     + totalExtras.value
+    + payrollExtrasTotal.value
 );
 const costoKiloEfectivo = computed(() =>
     activeTotalKilos.value > 0 ? totalProduccionEfectivo.value / activeTotalKilos.value : 0
@@ -324,6 +372,46 @@ const totalCosecha = computed(() => {
 const costoKiloCosechaEfectivo = computed(() =>
     activeTotalKilos.value > 0 ? totalCosecha.value / activeTotalKilos.value : 0
 );
+
+// Mapa de remuneraciones por dev_state_id para lookup rápido en template
+const payrollDevStateMap = computed(() => {
+    const map = {};
+    (props.payrollByDevState || []).forEach(s => { map[s.id] = s.total; });
+    return map;
+});
+
+// Estados de desarrollo (sin inversiones) merged con remuneraciones
+// Asegura que aparezcan estados con payroll aunque no tengan outflows
+const mergedDevStates = computed(() => {
+    const map = {};
+    (props.byDevelopmentStateWithoutInvestments || []).forEach(s => {
+        map[s.id] = { id: s.id, name: s.name, outflows: s.total, admin_share: s.admin_share ?? 0, payroll: 0 };
+    });
+    (props.payrollByDevState || []).forEach(s => {
+        if (map[s.id]) {
+            map[s.id].payroll = s.total;
+        } else {
+            map[s.id] = { id: s.id, name: s.name, outflows: 0, admin_share: 0, payroll: s.total };
+        }
+    });
+    return Object.values(map).sort((a, b) => (b.outflows + b.payroll) - (a.outflows + a.payroll));
+});
+
+// Estados de desarrollo (con inversiones) merged con remuneraciones
+const mergedDevStatesWithInvestments = computed(() => {
+    const map = {};
+    (props.byDevelopmentState || []).forEach(s => {
+        map[s.id] = { id: s.id, name: s.name, outflows: s.total, payroll: 0 };
+    });
+    (props.payrollByDevState || []).forEach(s => {
+        if (map[s.id]) {
+            map[s.id].payroll = s.total;
+        } else {
+            map[s.id] = { id: s.id, name: s.name, outflows: 0, payroll: s.total };
+        }
+    });
+    return Object.values(map).sort((a, b) => (b.outflows + b.payroll) - (a.outflows + a.payroll));
+});
 
 // Formatear números con separador de miles (sin decimales)
 const formatNumber = (number) => {
@@ -736,6 +824,28 @@ const totalCompras = computed(() => {
                             </div>
                         </div>
                     </div>
+
+                    <!-- Remuneraciones Card -->
+                    <div class="col-md-4">
+                        <div class="card h-100 border-start border-success border-3">
+                            <div class="card-body py-2 px-3">
+                                <div class="d-flex align-items-center justify-content-between">
+                                    <div>
+                                        <small class="text-muted text-uppercase d-block mb-1">{{ t.totalPayroll }}</small>
+                                        <h4 class="mb-0 text-success fw-bold">
+                                            {{ formatNumber(dividir && divisor ? (payrollSummary?.total || 0) / divisor : (payrollSummary?.total || 0)) }} {{ dividir ? 'USD' : 'CLP' }}
+                                        </h4>
+                                        <small class="text-muted fs-10">
+                                            {{ formatNumber(payrollSummary?.workdays || 0) }} {{ t.payrollWorkdays }}
+                                        </small>
+                                    </div>
+                                    <div class="text-success">
+                                        <i class="fas fa-users fa-2x opacity-50"></i>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
                 </div>
 
                 <!-- Separador -->
@@ -746,10 +856,18 @@ const totalCompras = computed(() => {
                 </div>
 
                 <!-- Título Sección Estados de Desarrollo -->
-                <h6 class="text-secondary mb-2 d-flex align-items-center">
-                    <i class="fas fa-layer-group me-2 fs-8"></i>
-                    <span>{{ t.sectionDevStates }}</span>
-                </h6>
+                <div class="d-flex align-items-center justify-content-between mb-2">
+                    <h6 class="text-secondary mb-0 d-flex align-items-center">
+                        <i class="fas fa-layer-group me-2 fs-8"></i>
+                        <span>{{ t.sectionDevStates }}</span>
+                    </h6>
+                    <label class="d-flex align-items-center gap-2 mb-0 small text-muted" style="cursor:pointer;font-size:0.75rem;">
+                        <span>Desglose</span>
+                        <div class="form-check form-switch mb-0">
+                            <input class="form-check-input" type="checkbox" v-model="showDevStateBreakdown" style="cursor:pointer;">
+                        </div>
+                    </label>
+                </div>
 
                 <!-- Card Totales por Estado de Desarrollo -->
                 <div class="row g-2 mb-3">
@@ -762,19 +880,35 @@ const totalCompras = computed(() => {
                                 </h6>
                             </div>
                             <div class="card-body p-0">
-                                <div v-if="byDevelopmentState && byDevelopmentState.length > 0" class="list-group list-group-flush">
-                                    <div 
-                                        v-for="state in byDevelopmentState" 
+                                <div v-if="mergedDevStatesWithInvestments.length > 0" class="list-group list-group-flush">
+                                    <div
+                                        v-for="state in mergedDevStatesWithInvestments"
                                         :key="state.id"
-                                        class="list-group-item d-flex justify-content-between align-items-center py-2 px-3"
+                                        class="list-group-item py-2 px-3"
                                     >
-                                        <span class="fw-medium">
-                                            <i class="fas fa-circle text-info me-2" style="font-size: 8px;"></i>
-                                            {{ state.name }}
-                                        </span>
-                                        <span class="fs-8">
-                                            {{ formatNumber(dividir && divisor ? state.total / divisor : state.total) }} {{ dividir ? 'USD' : 'CLP' }}
-                                        </span>
+                                        <div class="d-flex justify-content-between align-items-center">
+                                            <span class="fw-medium">
+                                                <i class="fas fa-circle text-info me-2" style="font-size: 8px;"></i>
+                                                {{ state.name }}
+                                            </span>
+                                            <div class="d-flex gap-3 align-items-center text-end">
+                                                <!-- Salidas -->
+                                                <div v-if="showDevStateBreakdown">
+                                                    <small class="text-muted d-block" style="font-size: 0.65rem;">Salidas</small>
+                                                    <span class="fs-8">{{ formatNumber(dividir && divisor ? state.outflows / divisor : state.outflows) }}</span>
+                                                </div>
+                                                <!-- Remuneraciones -->
+                                                <div v-if="showDevStateBreakdown && state.payroll > 0">
+                                                    <small class="text-success d-block" style="font-size: 0.65rem;">Remun.</small>
+                                                    <span class="fs-8 text-success">{{ formatNumber(dividir && divisor ? state.payroll / divisor : state.payroll) }}</span>
+                                                </div>
+                                                <!-- Total -->
+                                                <div :class="showDevStateBreakdown ? 'border-start ps-3' : ''">
+                                                    <small class="text-dark d-block fw-semibold" style="font-size: 0.65rem;">Total</small>
+                                                    <span class="fs-8 fw-bold">{{ formatNumber(dividir && divisor ? (state.outflows + state.payroll) / divisor : (state.outflows + state.payroll)) }}</span>
+                                                </div>
+                                            </div>
+                                        </div>
                                     </div>
                                 </div>
                                 <div v-else class="text-center py-4">
@@ -795,19 +929,35 @@ const totalCompras = computed(() => {
                                 </h6>
                             </div>
                             <div class="card-body p-0">
-                                <div v-if="byDevelopmentStateWithoutInvestments && byDevelopmentStateWithoutInvestments.length > 0" class="list-group list-group-flush">
-                                    <div 
-                                        v-for="state in byDevelopmentStateWithoutInvestments" 
+                                <div v-if="mergedDevStates.length > 0" class="list-group list-group-flush">
+                                    <div
+                                        v-for="state in mergedDevStates"
                                         :key="state.id"
-                                        class="list-group-item d-flex justify-content-between align-items-center py-2 px-3"
+                                        class="list-group-item py-2 px-3"
                                     >
-                                        <span class="fw-medium">
-                                            <i class="fas fa-circle text-warning me-2" style="font-size: 8px;"></i>
-                                            {{ state.name }}
-                                        </span>
-                                        <span class="fs-8">
-                                            {{ formatNumber(dividir && divisor ? state.total / divisor : state.total) }} {{ dividir ? 'USD' : 'CLP' }}
-                                        </span>
+                                        <div class="d-flex justify-content-between align-items-center">
+                                            <span class="fw-medium">
+                                                <i class="fas fa-circle text-warning me-2" style="font-size: 8px;"></i>
+                                                {{ state.name }}
+                                            </span>
+                                            <div class="d-flex gap-3 align-items-center text-end">
+                                                <!-- Salidas -->
+                                                <div v-if="showDevStateBreakdown">
+                                                    <small class="text-muted d-block" style="font-size: 0.65rem;">Salidas</small>
+                                                    <span class="fs-8">{{ formatNumber(dividir && divisor ? state.outflows / divisor : state.outflows) }}</span>
+                                                </div>
+                                                <!-- Remuneraciones -->
+                                                <div v-if="showDevStateBreakdown && state.payroll > 0">
+                                                    <small class="text-success d-block" style="font-size: 0.65rem;">Remun.</small>
+                                                    <span class="fs-8 text-success">{{ formatNumber(dividir && divisor ? state.payroll / divisor : state.payroll) }}</span>
+                                                </div>
+                                                <!-- Total -->
+                                                <div :class="showDevStateBreakdown ? 'border-start ps-3' : ''">
+                                                    <small class="text-dark d-block fw-semibold" style="font-size: 0.65rem;">Total</small>
+                                                    <span class="fs-8 fw-bold">{{ formatNumber(dividir && divisor ? (state.outflows + state.payroll) / divisor : (state.outflows + state.payroll)) }}</span>
+                                                </div>
+                                            </div>
+                                        </div>
                                     </div>
                                 </div>
                                 <div v-else class="text-center py-4">
@@ -864,6 +1014,9 @@ const totalCompras = computed(() => {
                                                     {{ state.name }}: {{ formatNumber(dividir && divisor ? state.total / divisor : state.total) }}
                                                 </small>
                                             </template>
+                                            <small v-if="totalPayrollInCosto > 0" class="text-success d-block mt-1" style="font-size:0.7rem;">
+                                                <i class="fas fa-users me-1"></i>Remun. incluidas: {{ formatNumber(dividir && divisor ? totalPayrollInCosto / divisor : totalPayrollInCosto) }}
+                                            </small>
                                         </div>
                                     </div>
 
@@ -893,11 +1046,11 @@ const totalCompras = computed(() => {
                                 </div>
 
                                 <!-- Mensaje si no hay datos -->
-                                <div v-if="!activeTotalKilos || !costoKiloAcumulado.totalProduccion" class="alert alert-warning mt-3 mb-0 py-2">
+                                <div v-if="!activeTotalKilos || totalProduccionEfectivo <= 0" class="alert alert-warning mt-3 mb-0 py-2">
                                     <i class="fas fa-exclamation-triangle me-2"></i>
                                     <small>
                                         <span v-if="!activeTotalKilos">{{ t.noKilos }} </span>
-                                        <span v-if="!costoKiloAcumulado.totalProduccion">{{ t.noProduction }}</span>
+                                        <span v-if="totalProduccionEfectivo <= 0">{{ t.noProduction }}</span>
                                     </small>
                                 </div>
                             </div>
