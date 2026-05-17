@@ -208,4 +208,78 @@ trait PayrollDataTrait
 
         return $result;
     }
+
+    /**
+     * Remuneraciones agrupadas por Level2.
+     * Ruta: labor_type → level3 → level2 → level1
+     * Cubre tarjas, bonos mensuales y horas extra.
+     *
+     * @return array ['level2Name' => ['total' => int, 'level1' => string]]
+     */
+    public function getPayrollByLevel2(int $teamId, int $seasonId): array
+    {
+        $contractIds = Contract::where('team_id', $teamId)->pluck('id');
+
+        // ── 1. TARJAS ─────────────────────────────────────────────────────
+        $yieldsRows = DB::table('daily_yields as dy')
+            ->join('labor_types as lt', 'dy.labor_type_id', '=', 'lt.id')
+            ->join('level3s as l3', 'lt.level3_id', '=', 'l3.id')
+            ->join('level2s as l2', 'l3.level2_id', '=', 'l2.id')
+            ->join('level1s as l1', 'l2.level1_id', '=', 'l1.id')
+            ->where('dy.team_id', $teamId)
+            ->where('dy.season_id', $seasonId)
+            ->selectRaw('l2.name as level2_name, l1.name as level1_name,
+                SUM(COALESCE(dy.amount,0) + COALESCE(dy.bonus_amount,0) + COALESCE(dy.target_price_bonus,0)) as total')
+            ->groupBy('l2.name', 'l1.name')
+            ->get();
+
+        // ── 2. BONOS MENSUALES ────────────────────────────────────────────
+        $bonusRows = collect();
+        if ($contractIds->isNotEmpty()) {
+            $bonusRows = DB::table('monthly_bonuses as mb')
+                ->join('labor_types as lt', 'mb.labor_type_id', '=', 'lt.id')
+                ->join('level3s as l3', 'lt.level3_id', '=', 'l3.id')
+                ->join('level2s as l2', 'l3.level2_id', '=', 'l2.id')
+                ->join('level1s as l1', 'l2.level1_id', '=', 'l1.id')
+                ->where('mb.team_id', $teamId)
+                ->where(function ($q) use ($seasonId) {
+                    $q->where('mb.season_id', $seasonId)->orWhereNull('mb.season_id');
+                })
+                ->whereIn('mb.contract_id', $contractIds->toArray())
+                ->selectRaw('l2.name as level2_name, l1.name as level1_name, SUM(mb.amount) as total')
+                ->groupBy('l2.name', 'l1.name')
+                ->get();
+        }
+
+        // ── 3. HORAS EXTRA ────────────────────────────────────────────────
+        $otRows = collect();
+        if ($contractIds->isNotEmpty()) {
+            $otRows = DB::table('overtime_hours as oh')
+                ->join('labor_types as lt', 'oh.labor_type_id', '=', 'lt.id')
+                ->join('level3s as l3', 'lt.level3_id', '=', 'l3.id')
+                ->join('level2s as l2', 'l3.level2_id', '=', 'l2.id')
+                ->join('level1s as l1', 'l2.level1_id', '=', 'l1.id')
+                ->where('oh.team_id', $teamId)
+                ->where(function ($q) use ($seasonId) {
+                    $q->where('oh.season_id', $seasonId)->orWhereNull('oh.season_id');
+                })
+                ->whereIn('oh.contract_id', $contractIds->toArray())
+                ->selectRaw('l2.name as level2_name, l1.name as level1_name,
+                    COALESCE(SUM(ROUND(oh.hours * oh.base_salary_snapshot * oh.hourly_rate_factor_snapshot * oh.overtime_multiplier_snapshot)), 0) as total')
+                ->groupBy('l2.name', 'l1.name')
+                ->get();
+        }
+
+        // ── Merge ─────────────────────────────────────────────────────────
+        $map = [];
+        foreach ($yieldsRows->merge($bonusRows)->merge($otRows) as $row) {
+            $key = $row->level2_name;
+            if (!isset($map[$key])) {
+                $map[$key] = ['total' => 0.0, 'level1' => $row->level1_name];
+            }
+            $map[$key]['total'] += (float) $row->total;
+        }
+
+        return $map;
+    }
 }

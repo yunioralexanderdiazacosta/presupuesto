@@ -760,7 +760,7 @@ const totalCompras = computed(() => {
                 <!-- KPI Cards Fila 1: Consumos -->
                 <div class="row g-2 mb-2">
                     <!-- Total Outflows Card -->
-                    <div class="col-md-4">
+                    <div class="col-md-3">
                         <div class="card h-100 border-start border-primary border-3">
                             <div class="card-body py-2 px-3">
                                 <div class="d-flex align-items-center justify-content-between">
@@ -782,7 +782,7 @@ const totalCompras = computed(() => {
                     </div>
 
                     <!-- Total Inversiones Card -->
-                    <div class="col-md-4">
+                    <div class="col-md-3">
                         <div class="card h-100 border-start border-primary border-3">
                             <div class="card-body py-2 px-3">
                                 <div class="d-flex align-items-center justify-content-between">
@@ -804,7 +804,7 @@ const totalCompras = computed(() => {
                     </div>
 
                     <!-- Total Gastos Card -->
-                    <div class="col-md-4">
+                    <div class="col-md-3">
                         <div class="card h-100 border-start border-primary border-3">
                             <div class="card-body py-2 px-3">
                                 <div class="d-flex align-items-center justify-content-between">
@@ -826,7 +826,7 @@ const totalCompras = computed(() => {
                     </div>
 
                     <!-- Remuneraciones Card -->
-                    <div class="col-md-4">
+                    <div class="col-md-3">
                         <div class="card h-100 border-start border-success border-3">
                             <div class="card-body py-2 px-3">
                                 <div class="d-flex align-items-center justify-content-between">

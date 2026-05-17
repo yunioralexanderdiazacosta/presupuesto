@@ -45,7 +45,10 @@ class OutflowsDashboardController extends Controller
             'creditNotes' => $this->getCreditNotesTotal($season_id, $team_id),
             'debitNotes' => $this->getDebitNotesTotal($season_id, $team_id),
             'byLevel1' => $this->getOutflowsByLevel1($season_id, $team_id),
-            'byLevel2' => $this->getOutflowsByLevel2($season_id, $team_id),
+            'byLevel2' => $this->mergePayrollIntoLevel2(
+                $this->getOutflowsByLevel2($season_id, $team_id),
+                $this->getPayrollByLevel2($team_id, $season_id)
+            ),
             'byProject' => $this->getOutflowsByProject($season_id, $team_id),
             'byDevelopmentState' => $this->getTotalsByDevelopmentState($season_id, $team_id),
             'byDevelopmentStateWithoutInvestments' => $this->getTotalsByDevelopmentStateWithoutInvestments($season_id, $team_id),
@@ -53,6 +56,38 @@ class OutflowsDashboardController extends Controller
             'payrollSummary'    => $this->getPayrollSummary($team_id, $season_id),
             'payrollByDevState' => $this->getPayrollByDevelopmentState($team_id, $season_id),
         ]);
+    }
+
+    /**
+     * Agrega los montos de remuneraciones (por level2) al array de byLevel2.
+     * Si el level2 ya existe, suma. Si no existe, lo agrega al final.
+     * Luego re-ordena por monto descendente.
+     */
+    private function mergePayrollIntoLevel2(array $level2Data, array $payrollByLevel2): array
+    {
+        if (empty($payrollByLevel2)) return $level2Data;
+
+        $indexMap = array_flip($level2Data['labels']);
+
+        foreach ($payrollByLevel2 as $name => $info) {
+            if (isset($indexMap[$name])) {
+                $i = $indexMap[$name];
+                $level2Data['data'][$i] += (int) round($info['total']);
+            } else {
+                $level2Data['labels'][] = $name;
+                $level2Data['data'][]   = (int) round($info['total']);
+                $level2Data['level1'][] = $info['level1'];
+            }
+        }
+
+        // Re-ordenar por monto descendente
+        $combined = array_map(null, $level2Data['labels'], $level2Data['data'], $level2Data['level1']);
+        usort($combined, fn($a, $b) => $b[1] <=> $a[1]);
+        $level2Data['labels'] = array_column($combined, 0);
+        $level2Data['data']   = array_column($combined, 1);
+        $level2Data['level1'] = array_column($combined, 2);
+
+        return $level2Data;
     }
 
     private function getSummary($season_id, $team_id)
