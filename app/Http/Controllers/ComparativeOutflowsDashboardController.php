@@ -50,6 +50,44 @@ class ComparativeOutflowsDashboardController extends Controller
         // Calcular una sola vez y reutilizar (evita queries duplicadas)
         $monthlyComparison = $this->getMonthlyComparison($season_id, $team_id, $months);
         $comparisonByLevel1 = $this->getComparisonByLevel1($season_id, $team_id);
+        $payrollByLevel2    = $this->getPayrollByLevel2($team_id, $season_id);
+
+        // ── Merge payroll en las filas de detailedTable (por nombre de Level2) ──
+        foreach ($payrollByLevel2 as $level2Name => $payrollData) {
+            $found = false;
+            foreach ($comparisonByLevel1 as &$row) {
+                if (strcasecmp(trim($row['level2']), trim($level2Name)) === 0) {
+                    $row['payroll']    = (float) $payrollData['total'];
+                    $row['difference'] = $row['budget'] - $row['invoiced'] - $row['payroll'];
+                    $found = true;
+                    break;
+                }
+            }
+            unset($row);
+
+            // Si no existe fila con ese Level2, crear una nueva (nómina sin presupuesto)
+            if (!$found && $payrollData['total'] > 0) {
+                $comparisonByLevel1[] = [
+                    'category'   => $payrollData['level1'] . ' - ' . $level2Name,
+                    'level1'     => $payrollData['level1'],
+                    'level2'     => $level2Name,
+                    'budget'     => 0.0,
+                    'invoiced'   => 0.0,
+                    'consumed'   => 0.0,
+                    'real'       => 0.0,
+                    'payroll'    => (float) $payrollData['total'],
+                    'difference' => -(float) $payrollData['total'],
+                    'variance'   => 0.0,
+                    'status'     => 'over',
+                ];
+            }
+        }
+
+        // Asegurar que todas las filas tengan el campo payroll
+        foreach ($comparisonByLevel1 as &$row) {
+            $row['payroll'] = $row['payroll'] ?? 0.0;
+        }
+        unset($row);
 
         return Inertia::render('ComparativeOutflowsDashboard', [
             'dollarPrice' => $dollarPrice,
@@ -63,6 +101,8 @@ class ComparativeOutflowsDashboardController extends Controller
             'months' => $months,
             'seasonStartMonth' => $startMonthId,
             'payrollSummary'   => $this->getPayrollSummary($team_id, $season_id),
+            'payrollMonthly'   => $this->getPayrollMonthly($team_id, $season_id, $months),
+            'payrollByLevel2'  => $payrollByLevel2,
         ]);
     }
 

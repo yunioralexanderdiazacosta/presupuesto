@@ -23,6 +23,14 @@ const props = defineProps({
         type: Object,
         default: () => ({ total: 0, workdays: 0 })
     },
+    payrollMonthly: {
+        type: Array,
+        default: () => Array(12).fill(0)
+    },
+    payrollByLevel2: {
+        type: Object,
+        default: () => ({})
+    },
 });
 
 let monthlyChart = null;
@@ -33,8 +41,9 @@ const includeInvestments = ref(false);
 
 // Toggles para mostrar/ocultar series en gráficos
 const showBudget = ref(true);
-const showInvoiced = ref(false);
-const showConsumed = ref(true);
+const showInvoiced = ref(true);
+const showConsumed = ref(false);
+const showPayroll = ref(true);
 
 // Toggle idioma ES/EN
 const isEnglish = ref(false);
@@ -44,7 +53,7 @@ const t = computed(() => isEnglish.value ? {
     consumed: 'Consumed',
     difference: 'Difference',
     execution: '% Execution',
-    budgetMinusInvoiced: 'Budget - Invoiced',
+    budgetMinusInvoiced: 'Budget - Invoiced - Payroll',
     underBudget: '✅ Under Budget',
     overBudget: '⚠️ Over Budget',
     variance: 'Variance',
@@ -76,7 +85,7 @@ const t = computed(() => isEnglish.value ? {
     consumed: 'Consumido',
     difference: 'Diferencia',
     execution: '% Ejecución',
-    budgetMinusInvoiced: 'Presupuesto - Facturado',
+    budgetMinusInvoiced: 'Presupuesto - Facturado - Remun.',
     underBudget: '✅ Bajo Presupuesto',
     overBudget: '⚠️ Sobrepresupuesto',
     variance: 'Variación',
@@ -135,6 +144,9 @@ const customGroups = ref([]);
 // Estado para controlar qué grupos están expandidos
 const expandedGroups = ref([]);
 
+// Controla si el bloque de remuneraciones está expandido en la tabla detalle
+const payrollExpanded = ref(true);
+
 // Computed para saber si todas las filas están seleccionadas
 const allRowsSelected = computed({
     get: () => props.comparisonByLevel1?.length > 0 && selectedRows.value.length === props.comparisonByLevel1.length,
@@ -169,14 +181,15 @@ const groupSelected = () => {
     
     // Calcular totales del grupo
     const totals = selectedItems.reduce((acc, item) => {
-        acc.budget += item.budget || 0;
+        acc.budget   += item.budget   || 0;
         acc.invoiced += item.invoiced || 0;
         acc.consumed += item.consumed || 0;
+        acc.payroll  += item.payroll  || 0;
         return acc;
-    }, { budget: 0, invoiced: 0, consumed: 0 });
+    }, { budget: 0, invoiced: 0, consumed: 0, payroll: 0 });
     
-    totals.difference = totals.budget - totals.invoiced;
-    totals.variance = totals.budget > 0 ? ((totals.invoiced - totals.budget) / totals.budget) * 100 : 0;
+    totals.difference = totals.budget - totals.invoiced - totals.payroll;
+    totals.variance = totals.budget > 0 ? ((totals.invoiced + totals.payroll - totals.budget) / totals.budget) * 100 : 0;
     
     // Crear el grupo guardando los índices originales
     const newGroup = {
@@ -252,14 +265,15 @@ const groupByLevel1 = () => {
         
         // Calcular totales del grupo
         const totals = items.reduce((acc, item) => {
-            acc.budget += item.budget || 0;
+            acc.budget   += item.budget   || 0;
             acc.invoiced += item.invoiced || 0;
             acc.consumed += item.consumed || 0;
+            acc.payroll  += item.payroll  || 0;
             return acc;
-        }, { budget: 0, invoiced: 0, consumed: 0 });
+        }, { budget: 0, invoiced: 0, consumed: 0, payroll: 0 });
         
-        totals.difference = totals.budget - totals.invoiced;
-        totals.variance = totals.budget > 0 ? ((totals.invoiced - totals.budget) / totals.budget) * 100 : 0;
+        totals.difference = totals.budget - totals.invoiced - totals.payroll;
+        totals.variance = totals.budget > 0 ? ((totals.invoiced + totals.payroll - totals.budget) / totals.budget) * 100 : 0;
         
         // Crear el grupo
         const newGroup = {
@@ -536,12 +550,44 @@ const displayedInvoicedPerHectare = computed(() => {
 });
 
 const displayedDifference = computed(() => 
-    displayedBudget.value - displayedInvoiced.value
+    displayedBudget.value - displayedInvoiced.value - (props.payrollSummary?.total || 0)
 );
 
 const displayedPercentageExecution = computed(() => 
-    displayedBudget.value > 0 ? (displayedInvoiced.value / displayedBudget.value) * 100 : 0
+    displayedBudget.value > 0
+        ? ((displayedInvoiced.value + (props.payrollSummary?.total || 0)) / displayedBudget.value) * 100
+        : 0
 );
+
+// Filas de remuneraciones para la tabla Detalle por Categoría
+const payrollRows = computed(() => {
+    if (!(props.payrollSummary?.total > 0)) return [];
+    const byLevel2 = props.payrollByLevel2 || {};
+    return Object.entries(byLevel2)
+        .filter(([, data]) => data.total > 0)
+        .map(([level2, data]) => ({
+            level1: data.level1 || 'Remuneraciones',
+            level2: level2,
+            budget: 0,
+            invoiced: 0,
+            consumed: 0,
+            payroll: data.total,
+            isPayroll: true
+        }))
+        .sort((a, b) => a.level1.localeCompare(b.level1) || a.level2.localeCompare(b.level2));
+});
+
+// Remuneraciones acumuladas por mes (running sum, null para meses futuros)
+const payrollCumulative = computed(() => {
+    const lastMonth = props.cumulativeComparison?.last_month_with_data ?? -1;
+    const monthly = props.payrollMonthly || Array(12).fill(0);
+    let cumSum = 0;
+    return monthly.map((v, i) => {
+        if (i > lastMonth) return null;
+        cumSum += v || 0;
+        return cumSum;
+    });
+});
 
 // Diferencia acumulada hasta el mes seleccionado
 const differenceToSelectedMonth = computed(() => {
@@ -651,14 +697,22 @@ const cumulativeTableData = computed(() => {
         const invoicedMonthly = index <= props.cumulativeComparison.last_month_with_data
             ? (props.monthlyComparison.real[index] ?? null)
             : null;
+
+        // Remuneraciones mensual y acumulado — null para meses futuros
+        const payrollMonth = index <= props.cumulativeComparison.last_month_with_data
+            ? (props.payrollMonthly[index] || 0)
+            : null;
+        const payrollCum = payrollCumulative.value[index]; // null para meses futuros
         
         // Aplicar conversión USD si está activada
         const convertedBudget = dividir.value && divisor.value ? budget / divisor.value : budget;
         const convertedInvoiced = invoiced !== null && dividir.value && divisor.value ? invoiced / divisor.value : invoiced;
         const convertedConsumed = consumed !== null && dividir.value && divisor.value ? consumed / divisor.value : consumed;
         const convertedInvoicedMonthly = invoicedMonthly !== null && dividir.value && divisor.value ? invoicedMonthly / divisor.value : invoicedMonthly;
+        const convertedPayrollMonth = payrollMonth !== null && dividir.value && divisor.value ? payrollMonth / divisor.value : payrollMonth;
+        const convertedPayrollCum = payrollCum !== null && dividir.value && divisor.value ? payrollCum / divisor.value : payrollCum;
         
-        const difference = convertedInvoiced !== null ? convertedBudget - convertedInvoiced : null;
+        const difference = convertedInvoiced !== null ? convertedBudget - convertedInvoiced - (convertedPayrollCum || 0) : null;
         const differenceConsumed = convertedConsumed !== null ? convertedBudget - convertedConsumed : null;
         const variance = convertedInvoiced !== null && convertedBudget > 0 ? ((convertedInvoiced / convertedBudget) * 100 - 100) : null;
         const varianceConsumed = convertedConsumed !== null && convertedBudget > 0 ? ((convertedConsumed / convertedBudget) * 100 - 100) : null;
@@ -666,6 +720,8 @@ const cumulativeTableData = computed(() => {
         return {
             month: month,
             invoiced_monthly: convertedInvoicedMonthly !== null ? convertedInvoicedMonthly : 0,
+            payroll_monthly: convertedPayrollMonth !== null ? convertedPayrollMonth : 0,
+            payroll_cumulative: convertedPayrollCum !== null ? convertedPayrollCum : 0,
             budget: convertedBudget || 0,
             invoiced: convertedInvoiced || 0,
             consumed: convertedConsumed || 0,
@@ -696,7 +752,7 @@ const excelData = computed(() => {
 });
 
 // Watch para actualizar gráficos cuando cambie el toggle o la conversión USD
-watch([includeInvestments, dividir, divisor, isEnglish, showBudget, showInvoiced, showConsumed], () => {
+watch([includeInvestments, dividir, divisor, isEnglish, showBudget, showInvoiced, showConsumed, showPayroll], () => {
     selectedBars.value = [];
     monthlyDetailCache.value = {};
     clearBarHighlight();
@@ -762,6 +818,16 @@ function createMonthlyChart() {
                     data: convertedConsumedData,
                     backgroundColor: 'rgba(255, 159, 64, 0.7)',
                     borderColor: 'rgba(255, 159, 64, 1)',
+                    borderWidth: 1
+                }] : []),
+                ...(showPayroll.value && (props.payrollSummary?.total || 0) > 0 ? [{
+                    _type: 'payroll',
+                    label: t.value.payroll,
+                    data: dividir.value && divisor.value
+                        ? props.payrollMonthly.map(v => v / divisor.value)
+                        : props.payrollMonthly,
+                    backgroundColor: 'rgba(40, 167, 69, 0.7)',
+                    borderColor: 'rgba(40, 167, 69, 1)',
                     borderWidth: 1
                 }] : [])
             ]
@@ -922,6 +988,25 @@ function createCumulativeChart() {
                         align: 'right',
                         offset: 10,
                         color: 'rgb(255, 159, 64)',
+                    }
+                }] : []),
+                ...(showPayroll.value && (props.payrollSummary?.total || 0) > 0 ? [{
+                    label: t.value.payroll,
+                    data: dividir.value && divisor.value
+                        ? payrollCumulative.value.map(v => v !== null ? v / divisor.value : null)
+                        : payrollCumulative.value,
+                    borderColor: 'rgb(40, 167, 69)',
+                    backgroundColor: 'rgba(40, 167, 69, 0.1)',
+                    borderWidth: 3,
+                    fill: false,
+                    tension: 0.4,
+                    pointRadius: 4,
+                    pointHoverRadius: 6,
+                    spanGaps: false,
+                    datalabels: {
+                        align: 'top',
+                        offset: 5,
+                        color: 'rgb(40, 167, 69)',
                     }
                 }] : [])
             ]
@@ -1142,7 +1227,7 @@ function createCumulativeChart() {
                 </div>
 
                 <!-- Remuneraciones Card -->
-                <div class="col-lg col-md-6">
+                <div v-if="(payrollSummary?.total || 0) > 0" class="col-lg col-md-6">
                     <div class="card h-100 border-start border-success border-2">
                         <div class="card-body">
                             <div class="d-flex justify-content-between align-items-center mb-2">
@@ -1225,6 +1310,15 @@ function createCumulativeChart() {
                                         <span :class="showConsumed ? 'text-warning' : 'text-secondary'">
                                             <i :class="showConsumed ? 'fas fa-check-circle' : 'fas fa-times-circle'"></i>
                                             {{ isEnglish ? 'Outflows' : 'Egresos' }}
+                                        </span>
+                                    </label>
+                                </div>
+                                <div v-if="(payrollSummary?.total || 0) > 0" class="form-check form-switch mb-0 d-flex align-items-center">
+                                    <input class="form-check-input me-2" type="checkbox" role="switch" id="showPayrollToggle" v-model="showPayroll" style="cursor: pointer;">
+                                    <label class="form-check-label small mb-0" for="showPayrollToggle" style="cursor: pointer;">
+                                        <span :class="showPayroll ? 'text-success' : 'text-secondary'">
+                                            <i :class="showPayroll ? 'fas fa-check-circle' : 'fas fa-times-circle'"></i>
+                                            {{ isEnglish ? 'Payroll' : 'Remuneraciones' }}
                                         </span>
                                     </label>
                                 </div>
@@ -1456,6 +1550,23 @@ function createCumulativeChart() {
                                                 {{ formatCLP((includeInvestments ? monthlyComparison.consumed_with_investments : monthlyComparison.consumed).reduce((a, b) => a + (b || 0), 0)) }}
                                             </td>
                                         </tr>
+                                        <!-- Fila: Remuneraciones mensual -->
+                                        <tr v-if="showPayroll && (payrollSummary?.total || 0) > 0">
+                                            <td class="fw-semibold text-success">
+                                                <i class="fas fa-users fa-xs me-1"></i>{{ t.payroll }}
+                                            </td>
+                                            <td
+                                                v-for="(val, i) in payrollMonthly"
+                                                :key="i"
+                                                class="text-end"
+                                            >
+                                                <span v-if="val > 0">{{ formatCLP(val) }}</span>
+                                                <span v-else class="text-muted">-</span>
+                                            </td>
+                                            <td class="text-end fw-bold text-success">
+                                                {{ formatCLP(payrollMonthly.reduce((a, b) => a + (b || 0), 0)) }}
+                                            </td>
+                                        </tr>
                                         <!-- Fila: Diferencia (Presupuesto - Facturado) -->
                                         <tr class="table-light" v-if="showInvoiced">
                                             <td class="fw-semibold">
@@ -1466,19 +1577,19 @@ function createCumulativeChart() {
                                                 :key="i"
                                                 class="text-end fw-bold"
                                                 :class="{
-                                                    'text-danger': ((includeInvestments ? monthlyComparison.budget_with_investments[i] : monthlyComparison.budget[i]) - val) < 0,
-                                                    'text-success': ((includeInvestments ? monthlyComparison.budget_with_investments[i] : monthlyComparison.budget[i]) - val) >= 0 && (val > 0 || (includeInvestments ? monthlyComparison.budget_with_investments[i] : monthlyComparison.budget[i]) > 0),
-                                                    'text-muted': val === 0 && (includeInvestments ? monthlyComparison.budget_with_investments[i] : monthlyComparison.budget[i]) === 0
+                                                    'text-danger': ((includeInvestments ? monthlyComparison.budget_with_investments[i] : monthlyComparison.budget[i]) - val - (payrollMonthly[i] || 0)) < 0,
+                                                    'text-success': ((includeInvestments ? monthlyComparison.budget_with_investments[i] : monthlyComparison.budget[i]) - val - (payrollMonthly[i] || 0)) >= 0 && (val > 0 || (payrollMonthly[i] || 0) > 0 || (includeInvestments ? monthlyComparison.budget_with_investments[i] : monthlyComparison.budget[i]) > 0),
+                                                    'text-muted': val === 0 && (payrollMonthly[i] || 0) === 0 && (includeInvestments ? monthlyComparison.budget_with_investments[i] : monthlyComparison.budget[i]) === 0
                                                 }"
                                             >
-                                                <template v-if="val > 0 || (includeInvestments ? monthlyComparison.budget_with_investments[i] : monthlyComparison.budget[i]) > 0">
-                                                    {{ formatCLP((includeInvestments ? monthlyComparison.budget_with_investments[i] : monthlyComparison.budget[i]) - val) }}
+                                                <template v-if="val > 0 || (payrollMonthly[i] || 0) > 0 || (includeInvestments ? monthlyComparison.budget_with_investments[i] : monthlyComparison.budget[i]) > 0">
+                                                    {{ formatCLP((includeInvestments ? monthlyComparison.budget_with_investments[i] : monthlyComparison.budget[i]) - val - (payrollMonthly[i] || 0)) }}
                                                 </template>
                                                 <span v-else class="text-muted">-</span>
                                             </td>
                                             <td class="text-end fw-bold"
-                                                :class="((includeInvestments ? monthlyComparison.budget_with_investments : monthlyComparison.budget).reduce((a,b)=>a+(b||0),0) - monthlyComparison.real.reduce((a,b)=>a+(b||0),0)) < 0 ? 'text-danger' : 'text-success'">
-                                                {{ formatCLP((includeInvestments ? monthlyComparison.budget_with_investments : monthlyComparison.budget).reduce((a,b)=>a+(b||0),0) - monthlyComparison.real.reduce((a,b)=>a+(b||0),0)) }}
+                                                :class="((includeInvestments ? monthlyComparison.budget_with_investments : monthlyComparison.budget).reduce((a,b)=>a+(b||0),0) - monthlyComparison.real.reduce((a,b)=>a+(b||0),0) - payrollMonthly.reduce((a,b)=>a+(b||0),0)) < 0 ? 'text-danger' : 'text-success'">
+                                                {{ formatCLP((includeInvestments ? monthlyComparison.budget_with_investments : monthlyComparison.budget).reduce((a,b)=>a+(b||0),0) - monthlyComparison.real.reduce((a,b)=>a+(b||0),0) - payrollMonthly.reduce((a,b)=>a+(b||0),0)) }}
                                             </td>
                                         </tr>
                                         <!-- Fila: Diferencia (Presupuesto - Consumido) -->
@@ -1528,9 +1639,11 @@ function createCumulativeChart() {
                                     :headers="[
                                         { label: 'Mes', key: 'month' },
                                         { label: 'Facturado Mensual', key: 'invoiced_monthly' },
+                                        { label: 'Remun. Mensual', key: 'payroll_monthly' },
                                         { label: 'Presupuesto Acumulado', key: 'budget' },
                                         { label: 'Facturado Acumulado', key: 'invoiced' },
                                         { label: 'Consumido Acumulado', key: 'consumed' },
+                                        { label: 'Remun. Acumulado', key: 'payroll_cumulative' },
                                         { label: 'Diferencia (Presup. - Fact.)', key: 'difference' },
                                         { label: 'Diferencia (Presup. - Cons.)', key: 'differenceConsumed' },
                                         { label: 'Variación % (Fact.)', key: 'variance' },
@@ -1549,15 +1662,17 @@ function createCumulativeChart() {
                                 <table class="table table-sm table-hover mb-0" style="font-size: 0.8rem;">
                                     <thead class="table-light">
                                         <tr>
-                                            <th style="width: 9%;">Mes</th>
-                                            <th class="text-end" style="width: 12%;">Facturado<br>Mensual</th>
-                                            <th class="text-end" style="width: 13%;">Presupuesto<br>Acumulado</th>
-                                            <th class="text-end" style="width: 13%;">Facturado<br>Acumulado</th>
-                                            <th class="text-end" style="width: 13%;">Consumido<br>Acumulado</th>
+                                            <th style="width: 5%;">Mes</th>
+                                            <th class="text-end" style="width: 8%;">Fact.<br>Mensual</th>
+                                            <th class="text-end" style="width: 8%;">Remun.<br>Mensual</th>
+                                            <th class="text-end" style="width: 10%;">Presup.<br>Acumulado</th>
+                                            <th class="text-end" style="width: 10%;">Fact.<br>Acumulado</th>
+                                            <th class="text-end" style="width: 10%;">Consumido<br>Acumulado</th>
+                                            <th class="text-end" style="width: 10%;">Remun.<br>Acumulado</th>
                                             <th class="text-end" style="width: 10%;">Dif. (P-F)</th>
                                             <th class="text-end" style="width: 10%;">Dif. (P-C)</th>
-                                            <th class="text-end" style="width: 10%;">Var. % (F)</th>
-                                            <th class="text-end" style="width: 10%;">Var. % (C)</th>
+                                            <th class="text-end" style="width: 9%;">Var. % (F)</th>
+                                            <th class="text-end" style="width: 9%;">Var. % (C)</th>
                                         </tr>
                                     </thead>
                                     <tbody>
@@ -1566,6 +1681,12 @@ function createCumulativeChart() {
                                             <td class="text-end">
                                                 <span v-if="index <= cumulativeComparison.last_month_with_data">
                                                     {{ formatCLP(monthlyComparison.real[index]) }}
+                                                </span>
+                                                <span v-else class="text-muted">-</span>
+                                            </td>
+                                            <td class="text-end text-success">
+                                                <span v-if="index <= cumulativeComparison.last_month_with_data && (payrollMonthly[index] || 0) > 0">
+                                                    {{ formatCLP(payrollMonthly[index]) }}
                                                 </span>
                                                 <span v-else class="text-muted">-</span>
                                             </td>
@@ -1590,19 +1711,25 @@ function createCumulativeChart() {
                                                 </span>
                                                 <span v-else class="text-muted">-</span>
                                             </td>
+                                            <td class="text-end text-success fw-semibold">
+                                                <span v-if="payrollCumulative[index] !== null && payrollCumulative[index] > 0">
+                                                    {{ formatCLP(payrollCumulative[index]) }}
+                                                </span>
+                                                <span v-else class="text-muted">-</span>
+                                            </td>
                                             <td class="text-end fw-bold" 
                                                 v-if="cumulativeComparison.real_cumulative[index] !== null"
                                                 :class="((includeInvestments 
                                                     ? cumulativeComparison.budget_with_investments_cumulative[index] 
-                                                    : cumulativeComparison.budget_cumulative[index]) - cumulativeComparison.real_cumulative[index]) >= 0 
+                                                    : cumulativeComparison.budget_cumulative[index]) - cumulativeComparison.real_cumulative[index] - (payrollCumulative[index] || 0)) >= 0 
                                                     ? 'text-success' : 'text-danger'">
                                                 {{ formatCLP(Math.abs((includeInvestments 
                                                     ? cumulativeComparison.budget_with_investments_cumulative[index] 
-                                                    : cumulativeComparison.budget_cumulative[index]) - cumulativeComparison.real_cumulative[index])) }}
+                                                    : cumulativeComparison.budget_cumulative[index]) - cumulativeComparison.real_cumulative[index] - (payrollCumulative[index] || 0))) }}
                                                 <i :class="['fas', 'fa-xs', 'ms-1', 
                                                     ((includeInvestments 
                                                         ? cumulativeComparison.budget_with_investments_cumulative[index] 
-                                                        : cumulativeComparison.budget_cumulative[index]) - cumulativeComparison.real_cumulative[index]) >= 0 
+                                                        : cumulativeComparison.budget_cumulative[index]) - cumulativeComparison.real_cumulative[index] - (payrollCumulative[index] || 0)) >= 0 
                                                         ? 'fa-arrow-down' : 'fa-arrow-up']"></i>
                                             </td>
                                             <td class="text-end" v-else>
@@ -1746,6 +1873,7 @@ function createCumulativeChart() {
                                             <th class="text-end">Presupuestado</th>
                                             <th class="text-end">Facturado</th>
                                             <th class="text-end">Consumido</th>
+                                            <th class="text-end">Remun.</th>
                                             <th class="text-end">Diferencia</th>
                                             <th class="text-end">Variación %</th>
                                             <th class="text-center">Estado</th>
@@ -1772,6 +1900,7 @@ function createCumulativeChart() {
                                                 <td class="text-end fw-bold">{{ formatCLP(group.totals.budget) }}</td>
                                                 <td class="text-end fw-bold">{{ formatCLP(group.totals.invoiced) }}</td>
                                                 <td class="text-end fw-bold">{{ formatCLP(group.totals.consumed) }}</td>
+                                                <td class="text-end fw-bold text-muted">{{ formatCLP(group.totals.payroll || 0) }}</td>
                                                 <td class="text-end fw-bold" :class="group.totals.difference > 0 ? 'text-success' : 'text-danger'">
                                                     {{ formatCLP(Math.abs(group.totals.difference)) }}
                                                 </td>
@@ -1797,6 +1926,10 @@ function createCumulativeChart() {
                                                     <td class="text-end">{{ formatCLP(item.budget) }}</td>
                                                     <td class="text-end">{{ formatCLP(item.invoiced) }}</td>
                                                     <td class="text-end">{{ formatCLP(item.consumed) }}</td>
+                                                    <td class="text-end">
+                                                        <span v-if="(item.payroll || 0) > 0" class="text-success">{{ formatCLP(item.payroll) }}</span>
+                                                        <span v-else class="text-muted">-</span>
+                                                    </td>
                                                     <td class="text-end" :class="item.difference > 0 ? 'text-success' : 'text-danger'">
                                                         {{ formatCLP(Math.abs(item.difference)) }}
                                                     </td>
@@ -1830,6 +1963,10 @@ function createCumulativeChart() {
                                             <td class="text-end">{{ formatCLP(item.budget) }}</td>
                                             <td class="text-end">{{ formatCLP(item.invoiced) }}</td>
                                             <td class="text-end">{{ formatCLP(item.consumed) }}</td>
+                                            <td class="text-end">
+                                                <span v-if="(item.payroll || 0) > 0" class="text-success">{{ formatCLP(item.payroll) }}</span>
+                                                <span v-else class="text-muted">-</span>
+                                            </td>
                                             <td class="text-end" :class="item.difference > 0 ? 'text-success' : 'text-danger'">
                                                 {{ formatCLP(Math.abs(item.difference)) }}
                                             </td>
@@ -1845,6 +1982,7 @@ function createCumulativeChart() {
                                                 </span>
                                             </td>
                                         </tr>
+
                                     </tbody>
                                     <tfoot class="table-light">
                                         <tr class="fw-bold">
@@ -1853,6 +1991,7 @@ function createCumulativeChart() {
                                             <td class="text-end">{{ formatCLP(displayedBudget) }}</td>
                                             <td class="text-end">{{ formatCLP(summary.invoiced_total) }}</td>
                                             <td class="text-end">{{ formatCLP(displayedConsumed) }}</td>
+                                            <td class="text-end text-success">{{ formatCLP(payrollSummary?.total || 0) }}</td>
                                             <td class="text-end" :class="displayedDifference > 0 ? 'text-success' : 'text-danger'">
                                                 {{ formatCLP(Math.abs(displayedDifference)) }}
                                             </td>

@@ -282,4 +282,72 @@ trait PayrollDataTrait
 
         return $map;
     }
+
+    /**
+     * Remuneraciones agrupadas por mes (posición en el array de $months de la temporada).
+     * Cubre tarjas (por MONTH(date)), bonos y HE (por month_id).
+     *
+     * @param  array  $months  Array de 12 meses generado por generateMonthsArray() — cada elemento tiene 'id'
+     * @return int[]           Array de 12 enteros, indexado por posición del mes en la temporada
+     */
+    public function getPayrollMonthly(int $teamId, int $seasonId, array $months): array
+    {
+        $contractIds = Contract::where('team_id', $teamId)->pluck('id');
+
+        // Mapa month_id (1-12) → índice en el array de la temporada
+        $monthIndexMap = [];
+        foreach ($months as $i => $m) {
+            $monthIndexMap[(int) $m['id']] = $i;
+        }
+
+        $result = array_fill(0, 12, 0);
+
+        // ── 1. TARJAS ─────────────────────────────────────────────────────
+        DB::table('daily_yields')
+            ->where('team_id', $teamId)
+            ->where('season_id', $seasonId)
+            ->selectRaw('MONTH(date) as month_num, SUM(COALESCE(amount,0) + COALESCE(bonus_amount,0) + COALESCE(target_price_bonus,0)) as total')
+            ->groupBy('month_num')
+            ->get()
+            ->each(function ($row) use (&$result, $monthIndexMap) {
+                $idx = $monthIndexMap[(int) $row->month_num] ?? null;
+                if ($idx !== null) $result[$idx] += (float) $row->total;
+            });
+
+        // ── 2. BONOS MENSUALES ────────────────────────────────────────────
+        if ($contractIds->isNotEmpty()) {
+            DB::table('monthly_bonuses')
+                ->where('team_id', $teamId)
+                ->where(function ($q) use ($seasonId) {
+                    $q->where('season_id', $seasonId)->orWhereNull('season_id');
+                })
+                ->whereIn('contract_id', $contractIds)
+                ->selectRaw('month_id, SUM(amount) as total')
+                ->groupBy('month_id')
+                ->get()
+                ->each(function ($row) use (&$result, $monthIndexMap) {
+                    $idx = $monthIndexMap[(int) $row->month_id] ?? null;
+                    if ($idx !== null) $result[$idx] += (float) $row->total;
+                });
+        }
+
+        // ── 3. HORAS EXTRA ────────────────────────────────────────────────
+        if ($contractIds->isNotEmpty()) {
+            DB::table('overtime_hours')
+                ->where('team_id', $teamId)
+                ->where(function ($q) use ($seasonId) {
+                    $q->where('season_id', $seasonId)->orWhereNull('season_id');
+                })
+                ->whereIn('contract_id', $contractIds)
+                ->selectRaw('month_id, SUM(ROUND(hours * base_salary_snapshot * hourly_rate_factor_snapshot * overtime_multiplier_snapshot)) as total')
+                ->groupBy('month_id')
+                ->get()
+                ->each(function ($row) use (&$result, $monthIndexMap) {
+                    $idx = $monthIndexMap[(int) $row->month_id] ?? null;
+                    if ($idx !== null) $result[$idx] += (float) $row->total;
+                });
+        }
+
+        return array_map('intval', $result);
+    }
 }
