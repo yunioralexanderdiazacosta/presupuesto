@@ -75,6 +75,7 @@ class PayrollDashboardController extends Controller
             ->where('dy.season_id', $seasonId)
             ->select(
                 'dy.id',
+                'dy.employee_id',
                 DB::raw('MONTH(dy.date) as month_id'),
                 'dy.payment_type',
                 'dy.amount',
@@ -100,7 +101,7 @@ class PayrollDashboardController extends Controller
         $yieldCCs = $yieldIds->isEmpty() ? collect() : DB::table('daily_yield_cost_center as dycc')
             ->join('cost_centers as cc', 'dycc.cost_center_id', '=', 'cc.id')
             ->whereIn('dycc.daily_yield_id', $yieldIds)
-            ->select('dycc.daily_yield_id', 'dycc.cost_center_id', 'cc.surface', 'cc.parcel_id', 'cc.branch_id')
+            ->select('dycc.daily_yield_id', 'dycc.cost_center_id', 'cc.surface', 'cc.parcel_id', 'cc.branch_id', 'cc.company_reason_id')
             ->get()
             ->groupBy('daily_yield_id');
 
@@ -116,6 +117,7 @@ class PayrollDashboardController extends Controller
             ->whereIn('mb.contract_id', $contractIds)
             ->select(
                 'mb.id',
+                'mb.contract_id',
                 'mb.month_id',
                 'mb.amount',
                 'l3.id as level3_id',
@@ -132,7 +134,7 @@ class PayrollDashboardController extends Controller
         $bonusCCs = $bonusIds->isEmpty() ? collect() : DB::table('monthly_bonus_cost_centers as mbcc')
             ->join('cost_centers as cc', 'mbcc.cost_center_id', '=', 'cc.id')
             ->whereIn('mbcc.monthly_bonus_id', $bonusIds)
-            ->select('mbcc.monthly_bonus_id', 'mbcc.cost_center_id', 'cc.surface', 'cc.parcel_id', 'cc.branch_id')
+            ->select('mbcc.monthly_bonus_id', 'mbcc.cost_center_id', 'cc.surface', 'cc.parcel_id', 'cc.branch_id', 'cc.company_reason_id')
             ->get()
             ->groupBy('monthly_bonus_id');
 
@@ -148,6 +150,7 @@ class PayrollDashboardController extends Controller
             ->whereIn('oh.contract_id', $contractIds)
             ->select(
                 'oh.id',
+                'oh.contract_id',
                 'oh.month_id',
                 DB::raw('ROUND(oh.hours * oh.base_salary_snapshot * oh.hourly_rate_factor_snapshot * oh.overtime_multiplier_snapshot) as amount'),
                 'l3.id as level3_id',
@@ -164,18 +167,40 @@ class PayrollDashboardController extends Controller
         $overtimeCCs = $overtimeIds->isEmpty() ? collect() : DB::table('overtime_hour_cost_centers as ohcc')
             ->join('cost_centers as cc', 'ohcc.cost_center_id', '=', 'cc.id')
             ->whereIn('ohcc.overtime_hour_id', $overtimeIds)
-            ->select('ohcc.overtime_hour_id', 'ohcc.cost_center_id', 'cc.surface', 'cc.parcel_id', 'cc.branch_id')
+            ->select('ohcc.overtime_hour_id', 'ohcc.cost_center_id', 'cc.surface', 'cc.parcel_id', 'cc.branch_id', 'cc.company_reason_id')
             ->get()
             ->groupBy('overtime_hour_id');
 
         // ============================================================
         // Procesar todas las métricas
         // ============================================================
-        $byMonth      = $this->buildByMonth($yields, $bonuses, $overtimes, $months);
-        $byLevel      = $this->buildByLevel($yields, $yieldCCs, $bonuses, $bonusCCs, $overtimes, $overtimeCCs, $months);
-        $byParcel     = $this->buildByParcel($yields, $yieldCCs, $bonuses, $bonusCCs, $overtimes, $overtimeCCs, $parcels, $months);
-        $byBranch     = $this->buildByBranch($yields, $yieldCCs, $bonuses, $bonusCCs, $overtimes, $overtimeCCs, $branchNames, $months);
-        $byTrato      = $this->buildByTrato($yields, $yieldCCs, $months);
+        // Mapa de razones sociales del equipo
+        $companyReasonNames = DB::table('company_reasons')
+            ->where('team_id', $teamId)
+            ->pluck('name', 'id');
+
+        // Mapa employee_id → company_reason_id (para daily_yields, sin contract_id)
+        // Sin filtro is_active: incluir contratos finalizados para no perder rendimientos
+        // orderBy id asc → pluck sobreescribe con el contrato más reciente (id mayor)
+        $employeeCRMap = DB::table('contracts')
+            ->where('team_id', $teamId)
+            ->whereNotNull('company_reason_id')
+            ->orderBy('id', 'asc')
+            ->pluck('company_reason_id', 'employee_id');
+
+        // Mapa contract_id → company_reason_id (para bonuses y overtimes)
+        $contractCRMap = DB::table('contracts')
+            ->where('team_id', $teamId)
+            ->whereNotNull('company_reason_id')
+            ->pluck('company_reason_id', 'id');
+
+        $byMonth             = $this->buildByMonth($yields, $bonuses, $overtimes, $months);
+        $byLevel             = $this->buildByLevel($yields, $yieldCCs, $bonuses, $bonusCCs, $overtimes, $overtimeCCs, $months);
+        $byParcel            = $this->buildByParcel($yields, $yieldCCs, $bonuses, $bonusCCs, $overtimes, $overtimeCCs, $parcels, $months);
+        $byBranch            = $this->buildByBranch($yields, $yieldCCs, $bonuses, $bonusCCs, $overtimes, $overtimeCCs, $branchNames, $months);
+        $byTrato             = $this->buildByTrato($yields, $yieldCCs, $months);
+        $byCompanyReason     = $this->buildByCompanyReason($yields, $yieldCCs, $bonuses, $bonusCCs, $overtimes, $overtimeCCs, $companyReasonNames, $months);
+        $byRSDetail          = $this->buildByRSParcelDetail($yields, $yieldCCs, $bonuses, $bonusCCs, $overtimes, $overtimeCCs, $employeeCRMap, $contractCRMap, $companyReasonNames, $parcels, $months);
 
         // Detalles de CC para el reporte de labores por CC
         $ccDetails = DB::table('cost_centers as cc')
@@ -198,18 +223,20 @@ class PayrollDashboardController extends Controller
         $chartData    = $this->buildChartData($byMonth, $months);
 
         return Inertia::render('PayrollDashboard', [
-            'byMonth'        => $byMonth,
-            'byLevel'        => $byLevel,
-            'byParcel'       => $byParcel,
-            'byBranch'       => $byBranch,
-            'byTrato'        => $byTrato,
-            'byCostCenter'   => $byCostCenter,
-            'seasonTotals'   => $seasonTotals,
-            'chartData'      => $chartData,
-            'months'         => $months,
+            'byMonth'          => $byMonth,
+            'byLevel'          => $byLevel,
+            'byParcel'         => $byParcel,
+            'byBranch'         => $byBranch,
+            'byTrato'          => $byTrato,
+            'byCompanyReason'  => $byCompanyReason,
+            'byRSDetail'       => $byRSDetail,
+            'byCostCenter'     => $byCostCenter,
+            'seasonTotals'     => $seasonTotals,
+            'chartData'        => $chartData,
+            'months'           => $months,
             'seasonStartMonth' => $startMonthId,
-            'branches'       => $branches,
-            'parcelBranchMap' => $parcelBranchMap,
+            'branches'         => $branches,
+            'parcelBranchMap'  => $parcelBranchMap,
         ]);
     }
 
@@ -528,6 +555,206 @@ class PayrollDashboardController extends Controller
         $format = function (array $bucket): array {
             $rows = array_values($bucket);
             usort($rows, fn($a, $b) => strcmp($a['branch_name'], $b['branch_name']));
+            return $rows;
+        };
+
+        $formatted = [];
+        foreach ($result as $mid => $bucket) {
+            $formatted[$mid] = $format($bucket);
+        }
+        return $formatted;
+    }
+
+    /**
+     * Desglose por Razón Social del CC.
+     * Cada CC tiene company_reason_id. Prorratea por superficie igual que buildByBranch.
+     * Retorna: [ month_id => [rows...], 'all' => [rows...] ]
+     */
+    private function buildByCompanyReason($yields, $yieldCCs, $bonuses, $bonusCCs, $overtimes, $overtimeCCs, $companyReasonNames, array $months): array
+    {
+        $monthIds = array_column($months, 'id');
+        $result   = ['all' => []];
+        foreach ($monthIds as $mid) {
+            $result[$mid] = [];
+        }
+
+        $addToRS = function (&$bucket, int|string $crId, string $crName, float $amount, float $workdays = 0) {
+            $key = (string) $crId;
+            if (!isset($bucket[$key])) {
+                $bucket[$key] = ['company_reason_id' => $crId, 'company_reason_name' => $crName, 'amount' => 0.0, 'workdays' => 0.0];
+            }
+            $bucket[$key]['amount']   += $amount;
+            $bucket[$key]['workdays'] += $workdays;
+        };
+
+        $prorate = function ($record, $ccGrouped, float $totalAmount, float $workdays = 0) use (&$result, &$addToRS, $companyReasonNames) {
+            $mid       = $record->month_id ?? null;
+            $ccs       = $ccGrouped->get($record->id, collect());
+            $totalSurf = $ccs->sum('surface');
+            $nCCs      = count($ccs);
+
+            if ($nCCs === 0) return;
+
+            foreach ($ccs as $cc) {
+                $crId   = $cc->company_reason_id ?? 0;
+                $crName = $crId ? ($companyReasonNames[$crId] ?? 'Sin Razón Social') : 'Sin Razón Social';
+                $surf   = (float) $cc->surface;
+                $prop   = $totalSurf > 0 ? $surf / $totalSurf : 1 / $nCCs;
+
+                $amtSlice = $totalAmount * $prop;
+                $wdSlice  = $workdays * $prop;
+
+                if ($mid && isset($result[$mid])) {
+                    $addToRS($result[$mid], $crId, $crName, $amtSlice, $wdSlice);
+                }
+                $addToRS($result['all'], $crId, $crName, $amtSlice, $wdSlice);
+            }
+        };
+
+        foreach ($yields as $y) {
+            $total = (float)(($y->amount ?? 0) + ($y->bonus_amount ?? 0) + ($y->target_price_bonus ?? 0));
+            $wd    = (float) ($y->workdays ?? 0);
+            $prorate($y, $yieldCCs, $total, $wd);
+        }
+        foreach ($bonuses as $b) {
+            $prorate($b, $bonusCCs, (float) ($b->amount ?? 0));
+        }
+        foreach ($overtimes as $o) {
+            $prorate($o, $overtimeCCs, (float) ($o->amount ?? 0));
+        }
+
+        $format = function (array $bucket): array {
+            $rows = array_values($bucket);
+            usort($rows, fn($a, $b) => strcmp($a['company_reason_name'], $b['company_reason_name']));
+            return $rows;
+        };
+
+        $formatted = [];
+        foreach ($result as $mid => $bucket) {
+            $formatted[$mid] = $format($bucket);
+        }
+        return $formatted;
+    }
+
+    /**
+     * Distribución de montos por RS contratante → Parcelas donde trabajaron sus empleados.
+     * Permite identificar trabajo cruzado entre razones sociales (cross-billing).
+     * employer_RS = contract.company_reason_id del trabajador
+     * parcel_RS   = cost_center.company_reason_id del CC donde registró trabajo
+     */
+    private function buildByRSParcelDetail(
+        $yields, $yieldCCs,
+        $bonuses, $bonusCCs,
+        $overtimes, $overtimeCCs,
+        $employeeCRMap,    // employee_id → company_reason_id
+        $contractCRMap,    // contract_id → company_reason_id
+        $companyReasonNames,
+        $parcels,
+        array $months
+    ): array {
+        $monthIds = array_column($months, 'id');
+        $result   = ['all' => []];
+        foreach ($monthIds as $mid) {
+            $result[$mid] = [];
+        }
+
+        $add = function (&$bucket, int|string $employerCRId, string $employerCRName, int|string $parcelId, string $parcelName, int|string $parcelCRId, string $parcelCRName, float $amount, float $workdays = 0) {
+            $crKey = (string) $employerCRId;
+            if (!isset($bucket[$crKey])) {
+                $bucket[$crKey] = [
+                    'company_reason_id'   => $employerCRId,
+                    'company_reason_name' => $employerCRName,
+                    'total_amount'        => 0.0,
+                    'total_workdays'      => 0.0,
+                    'parcels'             => [],
+                ];
+            }
+            $bucket[$crKey]['total_amount']   += $amount;
+            $bucket[$crKey]['total_workdays'] += $workdays;
+
+            $pKey = (string) $parcelId;
+            if (!isset($bucket[$crKey]['parcels'][$pKey])) {
+                $bucket[$crKey]['parcels'][$pKey] = [
+                    'parcel_id'                  => $parcelId,
+                    'parcel_name'                => $parcelName,
+                    'parcel_company_reason_id'   => $parcelCRId,
+                    'parcel_company_reason_name' => $parcelCRName,
+                    'amount'                     => 0.0,
+                    'workdays'                   => 0.0,
+                ];
+            }
+            $bucket[$crKey]['parcels'][$pKey]['amount']   += $amount;
+            $bucket[$crKey]['parcels'][$pKey]['workdays'] += $workdays;
+        };
+
+        $prorate = function ($record, $ccGrouped, float $totalAmount, float $workdays, int|string $employerCRId) use (&$result, &$add, $companyReasonNames, $parcels) {
+            // Usar fallback en vez de descartar — así el total siempre cuadra
+            if (!$employerCRId) {
+                $employerCRId   = 0;
+                $employerCRName = 'Sin RS contratante';
+            } else {
+                $employerCRName = $companyReasonNames[$employerCRId] ?? 'Sin RS contratante';
+            }
+            $mid            = $record->month_id ?? null;
+            $ccs            = $ccGrouped->get($record->id, collect());
+            // Solo CCs con parcel_id para no perder monto en la proración
+            $ccsWithParcel  = $ccs->filter(fn($cc) => !empty($cc->parcel_id));
+            $totalSurf      = $ccsWithParcel->sum('surface');
+            $nCCs           = count($ccsWithParcel);
+            if ($nCCs === 0) return;
+
+            foreach ($ccsWithParcel as $cc) {
+                $parcelId    = $cc->parcel_id;
+                $parcelName  = $parcels[$parcelId] ?? 'Sin Parcela';
+                $parcelCRId  = $cc->company_reason_id ?? 0;
+                $parcelCRName = $parcelCRId ? ($companyReasonNames[$parcelCRId] ?? 'Sin RS') : 'Sin RS';
+                $surf        = (float) $cc->surface;
+                $prop        = $totalSurf > 0 ? $surf / $totalSurf : 1 / $nCCs;
+
+                $amtSlice = $totalAmount * $prop;
+                $wdSlice  = $workdays * $prop;
+
+                if ($mid && isset($result[$mid])) {
+                    $add($result[$mid], $employerCRId, $employerCRName, $parcelId, $parcelName, $parcelCRId, $parcelCRName, $amtSlice, $wdSlice);
+                }
+                $add($result['all'], $employerCRId, $employerCRName, $parcelId, $parcelName, $parcelCRId, $parcelCRName, $amtSlice, $wdSlice);
+            }
+        };
+
+        foreach ($yields as $y) {
+            $employerCRId = $employeeCRMap[$y->employee_id] ?? 0;
+            $total = (float)(($y->amount ?? 0) + ($y->bonus_amount ?? 0) + ($y->target_price_bonus ?? 0));
+            $wd    = (float) ($y->workdays ?? 0);
+            $prorate($y, $yieldCCs, $total, $wd, $employerCRId);
+        }
+        foreach ($bonuses as $b) {
+            $employerCRId = $contractCRMap[$b->contract_id] ?? 0;
+            $prorate($b, $bonusCCs, (float) ($b->amount ?? 0), 0, $employerCRId);
+        }
+        foreach ($overtimes as $o) {
+            $employerCRId = $contractCRMap[$o->contract_id] ?? 0;
+            $prorate($o, $overtimeCCs, (float) ($o->amount ?? 0), 0, $employerCRId);
+        }
+
+        // Formatear: parcelas como array ordenado descendente, agregar porcentaje
+        $format = function (array $bucket): array {
+            $rows = [];
+            foreach ($bucket as $crData) {
+                $parcelRows = array_values($crData['parcels']);
+                $total      = $crData['total_amount'];
+                usort($parcelRows, fn($a, $b) => $b['amount'] <=> $a['amount']);
+                foreach ($parcelRows as &$p) {
+                    $p['percentage'] = $total > 0 ? round(($p['amount'] / $total) * 100, 1) : 0;
+                }
+                $rows[] = [
+                    'company_reason_id'   => $crData['company_reason_id'],
+                    'company_reason_name' => $crData['company_reason_name'],
+                    'total_amount'        => round($crData['total_amount']),
+                    'total_workdays'      => $crData['total_workdays'],
+                    'parcels'             => $parcelRows,
+                ];
+            }
+            usort($rows, fn($a, $b) => strcmp($a['company_reason_name'], $b['company_reason_name']));
             return $rows;
         };
 

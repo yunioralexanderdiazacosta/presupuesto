@@ -8,6 +8,7 @@ use App\Models\PurchaseOrder;
 use App\Models\PurchaseOrderItem;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
+use App\Models\CompanyReason;
 
 class StorePurchaseOrderController extends Controller
 {
@@ -41,6 +42,7 @@ class StorePurchaseOrderController extends Controller
             $purchaseOrder = PurchaseOrder::create([
                 'order_number' => $orderNumber,
                 'supplier_id' => $request->supplier_id,
+                'company_reason_id' => $request->company_reason_id,
                 'season_id' => $season_id,
                 'team_id' => $user->team_id,
                 'status' => 'draft',

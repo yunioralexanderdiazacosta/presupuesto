@@ -35,6 +35,7 @@ class UpdatePurchaseOrderController extends Controller
             // Actualizar orden de compra
             $purchaseOrder->update([
                 'supplier_id' => $request->supplier_id,
+                'company_reason_id' => $request->company_reason_id,
                 'assigned_to' => $request->assigned_to,
                 'order_date' => $request->order_date,
                 'delivery_date' => $request->delivery_date,

@@ -5,6 +5,7 @@ import PurchaseOrderForm from './PurchaseOrderForm.vue';
 const props = defineProps({
     show: Boolean,
     suppliers: Array,
+    companyReasons: Array,
     costCenters: Array,
     groupings: Array,
     products: Array,
@@ -69,6 +70,7 @@ function save() {
                     <PurchaseOrderForm 
                         ref="formRef"
                         :suppliers="suppliers"
+                        :companyReasons="companyReasons"
                         :costCenters="costCenters"
                         :groupings="groupings"
                         :products="products"

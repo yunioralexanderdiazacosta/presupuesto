@@ -115,6 +115,12 @@
                 <span class="detail-label">Proveedor:</span>
                 <span class="detail-value">{{ $purchaseOrder->supplier->name ?? 'N/A' }}</span>
             </div>
+            @if($purchaseOrder->companyReason)
+            <div class="detail-row">
+                <span class="detail-label">Razón Social (empresa pagadora):</span>
+                <span class="detail-value">{{ $purchaseOrder->companyReason->name }}{{ $purchaseOrder->companyReason->rut ? ' (' . $purchaseOrder->companyReason->rut . ')' : '' }}</span>
+            </div>
+            @endif
             <div class="detail-row">
                 <span class="detail-label">Solicitado por:</span>
                 <span class="detail-value">{{ $purchaseOrder->requestedBy->name ?? 'N/A' }}</span>

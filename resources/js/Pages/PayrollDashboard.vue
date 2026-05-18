@@ -192,6 +192,140 @@
                     </div>
                 </div><!-- row sucursal/parcela -->
 
+                <!-- TABLA RAZÓN SOCIAL -->
+                <div class="card mb-3">
+                    <div class="card-header py-2 d-flex justify-content-between align-items-center">
+                        <span class="fw-semibold small">
+                            <i class="fas fa-building me-1 text-muted"></i>Desglose por Razón Social
+                        </span>
+                        <span class="badge bg-soft-secondary text-secondary" style="font-size:0.7rem;">{{ currentMonthLabel }}</span>
+                    </div>
+                    <div class="card-body p-0">
+                        <div class="table-responsive">
+                            <table class="table table-sm table-hover mb-0" style="font-size:0.78rem;">
+                                <thead style="background:#eaf0f6;">
+                                    <tr>
+                                        <th>Razón Social</th>
+                                        <th class="text-end">Monto</th>
+                                        <th class="text-end">%</th>
+                                        <th class="text-end">Jornadas</th>
+                                        <th class="text-end">$/JH</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <template v-if="currentByCompanyReason.length === 0">
+                                        <tr><td colspan="5" class="text-center text-muted py-3">Sin datos para este período</td></tr>
+                                    </template>
+                                    <tr v-for="(row, idx) in currentByCompanyReason" :key="idx">
+                                        <td class="fw-semibold">{{ row.company_reason_name }}</td>
+                                        <td class="text-end">$ {{ fmt(Math.round(row.amount)) }}</td>
+                                        <td class="text-end text-muted">
+                                            {{ companyReasonTotals.amount > 0 ? ((row.amount / companyReasonTotals.amount) * 100).toFixed(1) + '%' : '—' }}
+                                        </td>
+                                        <td class="text-end">{{ fmtDec(row.workdays) }}</td>
+                                        <td class="text-end text-muted">
+                                            {{ row.workdays > 0 ? '$ ' + fmt(Math.round(row.amount / row.workdays)) : '—' }}
+                                        </td>
+                                    </tr>
+                                </tbody>
+                                <tfoot v-if="currentByCompanyReason.length > 0">
+                                    <tr class="fw-bold" style="background:#dce8f0;">
+                                        <td>TOTAL</td>
+                                        <td class="text-end">$ {{ fmt(Math.round(companyReasonTotals.amount)) }}</td>
+                                        <td class="text-end">100%</td>
+                                        <td class="text-end">{{ fmtDec(companyReasonTotals.workdays) }}</td>
+                                        <td class="text-end">
+                                            {{ companyReasonTotals.workdays > 0 ? '$ ' + fmt(Math.round(companyReasonTotals.amount / companyReasonTotals.workdays)) : '—' }}
+                                        </td>
+                                    </tr>
+                                </tfoot>
+                            </table>
+                        </div>
+                    </div>
+                </div><!-- /TABLA RAZÓN SOCIAL -->
+
+                <!-- TABLA CROSS-BILLING: RS contratante → Parcelas trabajadas -->
+                <div class="card mb-3">
+                    <div class="card-header py-2 d-flex justify-content-between align-items-center">
+                        <span class="fw-semibold small">
+                            <i class="fas fa-exchange-alt me-1 text-muted"></i>Distribución por Parcela según RS Contratante
+                            <span class="text-muted fw-normal ms-1" style="font-size:0.72rem;">(click en fila para ver detalle)</span>
+                        </span>
+                        <span class="badge bg-soft-secondary text-secondary" style="font-size:0.7rem;">{{ currentMonthLabel }}</span>
+                    </div>
+                    <div class="card-body p-0">
+                        <div class="table-responsive">
+                            <table class="table table-sm table-hover mb-0" style="font-size:0.78rem;">
+                                <thead style="background:#eaf0f6;">
+                                    <tr>
+                                        <th style="width:28px;"></th>
+                                        <th>Razón Social (empleadora)</th>
+                                        <th class="text-end">Total</th>
+                                        <th class="text-end">%</th>
+                                        <th class="text-end">Jornadas</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <template v-if="currentByRSDetail.length === 0">
+                                        <tr><td colspan="5" class="text-center text-muted py-3">Sin datos para este período</td></tr>
+                                    </template>
+                                    <template v-for="row in currentByRSDetail" :key="row.company_reason_id">
+                                        <!-- Fila resumen RS -->
+                                        <tr @click="toggleRSDetail(row.company_reason_id)" style="cursor:pointer;"
+                                            :style="expandedRS === row.company_reason_id ? 'background:#d6e8ff;' : ''">
+                                            <td class="text-center text-muted">
+                                                <i :class="expandedRS === row.company_reason_id ? 'fas fa-chevron-down text-primary' : 'fas fa-chevron-right'" style="font-size:0.65rem;"></i>
+                                            </td>
+                                            <td class="fw-semibold">{{ row.company_reason_name }}</td>
+                                            <td class="text-end">$ {{ fmt(row.total_amount) }}</td>
+                                            <td class="text-end text-muted">
+                                                {{ rsDetailTotals.total_amount > 0 ? ((row.total_amount / rsDetailTotals.total_amount) * 100).toFixed(1) + '%' : '—' }}
+                                            </td>
+                                            <td class="text-end">{{ fmtDec(row.total_workdays) }}</td>
+                                        </tr>
+                                        <!-- Filas detalle por parcela (expandibles) -->
+                                        <template v-if="expandedRS === row.company_reason_id">
+                                            <tr v-for="(parcel, pIdx) in row.parcels" :key="pIdx"
+                                                :class="String(parcel.parcel_company_reason_id) === String(row.company_reason_id) ? '' : 'table-warning'"
+                                                style="font-size:0.75rem; background:#f0f6ff;">
+                                                <td style="border-left:3px solid #5a9de8;"></td>
+                                                <td class="ps-4 text-nowrap">
+                                                    <i class="fas fa-map-marker-alt me-1 text-muted" style="font-size:0.65rem;"></i>
+                                                    {{ parcel.parcel_name }}
+                                                    <span class="ms-2 badge"
+                                                        :class="String(parcel.parcel_company_reason_id) === String(row.company_reason_id) ? 'bg-soft-success text-success' : 'bg-soft-warning text-warning'"
+                                                        style="font-size:0.65rem;">
+                                                        {{ String(parcel.parcel_company_reason_id) === String(row.company_reason_id) ? 'propia' : parcel.parcel_company_reason_name }}
+                                                    </span>
+                                                </td>
+                                                <td class="text-end">$ {{ fmt(Math.round(parcel.amount)) }}</td>
+                                                <td class="text-end fw-semibold">{{ parcel.percentage }}%</td>
+                                                <td class="text-end text-muted">{{ fmtDec(parcel.workdays) }}</td>
+                                            </tr>
+                                            <!-- Subtotal del RS expandido -->
+                                            <tr style="background:#c8dcf5; font-size:0.76rem; border-top:1px solid #a0bce0;">
+                                                <td style="border-left:3px solid #5a9de8;"></td>
+                                                <td class="fw-semibold text-end pe-2 text-muted">Subtotal {{ row.company_reason_name }}</td>
+                                                <td class="text-end fw-bold">$ {{ fmt(row.total_amount) }}</td>
+                                                <td class="text-end fw-bold">100%</td>
+                                                <td class="text-end fw-semibold">{{ fmtDec(row.total_workdays) }}</td>
+                                            </tr>
+                                        </template>
+                                    </template>
+                                </tbody>
+                                <tfoot v-if="currentByRSDetail.length > 0">
+                                    <tr class="fw-bold" style="background:#dce8f0;">
+                                        <td colspan="2">TOTAL</td>
+                                        <td class="text-end">$ {{ fmt(rsDetailTotals.total_amount) }}</td>
+                                        <td class="text-end">100%</td>
+                                        <td class="text-end"></td>
+                                    </tr>
+                                </tfoot>
+                            </table>
+                        </div>
+                    </div>
+                </div><!-- /TABLA CROSS-BILLING -->
+
                 <!-- TABLA LEVEL2 → LEVEL3 -->
                 <div class="card mb-3">
                     <div class="card-header py-2 d-flex justify-content-between align-items-center">
@@ -396,7 +530,9 @@ const props = defineProps({
     byParcel:         { type: Object, default: () => ({}) },
     byBranch:         { type: Object, default: () => ({}) },
     byTrato:          { type: Object, default: () => ({}) },
-    byCostCenter:     { type: Object, default: () => ({}) },
+    byCompanyReason:  { type: Object, default: () => ({}) },
+    byRSDetail:        { type: Object, default: () => ({}) },
+    byCostCenter:      { type: Object, default: () => ({}) },
     seasonTotals:     { type: Object, default: () => ({ amount: 0, workdays: 0 }) },
     chartData:        { type: Object, default: () => ({ labels: [], amounts: [], workdays: [] }) },
     months:           { type: Array,  default: () => [] },
@@ -409,6 +545,7 @@ const props = defineProps({
 const selectedMonth    = ref('all');
 const selectedBranch   = ref('');
 const selectedParcel   = ref('');
+const expandedRS       = ref(null);
 const amountsChartRef  = ref(null);
 const workdaysChartRef = ref(null);
 let amountsChart  = null;
@@ -552,6 +689,30 @@ const parcelTotals = computed(() => currentByParcel.value.reduce(
     { amount: 0, workdays: 0 }
 ));
 
+const currentByCompanyReason = computed(() => {
+    const key = selectedMonth.value === 'all' ? 'all' : selectedMonth.value;
+    return props.byCompanyReason[key] ?? [];
+});
+
+const companyReasonTotals = computed(() => currentByCompanyReason.value.reduce(
+    (acc, r) => ({ amount: acc.amount + r.amount, workdays: acc.workdays + r.workdays }),
+    { amount: 0, workdays: 0 }
+));
+
+const currentByRSDetail = computed(() => {
+    const key = selectedMonth.value === 'all' ? 'all' : selectedMonth.value;
+    return props.byRSDetail[key] ?? [];
+});
+
+const rsDetailTotals = computed(() => currentByRSDetail.value.reduce(
+    (acc, r) => ({ total_amount: acc.total_amount + r.total_amount }),
+    { total_amount: 0 }
+));
+
+const toggleRSDetail = (crId) => {
+    expandedRS.value = expandedRS.value === crId ? null : crId;
+};
+
 const currentByCostCenter = computed(() => {
     const key = selectedMonth.value === 'all' ? 'all' : selectedMonth.value;
     let rows = props.byCostCenter[key] ?? [];
@@ -676,7 +837,10 @@ function highlightSelectedMonth() {
     });
 }
 
-watch(selectedMonth, highlightSelectedMonth);
+watch(selectedMonth, () => {
+    highlightSelectedMonth();
+    expandedRS.value = null;
+});
 
 onMounted(() => {
     createAmountsChart();

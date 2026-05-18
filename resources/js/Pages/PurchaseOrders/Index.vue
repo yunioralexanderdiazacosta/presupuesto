@@ -9,6 +9,7 @@ import EditPurchaseOrderModal from '@/Components/PurchaseOrders/EditPurchaseOrde
 const props = defineProps({
     purchaseOrders: Object,
     suppliers: Array,
+    companyReasons: Array,
     costCenters: Array,
     groupings: Array,
     products: Array,
@@ -283,6 +284,7 @@ function getProductsList(order) {
                         <thead class="bg-light">
                             <tr>
                                 <th>N° Orden</th>
+                                <th>Razón Social</th>
                                 <th>Fecha</th>
                                 <th>Proveedor</th>
                                 <th>Productos</th>
@@ -293,13 +295,19 @@ function getProductsList(order) {
                         </thead>
                         <tbody>
                             <tr v-if="purchaseOrders.data.length === 0">
-                                <td colspan="7" class="text-center text-muted">No hay órdenes de compra registradas</td>
+                                <td colspan="8" class="text-center text-muted">No hay órdenes de compra registradas</td>
                             </tr>
                             <tr v-for="order in purchaseOrders.data" :key="order.id">
                                 <td>
                                     <a href="#" @click.prevent="viewOrder(order.id)" class="text-primary fw-semibold">
                                         {{ order.order_number }}
                                     </a>
+                                </td>
+                                <td>
+                                    <span v-if="order.company_reason" class="text-truncate d-inline-block" style="max-width: 150px;" :title="order.company_reason.name">
+                                        {{ order.company_reason.name }}
+                                    </span>
+                                    <span v-else class="text-muted">-</span>
                                 </td>
                                 <td>{{ formatDate(order.order_date) }}</td>
                                 <td>{{ order.supplier?.name || '-' }}</td>
@@ -486,6 +494,7 @@ function getProductsList(order) {
         <CreatePurchaseOrderModal 
             :show="showCreateModal"
             :suppliers="suppliers"
+            :companyReasons="companyReasons"
             :costCenters="costCenters"
             :groupings="groupings"
             :products="products"
@@ -498,6 +507,7 @@ function getProductsList(order) {
             :show="showEditModal"
             :order="editingOrder"
             :suppliers="suppliers"
+            :companyReasons="companyReasons"
             :costCenters="costCenters"
             :groupings="groupings"
             :products="products"

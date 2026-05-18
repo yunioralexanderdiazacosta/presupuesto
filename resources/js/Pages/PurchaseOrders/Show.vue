@@ -79,6 +79,16 @@ function printOrder() {
                                     <i class="fas fa-info-circle me-2"></i>Información de la Orden
                                 </h6>
                                 <div class="row g-2">
+                                    <div class="col-12">
+                                        <small class="text-muted d-block">Razón Social (empresa pagadora)</small>
+                                        <template v-if="purchaseOrder.company_reason">
+                                            <strong class="text-primary">{{ purchaseOrder.company_reason.name }}</strong>
+                                            <span v-if="purchaseOrder.company_reason.rut" class="text-muted ms-1 small">
+                                                ({{ purchaseOrder.company_reason.rut }})
+                                            </span>
+                                        </template>
+                                        <span v-else class="text-muted">No asignada</span>
+                                    </div>
                                     <div class="col-6">
                                         <small class="text-muted d-block">N° Orden</small>
                                         <strong>{{ purchaseOrder.order_number }}</strong>

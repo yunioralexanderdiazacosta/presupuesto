@@ -11,6 +11,7 @@ use App\Models\CostCenter;
 use App\Models\Product;
 use App\Models\Unit;
 use App\Models\User;
+use App\Models\CompanyReason;
 use Inertia\Inertia;
 use Spatie\Permission\Models\Role;
 
@@ -32,7 +33,7 @@ class PurchaseOrderController extends Controller
         $dateTo = $request->date_to ?? '';
 
         // Obtener órdenes de compra con búsqueda y filtros
-        $purchaseOrders = PurchaseOrder::with(['supplier', 'costCenters', 'requestedBy', 'approvedBy', 'items.product', 'items.unit'])
+        $purchaseOrders = PurchaseOrder::with(['supplier', 'companyReason', 'costCenters', 'requestedBy', 'approvedBy', 'items.product', 'items.unit'])
             ->where('team_id', $user->team_id)
             ->where('season_id', $season_id)
             ->when($term, function ($query, $search) {
@@ -64,6 +65,12 @@ class PurchaseOrderController extends Controller
             ->orderBy('name')
             ->get(['id', 'name'])
             ->map(fn($s) => ['value' => $s->id, 'label' => $s->name]);
+
+        // Obtener razones sociales del equipo
+        $companyReasons = CompanyReason::where('team_id', $user->team_id)
+            ->orderBy('name')
+            ->get(['id', 'name', 'rut'])
+            ->map(fn($cr) => ['value' => $cr->id, 'label' => $cr->name . ($cr->rut ? ' (' . $cr->rut . ')' : '')]);
 
         // Obtener centros de costo de la temporada (que pertenecen al equipo)
         $costCenters = CostCenter::where('season_id', $season_id)
@@ -117,6 +124,7 @@ class PurchaseOrderController extends Controller
         return Inertia::render('PurchaseOrders/Index', [
             'purchaseOrders' => $purchaseOrders,
             'suppliers' => $suppliers,
+            'companyReasons' => $companyReasons,
             'costCenters' => $costCenters,
             'groupings' => $groupings,
             'products' => $products,

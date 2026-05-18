@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\PayrollReports;
 
 use App\Http\Controllers\Controller;
+use App\Models\CompanyReason;
 use App\Models\Contract;
 use App\Models\DailyYield;
 use App\Models\Employee;
@@ -31,8 +32,8 @@ class PayrollReportController extends Controller
 
         // Employees with active contract for this team
         $employees = Employee::with([
-                'activeContract.bank', 'activeContract.accountType', 'activeContract.paymentMethod',
-                'latestContract.bank', 'latestContract.accountType', 'latestContract.paymentMethod',
+                'activeContract.bank', 'activeContract.accountType', 'activeContract.paymentMethod', 'activeContract.companyReason',
+                'latestContract.bank', 'latestContract.accountType', 'latestContract.paymentMethod', 'latestContract.companyReason',
             ])
             ->where('team_id', $user->team_id)
             ->where('is_active', true)
@@ -127,6 +128,8 @@ class PayrollReportController extends Controller
                 'rut' => $emp->rut,
                 'position' => $contract?->position ?? '',
                 'contract_id' => $contract?->id ?? null,
+                'company_reason_id' => $contract?->company_reason_id ?? null,
+                'company_reason_name' => $contract?->companyReason?->name ?? '—',
                 'bank_name' => $contract?->bank?->name ?? '—',
                 'account_type_name' => $contract?->accountType?->name ?? '—',
                 'account_number' => $contract?->account_number ?? '—',
@@ -150,11 +153,12 @@ class PayrollReportController extends Controller
 
         $anticiposData = collect();
         if ($aguinaldoTypeIds->isNotEmpty()) {
-            $anticiposRaw = MonthlyDiscount::with([
+        $anticiposRaw = MonthlyDiscount::with([
                     'contract.employee',
                     'contract.bank',
                     'contract.accountType',
                     'contract.paymentMethod',
+                    'contract.companyReason',
                 ])
                 ->where('team_id', $user->team_id)
                 ->whereIn('monthly_discount_type_id', $aguinaldoTypeIds)
@@ -163,6 +167,8 @@ class PayrollReportController extends Controller
 
             $anticiposData = $anticiposRaw->map(fn($d) => [
                 'contract_id'         => $d->contract_id,
+                'company_reason_id'   => $d->contract?->company_reason_id ?? null,
+                'company_reason_name' => $d->contract?->companyReason?->name ?? '—',
                 'rut'                 => $d->contract?->employee?->rut ?? '—',
                 'full_name'           => $d->contract?->employee?->full_name ?? '—',
                 'bank_name'           => $d->contract?->bank?->name ?? '—',
@@ -174,9 +180,16 @@ class PayrollReportController extends Controller
             ])->values();
         }
 
+        // Razones sociales usadas por los contratos del equipo
+        $companyReasons = CompanyReason::where('team_id', $user->team_id)
+            ->orderBy('name')
+            ->get(['id', 'name'])
+            ->map(fn($cr) => ['value' => $cr->id, 'label' => $cr->name]);
+
         return Inertia::render('PayrollReports/Index', [
             'employees' => $employeesData,
             'anticipos' => $anticiposData,
+            'companyReasons' => $companyReasons,
             'month' => $month,
             'totals' => [
                 'tratos' => $employeesData->sum('total_tratos'),

@@ -1317,64 +1317,6 @@ const totalCompras = computed(() => {
                         </div>
                     </div>
 
-                    <div class="col-12">
-                        <div class="row g-3">
-                            <!-- Gráfico de Barras Level1 -->
-                            <div class="col-lg-7">
-                                <div class="card h-100">
-                                    <div class="card-header">
-                                        <h6 class="mb-0">
-                                            <i class="fas fa-chart-bar text-primary me-2"></i>
-                                            {{ t.chartLevel1Bar }}
-                                        </h6>
-                                    </div>
-                                    <div class="card-body">
-                                        <FalconBarChart
-                                            v-if="byLevel1.labels && byLevel1.labels.length > 0"
-                                            :barLabels="byLevel1.labels"
-                                            :barData="convertedLevel1Data"
-                                            :height="350"
-                                            :color="['#60a5fa', '#34d399', '#fbbf24', '#fb7185', '#a78bfa', '#2dd4bf', '#f472b6', '#818cf8']"
-                                        />
-                                        <div v-else class="text-center py-5">
-                                            <i class="fas fa-chart-bar fa-4x text-muted mb-3"></i>
-                                            <h5 class="text-muted">{{ t.noData }}</h5>
-                                            <p class="text-muted mb-0">
-                                                {{ t.noDataYet }}
-                                            </p>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-
-                            <!-- Gráfico de Torta Level1 (Porcentaje) -->
-                            <div class="col-lg-5">
-                                <div class="card h-100">
-                                    <div class="card-header">
-                                        <h6 class="mb-0">
-                                            <i class="fas fa-chart-pie text-primary me-2"></i>
-                                            {{ t.chartLevel1Pie }}
-                                        </h6>
-                                    </div>
-                                    <div class="card-body">
-                                        <FalconPieChart
-                                            v-if="pieChartLevel1Data.labels && pieChartLevel1Data.labels.length > 0"
-                                            :pieLabels="pieChartLevel1Data.labels"
-                                            :pieDatasets="pieChartLevel1Data.datasets"
-                                            :showPercentage="true"
-                                        />
-                                        <div v-else class="text-center py-5">
-                                            <i class="fas fa-chart-pie fa-4x text-muted mb-3"></i>
-                                            <h5 class="text-muted">{{ t.noData }}</h5>
-                                            <p class="text-muted mb-0">
-                                                {{ t.noOutflows }}
-                                            </p>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
                 </div>
             </div>
         </div>

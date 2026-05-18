@@ -22,6 +22,7 @@ class ShowPurchaseOrderController extends Controller
         // Cargar relaciones
         $purchaseOrder->load([
             'supplier',
+            'companyReason',
             'costCenters',
             'requestedBy',
             'approvedBy',
@@ -41,6 +42,11 @@ class ShowPurchaseOrderController extends Controller
                 'contact' => $purchaseOrder->supplier->contact ?? '',
                 'email' => $purchaseOrder->supplier->email ?? '',
                 'phone' => $purchaseOrder->supplier->phone ?? '',
+            ] : null,
+            'company_reason' => $purchaseOrder->companyReason ? [
+                'id' => $purchaseOrder->companyReason->id,
+                'name' => $purchaseOrder->companyReason->name,
+                'rut' => $purchaseOrder->companyReason->rut ?? '',
             ] : null,
             'cost_centers' => $purchaseOrder->costCenters->map(function($cc) {
                 return [

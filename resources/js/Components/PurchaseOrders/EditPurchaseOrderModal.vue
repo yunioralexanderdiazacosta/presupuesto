@@ -6,6 +6,7 @@ const props = defineProps({
     show: Boolean,
     order: Object,
     suppliers: Array,
+    companyReasons: Array,
     costCenters: Array,
     groupings: Array,
     products: Array,
@@ -72,6 +73,7 @@ function save() {
                         ref="formRef"
                         :order="order"
                         :suppliers="suppliers"
+                        :companyReasons="companyReasons"
                         :costCenters="costCenters"
                         :groupings="groupings"
                         :products="products"

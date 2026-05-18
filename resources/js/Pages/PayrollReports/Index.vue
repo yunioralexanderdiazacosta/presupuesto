@@ -19,6 +19,16 @@
                                 @change="filterByMonth"
                             />
                             <select
+                                v-model="selectedCompanyReason"
+                                class="form-select form-select-sm"
+                                style="min-width: 180px; max-width: 260px;"
+                            >
+                                <option value="">Todas las razones sociales</option>
+                                <option v-for="cr in companyReasons" :key="cr.value" :value="String(cr.value)">
+                                    {{ cr.label }}
+                                </option>
+                            </select>
+                            <select
                                 v-model="selectedEmployee"
                                 class="form-select form-select-sm"
                                 style="min-width: 220px; max-width: 320px;"
@@ -211,7 +221,7 @@
 
                 <!-- TAB: Anticipos -->
                 <div v-show="activeTab === 'anticipos'">
-                    <PayrollAnticiposTab :anticipos="anticipos" :month="selectedMonth" />
+                    <PayrollAnticiposTab :anticipos="filteredAnticipos" :month="selectedMonth" />
                 </div><!-- /TAB anticipos -->
 
                 <!-- TAB: Resumen de Sueldos -->
@@ -235,12 +245,14 @@ import PayrollSueldosTab from './PayrollSueldosTab.vue';
 const props = defineProps({
     employees: { type: Array, default: () => [] },
     anticipos: { type: Array, default: () => [] },
+    companyReasons: { type: Array, default: () => [] },
     month: { type: String, required: true },
     totals: { type: Object, required: true },
 });
 
 const selectedMonth = ref(props.month);
 const selectedEmployee = ref('');
+const selectedCompanyReason = ref('');
 const activeTab = ref('resumen');
 const selectedIds = ref([]);
 
@@ -254,8 +266,19 @@ const monthLabel = computed(() => {
 
 // Filter rows based on selection
 const filteredEmployees = computed(() => {
-    if (!selectedEmployee.value) return props.employees;
-    return props.employees.filter(e => String(e.id) === String(selectedEmployee.value));
+    let list = props.employees;
+    if (selectedCompanyReason.value) {
+        list = list.filter(e => String(e.company_reason_id) === String(selectedCompanyReason.value));
+    }
+    if (selectedEmployee.value) {
+        list = list.filter(e => String(e.id) === String(selectedEmployee.value));
+    }
+    return list;
+});
+
+const filteredAnticipos = computed(() => {
+    if (!selectedCompanyReason.value) return props.anticipos;
+    return props.anticipos.filter(a => String(a.company_reason_id) === String(selectedCompanyReason.value));
 });
 
 // Recalculate totals from filtered list
@@ -280,6 +303,7 @@ const fmt = (val) => {
 
 const filterByMonth = () => {
     selectedEmployee.value = '';
+    selectedCompanyReason.value = '';
     selectedIds.value = [];
     router.get(route('payroll-reports.index'), { month: selectedMonth.value }, {
         preserveState: true,

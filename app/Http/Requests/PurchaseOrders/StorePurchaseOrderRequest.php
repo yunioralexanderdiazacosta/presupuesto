@@ -15,6 +15,7 @@ class StorePurchaseOrderRequest extends FormRequest
     {
         return [
             'supplier_id' => 'required|exists:suppliers,id',
+            'company_reason_id' => 'nullable|exists:company_reasons,id',
             'assigned_to' => 'nullable|exists:users,id',
             'cost_center_ids' => 'nullable|array',
             'cost_center_ids.*' => 'exists:cost_centers,id',
@@ -36,6 +37,7 @@ class StorePurchaseOrderRequest extends FormRequest
         return [
             'supplier_id.required' => 'Debe seleccionar un proveedor.',
             'supplier_id.exists' => 'El proveedor seleccionado no existe.',
+            'company_reason_id.exists' => 'La razón social seleccionada no existe.',
             'assigned_to.exists' => 'El aprobador seleccionado no existe.',
             'cost_center_ids.array' => 'Los centros de costo deben ser un arreglo.',
             'cost_center_ids.*.exists' => 'Uno de los centros de costo seleccionados no existe.',

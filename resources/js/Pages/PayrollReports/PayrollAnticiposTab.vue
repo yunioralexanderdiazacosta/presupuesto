@@ -4,7 +4,7 @@
         <div class="d-flex align-items-center justify-content-between mb-3">
             <div class="text-muted" style="font-size: 0.8rem;">
                 <i class="fas fa-info-circle me-1"></i>
-                Anticipos (Aguinaldo) para <strong>{{ monthLabel }}</strong> &mdash; {{ anticipos.length }} registro(s)
+                Anticipos para <strong>{{ monthLabel }}</strong> &mdash; {{ anticipos.length }} registro(s)
             </div>
             <div class="d-flex gap-2">
                 <ExportExcelButton
@@ -26,7 +26,7 @@
         <!-- Sin datos -->
         <div v-if="anticipos.length === 0" class="text-center text-muted py-5">
             <i class="fas fa-hand-holding-usd fa-2x mb-2"></i>
-            <p>No hay registros de anticipos (Aguinaldo) para <strong>{{ monthLabel }}</strong>.</p>
+            <p>No hay registros de anticipos para <strong>{{ monthLabel }}</strong>.</p>
         </div>
 
         <div v-else class="table-responsive">

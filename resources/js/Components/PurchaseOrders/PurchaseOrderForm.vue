@@ -7,6 +7,7 @@ import Multiselect from '@vueform/multiselect';
 const props = defineProps({
     order: Object,
     suppliers: Array,
+    companyReasons: Array,
     costCenters: Array,
     groupings: Array,
     products: Array,
@@ -48,6 +49,7 @@ const newItem = ref({
 // Form
 const form = useForm({
     supplier_id: props.order?.supplier.id || '',
+    company_reason_id: props.order?.company_reason_id || '',
     assigned_to: props.order?.assigned_to || '',
     cost_center_ids: props.order?.cost_centers ? props.order.cost_centers.map(cc => cc.id) : [],
     order_date: props.order ? formatDateForInput(props.order.order_date) : new Date().toISOString().split('T')[0],
@@ -266,6 +268,22 @@ defineExpose({ form, submit });
                 />
             </div>
 
+            <div class="col-md-6 mb-2">
+                <label class="form-label small mb-1">
+                    <i class="fas fa-building me-1"></i>Razón Social <span class="text-muted small">(empresa pagadora)</span>
+                </label>
+                <Multiselect
+                    v-model="form.company_reason_id"
+                    :options="companyReasons || []"
+                    :searchable="true"
+                    :close-on-select="true"
+                    placeholder="Seleccione una razón social..."
+                    class="multiselect-blue form-control-sm"
+                />
+            </div>
+        </div>
+
+        <div class="row mb-2">
             <div class="col-md-6 mb-2">
                 <label class="form-label small mb-1">
                     <i class="fas fa-user-check me-1"></i>Asignar Aprobador
