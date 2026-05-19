@@ -20,10 +20,10 @@ class StoreTerminationController extends Controller
             'fecha_termino'      => 'required|date',
             'notas'              => 'nullable|string|max:500',
             'settlement'         => 'nullable|integer|min:0',
-            'vacation_days'      => 'nullable|integer|min:0',
+            'vacation_days'      => 'nullable|numeric|min:0',
             'indemnification'    => 'nullable|integer|min:0',
             'notice_month'       => 'nullable|integer|min:0',
-            'years_of_service'   => 'nullable|integer|min:0',
+            'years_of_service'   => 'nullable|numeric|min:0',
             'afc_discount'       => 'nullable|integer|min:0',
         ]);
 
@@ -35,7 +35,6 @@ class StoreTerminationController extends Controller
                     ->where('id', $contractId)
                     ->where('team_id', $user->team_id)
                     ->where('is_active', true)
-                    ->where('contract_type', 'Faena')
                     ->firstOrFail();
 
                 // Registrar el término

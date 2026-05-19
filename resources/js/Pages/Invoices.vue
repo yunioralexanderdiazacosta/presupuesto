@@ -22,6 +22,7 @@ const props = defineProps({
 const title = "Facturas";
 
 const term = ref(props.term || "");
+const inputTerm = ref(props.term || "");
 
 // ─── Filtros avanzados ──────────────────────────────────────────────────────
 const showAdvancedFilters = ref(false);
@@ -331,6 +332,10 @@ const onFilter = () => {
     });
 };
 
+const applySearch = () => {
+    term.value = inputTerm.value;
+};
+
 // ─── Importar desde Rendición ───────────────
 const pendingItems = ref([]);
 const loadingPending = ref(false);
@@ -491,8 +496,13 @@ const formatCurrency = (value) => {
                         <!-- Barra de búsqueda y filtros -->
                         <div class="row align-items-center mb-2 g-2">
                             <div class="col-md-5 col-12">
-                                <SearchInput v-model="term" placeholder="Buscar por proveedor, número, razón social..."
-                                    @keyup.enter="onFilter()" @change="onFilter()" />
+                                <div class="d-flex gap-1 align-items-center">
+                                    <SearchInput v-model="inputTerm" placeholder="Buscar por proveedor, número, razón social..."
+                                        @keyup.enter="applySearch()" style="max-width:unset; flex:1; margin-bottom:0;" />
+                                    <button type="button" class="btn btn-falcon-default btn-sm px-2 flex-shrink-0" @click="applySearch()" title="Buscar" style="height:31px;">
+                                        <i class="fas fa-search"></i>
+                                    </button>
+                                </div>
                             </div>
                             <div class="col-md-7 col-12 d-flex align-items-center gap-2 flex-wrap justify-content-md-end">
                                 <button

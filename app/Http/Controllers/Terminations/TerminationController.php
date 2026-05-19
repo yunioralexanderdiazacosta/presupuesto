@@ -16,7 +16,7 @@ class TerminationController extends Controller
     {
         $user = Auth::user();
 
-        // Contratos activos del equipo (todos los tipos de contrato)
+        // Contratos activos del equipo (todos los tipos)
         $activeContracts = Contract::with('employee')
             ->where('team_id', $user->team_id)
             ->where('is_active', true)

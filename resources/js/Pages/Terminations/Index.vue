@@ -282,8 +282,9 @@ const handleAnular = (t) => {
                                         v-model="form.years_of_service"
                                         type="number"
                                         min="0"
+                                        step="0.01"
                                         class="form-control form-control-sm"
-                                        placeholder="0"
+                                        placeholder="0.00"
                                     />
                                 </div>
                                 <div class="col-md-3">
@@ -292,8 +293,9 @@ const handleAnular = (t) => {
                                         v-model="form.vacation_days"
                                         type="number"
                                         min="0"
+                                        step="0.01"
                                         class="form-control form-control-sm"
-                                        placeholder="0"
+                                        placeholder="0.00"
                                     />
                                 </div>
 
