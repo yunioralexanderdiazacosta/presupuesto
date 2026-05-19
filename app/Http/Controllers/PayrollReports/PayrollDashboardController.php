@@ -206,6 +206,7 @@ class PayrollDashboardController extends Controller
         $ccDetails = DB::table('cost_centers as cc')
             ->leftJoin('branches as br', 'cc.branch_id', '=', 'br.id')
             ->leftJoin('parcels as pa', 'cc.parcel_id', '=', 'pa.id')
+            ->leftJoin('company_reasons as cr', 'cc.company_reason_id', '=', 'cr.id')
             ->where('cc.season_id', $seasonId)
             ->select(
                 'cc.id',
@@ -213,7 +214,8 @@ class PayrollDashboardController extends Controller
                 'cc.branch_id',
                 'cc.parcel_id',
                 DB::raw("COALESCE(br.name, 'Sin Sucursal') as branch_name"),
-                DB::raw("COALESCE(pa.name, 'Sin Parcela') as parcel_name")
+                DB::raw("COALESCE(pa.name, 'Sin Parcela') as parcel_name"),
+                DB::raw("COALESCE(cr.name, 'Sin RS') as company_reason_name")
             )
             ->get()
             ->keyBy('id');
@@ -912,23 +914,25 @@ class PayrollDashboardController extends Controller
 
         $addToCC = function (array &$bucket, int|string $ccId, string $costCenter, string $branch, string $parcel,
                              int|string|null $branchId, int|string|null $parcelId,
+                             string $companyReasonName,
                              string $laborType, int|string $laborTypeId, string $level3, string $level2, string $level1,
                              float $amount, float $workdays) {
             $key = (string)$ccId . '||' . (string)$laborTypeId;
             if (!isset($bucket[$key])) {
                 $bucket[$key] = [
-                    'cost_center_id' => $ccId,
-                    'cost_center'    => $costCenter,
-                    'branch_id'      => $branchId,
-                    'parcel_id'      => $parcelId,
-                    'branch'         => $branch,
-                    'parcel'         => $parcel,
-                    'labor_type'     => $laborType,
-                    'level3'         => $level3,
-                    'level2'         => $level2,
-                    'level1'         => $level1,
-                    'workdays'       => 0.0,
-                    'amount'         => 0.0,
+                    'cost_center_id'      => $ccId,
+                    'cost_center'         => $costCenter,
+                    'branch_id'           => $branchId,
+                    'parcel_id'           => $parcelId,
+                    'branch'              => $branch,
+                    'parcel'              => $parcel,
+                    'company_reason_name' => $companyReasonName,
+                    'labor_type'          => $laborType,
+                    'level3'              => $level3,
+                    'level2'              => $level2,
+                    'level1'              => $level1,
+                    'workdays'            => 0.0,
+                    'amount'              => 0.0,
                 ];
             }
             $bucket[$key]['workdays'] += $workdays;
@@ -948,29 +952,30 @@ class PayrollDashboardController extends Controller
 
             if ($nCCs === 0) {
                 if ($mid !== null && isset($result[$mid])) {
-                    $addToCC($result[$mid], 0, 'Sin CC', 'Sin Sucursal', 'Sin Parcela', null, null, $laborType, $laborTypeId, $level3, $level2, $level1, $totalAmt, $wd);
+                    $addToCC($result[$mid], 0, 'Sin CC', 'Sin Sucursal', 'Sin Parcela', null, null, 'Sin RS', $laborType, $laborTypeId, $level3, $level2, $level1, $totalAmt, $wd);
                 }
-                $addToCC($result['all'], 0, 'Sin CC', 'Sin Sucursal', 'Sin Parcela', null, null, $laborType, $laborTypeId, $level3, $level2, $level1, $totalAmt, $wd);
+                $addToCC($result['all'], 0, 'Sin CC', 'Sin Sucursal', 'Sin Parcela', null, null, 'Sin RS', $laborType, $laborTypeId, $level3, $level2, $level1, $totalAmt, $wd);
                 return;
             }
 
             foreach ($ccs as $cc) {
-                $ccId     = $cc->cost_center_id;
-                $detail   = $ccDetails->get($ccId);
-                $ccName   = $detail?->name        ?? ('CC ' . $ccId);
-                $branch   = $detail?->branch_name ?? 'Sin Sucursal';
-                $parcel   = $detail?->parcel_name ?? 'Sin Parcela';
-                $branchId = $detail?->branch_id   ?? null;
-                $parcelId = $detail?->parcel_id   ?? null;
-                $surf     = (float) $cc->surface;
-                $prop     = $totalSurf > 0 ? $surf / $totalSurf : 1.0 / $nCCs;
-                $amtSlice = $totalAmt * $prop;
-                $wdSlice  = $wd * $prop;
+                $ccId             = $cc->cost_center_id;
+                $detail           = $ccDetails->get($ccId);
+                $ccName           = $detail?->name               ?? ('CC ' . $ccId);
+                $branch           = $detail?->branch_name        ?? 'Sin Sucursal';
+                $parcel           = $detail?->parcel_name        ?? 'Sin Parcela';
+                $companyReasonName = $detail?->company_reason_name ?? 'Sin RS';
+                $branchId         = $detail?->branch_id          ?? null;
+                $parcelId         = $detail?->parcel_id          ?? null;
+                $surf             = (float) $cc->surface;
+                $prop             = $totalSurf > 0 ? $surf / $totalSurf : 1.0 / $nCCs;
+                $amtSlice         = $totalAmt * $prop;
+                $wdSlice          = $wd * $prop;
 
                 if ($mid !== null && isset($result[$mid])) {
-                    $addToCC($result[$mid], $ccId, $ccName, $branch, $parcel, $branchId, $parcelId, $laborType, $laborTypeId, $level3, $level2, $level1, $amtSlice, $wdSlice);
+                    $addToCC($result[$mid], $ccId, $ccName, $branch, $parcel, $branchId, $parcelId, $companyReasonName, $laborType, $laborTypeId, $level3, $level2, $level1, $amtSlice, $wdSlice);
                 }
-                $addToCC($result['all'], $ccId, $ccName, $branch, $parcel, $branchId, $parcelId, $laborType, $laborTypeId, $level3, $level2, $level1, $amtSlice, $wdSlice);
+                $addToCC($result['all'], $ccId, $ccName, $branch, $parcel, $branchId, $parcelId, $companyReasonName, $laborType, $laborTypeId, $level3, $level2, $level1, $amtSlice, $wdSlice);
             }
         };
 

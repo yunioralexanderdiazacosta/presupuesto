@@ -454,6 +454,7 @@
                                 :headers="[
                                     { label: 'Sucursal',        key: 'branch' },
                                     { label: 'Parcela',         key: 'parcel' },
+                                    { label: 'Razón Social',    key: 'company_reason_name' },
                                     { label: 'Centro de Costo', key: 'cost_center' },
                                     { label: 'Level 1',         key: 'level1' },
                                     { label: 'Level 2',         key: 'level2' },
@@ -472,6 +473,7 @@
                                     <tr>
                                         <th>Sucursal</th>
                                         <th>Parcela</th>
+                                        <th>Razón Social</th>
                                         <th>Centro de Costo</th>
                                         <th>Level 1</th>
                                         <th>Level 2</th>
@@ -484,12 +486,13 @@
                                 <tbody>
                                     <template v-if="currentByCostCenter.length === 0">
                                         <tr>
-                                            <td colspan="9" class="text-center text-muted py-3">Sin datos para el período seleccionado</td>
+                                            <td colspan="10" class="text-center text-muted py-3">Sin datos para el período seleccionado</td>
                                         </tr>
                                     </template>
                                     <tr v-for="(row, idx) in currentByCostCenter" :key="idx">
                                         <td>{{ row.branch }}</td>
                                         <td>{{ row.parcel }}</td>
+                                        <td>{{ row.company_reason_name }}</td>
                                         <td class="fw-semibold">{{ row.cost_center }}</td>
                                         <td>{{ row.level1 }}</td>
                                         <td>{{ row.level2 }}</td>
@@ -501,7 +504,7 @@
                                 </tbody>
                                 <tfoot v-if="currentByCostCenter.length > 0" style="background:#dce8f5; font-weight:600;">
                                     <tr>
-                                        <td colspan="7" class="text-end">Totales</td>
+                                        <td colspan="8" class="text-end">Totales</td>
                                         <td class="text-end">{{ fmtDec(ccTotals.workdays) }}</td>
                                         <td class="text-end">$ {{ fmt(Math.round(ccTotals.amount)) }}</td>
                                     </tr>
