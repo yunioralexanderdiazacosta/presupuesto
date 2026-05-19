@@ -84,6 +84,9 @@
                                     <span v-if="selectedParcel" @click="selectedParcel = ''" title="Quitar filtro" class="badge bg-soft-success text-success ms-1" style="font-size:0.68rem;cursor:pointer;">
                                         {{ selectedParcelName }} ×
                                     </span>
+                                    <span v-if="selectedRS" @click="selectedRS = ''" title="Quitar filtro" class="badge bg-soft-danger text-danger ms-1" style="font-size:0.68rem;cursor:pointer;">
+                                        {{ currentByCompanyReason.find(r => String(r.company_reason_id) === String(selectedRS))?.company_reason_name ?? 'RS' }} ×
+                                    </span>
                                 </span>
                                 <span class="badge bg-soft-secondary text-secondary" style="font-size:0.7rem;">{{ currentMonthLabel }}</span>
                             </div>
@@ -139,6 +142,9 @@
                             <div class="card-header py-2 d-flex justify-content-between align-items-center">
                                 <span class="fw-semibold small">
                                     <i class="fas fa-map-marked-alt me-1 text-muted"></i>Desglose por Parcela
+                                    <span v-if="selectedRS" @click="selectedRS = ''" title="Quitar filtro" class="badge bg-soft-danger text-danger ms-1" style="font-size:0.68rem;cursor:pointer;">
+                                        {{ currentByCompanyReason.find(r => String(r.company_reason_id) === String(selectedRS))?.company_reason_name ?? 'RS' }} ×
+                                    </span>
                                 </span>
                                 <span v-if="selectedBranch" @click="selectedBranch = ''" title="Quitar filtro" class="badge bg-soft-primary text-primary ms-1" style="font-size:0.68rem;cursor:pointer;">
                                     {{ branches.find(b => String(b.id) === String(selectedBranch))?.name ?? 'Sucursal' }} ×
@@ -197,6 +203,9 @@
                     <div class="card-header py-2 d-flex justify-content-between align-items-center">
                         <span class="fw-semibold small">
                             <i class="fas fa-building me-1 text-muted"></i>Desglose por Razón Social
+                            <span v-if="selectedRS" @click="selectedRS = ''" title="Quitar filtro" class="badge bg-soft-danger text-danger ms-1" style="font-size:0.68rem;cursor:pointer;">
+                                {{ currentByCompanyReason.find(r => String(r.company_reason_id) === String(selectedRS))?.company_reason_name ?? 'RS' }} ×
+                            </span>
                         </span>
                         <span class="badge bg-soft-secondary text-secondary" style="font-size:0.7rem;">{{ currentMonthLabel }}</span>
                     </div>
@@ -216,8 +225,15 @@
                                     <template v-if="currentByCompanyReason.length === 0">
                                         <tr><td colspan="5" class="text-center text-muted py-3">Sin datos para este período</td></tr>
                                     </template>
-                                    <tr v-for="(row, idx) in currentByCompanyReason" :key="idx">
-                                        <td class="fw-semibold">{{ row.company_reason_name }}</td>
+                                    <tr v-for="(row, idx) in currentByCompanyReason" :key="idx"
+                                        @click="selectRS(row.company_reason_id)"
+                                        style="cursor:pointer;"
+                                        :style="selectedRS && String(selectedRS) === String(row.company_reason_id) ? 'background:#d6eaff;' : ''"
+                                    >
+                                        <td class="fw-semibold">
+                                            <span v-if="selectedRS && String(selectedRS) === String(row.company_reason_id)" class="me-1 text-primary" style="font-size:0.7rem;">▶</span>
+                                            {{ row.company_reason_name }}
+                                        </td>
                                         <td class="text-end">$ {{ fmt(Math.round(row.amount)) }}</td>
                                         <td class="text-end text-muted">
                                             {{ companyReasonTotals.amount > 0 ? ((row.amount / companyReasonTotals.amount) * 100).toFixed(1) + '%' : '—' }}
@@ -244,11 +260,207 @@
                     </div>
                 </div><!-- /TABLA RAZÓN SOCIAL -->
 
-                <!-- TABLA CROSS-BILLING: RS contratante → Parcelas trabajadas -->
+                <!-- TABLA LEVEL2 → LEVEL3 -->
                 <div class="card mb-3">
                     <div class="card-header py-2 d-flex justify-content-between align-items-center">
                         <span class="fw-semibold small">
-                            <i class="fas fa-exchange-alt me-1 text-muted"></i>Distribución por Parcela según RS Contratante
+                            <i class="fas fa-sitemap me-1 text-muted"></i>Desglose por Tipo de Mano de Obra
+                            <span v-if="selectedBranch" @click="selectedBranch = ''" title="Quitar filtro" class="badge bg-soft-primary text-primary ms-1" style="font-size:0.68rem;cursor:pointer;">
+                                {{ branches.find(b => String(b.id) === String(selectedBranch))?.name ?? 'Sucursal' }} ×
+                            </span>
+                            <span v-if="selectedParcel" @click="selectedParcel = ''" title="Quitar filtro" class="badge bg-soft-success text-success ms-1" style="font-size:0.68rem;cursor:pointer;">
+                                {{ selectedParcelName }} ×
+                            </span>
+                            <span v-if="selectedRS" @click="selectedRS = ''" title="Quitar filtro" class="badge bg-soft-danger text-danger ms-1" style="font-size:0.68rem;cursor:pointer;">
+                                {{ currentByCompanyReason.find(r => String(r.company_reason_id) === String(selectedRS))?.company_reason_name ?? 'RS' }} ×
+                            </span>
+                        </span>
+                        <span class="badge bg-soft-secondary text-secondary" style="font-size:0.7rem;">{{ currentMonthLabel }}</span>
+                    </div>
+                    <div class="card-body p-0">
+                        <div class="table-responsive">
+                            <table class="table table-sm table-hover mb-0" style="font-size:0.78rem;">
+                                <thead style="background:#eaf0f6;">
+                                    <tr>
+                                        <th>Categoría (Level 2)</th>
+                                        <th>Tipo de Labor (Level 3)</th>
+                                        <th class="text-end">Monto</th>
+                                        <th class="text-end">Jornadas</th>
+                                        <th class="text-end">$/JH</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <template v-if="currentByLevel.length === 0">
+                                        <tr><td colspan="5" class="text-center text-muted py-3">Sin datos para este período</td></tr>
+                                    </template>
+                                    <template v-else>
+                                        <template v-for="(row, idx) in currentByLevel" :key="idx">
+                                            <tr>
+                                                <td class="text-muted">{{ row.level2 }}</td>
+                                                <td class="fw-semibold">{{ row.level3 }}</td>
+                                                <td class="text-end">$ {{ fmt(row.amount) }}</td>
+                                                <td class="text-end">{{ fmtDec(row.workdays) }}</td>
+                                                <td class="text-end text-muted">
+                                                    {{ row.workdays > 0 ? '$ ' + fmt(Math.round(row.amount / row.workdays)) : '—' }}
+                                                </td>
+                                            </tr>
+                                        </template>
+                                    </template>
+                                </tbody>
+                                <tfoot v-if="currentByLevel.length > 0">
+                                    <tr class="fw-bold" style="background:#dce8f0;">
+                                        <td colspan="2">TOTAL</td>
+                                        <td class="text-end">$ {{ fmt(levelTotals.amount) }}</td>
+                                        <td class="text-end">{{ fmtDec(levelTotals.workdays) }}</td>
+                                        <td class="text-end">
+                                            {{ levelTotals.workdays > 0 ? '$ ' + fmt(Math.round(levelTotals.amount / levelTotals.workdays)) : '—' }}
+                                        </td>
+                                    </tr>
+                                </tfoot>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- TABLA TRATOS -->
+                <div class="card mb-3">
+                    <div class="card-header py-2 d-flex justify-content-between align-items-center">
+                        <span class="fw-semibold small">
+                            <i class="fas fa-handshake me-1 text-muted"></i>Tratos
+                            <span v-if="selectedBranch" @click="selectedBranch = ''" title="Quitar filtro" class="badge bg-soft-primary text-primary ms-1" style="font-size:0.68rem;cursor:pointer;">
+                                {{ branches.find(b => String(b.id) === String(selectedBranch))?.name ?? 'Sucursal' }} ×
+                            </span>
+                            <span v-if="selectedParcel" @click="selectedParcel = ''" title="Quitar filtro" class="badge bg-soft-success text-success ms-1" style="font-size:0.68rem;cursor:pointer;">
+                                {{ selectedParcelName }} ×
+                            </span>
+                            <span v-if="selectedRS" @click="selectedRS = ''" title="Quitar filtro" class="badge bg-soft-danger text-danger ms-1" style="font-size:0.68rem;cursor:pointer;">
+                                {{ currentByCompanyReason.find(r => String(r.company_reason_id) === String(selectedRS))?.company_reason_name ?? 'RS' }} ×
+                            </span>
+                        </span>
+                        <span class="badge bg-soft-secondary text-secondary" style="font-size:0.7rem;">{{ currentMonthLabel }}</span>
+                    </div>
+                    <div class="card-body p-0">
+                        <div class="table-responsive">
+                            <table class="table table-sm table-hover mb-0" style="font-size:0.78rem;">
+                                <thead style="background:#eaf0f6;">
+                                    <tr>
+                                        <th>Nombre del Trato</th>
+                                        <th class="text-end">Precio</th>
+                                        <th class="text-end">Cantidad</th>
+                                        <th class="text-end">Total</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <template v-if="currentByTrato.length === 0">
+                                        <tr><td colspan="4" class="text-center text-muted py-3">Sin tratos para este período</td></tr>
+                                    </template>
+                                    <tr v-for="(row, idx) in currentByTrato" :key="idx">
+                                        <td>{{ row.trato_name }}</td>
+                                        <td class="text-end text-muted">$ {{ fmt(row.price) }}</td>
+                                        <td class="text-end">{{ fmtDec(row.quantity) }}</td>
+                                        <td class="text-end fw-semibold">$ {{ fmt(Math.round(row.amount)) }}</td>
+                                    </tr>
+                                </tbody>
+                                <tfoot v-if="currentByTrato.length > 0">
+                                    <tr class="fw-bold" style="background:#dce8f0;">
+                                        <td colspan="2">TOTAL</td>
+                                        <td class="text-end">{{ fmtDec(tratoTotals.quantity) }}</td>
+                                        <td class="text-end">$ {{ fmt(Math.round(tratoTotals.amount)) }}</td>
+                                    </tr>
+                                </tfoot>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- ======================================================= -->
+                <!-- TABLA: LABORES POR CENTRO DE COSTO                       -->
+                <!-- ======================================================= -->
+                <div class="card mb-3">
+                    <div class="card-header py-2 d-flex justify-content-between align-items-center">
+                        <span class="fw-semibold small">
+                            <i class="fas fa-map-marker-alt me-1 text-muted"></i>Labores por Centro de Costo
+                            <span v-if="selectedMonth !== 'all'" class="badge bg-soft-primary text-primary ms-1" style="font-size:0.7rem;">
+                                {{ currentMonthName }}
+                            </span>
+                            <span v-if="selectedParcel" @click="selectedParcel = ''" title="Quitar filtro" class="badge bg-soft-success text-success ms-1" style="font-size:0.68rem;cursor:pointer;">
+                                {{ selectedParcelName }} ×
+                            </span>
+                            <span v-if="selectedRS" @click="selectedRS = ''" title="Quitar filtro" class="badge bg-soft-danger text-danger ms-1" style="font-size:0.68rem;cursor:pointer;">
+                                {{ currentByCompanyReason.find(r => String(r.company_reason_id) === String(selectedRS))?.company_reason_name ?? 'RS' }} ×
+                            </span>
+                        </span>
+                        <ExportExcelButton
+                            :data="currentByCostCenter"
+                            :headers="[
+                                { label: 'Sucursal',        key: 'branch' },
+                                { label: 'Parcela',         key: 'parcel' },
+                                { label: 'Razón Social',    key: 'company_reason_name' },
+                                { label: 'Centro de Costo', key: 'cost_center' },
+                                { label: 'Level 1',         key: 'level1' },
+                                { label: 'Level 2',         key: 'level2' },
+                                { label: 'Level 3',         key: 'level3' },
+                                { label: 'Labor',           key: 'labor_type' },
+                                { label: 'Jornadas',        key: 'workdays',  type: 'number' },
+                                { label: 'Valor Total',     key: 'amount',    type: 'number' },
+                            ]"
+                            filename="Labores_por_CC.xlsx"
+                            class="btn btn-falcon-default btn-sm"
+                        />
+                    </div>
+                    <div class="card-body p-0">
+                        <div class="table-responsive" style="max-height:500px; overflow-y:auto;">
+                            <table class="table table-sm table-hover mb-0" style="font-size:0.78rem;">
+                                <thead style="position:sticky; top:0; z-index:2; background:#eaf0f6;">
+                                    <tr>
+                                        <th>Sucursal</th>
+                                        <th>Parcela</th>
+                                        <th>Razón Social</th>
+                                        <th>Centro de Costo</th>
+                                        <th>Level 1</th>
+                                        <th>Level 2</th>
+                                        <th>Level 3</th>
+                                        <th>Labor</th>
+                                        <th class="text-end">Jornadas</th>
+                                        <th class="text-end">Valor Total</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <template v-if="currentByCostCenter.length === 0">
+                                        <tr>
+                                            <td colspan="10" class="text-center text-muted py-3">Sin datos para el período seleccionado</td>
+                                        </tr>
+                                    </template>
+                                    <tr v-for="(row, idx) in currentByCostCenter" :key="idx">
+                                        <td>{{ row.branch }}</td>
+                                        <td>{{ row.parcel }}</td>
+                                        <td>{{ row.company_reason_name }}</td>
+                                        <td class="fw-semibold">{{ row.cost_center }}</td>
+                                        <td>{{ row.level1 }}</td>
+                                        <td>{{ row.level2 }}</td>
+                                        <td>{{ row.level3 }}</td>
+                                        <td>{{ row.labor_type }}</td>
+                                        <td class="text-end">{{ fmtDec(row.workdays) }}</td>
+                                        <td class="text-end">$ {{ fmt(Math.round(row.amount)) }}</td>
+                                    </tr>
+                                </tbody>
+                                <tfoot v-if="currentByCostCenter.length > 0" style="background:#dce8f5; font-weight:600;">
+                                    <tr>
+                                        <td colspan="8" class="text-end">Totales</td>
+                                        <td class="text-end">{{ fmtDec(ccTotals.workdays) }}</td>
+                                        <td class="text-end">$ {{ fmt(Math.round(ccTotals.amount)) }}</td>
+                                    </tr>
+                                </tfoot>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- TABLA CROSS-BILLING: RS contratante → Parcelas trabajadas -->
+                <div class="card mb-3 mt-3">
+                    <div class="card-header py-2 d-flex justify-content-between align-items-center" style="background:#fff3e0; border-bottom:1px solid #ffe0b2;">
+                        <span class="fw-semibold small" style="color:#bf360c;">
+                            <i class="fas fa-exchange-alt me-1"></i>Distribución por Parcela según RS Contratante
                             <span class="text-muted fw-normal ms-1" style="font-size:0.72rem;">(click en fila para ver detalle)</span>
                         </span>
                         <span class="badge bg-soft-secondary text-secondary" style="font-size:0.7rem;">{{ currentMonthLabel }}</span>
@@ -314,7 +526,7 @@
                                     </template>
                                 </tbody>
                                 <tfoot v-if="currentByRSDetail.length > 0">
-                                    <tr class="fw-bold" style="background:#dce8f0;">
+                                    <tr class="fw-bold" style="background:#fff3e0; color:#bf360c;">
                                         <td colspan="2">TOTAL</td>
                                         <td class="text-end">$ {{ fmt(rsDetailTotals.total_amount) }}</td>
                                         <td class="text-end">100%</td>
@@ -325,194 +537,6 @@
                         </div>
                     </div>
                 </div><!-- /TABLA CROSS-BILLING -->
-
-                <!-- TABLA LEVEL2 → LEVEL3 -->
-                <div class="card mb-3">
-                    <div class="card-header py-2 d-flex justify-content-between align-items-center">
-                        <span class="fw-semibold small">
-                            <i class="fas fa-sitemap me-1 text-muted"></i>Desglose por Tipo de Mano de Obra
-                            <span v-if="selectedBranch" @click="selectedBranch = ''" title="Quitar filtro" class="badge bg-soft-primary text-primary ms-1" style="font-size:0.68rem;cursor:pointer;">
-                                {{ branches.find(b => String(b.id) === String(selectedBranch))?.name ?? 'Sucursal' }} ×
-                            </span>
-                            <span v-if="selectedParcel" @click="selectedParcel = ''" title="Quitar filtro" class="badge bg-soft-success text-success ms-1" style="font-size:0.68rem;cursor:pointer;">
-                                {{ selectedParcelName }} ×
-                            </span>
-                        </span>
-                        <span class="badge bg-soft-secondary text-secondary" style="font-size:0.7rem;">{{ currentMonthLabel }}</span>
-                    </div>
-                    <div class="card-body p-0">
-                        <div class="table-responsive">
-                            <table class="table table-sm table-hover mb-0" style="font-size:0.78rem;">
-                                <thead style="background:#eaf0f6;">
-                                    <tr>
-                                        <th>Categoría (Level 2)</th>
-                                        <th>Tipo de Labor (Level 3)</th>
-                                        <th class="text-end">Monto</th>
-                                        <th class="text-end">Jornadas</th>
-                                        <th class="text-end">$/JH</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    <template v-if="currentByLevel.length === 0">
-                                        <tr><td colspan="5" class="text-center text-muted py-3">Sin datos para este período</td></tr>
-                                    </template>
-                                    <template v-else>
-                                        <template v-for="(row, idx) in currentByLevel" :key="idx">
-                                            <tr>
-                                                <td class="text-muted">{{ row.level2 }}</td>
-                                                <td class="fw-semibold">{{ row.level3 }}</td>
-                                                <td class="text-end">$ {{ fmt(row.amount) }}</td>
-                                                <td class="text-end">{{ fmtDec(row.workdays) }}</td>
-                                                <td class="text-end text-muted">
-                                                    {{ row.workdays > 0 ? '$ ' + fmt(Math.round(row.amount / row.workdays)) : '—' }}
-                                                </td>
-                                            </tr>
-                                        </template>
-                                    </template>
-                                </tbody>
-                                <tfoot v-if="currentByLevel.length > 0">
-                                    <tr class="fw-bold" style="background:#dce8f0;">
-                                        <td colspan="2">TOTAL</td>
-                                        <td class="text-end">$ {{ fmt(levelTotals.amount) }}</td>
-                                        <td class="text-end">{{ fmtDec(levelTotals.workdays) }}</td>
-                                        <td class="text-end">
-                                            {{ levelTotals.workdays > 0 ? '$ ' + fmt(Math.round(levelTotals.amount / levelTotals.workdays)) : '—' }}
-                                        </td>
-                                    </tr>
-                                </tfoot>
-                            </table>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- TABLA TRATOS -->
-                <div class="card mb-3">
-                    <div class="card-header py-2 d-flex justify-content-between align-items-center">
-                        <span class="fw-semibold small">
-                            <i class="fas fa-handshake me-1 text-muted"></i>Tratos
-                            <span v-if="selectedBranch" @click="selectedBranch = ''" title="Quitar filtro" class="badge bg-soft-primary text-primary ms-1" style="font-size:0.68rem;cursor:pointer;">
-                                {{ branches.find(b => String(b.id) === String(selectedBranch))?.name ?? 'Sucursal' }} ×
-                            </span>
-                            <span v-if="selectedParcel" @click="selectedParcel = ''" title="Quitar filtro" class="badge bg-soft-success text-success ms-1" style="font-size:0.68rem;cursor:pointer;">
-                                {{ selectedParcelName }} ×
-                            </span>
-                        </span>
-                        <span class="badge bg-soft-secondary text-secondary" style="font-size:0.7rem;">{{ currentMonthLabel }}</span>
-                    </div>
-                    <div class="card-body p-0">
-                        <div class="table-responsive">
-                            <table class="table table-sm table-hover mb-0" style="font-size:0.78rem;">
-                                <thead style="background:#eaf0f6;">
-                                    <tr>
-                                        <th>Nombre del Trato</th>
-                                        <th class="text-end">Precio</th>
-                                        <th class="text-end">Cantidad</th>
-                                        <th class="text-end">Total</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    <template v-if="currentByTrato.length === 0">
-                                        <tr><td colspan="4" class="text-center text-muted py-3">Sin tratos para este período</td></tr>
-                                    </template>
-                                    <tr v-for="(row, idx) in currentByTrato" :key="idx">
-                                        <td>{{ row.trato_name }}</td>
-                                        <td class="text-end text-muted">$ {{ fmt(row.price) }}</td>
-                                        <td class="text-end">{{ fmtDec(row.quantity) }}</td>
-                                        <td class="text-end fw-semibold">$ {{ fmt(Math.round(row.amount)) }}</td>
-                                    </tr>
-                                </tbody>
-                                <tfoot v-if="currentByTrato.length > 0">
-                                    <tr class="fw-bold" style="background:#dce8f0;">
-                                        <td colspan="2">TOTAL</td>
-                                        <td class="text-end">{{ fmtDec(tratoTotals.quantity) }}</td>
-                                        <td class="text-end">$ {{ fmt(Math.round(tratoTotals.amount)) }}</td>
-                                    </tr>
-                                </tfoot>
-                            </table>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- ======================================================= -->
-                <!-- TABLA: LABORES POR CENTRO DE COSTO                       -->
-                <!-- ======================================================= -->
-                <div class="row g-2 mt-2">
-                    <div class="col-12">
-                        <div class="d-flex justify-content-between align-items-center mb-1">
-                            <h6 class="mb-0" style="font-size:0.82rem;">
-                                <i class="fas fa-map-marker-alt me-1 text-primary"></i>
-                                Labores por Centro de Costo
-                                <span v-if="selectedMonth !== 'all'" class="badge bg-soft-primary text-primary ms-1" style="font-size:0.7rem;">
-                                    {{ currentMonthName }}
-                                </span>
-                                <span v-if="selectedParcel" @click="selectedParcel = ''" title="Quitar filtro" class="badge bg-soft-success text-success ms-1" style="font-size:0.68rem;cursor:pointer;">
-                                    {{ selectedParcelName }} ×
-                                </span>
-                            </h6>
-                            <ExportExcelButton
-                                :data="currentByCostCenter"
-                                :headers="[
-                                    { label: 'Sucursal',        key: 'branch' },
-                                    { label: 'Parcela',         key: 'parcel' },
-                                    { label: 'Razón Social',    key: 'company_reason_name' },
-                                    { label: 'Centro de Costo', key: 'cost_center' },
-                                    { label: 'Level 1',         key: 'level1' },
-                                    { label: 'Level 2',         key: 'level2' },
-                                    { label: 'Level 3',         key: 'level3' },
-                                    { label: 'Labor',           key: 'labor_type' },
-                                    { label: 'Jornadas',        key: 'workdays',  type: 'number' },
-                                    { label: 'Valor Total',     key: 'amount',    type: 'number' },
-                                ]"
-                                filename="Labores_por_CC.xlsx"
-                                class="btn btn-falcon-default btn-sm"
-                            />
-                        </div>
-                        <div class="table-responsive" style="max-height:500px; overflow-y:auto;">
-                            <table class="table table-sm table-hover mb-0" style="font-size:0.78rem;">
-                                <thead style="position:sticky; top:0; z-index:2; background:#eaf0f6;">
-                                    <tr>
-                                        <th>Sucursal</th>
-                                        <th>Parcela</th>
-                                        <th>Razón Social</th>
-                                        <th>Centro de Costo</th>
-                                        <th>Level 1</th>
-                                        <th>Level 2</th>
-                                        <th>Level 3</th>
-                                        <th>Labor</th>
-                                        <th class="text-end">Jornadas</th>
-                                        <th class="text-end">Valor Total</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    <template v-if="currentByCostCenter.length === 0">
-                                        <tr>
-                                            <td colspan="10" class="text-center text-muted py-3">Sin datos para el período seleccionado</td>
-                                        </tr>
-                                    </template>
-                                    <tr v-for="(row, idx) in currentByCostCenter" :key="idx">
-                                        <td>{{ row.branch }}</td>
-                                        <td>{{ row.parcel }}</td>
-                                        <td>{{ row.company_reason_name }}</td>
-                                        <td class="fw-semibold">{{ row.cost_center }}</td>
-                                        <td>{{ row.level1 }}</td>
-                                        <td>{{ row.level2 }}</td>
-                                        <td>{{ row.level3 }}</td>
-                                        <td>{{ row.labor_type }}</td>
-                                        <td class="text-end">{{ fmtDec(row.workdays) }}</td>
-                                        <td class="text-end">$ {{ fmt(Math.round(row.amount)) }}</td>
-                                    </tr>
-                                </tbody>
-                                <tfoot v-if="currentByCostCenter.length > 0" style="background:#dce8f5; font-weight:600;">
-                                    <tr>
-                                        <td colspan="8" class="text-end">Totales</td>
-                                        <td class="text-end">{{ fmtDec(ccTotals.workdays) }}</td>
-                                        <td class="text-end">$ {{ fmt(Math.round(ccTotals.amount)) }}</td>
-                                    </tr>
-                                </tfoot>
-                            </table>
-                        </div>
-                    </div>
-                </div>
 
             </div><!-- card-body -->
         </div><!-- card -->
@@ -548,6 +572,7 @@ const props = defineProps({
 const selectedMonth    = ref('all');
 const selectedBranch   = ref('');
 const selectedParcel   = ref('');
+const selectedRS       = ref('');
 const expandedRS       = ref(null);
 const amountsChartRef  = ref(null);
 const workdaysChartRef = ref(null);
@@ -561,6 +586,7 @@ const selectBranch = (branchId) => {
     } else {
         selectedBranch.value = branchId;
         selectedParcel.value = '';
+        selectedRS.value = '';
     }
 };
 
@@ -570,6 +596,17 @@ const selectParcel = (parcelId) => {
     } else {
         selectedParcel.value = parcelId;
         selectedBranch.value = '';
+        selectedRS.value = '';
+    }
+};
+
+const selectRS = (crId) => {
+    if (String(selectedRS.value) === String(crId)) {
+        selectedRS.value = '';
+    } else {
+        selectedRS.value = crId;
+        selectedBranch.value = '';
+        selectedParcel.value = '';
     }
 };
 
@@ -604,6 +641,12 @@ const currentByLevel = computed(() => {
             return { ...r, amount: pData?.amount ?? 0, workdays: pData?.workdays ?? 0 };
         }).filter(r => r.amount > 0);
     }
+    if (selectedRS.value) {
+        return rows.map(r => {
+            const crData = (r.by_company_reason ?? {})[String(selectedRS.value)];
+            return { ...r, amount: crData?.amount ?? 0, workdays: crData?.workdays ?? 0 };
+        }).filter(r => r.amount > 0);
+    }
     if (!selectedBranch.value) return rows;
     return rows
         .map(r => {
@@ -626,6 +669,12 @@ const currentByBranch = computed(() => {
             return { ...r, amount: pData?.amount ?? 0, workdays: pData?.workdays ?? 0 };
         }).filter(r => r.amount > 0);
     }
+    if (selectedRS.value) {
+        return rows.map(r => {
+            const crData = (r.by_company_reason ?? {})[String(selectedRS.value)];
+            return { ...r, amount: crData?.amount ?? 0, workdays: crData?.workdays ?? 0 };
+        }).filter(r => r.amount > 0);
+    }
     if (!selectedBranch.value) return rows;
     return rows.filter(r => String(r.branch_id) === String(selectedBranch.value));
 });
@@ -637,6 +686,12 @@ const currentByTrato = computed(() => {
         return rows.map(r => {
             const pData = (r.by_parcel ?? {})[String(selectedParcel.value)];
             return { ...r, quantity: pData?.quantity ?? 0, amount: pData?.amount ?? 0 };
+        }).filter(r => r.amount > 0);
+    }
+    if (selectedRS.value) {
+        return rows.map(r => {
+            const crData = (r.by_company_reason ?? {})[String(selectedRS.value)];
+            return { ...r, quantity: crData?.quantity ?? 0, amount: crData?.amount ?? 0 };
         }).filter(r => r.amount > 0);
     }
     if (!selectedBranch.value) return rows;
@@ -657,6 +712,12 @@ const currentByParcel = computed(() => {
     const rows = props.byParcel[key] ?? [];
     if (selectedParcel.value) {
         return rows.filter(r => String(r.parcel_id) === String(selectedParcel.value));
+    }
+    if (selectedRS.value) {
+        return rows.map(r => {
+            const crData = (r.by_company_reason ?? {})[String(selectedRS.value)];
+            return { ...r, amount: crData?.amount ?? 0, workdays: crData?.workdays ?? 0 };
+        }).filter(r => r.amount > 0);
     }
     if (!selectedBranch.value) return rows;
     return rows
@@ -694,7 +755,20 @@ const parcelTotals = computed(() => currentByParcel.value.reduce(
 
 const currentByCompanyReason = computed(() => {
     const key = selectedMonth.value === 'all' ? 'all' : selectedMonth.value;
-    return props.byCompanyReason[key] ?? [];
+    const rows = props.byCompanyReason[key] ?? [];
+    if (selectedParcel.value) {
+        return rows.map(r => {
+            const pData = (r.by_parcel ?? {})[String(selectedParcel.value)];
+            return { ...r, amount: pData?.amount ?? 0, workdays: pData?.workdays ?? 0 };
+        }).filter(r => r.amount > 0);
+    }
+    if (selectedBranch.value) {
+        return rows.map(r => {
+            const bData = (r.by_branch ?? {})[String(selectedBranch.value)];
+            return { ...r, amount: bData?.amount ?? 0, workdays: bData?.workdays ?? 0 };
+        }).filter(r => r.amount > 0);
+    }
+    return rows;
 });
 
 const companyReasonTotals = computed(() => currentByCompanyReason.value.reduce(
@@ -721,6 +795,8 @@ const currentByCostCenter = computed(() => {
     let rows = props.byCostCenter[key] ?? [];
     if (selectedParcel.value) {
         rows = rows.filter(r => String(r.parcel_id) === String(selectedParcel.value));
+    } else if (selectedRS.value) {
+        rows = rows.filter(r => String(r.company_reason_id) === String(selectedRS.value));
     } else if (selectedBranch.value) {
         rows = rows.filter(r => String(r.branch_id) === String(selectedBranch.value));
     }
@@ -843,6 +919,7 @@ function highlightSelectedMonth() {
 watch(selectedMonth, () => {
     highlightSelectedMonth();
     expandedRS.value = null;
+    selectedRS.value = '';
 });
 
 onMounted(() => {
