@@ -591,16 +591,6 @@ const navigateTo = (routeName) => {
                     </li>
                   </ul>
                 </li>
-                <li class="nav-item"><Link class="nav-link" :href="route('vacations.index')">
-                    <div class="d-flex align-items-center"><span class="nav-link-icon"><span class="fas fa-umbrella-beach"></span></span><span class="nav-link-text ps-1">Vacaciones</span>
-                    </div>
-                  </Link>
-                </li>
-                <li class="nav-item"><Link class="nav-link" :href="route('holidays.index')">
-                    <div class="d-flex align-items-center"><span class="nav-link-icon"><span class="fas fa-calendar-alt"></span></span><span class="nav-link-text ps-1">Feriados</span>
-                    </div>
-                  </Link>
-                </li>
                 <li class="nav-item"><Link class="nav-link" :href="route('daily-management.index')">
                     <div class="d-flex align-items-center"><span class="nav-link-text ps-3">Gestión Diaria</span>
                     </div>
@@ -613,16 +603,6 @@ const navigateTo = (routeName) => {
                 </li>
                 <li class="nav-item"><Link class="nav-link" :href="route('payroll-reports.index')">
                     <div class="d-flex align-items-center"><span class="nav-link-icon"><span class="fas fa-file-invoice-dollar"></span></span><span class="nav-link-text ps-1">Reporte Mensual</span>
-                    </div>
-                  </Link>
-                </li>
-                <li class="nav-item"><Link class="nav-link" :href="route('schedules.index')">
-                    <div class="d-flex align-items-center"><span class="nav-link-text ps-3">Horarios</span>
-                    </div>
-                  </Link>
-                </li>
-                <li class="nav-item"><Link class="nav-link" :href="route('cities.index')">
-                    <div class="d-flex align-items-center"><span class="nav-link-text ps-3">Ciudades</span>
                     </div>
                   </Link>
                 </li>

@@ -38,7 +38,7 @@ function parseKg(value) {
 function formatKg(value) {
     const num = parseFloat(value);
     if (isNaN(num) || num === 0) return '';
-    return num.toLocaleString('es-CL', { minimumFractionDigits: 0, maximumFractionDigits: 1 });
+    return num.toLocaleString('es-CL', { minimumFractionDigits: 0, maximumFractionDigits: 2 });
 }
 function updateHarvested(varId, value)  { harvestedInputs.value[varId]  = parseKg(value); markAsModified(varId); }
 function updateExported(varId, value)   { exportedInputs.value[varId]   = parseKg(value); markAsModified(varId); }
@@ -78,11 +78,11 @@ const rows = computed(() => {
 
             const currentHarvested = harvestedInputs.value[v.id] !== undefined
                 ? harvestedInputs.value[v.id]
-                : (summary && summary.kg_harvested ? parseFloat(Number(summary.kg_harvested).toFixed(1)) : '');
+                : (summary && summary.kg_harvested ? parseFloat(Number(summary.kg_harvested).toFixed(2)) : '');
 
             const currentExported = exportedInputs.value[v.id] !== undefined
                 ? exportedInputs.value[v.id]
-                : (summary && summary.kg_exported ? parseFloat(Number(summary.kg_exported).toFixed(1)) : '');
+                : (summary && summary.kg_exported ? parseFloat(Number(summary.kg_exported).toFixed(2)) : '');
 
             const currentObs = observationsInputs.value[v.id] !== undefined
                 ? observationsInputs.value[v.id]
@@ -382,7 +382,7 @@ const excelFilename = computed(() => {
                         <div class="card h-100 p-1 border border-success">
                             <div class="card-body py-2 px-3 text-center">
                                 <div class="text-muted small">Retorno Estimado</div>
-                                <div class="fs-7 fw-bold text-success">USD {{ totalExportReturn.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 }) }}</div>
+                                <div class="fs-7 fw-bold text-success">USD {{ totalEstReturn.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 }) }}</div>
                             </div>
                         </div>
                     </div>
