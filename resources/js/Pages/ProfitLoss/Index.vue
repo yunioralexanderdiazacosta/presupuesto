@@ -64,7 +64,7 @@ const currencyPrefix = computed(() => dividir.value ? 'USD ' : '$ ');
 
 const formatMoney = (val) => {
     const abs = Math.abs(val);
-    const formatted = abs.toLocaleString(dividir.value ? 'en-US' : 'es-CL', {
+    const formatted = abs.toLocaleString('es-CL', {
         minimumFractionDigits: 0, maximumFractionDigits: 0,
     });
     return val < 0 ? `-${formatted}` : formatted;
@@ -474,6 +474,7 @@ watch(allRows, () => setupCollapseChevron());
                                     <th class="text-end" style="width:120px">Kg Cosechados</th>
                                     <th class="text-end" style="width:120px">Kg Exportados</th>
                                     <th class="text-end" style="width:140px">Ingreso ({{ currencyLabel }})</th>
+                                    <th class="text-end" style="width:140px">Costo Comerc. ({{ currencyLabel }})</th>
                                     <th class="text-end" style="width:140px">Costo ({{ currencyLabel }})</th>
                                     <th class="text-end" style="width:140px">Utilidad ({{ currencyLabel }})</th>
                                     <th class="text-end" style="width:90px">Margen %</th>
@@ -491,6 +492,7 @@ watch(allRows, () => setupCollapseChevron());
                                     <td class="text-end">{{ row.kg_harvested.toLocaleString('es-CL') }}</td>
                                     <td class="text-end">{{ row.kg_exported.toLocaleString('es-CL') }}</td>
                                     <td class="text-end text-success fw-bold">{{ currencyPrefix }}{{ formatMoney(row.income) }}</td>
+                                    <td class="text-end text-danger">{{ currencyPrefix }}{{ formatMoney(row.commercial_cost) }}</td>
                                     <td class="text-end text-danger">{{ currencyPrefix }}{{ formatMoney(row.cost) }}</td>
                                     <td class="text-end fw-bold" :class="row.profit >= 0 ? 'text-primary' : 'text-warning'">
                                         {{ currencyPrefix }}{{ formatMoney(row.profit) }}
@@ -509,6 +511,7 @@ watch(allRows, () => setupCollapseChevron());
                                     <td class="text-end">{{ allRows.reduce((s,r) => s + r.kg_harvested, 0).toLocaleString('es-CL') }}</td>
                                     <td class="text-end">{{ allRows.reduce((s,r) => s + r.kg_exported, 0).toLocaleString('es-CL') }}</td>
                                     <td class="text-end text-success">{{ currencyPrefix }}{{ formatMoney(totalIncome) }}</td>
+                                    <td class="text-end text-danger">{{ currencyPrefix }}{{ formatMoney(totalCommercialCost) }}</td>
                                     <td class="text-end text-danger">{{ currencyPrefix }}{{ formatMoney(plTotalCost) }}</td>
                                     <td class="text-end" :class="plProfit >= 0 ? 'text-primary' : 'text-warning'">
                                         {{ currencyPrefix }}{{ formatMoney(plProfit) }}
@@ -551,6 +554,7 @@ watch(allRows, () => setupCollapseChevron());
                                     <th class="text-end" style="width:120px">Kg Exportados</th>
                                     <th class="text-end" style="width:110px">Kg Comerciales</th>
                                     <th class="text-end" style="width:140px">Ingreso ({{ currencyLabel }})</th>
+                                    <th class="text-end" style="width:140px">Costo Comerc. ({{ currencyLabel }})</th>
                                     <th class="text-end" style="width:140px">Costo ({{ currencyLabel }})</th>
                                     <th class="text-end" style="width:140px">Utilidad ({{ currencyLabel }})</th>
                                     <th class="text-end" style="width:90px">Margen %</th>
@@ -566,6 +570,10 @@ watch(allRows, () => setupCollapseChevron());
                                     <td class="text-end">{{ row.commercial_kg ? row.commercial_kg.toLocaleString('es-CL') : '-' }}</td>
                                     <td class="text-end text-success fw-bold">
                                         <span v-if="row.income">{{ currencyPrefix }}{{ formatMoney(row.income) }}</span>
+                                        <span v-else class="text-muted">-</span>
+                                    </td>
+                                    <td class="text-end text-danger">
+                                        <span v-if="row.commercial_cost">{{ currencyPrefix }}{{ formatMoney(row.commercial_cost) }}</span>
                                         <span v-else class="text-muted">-</span>
                                     </td>
                                     <td class="text-end text-danger">
@@ -592,6 +600,7 @@ watch(allRows, () => setupCollapseChevron());
                                     <td class="text-end">{{ detailRows.reduce((s,r) => s + r.kg_exported, 0).toLocaleString('es-CL') }}</td>
                                     <td class="text-end">{{ detailRows.reduce((s,r) => s + r.commercial_kg, 0).toLocaleString('es-CL') }}</td>
                                     <td class="text-end text-success">{{ currencyPrefix }}{{ formatMoney(detailRows.reduce((s,r) => s + r.income, 0)) }}</td>
+                                    <td class="text-end text-danger">{{ currencyPrefix }}{{ formatMoney(detailRows.reduce((s,r) => s + r.commercial_cost, 0)) }}</td>
                                     <td class="text-end text-danger">{{ currencyPrefix }}{{ formatMoney(detailRows.reduce((s,r) => s + r.cost, 0)) }}</td>
                                     <td class="text-end" :class="detailRows.reduce((s,r) => s + r.profit, 0) >= 0 ? 'text-primary' : 'text-warning'">
                                         {{ currencyPrefix }}{{ formatMoney(detailRows.reduce((s,r) => s + r.profit, 0)) }}
