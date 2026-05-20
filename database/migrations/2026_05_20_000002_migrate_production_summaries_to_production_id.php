@@ -140,14 +140,37 @@ return new class extends Migration
         }
 
         // 9. Limpiar índice temporal de variety_id
+        //    MySQL usa este índice para la FK de variety_id → hay que soltar la FK primero
         $varietyIdxStillExists = collect(DB::select(
             "SHOW INDEX FROM production_summaries WHERE Key_name = 'ps_variety_id_tmp_idx'"
         ))->isNotEmpty();
 
         if ($varietyIdxStillExists) {
+            // Encontrar las FKs que usan variety_id
+            $varietyFks = DB::select("
+                SELECT CONSTRAINT_NAME FROM information_schema.KEY_COLUMN_USAGE
+                WHERE TABLE_SCHEMA = DATABASE()
+                  AND TABLE_NAME = 'production_summaries'
+                  AND COLUMN_NAME = 'variety_id'
+                  AND REFERENCED_TABLE_NAME IS NOT NULL
+            ");
+
+            // Soltar esas FKs temporalmente
+            foreach ($varietyFks as $fk) {
+                DB::statement("ALTER TABLE `production_summaries` DROP FOREIGN KEY `{$fk->CONSTRAINT_NAME}`");
+            }
+
+            // Ahora sí se puede soltar el índice temporal
             Schema::table('production_summaries', function (Blueprint $table) {
                 $table->dropIndex('ps_variety_id_tmp_idx');
             });
+
+            // Recrear la FK en variety_id
+            if (!empty($varietyFks)) {
+                Schema::table('production_summaries', function (Blueprint $table) {
+                    $table->foreign('variety_id')->references('id')->on('varieties')->cascadeOnDelete();
+                });
+            }
         }
     }
 
