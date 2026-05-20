@@ -9,6 +9,19 @@ return new class extends Migration
 {
     public function up(): void
     {
+        // Verificar si el esquema ya está en el estado final correcto:
+        // production_id existe, season_id/team_id no existen, y unique es el nuevo (con production_id)
+        $alreadyDone = Schema::hasColumn('production_summaries', 'production_id')
+            && !Schema::hasColumn('production_summaries', 'season_id')
+            && !Schema::hasColumn('production_summaries', 'team_id')
+            && collect(DB::select(
+                "SHOW INDEX FROM production_summaries WHERE Key_name = 'unique_production_summary' AND Column_name = 'production_id'"
+            ))->isNotEmpty();
+
+        if ($alreadyDone) {
+            return; // Ya migrado correctamente, no hacer nada
+        }
+
         // 1. Agregar production_id nullable (idempotente)
         if (!Schema::hasColumn('production_summaries', 'production_id')) {
             Schema::table('production_summaries', function (Blueprint $table) {
