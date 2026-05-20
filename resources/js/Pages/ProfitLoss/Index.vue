@@ -241,6 +241,7 @@ const totalKgHarvested = computed(() => allRows.value.reduce((s, r) => s + r.kg_
 const totalCommercialCost = computed(() => allRows.value.reduce((s, r) => s + r.commercial_cost, 0));
 const plIncome = computed(() => totalIncome.value);
 const plTotalCost = computed(() => totalCostProduccion.value + totalCostAdmin.value + totalCostExtras.value);
+const plNetAfterCommercial = computed(() => plIncome.value - totalCommercialCost.value);
 const plProfit = computed(() => plIncome.value - totalCommercialCost.value - plTotalCost.value);
 const plCostPerKg = computed(() => totalKgHarvested.value > 0 ? (totalCostProduccion.value + totalCostAdmin.value) / totalKgHarvested.value : 0);
 const plIncomePerKg = computed(() => totalKgHarvested.value > 0 ? plIncome.value / totalKgHarvested.value : 0);
@@ -410,6 +411,14 @@ watch(allRows, () => setupCollapseChevron());
                             <div class="card-body py-2 px-3 text-center">
                                 <div class="text-muted small">Costo Comercial</div>
                                 <div class="fs-7 fw-bold text-danger">{{ currencyPrefix }}{{ formatMoney(totalCommercialCost) }}</div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col">
+                        <div class="card h-100 p-1 border" :class="plNetAfterCommercial >= 0 ? 'border-success' : 'border-warning'">
+                            <div class="card-body py-2 px-3 text-center">
+                                <div class="text-muted small">Ingreso - Costo Comercial</div>
+                                <div class="fs-7 fw-bold" :class="plNetAfterCommercial >= 0 ? 'text-success' : 'text-warning'">{{ currencyPrefix }}{{ formatMoney(plNetAfterCommercial) }}</div>
                             </div>
                         </div>
                     </div>
@@ -609,6 +618,10 @@ watch(allRows, () => setupCollapseChevron());
                                     <tr>
                                         <td class="ps-3">(-) Costo Comercial <small class="text-muted">(fruta no exportada)</small></td>
                                         <td class="text-end pe-3 text-danger">{{ currencyPrefix }}{{ formatMoney(totalCommercialCost) }}</td>
+                                    </tr>
+                                    <tr class="border-top" :class="plNetAfterCommercial >= 0 ? 'table-success' : 'table-warning'">
+                                        <td class="ps-3 fw-semibold">= Ingreso - Costo Comercial</td>
+                                        <td class="text-end pe-3 fw-semibold" :class="plNetAfterCommercial >= 0 ? 'text-success' : 'text-warning'">{{ currencyPrefix }}{{ formatMoney(plNetAfterCommercial) }}</td>
                                     </tr>
                                     <tr>
                                         <td class="ps-3">(-) Costos de Producción</td>
