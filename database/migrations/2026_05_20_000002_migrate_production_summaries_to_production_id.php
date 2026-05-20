@@ -17,37 +17,40 @@ return new class extends Migration
         }
 
         // 2. Migrar datos: solo los que aún no tienen production_id
-        $summaries = DB::table('production_summaries as ps')
-            ->join('varieties as v', 'ps.variety_id', '=', 'v.id')
-            ->whereNull('ps.production_id')
-            ->select('ps.id', 'ps.season_id', 'ps.team_id', 'v.fruit_id')
-            ->get();
+        //    (si season_id ya no existe, este paso ya se ejecutó antes)
+        if (Schema::hasColumn('production_summaries', 'season_id')) {
+            $summaries = DB::table('production_summaries as ps')
+                ->join('varieties as v', 'ps.variety_id', '=', 'v.id')
+                ->whereNull('ps.production_id')
+                ->select('ps.id', 'ps.season_id', 'ps.team_id', 'v.fruit_id')
+                ->get();
 
-        foreach ($summaries as $summary) {
-            if (!$summary->fruit_id) continue;
+            foreach ($summaries as $summary) {
+                if (!$summary->fruit_id) continue;
 
-            $productionId = DB::table('productions')->where([
-                'season_id' => $summary->season_id,
-                'team_id'   => $summary->team_id,
-                'fruit_id'  => $summary->fruit_id,
-            ])->value('id');
+                $productionId = DB::table('productions')->where([
+                    'season_id' => $summary->season_id,
+                    'team_id'   => $summary->team_id,
+                    'fruit_id'  => $summary->fruit_id,
+                ])->value('id');
 
-            if (!$productionId) {
-                $productionId = DB::table('productions')->insertGetId([
-                    'season_id'  => $summary->season_id,
-                    'team_id'    => $summary->team_id,
-                    'fruit_id'   => $summary->fruit_id,
-                    'discount'   => 0,
-                    'advance'    => 0,
-                    'notes'      => null,
-                    'created_at' => now(),
-                    'updated_at' => now(),
-                ]);
+                if (!$productionId) {
+                    $productionId = DB::table('productions')->insertGetId([
+                        'season_id'  => $summary->season_id,
+                        'team_id'    => $summary->team_id,
+                        'fruit_id'   => $summary->fruit_id,
+                        'discount'   => 0,
+                        'advance'    => 0,
+                        'notes'      => null,
+                        'created_at' => now(),
+                        'updated_at' => now(),
+                    ]);
+                }
+
+                DB::table('production_summaries')
+                    ->where('id', $summary->id)
+                    ->update(['production_id' => $productionId]);
             }
-
-            DB::table('production_summaries')
-                ->where('id', $summary->id)
-                ->update(['production_id' => $productionId]);
         }
 
         // 3. Hacer production_id NOT NULL y agregar FK (idempotente)
