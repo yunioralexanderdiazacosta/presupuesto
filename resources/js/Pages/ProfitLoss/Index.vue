@@ -16,6 +16,8 @@ const props = defineProps({
     income: Object,
     costs: Array,
     surfaces: Array,
+    totalDiscountsUsd: { type: Number, default: 0 },
+    totalAdvancesUsd:  { type: Number, default: 0 },
 });
 
 // ── Filtros ──
@@ -242,7 +244,11 @@ const totalCommercialCost = computed(() => allRows.value.reduce((s, r) => s + r.
 const plIncome = computed(() => totalIncome.value);
 const plTotalCost = computed(() => totalCostProduccion.value + totalCostAdmin.value + totalCostExtras.value);
 const plNetAfterCommercial = computed(() => plIncome.value - totalCommercialCost.value);
+const plNetAfterCommercialAdjusted = computed(() => plNetAfterCommercial.value + adjustedAdvances.value - adjustedDiscounts.value);
 const plProfit = computed(() => plIncome.value - totalCommercialCost.value - plTotalCost.value);
+const adjustedDiscounts = computed(() => convertIncome(props.totalDiscountsUsd));
+const adjustedAdvances  = computed(() => convertIncome(props.totalAdvancesUsd));
+const plResultadoFinal  = computed(() => plNetAfterCommercialAdjusted.value - plTotalCost.value);
 const plCostPerKg = computed(() => totalKgHarvested.value > 0 ? (totalCostProduccion.value + totalCostAdmin.value) / totalKgHarvested.value : 0);
 const plIncomePerKg = computed(() => totalKgHarvested.value > 0 ? plIncome.value / totalKgHarvested.value : 0);
 const plCommercialPerKg = computed(() => totalKgHarvested.value > 0 ? totalCommercialCost.value / totalKgHarvested.value : 0);
@@ -394,7 +400,7 @@ watch(allRows, () => setupCollapseChevron());
                         <div class="card h-100 p-1 border">
                             <div class="card-body py-2 px-3 text-center">
                                 <div class="text-muted small">Superficie Total</div>
-                                <div class="fs-7 fw-bold">{{ totalSurface.toLocaleString('es-CL', { minimumFractionDigits: 2 }) }} ha</div>
+                                <div class="fs-8 fw-bold">{{ totalSurface.toLocaleString('es-CL', { minimumFractionDigits: 2 }) }} ha</div>
                             </div>
                         </div>
                     </div>
@@ -402,7 +408,7 @@ watch(allRows, () => setupCollapseChevron());
                         <div class="card h-100 p-1 border border-success">
                             <div class="card-body py-2 px-3 text-center">
                                 <div class="text-muted small">Total Ingresos</div>
-                                <div class="fs-7 fw-bold text-success">{{ currencyPrefix }}{{ formatMoney(totalIncome) }}</div>
+                                <div class="fs-8 fw-bold text-success">{{ currencyPrefix }}{{ formatMoney(totalIncome) }}</div>
                             </div>
                         </div>
                     </div>
@@ -410,15 +416,15 @@ watch(allRows, () => setupCollapseChevron());
                         <div class="card h-100 p-1 border border-danger">
                             <div class="card-body py-2 px-3 text-center">
                                 <div class="text-muted small">Costo Comercial</div>
-                                <div class="fs-7 fw-bold text-danger">{{ currencyPrefix }}{{ formatMoney(totalCommercialCost) }}</div>
+                                <div class="fs-8 fw-bold text-danger">{{ currencyPrefix }}{{ formatMoney(totalCommercialCost) }}</div>
                             </div>
                         </div>
                     </div>
                     <div class="col">
-                        <div class="card h-100 p-1 border" :class="plNetAfterCommercial >= 0 ? 'border-success' : 'border-warning'">
+                        <div class="card h-100 p-1 border" :class="plNetAfterCommercialAdjusted >= 0 ? 'border-success' : 'border-warning'">
                             <div class="card-body py-2 px-3 text-center">
-                                <div class="text-muted small">Ingreso - Costo Comercial</div>
-                                <div class="fs-7 fw-bold" :class="plNetAfterCommercial >= 0 ? 'text-success' : 'text-warning'">{{ currencyPrefix }}{{ formatMoney(plNetAfterCommercial) }}</div>
+                                <div class="text-muted small">Retorno Neto Productor</div>
+                                <div class="fs-8 fw-bold" :class="plNetAfterCommercialAdjusted >= 0 ? 'text-success' : 'text-warning'">{{ currencyPrefix }}{{ formatMoney(plNetAfterCommercialAdjusted) }}</div>
                             </div>
                         </div>
                     </div>
@@ -428,16 +434,40 @@ watch(allRows, () => setupCollapseChevron());
                                 <div class="text-muted small">Costos Productivos
                                     <small class="text-muted">(Prod.{{ incluirAdmin && adminState ? ' + Admin' : '' }}{{ extraStates.filter(s => selectedExtraStates[s.value]).map(s => ' + ' + s.label).join('') }})</small>
                                 </div>
-                                <div class="fs-7 fw-bold text-danger">{{ currencyPrefix }}{{ formatMoney(plTotalCost) }}</div>
+                                <div class="fs-8 fw-bold text-danger">{{ currencyPrefix }}{{ formatMoney(plTotalCost) }}</div>
                             </div>
                         </div>
                     </div>
                     <div class="col">
                         <div class="card h-100 p-1" :class="plProfit >= 0 ? 'border border-primary' : 'border border-warning'">
                             <div class="card-body py-2 px-3 text-center">
-                                <div class="text-muted small">Utilidad / Pérdida</div>
-                                <div class="fs-7 fw-bold" :class="plProfit >= 0 ? 'text-primary' : 'text-warning'">
+                                <div class="text-muted small">Utilidad Bruta</div>
+                                <div class="fs-8 fw-bold" :class="plProfit >= 0 ? 'text-primary' : 'text-warning'">
                                     {{ currencyPrefix }}{{ formatMoney(plProfit) }}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col" v-if="adjustedDiscounts > 0 || adjustedAdvances > 0">
+                        <div class="card h-100 p-1 border border-secondary">
+                            <div class="card-body py-2 px-3">
+                                <div v-if="adjustedDiscounts > 0" class="d-flex justify-content-between" style="font-size:0.75rem;">
+                                    <span class="text-muted">(-) Descuentos</span>
+                                    <span class="text-danger fw-semibold">{{ currencyPrefix }}{{ formatMoney(adjustedDiscounts) }}</span>
+                                </div>
+                                <div v-if="adjustedAdvances > 0" class="d-flex justify-content-between" style="font-size:0.75rem;">
+                                    <span class="text-muted">(+) Abonos</span>
+                                    <span class="text-success fw-semibold">{{ currencyPrefix }}{{ formatMoney(adjustedAdvances) }}</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col" v-if="adjustedDiscounts > 0 || adjustedAdvances > 0">
+                        <div class="card h-100 p-1" :class="plResultadoFinal >= 0 ? 'border border-success' : 'border border-danger'" style="border-width:2px !important;">
+                            <div class="card-body py-2 px-3 text-center">
+                                <div class="text-muted small fw-semibold">Resultado Final</div>
+                                <div class="fs-8 fw-bold" :class="plResultadoFinal >= 0 ? 'text-success' : 'text-danger'">
+                                    {{ currencyPrefix }}{{ formatMoney(plResultadoFinal) }}
                                 </div>
                             </div>
                         </div>
@@ -446,13 +476,16 @@ watch(allRows, () => setupCollapseChevron());
                         <div class="card h-100 p-1 border">
                             <div class="card-body py-2 px-3 text-center">
                                 <div class="text-muted small">Margen</div>
-                                <div class="fs-7 fw-bold" :class="plMargin >= 0 ? 'text-success' : 'text-danger'">
+                                <div class="fs-8 fw-bold" :class="plMargin >= 0 ? 'text-success' : 'text-danger'">
                                     {{ plMargin.toFixed(1) }}%
                                 </div>
                             </div>
                         </div>
                     </div>
                 </div>
+
+                <div class="row g-4 align-items-start mt-3">
+                <div class="col-12 col-xl-8">
 
                 <!-- Tabla resumen por especie (MACRO) -->
                 <div v-if="fruitSummary.length > 0" class="mb-4">
@@ -612,8 +645,9 @@ watch(allRows, () => setupCollapseChevron());
                     </div>
                     </div>
                 </div>
-                <div v-if="allRows.length > 0" class="d-flex justify-content-end mt-4 mb-3">
-                    <div class="card border shadow-sm" style="min-width: 420px; max-width: 520px;">
+                </div><!-- fin col tablas -->
+                <div class="col-12 col-xl-4">
+                    <div v-if="allRows.length > 0" class="card border shadow-sm">
                         <div class="card-header bg-light py-2 text-center">
                             <h6 class="mb-0"><i class="fas fa-file-invoice-dollar me-2"></i>Resumen de Resultados ({{ currencyLabel }})</h6>
                         </div>
@@ -629,8 +663,20 @@ watch(allRows, () => setupCollapseChevron());
                                         <td class="text-end pe-3 text-danger">{{ currencyPrefix }}{{ formatMoney(totalCommercialCost) }}</td>
                                     </tr>
                                     <tr class="border-top" :class="plNetAfterCommercial >= 0 ? 'table-success' : 'table-warning'">
-                                        <td class="ps-3 fw-semibold">= Ingreso - Costo Comercial</td>
+                                        <td class="ps-3 fw-semibold">= Retorno Exportación</td>
                                         <td class="text-end pe-3 fw-semibold" :class="plNetAfterCommercial >= 0 ? 'text-success' : 'text-warning'">{{ currencyPrefix }}{{ formatMoney(plNetAfterCommercial) }}</td>
+                                    </tr>
+                                    <tr v-if="adjustedDiscounts > 0">
+                                        <td class="ps-3">(-) Descuentos</td>
+                                        <td class="text-end pe-3 text-danger">{{ currencyPrefix }}{{ formatMoney(adjustedDiscounts) }}</td>
+                                    </tr>
+                                    <tr v-if="adjustedAdvances > 0">
+                                        <td class="ps-3">(+) Abonos</td>
+                                        <td class="text-end pe-3 text-success">{{ currencyPrefix }}{{ formatMoney(adjustedAdvances) }}</td>
+                                    </tr>
+                                    <tr v-if="adjustedDiscounts > 0 || adjustedAdvances > 0" class="border-top" :class="plNetAfterCommercialAdjusted >= 0 ? 'table-success' : 'table-warning'">
+                                        <td class="ps-3 fw-semibold">= Retorno Neto Productor</td>
+                                        <td class="text-end pe-3 fw-semibold" :class="plNetAfterCommercialAdjusted >= 0 ? 'text-success' : 'text-warning'">{{ currencyPrefix }}{{ formatMoney(plNetAfterCommercialAdjusted) }}</td>
                                     </tr>
                                     <tr>
                                         <td class="ps-3">(-) Costos de Producción</td>
@@ -644,10 +690,10 @@ watch(allRows, () => setupCollapseChevron());
                                         <td class="ps-3">(-) Costos {{ state.label }}</td>
                                         <td class="text-end pe-3 text-danger">{{ currencyPrefix }}{{ formatMoney(convertCost(costByDevType(state.value))) }}</td>
                                     </tr>
-                                    <tr class="border-top border-2" :class="plProfit >= 0 ? 'table-primary' : 'table-warning'">
+                                    <tr class="border-top border-2" :class="plResultadoFinal >= 0 ? 'table-primary' : 'table-warning'">
                                         <td class="ps-3 fw-bold">= Utilidad Neta</td>
-                                        <td class="text-end pe-3 fw-bold" :class="plProfit >= 0 ? 'text-primary' : 'text-warning'">
-                                            {{ currencyPrefix }}{{ formatMoney(plProfit) }}
+                                        <td class="text-end pe-3 fw-bold" :class="plResultadoFinal >= 0 ? 'text-primary' : 'text-warning'">
+                                            {{ currencyPrefix }}{{ formatMoney(plResultadoFinal) }}
                                         </td>
                                     </tr>
                                     <tr class="table-light"><td colspan="2" class="py-1"></td></tr>
@@ -660,19 +706,19 @@ watch(allRows, () => setupCollapseChevron());
                                         <td class="text-end pe-3">{{ totalKgExported.toLocaleString('es-CL') }}</td>
                                     </tr>
                                     <tr>
-                                        <td class="ps-3">Ingreso Neto / kg</td>
+                                        <td class="ps-3">Ingreso Neto / kg <span class="text-muted" style="font-size:0.75rem">(cosechado)</span></td>
                                         <td class="text-end pe-3 text-success">{{ currencyPrefix }}{{ plIncomePerKg.toLocaleString(dividir ? 'en-US' : 'es-CL', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) }}</td>
                                     </tr>
                                     <tr>
-                                        <td class="ps-3">Costo Comercial / kg</td>
+                                        <td class="ps-3">Costo Comercial / kg <span class="text-muted" style="font-size:0.75rem">(cosechado)</span></td>
                                         <td class="text-end pe-3 text-danger">{{ currencyPrefix }}{{ plCommercialPerKg.toLocaleString(dividir ? 'en-US' : 'es-CL', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) }}</td>
                                     </tr>
                                     <tr>
-                                        <td class="ps-3">Costo Productivo / kg</td>
+                                        <td class="ps-3">Costos Producción + Admin / kg <span class="text-muted" style="font-size:0.75rem">(cosechado)</span></td>
                                         <td class="text-end pe-3 text-danger">{{ currencyPrefix }}{{ plCostPerKg.toLocaleString(dividir ? 'en-US' : 'es-CL', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) }}</td>
                                     </tr>
                                     <tr class="border-top fw-bold" :class="plProfitPerKg >= 0 ? '' : 'text-warning'">
-                                        <td class="ps-3">Utilidad / kg</td>
+                                        <td class="ps-3">Utilidad / kg <span class="text-muted" style="font-size:0.75rem">(cosechado)</span></td>
                                         <td class="text-end pe-3" :class="plProfitPerKg >= 0 ? 'text-primary' : 'text-warning'">
                                             {{ currencyPrefix }}{{ plProfitPerKg.toLocaleString(dividir ? 'en-US' : 'es-CL', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) }}
                                         </td>
@@ -682,6 +728,7 @@ watch(allRows, () => setupCollapseChevron());
                         </div>
                     </div>
                 </div>
+                </div><!-- fin row layout -->
 
                 <!-- Sin datos -->
                 <div v-if="allRows.length === 0" class="alert alert-info text-center">

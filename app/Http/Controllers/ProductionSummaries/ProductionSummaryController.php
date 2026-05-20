@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\CostCenterVariety;
 use App\Models\DevelopmentState;
 use App\Models\Fruit;
+use App\Models\Production;
 use App\Models\ProductionSummary;
 use App\Models\Variety;
 use Illuminate\Http\Request;
@@ -57,8 +58,13 @@ class ProductionSummaryController extends Controller
             ->orderBy('name')
             ->get();
 
-        $summaries = ProductionSummary::where('season_id', $season_id)
+        $summaries = ProductionSummary::whereHas('production', function ($q) use ($season_id, $user) {
+            $q->where('season_id', $season_id)->where('team_id', $user->team_id);
+        })->get();
+
+        $productions = Production::where('season_id', $season_id)
             ->where('team_id', $user->team_id)
+            ->with('advances')
             ->get();
 
         $fruits = Fruit::where('team_id', $user->team_id)->get();
@@ -66,6 +72,7 @@ class ProductionSummaryController extends Controller
         return Inertia::render('ProductionSummaries/Index', [
             'varieties'         => $varieties,
             'summaries'         => $summaries,
+            'productions'       => $productions,
             'fruits'            => $fruits,
             'surfaceData'       => $surfaceData,
             'developmentStates' => $developmentStates,

@@ -7,9 +7,8 @@ use Illuminate\Database\Eloquent\Model;
 class ProductionSummary extends Model
 {
     protected $fillable = [
+        'production_id',
         'variety_id',
-        'season_id',
-        'team_id',
         'kg_harvested',
         'kg_exported',
         'net_kilo',
@@ -17,18 +16,13 @@ class ProductionSummary extends Model
         'observations',
     ];
 
+    public function production()
+    {
+        return $this->belongsTo(Production::class);
+    }
+
     public function variety()
     {
         return $this->belongsTo(Variety::class);
-    }
-
-    public function season()
-    {
-        return $this->belongsTo(Season::class);
-    }
-
-    public function team()
-    {
-        return $this->belongsTo(Team::class);
     }
 }

@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\ProductionSummary;
+use App\Models\Production;
 use App\Models\CostCenterVariety;
 use App\Models\Variety;
 use App\Models\Fruit;
@@ -35,6 +36,22 @@ class ProfitLossController extends Controller
             $costs = $this->getCostsByVariety($season_id, $team_id);
             $surfaces = $this->getSurfaces($season_id, $team_id);
             $adminShares = $this->getAdminShares($season_id, $team_id);
+
+            $productions = Production::where('season_id', $season_id)
+                ->where('team_id', $team_id)
+                ->with('advances')
+                ->get();
+            $totalDiscountsUsd = 0;
+            $totalAdvancesUsd  = 0;
+            foreach ($productions as $prod) {
+                foreach ($prod->advances as $adv) {
+                    if ($adv->type === 'discount') {
+                        $totalDiscountsUsd += (float) $adv->amount;
+                    } else {
+                        $totalAdvancesUsd += (float) $adv->amount;
+                    }
+                }
+            }
         } catch (\Exception $e) {
             Log::error('ProfitLoss: ' . $e->getMessage());
             $fruits = [];
@@ -44,6 +61,8 @@ class ProfitLossController extends Controller
             $costs = [];
             $surfaces = [];
             $adminShares = [];
+            $totalDiscountsUsd = 0;
+            $totalAdvancesUsd  = 0;
         }
 
         return Inertia::render('ProfitLoss/Index', [
@@ -56,6 +75,8 @@ class ProfitLossController extends Controller
             'costs'       => $costs,
             'surfaces'    => $surfaces,
             'adminShares' => $adminShares,
+            'totalDiscountsUsd' => $totalDiscountsUsd,
+            'totalAdvancesUsd'  => $totalAdvancesUsd,
         ]);
     }
 
@@ -107,9 +128,9 @@ class ProfitLossController extends Controller
             ->where('team_id', $team_id)
             ->pluck('variety_id');
 
-        $idsFromPS = ProductionSummary::where('season_id', $season_id)
-            ->where('team_id', $team_id)
-            ->pluck('variety_id');
+        $idsFromPS = ProductionSummary::whereHas('production', function ($q) use ($season_id, $team_id) {
+                $q->where('season_id', $season_id)->where('team_id', $team_id);
+            })->pluck('variety_id');
 
         $allIds = $idsFromCCV->merge($idsFromPS)->unique();
 
@@ -128,9 +149,9 @@ class ProfitLossController extends Controller
 
     private function getIncomeData($season_id, $team_id)
     {
-        return ProductionSummary::where('season_id', $season_id)
-            ->where('team_id', $team_id)
-            ->get()
+        return ProductionSummary::whereHas('production', function ($q) use ($season_id, $team_id) {
+                $q->where('season_id', $season_id)->where('team_id', $team_id);
+            })->get()
             ->map(function ($ps) {
                 $exported = (float) ($ps->kg_exported ?? 0);
                 $harvested = (float) ($ps->kg_harvested ?? 0);

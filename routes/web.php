@@ -242,6 +242,7 @@ use App\Http\Controllers\ProductionSummaries\ProductionSummaryController;
 use App\Http\Controllers\ProductionSummaries\StoreProductionSummaryController;
 use App\Http\Controllers\ProductionSummaries\UpdateProductionSummaryController;
 use App\Http\Controllers\ProductionSummaries\DeleteProductionSummaryController;
+use App\Http\Controllers\ProductionSummaries\StoreOrUpdateProductionController;
 // Rutas para Exporters (exportadoras)
 use App\Http\Controllers\Exporters\StoreExporterController;
 use App\Http\Controllers\Exporters\UpdateExporterController;
@@ -1005,6 +1006,8 @@ Route::middleware([
     Route::post('/production-summaries', StoreProductionSummaryController::class)->name('production-summaries.store');
     Route::post('/production-summaries/{id}/update', UpdateProductionSummaryController::class)->name('production-summaries.update');
     Route::delete('/production-summaries/{id}/delete', DeleteProductionSummaryController::class)->name('production-summaries.delete');
+    // Productions (cabecera: descuento y abono global por especie)
+    Route::post('/productions/adjust', StoreOrUpdateProductionController::class)->name('productions.adjust');
 
     // Exporters (Exportadoras)
     Route::post('/exporters', StoreExporterController::class)->name('exporters.store');
