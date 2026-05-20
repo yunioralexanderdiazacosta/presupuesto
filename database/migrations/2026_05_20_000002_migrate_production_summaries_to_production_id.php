@@ -9,14 +9,17 @@ return new class extends Migration
 {
     public function up(): void
     {
-        // 1. Agregar production_id nullable
-        Schema::table('production_summaries', function (Blueprint $table) {
-            $table->unsignedBigInteger('production_id')->nullable()->after('id');
-        });
+        // 1. Agregar production_id nullable (idempotente)
+        if (!Schema::hasColumn('production_summaries', 'production_id')) {
+            Schema::table('production_summaries', function (Blueprint $table) {
+                $table->unsignedBigInteger('production_id')->nullable()->after('id');
+            });
+        }
 
-        // 2. Migrar datos: crear registros en productions por cada grupo (season, team, fruit)
+        // 2. Migrar datos: solo los que aún no tienen production_id
         $summaries = DB::table('production_summaries as ps')
             ->join('varieties as v', 'ps.variety_id', '=', 'v.id')
+            ->whereNull('ps.production_id')
             ->select('ps.id', 'ps.season_id', 'ps.team_id', 'v.fruit_id')
             ->get();
 
@@ -47,18 +50,34 @@ return new class extends Migration
                 ->update(['production_id' => $productionId]);
         }
 
-        // 3. Hacer production_id NOT NULL y agregar FK
-        Schema::table('production_summaries', function (Blueprint $table) {
-            $table->unsignedBigInteger('production_id')->nullable(false)->change();
-            $table->foreign('production_id')
-                ->references('id')
-                ->on('productions')
-                ->cascadeOnDelete();
-        });
+        // 3. Hacer production_id NOT NULL y agregar FK (idempotente)
+        $col = DB::selectOne("SHOW COLUMNS FROM production_summaries WHERE Field = 'production_id'");
+        if ($col && $col->Null === 'YES') {
+            Schema::table('production_summaries', function (Blueprint $table) {
+                $table->unsignedBigInteger('production_id')->nullable(false)->change();
+            });
+        }
 
-        // 4. Soltar FKs de season_id y team_id ANTES del unique
+        $fkProdExists = collect(DB::select("
+            SELECT CONSTRAINT_NAME FROM information_schema.KEY_COLUMN_USAGE
+            WHERE TABLE_SCHEMA = DATABASE()
+              AND TABLE_NAME = 'production_summaries'
+              AND COLUMN_NAME = 'production_id'
+              AND REFERENCED_TABLE_NAME = 'productions'
+        "))->isNotEmpty();
+
+        if (!$fkProdExists) {
+            Schema::table('production_summaries', function (Blueprint $table) {
+                $table->foreign('production_id')
+                    ->references('id')
+                    ->on('productions')
+                    ->cascadeOnDelete();
+            });
+        }
+
+        // 4. Soltar FKs de season_id y team_id (idempotente)
         $fks = DB::select("
-            SELECT CONSTRAINT_NAME
+            SELECT DISTINCT CONSTRAINT_NAME
             FROM information_schema.KEY_COLUMN_USAGE
             WHERE TABLE_SCHEMA = DATABASE()
               AND TABLE_NAME = 'production_summaries'
@@ -74,26 +93,62 @@ return new class extends Migration
             });
         }
 
-        // 5. Soltar unique constraint (variety_id, season_id, team_id)
-        $hasUnique = collect(DB::select(
+        // 5. Agregar índice simple en variety_id ANTES de borrar el unique compuesto
+        //    (MySQL necesita que variety_id tenga su propio índice para la FK)
+        $varietyIdxExists = collect(DB::select(
+            "SHOW INDEX FROM production_summaries WHERE Key_name = 'ps_variety_id_tmp_idx'"
+        ))->isNotEmpty();
+
+        if (!$varietyIdxExists) {
+            Schema::table('production_summaries', function (Blueprint $table) {
+                $table->index('variety_id', 'ps_variety_id_tmp_idx');
+            });
+        }
+
+        // 6. Soltar unique constraint antiguo (variety_id, season_id, team_id)
+        $hasOldUnique = collect(DB::select(
             "SHOW INDEX FROM production_summaries WHERE Key_name = 'unique_production_summary'"
         ))->isNotEmpty();
 
-        if ($hasUnique) {
+        if ($hasOldUnique) {
             Schema::table('production_summaries', function (Blueprint $table) {
                 $table->dropUnique('unique_production_summary');
             });
         }
 
-        // 6. Soltar columnas season_id y team_id
-        Schema::table('production_summaries', function (Blueprint $table) {
-            $table->dropColumn(['season_id', 'team_id']);
-        });
+        // 7. Soltar columnas season_id y team_id si aún existen
+        $colsToDrop = array_filter(
+            ['season_id', 'team_id'],
+            fn($c) => Schema::hasColumn('production_summaries', $c)
+        );
 
-        // 7. Nuevo unique constraint (production_id, variety_id)
-        Schema::table('production_summaries', function (Blueprint $table) {
-            $table->unique(['production_id', 'variety_id'], 'unique_production_summary');
-        });
+        if (!empty($colsToDrop)) {
+            Schema::table('production_summaries', function (Blueprint $table) use ($colsToDrop) {
+                $table->dropColumn(array_values($colsToDrop));
+            });
+        }
+
+        // 8. Nuevo unique constraint (production_id, variety_id)
+        $hasNewUnique = collect(DB::select(
+            "SHOW INDEX FROM production_summaries WHERE Key_name = 'unique_production_summary'"
+        ))->isNotEmpty();
+
+        if (!$hasNewUnique) {
+            Schema::table('production_summaries', function (Blueprint $table) {
+                $table->unique(['production_id', 'variety_id'], 'unique_production_summary');
+            });
+        }
+
+        // 9. Limpiar índice temporal de variety_id
+        $varietyIdxStillExists = collect(DB::select(
+            "SHOW INDEX FROM production_summaries WHERE Key_name = 'ps_variety_id_tmp_idx'"
+        ))->isNotEmpty();
+
+        if ($varietyIdxStillExists) {
+            Schema::table('production_summaries', function (Blueprint $table) {
+                $table->dropIndex('ps_variety_id_tmp_idx');
+            });
+        }
     }
 
     public function down(): void
