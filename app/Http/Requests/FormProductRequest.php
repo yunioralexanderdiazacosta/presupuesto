@@ -26,7 +26,10 @@ class FormProductRequest extends FormRequest
             'unit_id'   => 'required',
             'level1_id' => 'required',
             'level2_id' => 'required',
-            'level3_id' => 'required'
+            'level3_id' => 'required',
+            'active_ingredient' => 'nullable|string|max:255',
+            'carencia'  => 'nullable|integer|min:0',
+            'reingreso' => 'nullable|integer|min:0',
         ];
     }
 }

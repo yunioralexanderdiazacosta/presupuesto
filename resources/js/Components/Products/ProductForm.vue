@@ -105,6 +105,38 @@
             </div>
         </div>
     </div>
+    <div class="row" v-if="showActiveIngredient">
+        <div class="col-lg-6">
+            <div class="fv-row">
+                <label class="col-form-label">Carencia (días)</label>
+                <TextInput
+                    id="carencia"
+                    v-model="form.carencia"
+                    class="form-control form-control-solid"
+                    type="number"
+                    min="0"
+                    placeholder="Ej: 7"
+                    :class="{'is-invalid': form.errors.carencia}"
+                />
+                <InputError class="mt-2" :message="form.errors.carencia" />
+            </div>
+        </div>
+        <div class="col-lg-6">
+            <div class="fv-row">
+                <label class="col-form-label">Reingreso (horas)</label>
+                <TextInput
+                    id="reingreso"
+                    v-model="form.reingreso"
+                    class="form-control form-control-solid"
+                    type="number"
+                    min="0"
+                    placeholder="Ej: 24"
+                    :class="{'is-invalid': form.errors.reingreso}"
+                />
+                <InputError class="mt-2" :message="form.errors.reingreso" />
+            </div>
+        </div>
+    </div>
     <div class="row mb-3">
     <div class="col-lg-6">
             <div class="fv-row">

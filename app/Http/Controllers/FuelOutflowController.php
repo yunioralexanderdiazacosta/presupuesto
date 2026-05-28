@@ -134,6 +134,8 @@ class FuelOutflowController extends Controller
         // 4. Traer líneas de facturas de combustibles
         $availableFuelStocks = [];
         
+        $branches = \App\Models\Branch::pluck('name', 'id');
+
         $invoices = Invoice::with(['supplier', 'typeDocument', 'invoiceProducts.product.unit', 'invoiceProducts.product.level3'])
             ->where('team_id', $user->team_id)
             ->where('season_id', $season_id)
@@ -194,6 +196,8 @@ class FuelOutflowController extends Controller
                     'unit_price' => $unitPrice,
                     'effective_unit_price' => $effectiveUnitPrice,
                     'tank_id' => $invoiceProduct->tank_id,
+                    'branch_id' => $invoiceProduct->branch_id,
+                    'branch_name' => $invoiceProduct->branch_id ? ($branches[$invoiceProduct->branch_id] ?? null) : null,
                     'date' => $invoice->date instanceof \Carbon\Carbon ? $invoice->date->format('Y-m-d') : $invoice->date,
                 ];
             }
@@ -234,6 +238,8 @@ class FuelOutflowController extends Controller
                     'stock_disponible' => $stockDisponible,
                     'unit_price' => 0,
                     'tank_id' => null,
+                    'branch_id' => null,
+                    'branch_name' => null,
                     'date' => $note->date instanceof \Carbon\Carbon ? $note->date->format('Y-m-d') : $note->date,
                 ];
             }
@@ -290,6 +296,29 @@ class FuelOutflowController extends Controller
                 'product_name' => $t->product?->name,
             ]);
 
+        // Sucursales únicas presentes en los stocks de combustible (para el select de filtro)
+        $branchesForSelect = collect($availableFuelStocks)
+            ->filter(fn($s) => $s['branch_id'] !== null)
+            ->unique('branch_id')
+            ->map(fn($s) => ['value' => $s['branch_id'], 'label' => $s['branch_name']])
+            ->values();
+
+        // Agrupaciones con sus centros de costo
+        $groupings = \App\Models\Grouping::with(['costCenters' => function($q) use ($season_id) {
+            $q->select('cost_centers.id', 'cost_centers.name')->where('season_id', $season_id);
+        }])
+        ->where('season_id', $season_id)
+        ->whereHas('season.team', fn($q) => $q->where('team_id', $user->team_id))
+        ->get()
+        ->map(fn($g) => [
+            'id' => $g->id,
+            'name' => $g->name,
+            'cost_centers' => $g->costCenters->map(fn($cc) => [
+                'id' => $cc->id,
+                'name' => $cc->name,
+            ])->values(),
+        ]);
+
         return Inertia::render('FuelOutflows/Index', [
             'fuelOutflows' => $fuelOutflows,
             'availableFuelStocks' => $availableFuelStocks,
@@ -301,6 +330,8 @@ class FuelOutflowController extends Controller
             'projects' => $projects,
             'operations' => $operations,
             'fuelTanks' => $fuelTanks,
+            'branches' => $branchesForSelect,
+            'groupings' => $groupings,
         ]);
     }
     

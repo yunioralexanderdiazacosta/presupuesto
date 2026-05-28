@@ -239,7 +239,7 @@ trait HasInventory
 
         $branches = \App\Models\Branch::pluck('name', 'id');
 
-        $invoices = \App\Models\Invoice::with(['supplier', 'typeDocument', 'products.unit'])
+        $invoices = \App\Models\Invoice::with(['supplier', 'companyReason', 'typeDocument', 'products.unit'])
             ->where('team_id', $teamId)
             ->where('season_id', $seasonId)
             ->get();
@@ -283,6 +283,7 @@ trait HasInventory
                     'invoice_product_id' => $product->pivot->id,
                     'number_document' => $invoice->number_document,
                     'supplier' => $invoice->supplier->name ?? '-',
+                    'company_reason' => $invoice->companyReason->name ?? null,
                     'cantidad_original' => $cantidadOriginal,
                     'stock_disponible' => $stockDisponible,
                     'unit' => $product->unit->name ?? '-',

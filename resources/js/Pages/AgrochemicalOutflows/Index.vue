@@ -96,8 +96,40 @@ const truncateCuarteles = (list, max = 2) => {
     return list.slice(0, max).join(', ');
 };
 
+// Filtros
+const term = ref('');
+const filterCompanyReason = ref('');
+
+const uniqueCompanyReasons = computed(() => {
+    const all = props.outflows.flatMap(row =>
+        (row.razones_sociales || '').split(',').map(s => s.trim()).filter(Boolean)
+    );
+    return [...new Set(all)].sort();
+});
+
+const filteredOutflows = computed(() => {
+    return props.outflows.filter(row => {
+        const matchReason = !filterCompanyReason.value ||
+            (row.razones_sociales || '').split(',').map(s => s.trim()).includes(filterCompanyReason.value);
+
+        if (!matchReason) return false;
+
+        if (!term.value) return true;
+        const q = term.value.toLowerCase();
+        return (
+            String(row.application_order_id).includes(q) ||
+            (row.date || '').includes(q) ||
+            (row.productos || '').toLowerCase().includes(q) ||
+            (row.cuarteles || '').toLowerCase().includes(q) ||
+            (row.facturas || '').toLowerCase().includes(q) ||
+            (row.razones_sociales || '').toLowerCase().includes(q) ||
+            (row.observations || '').toLowerCase().includes(q)
+        );
+    });
+});
+
 const excelData = computed(() => {
-    return props.outflows.map(item => ({
+    return filteredOutflows.value.map(item => ({
         'Fecha': item.date,
         'Orden': `#${item.application_order_id}`,
         'Maquinadas': item.maquinadas,
@@ -144,6 +176,24 @@ const excelData = computed(() => {
             </div>
 
             <div class="card-body bg-body-tertiary">
+                <!-- Filtros -->
+                <div class="row g-2 mb-3">
+                    <div class="col-md-8">
+                        <input
+                            v-model="term"
+                            type="text"
+                            class="form-control form-control-sm"
+                            placeholder="Buscar por orden, producto, cuartel, factura, razón social..."
+                        />
+                    </div>
+                    <div class="col-md-4">
+                        <select v-model="filterCompanyReason" class="form-select form-select-sm">
+                            <option value="">Todas las razones sociales</option>
+                            <option v-for="cr in uniqueCompanyReasons" :key="cr" :value="cr">{{ cr }}</option>
+                        </select>
+                    </div>
+                </div>
+
                 <!-- Tabla de aplicaciones -->
                 <div class="table-responsive">
                     <table class="table table-striped table-sm" style="font-size: 0.8rem;">
@@ -156,11 +206,12 @@ const excelData = computed(() => {
                                 <th class="text-end">Cantidad Total</th>
                                 <th class="text-end">Maquinadas</th>
                                 <th>Facturas</th>
+                                <th>Razón Social</th>
                                 <th class="text-center">Acciones</th>
                             </tr>
                         </thead>
                         <tbody>
-                            <template v-for="row in outflows" :key="row.application_order_id">
+                            <template v-for="row in filteredOutflows" :key="row.application_order_id">
                                 <tr @click="toggleExpand(row.application_order_id)" 
                                     style="cursor: pointer;"
                                     :class="{ 'bg-soft-primary': expandedRows[row.application_order_id] }"
@@ -198,6 +249,9 @@ const excelData = computed(() => {
                                     <td>
                                         <small class="text-muted">{{ row.facturas }}</small>
                                     </td>
+                                    <td>
+                                        <small class="text-muted">{{ row.razones_sociales }}</small>
+                                    </td>
                                     <td class="text-center">
                                         <div class="d-flex justify-content-center gap-1">
                                             <button 
@@ -219,7 +273,7 @@ const excelData = computed(() => {
                                 </tr>
                                 <!-- Detalle expandido -->
                                 <tr v-if="expandedRows[row.application_order_id]">
-                                    <td colspan="8" class="p-0">
+                                    <td colspan="9" class="p-0">
                                         <div class="mx-3 my-2 px-3 py-2 bg-light rounded border-start border-3 border-primary rounded-3">
                                             <div class="d-flex align-items-center mb-2">
                                                 <i class="fas fa-list-ul text-primary me-2"></i>
@@ -254,7 +308,7 @@ const excelData = computed(() => {
                                 </tr>
                             </template>
                             <tr v-if="outflows.length === 0">
-                                <td colspan="8" class="text-center text-muted py-4">
+                                <td colspan="9" class="text-center text-muted py-4">
                                     No hay aplicaciones registradas
                                 </td>
                             </tr>

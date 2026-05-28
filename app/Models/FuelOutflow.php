@@ -21,6 +21,7 @@ class FuelOutflow extends Model
         'credit_debit_note_item_id',
         'counter_id',
         'counter_value',
+        'tank_meter',
         'liters',
         'date',
         'observations',

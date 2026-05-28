@@ -13,6 +13,8 @@ class UpdateProductController extends Controller
     {
         $product->name      = $request->name;
         $product->active_ingredient = $request->active_ingredient;
+        $product->carencia  = $request->carencia;
+        $product->reingreso = $request->reingreso;
         $product->unit_id   = $request->unit_id;
         $product->level1_id = $request->level1_id;
         $product->level2_id = $request->level2_id;

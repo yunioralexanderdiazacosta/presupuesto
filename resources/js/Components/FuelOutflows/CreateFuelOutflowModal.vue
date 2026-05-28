@@ -15,6 +15,8 @@ const props = defineProps({
     projects: Array,
     operations: Array,
     fuelTanks: { type: Array, default: () => [] },
+    branches: { type: Array, default: () => [] },
+    groupings: { type: Array, default: () => [] },
 });
 
 const emit = defineEmits(['close', 'saved']);
@@ -33,13 +35,17 @@ const form = useForm({
     liters: '',
     counter_id: '',
     counter_value: '',
+    tank_meter: '',
     observations: '',
 });
 
 const selectedMachinery = ref(null);
 const selectedStockLine = ref(null);
-const selectedStockLineIndex = ref(null);
+const selectedStockKey = ref(null); // key única: 'ip-{id}' o 'nd-{id}'
+const filterBranch = ref(''); // filtro de sucursal para el select de origen
 const maxLiters = ref(null);
+const selectedGrouping = ref(null); // preselección rápida de CC (no se guarda)
+const expandedCC = ref(false); // toggle para expandir tags del multiselect de CC
 
 const selectedProductName = computed(() => {
     if (selectedStockLine.value) {
@@ -48,25 +54,40 @@ const selectedProductName = computed(() => {
     return '-';
 });
 
+// Facturas filtradas por sucursal seleccionada
+const filteredFuelStocks = computed(() => {
+    if (!props.availableFuelStocks) return [];
+    if (!filterBranch.value) return props.availableFuelStocks;
+    return props.availableFuelStocks.filter(s => String(s.branch_id) === String(filterBranch.value));
+});
+
+// Generar key única por stock
+function stockKey(stock) {
+    return stock.invoice_product_id ? 'ip-' + stock.invoice_product_id : 'nd-' + stock.credit_debit_note_item_id;
+}
+
 // Manejar selección de línea de stock
 function onStockLineSelected() {
-    if (selectedStockLineIndex.value !== null && props.availableFuelStocks[selectedStockLineIndex.value]) {
-        selectedStockLine.value = props.availableFuelStocks[selectedStockLineIndex.value];
-        form.product_id = selectedStockLine.value.product_id;
-        form.invoice_product_id = selectedStockLine.value.invoice_product_id;
-        form.credit_debit_note_item_id = selectedStockLine.value.credit_debit_note_item_id;
-        form.tank_id = selectedStockLine.value.tank_id ?? null;
-        maxLiters.value = selectedStockLine.value.stock_disponible;
-        form.liters = selectedStockLine.value.stock_disponible;
-    } else {
-        selectedStockLine.value = null;
-        form.product_id = '';
-        form.invoice_product_id = null;
-        form.credit_debit_note_item_id = null;
-        form.tank_id = null;
-        maxLiters.value = null;
-        form.liters = '';
+    if (selectedStockKey.value) {
+        const found = props.availableFuelStocks.find(s => stockKey(s) === selectedStockKey.value);
+        if (found) {
+            selectedStockLine.value = found;
+            form.product_id = found.product_id;
+            form.invoice_product_id = found.invoice_product_id;
+            form.credit_debit_note_item_id = found.credit_debit_note_item_id;
+            form.tank_id = found.tank_id ?? null;
+            maxLiters.value = found.stock_disponible;
+            form.liters = found.stock_disponible;
+            return;
+        }
     }
+    selectedStockLine.value = null;
+    form.product_id = '';
+    form.invoice_product_id = null;
+    form.credit_debit_note_item_id = null;
+    form.tank_id = null;
+    maxLiters.value = null;
+    form.liters = '';
 }
 
 watch(() => form.machinery_id, (machineryId) => {
@@ -90,8 +111,20 @@ watch(() => props.show, (val) => {
         form.reset();
         selectedMachinery.value = null;
         selectedStockLine.value = null;
-        selectedStockLineIndex.value = null;
+        selectedStockKey.value = null;
+        filterBranch.value = '';
         maxLiters.value = null;
+        selectedGrouping.value = null;
+        expandedCC.value = false;
+    }
+});
+
+// Agrupación → preselección rápida de centros de costo
+watch(selectedGrouping, (groupingId) => {
+    if (!groupingId) return;
+    const grouping = props.groupings?.find(g => g.id === groupingId);
+    if (grouping && Array.isArray(grouping.cost_centers)) {
+        form.cost_center_id = grouping.cost_centers.map(cc => cc.id);
     }
 });
 
@@ -140,24 +173,35 @@ function save() {
           <form @submit.prevent="save">
             <div class="row g-2">
               
+              <!-- Select de sucursal -->
+              <div v-if="props.branches.length > 0" class="col-md-4">
+                <label class="form-label fw-bold">
+                  <i class="fas fa-building me-1"></i>Sucursal
+                </label>
+                <select v-model="filterBranch" class="form-select" @change="selectedStockKey = null; onStockLineSelected()">
+                  <option value="">Todas las sucursales</option>
+                  <option v-for="b in props.branches" :key="b.value" :value="b.value">{{ b.label }}</option>
+                </select>
+              </div>
+
               <!-- 🔥 NUEVO: Select de línea de factura/nota -->
-              <div class="col-md-12">
+              <div :class="props.branches.length > 0 ? 'col-md-8' : 'col-md-12'">
                 <label class="form-label fw-bold text-primary">
                   <i class="fas fa-file-invoice me-1"></i>
                   Origen del Combustible
                   <span class="badge bg-info ms-2" style="font-size: 0.7rem;">Stock Disponible</span>
                 </label>
                 <select 
-                  v-model="selectedStockLineIndex" 
+                  v-model="selectedStockKey" 
                   class="form-select" 
                   required
                   @change="onStockLineSelected"
                 >
                   <option :value="null">Seleccione factura/nota con combustible disponible</option>
                   <option 
-                    v-for="(stock, index) in (props.availableFuelStocks || [])" 
-                    :key="stock.invoice_product_id || stock.credit_debit_note_item_id" 
-                    :value="index"
+                    v-for="stock in filteredFuelStocks" 
+                    :key="stockKey(stock)" 
+                    :value="stockKey(stock)"
                   >
                     {{ stock.origen === 'nota_debito' ? '📋' : '📄' }} 
                     {{ stock.number_document }} - 
@@ -245,8 +289,40 @@ function save() {
                   <option v-for="o in operators" :key="o.id" :value="o.id">{{ o.name }}</option>
                 </select>
               </div>
-              <div class="col-md-4">
-                <label class="form-label">Centro de Costo</label>
+              <!-- Agrupación (preselección rápida de CC) -->
+              <div v-if="props.groupings && props.groupings.length > 0" class="col-md-4">
+                <label class="form-label">
+                  <i class="fas fa-layer-group me-1"></i>Agrupación
+                </label>
+                <select v-model="selectedGrouping" class="form-select">
+                  <option :value="null" disabled selected>Seleccione agrupación...</option>
+                  <option v-for="g in props.groupings" :key="g.id" :value="g.id">{{ g.name }}</option>
+                </select>
+                <small class="text-muted d-block mt-1">
+                  <i class="fas fa-info-circle me-1"></i>Preselección rápida
+                </small>
+              </div>
+
+              <!-- Centro de Costo -->
+              <div :class="props.groupings && props.groupings.length > 0 ? 'col-md-8' : 'col-md-4'">
+                <div class="d-flex align-items-center justify-content-between mb-1">
+                  <label class="form-label mb-0">
+                    Centro de Costo
+                    <span v-if="form.cost_center_id && form.cost_center_id.length > 0" class="badge bg-primary ms-1" style="font-size:0.65rem;">
+                      {{ form.cost_center_id.length }}
+                    </span>
+                  </label>
+                  <button
+                    v-if="form.cost_center_id && form.cost_center_id.length > 5"
+                    type="button"
+                    @click="expandedCC = !expandedCC"
+                    class="btn btn-link btn-sm p-0 text-muted"
+                    style="font-size: 0.65rem; text-decoration: none;"
+                  >
+                    <i class="fas" :class="expandedCC ? 'fa-compress-alt' : 'fa-expand-alt'" style="font-size: 0.6rem;"></i>
+                    {{ expandedCC ? 'Colapsar' : 'Ver todos' }}
+                  </button>
+                </div>
                 <Multiselect
                   mode="tags"
                   placeholder="Centro de Costo"
@@ -255,7 +331,7 @@ function save() {
                   :options="props.costCenters.map(c => ({ value: c.id, label: c.name }))"
                   :searchable="true"
                   :hide-selected="false"
-                  class="multiselect-blue form-control-sm"
+                  :class="['multiselect-blue form-control-sm multiselect-tags-limited', { 'multiselect-tags-expanded': expandedCC }]"
                 />
               </div>
               <div class="col-md-4">
@@ -291,8 +367,12 @@ function save() {
                 />
               </div>
               <div class="col-md-4">
-                <label class="form-label">Valor Contador</label>
+                <label class="form-label">{{ selectedMachinery?.counter_name ? 'Valor ' + selectedMachinery.counter_name : 'Valor Contador' }}</label>
                 <input type="number" v-model="form.counter_value" class="form-control" min="0" step="0.01" />
+              </div>
+              <div class="col-md-4">
+                <label class="form-label">Totalizador Estanque</label>
+                <input type="number" v-model="form.tank_meter" class="form-control" min="0" step="0.01" placeholder="Lectura del totalizador" />
               </div>
               <div class="col-md-12">
                 <label class="form-label">Observaciones</label>
@@ -309,3 +389,28 @@ function save() {
     </div>
   </div>
 </template>
+
+<style scoped>
+.multiselect-tags-limited :deep(.multiselect-tags) {
+    max-height: 32px !important;
+    overflow: hidden !important;
+    flex-wrap: wrap;
+    transition: max-height 0.3s ease;
+}
+.multiselect-tags-expanded :deep(.multiselect-tags) {
+    max-height: 200px !important;
+    overflow-y: auto !important;
+    overflow-x: hidden !important;
+}
+.multiselect-tags-expanded :deep(.multiselect-tags)::-webkit-scrollbar { width: 4px; }
+.multiselect-tags-expanded :deep(.multiselect-tags)::-webkit-scrollbar-thumb {
+    background: rgba(0,0,0,0.2); border-radius: 4px;
+}
+.multiselect-tags-limited {
+    height: auto !important;
+    max-height: 38px !important;
+    min-height: 26px !important;
+    transition: max-height 0.3s ease;
+}
+.multiselect-tags-expanded { max-height: 210px !important; }
+</style>

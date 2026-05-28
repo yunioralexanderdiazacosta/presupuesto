@@ -43,12 +43,14 @@ class ApplicationOrdersController extends Controller
                 $query->where('name', 'agroquimicos');
             })
             ->where('team_id', $user->team_id)
-            ->get(['id', 'name', 'active_ingredient', 'unit_id', 'level2_id'])
+            ->get(['id', 'name', 'active_ingredient', 'carencia', 'reingreso', 'unit_id', 'level2_id'])
             ->map(function($product) {
                 return [
                     'value' => $product->id,
                     'label' => $product->name,
                     'active_ingredient' => $product->active_ingredient,
+                    'carencia' => $product->carencia,
+                    'reingreso' => $product->reingreso,
                     'unit_id' => $product->unit_id,
                     'unit_name' => $product->unit->name ?? '',
                 ];

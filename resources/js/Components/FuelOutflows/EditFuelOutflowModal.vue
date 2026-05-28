@@ -15,6 +15,7 @@ const props = defineProps({
     projects: Array,
     operations: Array,
     fuelTanks: { type: Array, default: () => [] },
+    groupings: { type: Array, default: () => [] },
 });
 
 const emit = defineEmits(['close', 'saved']);
@@ -38,6 +39,17 @@ const form = useForm({
 });
 
 const selectedMachinery = ref(null);
+const selectedGrouping = ref(null);
+const expandedCC = ref(false);
+
+// Agrupación → preselección rápida de centros de costo
+watch(selectedGrouping, (groupingId) => {
+    if (!groupingId) return;
+    const grouping = props.groupings?.find(g => g.id === groupingId);
+    if (grouping && Array.isArray(grouping.cost_centers)) {
+        form.cost_center_id = grouping.cost_centers.map(cc => cc.id);
+    }
+});
 
 watch(() => form.machinery_id, (machineryId) => {
     if (machineryId) {
@@ -73,6 +85,8 @@ watch(() => props.show, (val) => {
         // Cargar machinery seleccionada
         const machinery = props.machineries.find(m => m.value === props.fuelOutflow.machinery_id);
         selectedMachinery.value = machinery;
+        selectedGrouping.value = null;
+        expandedCC.value = false;
     }
 });
 
@@ -153,8 +167,40 @@ function update() {
                   <option v-for="o in operators" :key="o.id" :value="o.id">{{ o.name }}</option>
                 </select>
               </div>
-              <div class="col-md-4">
-                <label class="form-label">Centro de Costo</label>
+              <!-- Agrupación (preselección rápida de CC) -->
+              <div v-if="props.groupings && props.groupings.length > 0" class="col-md-4">
+                <label class="form-label">
+                  <i class="fas fa-layer-group me-1"></i>Agrupación
+                </label>
+                <select v-model="selectedGrouping" class="form-select">
+                  <option :value="null" disabled selected>Seleccione agrupación...</option>
+                  <option v-for="g in props.groupings" :key="g.id" :value="g.id">{{ g.name }}</option>
+                </select>
+                <small class="text-muted d-block mt-1">
+                  <i class="fas fa-info-circle me-1"></i>Preselección rápida
+                </small>
+              </div>
+
+              <!-- Centro de Costo -->
+              <div :class="props.groupings && props.groupings.length > 0 ? 'col-md-8' : 'col-md-4'">
+                <div class="d-flex align-items-center justify-content-between mb-1">
+                  <label class="form-label mb-0">
+                    Centro de Costo
+                    <span v-if="form.cost_center_id && form.cost_center_id.length > 0" class="badge bg-primary ms-1" style="font-size:0.65rem;">
+                      {{ form.cost_center_id.length }}
+                    </span>
+                  </label>
+                  <button
+                    v-if="form.cost_center_id && form.cost_center_id.length > 5"
+                    type="button"
+                    @click="expandedCC = !expandedCC"
+                    class="btn btn-link btn-sm p-0 text-muted"
+                    style="font-size: 0.65rem; text-decoration: none;"
+                  >
+                    <i class="fas" :class="expandedCC ? 'fa-compress-alt' : 'fa-expand-alt'" style="font-size: 0.6rem;"></i>
+                    {{ expandedCC ? 'Colapsar' : 'Ver todos' }}
+                  </button>
+                </div>
                 <Multiselect
                   mode="tags"
                   placeholder="Centro de Costo"
@@ -163,7 +209,7 @@ function update() {
                   :options="props.costCenters.map(c => ({ value: c.id, label: c.name }))"
                   :searchable="true"
                   :hide-selected="false"
-                  class="multiselect-blue form-control-sm"
+                  :class="['multiselect-blue form-control-sm multiselect-tags-limited', { 'multiselect-tags-expanded': expandedCC }]"
                 />
               </div>
               <div class="col-md-4">
@@ -215,7 +261,7 @@ function update() {
                 />
               </div>
               <div class="col-md-4">
-                <label class="form-label">Valor Contador</label>
+                <label class="form-label">{{ selectedMachinery?.counter_name ? 'Valor ' + selectedMachinery.counter_name : 'Valor Contador' }}</label>
                 <input type="number" v-model="form.counter_value" class="form-control" min="0" step="0.01" />
               </div>
               <div class="col-md-12">
@@ -237,7 +283,29 @@ function update() {
   </div>
 </template>
 
-<style>
+<style scoped>
+.multiselect-tags-limited :deep(.multiselect-tags) {
+    max-height: 32px !important;
+    overflow: hidden !important;
+    flex-wrap: wrap;
+    transition: max-height 0.3s ease;
+}
+.multiselect-tags-expanded :deep(.multiselect-tags) {
+    max-height: 200px !important;
+    overflow-y: auto !important;
+    overflow-x: hidden !important;
+}
+.multiselect-tags-expanded :deep(.multiselect-tags)::-webkit-scrollbar { width: 4px; }
+.multiselect-tags-expanded :deep(.multiselect-tags)::-webkit-scrollbar-thumb {
+    background: rgba(0,0,0,0.2); border-radius: 4px;
+}
+.multiselect-tags-limited {
+    height: auto !important;
+    max-height: 38px !important;
+    min-height: 26px !important;
+    transition: max-height 0.3s ease;
+}
+.multiselect-tags-expanded { max-height: 210px !important; }
 .multiselect-blue {
     --ms-bg: var(--kt-input-solid-bg) !important;
     --ms-border-color: var(--kt-input-solid-bg);

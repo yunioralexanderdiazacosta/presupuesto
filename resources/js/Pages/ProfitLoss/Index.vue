@@ -420,6 +420,20 @@ watch(allRows, () => setupCollapseChevron());
                             </div>
                         </div>
                     </div>
+                    <div class="col" v-if="adjustedDiscounts > 0 || adjustedAdvances > 0">
+                        <div class="card h-100 p-1 border border-secondary">
+                            <div class="card-body py-2 px-3">
+                                <div v-if="adjustedDiscounts > 0" class="d-flex justify-content-between" style="font-size:0.75rem;">
+                                    <span class="text-muted">(-) Descuentos</span>
+                                    <span class="text-danger fw-semibold">{{ currencyPrefix }}{{ formatMoney(adjustedDiscounts) }}</span>
+                                </div>
+                                <div v-if="adjustedAdvances > 0" class="d-flex justify-content-between" style="font-size:0.75rem;">
+                                    <span class="text-muted">(+) Abonos</span>
+                                    <span class="text-success fw-semibold">{{ currencyPrefix }}{{ formatMoney(adjustedAdvances) }}</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
                     <div class="col">
                         <div class="card h-100 p-1 border" :class="plNetAfterCommercialAdjusted >= 0 ? 'border-success' : 'border-warning'">
                             <div class="card-body py-2 px-3 text-center">
@@ -435,30 +449,6 @@ watch(allRows, () => setupCollapseChevron());
                                     <small class="text-muted">(Prod.{{ incluirAdmin && adminState ? ' + Admin' : '' }}{{ extraStates.filter(s => selectedExtraStates[s.value]).map(s => ' + ' + s.label).join('') }})</small>
                                 </div>
                                 <div class="fs-8 fw-bold text-danger">{{ currencyPrefix }}{{ formatMoney(plTotalCost) }}</div>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="col">
-                        <div class="card h-100 p-1" :class="plProfit >= 0 ? 'border border-primary' : 'border border-warning'">
-                            <div class="card-body py-2 px-3 text-center">
-                                <div class="text-muted small">Utilidad Bruta</div>
-                                <div class="fs-8 fw-bold" :class="plProfit >= 0 ? 'text-primary' : 'text-warning'">
-                                    {{ currencyPrefix }}{{ formatMoney(plProfit) }}
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="col" v-if="adjustedDiscounts > 0 || adjustedAdvances > 0">
-                        <div class="card h-100 p-1 border border-secondary">
-                            <div class="card-body py-2 px-3">
-                                <div v-if="adjustedDiscounts > 0" class="d-flex justify-content-between" style="font-size:0.75rem;">
-                                    <span class="text-muted">(-) Descuentos</span>
-                                    <span class="text-danger fw-semibold">{{ currencyPrefix }}{{ formatMoney(adjustedDiscounts) }}</span>
-                                </div>
-                                <div v-if="adjustedAdvances > 0" class="d-flex justify-content-between" style="font-size:0.75rem;">
-                                    <span class="text-muted">(+) Abonos</span>
-                                    <span class="text-success fw-semibold">{{ currencyPrefix }}{{ formatMoney(adjustedAdvances) }}</span>
-                                </div>
                             </div>
                         </div>
                     </div>

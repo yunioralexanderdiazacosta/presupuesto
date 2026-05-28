@@ -27,6 +27,7 @@ class StoreFuelOutflowRequest extends FormRequest
             'liters' => 'required|numeric|min:0.01',
             'counter_id' => 'nullable|exists:counters,id',
             'counter_value' => 'nullable|numeric|min:0',
+            'tank_meter' => 'nullable|numeric|min:0',
             'date' => 'required|date',
             'observations' => 'nullable|string',
         ];

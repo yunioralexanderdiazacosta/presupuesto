@@ -30,6 +30,20 @@ const productsOptions = ref(props.products);
 const machineryNames = computed(() => (props.machineries || []).map(m => m.label));
 const operatorNames = computed(() => (props.operators || []).map(o => o.label));
 
+// Solo nebulizadores/pulverizadores para el select de Equipos
+const equipmentMachineryNames = computed(() => {
+    return (props.machineries || [])
+        .filter(m => /nebuliz|pulveriz/i.test(m.type || ''))
+        .map(m => m.label);
+});
+
+// Tractores: excluir nebulizadores/pulverizadores
+const tractorMachineryNames = computed(() => {
+    return (props.machineries || [])
+        .filter(m => !/nebuliz|pulveriz/i.test(m.type || ''))
+        .map(m => m.label);
+});
+
 const selectedTractors = computed({
     get: () => props.form.tractors ? props.form.tractors.split(', ').filter(Boolean) : [],
     set: (val) => { props.form.tractors = val.join(', '); }
@@ -55,17 +69,61 @@ const newProduct = ref({
     reingreso: '',
 });
 
+// Flags para saber si el producto seleccionado ya tenía carencia/reingreso
+const productHasCarencia = ref(true);
+const productHasReingreso = ref(true);
+const isSavingCarenciaReingreso = ref(false);
+
 // Watch para auto-asignar unit_id cuando se selecciona un producto
 watch(() => newProduct.value.product_id, (productId) => {
     if (productId) {
         const product = productsOptions.value.find(p => p.value === productId);
         if (product) {
             newProduct.value.unit_id = product.unit_id || '';
+            newProduct.value.carencia = product.carencia ?? '';
+            newProduct.value.reingreso = product.reingreso ?? '';
+            productHasCarencia.value = product.carencia !== null && product.carencia !== undefined && product.carencia !== '';
+            productHasReingreso.value = product.reingreso !== null && product.reingreso !== undefined && product.reingreso !== '';
         }
     } else {
         newProduct.value.unit_id = '';
+        newProduct.value.carencia = '';
+        newProduct.value.reingreso = '';
+        productHasCarencia.value = true;
+        productHasReingreso.value = true;
     }
 });
+
+const showSaveToProduct = computed(() => {
+    return newProduct.value.product_id && (!productHasCarencia.value || !productHasReingreso.value);
+});
+
+const saveCarenciaReingresoToProduct = async () => {
+    if (!newProduct.value.product_id) return;
+    isSavingCarenciaReingreso.value = true;
+    try {
+        const response = await axios.patch(
+            route('api.products.carencia-reingreso', newProduct.value.product_id),
+            {
+                carencia: newProduct.value.carencia !== '' ? newProduct.value.carencia : null,
+                reingreso: newProduct.value.reingreso !== '' ? newProduct.value.reingreso : null,
+            }
+        );
+        // Actualizar el array local de opciones
+        const idx = productsOptions.value.findIndex(p => p.value === newProduct.value.product_id);
+        if (idx !== -1) {
+            productsOptions.value[idx].carencia = response.data.carencia;
+            productsOptions.value[idx].reingreso = response.data.reingreso;
+        }
+        productHasCarencia.value = response.data.carencia !== null;
+        productHasReingreso.value = response.data.reingreso !== null;
+        Swal.fire({ icon: 'success', title: 'Guardado en producto', showConfirmButton: false, timer: 1200 });
+    } catch (error) {
+        Swal.fire('Error', 'No se pudo guardar en el producto', 'error');
+    } finally {
+        isSavingCarenciaReingreso.value = false;
+    }
+};
 
 const refreshProducts = async () => {
     isRefreshingProducts.value = true;
@@ -169,11 +227,6 @@ function addProduct() {
         return;
     }
     
-    if (newProduct.value.carencia === '' || newProduct.value.carencia === null || newProduct.value.reingreso === '' || newProduct.value.reingreso === null) {
-        Swal.fire('Error', 'Debe ingresar carencia y reingreso', 'error');
-        return;
-    }
-    
     // Si estamos editando, actualizar el producto existente
     if (editingProductIndex.value !== null) {
         props.form.products[editingProductIndex.value] = { ...newProduct.value };
@@ -222,6 +275,11 @@ function editProduct(index) {
         carencia: product.carencia,
         reingreso: product.reingreso,
     };
+
+    // Verificar si el producto master tiene estos datos
+    const masterProduct = productsOptions.value.find(p => p.value === product.product_id);
+    productHasCarencia.value = masterProduct ? (masterProduct.carencia !== null && masterProduct.carencia !== undefined && masterProduct.carencia !== '') : true;
+    productHasReingreso.value = masterProduct ? (masterProduct.reingreso !== null && masterProduct.reingreso !== undefined && masterProduct.reingreso !== '') : true;
     
     selectedProduct.value = product.product_id;
     
@@ -241,6 +299,8 @@ function cancelEditProduct() {
         reingreso: '',
     };
     selectedProduct.value = null;
+    productHasCarencia.value = true;
+    productHasReingreso.value = true;
 }
 
 function removeProduct(index) {
@@ -477,7 +537,7 @@ function getSimplifiedQuantity(product) {
                 <label class="form-label small mb-1">Tractores</label>
                 <Multiselect
                     v-model="selectedTractors"
-                    :options="machineryNames"
+                    :options="tractorMachineryNames.length > 0 ? tractorMachineryNames : machineryNames"
                     mode="tags"
                     :searchable="true"
                     :close-on-select="false"
@@ -494,7 +554,7 @@ function getSimplifiedQuantity(product) {
                 <label class="form-label small mb-1">Equipos</label>
                 <Multiselect
                     v-model="selectedEquipments"
-                    :options="machineryNames"
+                    :options="equipmentMachineryNames.length > 0 ? equipmentMachineryNames : machineryNames"
                     mode="tags"
                     :searchable="true"
                     :close-on-select="false"
@@ -502,6 +562,9 @@ function getSimplifiedQuantity(product) {
                     placeholder="Seleccione equipos..."
                     class="multiselect-blue form-control-sm"
                 />
+                <small v-if="equipmentMachineryNames.length > 0" class="text-muted">
+                    <i class="fas fa-filter me-1"></i>Filtrado: nebulizadores/pulverizadores
+                </small>
                 <InputError :message="form.errors.equipments" />
             </div>
             <div class="col-md-4 mb-2">
@@ -806,7 +869,10 @@ function getSimplifiedQuantity(product) {
                     </div>
 
                     <div class="col-md-3">
-                        <label class="form-label small mb-1">Carencia (días)</label>
+                        <div class="d-flex align-items-center justify-content-between mb-1">
+                            <label class="form-label small mb-0">Carencia (días)</label>
+                            <span v-if="newProduct.product_id && !productHasCarencia" class="badge bg-warning text-dark" style="font-size:0.65rem;">Sin dato</span>
+                        </div>
                         <input
                             v-model="newProduct.carencia"
                             type="number"
@@ -817,7 +883,10 @@ function getSimplifiedQuantity(product) {
                     </div>
 
                     <div class="col-md-3">
-                        <label class="form-label small mb-1">Reingreso (horas)</label>
+                        <div class="d-flex align-items-center justify-content-between mb-1">
+                            <label class="form-label small mb-0">Reingreso (horas)</label>
+                            <span v-if="newProduct.product_id && !productHasReingreso" class="badge bg-warning text-dark" style="font-size:0.65rem;">Sin dato</span>
+                        </div>
                         <input
                             v-model="newProduct.reingreso"
                             type="number"
@@ -825,6 +894,24 @@ function getSimplifiedQuantity(product) {
                             class="form-control form-control-sm"
                             placeholder="0"
                         />
+                    </div>
+                </div>
+
+                <div v-if="showSaveToProduct" class="row mb-1">
+                    <div class="col-md-12">
+                        <div class="alert alert-warning py-1 px-2 mb-0 d-flex align-items-center justify-content-between" style="font-size:0.8rem;">
+                            <span><i class="fas fa-exclamation-triangle me-1"></i>Este producto no tiene {{ !productHasCarencia && !productHasReingreso ? 'carencia ni reingreso' : !productHasCarencia ? 'carencia' : 'reingreso' }} registrados. ¿Deseas guardarlos en el producto?</span>
+                            <button
+                                type="button"
+                                @click="saveCarenciaReingresoToProduct"
+                                :disabled="isSavingCarenciaReingreso"
+                                class="btn btn-sm btn-warning ms-2 d-flex align-items-center gap-1"
+                                style="font-size:0.75rem; white-space:nowrap;"
+                            >
+                                <i class="fas fa-save fa-xs" :class="{'fa-spin': isSavingCarenciaReingreso}"></i>
+                                Guardar en producto
+                            </button>
+                        </div>
                     </div>
                 </div>
 

@@ -38,6 +38,7 @@ use App\Http\Controllers\Products2\DeleteProduct2Controller;
 
 // Rutas API
     use App\Http\Controllers\Api\GetProductsController;
+    use App\Http\Controllers\Api\UpdateProductCarenciaReingresoController;
     use App\Http\Controllers\Api\GetPendingExpenseReportItemsController;
     use App\Http\Controllers\Api\StoreSupplierApiController;
     use App\Http\Controllers\Api\GetCostCenterVarietiesController;
@@ -547,6 +548,7 @@ Route::middleware([
 
     // API para refrescar selects
     Route::get('/api/products', GetProductsController::class)->name('api.products');
+    Route::patch('/api/products/{product}/carencia-reingreso', UpdateProductCarenciaReingresoController::class)->name('api.products.carencia-reingreso');
     Route::patch('/api/dollar-price', UpdateDollarPriceController::class)->name('api.dollar-price.update');
     Route::get('/api/pending-expense-items', GetPendingExpenseReportItemsController::class)->name('api.pending-expense-items');
     Route::post('/api/suppliers', StoreSupplierApiController::class)->name('api.suppliers.store');

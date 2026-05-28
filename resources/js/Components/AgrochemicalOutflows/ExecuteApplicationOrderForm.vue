@@ -373,7 +373,7 @@ function formatNumber(value) {
                                                         :key="invoice.invoice_product_id" 
                                                         :value="invoice.invoice_product_id"
                                                     >
-                                                        {{ invoice.number_document }} - {{ invoice.supplier }} 
+                                                        {{ invoice.number_document }} - {{ invoice.supplier }}{{ invoice.company_reason ? ' | ' + invoice.company_reason : '' }} 
                                                         (Stock: {{ invoice.stock_disponible.toLocaleString('es-ES') }} {{ invoice.unit }})
                                                     </option>
                                                 </select>

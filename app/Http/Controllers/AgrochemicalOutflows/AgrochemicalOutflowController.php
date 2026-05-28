@@ -25,7 +25,7 @@ class AgrochemicalOutflowController
             'applicationOrder',
             'product.unit',
             'costCenter',
-            'invoiceProduct.invoice',
+            'invoiceProduct.invoice.companyReason',
         ])
         ->where('team_id', $teamId)
         ->where('season_id', $seasonId)
@@ -40,6 +40,7 @@ class AgrochemicalOutflowController
             $cuartelesList = $group->pluck('costCenter.name')->unique()->values()->toArray();
             $cuarteles = implode(', ', $cuartelesList);
             $facturas = $group->pluck('invoiceProduct.invoice.number_document')->unique()->filter()->implode(', ');
+            $razonesSociales = $group->pluck('invoiceProduct.invoice.companyReason.name')->unique()->filter()->implode(', ');
             $cantidadTotal = $group->sum('quantity');
             $unidad = $first->product->unit->name ?? '';
 
@@ -63,6 +64,7 @@ class AgrochemicalOutflowController
                 'cantidad_total' => $cantidadTotal,
                 'unidad' => $unidad,
                 'facturas' => $facturas ?: 'N/A',
+                'razones_sociales' => $razonesSociales ?: '-',
                 'outflow_ids' => $group->pluck('id')->toArray(),
                 'observations' => $first->observations,
                 'detalle' => $detalle,

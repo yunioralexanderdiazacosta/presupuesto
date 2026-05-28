@@ -32,6 +32,8 @@ const props = defineProps({
     projects: Array,
     operations: Array,
     fuelTanks: { type: Array, default: () => [] },
+    branches: { type: Array, default: () => [] },
+    groupings: { type: Array, default: () => [] },
 });
 
 const title = 'Consumos de Combustible';
@@ -225,6 +227,7 @@ function deleteFuelOutflow(id) {
                         <th>Litros</th>
                         <th>Tipo Contador</th>
                         <th>Valor Contador</th>
+                        <th>Totalizador</th>
                         <th>Observaciones</th>
                         <th style="width: 100px;">Acciones</th>
                       </tr>
@@ -256,6 +259,7 @@ function deleteFuelOutflow(id) {
                         <td>{{ item.liters }}</td>
                         <td>{{ item.counter?.name || '-' }}</td>
                         <td>{{ item.counter_value || '-' }}</td>
+                        <td>{{ item.tank_meter ?? '-' }}</td>
                         <td>{{ item.observations }}</td>
                         <td>
                           <div class="d-flex gap-1 justify-content-center">
@@ -279,7 +283,7 @@ function deleteFuelOutflow(id) {
                         </td>
                       </tr>
                       <tr v-if="filteredRows.length === 0">
-                        <td colspan="11" class="text-center text-muted">No hay consumos registrados.</td>
+                        <td colspan="12" class="text-center text-muted">No hay consumos registrados.</td>
                       </tr>
                     </tbody>
                   </table>
@@ -300,6 +304,8 @@ function deleteFuelOutflow(id) {
             :projects="props.projects"
             :operations="props.operations"
             :fuelTanks="props.fuelTanks"
+            :branches="props.branches"
+            :groupings="props.groupings"
             @close="closeCreateModal"
             @saved="reloadAfterSave"
         />
@@ -316,6 +322,7 @@ function deleteFuelOutflow(id) {
             :projects="props.projects"
             :operations="props.operations"
             :fuelTanks="props.fuelTanks"
+            :groupings="props.groupings"
             @close="closeEditModal"
             @saved="reloadAfterSave"
         />
