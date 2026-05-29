@@ -14,6 +14,7 @@ class KardexController extends Controller
     {
         $user = Auth::user();
         $season_id = session('season_id');
+        $branch_id = $request->input('branch_id');
     $product = Product::with('unit')->findOrFail($product_id);
 
         // Movimientos de facturas (entradas)
@@ -24,6 +25,7 @@ class KardexController extends Controller
             ->where('invoice_products.product_id', $product_id)
             ->where('invoices.team_id', $user->team_id)
             ->where('invoices.season_id', $season_id)
+            ->when($branch_id, fn($q) => $q->where('invoice_products.branch_id', $branch_id))
             ->select([
                 'invoices.date as fecha',
                 DB::raw("COALESCE(type_documents.name, 'Factura') as tipo"),
@@ -45,6 +47,7 @@ class KardexController extends Controller
             ->where('credit_debit_notes.season_id', $season_id)
             ->where('credit_debit_notes.type', 'debito')
             ->where('credit_debit_notes.affects_inventory', 1) // Solo los que afectan inventario
+            ->when($branch_id, fn($q) => $q->where('credit_debit_note_items.branch_id', $branch_id))
             ->select([
                 'credit_debit_notes.date as fecha',
                 DB::raw("'Nota Débito' as tipo"),
@@ -66,6 +69,7 @@ class KardexController extends Controller
             ->where('credit_debit_notes.season_id', $season_id)
             ->where('credit_debit_notes.type', 'credito')
             ->where('credit_debit_notes.affects_inventory', 1) // Solo los que afectan inventario
+            ->when($branch_id, fn($q) => $q->where('credit_debit_note_items.branch_id', $branch_id))
             ->select([
                 'credit_debit_notes.date as fecha',
                 DB::raw("'Nota Crédito' as tipo"),
@@ -87,6 +91,7 @@ class KardexController extends Controller
             ->where('outflows.team_id', $user->team_id)
             ->where('outflows.season_id', $season_id)
             ->whereNotNull('outflows.invoice_product_id')
+            ->when($branch_id, fn($q) => $q->where('invoice_products.branch_id', $branch_id))
             ->select([
                 'outflows.date as fecha',
                 DB::raw("'Consumo' as tipo"),
@@ -108,6 +113,7 @@ class KardexController extends Controller
             ->where('outflows.team_id', $user->team_id)
             ->where('outflows.season_id', $season_id)
             ->whereNotNull('outflows.credit_debit_note_item_id')
+            ->when($branch_id, fn($q) => $q->where('credit_debit_note_items.branch_id', $branch_id))
             ->select([
                 'outflows.date as fecha',
                 DB::raw("'Consumo ND' as tipo"),

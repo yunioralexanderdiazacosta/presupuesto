@@ -131,6 +131,7 @@ class OutflowsController extends Controller
                     'has_credit_note'   => ($devuelto > 0),
                     'credit_note_info'  => $creditNoteInfo,
                     'mes_contable'      => $invoice->month?->name ?? '',
+                    'invoice_date'      => $invoice->date?->format('Y-m-d'),
                     'branch_id'         => $invoiceProduct->branch_id,
                     'branch_name'       => $invoiceProduct->branch?->name,
                 ];
@@ -166,6 +167,7 @@ class OutflowsController extends Controller
                     'quantity'                => $cantidadOriginal,
                     'credit_debit_note_item_id'=> $item->id,
                     'stock'                   => $stockLinea,
+                    'invoice_date'            => $note->date?->format('Y-m-d'),
                     'branch_id'               => $item->branch_id,
                     'branch_name'             => $item->branch?->name,
                 ];

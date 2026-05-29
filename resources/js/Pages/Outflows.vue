@@ -379,7 +379,7 @@ async function openCard(outflow) {
     unit_price: outflow.unit_price || 0, // Precio unitario de la factura
     cost_center_ids: [],
     observations: '',
-    date: '', // Campo vacío para forzar selección consciente de fecha
+    date: outflow.invoice_date || '', // Fecha de la factura por defecto
     level2_id: null, // Filtro helper (no se guarda)
     level3_id: null,
     product_id: outflow.product_id || null,
