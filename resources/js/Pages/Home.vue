@@ -2,6 +2,7 @@
 import { Head } from '@inertiajs/vue3';
 import AppLayout from '@/Layouts/AppLayout.vue';
 import Breadcrumb from '@/Components/Breadcrumb.vue';
+import { changelog } from '@/data/changelog.js';
 
 const props = defineProps({
     info: Object
@@ -46,14 +47,16 @@ const links = [
                                     </div>
                                 </div>
 
-                                <!-- Abril 2026 -->
-                                <p class="mb-1"><strong class="text-primary">Abril 2026:</strong></p>
-                                <ul class="mb-0 ps-3" style="font-size:0.85rem;">
-                                    <li><strong>Facturas</strong> — nuevo campo <em>Exento</em> por línea: el IVA (19%) se calcula solo sobre el neto afecto; las líneas exentas no generan IVA.</li>
-                                    <li><strong>Consolidado de Documentos</strong> — las tablas Resumen y Lista ahora muestran columnas <em>Neto Afecto</em>, <em>Exento</em>, <em>IVA</em> y <em>Total General</em> por separado. El Excel exportado incluye el mismo desglose.</li>
-                                    <li><strong>Términos de Faena</strong> — nuevo módulo en Remuneraciones para registrar términos de contratos en lote (múltiples trabajadores, fecha y causal). Incluye historial y opción de anular.</li>
-                                    <li><strong>Cambio de temporada</strong> — restringido a usuarios con rol <em>Admin</em> o <em>Super Admin</em>. Desde cualquier pantalla puedes cambiarla haciendo clic en el badge de temporada del menú superior.</li>
-                                </ul>
+                                <!-- Entradas dinámicas del changelog -->
+                                <div v-for="(entry, i) in changelog" :key="i" :class="{ 'mt-3': i > 0 }">
+                                    <p class="mb-1">
+                                        <strong class="text-primary">{{ entry.fecha }}:</strong>
+                                        <span class="ms-1 fw-semibold">{{ entry.titulo }}</span>
+                                    </p>
+                                    <ul class="mb-0 ps-3" style="font-size:0.85rem;">
+                                        <li v-for="(item, j) in entry.items" :key="j">{{ item }}</li>
+                                    </ul>
+                                </div>
 
 
                             </div>

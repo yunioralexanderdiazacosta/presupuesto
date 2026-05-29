@@ -1,5 +1,27 @@
 # Instrucciones para Agentes de IA
 
+## Changelog Automático
+
+**REGLA OBLIGATORIA**: Al completar cualquier cambio funcional, agregar una entrada al inicio del array en `resources/js/data/changelog.js` con este formato exacto:
+
+```js
+{
+  fecha: 'YYYY-MM-DD',   // fecha real del día (usar la fecha actual)
+  titulo: 'Módulo — Descripción breve del cambio',
+  items: [
+    'Descripción concisa del cambio 1 para usuario final (sin jerga técnica).',
+    'Descripción concisa del cambio 2.',
+  ]
+},
+```
+
+- El array está ordenado del más reciente al más antiguo (nuevo va primero).
+- Usar lenguaje para **usuario final**, no para desarrollador.
+- Agrupar en una sola entrada todos los cambios de la misma sesión/tarea si son del mismo módulo.
+- NO crear entradas por cambios de refactoring interno, solo por cambios visibles al usuario.
+
+---
+
 ## Arquitectura del Proyecto
 
 Sistema de gestión presupuestaria agrícola construido con:
