@@ -10,6 +10,8 @@ use App\Models\Employee;
 use App\Models\MonthlyBonus;
 use App\Models\MonthlyDiscount;
 use App\Models\MonthlyDiscountType;
+use App\Models\MonthlyBonusType;
+use App\Models\LaborType;
 use App\Models\OvertimeHour;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
@@ -186,9 +188,184 @@ class PayrollReportController extends Controller
             ->get(['id', 'name'])
             ->map(fn($cr) => ['value' => $cr->id, 'label' => $cr->name]);
 
+        // ---- RESUMEN LIQUIDACIÓN ----
+        // Contratos con actividad en el mes (yields, bonos o descuentos)
+        $liqContractIdsFromYields = DailyYield::where('team_id', $user->team_id)
+            ->where('season_id', $seasonId)
+            ->whereBetween('date', [$startDate->format('Y-m-d'), $endDate->format('Y-m-d')])
+            ->whereNotNull('contract_id')
+            ->distinct()
+            ->pluck('contract_id');
+
+        $liqContractIdsFromBonuses = MonthlyBonus::where('team_id', $user->team_id)
+            ->where('month_id', $monthId)
+            ->whereNotNull('contract_id')
+            ->distinct()
+            ->pluck('contract_id');
+
+        $liqContractIdsFromDiscounts = MonthlyDiscount::where('team_id', $user->team_id)
+            ->where('month_id', $monthId)
+            ->whereNotNull('contract_id')
+            ->distinct()
+            ->pluck('contract_id');
+
+        $liqContractIds = $liqContractIdsFromYields
+            ->merge($liqContractIdsFromBonuses)
+            ->merge($liqContractIdsFromDiscounts)
+            ->unique()
+            ->values();
+
+        $liqContracts = Contract::with(['employee', 'afp', 'healthPlan', 'terminations.causalTermino'])
+            ->whereIn('id', $liqContractIds)
+            ->get();
+
+        // Labor types para vacaciones y licencias
+        $vacacionesTypeIds = LaborType::where('team_id', $user->team_id)
+            ->whereRaw('LOWER(name) LIKE ?', ['%vacac%'])
+            ->pluck('id');
+
+        $licenciasTypeIds = LaborType::where('team_id', $user->team_id)
+            ->whereRaw('LOWER(name) LIKE ?', ['%licenc%'])
+            ->pluck('id');
+
+        // Labor types marcados como ausencia (is_absence = true) → no cuentan para proporcional
+        $absenceTypeIds = LaborType::where('team_id', $user->team_id)
+            ->where('is_absence', true)
+            ->pluck('id');
+
+        // Tipo de bono "cargas familiares"
+        $cargasBonusTypeIds = MonthlyBonusType::where('team_id', $user->team_id)
+            ->whereRaw('LOWER(name) LIKE ?', ['%carga%'])
+            ->pluck('id');
+
+        // Tipos de descuento "anticipo"
+        $anticiposLiqTypeIds = MonthlyDiscountType::where('team_id', $user->team_id)
+            ->whereRaw('LOWER(name) LIKE ?', ['%anticipo%'])
+            ->pluck('id');
+
+        // Yields del mes agrupados por contract_id
+        $liqYieldsByContract = DailyYield::where('team_id', $user->team_id)
+            ->where('season_id', $seasonId)
+            ->whereBetween('date', [$startDate->format('Y-m-d'), $endDate->format('Y-m-d')])
+            ->whereIn('contract_id', $liqContractIds)
+            ->get(['contract_id', 'workdays', 'labor_type_id', 'payment_type', 'amount', 'bonus_amount', 'target_price_bonus'])
+            ->groupBy('contract_id');
+
+        // Todos los bonos mensuales por contrato (para total haberes)
+        $liqAllBonusesByContract = MonthlyBonus::where('team_id', $user->team_id)
+            ->whereIn('contract_id', $liqContractIds)
+            ->where('month_id', $monthId)
+            ->get(['contract_id', 'amount'])
+            ->groupBy('contract_id');
+
+        // Horas extra por contrato
+        $liqOvertimeByContract = OvertimeHour::where('team_id', $user->team_id)
+            ->whereIn('contract_id', $liqContractIds)
+            ->where('month_id', $monthId)
+            ->get(['contract_id', 'hours', 'base_salary_snapshot', 'hourly_rate_factor_snapshot', 'overtime_multiplier_snapshot'])
+            ->groupBy('contract_id');
+
+        // Cargas familiares por contrato
+        $liqCargasByContract = $cargasBonusTypeIds->isNotEmpty()
+            ? MonthlyBonus::where('team_id', $user->team_id)
+                ->whereIn('contract_id', $liqContractIds)
+                ->where('month_id', $monthId)
+                ->whereIn('monthly_bonus_type_id', $cargasBonusTypeIds)
+                ->get(['contract_id', 'amount'])
+                ->groupBy('contract_id')
+            : collect();
+
+        // Anticipos por contrato
+        $liqAnticiposByContract = $anticiposLiqTypeIds->isNotEmpty()
+            ? MonthlyDiscount::where('team_id', $user->team_id)
+                ->whereIn('contract_id', $liqContractIds)
+                ->where('month_id', $monthId)
+                ->whereIn('monthly_discount_type_id', $anticiposLiqTypeIds)
+                ->get(['contract_id', 'amount'])
+                ->groupBy('contract_id')
+            : collect();
+
+        // Otros descuentos (excluye anticipos)
+        $otrosDescuentosQuery = MonthlyDiscount::where('team_id', $user->team_id)
+            ->whereIn('contract_id', $liqContractIds)
+            ->where('month_id', $monthId);
+        if ($anticiposLiqTypeIds->isNotEmpty()) {
+            $otrosDescuentosQuery->whereNotIn('monthly_discount_type_id', $anticiposLiqTypeIds);
+        }
+        $liqOtrosByContract = $otrosDescuentosQuery->get(['contract_id', 'amount'])->groupBy('contract_id');
+
+        $liquidacionData = $liqContracts->map(function ($contract) use (
+            $liqYieldsByContract, $vacacionesTypeIds, $licenciasTypeIds,
+            $liqCargasByContract, $liqAnticiposByContract, $liqOtrosByContract,
+            $liqAllBonusesByContract, $liqOvertimeByContract, $absenceTypeIds
+        ) {
+            $contractYields = $liqYieldsByContract->get($contract->id, collect());
+            $totalJornadas  = round((float) $contractYields->sum('workdays'), 2);
+            $jhVacaciones   = round((float) $contractYields
+                ->filter(fn($y) => $vacacionesTypeIds->contains($y->labor_type_id))
+                ->sum('workdays'), 2);
+            $licencias      = round((float) $contractYields
+                ->filter(fn($y) => $licenciasTypeIds->contains($y->labor_type_id))
+                ->sum('workdays'), 2);
+
+            // Jornadas efectivas: excluye labores marcadas como ausencia
+            $jornadasEfectivas = round((float) $contractYields
+                ->filter(fn($y) => !$absenceTypeIds->contains($y->labor_type_id))
+                ->sum('workdays'), 2);
+
+            $sueldoBaseProp = $contract->base_salary > 0
+                ? (int) round(($contract->base_salary / 30) * $jornadasEfectivas)
+                : 0;
+
+            // Componentes del total haberes
+            $totalTratos       = (int) $contractYields->where('payment_type', 'trato')->sum('amount');
+            $totalMontoDia     = (int) $contractYields->where('payment_type', 'dia')->sum('amount');
+            $totalBonusDiario  = (int) $contractYields->sum('bonus_amount');
+            $totalBonusObjetivo= (int) $contractYields->sum('target_price_bonus');
+            $totalBonusMensual = (int) $liqAllBonusesByContract->get($contract->id, collect())->sum('amount');
+            $totalHorasExtra   = 0;
+            foreach ($liqOvertimeByContract->get($contract->id, collect()) as $ot) {
+                $totalHorasExtra += (int) round(
+                    $ot->hours * $ot->base_salary_snapshot * $ot->hourly_rate_factor_snapshot * $ot->overtime_multiplier_snapshot
+                );
+            }
+            $totalHaberes = $totalTratos + $totalMontoDia + $totalBonusDiario + $totalBonusObjetivo
+                + $totalBonusMensual + $totalHorasExtra;
+
+            $cargasFamiliares = (int) $liqCargasByContract->get($contract->id, collect())->sum('amount');
+            $anticipos        = (int) $liqAnticiposByContract->get($contract->id, collect())->sum('amount');
+            $otrosDescuentos  = (int) $liqOtrosByContract->get($contract->id, collect())->sum('amount');
+
+            // Finiquito más reciente (si lo tiene)
+            $termination = $contract->terminations->sortByDesc('fecha_termino')->first();
+
+            return [
+                'contract_id'       => $contract->id,
+                'rut'               => $contract->employee?->rut ?? '—',
+                'full_name'         => $contract->employee?->full_name ?? '—',
+                'contract_date'     => $contract->contract_date?->format('d/m/Y'),
+                'contract_type'     => $contract->contract_type,
+                'afp'               => $contract->afp?->name ?? '—',
+                'health_plan'       => $contract->healthPlan?->name ?? '—',
+                'end_date'          => $termination?->fecha_termino?->format('d/m/Y'),
+                'causal_termino'    => $termination?->causalTermino?->nombre ?? null,
+                'base_salary'       => $contract->base_salary ?? 0,
+                'jornadas_efectivas'=> $jornadasEfectivas,
+                'sueldo_base_prop'  => $sueldoBaseProp,
+                'total_haberes'     => $totalHaberes,
+                'total_jornadas'    => $totalJornadas,
+                'jh_vacaciones'     => $jhVacaciones,
+                'licencias'         => $licencias,
+                'cargas_familiares' => $cargasFamiliares,
+                'anticipos'         => $anticipos,
+                'otros_descuentos'  => $otrosDescuentos,
+            ];
+        })->sortBy('full_name')->values();
+
         return Inertia::render('PayrollReports/Index', [
             'employees' => $employeesData,
             'anticipos' => $anticiposData,
+            'liquidacion' => $liquidacionData,
             'companyReasons' => $companyReasons,
             'month' => $month,
             'totals' => [

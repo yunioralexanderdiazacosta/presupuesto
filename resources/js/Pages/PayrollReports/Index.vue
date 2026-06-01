@@ -80,6 +80,12 @@
                             <i class="fas fa-money-check-alt me-1"></i>Resumen de Sueldos
                         </a>
                     </li>
+                    <li class="nav-item">
+                        <a class="nav-link py-1 px-3" :class="{ active: activeTab === 'liquidacion' }"
+                            href="#" @click.prevent="activeTab = 'liquidacion'">
+                            <i class="fas fa-file-contract me-1"></i>Resumen Liquidación
+                        </a>
+                    </li>
                 </ul>
 
                 <!-- TAB: Resumen Mensual -->
@@ -229,6 +235,11 @@
                     <PayrollSueldosTab :employees="filteredEmployees" :month="selectedMonth" />
                 </div><!-- /TAB sueldos -->
 
+                <!-- TAB: Resumen Liquidación -->
+                <div v-show="activeTab === 'liquidacion'">
+                    <PayrollLiquidacionTab :rows="filteredLiquidacion" :month="selectedMonth" />
+                </div><!-- /TAB liquidacion -->
+
             </div>
         </div>
     </AppLayout>
@@ -241,10 +252,12 @@ import AppLayout from '@/Layouts/AppLayout.vue';
 import PayrollNominaTab from './PayrollNominaTab.vue';
 import PayrollAnticiposTab from './PayrollAnticiposTab.vue';
 import PayrollSueldosTab from './PayrollSueldosTab.vue';
+import PayrollLiquidacionTab from './PayrollLiquidacionTab.vue';
 
 const props = defineProps({
     employees: { type: Array, default: () => [] },
     anticipos: { type: Array, default: () => [] },
+    liquidacion: { type: Array, default: () => [] },
     companyReasons: { type: Array, default: () => [] },
     month: { type: String, required: true },
     totals: { type: Object, required: true },
@@ -279,6 +292,13 @@ const filteredEmployees = computed(() => {
 const filteredAnticipos = computed(() => {
     if (!selectedCompanyReason.value) return props.anticipos;
     return props.anticipos.filter(a => String(a.company_reason_id) === String(selectedCompanyReason.value));
+});
+
+const filteredLiquidacion = computed(() => {
+    if (!selectedCompanyReason.value) return props.liquidacion;
+    // liquidacion no tiene company_reason_id directo, aplicar filtro solo si hay empleados con ese filtro
+    const empIds = filteredEmployees.value.map(e => String(e.contract_id));
+    return props.liquidacion.filter(r => empIds.includes(String(r.contract_id)));
 });
 
 // Recalculate totals from filtered list

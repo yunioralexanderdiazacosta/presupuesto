@@ -7,6 +7,16 @@
 
 export const changelog = [
   {
+    fecha: '2026-06-01',
+    titulo: 'Remuneraciones — Nueva pestaña Resumen Liquidación',
+    items: [
+      'Nueva pestaña "Resumen Liquidación" en el reporte mensual de remuneraciones.',
+      'Muestra por contrato: datos del trabajador, tipo de contrato, AFP, salud, sueldo base, jornadas trabajadas, JH vacaciones, licencias, cargas familiares, anticipos y otros descuentos.',
+      'Incluye fecha y causal de término para contratos finiquitados en el mes.',
+      'Exportación a Excel con todos los campos de la tabla.',
+    ],
+  },
+  {
     fecha: '2026-05-29',
     titulo: 'Inventario — Kardex por sucursal y exportación Excel',
     items: [
