@@ -3,8 +3,8 @@
 namespace App\Http\Controllers\DailyManagement;
 
 use App\Http\Controllers\Controller;
+use App\Models\Contract;
 use App\Models\DailyYield;
-use App\Models\Employee;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -36,24 +36,26 @@ class MonthlyReportController extends Controller
             ->where('team_id', $user->team_id)
             ->where('season_id', $seasonId)
             ->whereBetween('date', [$startDate->format('Y-m-d'), $endDate->format('Y-m-d')])
+            ->whereNotNull('contract_id')
             ->orderBy('date')
-            ->orderBy('employee_id')
+            ->orderBy('contract_id')
             ->get();
 
-        $yieldsByEmployee = $yields->groupBy('employee_id');
+        $yieldsByContract = $yields->groupBy('contract_id');
 
-        // Empleados con tarjas en el mes (independiente de si tienen contrato activo ahora)
-        $employeeIds = $yieldsByEmployee->keys();
-        $employees = Employee::with('latestContract')
-            ->whereIn('id', $employeeIds)
-            ->orderBy('paternal_surname')
-            ->get();
+        // Contratos con tarjas en el mes
+        $contractIds = $yieldsByContract->keys();
+        $contracts = Contract::with('employee')
+            ->whereIn('id', $contractIds)
+            ->get()
+            ->keyBy('id');
 
-        $employeesData = $employees->map(function ($e) use ($yieldsByEmployee, $dates) {
-            $empYields = $yieldsByEmployee->get($e->id, collect());
+        $employeesData = $yieldsByContract->map(function ($contractYields, $contractId) use ($contracts, $dates) {
+            $contract = $contracts->get($contractId);
+            $employee = $contract?->employee;
 
             // Agrupar por fecha
-            $yieldsByDate = $empYields->groupBy(fn($y) => Carbon::parse($y->date)->format('Y-m-d'));
+            $yieldsByDate = $contractYields->groupBy(fn($y) => Carbon::parse($y->date)->format('Y-m-d'));
 
             $days = [];
             $grandTotalAmount = 0;
@@ -97,19 +99,21 @@ class MonthlyReportController extends Controller
             }
 
             return [
-                'id' => $e->id,
-                'full_name' => $e->full_name,
-                'rut' => $e->rut,
-                'position' => $e->latestContract?->position ?? '',
-                'net_salary' => $e->latestContract?->net_salary ?? 0,
-                'days' => $days,
-                'grand_total_amount' => $grandTotalAmount,
-                'grand_total_bonus' => $grandTotalBonus,
+                'id'                       => $contractId,
+                'contract_id'              => $contractId,
+                'full_name'                => $employee?->full_name ?? '—',
+                'rut'                      => $employee?->rut ?? '—',
+                'position'                 => $contract?->position ?? '',
+                'net_salary'               => $contract?->net_salary ?? 0,
+                'days'                     => $days,
+                'grand_total_amount'       => $grandTotalAmount,
+                'grand_total_bonus'        => $grandTotalBonus,
                 'grand_total_target_bonus' => $grandTotalTargetBonus,
-                'grand_total_workdays' => round((float) $grandTotalWorkdays, 2),
-                'days_worked' => $daysWorked,
+                'grand_total_workdays'     => round((float) $grandTotalWorkdays, 2),
+                'days_worked'              => $daysWorked,
             ];
         })->filter(fn($e) => $e['grand_total_amount'] > 0 || $e['grand_total_bonus'] > 0 || $e['grand_total_target_bonus'] > 0 || $e['grand_total_workdays'] > 0)
+          ->sortBy('full_name')
           ->values();
 
         return response()->json([

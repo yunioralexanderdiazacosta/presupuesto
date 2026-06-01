@@ -44,7 +44,9 @@
         <tbody>
             @foreach($employees as $emp)
             <tr>
-                <td class="name-col">{{ $emp['full_name'] }}</td>
+                <td class="name-col">
+                    <span style="background:#dbeafe;color:#1e40af;padding:1px 4px;border-radius:3px;font-size:7px;margin-right:3px;">#{{ $emp['contract_id'] }}</span>{{ $emp['full_name'] }}
+                </td>
                 @foreach($dates as $date)
                     <td>{{ $emp['days'][$date]['amount'] ? number_format($emp['days'][$date]['amount'], 0, ',', '.') : '' }}</td>
                 @endforeach

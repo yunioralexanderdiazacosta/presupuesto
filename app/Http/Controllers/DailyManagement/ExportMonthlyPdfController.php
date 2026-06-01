@@ -3,8 +3,8 @@
 namespace App\Http\Controllers\DailyManagement;
 
 use App\Http\Controllers\Controller;
+use App\Models\Contract;
 use App\Models\DailyYield;
-use App\Models\Employee;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
@@ -15,11 +15,10 @@ class ExportMonthlyPdfController extends Controller
     public function __invoke(Request $request)
     {
         $request->validate([
-            'month' => 'required|date_format:Y-m',
-            'mode' => 'required|in:planilla,detalle',
-            'employee_id' => 'nullable|integer',
-            'employee_ids' => 'nullable|array',
-            'employee_ids.*' => 'integer',
+            'month'         => 'required|date_format:Y-m',
+            'mode'          => 'required|in:planilla,detalle',
+            'contract_ids'   => 'nullable|array',
+            'contract_ids.*' => 'integer',
         ]);
 
         $user = Auth::user();
@@ -38,32 +37,26 @@ class ExportMonthlyPdfController extends Controller
         $yieldsQuery = DailyYield::with(['laborType', 'laborRate', 'bonusType', 'costCenter'])
             ->where('team_id', $user->team_id)
             ->where('season_id', $seasonId)
-            ->whereBetween('date', [$startDate->format('Y-m-d'), $endDate->format('Y-m-d')]);
+            ->whereBetween('date', [$startDate->format('Y-m-d'), $endDate->format('Y-m-d')])
+            ->whereNotNull('contract_id');
 
-        $employeeIds = $request->employee_ids ?? ($request->employee_id ? [$request->employee_id] : []);
+        $filterContractIds = $request->contract_ids ?? [];
 
-        if (!empty($employeeIds)) {
-            $yieldsQuery->whereIn('employee_id', $employeeIds);
+        if (!empty($filterContractIds)) {
+            $yieldsQuery->whereIn('contract_id', $filterContractIds);
         }
 
-        $yields = $yieldsQuery->orderBy('date')->orderBy('employee_id')->get();
-        $yieldsByEmployee = $yields->groupBy('employee_id');
+        $yields = $yieldsQuery->orderBy('date')->orderBy('contract_id')->get();
+        $yieldsByContract = $yields->groupBy('contract_id');
 
-        $employeesQuery = Employee::with('activeContract')
-            ->where('team_id', $user->team_id)
-            ->where('is_active', true)
-            ->whereHas('activeContract')
-            ->orderBy('paternal_surname');
+        $contractIds = $yieldsByContract->keys();
+        $contractsQuery = Contract::with('employee')->whereIn('id', $contractIds);
+        $contracts = $contractsQuery->get()->keyBy('id');
 
-        if (!empty($employeeIds)) {
-            $employeesQuery->whereIn('id', $employeeIds);
-        }
-
-        $employees = $employeesQuery->get();
-
-        $employeesData = $employees->map(function ($e) use ($yieldsByEmployee, $dates) {
-            $empYields = $yieldsByEmployee->get($e->id, collect());
-            $yieldsByDate = $empYields->groupBy(fn($y) => Carbon::parse($y->date)->format('Y-m-d'));
+        $employeesData = $yieldsByContract->map(function ($contractYields, $contractId) use ($contracts, $dates) {
+            $contract = $contracts->get($contractId);
+            $employee = $contract?->employee;
+            $yieldsByDate = $contractYields->groupBy(fn($y) => Carbon::parse($y->date)->format('Y-m-d'));
 
             $days = [];
             $grandTotalAmount = 0;
@@ -74,30 +67,32 @@ class ExportMonthlyPdfController extends Controller
             foreach ($dates as $date) {
                 $dayYields = $yieldsByDate->get($date, collect());
                 $days[$date] = [
-                    'amount' => $dayYields->sum('amount'),
-                    'bonus' => $dayYields->sum('bonus_amount'),
-                    'target_bonus' => $dayYields->sum('target_price_bonus'),
-                    'workdays' => round((float) $dayYields->sum('workdays'), 2),
-                    'lines' => $dayYields,
+                    'amount'      => $dayYields->sum('amount'),
+                    'bonus'       => $dayYields->sum('bonus_amount'),
+                    'target_bonus'=> $dayYields->sum('target_price_bonus'),
+                    'workdays'    => round((float) $dayYields->sum('workdays'), 2),
+                    'lines'       => $dayYields,
                 ];
-                $grandTotalAmount += $days[$date]['amount'];
-                $grandTotalBonus += $days[$date]['bonus'];
-                $grandTotalTargetBonus += $days[$date]['target_bonus'];
-                $grandTotalWorkdays += $days[$date]['workdays'];
+                $grandTotalAmount       += $days[$date]['amount'];
+                $grandTotalBonus        += $days[$date]['bonus'];
+                $grandTotalTargetBonus  += $days[$date]['target_bonus'];
+                $grandTotalWorkdays     += $days[$date]['workdays'];
             }
 
             return [
-                'id' => $e->id,
-                'full_name' => $e->full_name,
-                'rut' => $e->rut,
-                'position' => $e->activeContract?->position ?? '',
-                'days' => $days,
-                'grand_total_amount' => $grandTotalAmount,
-                'grand_total_bonus' => $grandTotalBonus,
+                'id'                       => $contractId,
+                'contract_id'              => $contractId,
+                'full_name'                => $employee?->full_name ?? '—',
+                'rut'                      => $employee?->rut ?? '—',
+                'position'                 => $contract?->position ?? '',
+                'days'                     => $days,
+                'grand_total_amount'       => $grandTotalAmount,
+                'grand_total_bonus'        => $grandTotalBonus,
                 'grand_total_target_bonus' => $grandTotalTargetBonus,
-                'grand_total_workdays' => round((float) $grandTotalWorkdays, 2),
+                'grand_total_workdays'     => round((float) $grandTotalWorkdays, 2),
             ];
         })->filter(fn($e) => $e['grand_total_amount'] > 0 || $e['grand_total_bonus'] > 0 || $e['grand_total_target_bonus'] > 0)
+          ->sortBy('full_name')
           ->values();
 
         $viewName = $request->mode === 'detalle'

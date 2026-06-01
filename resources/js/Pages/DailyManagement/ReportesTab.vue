@@ -132,7 +132,7 @@ function exportExcel(mode) {
 function exportPdf(mode) {
     let url = route('daily-management.export-pdf') + '?month=' + currentMonth.value + '&mode=' + mode;
     if (mode === 'detalle' && selectedEmployeeIds.value.length > 0) {
-        selectedEmployeeIds.value.forEach(id => { url += '&employee_ids[]=' + id; });
+        selectedEmployeeIds.value.forEach(id => { url += '&contract_ids[]=' + id; });
     }
     window.open(url, '_blank');
 }
@@ -248,7 +248,10 @@ function exportPdf(mode) {
                     </thead>
                     <tbody>
                         <tr v-for="emp in reportData.employees" :key="emp.id">
-                            <td class="fw-semi-bold sticky-col bg-white" style="white-space:nowrap; font-size:0.7rem;">{{ emp.full_name }}</td>
+                            <td class="fw-semi-bold sticky-col bg-white" style="white-space:nowrap; font-size:0.7rem;">
+                                <span class="badge bg-soft-primary text-primary me-1" style="font-size:0.6rem;">#{{ emp.contract_id }}</span>
+                                {{ emp.full_name }}
+                            </td>
                             <td v-for="date in reportData.dates" :key="date"
                                 class="text-end"
                                 :class="{ 'bg-100': isWeekend(date), 'cursor-pointer': emp.days[date] }"
@@ -293,6 +296,7 @@ function exportPdf(mode) {
                 <div v-for="emp in selectedEmployees" :key="emp.id" class="card border mb-3">
                     <div class="card-header bg-primary text-white py-2 d-flex align-items-center justify-content-between">
                         <div>
+                            <span class="badge bg-light text-primary me-2" style="font-size:0.7rem;">#{{ emp.contract_id }}</span>
                             <strong>{{ emp.full_name }}</strong>
                             <span class="ms-2 small">{{ emp.rut }} | {{ emp.position || '-' }}</span>
                         </div>
@@ -428,7 +432,10 @@ function exportPdf(mode) {
                         </thead>
                         <tbody>
                             <tr v-for="emp in reportData.employees" :key="emp.id">
-                                <td class="fw-semi-bold">{{ emp.full_name }}</td>
+                                <td>
+                                    <span class="badge bg-soft-primary text-primary me-1" style="font-size:0.6rem;">#{{ emp.contract_id }}</span>
+                                    <span class="fw-semi-bold">{{ emp.full_name }}</span>
+                                </td>
                                 <td>{{ emp.rut }}</td>
                                 <td class="text-center">{{ emp.days_worked }}</td>
                                 <td class="text-center">{{ emp.grand_total_workdays }} JH</td>

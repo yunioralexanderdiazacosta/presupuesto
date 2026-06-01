@@ -34,7 +34,9 @@
             <h1>Detalle de Tarjas</h1>
             <p>{{ $team->name ?? '' }} â€” {{ \Carbon\Carbon::parse($month . '-01')->translatedFormat('F Y') }}</p>
         </div>
-        <div class="employee-header">{{ $emp['full_name'] }}</div>
+        <div class="employee-header">
+            <span style="background:#dbeafe;color:#1e40af;padding:2px 6px;border-radius:3px;font-size:9px;margin-right:6px;">#{{ $emp['contract_id'] }}</span>{{ $emp['full_name'] }}
+        </div>
         <div class="employee-info">RUT: {{ $emp['rut'] }} | Cargo: {{ $emp['position'] ?: '-' }}</div>
 
         <table>

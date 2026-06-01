@@ -17,7 +17,7 @@
                     </div>
                     <div class="col-auto ms-auto text-end ps-0">
                         <a
-                            :href="route('payroll-reports.pdf', { employee: employee.id, month })"
+                            :href="route('payroll-reports.pdf', { contract: employee.contract_id, month })"
                             target="_blank"
                             class="btn btn-falcon-default btn-sm"
                         >
@@ -155,7 +155,10 @@
                                                 <td class="text-end">
                                                     {{ line.payment_type === 'dia' ? line.workdays : '—' }}
                                                 </td>
-                                                <td class="text-end fw-semibold">$ {{ fmt(line.amount) }}</td>
+                                                <td class="text-end fw-semibold">
+                                                    <span v-if="line.payment_type === 'trato'">$ {{ fmt(line.amount) }}</span>
+                                                    <span v-else class="text-muted">—</span>
+                                                </td>
                                                 <td class="text-center">{{ line.bonus_type || '' }}</td>
                                                 <td class="text-end">
                                                     <span v-if="line.bonus_amount > 0">$ {{ fmt(line.bonus_amount) }}</span>

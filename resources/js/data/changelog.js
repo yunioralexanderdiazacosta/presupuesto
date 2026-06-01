@@ -8,6 +8,15 @@
 export const changelog = [
   {
     fecha: '2026-06-01',
+    titulo: 'Gestión Diaria — Reportes agrupados por contrato',
+    items: [
+      'El reporte mensual de tarjas ahora agrupa por ID de contrato en vez de por empleado.',
+      'Cada fila muestra el badge con el número de contrato (#ID) junto al nombre del trabajador.',
+      'Un trabajador con dos contratos activos en el mismo mes aparece como dos filas independientes.',
+    ],
+  },
+  {
+    fecha: '2026-06-01',
     titulo: 'Remuneraciones — Agrupación por contrato en todos los tabs',
     items: [
       'Todos los tabs del reporte mensual (Resumen, Nómina, Sueldos, Liquidación) ahora agrupan por ID de contrato en vez de por empleado.',

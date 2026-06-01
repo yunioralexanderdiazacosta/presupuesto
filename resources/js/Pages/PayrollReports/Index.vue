@@ -193,7 +193,7 @@
                                 <td class="text-end fw-bold text-primary">$ {{ fmt(emp.total_neto) }}</td>
                                 <td class="text-center">
                                     <Link
-                                        :href="route('payroll-reports.show', { employee: emp.employee_id, month: selectedMonth })"
+                                        :href="route('payroll-reports.show', { contract: emp.id, month: selectedMonth })"
                                         class="btn btn-falcon-default btn-sm"
                                     >
                                         <i class="fas fa-eye me-1"></i>Ver
@@ -341,15 +341,9 @@ const toggleAll = () => {
 
 const printSelected = () => {
     if (selectedIds.value.length === 0) return;
-    // Mapear contract_ids seleccionados a employee_ids (deduplicando)
-    const empIds = [...new Set(
-        selectedIds.value.map(cId => {
-            const row = props.employees.find(e => String(e.id) === String(cId));
-            return row ? row.employee_id : null;
-        }).filter(Boolean)
-    )];
+    // Pasar contract_ids directamente — una página PDF por contrato
     let url = route('payroll-reports.bulk-pdf') + '?month=' + selectedMonth.value;
-    empIds.forEach(id => { url += '&employee_ids[]=' + id; });
+    selectedIds.value.forEach(id => { url += '&contract_ids[]=' + id; });
     window.open(url, '_blank');
 };
 </script>

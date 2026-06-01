@@ -1167,8 +1167,8 @@ Route::middleware([
     Route::get('/payroll-reports/anticipos-pdf', ExportPayrollAnticiposPdfController::class)->name('payroll-reports.anticipos-pdf');
     Route::get('/payroll-reports/sueldos-pdf', ExportPayrollSueldosPdfController::class)->name('payroll-reports.sueldos-pdf');
     Route::get('/payroll-reports/bulk-pdf', ExportPayrollBulkPdfController::class)->name('payroll-reports.bulk-pdf');
-    Route::get('/payroll-reports/{employee}/pdf', ExportPayrollReportPdfController::class)->name('payroll-reports.pdf');
-    Route::get('/payroll-reports/{employee}', ShowPayrollReportController::class)->name('payroll-reports.show');
+    Route::get('/payroll-reports/{contract}/pdf', ExportPayrollReportPdfController::class)->name('payroll-reports.pdf');
+    Route::get('/payroll-reports/{contract}', ShowPayrollReportController::class)->name('payroll-reports.show');
 
     // Project Evaluations (Evaluación de Proyectos Agrícolas)
     Route::get('/project-evaluations', [ProjectEvaluationController::class, 'index'])->name('project-evaluations.index');

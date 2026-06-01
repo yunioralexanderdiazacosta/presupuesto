@@ -5,7 +5,6 @@ namespace App\Http\Controllers\PayrollReports;
 use App\Http\Controllers\Controller;
 use App\Models\Contract;
 use App\Models\DailyYield;
-use App\Models\Employee;
 use App\Models\MonthlyBonus;
 use App\Models\MonthlyDiscount;
 use App\Models\OvertimeHour;
@@ -16,15 +15,17 @@ use Inertia\Inertia;
 
 class ShowPayrollReportController extends Controller
 {
-    public function __invoke(Request $request, Employee $employee)
+    public function __invoke(Request $request, Contract $contract)
     {
         $request->validate(['month' => 'required|date_format:Y-m']);
 
         $user = Auth::user();
         $seasonId = session('season_id');
 
-        // Security: employee must belong to same team
-        abort_if($employee->team_id !== $user->team_id, 403);
+        // Security: contract must belong to same team
+        abort_if($contract->team_id !== $user->team_id, 403);
+
+        $employee = $contract->employee;
 
         $month = $request->month;
         $monthId = (int) substr($month, 5); // 1-12
@@ -39,11 +40,11 @@ class ShowPayrollReportController extends Controller
             $dates[] = $startDate->copy()->day($d)->format('Y-m-d');
         }
 
-        // Daily yields for this employee and month
+        // Daily yields filtrados por contrato específico
         $yields = DailyYield::with(['laborType', 'laborRate', 'bonusType', 'costCenter'])
             ->where('team_id', $user->team_id)
             ->where('season_id', $seasonId)
-            ->where('employee_id', $employee->id)
+            ->where('contract_id', $contract->id)
             ->whereBetween('date', [$startDate->format('Y-m-d'), $endDate->format('Y-m-d')])
             ->orderBy('date')
             ->get();
@@ -94,15 +95,10 @@ class ShowPayrollReportController extends Controller
             $totalWorkdays += $dayWorkdays;
         }
 
-        // All contracts for this employee (all historical, for lookups)
-        $contractIds = Contract::where('team_id', $user->team_id)
-            ->where('employee_id', $employee->id)
-            ->pluck('id');
-
-        // Monthly bonuses for this month
+        // Monthly bonuses del contrato específico
         $monthlyBonuses = MonthlyBonus::with(['bonusType', 'laborType', 'costCenters'])
             ->where('team_id', $user->team_id)
-            ->whereIn('contract_id', $contractIds)
+            ->where('contract_id', $contract->id)
             ->where('month_id', $monthId)
             ->get()
             ->map(fn($b) => [
@@ -117,10 +113,10 @@ class ShowPayrollReportController extends Controller
 
         $totalBonusMensual = $monthlyBonuses->sum('amount');
 
-        // Monthly discounts for this month
+        // Monthly discounts del contrato específico
         $monthlyDiscounts = MonthlyDiscount::with(['discountType'])
             ->where('team_id', $user->team_id)
-            ->whereIn('contract_id', $contractIds)
+            ->where('contract_id', $contract->id)
             ->where('month_id', $monthId)
             ->get()
             ->map(fn($d) => [
@@ -133,10 +129,10 @@ class ShowPayrollReportController extends Controller
 
         $totalDescuentos = $monthlyDiscounts->sum('amount');
 
-        // Overtime hours for this month
+        // Overtime hours del contrato específico
         $overtimeHours = OvertimeHour::with(['overtimeType', 'laborType', 'costCenters'])
             ->where('team_id', $user->team_id)
-            ->whereIn('contract_id', $contractIds)
+            ->where('contract_id', $contract->id)
             ->where('month_id', $monthId)
             ->get()
             ->map(fn($o) => [
@@ -157,18 +153,19 @@ class ShowPayrollReportController extends Controller
         $totalNeto = $totalTratos + $totalMontoDia + $totalBonusDiario + $totalBonusObjetivo
             + $totalBonusMensual + $totalHorasExtra - $totalDescuentos;
 
-        $employee->load('activeContract.companyReason');
+        $contract->load('companyReason');
 
         return Inertia::render('PayrollReports/Show', [
             'employee' => [
-                'id' => $employee->id,
-                'full_name' => $employee->full_name,
-                'rut' => $employee->rut,
-                'position' => $employee->activeContract?->position ?? '',
-                'base_salary' => $employee->activeContract?->base_salary ?? 0,
-                'net_salary' => $employee->activeContract?->net_salary ?? 0,
-                'contract_type' => $employee->activeContract?->contract_type ?? '',
-                'company_reason' => $employee->activeContract?->companyReason?->name ?? '',
+                'id'             => $employee?->id,
+                'full_name'      => $employee?->full_name ?? '—',
+                'rut'            => $employee?->rut ?? '—',
+                'position'       => $contract->position ?? '',
+                'base_salary'    => $contract->base_salary ?? 0,
+                'net_salary'     => $contract->net_salary ?? 0,
+                'contract_type'  => $contract->contract_type ?? '',
+                'company_reason' => $contract->companyReason?->name ?? '',
+                'contract_id'    => $contract->id,
             ],
             'month' => $month,
             'dates' => $dates,

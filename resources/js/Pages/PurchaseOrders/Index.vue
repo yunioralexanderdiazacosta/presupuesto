@@ -285,7 +285,7 @@ function getProductsList(order) {
                             <tr>
                                 <th>N° Orden</th>
                                 <th>Razón Social</th>
-                                <th>Fecha</th>
+                                <th style="width: 90px;">Fecha</th>
                                 <th>Proveedor</th>
                                 <th>Productos</th>
                                 <th>Total</th>
@@ -309,7 +309,7 @@ function getProductsList(order) {
                                     </span>
                                     <span v-else class="text-muted">-</span>
                                 </td>
-                                <td>{{ formatDate(order.order_date) }}</td>
+                                <td style="white-space: nowrap;">{{ formatDate(order.order_date) }}</td>
                                 <td>{{ order.supplier?.name || '-' }}</td>
                                 <td>
                                     <div class="text-truncate" style="max-width: 250px;" :title="getProductsList(order)">

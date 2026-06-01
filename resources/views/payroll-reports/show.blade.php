@@ -148,6 +148,16 @@
                 <div class="info-value">{{ $employee['rut'] }}</div>
             </div>
             <div class="employee-info-cell">
+                <div class="info-label">Contrato</div>
+                <div class="info-value">
+                    @if(!empty($employee['contract_id']))
+                        <span style="background:#dbeafe;color:#1e40af;padding:1px 5px;border-radius:3px;font-size:9px;">#{{ $employee['contract_id'] }}</span>
+                    @else
+                        —
+                    @endif
+                </div>
+            </div>
+            <div class="employee-info-cell">
                 <div class="info-label">Cargo</div>
                 <div class="info-value">{{ $employee['position'] ?: '—' }}</div>
             </div>
@@ -244,7 +254,13 @@
                                 <td class="right">
                                     {{ $li['payment_type'] === 'dia' ? $li['workdays'] : '—' }}
                                 </td>
-                                <td class="right">$ {{ number_format($li['amount'], 0, ',', '.') }}</td>
+                                <td class="right">
+                                    @if($li['payment_type'] === 'trato')
+                                        $ {{ number_format($li['amount'], 0, ',', '.') }}
+                                    @else
+                                        —
+                                    @endif
+                                </td>
                                 <td class="center">{{ $li['bonus_type'] ?? '' }}</td>
                                 <td class="right">
                                     {{ $li['bonus_amount'] > 0 ? '$ '.number_format($li['bonus_amount'], 0, ',', '.') : '—' }}

@@ -5,7 +5,6 @@ namespace App\Http\Controllers\PayrollReports;
 use App\Http\Controllers\Controller;
 use App\Models\Contract;
 use App\Models\DailyYield;
-use App\Models\Employee;
 use App\Models\MonthlyBonus;
 use App\Models\MonthlyDiscount;
 use App\Models\OvertimeHour;
@@ -16,14 +15,16 @@ use Illuminate\Support\Facades\Auth;
 
 class ExportPayrollReportPdfController extends Controller
 {
-    public function __invoke(Request $request, Employee $employee)
+    public function __invoke(Request $request, Contract $contract)
     {
         $request->validate(['month' => 'required|date_format:Y-m']);
 
         $user = Auth::user();
         $seasonId = session('season_id');
 
-        abort_if($employee->team_id !== $user->team_id, 403);
+        abort_if($contract->team_id !== $user->team_id, 403);
+
+        $employee = $contract->employee;
 
         $month = $request->month;
         $monthId = (int) substr($month, 5);
@@ -37,11 +38,11 @@ class ExportPayrollReportPdfController extends Controller
             $dates[] = $startDate->copy()->day($d)->format('Y-m-d');
         }
 
-        // Daily yields
+        // Daily yields filtrados por contrato específico
         $yields = DailyYield::with(['laborType', 'laborRate', 'bonusType', 'costCenter'])
             ->where('team_id', $user->team_id)
             ->where('season_id', $seasonId)
-            ->where('employee_id', $employee->id)
+            ->where('contract_id', $contract->id)
             ->whereBetween('date', [$startDate->format('Y-m-d'), $endDate->format('Y-m-d')])
             ->orderBy('date')
             ->get();
@@ -92,13 +93,9 @@ class ExportPayrollReportPdfController extends Controller
             $totalWorkdays += $dayWorkdays;
         }
 
-        $contractIds = Contract::where('team_id', $user->team_id)
-            ->where('employee_id', $employee->id)
-            ->pluck('id');
-
         $monthlyBonuses = MonthlyBonus::with(['bonusType', 'laborType', 'costCenters'])
             ->where('team_id', $user->team_id)
-            ->whereIn('contract_id', $contractIds)
+            ->where('contract_id', $contract->id)
             ->where('month_id', $monthId)
             ->get()
             ->map(fn($b) => [
@@ -111,7 +108,7 @@ class ExportPayrollReportPdfController extends Controller
 
         $monthlyDiscounts = MonthlyDiscount::with(['discountType'])
             ->where('team_id', $user->team_id)
-            ->whereIn('contract_id', $contractIds)
+            ->where('contract_id', $contract->id)
             ->where('month_id', $monthId)
             ->get()
             ->map(fn($d) => [
@@ -122,7 +119,7 @@ class ExportPayrollReportPdfController extends Controller
 
         $overtimeHours = OvertimeHour::with(['overtimeType', 'laborType', 'costCenters'])
             ->where('team_id', $user->team_id)
-            ->whereIn('contract_id', $contractIds)
+            ->where('contract_id', $contract->id)
             ->where('month_id', $monthId)
             ->get()
             ->map(fn($o) => [
@@ -146,17 +143,18 @@ class ExportPayrollReportPdfController extends Controller
             'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'];
         $monthLabel = $monthNames[$monthId] . ' ' . substr($month, 0, 4);
 
-        $employee->load('activeContract.companyReason');
+        $contract->load('companyReason');
 
         $pdf = Pdf::loadView('payroll-reports.show', [
             'employee' => [
-                'full_name' => $employee->full_name,
-                'rut' => $employee->rut,
-                'position' => $employee->activeContract?->position ?? '',
-                'base_salary' => $employee->activeContract?->base_salary ?? 0,
-                'net_salary' => $employee->activeContract?->net_salary ?? 0,
-                'contract_type' => $employee->activeContract?->contract_type ?? '',
-                'company_reason' => $employee->activeContract?->companyReason?->name ?? '',
+                'full_name'      => $employee?->full_name ?? '—',
+                'rut'            => $employee?->rut ?? '—',
+                'position'       => $contract->position ?? '',
+                'base_salary'    => $contract->base_salary ?? 0,
+                'net_salary'     => $contract->net_salary ?? 0,
+                'contract_type'  => $contract->contract_type ?? '',
+                'company_reason' => $contract->companyReason?->name ?? '',
+                'contract_id'    => $contract->id,
             ],
             'month' => $month,
             'monthLabel' => $monthLabel,
