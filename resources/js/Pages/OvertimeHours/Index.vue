@@ -228,7 +228,7 @@ const excelData = computed(() =>
                                     {{ filteredOvertimeHours.reduce((s, r) => s + (parseFloat(r.hours) || 0), 0).toFixed(2) }}
                                 </td>
                                 <td class="text-end fw-bold text-success">
-                                    ${{ formatCLP(filteredOvertimeHours.reduce((s, r) => s + (calcCost(r) || 0), 0)) }}
+                                    ${{ formatCLP(filteredOvertimeHours.reduce((s, r) => s + Math.round(calcCost(r) || 0), 0)) }}
                                 </td>
                                 <td colspan="2"></td>
                             </tr>

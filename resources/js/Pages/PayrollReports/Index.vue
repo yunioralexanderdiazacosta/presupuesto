@@ -193,7 +193,7 @@
                                 <td class="text-end fw-bold text-primary">$ {{ fmt(emp.total_neto) }}</td>
                                 <td class="text-center">
                                     <Link
-                                        :href="route('payroll-reports.show', { employee: emp.id, month: selectedMonth })"
+                                        :href="route('payroll-reports.show', { employee: emp.employee_id, month: selectedMonth })"
                                         class="btn btn-falcon-default btn-sm"
                                     >
                                         <i class="fas fa-eye me-1"></i>Ver
@@ -294,12 +294,7 @@ const filteredAnticipos = computed(() => {
     return props.anticipos.filter(a => String(a.company_reason_id) === String(selectedCompanyReason.value));
 });
 
-const filteredLiquidacion = computed(() => {
-    if (!selectedCompanyReason.value) return props.liquidacion;
-    // liquidacion no tiene company_reason_id directo, aplicar filtro solo si hay empleados con ese filtro
-    const empIds = filteredEmployees.value.map(e => String(e.contract_id));
-    return props.liquidacion.filter(r => empIds.includes(String(r.contract_id)));
-});
+const filteredLiquidacion = computed(() => filteredEmployees.value);
 
 // Recalculate totals from filtered list
 const filteredTotals = computed(() => {
@@ -346,8 +341,15 @@ const toggleAll = () => {
 
 const printSelected = () => {
     if (selectedIds.value.length === 0) return;
+    // Mapear contract_ids seleccionados a employee_ids (deduplicando)
+    const empIds = [...new Set(
+        selectedIds.value.map(cId => {
+            const row = props.employees.find(e => String(e.id) === String(cId));
+            return row ? row.employee_id : null;
+        }).filter(Boolean)
+    )];
     let url = route('payroll-reports.bulk-pdf') + '?month=' + selectedMonth.value;
-    selectedIds.value.forEach(id => { url += '&employee_ids[]=' + id; });
+    empIds.forEach(id => { url += '&employee_ids[]=' + id; });
     window.open(url, '_blank');
 };
 </script>

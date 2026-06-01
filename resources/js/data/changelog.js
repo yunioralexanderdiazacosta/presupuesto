@@ -8,6 +8,15 @@
 export const changelog = [
   {
     fecha: '2026-06-01',
+    titulo: 'Remuneraciones — Agrupación por contrato en todos los tabs',
+    items: [
+      'Todos los tabs del reporte mensual (Resumen, Nómina, Sueldos, Liquidación) ahora agrupan por ID de contrato en vez de por empleado.',
+      'Un trabajador con dos contratos activos en el mismo mes aparece como dos filas independientes.',
+      'El botón "Ver" y la impresión PDF mantienen compatibilidad con la vista individual de cada empleado.',
+    ],
+  },
+  {
+    fecha: '2026-06-01',
     titulo: 'Remuneraciones — Nueva pestaña Resumen Liquidación',
     items: [
       'Nueva pestaña "Resumen Liquidación" en el reporte mensual de remuneraciones.',
