@@ -151,7 +151,9 @@ const totalExentoConsolidado = computed(() => {
 const totalIvaConsolidado = computed(() => {
   return filteredDocuments.value.reduce((sum, doc) => {
     if (doc.is_financial) return sum;
-    return sum + Number(doc.iva || 0);
+    const value = Number(doc.iva || 0);
+    const isCredito = doc.tipo === 'credito' || doc.tipo === 'Crédito';
+    return sum + (isCredito ? -value : value);
   }, 0);
 });
 

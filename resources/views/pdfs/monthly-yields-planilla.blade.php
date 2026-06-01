@@ -37,6 +37,7 @@
                 @endforeach
                 <th>Total $</th>
                 <th>Bono $</th>
+                <th>P.Obj $</th>
                 <th>JH</th>
             </tr>
         </thead>
@@ -49,6 +50,7 @@
                 @endforeach
                 <td class="fw-bold text-right">{{ number_format($emp['grand_total_amount'], 0, ',', '.') }}</td>
                 <td class="text-right">{{ number_format($emp['grand_total_bonus'], 0, ',', '.') }}</td>
+                <td class="text-right">{{ $emp['grand_total_target_bonus'] ? number_format($emp['grand_total_target_bonus'], 0, ',', '.') : '' }}</td>
                 <td>{{ $emp['grand_total_workdays'] }}</td>
             </tr>
             @endforeach
@@ -60,6 +62,7 @@
                 @endforeach
                 <td class="text-right">{{ number_format(collect($employees)->sum('grand_total_amount'), 0, ',', '.') }}</td>
                 <td class="text-right">{{ number_format(collect($employees)->sum('grand_total_bonus'), 0, ',', '.') }}</td>
+                <td class="text-right">{{ number_format(collect($employees)->sum('grand_total_target_bonus'), 0, ',', '.') }}</td>
                 <td>{{ collect($employees)->sum('grand_total_workdays') }}</td>
             </tr>
         </tbody>

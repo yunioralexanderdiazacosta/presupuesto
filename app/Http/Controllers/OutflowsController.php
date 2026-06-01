@@ -131,7 +131,7 @@ class OutflowsController extends Controller
                     'has_credit_note'   => ($devuelto > 0),
                     'credit_note_info'  => $creditNoteInfo,
                     'mes_contable'      => $invoice->month?->name ?? '',
-                    'invoice_date'      => $invoice->date?->format('Y-m-d'),
+                    'invoice_date'      => $invoice->date ? \Carbon\Carbon::parse($invoice->date)->format('Y-m-d') : '',
                     'branch_id'         => $invoiceProduct->branch_id,
                     'branch_name'       => $invoiceProduct->branch?->name,
                 ];

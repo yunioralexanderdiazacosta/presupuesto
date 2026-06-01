@@ -49,7 +49,8 @@
                     <th class="text-right" style="width:60px">Monto</th>
                     <th class="text-center" style="width:35px">JH</th>
                     <th class="text-right" style="width:50px">Bono</th>
-                    <th>C.Costo</th>
+                    <th class="text-right" style="width:50px">P.Obj</th>
+                    <th class="text-right" style="width:65px">Total</th>
                 </tr>
             </thead>
             <tbody>
@@ -71,7 +72,8 @@
                             <td class="text-right">{{ number_format($line->amount, 0, ',', '.') }}</td>
                             <td class="text-center">{{ $line->workdays }}</td>
                             <td class="text-right">{{ $line->bonus_amount ? number_format($line->bonus_amount, 0, ',', '.') : '' }}</td>
-                            <td>{{ $line->costCenter?->name }}</td>
+                            <td class="text-right">{{ $line->target_price_bonus ? number_format($line->target_price_bonus, 0, ',', '.') : '' }}</td>
+                            <td class="text-right fw-bold">{{ number_format($line->amount + ($line->bonus_amount ?? 0) + ($line->target_price_bonus ?? 0), 0, ',', '.') }}</td>
                         </tr>
                         @endforeach
                     @endif
@@ -81,7 +83,8 @@
                     <td class="text-right">{{ number_format($emp['grand_total_amount'], 0, ',', '.') }}</td>
                     <td class="text-center">{{ $emp['grand_total_workdays'] }}</td>
                     <td class="text-right">{{ number_format($emp['grand_total_bonus'], 0, ',', '.') }}</td>
-                    <td></td>
+                    <td class="text-right">{{ $emp['grand_total_target_bonus'] ? number_format($emp['grand_total_target_bonus'], 0, ',', '.') : '' }}</td>
+                    <td class="text-right">{{ number_format($emp['grand_total_amount'] + $emp['grand_total_bonus'] + ($emp['grand_total_target_bonus'] ?? 0), 0, ',', '.') }}</td>
                 </tr>
             </tbody>
         </table>
@@ -95,7 +98,9 @@
             <td class="text-right">{{ number_format(collect($employees)->sum('grand_total_amount'), 0, ',', '.') }}</td>
             <td class="text-center">{{ collect($employees)->sum('grand_total_workdays') }}</td>
             <td class="text-right">{{ number_format(collect($employees)->sum('grand_total_bonus'), 0, ',', '.') }}</td>
-            <td></td>
+            <td class="text-right">{{ number_format(collect($employees)->sum('grand_total_target_bonus'), 0, ',', '.') }}</td>
+            @php $grandTotal = collect($employees)->sum(fn($e) => $e['grand_total_amount'] + $e['grand_total_bonus'] + ($e['grand_total_target_bonus'] ?? 0)); @endphp
+            <td class="text-right">{{ number_format($grandTotal, 0, ',', '.') }}</td>
         </tr>
     </table>
 

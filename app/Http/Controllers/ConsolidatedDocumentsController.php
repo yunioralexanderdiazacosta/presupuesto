@@ -89,13 +89,8 @@ class ConsolidatedDocumentsController extends Controller
                 $mes_num = (int)date('n', strtotime($note->date));
                 $mes_texto = $meses[$mes_num] ?? '';
                 $monto_total = $monto ?? 0;
-                // Calcular IVA (19% del monto total)
+                // Calcular IVA (19% del monto total, siempre positivo; el frontend aplica el signo)
                 $iva = $monto_total * 0.19;
-                
-                // Si es nota de crédito, el IVA también debe ser negativo
-                if ($es_credito) {
-                    $iva = -$iva;
-                }
 
                 // NC financiera: affects_inventory=0 y tipo crédito → ya descontada del precio
                 $isFinancial = !$note->affects_inventory && $es_credito;
