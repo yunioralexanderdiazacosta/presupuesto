@@ -177,8 +177,17 @@
                                 </tbody>
                                 <tfoot>
                                     <tr class="fw-bold payroll-foot">
-                                        <td colspan="6">TOTALES</td>
-                                        <td class="text-end">$ {{ fmt(totals.tratos + totals.monto_dia) }}</td>
+                                        <td colspan="3">TOTALES</td>
+                                        <td class="text-end">
+                                            <span v-if="totals.monto_dia > 0">$ {{ fmt(totals.monto_dia) }}</span>
+                                            <span v-else class="text-muted">—</span>
+                                        </td>
+                                        <td></td>
+                                        <td class="text-end">{{ totals.workdays || '—' }}</td>
+                                        <td class="text-end">
+                                            <span v-if="totals.tratos > 0">$ {{ fmt(totals.tratos) }}</span>
+                                            <span v-else class="text-muted">—</span>
+                                        </td>
                                         <td class="text-center"></td>
                                         <td class="text-end">$ {{ fmt(totals.bonus_diario) }}</td>
                                         <td class="text-end">$ {{ fmt(totals.bonus_objetivo) }}</td>

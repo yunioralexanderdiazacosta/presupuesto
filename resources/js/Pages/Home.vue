@@ -48,16 +48,17 @@ const links = [
                                 </div>
 
                                 <!-- Entradas dinámicas del changelog -->
-                                <div v-for="(entry, i) in changelog" :key="i" :class="{ 'mt-3': i > 0 }">
-                                    <p class="mb-1">
-                                        <strong class="text-primary">{{ entry.fecha }}:</strong>
-                                        <span class="ms-1 fw-semibold">{{ entry.titulo }}</span>
-                                    </p>
-                                    <ul class="mb-0 ps-3" style="font-size:0.85rem;">
-                                        <li v-for="(item, j) in entry.items" :key="j">{{ item }}</li>
-                                    </ul>
+                                <div style="max-height: 320px; overflow-y: auto; padding-right: 4px;">
+                                    <div v-for="(entry, i) in changelog" :key="i" :class="{ 'mt-3': i > 0 }">
+                                        <p class="mb-1">
+                                            <strong class="text-primary">{{ entry.fecha }}:</strong>
+                                            <span class="ms-1 fw-semibold">{{ entry.titulo }}</span>
+                                        </p>
+                                        <ul class="mb-0 ps-3" style="font-size:0.85rem;">
+                                            <li v-for="(item, j) in entry.items" :key="j">{{ item }}</li>
+                                        </ul>
+                                    </div>
                                 </div>
-
 
                             </div>
                         </div>

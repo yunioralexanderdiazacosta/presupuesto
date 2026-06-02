@@ -280,8 +280,11 @@
     {{-- Tfoot de tarjas --}}
             <tfoot class="tfoot-blue">
                 <tr>
-                    <td colspan="6">TOTALES</td>
-                    <td class="right">$ {{ number_format($totals['tratos'] + $totals['monto_dia'], 0, ',', '.') }}</td>
+                    <td colspan="3">TOTALES</td>
+                    <td class="right">{{ $totals['monto_dia'] > 0 ? '$ '.number_format($totals['monto_dia'], 0, ',', '.') : '—' }}</td>
+                    <td></td>
+                    <td class="right">{{ $totals['workdays'] > 0 ? $totals['workdays'] : '—' }}</td>
+                    <td class="right">{{ $totals['tratos'] > 0 ? '$ '.number_format($totals['tratos'], 0, ',', '.') : '—' }}</td>
                     <td></td>
                     <td class="right">$ {{ number_format($totals['bonus_diario'], 0, ',', '.') }}</td>
                     <td class="right">$ {{ number_format($totals['bonus_objetivo'], 0, ',', '.') }}</td>
