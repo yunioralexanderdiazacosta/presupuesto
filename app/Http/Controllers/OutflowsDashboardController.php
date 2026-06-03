@@ -2,6 +2,8 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\CompanyReason;
+use App\Models\CostCenter;
 use App\Models\CreditDebitNote;
 use App\Models\Invoice;
 use App\Models\Outflow;
@@ -29,6 +31,8 @@ class OutflowsDashboardController extends Controller
             return redirect()->route('select.budget');
         }
 
+        $company_reason_id = $request->integer('company_reason_id') ?: null;
+
         // Obtener dollar_price del admin del equipo
         $adminUser = \App\Models\User::where('team_id', $team_id)
             ->role('Admin')
@@ -36,26 +40,84 @@ class OutflowsDashboardController extends Controller
         $dollarPrice = $adminUser?->dollar_price ?? 970;
 
         return Inertia::render('OutflowsDashboard', [
-            'dollarPrice' => $dollarPrice,
-            'isAdmin'     => $user->hasRole('Admin'),
-            'summary' => $this->getSummary($season_id, $team_id),
-            'investments' => $this->getInvestmentsTotal($season_id, $team_id),
-            'expenses' => $this->getExpensesTotal($season_id, $team_id),
-            'invoices' => $this->getInvoicesTotal($season_id, $team_id),
-            'creditNotes' => $this->getCreditNotesTotal($season_id, $team_id),
-            'debitNotes' => $this->getDebitNotesTotal($season_id, $team_id),
-            'byLevel1' => $this->getOutflowsByLevel1($season_id, $team_id),
-            'byLevel2' => $this->mergePayrollIntoLevel2(
-                $this->getOutflowsByLevel2($season_id, $team_id),
-                $this->getPayrollByLevel2($team_id, $season_id)
+            'dollarPrice'           => $dollarPrice,
+            'isAdmin'               => $user->hasRole('Admin'),
+            'companyReasons'        => $this->getCompanyReasons($season_id, $team_id),
+            'activeCompanyReasonId' => $company_reason_id,
+            'summary'               => $this->getSummary($season_id, $team_id, $company_reason_id),
+            'investments'           => $this->getInvestmentsTotal($season_id, $team_id, $company_reason_id),
+            'expenses'              => $this->getExpensesTotal($season_id, $team_id, $company_reason_id),
+            'invoices'              => $this->getInvoicesTotal($season_id, $team_id, $company_reason_id),
+            'creditNotes'           => $this->getCreditNotesTotal($season_id, $team_id, $company_reason_id),
+            'debitNotes'            => $this->getDebitNotesTotal($season_id, $team_id, $company_reason_id),
+            'byLevel1'              => $this->getOutflowsByLevel1($season_id, $team_id, $company_reason_id),
+            'byLevel2'              => $this->mergePayrollIntoLevel2(
+                $this->getOutflowsByLevel2($season_id, $team_id, $company_reason_id),
+                $this->getPayrollByLevel2($team_id, $season_id, $company_reason_id)
             ),
-            'byProject' => $this->getOutflowsByProject($season_id, $team_id),
-            'byDevelopmentState' => $this->getTotalsByDevelopmentState($season_id, $team_id),
-            'byDevelopmentStateWithoutInvestments' => $this->getTotalsByDevelopmentStateWithoutInvestments($season_id, $team_id),
-            'costoKiloAcumulado' => $this->getCostoKiloAcumulado($season_id, $team_id),
-            'payrollSummary'    => $this->getPayrollSummary($team_id, $season_id),
-            'payrollByDevState' => $this->getPayrollByDevelopmentState($team_id, $season_id),
+            'byProject'             => $this->getOutflowsByProject($season_id, $team_id, $company_reason_id),
+            'byDevelopmentState'    => $this->getTotalsByDevelopmentState($season_id, $team_id, $company_reason_id),
+            'byDevelopmentStateWithoutInvestments' => $this->getTotalsByDevelopmentStateWithoutInvestments($season_id, $team_id, $company_reason_id),
+            'costoKiloAcumulado'    => $this->getCostoKiloAcumulado($season_id, $team_id, $company_reason_id),
+            'payrollSummary'        => $this->getPayrollSummary($team_id, $season_id, $company_reason_id),
+            'payrollByDevState'     => $this->getPayrollByDevelopmentState($team_id, $season_id, $company_reason_id),
         ]);
+    }
+
+    /**
+     * Retorna las razones sociales disponibles para la temporada y equipo dados.
+     * Combina las que aparecen en facturas y en centros de costo.
+     */
+    private function getCompanyReasons($season_id, $team_id): array
+    {
+        $fromInvoices = CompanyReason::whereIn(
+            'id',
+            Invoice::where('season_id', $season_id)
+                ->where('team_id', $team_id)
+                ->whereNotNull('company_reason_id')
+                ->pluck('company_reason_id')
+        )->get(['id', 'name']);
+
+        $fromCostCenters = CompanyReason::whereIn(
+            'id',
+            CostCenter::where('season_id', $season_id)
+                ->whereNotNull('company_reason_id')
+                ->pluck('company_reason_id')
+        )->get(['id', 'name']);
+
+        return $fromInvoices->merge($fromCostCenters)
+            ->unique('id')
+            ->sortBy('name')
+            ->values()
+            ->map(fn($cr) => ['value' => $cr->id, 'label' => $cr->name])
+            ->toArray();
+    }
+
+    /**
+     * Aplica el filtro de razón social a un query Eloquent de Outflow.
+     * Los outflows llegan a company_reason a través de su factura o nota.
+     */
+    private function withCompanyReasonFilter($query, $company_reason_id)
+    {
+        if (!$company_reason_id) return $query;
+        return $query->where(function ($w) use ($company_reason_id) {
+            $w->whereHas('invoiceProduct.invoice', fn($q) => $q->where('company_reason_id', $company_reason_id))
+              ->orWhereHas('creditDebitNoteItem.creditDebitNote.invoice', fn($q) => $q->where('company_reason_id', $company_reason_id));
+        });
+    }
+
+    /**
+     * Agrega JOINs y WHERE de razón social a un DB query builder que ya tiene
+     * invoice_products y credit_debit_note_items unidos.
+     */
+    private function addCompanyReasonJoin($query, $company_reason_id)
+    {
+        if (!$company_reason_id) return $query;
+        return $query
+            ->leftJoin('invoices as inv_cr', 'invoice_products.invoice_id', '=', 'inv_cr.id')
+            ->leftJoin('credit_debit_notes as cdn_cr', 'credit_debit_note_items.credit_debit_note_id', '=', 'cdn_cr.id')
+            ->leftJoin('invoices as inv_cdn_cr', 'cdn_cr.invoice_id', '=', 'inv_cdn_cr.id')
+            ->whereRaw('COALESCE(inv_cr.company_reason_id, inv_cdn_cr.company_reason_id) = ?', [$company_reason_id]);
     }
 
     /**
@@ -90,14 +152,15 @@ class OutflowsDashboardController extends Controller
         return $level2Data;
     }
 
-    private function getSummary($season_id, $team_id)
+    private function getSummary($season_id, $team_id, $company_reason_id = null)
     {
         try {
-            // Obtener todos los outflows con sus relaciones
-            $outflows = Outflow::where('season_id', $season_id)
-                ->where('team_id', $team_id)
-                ->with(['invoiceProduct', 'creditDebitNoteItem'])
-                ->get();
+            $outflows = $this->withCompanyReasonFilter(
+                Outflow::where('season_id', $season_id)
+                    ->where('team_id', $team_id)
+                    ->with(['invoiceProduct', 'creditDebitNoteItem']),
+                $company_reason_id
+            )->get();
 
             $totalCount = $outflows->count();
 
@@ -130,17 +193,18 @@ class OutflowsDashboardController extends Controller
         }
     }
 
-    private function getInvestmentsTotal($season_id, $team_id)
+    private function getInvestmentsTotal($season_id, $team_id, $company_reason_id = null)
     {
         try {
-            // Obtener outflows que tienen operación "inversion" (case-insensitive)
-            $outflows = Outflow::where('season_id', $season_id)
-                ->where('team_id', $team_id)
-                ->whereHas('operation', function($query) {
-                    $query->whereRaw('LOWER(name) LIKE ?', ['%inversion%']);
-                })
-                ->with(['invoiceProduct', 'creditDebitNoteItem', 'operation'])
-                ->get();
+            $outflows = $this->withCompanyReasonFilter(
+                Outflow::where('season_id', $season_id)
+                    ->where('team_id', $team_id)
+                    ->whereHas('operation', function($query) {
+                        $query->whereRaw('LOWER(name) LIKE ?', ['%inversion%']);
+                    })
+                    ->with(['invoiceProduct', 'creditDebitNoteItem', 'operation']),
+                $company_reason_id
+            )->get();
 
             $totalCount = $outflows->count();
 
@@ -168,17 +232,18 @@ class OutflowsDashboardController extends Controller
         }
     }
 
-    private function getExpensesTotal($season_id, $team_id)
+    private function getExpensesTotal($season_id, $team_id, $company_reason_id = null)
     {
         try {
-            // Obtener outflows que tienen operación "gasto" (case-insensitive)
-            $outflows = Outflow::where('season_id', $season_id)
-                ->where('team_id', $team_id)
-                ->whereHas('operation', function($query) {
-                    $query->whereRaw('LOWER(name) LIKE ?', ['%gasto%']);
-                })
-                ->with(['invoiceProduct', 'creditDebitNoteItem', 'operation'])
-                ->get();
+            $outflows = $this->withCompanyReasonFilter(
+                Outflow::where('season_id', $season_id)
+                    ->where('team_id', $team_id)
+                    ->whereHas('operation', function($query) {
+                        $query->whereRaw('LOWER(name) LIKE ?', ['%gasto%']);
+                    })
+                    ->with(['invoiceProduct', 'creditDebitNoteItem', 'operation']),
+                $company_reason_id
+            )->get();
 
             $totalCount = $outflows->count();
 
@@ -206,12 +271,12 @@ class OutflowsDashboardController extends Controller
         }
     }
 
-    private function getInvoicesTotal($season_id, $team_id)
+    private function getInvoicesTotal($season_id, $team_id, $company_reason_id = null)
     {
         try {
-            // Obtener todas las facturas con sus productos
             $invoices = Invoice::where('season_id', $season_id)
                 ->where('team_id', $team_id)
+                ->when($company_reason_id, fn($q) => $q->where('company_reason_id', $company_reason_id))
                 ->with('invoiceProducts')
                 ->get();
 
@@ -237,14 +302,14 @@ class OutflowsDashboardController extends Controller
         }
     }
 
-    private function getCreditNotesTotal($season_id, $team_id)
+    private function getCreditNotesTotal($season_id, $team_id, $company_reason_id = null)
     {
         try {
-            // Solo NCs que afectan inventario (las financieras ya ajustaron el unit_price)
             $notes = CreditDebitNote::where('season_id', $season_id)
                 ->where('team_id', $team_id)
                 ->where('type', 'credito')
                 ->where('affects_inventory', 1)
+                ->when($company_reason_id, fn($q) => $q->whereHas('invoice', fn($iq) => $iq->where('company_reason_id', $company_reason_id)))
                 ->with('items')
                 ->get();
 
@@ -270,14 +335,14 @@ class OutflowsDashboardController extends Controller
         }
     }
 
-    private function getDebitNotesTotal($season_id, $team_id)
+    private function getDebitNotesTotal($season_id, $team_id, $company_reason_id = null)
     {
         try {
-            // Solo NDs que afectan inventario (las financieras ya ajustaron el unit_price)
             $notes = CreditDebitNote::where('season_id', $season_id)
                 ->where('team_id', $team_id)
                 ->where('type', 'debito')
                 ->where('affects_inventory', 1)
+                ->when($company_reason_id, fn($q) => $q->whereHas('invoice', fn($iq) => $iq->where('company_reason_id', $company_reason_id)))
                 ->with('items')
                 ->get();
 
@@ -313,21 +378,22 @@ class OutflowsDashboardController extends Controller
      * @param int $team_id
      * @return array Arreglo con labels (nombres de level1) y data (totales)
      */
-    private function getOutflowsByLevel1($season_id, $team_id)
+    private function getOutflowsByLevel1($season_id, $team_id, $company_reason_id = null)
     {
         try {
-            // Obtener todos los outflows con sus relaciones anidadas, excluyendo inversiones
-            $outflows = Outflow::where('season_id', $season_id)
-                ->where('team_id', $team_id)
-                ->whereDoesntHave('operation', function($query) {
-                    $query->whereRaw('LOWER(name) LIKE ?', ['%inversion%']);
-                })
-                ->with([
-                    'level3.level2.level1',
-                    'invoiceProduct',
-                    'creditDebitNoteItem'
-                ])
-                ->get();
+            $outflows = $this->withCompanyReasonFilter(
+                Outflow::where('season_id', $season_id)
+                    ->where('team_id', $team_id)
+                    ->whereDoesntHave('operation', function($query) {
+                        $query->whereRaw('LOWER(name) LIKE ?', ['%inversion%']);
+                    })
+                    ->with([
+                        'level3.level2.level1',
+                        'invoiceProduct',
+                        'creditDebitNoteItem'
+                    ]),
+                $company_reason_id
+            )->get();
 
             // Agrupar por level1 y calcular totales
             $groupedData = [];
@@ -387,21 +453,22 @@ class OutflowsDashboardController extends Controller
      * @param int $team_id
      * @return array Arreglo con labels (nombres de level2) y data (totales)
      */
-    private function getOutflowsByLevel2($season_id, $team_id)
+    private function getOutflowsByLevel2($season_id, $team_id, $company_reason_id = null)
     {
         try {
-            // Obtener todos los outflows con sus relaciones anidadas, excluyendo inversiones
-            $outflows = Outflow::where('season_id', $season_id)
-                ->where('team_id', $team_id)
-                ->whereDoesntHave('operation', function($query) {
-                    $query->whereRaw('LOWER(name) LIKE ?', ['%inversion%']);
-                })
-                ->with([
-                    'level3.level2.level1',
-                    'invoiceProduct',
-                    'creditDebitNoteItem'
-                ])
-                ->get();
+            $outflows = $this->withCompanyReasonFilter(
+                Outflow::where('season_id', $season_id)
+                    ->where('team_id', $team_id)
+                    ->whereDoesntHave('operation', function($query) {
+                        $query->whereRaw('LOWER(name) LIKE ?', ['%inversion%']);
+                    })
+                    ->with([
+                        'level3.level2.level1',
+                        'invoiceProduct',
+                        'creditDebitNoteItem'
+                    ]),
+                $company_reason_id
+            )->get();
 
             // Agrupar por level2 y calcular totales
             $groupedData = [];
@@ -471,14 +538,15 @@ class OutflowsDashboardController extends Controller
         }
     }
 
-    private function getOutflowsByProject($season_id, $team_id)
+    private function getOutflowsByProject($season_id, $team_id, $company_reason_id = null)
     {
         try {
-            // Obtener todos los outflows con sus relaciones necesarias
-            $outflows = Outflow::where('season_id', $season_id)
-                ->where('team_id', $team_id)
-                ->with(['invoiceProduct', 'creditDebitNoteItem', 'project'])
-                ->get();
+            $outflows = $this->withCompanyReasonFilter(
+                Outflow::where('season_id', $season_id)
+                    ->where('team_id', $team_id)
+                    ->with(['invoiceProduct', 'creditDebitNoteItem', 'project']),
+                $company_reason_id
+            )->get();
 
             $groupedData = [];
 
@@ -527,17 +595,15 @@ class OutflowsDashboardController extends Controller
         }
     }
 
-    private function getTotalsByDevelopmentState($season_id, $team_id)
+    private function getTotalsByDevelopmentState($season_id, $team_id, $company_reason_id = null)
     {
         try {
-            // Subconsulta para obtener superficie total por outflow
             $surfaceTotalsSubquery = DB::table('outflow_cost_center')
                 ->join('cost_centers', 'outflow_cost_center.cost_center_id', '=', 'cost_centers.id')
                 ->select('outflow_cost_center.outflow_id', DB::raw('SUM(cost_centers.surface) as total_surface'))
                 ->groupBy('outflow_cost_center.outflow_id');
 
-            // Consulta principal para obtener totales por estado de desarrollo
-            $results = DB::table('development_states')
+            $query = DB::table('development_states')
                 ->join('cost_centers', 'development_states.id', '=', 'cost_centers.development_state_id')
                 ->join('outflow_cost_center', 'cost_centers.id', '=', 'outflow_cost_center.cost_center_id')
                 ->join('outflows', function($join) use ($season_id, $team_id) {
@@ -549,8 +615,11 @@ class OutflowsDashboardController extends Controller
                     $join->on('outflows.id', '=', 'surface_totals.outflow_id');
                 })
                 ->leftJoin('invoice_products', 'outflows.invoice_product_id', '=', 'invoice_products.id')
-                ->leftJoin('credit_debit_note_items', 'outflows.credit_debit_note_item_id', '=', 'credit_debit_note_items.id')
-                ->selectRaw("
+                ->leftJoin('credit_debit_note_items', 'outflows.credit_debit_note_item_id', '=', 'credit_debit_note_items.id');
+
+            $query = $this->addCompanyReasonJoin($query, $company_reason_id);
+
+            $results = $query->selectRaw("
                     development_states.id,
                     development_states.name as state_name,
                     COALESCE(SUM(
@@ -582,17 +651,15 @@ class OutflowsDashboardController extends Controller
         }
     }
 
-    private function getTotalsByDevelopmentStateWithoutInvestments($season_id, $team_id)
+    private function getTotalsByDevelopmentStateWithoutInvestments($season_id, $team_id, $company_reason_id = null)
     {
         try {
-            // Subconsulta para obtener superficie total por outflow
             $surfaceTotalsSubquery = DB::table('outflow_cost_center')
                 ->join('cost_centers', 'outflow_cost_center.cost_center_id', '=', 'cost_centers.id')
                 ->select('outflow_cost_center.outflow_id', DB::raw('SUM(cost_centers.surface) as total_surface'))
                 ->groupBy('outflow_cost_center.outflow_id');
 
-            // Consulta principal excluyendo inversiones
-            $results = DB::table('development_states')
+            $query = DB::table('development_states')
                 ->join('cost_centers', 'development_states.id', '=', 'cost_centers.development_state_id')
                 ->join('outflow_cost_center', 'cost_centers.id', '=', 'outflow_cost_center.cost_center_id')
                 ->join('outflows', function($join) use ($season_id, $team_id) {
@@ -606,12 +673,14 @@ class OutflowsDashboardController extends Controller
                 })
                 ->leftJoin('invoice_products', 'outflows.invoice_product_id', '=', 'invoice_products.id')
                 ->leftJoin('credit_debit_note_items', 'outflows.credit_debit_note_item_id', '=', 'credit_debit_note_items.id')
-                // Excluir inversiones
-                ->where(function($query) {
-                    $query->whereNull('operations.name')
-                          ->orWhereRaw('LOWER(operations.name) NOT LIKE ?', ['%inversion%']);
-                })
-                ->selectRaw("
+                ->where(function($q) {
+                    $q->whereNull('operations.name')
+                      ->orWhereRaw('LOWER(operations.name) NOT LIKE ?', ['%inversion%']);
+                });
+
+            $query = $this->addCompanyReasonJoin($query, $company_reason_id);
+
+            $results = $query->selectRaw("
                     development_states.id,
                     development_states.name as state_name,
                     COALESCE(SUM(
@@ -696,14 +765,12 @@ class OutflowsDashboardController extends Controller
      * @param int $team_id
      * @return array
      */
-    private function getCostoKiloAcumulado($season_id, $team_id)
+    private function getCostoKiloAcumulado($season_id, $team_id, $company_reason_id = null)
     {
         try {
-            // 1. Obtener total de producción (outflows con operación "producción")
-            $totalProduccion = $this->getTotalProduccion($season_id, $team_id);
+            $totalProduccion = $this->getTotalProduccion($season_id, $team_id, $company_reason_id);
 
-            // 2. Obtener total de kilos estimados (última estimación)
-            $totalEstimatedKilosData = $this->getTotalEstimatedKilos($season_id, $team_id);
+            $totalEstimatedKilosData = $this->getTotalEstimatedKilos($season_id, $team_id, $company_reason_id);
             $kilosByEstimate = $totalEstimatedKilosData['kilosByEstimate'] ?? [];
             $defaultStatusId = $totalEstimatedKilosData['defaultEstimateStatusId'] ?? null;
             $kilosByFruit = ($defaultStatusId && isset($kilosByEstimate[$defaultStatusId]))
@@ -739,17 +806,15 @@ class OutflowsDashboardController extends Controller
         }
     }
 
-    private function getTotalProduccion($season_id, $team_id)
+    private function getTotalProduccion($season_id, $team_id, $company_reason_id = null)
     {
         try {
-            // Subconsulta para obtener superficie total por outflow
             $surfaceTotalsSubquery = DB::table('outflow_cost_center')
                 ->join('cost_centers', 'outflow_cost_center.cost_center_id', '=', 'cost_centers.id')
                 ->select('outflow_cost_center.outflow_id', DB::raw('SUM(cost_centers.surface) as total_surface'))
                 ->groupBy('outflow_cost_center.outflow_id');
 
-            // Consulta principal filtrando por estado de desarrollo "producción" y operación "gasto"
-            $result = DB::table('development_states')
+            $query = DB::table('development_states')
                 ->join('cost_centers', 'development_states.id', '=', 'cost_centers.development_state_id')
                 ->join('outflow_cost_center', 'cost_centers.id', '=', 'outflow_cost_center.cost_center_id')
                 ->join('outflows', function($join) use ($season_id, $team_id) {
@@ -763,11 +828,12 @@ class OutflowsDashboardController extends Controller
                 })
                 ->leftJoin('invoice_products', 'outflows.invoice_product_id', '=', 'invoice_products.id')
                 ->leftJoin('credit_debit_note_items', 'outflows.credit_debit_note_item_id', '=', 'credit_debit_note_items.id')
-                // Filtrar por estado de desarrollo "producción" (con o sin acento, mayúsculas/minúsculas)
                 ->whereRaw("LOWER(REPLACE(development_states.name, 'ó', 'o')) LIKE ?", ['%produccion%'])
-                // Filtrar por operación "gasto"
-                ->whereRaw("LOWER(operations.name) = ?", ['gasto'])
-                ->selectRaw("
+                ->whereRaw("LOWER(operations.name) = ?", ['gasto']);
+
+            $query = $this->addCompanyReasonJoin($query, $company_reason_id);
+
+            $result = $query->selectRaw("
                     COALESCE(SUM(
                         CASE 
                             WHEN cost_centers.surface = 0 THEN 

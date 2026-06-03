@@ -1,5 +1,6 @@
 <script setup>
 import { Head } from '@inertiajs/vue3';
+import { router } from '@inertiajs/vue3';
 import AppLayout from '@/Layouts/AppLayout.vue';
 import Breadcrumb from '@/Components/Breadcrumb.vue';
 import FalconBarChart from '@/Components/FalconBarChart.vue';
@@ -105,6 +106,8 @@ const props = defineProps({
     },
     dollarPrice: { type: Number, default: 970 },
     isAdmin:     { type: Boolean, default: false },
+    companyReasons:        { type: Array,  default: () => [] },
+    activeCompanyReasonId: { type: Number, default: null },
 });
 
 const title = 'Dashboard de Outflows';
@@ -116,6 +119,18 @@ const links = [
 
 // Toggle idioma ES/EN
 const isEnglish = ref(false);
+
+// Filtro Razón Social
+const selectedCompanyReason = ref(props.activeCompanyReasonId ?? '');
+const onCompanyReasonChange = (e) => {
+    const value = e.target.value;
+    router.get(
+        route('outflows.dashboard'),
+        value ? { company_reason_id: value } : {},
+        { preserveScroll: false }
+    );
+};
+
 const t = computed(() => isEnglish.value ? {
     dashboardTitle: 'Consumption & Billing Analysis Dashboard',
     viewInUSD: 'View in USD',
@@ -642,6 +657,29 @@ const totalCompras = computed(() => {
                                 </div>
                             </template>
                         </div>
+                    </div>
+                </div>
+                <!-- Filtro Razón Social -->
+                <div class="row mt-2 align-items-center" v-if="companyReasons?.length > 0">
+                    <div class="col-auto">
+                        <label class="form-label mb-0 small fw-semibold text-muted">
+                            <i class="fas fa-building me-1"></i>Razón Social
+                        </label>
+                    </div>
+                    <div class="col" style="max-width: 360px;">
+                        <select
+                            v-model="selectedCompanyReason"
+                            class="form-select form-select-sm"
+                            @change="onCompanyReasonChange"
+                        >
+                            <option value="">Todas las razones sociales</option>
+                            <option v-for="rs in companyReasons" :key="rs.value" :value="rs.value">
+                                {{ rs.label }}
+                            </option>
+                        </select>
+                    </div>
+                    <div class="col-auto" v-if="selectedCompanyReason && selectedCompanyReason !== ''">
+                        <span class="badge bg-primary">Filtrado</span>
                     </div>
                 </div>
             </div>

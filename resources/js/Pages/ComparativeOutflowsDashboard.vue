@@ -246,49 +246,61 @@ const groupByLevel1 = () => {
         return;
     }
     
-    // Obtener niveles 1 únicos que aún están visibles
-    const level1Groups = {};
-    
+    // Construir mapa L1 → L2 → items
+    const level1Map = {};
     props.comparisonByLevel1.forEach((item, index) => {
-        // Solo agrupar filas que no estén ya en un grupo
         if (isRowVisible(index)) {
-            if (!level1Groups[item.level1]) {
-                level1Groups[item.level1] = [];
-            }
-            level1Groups[item.level1].push({ ...item, originalIndex: index });
+            if (!level1Map[item.level1]) level1Map[item.level1] = {};
+            if (!level1Map[item.level1][item.level2]) level1Map[item.level1][item.level2] = [];
+            level1Map[item.level1][item.level2].push({ ...item, originalIndex: index });
         }
     });
     
-    // Crear un grupo por cada Nivel 1
-    Object.keys(level1Groups).forEach(level1Name => {
-        const items = level1Groups[level1Name];
-        
-        // Calcular totales del grupo
-        const totals = items.reduce((acc, item) => {
-            acc.budget   += item.budget   || 0;
-            acc.invoiced += item.invoiced || 0;
-            acc.consumed += item.consumed || 0;
-            acc.payroll  += item.payroll  || 0;
+    Object.keys(level1Map).forEach(level1Name => {
+        const level2Map = level1Map[level1Name];
+
+        // Crear subgrupos de Nivel 2
+        const level2Groups = Object.keys(level2Map).sort().map(level2Name => {
+            const items = level2Map[level2Name];
+            const totals = items.reduce((acc, item) => {
+                acc.budget   += item.budget   || 0;
+                acc.invoiced += item.invoiced || 0;
+                acc.consumed += item.consumed || 0;
+                acc.payroll  += item.payroll  || 0;
+                return acc;
+            }, { budget: 0, invoiced: 0, consumed: 0, payroll: 0 });
+            totals.difference = totals.budget - totals.invoiced - totals.payroll;
+            totals.variance = totals.budget > 0 ? ((totals.invoiced + totals.payroll - totals.budget) / totals.budget) * 100 : 0;
+            return {
+                id: Date.now() + Math.random(),
+                name: level2Name,
+                items,
+                totals,
+            };
+        });
+
+        // Totales del Nivel 1 = suma de subgrupos
+        const totals = level2Groups.reduce((acc, l2) => {
+            acc.budget   += l2.totals.budget;
+            acc.invoiced += l2.totals.invoiced;
+            acc.consumed += l2.totals.consumed;
+            acc.payroll  += l2.totals.payroll;
             return acc;
         }, { budget: 0, invoiced: 0, consumed: 0, payroll: 0 });
-        
         totals.difference = totals.budget - totals.invoiced - totals.payroll;
         totals.variance = totals.budget > 0 ? ((totals.invoiced + totals.payroll - totals.budget) / totals.budget) * 100 : 0;
-        
-        // Crear el grupo
-        const newGroup = {
-            id: Date.now() + Math.random(), // Asegurar ID único
+
+        const allIndices = Object.values(level2Map).flat().map(item => item.originalIndex);
+
+        customGroups.value.push({
+            id: Date.now() + Math.random(),
             name: level1Name,
-            items: items,
-            hiddenIndices: items.map(item => item.originalIndex),
-            totals: totals,
-            expanded: false // Iniciar colapsado
-        };
-        
-        customGroups.value.push(newGroup);
+            level2Groups,
+            hiddenIndices: allIndices,
+            totals,
+        });
     });
     
-    // Limpiar selección
     selectedRows.value = [];
 };
 
@@ -749,6 +761,93 @@ const excelData = computed(() => {
             'Variación %': item.variance.toFixed(2),
         };
     });
+});
+
+// Datos para exportar la tabla "Detalle por Categoría"
+// Genera filas planas respetando la jerarquía activa:
+//   - Agrupado (L1 > L2 > L3)
+//   - Vista plana (L1, L2, L3, valores)
+const detailCategoryExcelData = computed(() => {
+    const div = dividir.value && divisor.value ? divisor.value : 1;
+    const conv = (v) => (v || 0) / div;
+
+    const row = (nivel1, nivel2, nivel3, item, indent = '') => ({
+        'Nivel 1': nivel1,
+        'Nivel 2': nivel2,
+        'Nivel 3': nivel3,
+        'Presupuestado': conv(item.budget),
+        'Facturado': conv(item.invoiced),
+        'Consumido': conv(item.consumed),
+        'Remuneraciones': conv(item.payroll),
+        'Diferencia': conv(item.difference),
+        'Variación %': item.budget > 0
+            ? (((item.invoiced - item.budget) / item.budget) * 100).toFixed(2)
+            : '0.00',
+    });
+
+    if (customGroups.value.length > 0) {
+        // Modo agrupado jerárquico
+        const rows = [];
+        for (const group of customGroups.value) {
+            if (group.level2Groups) {
+                // Fila totalizadora L1
+                rows.push({
+                    'Nivel 1': group.name,
+                    'Nivel 2': '',
+                    'Nivel 3': '',
+                    'Presupuestado': conv(group.totals.budget),
+                    'Facturado': conv(group.totals.invoiced),
+                    'Consumido': conv(group.totals.consumed),
+                    'Remuneraciones': conv(group.totals.payroll),
+                    'Diferencia': conv(group.totals.difference),
+                    'Variación %': group.totals.budget > 0
+                        ? (((group.totals.invoiced - group.totals.budget) / group.totals.budget) * 100).toFixed(2)
+                        : '0.00',
+                });
+                for (const l2 of group.level2Groups) {
+                    // Fila totalizadora L2
+                    rows.push({
+                        'Nivel 1': '',
+                        'Nivel 2': l2.name,
+                        'Nivel 3': '',
+                        'Presupuestado': conv(l2.totals.budget),
+                        'Facturado': conv(l2.totals.invoiced),
+                        'Consumido': conv(l2.totals.consumed),
+                        'Remuneraciones': conv(l2.totals.payroll),
+                        'Diferencia': conv(l2.totals.difference),
+                        'Variación %': l2.totals.budget > 0
+                            ? (((l2.totals.invoiced - l2.totals.budget) / l2.totals.budget) * 100).toFixed(2)
+                            : '0.00',
+                    });
+                    for (const item of l2.items) {
+                        rows.push(row('', '', item.level3, item));
+                    }
+                }
+            } else {
+                // Grupo manual plano
+                rows.push({
+                    'Nivel 1': group.name,
+                    'Nivel 2': '(grupo)',
+                    'Nivel 3': '',
+                    'Presupuestado': conv(group.totals.budget),
+                    'Facturado': conv(group.totals.invoiced),
+                    'Consumido': conv(group.totals.consumed),
+                    'Remuneraciones': conv(group.totals.payroll),
+                    'Diferencia': conv(group.totals.difference),
+                    'Variación %': group.totals.budget > 0
+                        ? (((group.totals.invoiced - group.totals.budget) / group.totals.budget) * 100).toFixed(2)
+                        : '0.00',
+                });
+                for (const item of (group.items || [])) {
+                    rows.push(row(item.level1, item.level2, item.level3, item));
+                }
+            }
+        }
+        return rows;
+    }
+
+    // Vista plana normal
+    return props.comparisonByLevel1.map(item => row(item.level1, item.level2, item.level3, item));
 });
 
 // Watch para actualizar gráficos cuando cambie el toggle o la conversión USD
@@ -1819,14 +1918,35 @@ function createCumulativeChart() {
                                 <h6 class="mb-0">
                                     <i class="fas fa-table me-2"></i>Detalle por Categoría
                                 </h6>
-                                <button 
-                                    class="btn btn-sm"
-                                    :class="customGroups.length > 0 ? 'btn-warning' : 'btn-outline-primary'"
-                                    @click="groupByLevel1"
-                                    :title="customGroups.length > 0 ? 'Desagrupar y mostrar vista normal' : 'Agrupar todas las categorías por Nivel 1'">
-                                    <i class="fas me-1" :class="customGroups.length > 0 ? 'fa-list' : 'fa-folder-tree'"></i>
-                                    {{ customGroups.length > 0 ? 'Desagrupar Todo' : 'Agrupar por Nivel 1' }}
-                                </button>
+                                <div class="d-flex align-items-center gap-2">
+                                    <ExportExcelButton
+                                        :data="detailCategoryExcelData"
+                                        :headers="[
+                                            { label: 'Nivel 1',        key: 'Nivel 1' },
+                                            { label: 'Nivel 2',        key: 'Nivel 2' },
+                                            { label: 'Nivel 3',        key: 'Nivel 3' },
+                                            { label: 'Presupuestado',  key: 'Presupuestado' },
+                                            { label: 'Facturado',      key: 'Facturado' },
+                                            { label: 'Consumido',      key: 'Consumido' },
+                                            { label: 'Remuneraciones', key: 'Remuneraciones' },
+                                            { label: 'Diferencia',     key: 'Diferencia' },
+                                            { label: 'Variación %',    key: 'Variación %' },
+                                        ]"
+                                        filename="detalle_por_categoria.xlsx"
+                                        class="btn btn-sm btn-light-primary"
+                                    >
+                                        <i class="fas fa-file-excel me-1"></i>
+                                        Exportar
+                                    </ExportExcelButton>
+                                    <button 
+                                        class="btn btn-sm"
+                                        :class="customGroups.length > 0 ? 'btn-warning' : 'btn-outline-primary'"
+                                        @click="groupByLevel1"
+                                        :title="customGroups.length > 0 ? 'Desagrupar y mostrar vista normal' : 'Agrupar todas las categorías por Nivel 1'">
+                                        <i class="fas me-1" :class="customGroups.length > 0 ? 'fa-list' : 'fa-folder-tree'"></i>
+                                        {{ customGroups.length > 0 ? 'Desagrupar Todo' : 'Agrupar por Nivel 1' }}
+                                    </button>
+                                </div>
                             </div>
                         </div>
                         
@@ -1870,6 +1990,7 @@ function createCumulativeChart() {
                                             </th>
                                             <th>Nivel 1</th>
                                             <th>Nivel 2</th>
+                                            <th>Nivel 3</th>
                                             <th class="text-end">Presupuestado</th>
                                             <th class="text-end">Facturado</th>
                                             <th class="text-end">Consumido</th>
@@ -1882,7 +2003,7 @@ function createCumulativeChart() {
                                     <tbody>
                                         <!-- Grupos personalizados -->
                                         <template v-for="group in customGroups" :key="'group-' + group.id">
-                                            <!-- Fila del grupo (colapsable) -->
+                                            <!-- ── Fila Nivel 1 (cabecera del grupo) ── -->
                                             <tr class="table-info cursor-pointer" @click="toggleGroup(group.id)">
                                                 <td>
                                                     <button 
@@ -1893,9 +2014,12 @@ function createCumulativeChart() {
                                                         <i class="fas fa-trash-alt"></i>
                                                     </button>
                                                 </td>
-                                                <td colspan="2" class="fw-bold">
-                                                    <i class="fas" :class="expandedGroups.includes(group.id) ? 'fa-chevron-down' : 'fa-chevron-right'"></i>
-                                                    {{ group.name }} ({{ group.items.length }} categorías)
+                                                <td colspan="3" class="fw-bold">
+                                                    <i class="fas me-1" :class="expandedGroups.includes(group.id) ? 'fa-chevron-down' : 'fa-chevron-right'"></i>
+                                                    {{ group.name }}
+                                                    <span class="text-muted fw-normal small ms-1">
+                                                        ({{ group.level2Groups ? group.level2Groups.length + ' subcategorías' : group.items.length + ' categorías' }})
+                                                    </span>
                                                 </td>
                                                 <td class="text-end fw-bold">{{ formatCLP(group.totals.budget) }}</td>
                                                 <td class="text-end fw-bold">{{ formatCLP(group.totals.invoiced) }}</td>
@@ -1916,35 +2040,105 @@ function createCumulativeChart() {
                                                     </span>
                                                 </td>
                                             </tr>
-                                            
-                                            <!-- Items del grupo (se muestran cuando está expandido) -->
+
                                             <template v-if="expandedGroups.includes(group.id)">
-                                                <tr v-for="(item, idx) in group.items" :key="'group-item-' + group.id + '-' + idx" class="table-light">
-                                                    <td></td>
-                                                    <td class="fw-semibold text-muted small ps-4">└ {{ item.level1 }}</td>
-                                                    <td class="fw-normal">{{ item.level2 }}</td>
-                                                    <td class="text-end">{{ formatCLP(item.budget) }}</td>
-                                                    <td class="text-end">{{ formatCLP(item.invoiced) }}</td>
-                                                    <td class="text-end">{{ formatCLP(item.consumed) }}</td>
-                                                    <td class="text-end">
-                                                        <span v-if="(item.payroll || 0) > 0" class="text-success">{{ formatCLP(item.payroll) }}</span>
-                                                        <span v-else class="text-muted">-</span>
-                                                    </td>
-                                                    <td class="text-end" :class="item.difference > 0 ? 'text-success' : 'text-danger'">
-                                                        {{ formatCLP(Math.abs(item.difference)) }}
-                                                    </td>
-                                                    <td class="text-end">
-                                                        <span :class="item.variance > 0 ? 'text-danger' : 'text-success'">
-                                                            {{ item.variance > 0 ? '+' : '' }}{{ formatPercent(item.variance) }}
-                                                        </span>
-                                                    </td>
-                                                    <td class="text-center">
-                                                        <span class="badge" :class="getVarianceClass(item.variance, item.variance > 0)">
-                                                            {{ getStatusIcon(item.status) }}
-                                                            {{ item.variance > 0 ? (Math.abs(item.variance) > 10 ? 'Alerta' : Math.abs(item.variance) > 5 ? 'Revisión' : 'OK') : 'OK' }}
-                                                        </span>
-                                                    </td>
-                                                </tr>
+
+                                                <!-- ── Modo jerárquico: subgrupos Nivel 2 ── -->
+                                                <template v-if="group.level2Groups">
+                                                    <template v-for="l2group in group.level2Groups" :key="'l2-' + l2group.id">
+                                                        <!-- Fila Nivel 2 -->
+                                                        <tr class="cursor-pointer" style="background-color:#dde5f0 !important;" @click="toggleGroup(l2group.id)">
+                                                            <td></td>
+                                                            <td></td>
+                                                            <td colspan="2" class="fw-semibold ps-3">
+                                                                <i class="fas fa-xs me-1" :class="expandedGroups.includes(l2group.id) ? 'fa-chevron-down' : 'fa-chevron-right'"></i>
+                                                                └ {{ l2group.name }}
+                                                                <span class="text-muted fw-normal small ms-1">({{ l2group.items.length }})</span>
+                                                            </td>
+                                                            <td class="text-end fw-semibold">{{ formatCLP(l2group.totals.budget) }}</td>
+                                                            <td class="text-end fw-semibold">{{ formatCLP(l2group.totals.invoiced) }}</td>
+                                                            <td class="text-end fw-semibold">{{ formatCLP(l2group.totals.consumed) }}</td>
+                                                            <td class="text-end fw-semibold text-muted">{{ formatCLP(l2group.totals.payroll || 0) }}</td>
+                                                            <td class="text-end fw-semibold" :class="l2group.totals.difference > 0 ? 'text-success' : 'text-danger'">
+                                                                {{ formatCLP(Math.abs(l2group.totals.difference)) }}
+                                                            </td>
+                                                            <td class="text-end fw-semibold">
+                                                                <span :class="l2group.totals.variance > 0 ? 'text-danger' : 'text-success'">
+                                                                    {{ l2group.totals.variance > 0 ? '+' : '' }}{{ formatPercent(l2group.totals.variance) }}
+                                                                </span>
+                                                            </td>
+                                                            <td class="text-center">
+                                                                <span class="badge" :class="getVarianceClass(l2group.totals.variance, l2group.totals.variance > 0)">
+                                                                    {{ getStatusIcon(l2group.totals.variance > 0 ? 'over' : 'ok') }}
+                                                                    {{ l2group.totals.variance > 0 ? (Math.abs(l2group.totals.variance) > 10 ? 'Alerta' : Math.abs(l2group.totals.variance) > 5 ? 'Revisión' : 'OK') : 'OK' }}
+                                                                </span>
+                                                            </td>
+                                                        </tr>
+
+                                                        <!-- Filas Nivel 3 (cuando el subgrupo Nivel 2 está expandido) -->
+                                                        <template v-if="expandedGroups.includes(l2group.id)">
+                                                            <tr v-for="(item, idx) in l2group.items" :key="'l3-item-' + l2group.id + '-' + idx" class="table-light">
+                                                                <td></td>
+                                                                <td></td>
+                                                                <td></td>
+                                                                <td class="small ps-4">└ {{ item.level3 }}</td>
+                                                                <td class="text-end">{{ formatCLP(item.budget) }}</td>
+                                                                <td class="text-end">{{ formatCLP(item.invoiced) }}</td>
+                                                                <td class="text-end">{{ formatCLP(item.consumed) }}</td>
+                                                                <td class="text-end">
+                                                                    <span v-if="(item.payroll || 0) > 0" class="text-success">{{ formatCLP(item.payroll) }}</span>
+                                                                    <span v-else class="text-muted">-</span>
+                                                                </td>
+                                                                <td class="text-end" :class="item.difference > 0 ? 'text-success' : 'text-danger'">
+                                                                    {{ formatCLP(Math.abs(item.difference)) }}
+                                                                </td>
+                                                                <td class="text-end">
+                                                                    <span :class="item.variance > 0 ? 'text-danger' : 'text-success'">
+                                                                        {{ item.variance > 0 ? '+' : '' }}{{ formatPercent(item.variance) }}
+                                                                    </span>
+                                                                </td>
+                                                                <td class="text-center">
+                                                                    <span class="badge" :class="getVarianceClass(item.variance, item.variance > 0)">
+                                                                        {{ getStatusIcon(item.status) }}
+                                                                        {{ item.variance > 0 ? (Math.abs(item.variance) > 10 ? 'Alerta' : Math.abs(item.variance) > 5 ? 'Revisión' : 'OK') : 'OK' }}
+                                                                    </span>
+                                                                </td>
+                                                            </tr>
+                                                        </template>
+                                                    </template>
+                                                </template>
+
+                                                <!-- ── Modo plano (grupos manuales) ── -->
+                                                <template v-else>
+                                                    <tr v-for="(item, idx) in group.items" :key="'group-item-' + group.id + '-' + idx" class="table-light">
+                                                        <td></td>
+                                                        <td class="fw-semibold text-muted small ps-4">└ {{ item.level1 }}</td>
+                                                        <td class="fw-normal">{{ item.level2 }}</td>
+                                                        <td class="fw-normal text-muted small">{{ item.level3 }}</td>
+                                                        <td class="text-end">{{ formatCLP(item.budget) }}</td>
+                                                        <td class="text-end">{{ formatCLP(item.invoiced) }}</td>
+                                                        <td class="text-end">{{ formatCLP(item.consumed) }}</td>
+                                                        <td class="text-end">
+                                                            <span v-if="(item.payroll || 0) > 0" class="text-success">{{ formatCLP(item.payroll) }}</span>
+                                                            <span v-else class="text-muted">-</span>
+                                                        </td>
+                                                        <td class="text-end" :class="item.difference > 0 ? 'text-success' : 'text-danger'">
+                                                            {{ formatCLP(Math.abs(item.difference)) }}
+                                                        </td>
+                                                        <td class="text-end">
+                                                            <span :class="item.variance > 0 ? 'text-danger' : 'text-success'">
+                                                                {{ item.variance > 0 ? '+' : '' }}{{ formatPercent(item.variance) }}
+                                                            </span>
+                                                        </td>
+                                                        <td class="text-center">
+                                                            <span class="badge" :class="getVarianceClass(item.variance, item.variance > 0)">
+                                                                {{ getStatusIcon(item.status) }}
+                                                                {{ item.variance > 0 ? (Math.abs(item.variance) > 10 ? 'Alerta' : Math.abs(item.variance) > 5 ? 'Revisión' : 'OK') : 'OK' }}
+                                                            </span>
+                                                        </td>
+                                                    </tr>
+                                                </template>
+
                                             </template>
                                         </template>
                                         
@@ -1960,6 +2154,7 @@ function createCumulativeChart() {
                                             </td>
                                             <td class="fw-semibold text-muted small">{{ item.level1 }}</td>
                                             <td class="fw-bold">{{ item.level2 }}</td>
+                                            <td class="text-muted small">{{ item.level3 }}</td>
                                             <td class="text-end">{{ formatCLP(item.budget) }}</td>
                                             <td class="text-end">{{ formatCLP(item.invoiced) }}</td>
                                             <td class="text-end">{{ formatCLP(item.consumed) }}</td>
@@ -1987,7 +2182,7 @@ function createCumulativeChart() {
                                     <tfoot class="table-light">
                                         <tr class="fw-bold">
                                             <td></td>
-                                            <td colspan="2">TOTAL</td>
+                                            <td colspan="3">TOTAL</td>
                                             <td class="text-end">{{ formatCLP(displayedBudget) }}</td>
                                             <td class="text-end">{{ formatCLP(summary.invoiced_total) }}</td>
                                             <td class="text-end">{{ formatCLP(displayedConsumed) }}</td>

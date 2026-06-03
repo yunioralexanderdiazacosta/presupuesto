@@ -7,6 +7,26 @@
 
 export const changelog = [
   {
+    fecha: '2026-06-03',
+    titulo: 'Dashboard Outflows — Filtro por Razón Social',
+    items: [
+      'Se agrega un selector de Razón Social en el encabezado del Dashboard de Outflows.',
+      'Al seleccionar una razón social, todos los datos del dashboard se filtran: consumos, inversiones, gastos, facturas, notas de crédito/débito, gráficos por nivel y por estado de desarrollo.',
+      'El cálculo de Costo/Kilo también respeta el filtro, ajustando tanto la producción como las estimaciones de kilos al contexto de la razón social seleccionada.',
+      'Las remuneraciones (tarjas, bonos y horas extra) también se filtran por razón social, usando el centro de costo asociado a cada registro como enlace.',
+      'El selector muestra solo las razones sociales con movimientos en la temporada activa.',
+    ]
+  },
+  {
+    fecha: '2026-06-03',
+    titulo: 'Dashboard Comparativo — Nivel 3 en Detalle por Categoría',
+    items: [
+      'La tabla "Detalle por Categoría" ahora desglosa cada fila hasta el Nivel 3 (subfamilia), permitiendo ver con mayor granularidad el presupuesto, facturado y consumido.',
+      'El presupuesto, facturado, notas de crédito/débito y egresos se agrupan ahora por Nivel 1 + Nivel 2 + Nivel 3.',
+      'Se agrega la columna "Nivel 3" en la tabla, visible también al expandir grupos.',
+    ]
+  },
+  {
     fecha: '2026-06-01',
     titulo: 'Gestión Diaria — Reportes agrupados por contrato',
     items: [

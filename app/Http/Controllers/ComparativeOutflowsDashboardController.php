@@ -1056,7 +1056,7 @@ class ComparativeOutflowsDashboardController extends Controller
             $budgetByLevel = $this->getBudgetTotalsByLevel12($season_id, $team_id);
             
             foreach ($budgetByLevel as $row) {
-                $fullName = $row['level1_name'] . ' - ' . $row['level2_name'];
+                $fullName = $row['level1_name'] . ' - ' . $row['level2_name'] . ' - ' . $row['level3_name'];
                 
                 $categories[$fullName] = [
                     'budget' => floatval($row['total_amount']),
@@ -1081,13 +1081,14 @@ class ComparativeOutflowsDashboardController extends Controller
                 ->select(
                     DB::raw('COALESCE(l1.name, "Sin Clasificar") as level1_name'),
                     DB::raw('COALESCE(l2.name, "Sin Clasificar") as level2_name'),
+                    DB::raw('COALESCE(l3.name, "Sin Clasificar") as level3_name'),
                     DB::raw('SUM(ip.unit_price * ip.amount) as total')
                 )
-                ->groupBy('level1_name', 'level2_name')
+                ->groupBy('level1_name', 'level2_name', 'level3_name')
                 ->get();
 
             foreach ($invoicesByLevel2 as $row) {
-                $fullName = $row->level1_name . ' - ' . $row->level2_name;
+                $fullName = $row->level1_name . ' - ' . $row->level2_name . ' - ' . $row->level3_name;
                 
                 if (!isset($categories[$fullName])) {
                     $categories[$fullName] = [
@@ -1113,14 +1114,15 @@ class ComparativeOutflowsDashboardController extends Controller
                 ->select(
                     DB::raw('COALESCE(l1.name, "Sin Clasificar") as level1_name'),
                     DB::raw('COALESCE(l2.name, "Sin Clasificar") as level2_name'),
+                    DB::raw('COALESCE(l3.name, "Sin Clasificar") as level3_name'),
                     'cdn.type',
                     DB::raw('SUM(cdni.unit_price * cdni.quantity) as total')
                 )
-                ->groupBy('level1_name', 'level2_name', 'cdn.type')
+                ->groupBy('level1_name', 'level2_name', 'level3_name', 'cdn.type')
                 ->get();
 
             foreach ($notesByLevel2 as $row) {
-                $fullName = $row->level1_name . ' - ' . $row->level2_name;
+                $fullName = $row->level1_name . ' - ' . $row->level2_name . ' - ' . $row->level3_name;
                 
                 if (!isset($categories[$fullName])) {
                     $categories[$fullName] = [
@@ -1155,9 +1157,10 @@ class ComparativeOutflowsDashboardController extends Controller
                     if ($outflow->level3 && $outflow->level3->level2) {
                         $level1Name = $outflow->level3->level2->level1 ? $outflow->level3->level2->level1->name : 'Sin Clasificar';
                         $level2Name = $outflow->level3->level2->name;
-                        return $level1Name . ' - ' . $level2Name;
+                        $level3Name = $outflow->level3->name ?? 'Sin Clasificar';
+                        return $level1Name . ' - ' . $level2Name . ' - ' . $level3Name;
                     }
-                    return 'Sin Clasificar - Sin Clasificar';
+                    return 'Sin Clasificar - Sin Clasificar - Sin Clasificar';
                 });
 
             foreach ($outflowsByLevel2 as $fullName => $outflows) {
@@ -1187,10 +1190,11 @@ class ComparativeOutflowsDashboardController extends Controller
             // Calcular variaciones (usando facturado como "real")
             $result = [];
             foreach ($categories as $name => $data) {
-                // Extraer level1 y level2 del nombre
-                $parts = explode(' - ', $name);
-                $level1Name = count($parts) > 1 ? $parts[0] : 'Sin Clasificar';
-                $level2Name = count($parts) > 1 ? $parts[1] : $name;
+                // Extraer level1, level2 y level3 del nombre
+                $parts = explode(' - ', $name, 3);
+                $level1Name = $parts[0] ?? 'Sin Clasificar';
+                $level2Name = $parts[1] ?? 'Sin Clasificar';
+                $level3Name = $parts[2] ?? 'Sin Clasificar';
                 
                 $variance = $data['budget'] > 0 
                     ? (($data['invoiced'] - $data['budget']) / $data['budget']) * 100 
@@ -1200,6 +1204,7 @@ class ComparativeOutflowsDashboardController extends Controller
                     'category' => $name,
                     'level1' => $level1Name,
                     'level2' => $level2Name,
+                    'level3' => $level3Name,
                     'budget' => $data['budget'],
                     'invoiced' => $data['invoiced'],
                     'consumed' => $data['consumed'],
@@ -1238,8 +1243,10 @@ class ComparativeOutflowsDashboardController extends Controller
                     return $orderA - $orderB;
                 }
                 
-                // Si el level1 es igual, ordenar por level2 alfabéticamente
-                return strcmp(strtolower($a['level2']), strtolower($b['level2']));
+                // Si el level1 es igual, ordenar por level2 y luego level3 alfabéticamente
+                $cmp = strcmp(strtolower($a['level2']), strtolower($b['level2']));
+                if ($cmp !== 0) return $cmp;
+                return strcmp(strtolower($a['level3'] ?? ''), strtolower($b['level3'] ?? ''));
             });
 
             return $result;
@@ -1277,14 +1284,16 @@ class ComparativeOutflowsDashboardController extends Controller
 
         $totals = [];
         
-        $addTotal = function ($level1_id, $level1_name, $level2_id, $level2_name, $amount) use (&$totals) {
-            $key = $level1_id . '-' . $level2_id;
+        $addTotal = function ($level1_id, $level1_name, $level2_id, $level2_name, $level3_id, $level3_name, $amount) use (&$totals) {
+            $key = $level1_id . '-' . $level2_id . '-' . $level3_id;
             if (!isset($totals[$key])) {
                 $totals[$key] = [
                     'level1_id' => $level1_id,
                     'level1_name' => $level1_name,
                     'level2_id' => $level2_id,
                     'level2_name' => $level2_name,
+                    'level3_id' => $level3_id,
+                    'level3_name' => $level3_name,
                     'total_amount' => 0
                 ];
             }
@@ -1297,11 +1306,11 @@ class ComparativeOutflowsDashboardController extends Controller
             ->join('level3s as l3', 'a.subfamily_id', 'l3.id')
             ->join('level2s as l2', 'l3.level2_id', 'l2.id')
             ->join('level1s as l1', 'l2.level1_id', 'l1.id')
-            ->select('a.*', 'l1.id as level1_id', 'l1.name as level1_name', 'l2.id as level2_id', 'l2.name as level2_name', 'ai.cost_center_id')
+            ->select('a.*', 'l1.id as level1_id', 'l1.name as level1_name', 'l2.id as level2_id', 'l2.name as level2_name', 'l3.id as level3_id', 'l3.name as level3_name', 'ai.cost_center_id')
             ->where('a.season_id', $season_id)
             ->where('a.team_id', $team_id)
             ->whereIn('ai.cost_center_id', $costCenters->keys())
-            ->groupBy('a.id', 'l1.id', 'l1.name', 'l2.id', 'l2.name', 'ai.cost_center_id')
+            ->groupBy('a.id', 'l1.id', 'l1.name', 'l2.id', 'l2.name', 'l3.id', 'l3.name', 'ai.cost_center_id')
             ->get();
 
         // Pre-cargar existencia de items en UNA sola query (reemplaza N×12 queries individuales)
@@ -1341,7 +1350,7 @@ class ComparativeOutflowsDashboardController extends Controller
                 $amount += ($exists ? $amountFirst : 0);
             }
             
-            $addTotal($a->level1_id, $a->level1_name, $a->level2_id, $a->level2_name, $amount);
+            $addTotal($a->level1_id, $a->level1_name, $a->level2_id, $a->level2_name, $a->level3_id, $a->level3_name, $amount);
         }
 
         // FERTILIZERS
@@ -1350,11 +1359,11 @@ class ComparativeOutflowsDashboardController extends Controller
             ->join('level3s as l3', 'f.subfamily_id', 'l3.id')
             ->join('level2s as l2', 'l3.level2_id', 'l2.id')
             ->join('level1s as l1', 'l2.level1_id', 'l1.id')
-            ->select('f.*', 'l1.id as level1_id', 'l1.name as level1_name', 'l2.id as level2_id', 'l2.name as level2_name', 'fi.cost_center_id')
+            ->select('f.*', 'l1.id as level1_id', 'l1.name as level1_name', 'l2.id as level2_id', 'l2.name as level2_name', 'l3.id as level3_id', 'l3.name as level3_name', 'fi.cost_center_id')
             ->where('f.season_id', $season_id)
             ->where('f.team_id', $team_id)
             ->whereIn('fi.cost_center_id', $costCenters->keys())
-            ->groupBy('f.id', 'l1.id', 'l1.name', 'l2.id', 'l2.name', 'fi.cost_center_id')
+            ->groupBy('f.id', 'l1.id', 'l1.name', 'l2.id', 'l2.name', 'l3.id', 'l3.name', 'fi.cost_center_id')
             ->get();
 
         // Pre-cargar items fertilizantes en batch
@@ -1386,7 +1395,7 @@ class ComparativeOutflowsDashboardController extends Controller
                 $amount += ($exists ? $amountFirst : 0);
             }
             
-            $addTotal($f->level1_id, $f->level1_name, $f->level2_id, $f->level2_name, $amount);
+            $addTotal($f->level1_id, $f->level1_name, $f->level2_id, $f->level2_name, $f->level3_id, $f->level3_name, $amount);
         }
 
         // MANPOWER
@@ -1395,11 +1404,11 @@ class ComparativeOutflowsDashboardController extends Controller
             ->join('level3s as l3', 'mp.subfamily_id', 'l3.id')
             ->join('level2s as l2', 'l3.level2_id', 'l2.id')
             ->join('level1s as l1', 'l2.level1_id', 'l1.id')
-            ->select('mp.*', 'l1.id as level1_id', 'l1.name as level1_name', 'l2.id as level2_id', 'l2.name as level2_name', 'mpi.cost_center_id')
+            ->select('mp.*', 'l1.id as level1_id', 'l1.name as level1_name', 'l2.id as level2_id', 'l2.name as level2_name', 'l3.id as level3_id', 'l3.name as level3_name', 'mpi.cost_center_id')
             ->where('mp.season_id', $season_id)
             ->where('mp.team_id', $team_id)
             ->whereIn('mpi.cost_center_id', $costCenters->keys())
-            ->groupBy('mp.id', 'l1.id', 'l1.name', 'l2.id', 'l2.name', 'mpi.cost_center_id')
+            ->groupBy('mp.id', 'l1.id', 'l1.name', 'l2.id', 'l2.name', 'l3.id', 'l3.name', 'mpi.cost_center_id')
             ->get();
 
         // Pre-cargar items mano de obra en batch
@@ -1430,7 +1439,7 @@ class ComparativeOutflowsDashboardController extends Controller
                 $amount += ($exists ? $amountFirst : 0);
             }
             
-            $addTotal($mp->level1_id, $mp->level1_name, $mp->level2_id, $mp->level2_name, $amount);
+            $addTotal($mp->level1_id, $mp->level1_name, $mp->level2_id, $mp->level2_name, $mp->level3_id, $mp->level3_name, $amount);
         }
 
         // SUPPLIES
@@ -1439,11 +1448,11 @@ class ComparativeOutflowsDashboardController extends Controller
             ->join('level3s as l3', 's.subfamily_id', 'l3.id')
             ->join('level2s as l2', 'l3.level2_id', 'l2.id')
             ->join('level1s as l1', 'l2.level1_id', 'l1.id')
-            ->select('s.*', 'l1.id as level1_id', 'l1.name as level1_name', 'l2.id as level2_id', 'l2.name as level2_name', 'si.cost_center_id')
+            ->select('s.*', 'l1.id as level1_id', 'l1.name as level1_name', 'l2.id as level2_id', 'l2.name as level2_name', 'l3.id as level3_id', 'l3.name as level3_name', 'si.cost_center_id')
             ->where('s.season_id', $season_id)
             ->where('s.team_id', $team_id)
             ->whereIn('si.cost_center_id', $costCenters->keys())
-            ->groupBy('s.id', 'l1.id', 'l1.name', 'l2.id', 'l2.name', 'si.cost_center_id')
+            ->groupBy('s.id', 'l1.id', 'l1.name', 'l2.id', 'l2.name', 'l3.id', 'l3.name', 'si.cost_center_id')
             ->get();
 
         // Pre-cargar items insumos en batch
@@ -1475,7 +1484,7 @@ class ComparativeOutflowsDashboardController extends Controller
                 $amount += ($exists ? $amountFirst : 0);
             }
             
-            $addTotal($s->level1_id, $s->level1_name, $s->level2_id, $s->level2_name, $amount);
+            $addTotal($s->level1_id, $s->level1_name, $s->level2_id, $s->level2_name, $s->level3_id, $s->level3_name, $amount);
         }
 
         // SERVICES
@@ -1484,11 +1493,11 @@ class ComparativeOutflowsDashboardController extends Controller
             ->join('level3s as l3', 'srv.subfamily_id', 'l3.id')
             ->join('level2s as l2', 'l3.level2_id', 'l2.id')
             ->join('level1s as l1', 'l2.level1_id', 'l1.id')
-            ->select('srv.*', 'l1.id as level1_id', 'l1.name as level1_name', 'l2.id as level2_id', 'l2.name as level2_name', 'si.cost_center_id')
+            ->select('srv.*', 'l1.id as level1_id', 'l1.name as level1_name', 'l2.id as level2_id', 'l2.name as level2_name', 'l3.id as level3_id', 'l3.name as level3_name', 'si.cost_center_id')
             ->where('srv.season_id', $season_id)
             ->where('srv.team_id', $team_id)
             ->whereIn('si.cost_center_id', $costCenters->keys())
-            ->groupBy('srv.id', 'l1.id', 'l1.name', 'l2.id', 'l2.name', 'si.cost_center_id')
+            ->groupBy('srv.id', 'l1.id', 'l1.name', 'l2.id', 'l2.name', 'l3.id', 'l3.name', 'si.cost_center_id')
             ->get();
 
         // Pre-cargar items servicios en batch
@@ -1519,7 +1528,7 @@ class ComparativeOutflowsDashboardController extends Controller
                 $amount += ($exists ? $amountFirst : 0);
             }
             
-            $addTotal($srv->level1_id, $srv->level1_name, $srv->level2_id, $srv->level2_name, $amount);
+            $addTotal($srv->level1_id, $srv->level1_name, $srv->level2_id, $srv->level2_name, $srv->level3_id, $srv->level3_name, $amount);
         }
 
         // HARVESTS
@@ -1528,11 +1537,11 @@ class ComparativeOutflowsDashboardController extends Controller
             ->join('level3s as l3', 'h.subfamily_id', 'l3.id')
             ->join('level2s as l2', 'l3.level2_id', 'l2.id')
             ->join('level1s as l1', 'l2.level1_id', 'l1.id')
-            ->select('h.*', 'l1.id as level1_id', 'l1.name as level1_name', 'l2.id as level2_id', 'l2.name as level2_name', 'hi.cost_center_id')
+            ->select('h.*', 'l1.id as level1_id', 'l1.name as level1_name', 'l2.id as level2_id', 'l2.name as level2_name', 'l3.id as level3_id', 'l3.name as level3_name', 'hi.cost_center_id')
             ->where('h.season_id', $season_id)
             ->where('h.team_id', $team_id)
             ->whereIn('hi.cost_center_id', $costCenters->keys())
-            ->groupBy('h.id', 'l1.id', 'l1.name', 'l2.id', 'l2.name', 'hi.cost_center_id')
+            ->groupBy('h.id', 'l1.id', 'l1.name', 'l2.id', 'l2.name', 'l3.id', 'l3.name', 'hi.cost_center_id')
             ->get();
 
         // Pre-cargar items cosecha en batch
@@ -1563,7 +1572,7 @@ class ComparativeOutflowsDashboardController extends Controller
                 $amount += ($exists ? $amountFirst : 0);
             }
             
-            $addTotal($h->level1_id, $h->level1_name, $h->level2_id, $h->level2_name, $amount);
+            $addTotal($h->level1_id, $h->level1_name, $h->level2_id, $h->level2_name, $h->level3_id, $h->level3_name, $amount);
         }
 
         // ADMINISTRATIONS
@@ -1576,6 +1585,8 @@ class ComparativeOutflowsDashboardController extends Controller
                 'l1.name as level1_name',
                 'l2.id as level2_id',
                 'l2.name as level2_name',
+                'l3.id as level3_id',
+                'l3.name as level3_name',
                 'a.id as administration_id',
                 'a.price',
                 'a.quantity',
@@ -1598,7 +1609,7 @@ class ComparativeOutflowsDashboardController extends Controller
             if ($countMonths > 0) {
                 $quantity = ($adm->quantity !== null && ($adm->quantity > 0)) ? ((in_array($adm->unit_id ?? null, [2, 4])) ? ($adm->quantity / 1000) : $adm->quantity) : 0;
                 $amount = round($adm->price * $quantity * $countMonths, 2);
-                $addTotal($adm->level1_id, $adm->level1_name, $adm->level2_id, $adm->level2_name, $amount);
+                $addTotal($adm->level1_id, $adm->level1_name, $adm->level2_id, $adm->level2_name, $adm->level3_id, $adm->level3_name, $amount);
             }
         }
 
@@ -1612,6 +1623,8 @@ class ComparativeOutflowsDashboardController extends Controller
                 'l1.name as level1_name',
                 'l2.id as level2_id',
                 'l2.name as level2_name',
+                'l3.id as level3_id',
+                'l3.name as level3_name',
                 'f.id as field_id',
                 'f.price',
                 'f.quantity',
@@ -1634,7 +1647,7 @@ class ComparativeOutflowsDashboardController extends Controller
             if ($countMonths > 0) {
                 $quantity = ($fld->quantity !== null && ($fld->quantity > 0)) ? ((in_array($fld->unit_id ?? null, [2, 4])) ? ($fld->quantity / 1000) : $fld->quantity) : 0;
                 $amount = round($fld->price * $quantity * $countMonths, 2);
-                $addTotal($fld->level1_id, $fld->level1_name, $fld->level2_id, $fld->level2_name, $amount);
+                $addTotal($fld->level1_id, $fld->level1_name, $fld->level2_id, $fld->level2_name, $fld->level3_id, $fld->level3_name, $amount);
             }
         }
 
