@@ -194,7 +194,7 @@ class PayrollDashboardController extends Controller
             ->whereNotNull('company_reason_id')
             ->pluck('company_reason_id', 'id');
 
-        $byMonth             = $this->buildByMonth($yields, $bonuses, $overtimes, $months);
+        $byMonth             = $this->buildByMonth($yields, $yieldCCs, $bonuses, $overtimes, $months);
         $byLevel             = $this->buildByLevel($yields, $yieldCCs, $bonuses, $bonusCCs, $overtimes, $overtimeCCs, $months);
         $byParcel            = $this->buildByParcel($yields, $yieldCCs, $bonuses, $bonusCCs, $overtimes, $overtimeCCs, $parcels, $months);
         $byBranch            = $this->buildByBranch($yields, $yieldCCs, $bonuses, $bonusCCs, $overtimes, $overtimeCCs, $branchNames, $months);
@@ -274,7 +274,7 @@ class PayrollDashboardController extends Controller
      * Totales por mes: amount total + workdays.
      * Retorna array indexado por month_id.
      */
-    private function buildByMonth($yields, $bonuses, $overtimes, array $months): array
+    private function buildByMonth($yields, $yieldCCs, $bonuses, $overtimes, array $months): array
     {
         $result = [];
         foreach ($months as $m) {
@@ -285,8 +285,11 @@ class PayrollDashboardController extends Controller
             $mid = $y->month_id;
             if (!isset($result[$mid])) continue;
             $total = ($y->amount ?? 0) + ($y->bonus_amount ?? 0) + ($y->target_price_bonus ?? 0);
-            $result[$mid]['amount']   += $total;
-            $result[$mid]['workdays'] += (float) ($y->workdays ?? 0);
+            $result[$mid]['amount'] += $total;
+            // Solo contar jornadas si la tarja tiene al menos un CC asignado (excluye licencias médicas)
+            if ($yieldCCs->has($y->id)) {
+                $result[$mid]['workdays'] += (float) ($y->workdays ?? 0);
+            }
         }
 
         foreach ($bonuses as $b) {

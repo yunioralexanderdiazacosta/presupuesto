@@ -96,12 +96,12 @@ const t = computed(() => isEnglish.value ? {
     payroll: 'Remuneraciones',
     payrollWorkdays: 'jornadas',
     // Gráfico mensual
-    monthlyTitle: 'Comparativo Mensual: Presupuesto vs Facturado vs Egresos',
+    monthlyTitle: 'Comparativo Mensual: Presupuesto vs Facturado vs Consumos',
     budgetedLabel: 'Presupuestado',
     budgetedWithInv: 'Presupuestado (con inversiones)',
     invoicedLabel: 'Facturado',
-    consumedLabel: 'Egresos',
-    consumedWithInvLabel: 'Egresos (con inversiones)',
+    consumedLabel: 'Consumos',
+    consumedWithInvLabel: 'Consumos (con inversiones)',
     // Gráfico acumulado
     cumulativeTitle: 'Evolución Acumulada - Real vs Proyección',
     cumBudget: 'Acumulado Presupuesto (Proyección completa)',
@@ -1408,7 +1408,7 @@ function createCumulativeChart() {
                                     <label class="form-check-label small mb-0" for="showConsumedToggle" style="cursor: pointer;">
                                         <span :class="showConsumed ? 'text-warning' : 'text-secondary'">
                                             <i :class="showConsumed ? 'fas fa-check-circle' : 'fas fa-times-circle'"></i>
-                                            {{ isEnglish ? 'Outflows' : 'Egresos' }}
+                                            {{ isEnglish ? 'Outflows' : 'Consumos' }}
                                         </span>
                                     </label>
                                 </div>
@@ -1436,7 +1436,7 @@ function createCumulativeChart() {
                                 <canvas id="monthlyChart"></canvas>
                             </div>
                             <div class="text-center mt-2">
-                                <small class="text-muted"><i class="fas fa-hand-pointer me-1"></i>Clic en barra de <strong>Facturado</strong> o <strong>Egresos</strong> para ver detalle &nbsp;·&nbsp; <kbd>Ctrl</kbd>+Clic para seleccionar múltiples meses</small>
+                                <small class="text-muted"><i class="fas fa-hand-pointer me-1"></i>Clic en barra de <strong>Facturado</strong> o <strong>Consumos</strong> para ver detalle &nbsp;·&nbsp; <kbd>Ctrl</kbd>+Clic para seleccionar múltiples meses</small>
                             </div>
                         </div>
                     </div>
@@ -1454,7 +1454,7 @@ function createCumulativeChart() {
                                         <i class="fas fa-list me-2"></i>
                                         Detalle de <span :class="monthlyDetailColumn === 'invoiced' ? 'text-success' : ''"
                                             :style="monthlyDetailColumn === 'consumed' ? 'color: rgb(255, 159, 64)' : ''"
-                                        >{{ monthlyDetailColumn === 'invoiced' ? 'Facturado' : 'Egresos' }}</span>
+                                        >{{ monthlyDetailColumn === 'invoiced' ? 'Facturado' : 'Consumos' }}</span>
                                         — <span class="text-primary">{{ monthlyDetailMonthNames }}</span>
                                         <span v-if="selectedBars.length > 1" class="badge bg-primary ms-1" style="font-size:0.68rem;">{{ selectedBars.length }} meses</span>
                                     </h6>
@@ -1508,7 +1508,7 @@ function createCumulativeChart() {
                                             <th>Nivel 3</th>
                                             <th>Producto</th>
                                             <th class="text-end">
-                                                {{ monthlyDetailColumn === 'invoiced' ? 'Facturado' : 'Egresos' }}
+                                                {{ monthlyDetailColumn === 'invoiced' ? 'Facturado' : 'Consumos' }}
                                             </th>
                                         </tr>
                                     </thead>
@@ -1632,7 +1632,7 @@ function createCumulativeChart() {
                                                 {{ formatCLP(monthlyComparison.real.reduce((a, b) => a + (b || 0), 0)) }}
                                             </td>
                                         </tr>
-                                        <!-- Fila: Egresos (Consumido) mensual -->
+                                        <!-- Fila: Consumos mensual -->
                                         <tr v-if="showConsumed">
                                             <td class="fw-semibold" style="color: rgb(255, 159, 64);">
                                                 <i class="fas fa-arrow-circle-down fa-xs me-1"></i>{{ t.consumed }}
