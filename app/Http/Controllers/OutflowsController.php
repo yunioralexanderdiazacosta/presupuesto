@@ -222,39 +222,43 @@ class OutflowsController extends Controller
             'creditDebitNoteItem.branch:id,name',
             'creditDebitNoteItem.creditDebitNote.supplier',
             'creditDebitNoteItem.creditDebitNote.month',
+            'fuelOutflow.invoiceProduct.branch:id,name',
+            'fuelOutflow.invoiceProduct.invoice.supplier',
+            'fuelOutflow.invoiceProduct.invoice.month',
+            'fuelOutflow.product',
             'level3.level2.level1',
             'investment'
         ])
             ->where('team_id', $user->team_id)
             ->where('season_id', $season_id)
-            ->whereNull('fuel_outflow_id') // 🔥 Excluir outflows de combustible
             ->orderByDesc('id')
-            ->take(1000)
             ->get()
             ->map(function($outflow) {
                 return [
                     'id' => $outflow->id,
+                    'fuel_outflow_id' => $outflow->fuel_outflow_id,
                     'date' => $outflow->date ? \Carbon\Carbon::parse($outflow->date)->format('d-m-Y') : '',
                     'fecha_factura' => $outflow->invoiceProduct
                         ? ($outflow->invoiceProduct->invoice->date ? \Carbon\Carbon::parse($outflow->invoiceProduct->invoice->date)->format('d-m-Y') : '')
                         : ($outflow->creditDebitNoteItem
                             ? ($outflow->creditDebitNoteItem->creditDebitNote->date ? \Carbon\Carbon::parse($outflow->creditDebitNoteItem->creditDebitNote->date)->format('d-m-Y') : '')
-                            : ''),
+                            : ($outflow->fuelOutflow?->invoiceProduct?->invoice?->date
+                                ? \Carbon\Carbon::parse($outflow->fuelOutflow->invoiceProduct->invoice->date)->format('d-m-Y') : '')),
                     'mes_contable' => $outflow->invoiceProduct
                         ? ($outflow->invoiceProduct->invoice->month?->name ?? '')
                         : ($outflow->creditDebitNoteItem
                             ? ($outflow->creditDebitNoteItem->creditDebitNote->month?->name ?? '')
-                            : ''),
+                            : ($outflow->fuelOutflow?->invoiceProduct?->invoice?->month?->name ?? '')),
                     'number_document' => $outflow->invoiceProduct
                         ? ($outflow->invoiceProduct->invoice->number_document ?? '')
                         : ($outflow->creditDebitNoteItem
                             ? ($outflow->creditDebitNoteItem->creditDebitNote->number_document ?? '')
-                            : ''),
+                            : ($outflow->fuelOutflow?->invoiceProduct?->invoice?->number_document ?? '')),
                     'supplier' => $outflow->invoiceProduct
                         ? ($outflow->invoiceProduct->invoice->supplier->name ?? '')
                         : ($outflow->creditDebitNoteItem
                             ? ($outflow->creditDebitNoteItem->creditDebitNote->supplier->name ?? '')
-                            : ''),
+                            : ($outflow->fuelOutflow?->invoiceProduct?->invoice?->supplier?->name ?? '')),
                     'project' => $outflow->project->name ?? '',
                     'operation' => $outflow->operation->name ?? '',
                     'investment' => $outflow->investment->name ?? '',
@@ -264,11 +268,17 @@ class OutflowsController extends Controller
                         ? ($outflow->invoiceProduct->product->name ?? '')
                         : ($outflow->creditDebitNoteItem
                             ? ($outflow->creditDebitNoteItem->product->name ?? '')
-                            : ''),
+                            : ($outflow->fuelOutflow
+                                ? ($outflow->fuelOutflow->product->name ?? '')
+                                : '')),
                     'quantity' => $outflow->quantity,
                     'unit_price' => $outflow->invoiceProduct
                         ? ($outflow->invoiceProduct->unit_price ?? null)
-                        : null,
+                        : ($outflow->creditDebitNoteItem
+                            ? ($outflow->creditDebitNoteItem->unit_price ?? null)
+                            : ($outflow->fuelOutflow
+                                ? ($outflow->fuelOutflow->invoiceProduct->unit_price ?? null)
+                                : null)),
                     'notes' => $outflow->notes,
                     'cost_centers' => $outflow->costCenters->map(function($cc) {
                         return [
@@ -286,7 +296,7 @@ class OutflowsController extends Controller
                         ? ($outflow->invoiceProduct->branch?->name ?? null)
                         : ($outflow->creditDebitNoteItem
                             ? ($outflow->creditDebitNoteItem->branch?->name ?? null)
-                            : null),
+                            : ($outflow->fuelOutflow?->invoiceProduct?->branch?->name ?? null)),
                 ];
             });
 

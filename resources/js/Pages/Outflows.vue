@@ -1122,8 +1122,8 @@ function copyToAllCards(sourceCardId) {
                           <tr 
                             v-for="outflow in sortedOutflowDetails" 
                             :key="outflow.id"
-                            @click="editOutflow(outflow)"
-                            style="cursor: pointer;"
+                            @click="!outflow.fuel_outflow_id && editOutflow(outflow)"
+                            :style="outflow.fuel_outflow_id ? 'cursor: default;' : 'cursor: pointer;'"
                           >
                             <td>{{ outflow.id }}</td>
                             <td>{{ outflow.date || '-' }}</td>
@@ -1198,12 +1198,22 @@ function copyToAllCards(sourceCardId) {
                             <td>{{ outflow.branch_name || '—' }}</td>
                             <td style="white-space:nowrap;">{{ outflow.user }}</td>
                             <td class="text-center" style="white-space:nowrap;">
-                              <button type="button" class="btn btn-icon btn-active-light-primary w-20px h-20px me-1" @click.stop="editOutflow(outflow)">
-                                <span class="fas fa-pen" style="font-size: 0.65rem;"></span>
-                              </button>
-                              <button type="button" class="btn btn-icon btn-active-light-danger w-20px h-20px" @click.stop="deleteOutflow(outflow)">
-                                <span class="fas fa-trash" style="font-size: 0.65rem;"></span>
-                              </button>
+                              <template v-if="outflow.fuel_outflow_id">
+                                <span
+                                  v-tooltip="'Esta salida proviene de Combustibles. Editarla o eliminarla desde ese módulo.'"
+                                  style="display:inline-flex; align-items:center; justify-content:center; width:40px; height:20px; cursor:help;"
+                                >
+                                  <span class="fas fa-lock text-muted" style="font-size: 0.7rem;"></span>
+                                </span>
+                              </template>
+                              <template v-else>
+                                <button type="button" class="btn btn-icon btn-active-light-primary w-20px h-20px me-1" @click.stop="editOutflow(outflow)">
+                                  <span class="fas fa-pen" style="font-size: 0.65rem;"></span>
+                                </button>
+                                <button type="button" class="btn btn-icon btn-active-light-danger w-20px h-20px" @click.stop="deleteOutflow(outflow)">
+                                  <span class="fas fa-trash" style="font-size: 0.65rem;"></span>
+                                </button>
+                              </template>
                             </td>
                           </tr>
                           <tr v-if="!props.outflowDetails || !props.outflowDetails.length">
