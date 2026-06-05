@@ -439,13 +439,14 @@ class FuelOutflowController extends Controller
             $counterDelta    = (float) $row->max_counter - (float) $row->min_counter;
             $unit            = $row->counter_name ?? '—';
             $isKm            = str_contains(strtolower($unit), 'odom') || str_contains(strtolower($unit), 'km');
-            $unitLabel       = $isKm ? 'L/km' : 'L/h';
+            $unitLabel       = $isKm ? 'km/L' : 'L/h';
 
             return [
                 'machinery_id'     => $row->machinery_id,
                 'machinery_name'   => $row->machinery_name,
                 'counter_name'     => $unit,
                 'unit_label'       => $unitLabel,
+                'is_odometer'      => $isKm,
                 'total_liters'     => round($totalLiters, 2),
                 'effective_liters' => round($effectiveLiters, 2),
                 'last_liters'      => round($lastLiters, 2),
@@ -453,9 +454,11 @@ class FuelOutflowController extends Controller
                 'counter_delta'    => round($counterDelta, 1),
                 'min_counter'      => round((float) $row->min_counter, 1),
                 'max_counter'      => round((float) $row->max_counter, 1),
-                // Need at least 2 records and valid delta to compute average
-                'avg_per_unit'     => ($counterDelta > 0 && (int)$row->record_count >= 2)
-                                        ? round($effectiveLiters / $counterDelta, 3)
+                // Para odómetro: km/L (mayor es mejor). Para horómetro: L/h.
+                'avg_per_unit'     => ($counterDelta > 0 && $effectiveLiters > 0 && (int)$row->record_count >= 2)
+                                        ? ($isKm
+                                            ? round($counterDelta / $effectiveLiters, 3)   // km/L
+                                            : round($effectiveLiters / $counterDelta, 3))  // L/h
                                         : null,
             ];
         });

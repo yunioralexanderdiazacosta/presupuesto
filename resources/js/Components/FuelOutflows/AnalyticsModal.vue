@@ -117,6 +117,7 @@ function closeModal() {
                                 data-bs-toggle="tab" 
                                 data-bs-target="#graficos-tab"
                                 type="button"
+                                @click="() => { chartKey++; }"
                             >
                                 <i class="fas fa-chart-bar me-1"></i> Gráficos
                             </button>
@@ -339,15 +340,15 @@ function closeModal() {
 
                                 <!-- Gráfico de Barras -->
                                 <div class="card mb-4">
-                                    <div class="card-body">
-                                        <div style="height: 380px;">
+                                    <div class="card-body p-2">
+                                        <div style="height: 420px; width: 100%; min-width: 0;">
                                             <FalconBarChart
                                                 :key="chartKey"
                                                 :barLabels="chartLabels"
                                                 :barData="chartData"
                                                 :color="chartColors"
-                                                :height="380"
-                                                containerStyle="height: 380px; width: 100%;"
+                                                :height="420"
+                                                containerStyle="height: 420px; width: 100%; min-width: 0;"
                                             />
                                         </div>
                                     </div>
@@ -457,7 +458,7 @@ function closeModal() {
                                                         <span>{{ m.min_counter.toLocaleString('es-CL') }} → {{ m.max_counter.toLocaleString('es-CL') }}</span>
                                                     </div>
                                                     <div class="d-flex justify-content-between border-bottom pb-1 mb-1">
-                                                        <span class="text-muted">Total {{ m.unit_label === 'L/km' ? 'km' : 'horas' }}</span>
+                                                        <span class="text-muted">Total {{ m.is_odometer ? 'km' : 'horas' }}</span>
                                                         <span>{{ m.counter_delta.toLocaleString('es-CL', { minimumFractionDigits: 1 }) }}</span>
                                                     </div>
                                                     <div class="d-flex justify-content-between">
