@@ -18,7 +18,7 @@ const props = defineProps({
 
 // Verifica si un producto está protegido (tiene salidas asociadas)
 const isProtected = (productId) => {
-    return props.protectedProductIds.includes(productId);
+    return props.protectedProductIds.some(id => String(id) === String(productId));
 }
 // Opciones de tipo documento desde Inertia (label, value)
 const typeDocuments = $page.typeDocuments || [];

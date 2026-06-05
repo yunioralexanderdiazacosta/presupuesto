@@ -664,6 +664,12 @@ const totalCompras = computed(() => {
                     <div class="col-auto">
                         <label class="form-label mb-0 small fw-semibold text-muted">
                             <i class="fas fa-building me-1"></i>Razón Social
+                            <span
+                                v-tooltip="'Las razones sociales disponibles provienen de las facturas de compra registradas y de las remuneraciones, según el centro de costo donde se imputó cada jornada.'"
+                                style="display:inline-block; cursor:help;"
+                            >
+                                <i class="fas fa-info-circle ms-1 text-muted" style="font-size:0.75rem;"></i>
+                            </span>
                         </label>
                     </div>
                     <div class="col" style="max-width: 360px;">

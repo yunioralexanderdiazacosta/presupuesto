@@ -530,6 +530,198 @@ onUpdated(() => {
 });
 
 // Función para mostrar detalles de centros de costo adicionales
+// ── Consumo Matriz: columnas dinámicas de CC ──────────────────────────────
+const ccColumns = computed(() => {
+  const all = props.cost_centers || [];
+  // Sin filtro activo: mostrar todos
+  if (!filterBranchEdicion.value) return all;
+  // Con filtro: mostrar solo los CCs que aparecen en los outflows filtrados
+  const usedCcIds = new Set();
+  sortedOutflowDetails.value.forEach(outflow => {
+    (outflow.cost_centers || []).forEach(cc => {
+      if (cc.id) usedCcIds.add(String(cc.id));
+    });
+  });
+  return all.filter(cc => usedCcIds.has(String(cc.value)));
+});
+
+/**
+ * Calcula el monto prorrateado (en pesos) para un outflow en un CC dado.
+ * Devuelve null si el CC no está asignado al outflow.
+ */
+function getProrationAmount(outflow, ccId) {
+  const ccs = outflow.cost_centers || [];
+  const ccMatch = ccs.find(cc => String(cc.id) === String(ccId));
+  if (!ccMatch) return null;
+
+  const totalSuperficie = ccs.reduce((sum, cc) => sum + (Number(cc.surface) || 0), 0);
+  const superficie = Number(ccMatch.surface) || 0;
+  const quantity = Number(outflow.quantity) || 0;
+  const unitPrice = Number(outflow.unit_price) || 0;
+
+  let cantidadAsignada;
+  if (totalSuperficie > 0 && superficie > 0) {
+    cantidadAsignada = (superficie / totalSuperficie) * quantity;
+  } else {
+    cantidadAsignada = quantity;
+  }
+  return cantidadAsignada * unitPrice;
+}
+
+/** Suma total de la columna de un CC sobre todos los outflows filtrados */
+function ccColumnTotal(ccId) {
+  return sortedOutflowDetails.value.reduce((sum, outflow) => {
+    const val = getProrationAmount(outflow, ccId);
+    return sum + (val !== null ? val : 0);
+  }, 0);
+}
+
+/**
+ * Costo por hectárea para un outflow en un CC dado.
+ * = monto prorrateado / superficie_CC
+ * Devuelve null si el CC no está asignado o si superficie = 0.
+ */
+function getProrationPerHa(outflow, ccId) {
+  const ccs = outflow.cost_centers || [];
+  const ccMatch = ccs.find(cc => String(cc.id) === String(ccId));
+  if (!ccMatch) return null;
+  const superficie = Number(ccMatch.surface) || 0;
+  if (superficie === 0) return null;
+  const montoProrrateado = getProrationAmount(outflow, ccId);
+  if (montoProrrateado === null) return null;
+  return montoProrrateado / superficie;
+}
+
+function ccColumnTotalPerHa(ccId) {
+  return sortedOutflowDetails.value.reduce((sum, outflow) => {
+    const val = getProrationPerHa(outflow, ccId);
+    return sum + (val !== null ? val : 0);
+  }, 0);
+}
+
+/** Datos para exportar la tabla Consumo Matriz Hectárea a Excel */
+const matrizHaExcelData = computed(() => {
+  return sortedOutflowDetails.value.map(outflow => {
+    const row = {
+      id: outflow.id,
+      fecha_digitacion: outflow.date,
+      numero_documento: outflow.number_document,
+      proveedor: outflow.supplier,
+      fecha_factura: outflow.fecha_factura,
+      mes_contable: outflow.mes_contable || '',
+      producto: outflow.product,
+      nivel_1: outflow.level1_name || '',
+      nivel_2: outflow.level2_name || '',
+      nivel_3: outflow.level3_name || '',
+      precio_unitario: Number(outflow.unit_price || 0),
+      proyecto: outflow.project || '',
+      operacion: outflow.operation || '',
+      inversion: outflow.investment || '',
+      maquinaria: outflow.machinery || '',
+      cantidad: Number(outflow.quantity || 0),
+      total: Math.round(Number(outflow.unit_price || 0) * Number(outflow.quantity || 0)),
+      sucursal: outflow.branch_name || '',
+    };
+    (props.cost_centers || []).forEach(cc => {
+      const val = getProrationPerHa(outflow, cc.value);
+      row['cc_' + cc.value] = val !== null ? Math.round(val) : '';
+    });
+    return row;
+  });
+});
+
+const matrizHaExcelHeaders = computed(() => {
+  const fixed = [
+    { label: 'ID', key: 'id' },
+    { label: 'Fecha dig.', key: 'fecha_digitacion' },
+    { label: 'N° Doc', key: 'numero_documento' },
+    { label: 'Proveedor', key: 'proveedor' },
+    { label: 'Fecha factura', key: 'fecha_factura' },
+    { label: 'Mes contable', key: 'mes_contable' },
+    { label: 'Producto', key: 'producto' },
+    { label: 'Nivel 1', key: 'nivel_1' },
+    { label: 'Nivel 2', key: 'nivel_2' },
+    { label: 'Nivel 3', key: 'nivel_3' },
+    { label: 'Precio Unit.', key: 'precio_unitario', type: 'number' },
+    { label: 'Proyecto', key: 'proyecto' },
+    { label: 'Operación', key: 'operacion' },
+    { label: 'Inversión', key: 'inversion' },
+    { label: 'Maquinaria', key: 'maquinaria' },
+    { label: 'Cantidad', key: 'cantidad', type: 'number' },
+    { label: 'Total', key: 'total', type: 'number' },
+    { label: 'Sucursal', key: 'sucursal' },
+  ];
+  const ccHeaders = (props.cost_centers || []).map(cc => ({
+    label: cc.label + ' ($/ha)',
+    key: 'cc_' + cc.value,
+    type: 'number',
+  }));
+  return [...fixed, ...ccHeaders];
+});
+
+/** Datos para exportar la tabla Consumo Matriz a Excel */
+const matrizExcelData = computed(() => {
+  return sortedOutflowDetails.value.map(outflow => {
+    const row = {
+      id: outflow.id,
+      fecha_digitacion: outflow.date,
+      numero_documento: outflow.number_document,
+      proveedor: outflow.supplier,
+      fecha_factura: outflow.fecha_factura,
+      mes_contable: outflow.mes_contable || '',
+      producto: outflow.product,
+      nivel_1: outflow.level1_name || '',
+      nivel_2: outflow.level2_name || '',
+      nivel_3: outflow.level3_name || '',
+      precio_unitario: Number(outflow.unit_price || 0),
+      proyecto: outflow.project || '',
+      operacion: outflow.operation || '',
+      inversion: outflow.investment || '',
+      maquinaria: outflow.machinery || '',
+      cantidad: Number(outflow.quantity || 0),
+      total: Math.round(Number(outflow.unit_price || 0) * Number(outflow.quantity || 0)),
+      sucursal: outflow.branch_name || '',
+    };
+    // columnas dinámicas por CC
+    (props.cost_centers || []).forEach(cc => {
+      const val = getProrationAmount(outflow, cc.value);
+      row['cc_' + cc.value] = val !== null ? Math.round(val) : '';
+    });
+    return row;
+  });
+});
+
+/** Headers dinámicos para el Excel de la Consumo Matriz */
+const matrizExcelHeaders = computed(() => {
+  const fixed = [
+    { label: 'ID', key: 'id' },
+    { label: 'Fecha dig.', key: 'fecha_digitacion' },
+    { label: 'N° Doc', key: 'numero_documento' },
+    { label: 'Proveedor', key: 'proveedor' },
+    { label: 'Fecha factura', key: 'fecha_factura' },
+    { label: 'Mes contable', key: 'mes_contable' },
+    { label: 'Producto', key: 'producto' },
+    { label: 'Nivel 1', key: 'nivel_1' },
+    { label: 'Nivel 2', key: 'nivel_2' },
+    { label: 'Nivel 3', key: 'nivel_3' },
+    { label: 'Precio Unit.', key: 'precio_unitario', type: 'number' },
+    { label: 'Proyecto', key: 'proyecto' },
+    { label: 'Operación', key: 'operacion' },
+    { label: 'Inversión', key: 'inversion' },
+    { label: 'Maquinaria', key: 'maquinaria' },
+    { label: 'Cantidad', key: 'cantidad', type: 'number' },
+    { label: 'Total', key: 'total', type: 'number' },
+    { label: 'Sucursal', key: 'sucursal' },
+  ];
+  const ccHeaders = (props.cost_centers || []).map(cc => ({
+    label: cc.label,
+    key: 'cc_' + cc.value,
+    type: 'number',
+  }));
+  return [...fixed, ...ccHeaders];
+});
+// ──────────────────────────────────────────────────────────────────────────
+
 const showMoreCenters = (centers) => {
   const items = centers.slice(2).map(cc => {
     return `<li><strong>${cc.name}</strong>${cc.observations ? ' - ' + cc.observations : ''}</li>`;
@@ -769,8 +961,8 @@ function copyToAllCards(sourceCardId) {
                       <ul class="nav nav-pills" id="pill-myTab" role="tablist">
                         <li class="nav-item"><a class="nav-link active" id="pill-edicion" data-bs-toggle="tab" href="#pill-tab-edicion" role="tab" aria-controls="pill-tab-edicion" aria-selected="true">Edición</a></li>
                         <li class="nav-item"><a class="nav-link" id="pill-salidas" data-bs-toggle="tab" href="#pill-tab-salidas" role="tab" aria-controls="pill-tab-salidas" aria-selected="false">Disponible para Salida</a></li>
-                        <li class="nav-item"><a class="nav-link" id="pill-gastos" data-bs-toggle="tab" href="#pill-tab-gastos" role="tab" aria-controls="pill-tab-gastos" aria-selected="false">kjhyuass</a></li>
-                        <li class="nav-item"><a class="nav-link" id="pill-detalles-compra" data-bs-toggle="tab" href="#pill-tab-detalles-compra" role="tab" aria-controls="pill-tab-detalles-compra" aria-selected="false">kjuh</a></li>
+                        <li class="nav-item"><a class="nav-link" id="pill-gastos" data-bs-toggle="tab" href="#pill-tab-gastos" role="tab" aria-controls="pill-tab-gastos" aria-selected="false">Consumo Matriz</a></li>
+                        <li class="nav-item"><a class="nav-link" id="pill-detalles-compra" data-bs-toggle="tab" href="#pill-tab-detalles-compra" role="tab" aria-controls="pill-tab-detalles-compra" aria-selected="false">Consumo Matriz Hectárea</a></li>
                       </ul>
                     </div>
                     <div class="col-auto text-end">
@@ -791,107 +983,59 @@ function copyToAllCards(sourceCardId) {
                
                   <div class="tab-pane fade show active" id="pill-tab-edicion" role="tabpanel" aria-labelledby="pill-edicion">
                     <!-- Filtros compactos en una sola fila -->
-                    <div class="d-flex flex-wrap align-items-end gap-2 mb-2">
+                    <div class="d-flex flex-wrap align-items-center gap-2 mb-2">
                       <div style="min-width: 180px; flex: 1 1 180px; max-width: 250px;">
                         <SearchInput v-model="termEdicion" placeholder="Buscar..." />
                       </div>
-                      <div style="min-width: 120px; flex: 0 1 140px;">
-                        <label class="form-label small mb-0">Mes</label>
-                        <Multiselect
-                          v-model="filterMes"
-                          :options="mesOptions"
-                          :searchable="true"
-                          placeholder="Todos"
-                          :canClear="true"
-                          :canDeselect="true"
-                          class="multiselect-sm"
-                        />
-                      </div>
-                      <div style="min-width: 120px; flex: 0 1 140px;">
-                        <label class="form-label small mb-0">Operación</label>
-                        <Multiselect
-                          v-model="filterOperation"
-                          :options="operationOptions"
-                          :searchable="true"
-                          placeholder="Todas"
-                          :canClear="true"
-                          :canDeselect="true"
-                          class="multiselect-sm"
-                        />
-                      </div>
-                      <div style="min-width: 160px; flex: 0 1 210px;">
-                        <label class="form-label small mb-0">Proveedor</label>
-                        <Multiselect
-                          v-model="filterSupplier"
-                          :options="supplierOptions"
-                          :searchable="true"
-                          placeholder="Todos"
-                          :canClear="true"
-                          :canDeselect="true"
-                          class="multiselect-sm"
-                        />
-                      </div>
-                      <div style="min-width: 120px; flex: 0 1 130px;">
-                        <label class="form-label small mb-0">Nivel 1</label>
-                        <Multiselect
-                          v-model="filterLevel1"
-                          :options="level1Options"
-                          :searchable="true"
-                          placeholder="Todos"
-                          :canClear="true"
-                          :canDeselect="true"
-                          class="multiselect-sm"
-                        />
-                      </div>
-                      <div style="min-width: 120px; flex: 0 1 130px;">
-                        <label class="form-label small mb-0">Nivel 2</label>
-                        <Multiselect
-                          v-model="filterLevel2"
-                          :options="level2Options"
-                          :searchable="true"
-                          placeholder="Todos"
-                          :canClear="true"
-                          :canDeselect="true"
-                          class="multiselect-sm"
-                        />
-                      </div>
-                      <div style="min-width: 120px; flex: 0 1 130px;">
-                        <label class="form-label small mb-0">Nivel 3</label>
-                        <Multiselect
-                          v-model="filterLevel3"
-                          :options="level3Options"
-                          :searchable="true"
-                          placeholder="Todos"
-                          :canClear="true"
-                          :canDeselect="true"
-                          class="multiselect-sm"
-                        />
+                      <div style="min-width: 110px; flex: 0 1 130px;">
+                        <select v-model="filterMes" class="form-select form-select-sm" style="font-size:0.72rem;">
+                          <option :value="null">Todos los meses</option>
+                          <option v-for="o in mesOptions" :key="o.value" :value="o.value">{{ o.label }}</option>
+                        </select>
                       </div>
                       <div style="min-width: 130px; flex: 0 1 160px;">
-                        <label class="form-label small mb-0">Proyecto</label>
-                        <Multiselect
-                          v-model="filterProject"
-                          :options="projectOptions"
-                          :searchable="true"
-                          placeholder="Todos"
-                          :canClear="true"
-                          :canDeselect="true"
-                          class="multiselect-sm"
-                        />
+                        <select v-model="filterOperation" class="form-select form-select-sm" style="font-size:0.72rem;">
+                          <option :value="null">Todas las operaciones</option>
+                          <option v-for="o in operationOptions" :key="o.value" :value="o.value">{{ o.label }}</option>
+                        </select>
+                      </div>
+                      <div style="min-width: 160px; flex: 0 1 210px;">
+                        <select v-model="filterSupplier" class="form-select form-select-sm" style="font-size:0.72rem;">
+                          <option :value="null">Todos los proveedores</option>
+                          <option v-for="o in supplierOptions" :key="o.value" :value="o.value">{{ o.label }}</option>
+                        </select>
+                      </div>
+                      <div style="min-width: 120px; flex: 0 1 130px;">
+                        <select v-model="filterLevel1" class="form-select form-select-sm" style="font-size:0.72rem;">
+                          <option :value="null">Nivel 1</option>
+                          <option v-for="o in level1Options" :key="o.value" :value="o.value">{{ o.label }}</option>
+                        </select>
+                      </div>
+                      <div style="min-width: 120px; flex: 0 1 130px;">
+                        <select v-model="filterLevel2" class="form-select form-select-sm" style="font-size:0.72rem;" :disabled="!filterLevel1">
+                          <option :value="null">Nivel 2</option>
+                          <option v-for="o in level2Options" :key="o.value" :value="o.value">{{ o.label }}</option>
+                        </select>
+                      </div>
+                      <div style="min-width: 120px; flex: 0 1 130px;">
+                        <select v-model="filterLevel3" class="form-select form-select-sm" style="font-size:0.72rem;" :disabled="!filterLevel2">
+                          <option :value="null">Nivel 3</option>
+                          <option v-for="o in level3Options" :key="o.value" :value="o.value">{{ o.label }}</option>
+                        </select>
+                      </div>
+                      <div style="min-width: 130px; flex: 0 1 160px;">
+                        <select v-model="filterProject" class="form-select form-select-sm" style="font-size:0.72rem;">
+                          <option :value="null">Todos los proyectos</option>
+                          <option v-for="o in projectOptions" :key="o.value" :value="o.value">{{ o.label }}</option>
+                        </select>
                       </div>
                       <div style="min-width: 120px; flex: 0 1 150px;">
-                        <label class="form-label small mb-0">Sucursal</label>
-                        <Multiselect
-                          v-model="filterBranchEdicion"
-                          :options="branchEdicionOptions"
-                          :searchable="true"
-                          placeholder="Todas"
-                          :canClear="true"
-                          :canDeselect="true"
-                          class="multiselect-sm"
-                        />
+                        <select v-model="filterBranchEdicion" class="form-select form-select-sm" style="font-size:0.72rem;">
+                          <option :value="null">Todas las sucursales</option>
+                          <option v-for="o in branchEdicionOptions" :key="o.value" :value="o.value">{{ o.label }}</option>
+                        </select>
                       </div>
-                      <div class="d-flex align-items-end gap-1" style="flex-shrink: 0;">
+                      <div class="d-flex align-items-center gap-1" style="flex-shrink: 0;">
                         <button 
                           v-if="hasActiveFilters || isReloading"
                           type="button" 
@@ -1370,6 +1514,332 @@ function copyToAllCards(sourceCardId) {
                 </div>
                     <!-- Fin cards -->
                   </div>
+                  <!-- ── Tab Consumo Matriz ───────────────────────────────────────── -->
+                  <div class="tab-pane fade" id="pill-tab-gastos" role="tabpanel" aria-labelledby="pill-gastos">
+                    <!-- Filtros -->
+                    <div class="d-flex flex-wrap gap-2 align-items-center mb-2">
+                      <div style="min-width:180px; flex:1 1 180px; max-width:260px;">
+                        <SearchInput v-model="termEdicion" placeholder="Buscar..." />
+                      </div>
+                      <div style="min-width:110px; flex:0 1 130px;">
+                        <select v-model="filterMes" class="form-select form-select-sm" style="font-size:0.72rem;">
+                          <option :value="null">Todos los meses</option>
+                          <option v-for="o in mesOptions" :key="o.value" :value="o.value">{{ o.label }}</option>
+                        </select>
+                      </div>
+                      <div style="min-width:130px; flex:0 1 160px;">
+                        <select v-model="filterOperation" class="form-select form-select-sm" style="font-size:0.72rem;">
+                          <option :value="null">Todas las operaciones</option>
+                          <option v-for="o in operationOptions" :key="o.value" :value="o.value">{{ o.label }}</option>
+                        </select>
+                      </div>
+                      <div style="min-width:130px; flex:0 1 180px;">
+                        <select v-model="filterSupplier" class="form-select form-select-sm" style="font-size:0.72rem;">
+                          <option :value="null">Todos los proveedores</option>
+                          <option v-for="o in supplierOptions" :key="o.value" :value="o.value">{{ o.label }}</option>
+                        </select>
+                      </div>
+                      <div style="min-width:120px; flex:0 1 150px;">
+                        <select v-model="filterLevel1" class="form-select form-select-sm" style="font-size:0.72rem;">
+                          <option :value="null">Nivel 1</option>
+                          <option v-for="o in level1Options" :key="o.value" :value="o.value">{{ o.label }}</option>
+                        </select>
+                      </div>
+                      <div style="min-width:120px; flex:0 1 150px;">
+                        <select v-model="filterLevel2" class="form-select form-select-sm" style="font-size:0.72rem;" :disabled="!filterLevel1">
+                          <option :value="null">Nivel 2</option>
+                          <option v-for="o in level2Options" :key="o.value" :value="o.value">{{ o.label }}</option>
+                        </select>
+                      </div>
+                      <div style="min-width:120px; flex:0 1 150px;">
+                        <select v-model="filterLevel3" class="form-select form-select-sm" style="font-size:0.72rem;" :disabled="!filterLevel2">
+                          <option :value="null">Nivel 3</option>
+                          <option v-for="o in level3Options" :key="o.value" :value="o.value">{{ o.label }}</option>
+                        </select>
+                      </div>
+                      <div style="min-width:120px; flex:0 1 150px;">
+                        <select v-model="filterProject" class="form-select form-select-sm" style="font-size:0.72rem;">
+                          <option :value="null">Todos los proyectos</option>
+                          <option v-for="o in projectOptions" :key="o.value" :value="o.value">{{ o.label }}</option>
+                        </select>
+                      </div>
+                      <div style="min-width:120px; flex:0 1 150px;">
+                        <select v-model="filterBranchEdicion" class="form-select form-select-sm" style="font-size:0.72rem;">
+                          <option :value="null">Todas las sucursales</option>
+                          <option v-for="o in branchEdicionOptions" :key="o.value" :value="o.value">{{ o.label }}</option>
+                        </select>
+                      </div>
+                      <button
+                        v-if="hasActiveFilters"
+                        type="button"
+                        class="btn btn-falcon-default btn-sm"
+                        @click="filterMes=null; filterOperation=null; filterSupplier=null; filterLevel1=null; filterLevel2=null; filterLevel3=null; filterProject=null; filterBranchEdicion=null; termEdicion='';"
+                        title="Limpiar filtros"
+                      ><i class="fas fa-times"></i></button>
+                      <ExportExcelButton
+                        :data="matrizExcelData"
+                        :headers="matrizExcelHeaders"
+                        filename="consumo_matriz.xlsx"
+                        class="btn btn-falcon-default btn-sm py-1"
+                      >
+                        <i class="fas fa-file-excel me-1"></i> Excel
+                      </ExportExcelButton>
+                      <small class="text-muted ms-auto">{{ sortedOutflowDetails.length }} registros</small>
+                    </div>
+                    <div style="max-height: 520px; overflow: auto;">
+                      <table class="table table-bordered table-striped table-hover table-sm mb-0" style="font-size:0.7rem; min-width: max-content;">
+                        <thead class="table-primary" style="position: sticky; top: 0; z-index: 10;">
+                          <tr>
+                            <!-- Columnas fijas -->
+                            <th style="white-space:nowrap;">ID</th>
+                            <th style="white-space:nowrap;">Fecha dig.</th>
+                            <th style="white-space:nowrap;">N° Doc</th>
+                            <th style="white-space:nowrap;">Proveedor</th>
+                            <th style="white-space:nowrap;">Fecha factura</th>
+                            <th style="white-space:nowrap;">Mes contable</th>
+                            <th style="white-space:nowrap;">Producto</th>
+                            <th style="white-space:nowrap;">Nivel 1</th>
+                            <th style="white-space:nowrap;">Nivel 2</th>
+                            <th style="white-space:nowrap;">Nivel 3</th>
+                            <th class="text-end" style="white-space:nowrap;">Precio Unit.</th>
+                            <th style="white-space:nowrap;">Proyecto</th>
+                            <th style="white-space:nowrap;">Operación</th>
+                            <th style="white-space:nowrap;">Inversión</th>
+                            <th style="white-space:nowrap;">Maquinaria</th>
+                            <th class="text-end" style="white-space:nowrap;">Cantidad</th>
+                            <th class="text-end" style="white-space:nowrap;">Total</th>
+                            <th style="white-space:nowrap;">Sucursal</th>
+                            <!-- Columnas dinámicas por CC -->
+                            <th
+                              v-for="cc in ccColumns"
+                              :key="cc.value"
+                              class="text-end"
+                              style="white-space:nowrap; background:#d4e6f1;"
+                            >{{ cc.label }}</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          <tr v-if="!sortedOutflowDetails.length">
+                            <td :colspan="18 + ccColumns.length" class="text-center py-3 text-muted">No hay salidas registradas.</td>
+                          </tr>
+                          <tr v-for="outflow in sortedOutflowDetails" :key="outflow.id">
+                            <td>{{ outflow.id }}</td>
+                            <td style="white-space:nowrap;">{{ outflow.date }}</td>
+                            <td style="white-space:nowrap;">{{ outflow.number_document }}</td>
+                            <td style="max-width:130px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;" :title="outflow.supplier">{{ outflow.supplier }}</td>
+                            <td style="white-space:nowrap;">{{ outflow.fecha_factura }}</td>
+                            <td style="white-space:nowrap;">{{ outflow.mes_contable || '—' }}</td>
+                            <td style="max-width:150px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;" :title="outflow.product">{{ outflow.product }}</td>
+                            <td style="white-space:nowrap;">{{ outflow.level1_name || '—' }}</td>
+                            <td style="white-space:nowrap;">{{ outflow.level2_name || '—' }}</td>
+                            <td style="white-space:nowrap;">{{ outflow.level3_name || '—' }}</td>
+                            <td class="text-end" style="white-space:nowrap;">${{ Number(outflow.unit_price || 0).toLocaleString('es-ES') }}</td>
+                            <td style="white-space:nowrap;">{{ outflow.project || '—' }}</td>
+                            <td style="white-space:nowrap;">{{ outflow.operation || '—' }}</td>
+                            <td style="white-space:nowrap;">{{ outflow.investment || '—' }}</td>
+                            <td style="white-space:nowrap;">{{ outflow.machinery || '—' }}</td>
+                            <td class="text-end" style="white-space:nowrap;">{{ Number(outflow.quantity || 0).toLocaleString('es-ES') }}</td>
+                            <td class="text-end" style="white-space:nowrap;">${{ (Number(outflow.unit_price || 0) * Number(outflow.quantity || 0)).toLocaleString('es-ES', {maximumFractionDigits:0}) }}</td>
+                            <td style="white-space:nowrap;">{{ outflow.branch_name || '—' }}</td>
+                            <!-- Celdas dinámicas por CC -->
+                            <td
+                              v-for="cc in ccColumns"
+                              :key="cc.value"
+                              class="text-end"
+                              style="white-space:nowrap;"
+                            >
+                              <template v-if="getProrationAmount(outflow, cc.value) !== null">
+                                ${{ Math.round(getProrationAmount(outflow, cc.value)).toLocaleString('es-ES') }}
+                              </template>
+                              <template v-else>
+                                <span class="text-muted">—</span>
+                              </template>
+                            </td>
+                          </tr>
+                        </tbody>
+                        <!-- Fila de totales -->
+                        <tfoot v-if="sortedOutflowDetails.length" style="position:sticky; bottom:0; z-index:5;">
+                          <tr class="table-secondary fw-bold">
+                            <td :colspan="16" class="text-end" style="white-space:nowrap;">Total</td>
+                            <td class="text-end" style="white-space:nowrap;">
+                              ${{ sortedOutflowDetails.reduce((s, o) => s + Number(o.unit_price||0)*Number(o.quantity||0), 0).toLocaleString('es-ES', {maximumFractionDigits:0}) }}
+                            </td>
+                            <td></td>
+                            <td
+                              v-for="cc in ccColumns"
+                              :key="cc.value"
+                              class="text-end"
+                              style="white-space:nowrap;"
+                            >
+                              ${{ Math.round(ccColumnTotal(cc.value)).toLocaleString('es-ES') }}
+                            </td>
+                          </tr>
+                        </tfoot>
+                      </table>
+                    </div>
+                  </div>
+                  <!-- ──────────────────────────────────────────────────────────────── -->
+                  <!-- ── Tab Consumo Matriz Hectárea ──────────────────────────────── -->
+                  <div class="tab-pane fade" id="pill-tab-detalles-compra" role="tabpanel" aria-labelledby="pill-detalles-compra">
+                    <!-- Filtros -->
+                    <div class="d-flex flex-wrap gap-2 align-items-center mb-2">
+                      <div style="min-width:180px; flex:1 1 180px; max-width:260px;">
+                        <SearchInput v-model="termEdicion" placeholder="Buscar..." />
+                      </div>
+                      <div style="min-width:110px; flex:0 1 130px;">
+                        <select v-model="filterMes" class="form-select form-select-sm" style="font-size:0.72rem;">
+                          <option :value="null">Todos los meses</option>
+                          <option v-for="o in mesOptions" :key="o.value" :value="o.value">{{ o.label }}</option>
+                        </select>
+                      </div>
+                      <div style="min-width:130px; flex:0 1 160px;">
+                        <select v-model="filterOperation" class="form-select form-select-sm" style="font-size:0.72rem;">
+                          <option :value="null">Todas las operaciones</option>
+                          <option v-for="o in operationOptions" :key="o.value" :value="o.value">{{ o.label }}</option>
+                        </select>
+                      </div>
+                      <div style="min-width:130px; flex:0 1 180px;">
+                        <select v-model="filterSupplier" class="form-select form-select-sm" style="font-size:0.72rem;">
+                          <option :value="null">Todos los proveedores</option>
+                          <option v-for="o in supplierOptions" :key="o.value" :value="o.value">{{ o.label }}</option>
+                        </select>
+                      </div>
+                      <div style="min-width:120px; flex:0 1 150px;">
+                        <select v-model="filterLevel1" class="form-select form-select-sm" style="font-size:0.72rem;">
+                          <option :value="null">Nivel 1</option>
+                          <option v-for="o in level1Options" :key="o.value" :value="o.value">{{ o.label }}</option>
+                        </select>
+                      </div>
+                      <div style="min-width:120px; flex:0 1 150px;">
+                        <select v-model="filterLevel2" class="form-select form-select-sm" style="font-size:0.72rem;" :disabled="!filterLevel1">
+                          <option :value="null">Nivel 2</option>
+                          <option v-for="o in level2Options" :key="o.value" :value="o.value">{{ o.label }}</option>
+                        </select>
+                      </div>
+                      <div style="min-width:120px; flex:0 1 150px;">
+                        <select v-model="filterLevel3" class="form-select form-select-sm" style="font-size:0.72rem;" :disabled="!filterLevel2">
+                          <option :value="null">Nivel 3</option>
+                          <option v-for="o in level3Options" :key="o.value" :value="o.value">{{ o.label }}</option>
+                        </select>
+                      </div>
+                      <div style="min-width:120px; flex:0 1 150px;">
+                        <select v-model="filterProject" class="form-select form-select-sm" style="font-size:0.72rem;">
+                          <option :value="null">Todos los proyectos</option>
+                          <option v-for="o in projectOptions" :key="o.value" :value="o.value">{{ o.label }}</option>
+                        </select>
+                      </div>
+                      <div style="min-width:120px; flex:0 1 150px;">
+                        <select v-model="filterBranchEdicion" class="form-select form-select-sm" style="font-size:0.72rem;">
+                          <option :value="null">Todas las sucursales</option>
+                          <option v-for="o in branchEdicionOptions" :key="o.value" :value="o.value">{{ o.label }}</option>
+                        </select>
+                      </div>
+                      <button
+                        v-if="hasActiveFilters"
+                        type="button"
+                        class="btn btn-falcon-default btn-sm"
+                        @click="filterMes=null; filterOperation=null; filterSupplier=null; filterLevel1=null; filterLevel2=null; filterLevel3=null; filterProject=null; filterBranchEdicion=null; termEdicion='';"
+                        title="Limpiar filtros"
+                      ><i class="fas fa-times"></i></button>
+                      <ExportExcelButton
+                        :data="matrizHaExcelData"
+                        :headers="matrizHaExcelHeaders"
+                        filename="consumo_matriz_ha.xlsx"
+                        class="btn btn-falcon-default btn-sm py-1"
+                      >
+                        <i class="fas fa-file-excel me-1"></i> Excel
+                      </ExportExcelButton>
+                      <small class="text-muted ms-auto">{{ sortedOutflowDetails.length }} registros</small>
+                    </div>
+                    <div style="max-height: 520px; overflow: auto;">
+                      <table class="table table-bordered table-striped table-hover table-sm mb-0" style="font-size:0.7rem; min-width: max-content;">
+                        <thead class="table-success" style="position: sticky; top: 0; z-index: 10;">
+                          <tr>
+                            <th style="white-space:nowrap;">ID</th>
+                            <th style="white-space:nowrap;">Fecha dig.</th>
+                            <th style="white-space:nowrap;">N° Doc</th>
+                            <th style="white-space:nowrap;">Proveedor</th>
+                            <th style="white-space:nowrap;">Fecha factura</th>
+                            <th style="white-space:nowrap;">Mes contable</th>
+                            <th style="white-space:nowrap;">Producto</th>
+                            <th style="white-space:nowrap;">Nivel 1</th>
+                            <th style="white-space:nowrap;">Nivel 2</th>
+                            <th style="white-space:nowrap;">Nivel 3</th>
+                            <th class="text-end" style="white-space:nowrap;">Precio Unit.</th>
+                            <th style="white-space:nowrap;">Proyecto</th>
+                            <th style="white-space:nowrap;">Operación</th>
+                            <th style="white-space:nowrap;">Inversión</th>
+                            <th style="white-space:nowrap;">Maquinaria</th>
+                            <th class="text-end" style="white-space:nowrap;">Cantidad</th>
+                            <th class="text-end" style="white-space:nowrap;">Total</th>
+                            <th style="white-space:nowrap;">Sucursal</th>
+                            <th
+                              v-for="cc in ccColumns"
+                              :key="cc.value"
+                              class="text-end"
+                              style="white-space:nowrap; background:#d5f5e3;"
+                            >{{ cc.label }} <small class="text-muted">($/ha)</small></th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          <tr v-if="!sortedOutflowDetails.length">
+                            <td :colspan="18 + ccColumns.length" class="text-center py-3 text-muted">No hay salidas registradas.</td>
+                          </tr>
+                          <tr v-for="outflow in sortedOutflowDetails" :key="outflow.id">
+                            <td>{{ outflow.id }}</td>
+                            <td style="white-space:nowrap;">{{ outflow.date }}</td>
+                            <td style="white-space:nowrap;">{{ outflow.number_document }}</td>
+                            <td style="max-width:130px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;" :title="outflow.supplier">{{ outflow.supplier }}</td>
+                            <td style="white-space:nowrap;">{{ outflow.fecha_factura }}</td>
+                            <td style="white-space:nowrap;">{{ outflow.mes_contable || '—' }}</td>
+                            <td style="max-width:150px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;" :title="outflow.product">{{ outflow.product }}</td>
+                            <td style="white-space:nowrap;">{{ outflow.level1_name || '—' }}</td>
+                            <td style="white-space:nowrap;">{{ outflow.level2_name || '—' }}</td>
+                            <td style="white-space:nowrap;">{{ outflow.level3_name || '—' }}</td>
+                            <td class="text-end" style="white-space:nowrap;">${{ Number(outflow.unit_price || 0).toLocaleString('es-ES') }}</td>
+                            <td style="white-space:nowrap;">{{ outflow.project || '—' }}</td>
+                            <td style="white-space:nowrap;">{{ outflow.operation || '—' }}</td>
+                            <td style="white-space:nowrap;">{{ outflow.investment || '—' }}</td>
+                            <td style="white-space:nowrap;">{{ outflow.machinery || '—' }}</td>
+                            <td class="text-end" style="white-space:nowrap;">{{ Number(outflow.quantity || 0).toLocaleString('es-ES') }}</td>
+                            <td class="text-end" style="white-space:nowrap;">${{ (Number(outflow.unit_price || 0) * Number(outflow.quantity || 0)).toLocaleString('es-ES', {maximumFractionDigits:0}) }}</td>
+                            <td style="white-space:nowrap;">{{ outflow.branch_name || '—' }}</td>
+                            <td
+                              v-for="cc in ccColumns"
+                              :key="cc.value"
+                              class="text-end"
+                              style="white-space:nowrap;"
+                            >
+                              <template v-if="getProrationPerHa(outflow, cc.value) !== null">
+                                ${{ Math.round(getProrationPerHa(outflow, cc.value)).toLocaleString('es-ES') }}
+                              </template>
+                              <template v-else>
+                                <span class="text-muted">—</span>
+                              </template>
+                            </td>
+                          </tr>
+                        </tbody>
+                        <tfoot v-if="sortedOutflowDetails.length" style="position:sticky; bottom:0; z-index:5;">
+                          <tr class="table-secondary fw-bold">
+                            <td :colspan="16" class="text-end" style="white-space:nowrap;">Total</td>
+                            <td class="text-end" style="white-space:nowrap;">
+                              ${{ sortedOutflowDetails.reduce((s, o) => s + Number(o.unit_price||0)*Number(o.quantity||0), 0).toLocaleString('es-ES', {maximumFractionDigits:0}) }}
+                            </td>
+                            <td></td>
+                            <td
+                              v-for="cc in ccColumns"
+                              :key="cc.value"
+                              class="text-end"
+                              style="white-space:nowrap;"
+                            >
+                              ${{ Math.round(ccColumnTotalPerHa(cc.value)).toLocaleString('es-ES') }}
+                            </td>
+                          </tr>
+                        </tfoot>
+                      </table>
+                    </div>
+                  </div>
+                  <!-- ──────────────────────────────────────────────────────────────── -->
                </div>
               </div>
             </div>

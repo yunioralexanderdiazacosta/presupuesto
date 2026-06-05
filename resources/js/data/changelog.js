@@ -7,6 +7,16 @@
 
 export const changelog = [
   {
+    fecha: '2026-06-04',
+    titulo: 'Salidas — Tabla Consumo Matriz con prorrateo por CC',
+    items: [
+      'Se agrega la pestaña "Consumo Matriz" en la vista de Salidas.',
+      'Muestra una fila por cada salida registrada (producto × factura) con columnas dinámicas, una por cada centro de costo de la temporada.',
+      'Cada celda muestra el monto en pesos prorrateado según la superficie asignada al centro de costo. Si el CC no está asociado a la salida, muestra "—".',
+      'Fila de totales al pie de la tabla para visualizar el gasto total por centro de costo.',
+    ]
+  },
+  {
     fecha: '2026-06-03',
     titulo: 'Dashboard Outflows — Filtro por Razón Social',
     items: [
