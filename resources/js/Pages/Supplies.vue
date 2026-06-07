@@ -25,6 +25,7 @@ const props = defineProps({
     totalData2: String,
     percentage: String,
      costCenters: { type: Array, default: () => [] }, // <-- AGREGAR ESTA LÍNEA
+    companyReasons: { type: Array, default: () => [] },
     varieties: {
       type: Array,
       default: () => []
@@ -38,7 +39,20 @@ const props = defineProps({
 const selectedFruit = ref('');
 const selectedVariety = ref('');
 const selectedCostCenter = ref('');
+const selectedCompanyReason = ref('');
 const hideCc = ref(false);
+
+const filteredCostCenters = computed(() => {
+  if (!selectedCompanyReason.value) return props.costCenters;
+  return props.costCenters.filter(cc => String(cc.company_reason_id) === String(selectedCompanyReason.value));
+});
+
+const onCompanyReasonChange = () => {
+  if (selectedCostCenter.value) {
+    const stillValid = filteredCostCenters.value.some(cc => String(cc.value) === String(selectedCostCenter.value));
+    if (!stillValid) selectedCostCenter.value = '';
+  }
+};
 
 // Buscador global para la tabla de insumos
 const search = ref('');
@@ -76,6 +90,9 @@ const filteredSupplies = computed(() => {
 // Además, asegura que cc.total esté correctamente calculado para el rowspan
 const filteredData = computed(() => {
   let data = props.data;
+  if (selectedCompanyReason.value) {
+    data = data.filter(cc => String(cc.company_reason_id) === String(selectedCompanyReason.value));
+  }
   if (selectedCostCenter.value) {
     data = data.filter(cc => cc.id == selectedCostCenter.value);
   }
@@ -181,6 +198,9 @@ const filteredVarietiesGastos = computed(() => {
 });
 const filteredDataGastos = computed(() => {
   let data = props.data3;
+  if (selectedCompanyReason.value) {
+    data = data.filter(cc => String(cc.company_reason_id) === String(selectedCompanyReason.value));
+  }
   if (selectedCostCenter.value) {
     data = data.filter(cc => String(cc.id) === String(selectedCostCenter.value));
   }
@@ -557,11 +577,18 @@ const excelDataResumen = computed(() => {
 
                         <!-- Select de especie (fruta) y variedades, lado a lado -->
                         <div class="mb-3 d-flex align-items-end gap-2 flex-wrap">
+                          <div class="col-auto" v-if="props.companyReasons && props.companyReasons.length > 0">
+                            <label for="companyReasonSelect" class="form-label">Filtrar por razón social:</label>
+                            <select id="companyReasonSelect" v-model="selectedCompanyReason" @change="onCompanyReasonChange" class="form-select form-select-sm" style="min-width: 180px; max-width: 220px;">
+                              <option value="">Todas</option>
+                              <option v-for="cr in props.companyReasons" :key="cr.value" :value="cr.value">{{ cr.label }}</option>
+                            </select>
+                          </div>
                           <div class="col-auto">
                             <label for="costCenterSelect" class="form-label">Filtrar por Cc:</label>
                             <select id="costCenterSelect" v-model="selectedCostCenter" class="form-select form-select-sm" style="min-width: 180px; max-width: 220px;">
                               <option value="">Todos</option>
-                              <option v-for="cc in props.costCenters" :key="cc.value" :value="cc.value">{{ cc.label }}</option>
+                              <option v-for="cc in filteredCostCenters" :key="cc.value" :value="cc.value">{{ cc.label }}</option>
                             </select>
                           </div>
                          <div class="col-auto">
@@ -720,11 +747,18 @@ const excelDataResumen = computed(() => {
 
                         <!-- Select de especie (fruta) y variedades para Gastos por Hectarea, lado a lado -->
                         <div class="mb-3 d-flex align-items-end gap-2 flex-wrap">
+                           <div class="col-auto" v-if="props.companyReasons && props.companyReasons.length > 0">
+                            <label for="companyReasonSelectGastos" class="form-label">Filtrar por razón social:</label>
+                            <select id="companyReasonSelectGastos" v-model="selectedCompanyReason" @change="onCompanyReasonChange" class="form-select form-select-sm" style="min-width: 180px; max-width: 220px;">
+                              <option value="">Todas</option>
+                              <option v-for="cr in props.companyReasons" :key="cr.value" :value="cr.value">{{ cr.label }}</option>
+                            </select>
+                          </div>
                            <div class="col-auto">
                             <label for="costCenterSelect" class="form-label">Filtrar por Cc:</label>
                             <select id="costCenterSelect" v-model="selectedCostCenter" class="form-select form-select-sm" style="min-width: 180px; max-width: 220px;">
                               <option value="">Todos</option>
-                              <option v-for="cc in props.costCenters" :key="cc.value" :value="cc.value">{{ cc.label }}</option>
+                              <option v-for="cc in filteredCostCenters" :key="cc.value" :value="cc.value">{{ cc.label }}</option>
                             </select>
                           </div>
                           <div class="col-auto">

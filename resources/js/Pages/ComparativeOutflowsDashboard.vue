@@ -1,6 +1,7 @@
 <script setup>
 import AppLayout from '@/Layouts/AppLayout.vue';
 import { ref, computed, onMounted, watch } from 'vue';
+import { router } from '@inertiajs/vue3';
 import { Chart, registerables } from 'chart.js';
 import ChartDataLabels from 'chartjs-plugin-datalabels';
 import axios from 'axios';
@@ -31,6 +32,8 @@ const props = defineProps({
         type: Object,
         default: () => ({})
     },
+    companyReasons:        { type: Array,  default: () => [] },
+    activeCompanyReasonId: { type: Number, default: null },
 });
 
 let monthlyChart = null;
@@ -38,6 +41,17 @@ let cumulativeChart = null;
 
 // Toggle ÚNICO para incluir/excluir inversiones en TODO el dashboard
 const includeInvestments = ref(false);
+
+// Filtro Razón Social
+const selectedCompanyReason = ref(props.activeCompanyReasonId ?? '');
+const onCompanyReasonChange = (e) => {
+    const value = e.target.value;
+    router.get(
+        route('comparative.dashboard'),
+        value ? { company_reason_id: value } : {},
+        { preserveScroll: false }
+    );
+};
 
 // Toggles para mostrar/ocultar series en gráficos
 const showBudget = ref(true);
@@ -449,7 +463,11 @@ const toggleBarSelection = async (event, datasetIndex, barIndex, month, clickedT
         try {
             await Promise.all(toFetch.map(async (bar) => {
                 const response = await axios.get(route('api.comparative.monthly-detail'), {
-                    params: { month_id: bar.monthId, include_investments: includeInvestments.value ? 1 : 0 }
+                    params: {
+                        month_id: bar.monthId,
+                        include_investments: includeInvestments.value ? 1 : 0,
+                        ...(selectedCompanyReason.value ? { company_reason_id: selectedCompanyReason.value } : {})
+                    }
                 });
                 monthlyDetailCache.value = { ...monthlyDetailCache.value, [bar.monthId]: response.data };
             }));
@@ -478,7 +496,11 @@ watch(includeInvestments, async () => {
         try {
             await Promise.all(barsSnapshot.map(async (bar) => {
                 const response = await axios.get(route('api.comparative.monthly-detail'), {
-                    params: { month_id: bar.monthId, include_investments: includeInvestments.value ? 1 : 0 }
+                    params: {
+                        month_id: bar.monthId,
+                        include_investments: includeInvestments.value ? 1 : 0,
+                        ...(selectedCompanyReason.value ? { company_reason_id: selectedCompanyReason.value } : {})
+                    }
                 });
                 monthlyDetailCache.value = { ...monthlyDetailCache.value, [bar.monthId]: response.data };
             }));
@@ -1264,6 +1286,29 @@ function createCumulativeChart() {
                                 </template>
                             </div>
                         </div>
+                    </div>
+                </div>
+                <!-- Filtro Razón Social -->
+                <div class="row mt-0 mb-2 ms-1 align-items-center" v-if="companyReasons?.length > 0">
+                    <div class="col-auto">
+                        <label class="form-label mb-0 small fw-semibold text-muted">
+                            <i class="fas fa-building me-1"></i>Razón Social
+                        </label>
+                    </div>
+                    <div class="col" style="max-width: 360px;">
+                        <select
+                            v-model="selectedCompanyReason"
+                            class="form-select form-select-sm"
+                            @change="onCompanyReasonChange"
+                        >
+                            <option value="">Todas las razones sociales</option>
+                            <option v-for="rs in companyReasons" :key="rs.value" :value="rs.value">
+                                {{ rs.label }}
+                            </option>
+                        </select>
+                    </div>
+                    <div class="col-auto" v-if="selectedCompanyReason && selectedCompanyReason !== ''">
+                        <span class="badge bg-primary">Filtrado</span>
                     </div>
                 </div>
             </div>

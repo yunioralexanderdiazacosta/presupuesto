@@ -17,6 +17,7 @@ use App\Models\Fertilizer;
 use App\Models\ManPower;
 use App\Models\Agrochemical;
 use App\Models\DoseType;
+use App\Models\CompanyReason;
 use Inertia\Inertia;
 use App\Http\Controllers\Traits\BudgetTotalsTrait;
 
@@ -150,14 +151,27 @@ class SuppliesController extends Controller
             $months[] = $object;
         }
 
-        $costCenters = CostCenter::select('id', 'name')->where('season_id', $season_id)->whereHas('season.team', function($query) use ($user){
+        $costCenters = CostCenter::select('id', 'name', 'company_reason_id')->where('season_id', $season_id)->whereHas('season.team', function($query) use ($user){
             $query->where('team_id', $user->team_id);
         })->get()->transform(function($costCenter){
             return [
                 'label' => $costCenter->name,
-                'value' => $costCenter->id
+                'value' => $costCenter->id,
+                'company_reason_id' => $costCenter->company_reason_id,
             ];
         });
+
+        $companyReasons = CompanyReason::whereIn(
+            'id',
+            CostCenter::where('season_id', $season_id)
+                ->whereHas('season.team', fn($q) => $q->where('team_id', $user->team_id))
+                ->whereNotNull('company_reason_id')
+                ->pluck('company_reason_id')
+        )
+        ->orderBy('name')
+        ->get(['id', 'name'])
+        ->map(fn($cr) => ['value' => $cr->id, 'label' => $cr->name])
+        ->values();
 
         $supplies = Supply::with('subfamily:id,name', 'unit:id,name', 'unit2:id,name', 'items:id', 'user:id,name')
             ->whereHas('items', function($query) use ($costCenters){
@@ -189,15 +203,16 @@ class SuppliesController extends Controller
         $data = Supply::from('supplies as s')
             ->join('supply_items as si', 's.id', 'si.supply_id')
             ->join('cost_centers as cc', 'si.cost_center_id', 'cc.id')
-            ->select('si.cost_center_id', 'cc.name', 'cc.surface','cc.variety_id')
+            ->select('si.cost_center_id', 'cc.name', 'cc.surface','cc.variety_id', 'cc.company_reason_id')
             ->whereIn('si.cost_center_id', $costCenters->pluck('value'))
-            ->groupBy('si.cost_center_id', 'cc.name', 'cc.surface','cc.variety_id')
+            ->groupBy('si.cost_center_id', 'cc.name', 'cc.surface','cc.variety_id', 'cc.company_reason_id')
             ->get()
             ->transform(function($value) use ($costCenters){
                 return [
                     'id' => $value->cost_center_id,
                     'name' => $value->name,
                     'variety_id' => $value->variety_id,
+                    'company_reason_id' => $value->company_reason_id,
                     'subfamilies' => $this->getSubfamilies($value->cost_center_id, $value->surface),
                     'total' => $this->getTotal($value->cost_center_id)
                 ];
@@ -206,15 +221,16 @@ class SuppliesController extends Controller
         $data3 = Supply::from('supplies as s')
             ->join('supply_items as si', 's.id', 'si.supply_id')
             ->join('cost_centers as cc', 'si.cost_center_id', 'cc.id')
-            ->select('si.cost_center_id', 'cc.name', 'cc.surface','cc.variety_id')
+            ->select('si.cost_center_id', 'cc.name', 'cc.surface','cc.variety_id', 'cc.company_reason_id')
             ->whereIn('si.cost_center_id', $costCenters->pluck('value'))
-            ->groupBy('si.cost_center_id', 'cc.name', 'cc.surface','cc.variety_id')
+            ->groupBy('si.cost_center_id', 'cc.name', 'cc.surface','cc.variety_id', 'cc.company_reason_id')
             ->get()
             ->transform(function($value) use ($costCenters){
                 return [
                     'id' => $value->cost_center_id,
                     'name' => $value->name,
                     'variety_id' => $value->variety_id,
+                    'company_reason_id' => $value->company_reason_id,
                     'subfamilies' => $this->getSubfamilies($value->cost_center_id, null, true),
                     'total' => $this->getTotal($value->cost_center_id)
                 ];
@@ -297,6 +313,7 @@ class SuppliesController extends Controller
             'subfamilies' => $subfamilies,
             'months' => $months,
             'costCenters' => $costCenters,
+            'companyReasons' => $companyReasons,
             'supplies' => $supplies,
             'data' => $data,
             'data2' => $data2,

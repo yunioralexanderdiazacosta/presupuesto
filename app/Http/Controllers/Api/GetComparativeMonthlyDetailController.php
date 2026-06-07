@@ -14,6 +14,7 @@ class GetComparativeMonthlyDetailController extends Controller
         $request->validate([
             'month_id'            => 'required|integer|between:1,12',
             'include_investments' => 'nullable|boolean',
+            'company_reason_id'   => 'nullable|integer',
         ]);
 
         $user               = Auth::user();
@@ -21,6 +22,7 @@ class GetComparativeMonthlyDetailController extends Controller
         $season_id          = session('season_id');
         $month_id           = (int) $request->month_id;
         $includeInvestments = filter_var($request->input('include_investments', true), FILTER_VALIDATE_BOOLEAN);
+        $companyReasonId    = $request->integer('company_reason_id') ?: null;
 
         if (!$season_id) {
             return response()->json(['error' => 'Sin temporada activa'], 422);
@@ -38,6 +40,12 @@ class GetComparativeMonthlyDetailController extends Controller
             ->where('i.team_id', $team_id)
             ->where('i.season_id', $season_id)
             ->whereMonth('i.date', $month_id)
+            ->when($companyReasonId, function ($q) use ($companyReasonId) {
+                $q->where(function ($w) use ($companyReasonId) {
+                    $w->where('i.company_reason_id', $companyReasonId)
+                      ->orWhereNull('i.company_reason_id');
+                });
+            })
             ->select(
                 'p.id as product_id',
                 'p.name as product_name',
@@ -67,6 +75,14 @@ class GetComparativeMonthlyDetailController extends Controller
             ->where('cdn.season_id', $season_id)
             ->where('cdn.affects_inventory', 1)
             ->whereMonth('cdn.date', $month_id)
+            ->when($companyReasonId, function ($q) use ($companyReasonId) {
+                $q->leftJoin('invoices as i_cdn', 'cdn.invoice_id', '=', 'i_cdn.id')
+                  ->where(function ($w) use ($companyReasonId) {
+                      $w->where('i_cdn.company_reason_id', $companyReasonId)
+                        ->orWhereNull('i_cdn.company_reason_id')
+                        ->orWhereNull('cdn.invoice_id');
+                  });
+            })
             ->select(
                 DB::raw('COALESCE(ip.product_id, cdni.product_id) as product_id'),
                 'p.name as product_name',
@@ -120,7 +136,32 @@ class GetComparativeMonthlyDetailController extends Controller
             ->where('o.team_id', $team_id)
             ->where('o.season_id', $season_id)
             ->whereRaw('MONTH(COALESCE(i.date, cdn.date)) = ?', [$month_id])
-            ->whereNotNull('p.id');
+            ->whereNotNull('p.id')
+            ->when($companyReasonId, function ($q) use ($companyReasonId) {
+                $q->where(function ($w) use ($companyReasonId) {
+                    $w->where(function ($sub) use ($companyReasonId) {
+                        $sub->whereNotNull('o.invoice_product_id')
+                            ->where(function ($q2) use ($companyReasonId) {
+                                $q2->where('i.company_reason_id', $companyReasonId)
+                                   ->orWhereNull('i.company_reason_id');
+                            });
+                    })->orWhere(function ($sub) use ($companyReasonId) {
+                        $sub->whereNotNull('o.credit_debit_note_item_id')
+                            ->where(function ($q2) use ($companyReasonId) {
+                                $q2->whereNull('cdn.invoice_id')
+                                   ->orWhereExists(function ($q3) use ($companyReasonId) {
+                                       $q3->select(DB::raw(1))
+                                          ->from('invoices as i_cdn2')
+                                          ->whereColumn('i_cdn2.id', 'cdn.invoice_id')
+                                          ->where(function ($q4) use ($companyReasonId) {
+                                              $q4->where('i_cdn2.company_reason_id', $companyReasonId)
+                                                 ->orWhereNull('i_cdn2.company_reason_id');
+                                          });
+                                   });
+                            });
+                    });
+                });
+            });
 
         // Excluir inversiones si el toggle está desactivado (mismo criterio que el gráfico)
         if (!$includeInvestments) {

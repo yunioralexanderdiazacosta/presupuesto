@@ -15,6 +15,7 @@ use App\Models\Agrochemical;
 use App\Models\ManPower;
 use App\Models\Supply;
 use App\Models\Service;
+use App\Models\CompanyReason;
 
 use Inertia\Inertia;
 use App\Http\Controllers\Traits\BudgetTotalsTrait;
@@ -159,14 +160,27 @@ class FertilizersController extends Controller
             array_push($months, $object);
         }
 
-        $costCenters = CostCenter::select('id', 'name')->where('season_id', $season_id)->whereHas('season.team', function($query) use ($user){
+        $costCenters = CostCenter::select('id', 'name', 'company_reason_id')->where('season_id', $season_id)->whereHas('season.team', function($query) use ($user){
             $query->where('team_id', $user->team_id);
         })->get()->transform(function($costCenter){
             return [
                 'label' => $costCenter->name,
-                'value' => $costCenter->id
+                'value' => $costCenter->id,
+                'company_reason_id' => $costCenter->company_reason_id,
             ];
         });
+
+        $companyReasons = CompanyReason::whereIn(
+            'id',
+            CostCenter::where('season_id', $season_id)
+                ->whereHas('season.team', fn($q) => $q->where('team_id', $user->team_id))
+                ->whereNotNull('company_reason_id')
+                ->pluck('company_reason_id')
+        )
+        ->orderBy('name')
+        ->get(['id', 'name'])
+        ->map(fn($cr) => ['value' => $cr->id, 'label' => $cr->name])
+        ->values();
 
         $fertilizers = Fertilizer::with('subfamily:id,name', 'unit:id,name', 'items:id', 'unit2:id,name', 'user:id,name')->whereHas('items', function($query) use ($costCenters){
             $query->whereIn('cost_center_id', $costCenters->pluck('value'));
@@ -197,15 +211,16 @@ class FertilizersController extends Controller
         $data = Fertilizer::from('fertilizers as f')
             ->join('fertilizer_items as fi', 'f.id', 'fi.fertilizer_id')
             ->join('cost_centers as cc', 'fi.cost_center_id', 'cc.id')
-            ->select('fi.cost_center_id', 'cc.name', 'cc.surface', 'cc.variety_id')
+            ->select('fi.cost_center_id', 'cc.name', 'cc.surface', 'cc.variety_id', 'cc.company_reason_id')
             ->whereIn('fi.cost_center_id', $costCenters->pluck('value'))
-            ->groupBy('fi.cost_center_id', 'cc.name', 'cc.surface', 'cc.variety_id')
+            ->groupBy('fi.cost_center_id', 'cc.name', 'cc.surface', 'cc.variety_id', 'cc.company_reason_id')
             ->get()
             ->transform(function($value) use ($costCenters){
                 return [
                     'id' => $value->cost_center_id,
                     'name' => $value->name,
                     'variety_id' => $value->variety_id,
+                    'company_reason_id' => $value->company_reason_id,
                     'subfamilies' => $this->getSubfamilies($value->cost_center_id, $value->surface),
                     'total' => $this->getTotal($value->cost_center_id)
                 ];
@@ -214,15 +229,16 @@ class FertilizersController extends Controller
         $data3 = Fertilizer::from('fertilizers as f')
             ->join('fertilizer_items as fi', 'f.id', 'fi.fertilizer_id')
             ->join('cost_centers as cc', 'fi.cost_center_id', 'cc.id')
-            ->select('fi.cost_center_id', 'cc.name', 'cc.surface', 'cc.variety_id')
+            ->select('fi.cost_center_id', 'cc.name', 'cc.surface', 'cc.variety_id', 'cc.company_reason_id')
             ->whereIn('fi.cost_center_id', $costCenters->pluck('value'))
-            ->groupBy('fi.cost_center_id', 'cc.name', 'cc.surface', 'cc.variety_id')
+            ->groupBy('fi.cost_center_id', 'cc.name', 'cc.surface', 'cc.variety_id', 'cc.company_reason_id')
             ->get()
             ->transform(function($value) use ($costCenters){
                 return [
                     'id' => $value->cost_center_id,
                     'name' => $value->name,
                     'variety_id' => $value->variety_id,
+                    'company_reason_id' => $value->company_reason_id,
                     'subfamilies' => $this->getSubfamilies($value->cost_center_id, null, true),
                     'total' => $this->getTotal($value->cost_center_id)
                 ];
@@ -304,7 +320,7 @@ class FertilizersController extends Controller
         $totalData1 = number_format($this->totalData1, 0, ',', '.');
         $totalData2 = number_format($totalFertilizer, 0, ',', '.');
 
-        return Inertia::render('Fertilizers', compact('units', 'subfamilies', 'months', 'costCenters', 'groupings', 'fertilizers', 'season', 'data', 'data2', 'data3', 'totalData1', 'totalData2', 'percentage', 'varieties', 'fruits', 'products'));
+        return Inertia::render('Fertilizers', compact('units', 'subfamilies', 'months', 'costCenters', 'companyReasons', 'groupings', 'fertilizers', 'season', 'data', 'data2', 'data3', 'totalData1', 'totalData2', 'percentage', 'varieties', 'fruits', 'products'));
     }
 
     private function getSubfamilies($costCenterId, $surface = null, $bills = false)

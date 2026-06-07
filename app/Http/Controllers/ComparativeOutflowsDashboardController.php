@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\Season;
 use App\Models\Invoice;
 use App\Models\CreditDebitNote;
+use App\Models\CompanyReason;
 use App\Models\Outflow;
 use App\Models\CostCenter;
 use App\Models\Agrochemical;
@@ -24,11 +25,13 @@ class ComparativeOutflowsDashboardController extends Controller
 {
     use BudgetTotalsTrait, PayrollDataTrait;
 
-    public function index()
+    public function index(\Illuminate\Http\Request $request)
     {
         $season_id = session('season_id');
         $user = Auth::user();
         $team_id = $user->team_id;
+
+        $company_reason_id = $request->integer('company_reason_id') ?: null;
 
         if (!$season_id) {
             return redirect()->route('select.budget');
@@ -48,9 +51,9 @@ class ComparativeOutflowsDashboardController extends Controller
         $months = $this->generateMonthsArray($startMonthId);
 
         // Calcular una sola vez y reutilizar (evita queries duplicadas)
-        $monthlyComparison = $this->getMonthlyComparison($season_id, $team_id, $months);
-        $comparisonByLevel1 = $this->getComparisonByLevel1($season_id, $team_id);
-        $payrollByLevel2    = $this->getPayrollByLevel2($team_id, $season_id);
+        $monthlyComparison = $this->getMonthlyComparison($season_id, $team_id, $months, $company_reason_id);
+        $comparisonByLevel1 = $this->getComparisonByLevel1($season_id, $team_id, $company_reason_id);
+        $payrollByLevel2    = $this->getPayrollByLevel2($team_id, $season_id, $company_reason_id);
 
         // ── Merge payroll en las filas de detailedTable (por nombre de Level2) ──
         foreach ($payrollByLevel2 as $level2Name => $payrollData) {
@@ -92,7 +95,9 @@ class ComparativeOutflowsDashboardController extends Controller
         return Inertia::render('ComparativeOutflowsDashboard', [
             'dollarPrice' => $dollarPrice,
             'isAdmin'     => $user->hasRole('Admin'),
-            'summary' => $this->getSummaryComparison($season_id, $team_id),
+            'companyReasons'        => $this->getCompanyReasons($season_id, $team_id),
+            'activeCompanyReasonId' => $company_reason_id,
+            'summary' => $this->getSummaryComparison($season_id, $team_id, $company_reason_id),
             'monthlyComparison' => $monthlyComparison,
             'cumulativeComparison' => $this->buildCumulativeFromMonthly($monthlyComparison, $months),
             'comparisonByLevel1' => $comparisonByLevel1,
@@ -100,8 +105,8 @@ class ComparativeOutflowsDashboardController extends Controller
             'detailedTable' => $comparisonByLevel1,
             'months' => $months,
             'seasonStartMonth' => $startMonthId,
-            'payrollSummary'   => $this->getPayrollSummary($team_id, $season_id),
-            'payrollMonthly'   => $this->getPayrollMonthly($team_id, $season_id, $months),
+            'payrollSummary'   => $this->getPayrollSummary($team_id, $season_id, $company_reason_id),
+            'payrollMonthly'   => $this->getPayrollMonthly($team_id, $season_id, $months, $company_reason_id),
             'payrollByLevel2'  => $payrollByLevel2,
         ]);
     }
@@ -131,22 +136,64 @@ class ComparativeOutflowsDashboardController extends Controller
     }
 
     /**
+     * Retorna las razones sociales disponibles (de facturas y centros de costo).
+     */
+    private function getCompanyReasons($season_id, $team_id): array
+    {
+        $fromInvoices = CompanyReason::whereIn(
+            'id',
+            Invoice::where('season_id', $season_id)
+                ->where('team_id', $team_id)
+                ->whereNotNull('company_reason_id')
+                ->pluck('company_reason_id')
+        )->get(['id', 'name']);
+
+        $fromCostCenters = CompanyReason::whereIn(
+            'id',
+            CostCenter::where('season_id', $season_id)
+                ->whereNotNull('company_reason_id')
+                ->pluck('company_reason_id')
+        )->get(['id', 'name']);
+
+        return $fromInvoices->merge($fromCostCenters)
+            ->unique('id')
+            ->sortBy('name')
+            ->values()
+            ->map(fn($cr) => ['value' => $cr->id, 'label' => $cr->name])
+            ->toArray();
+    }
+
+    /**
+     * Retorna IDs de centros de costo filtrados:
+     * cuando hay filtro: company_reason_id = $id  OR  company_reason_id IS NULL
+     * cuando no hay filtro: todos.
+     */
+    private function getFilteredCostCenterIds($season_id, $team_id, $company_reason_id)
+    {
+        return CostCenter::where('season_id', $season_id)
+            ->whereHas('season.team', function ($q) use ($team_id) {
+                $q->where('team_id', $team_id);
+            })
+            ->when($company_reason_id, function ($q) use ($company_reason_id) {
+                $q->where(function ($w) use ($company_reason_id) {
+                    $w->where('company_reason_id', $company_reason_id)
+                      ->orWhereNull('company_reason_id');
+                });
+            })
+            ->pluck('id');
+    }
+
+    /**
      * Resumen comparativo general
      */
-    private function getSummaryComparison($season_id, $team_id)
+    private function getSummaryComparison($season_id, $team_id, $company_reason_id = null)
     {
         try {
-            // Total Presupuestado (usando el trait) - 8 categorías SIN inversiones
-            $budgetTotal = (float) $this->getTotalField($season_id, $team_id)
-                + (float) $this->getTotalAdministration($season_id, $team_id)
-                + (float) $this->getTotalFertilizer($season_id, $team_id)
-                + (float) $this->getTotalManPower($season_id, $team_id)
-                + (float) $this->getTotalAgrochemical($season_id, $team_id)
-                + (float) $this->getTotalSupplies($season_id, $team_id)
-                + (float) $this->getTotalServices($season_id, $team_id)
-                + (float) $this->getTotalHarvest($season_id, $team_id);
+            // Total Presupuestado - usa getBudgetTotalsByLevel12 para respetar el filtro de razón social
+            // (CCs con company_reason_id = $filter OR IS NULL)
+            $budgetTotal = (float) $this->getBudgetTotalsByLevel12($season_id, $team_id, $company_reason_id)->sum('total_amount');
 
-            // Total Inversiones (del trait)
+            // Total Inversiones (no se filtran por razón social, son globales de la temporada)
             $monthsInvestmentsRaw = $this->getInvestmentsTotalByMonth($season_id, $team_id);
             $monthsInvestments = [];
             foreach($monthsInvestmentsRaw as $key => $value){
@@ -163,30 +210,53 @@ class ComparativeOutflowsDashboardController extends Controller
             // Total General = Total Neto + Inversiones
             $budgetTotalWithInvestments = $budgetTotal + $totalInvestments;
 
-            // Total Facturado - SQL aggregation (reemplaza Eloquent + eager + PHP sum)
-            $invoicesTotal = (float) (DB::table('invoices as i')
-                ->join('invoice_products as ip', 'i.id', '=', 'ip.invoice_id')
-                ->where('i.team_id', $team_id)
-                ->where('i.season_id', $season_id)
-                ->sum(DB::raw('ip.unit_price * ip.amount')) ?? 0);
+            // Helper closure: aplica filtro (company_reason_id = X OR IS NULL) a una query de invoices
+            $applyInvoiceFilter = function ($q) use ($company_reason_id) {
+                if (!$company_reason_id) return $q;
+                return $q->where(function ($w) use ($company_reason_id) {
+                    $w->where('i.company_reason_id', $company_reason_id)
+                      ->orWhereNull('i.company_reason_id');
+                });
+            };
 
-            // Notas de crédito (se restan) — solo las que afectan inventario
-            // Las NC financieras (affects_inventory=0) ya ajustaron el unit_price del invoice_product
+            // Total Facturado - SQL aggregation con filtro de razón social
+            $invoicesTotal = (float) ($applyInvoiceFilter(
+                DB::table('invoices as i')
+                    ->join('invoice_products as ip', 'i.id', '=', 'ip.invoice_id')
+                    ->where('i.team_id', $team_id)
+                    ->where('i.season_id', $season_id)
+            )->sum(DB::raw('ip.unit_price * ip.amount')) ?? 0);
+
+            // Notas de crédito (se restan) — filtro por razón social de la factura asociada
             $creditNotesTotal = (float) (DB::table('credit_debit_notes as cdn')
                 ->join('credit_debit_note_items as cdni', 'cdn.id', '=', 'cdni.credit_debit_note_id')
+                ->leftJoin('invoices as i', 'cdn.invoice_id', '=', 'i.id')
                 ->where('cdn.team_id', $team_id)
                 ->where('cdn.season_id', $season_id)
                 ->where('cdn.affects_inventory', 1)
                 ->whereRaw('LOWER(cdn.type) IN (?, ?)', ['credito', 'nc'])
+                ->when($company_reason_id, function ($q) use ($company_reason_id) {
+                    $q->where(function ($w) use ($company_reason_id) {
+                        $w->where('i.company_reason_id', $company_reason_id)
+                          ->orWhereNull('i.company_reason_id');
+                    });
+                })
                 ->sum(DB::raw('cdni.unit_price * cdni.quantity')) ?? 0);
 
-            // Notas de débito (se suman) — solo las que afectan inventario
+            // Notas de débito (se suman)
             $debitNotesTotal = (float) (DB::table('credit_debit_notes as cdn')
                 ->join('credit_debit_note_items as cdni', 'cdn.id', '=', 'cdni.credit_debit_note_id')
+                ->leftJoin('invoices as i', 'cdn.invoice_id', '=', 'i.id')
                 ->where('cdn.team_id', $team_id)
                 ->where('cdn.season_id', $season_id)
                 ->where('cdn.affects_inventory', 1)
                 ->whereRaw('LOWER(cdn.type) NOT IN (?, ?)', ['credito', 'nc'])
+                ->when($company_reason_id, function ($q) use ($company_reason_id) {
+                    $q->where(function ($w) use ($company_reason_id) {
+                        $w->where('i.company_reason_id', $company_reason_id)
+                          ->orWhereNull('i.company_reason_id');
+                    });
+                })
                 ->sum(DB::raw('cdni.unit_price * cdni.quantity')) ?? 0);
 
             $notesTotal = $debitNotesTotal - $creditNotesTotal;
@@ -194,13 +264,32 @@ class ComparativeOutflowsDashboardController extends Controller
             $invoicedTotal = floatval($invoicesTotal + $notesTotal);
             Log::info("getSummaryComparison - Budget: $budgetTotal, Facturado: $invoicedTotal (Invoices: $invoicesTotal + Notes: $notesTotal)");
 
-            // Total Consumido - SQL aggregation (reemplaza 2 Eloquent queries + eager + PHP sum)
-            // Consumido CON inversiones (todos los outflows)
+            // Total Consumido CON inversiones — filtro de razón social por factura
             $consumedTotalWithInvestments = (float) (DB::table('outflows as o')
                 ->leftJoin('invoice_products as ip', 'o.invoice_product_id', '=', 'ip.id')
+                ->leftJoin('invoices as i_ip', 'ip.invoice_id', '=', 'i_ip.id')
                 ->leftJoin('credit_debit_note_items as cdni', 'o.credit_debit_note_item_id', '=', 'cdni.id')
+                ->leftJoin('credit_debit_notes as cdn', 'cdni.credit_debit_note_id', '=', 'cdn.id')
+                ->leftJoin('invoices as i_cdn', 'cdn.invoice_id', '=', 'i_cdn.id')
                 ->where('o.season_id', $season_id)
                 ->where('o.team_id', $team_id)
+                ->when($company_reason_id, function ($q) use ($company_reason_id) {
+                    $q->where(function ($w) use ($company_reason_id) {
+                        $w->where(function ($sub) use ($company_reason_id) {
+                            $sub->whereNotNull('o.invoice_product_id')
+                                ->where(function ($q2) use ($company_reason_id) {
+                                    $q2->where('i_ip.company_reason_id', $company_reason_id)
+                                       ->orWhereNull('i_ip.company_reason_id');
+                                });
+                        })->orWhere(function ($sub) use ($company_reason_id) {
+                            $sub->whereNotNull('o.credit_debit_note_item_id')
+                                ->where(function ($q2) use ($company_reason_id) {
+                                    $q2->where('i_cdn.company_reason_id', $company_reason_id)
+                                       ->orWhereNull('i_cdn.company_reason_id');
+                                });
+                        });
+                    });
+                })
                 ->selectRaw('SUM(CASE
                     WHEN o.invoice_product_id IS NOT NULL AND ip.id IS NOT NULL THEN o.quantity * ip.unit_price
                     WHEN o.credit_debit_note_item_id IS NOT NULL AND cdni.id IS NOT NULL THEN o.quantity * cdni.unit_price
@@ -211,11 +300,31 @@ class ComparativeOutflowsDashboardController extends Controller
             // Consumido SOLO inversiones
             $consumedInvestmentsTotal = (float) (DB::table('outflows as o')
                 ->leftJoin('invoice_products as ip', 'o.invoice_product_id', '=', 'ip.id')
+                ->leftJoin('invoices as i_ip', 'ip.invoice_id', '=', 'i_ip.id')
                 ->leftJoin('credit_debit_note_items as cdni', 'o.credit_debit_note_item_id', '=', 'cdni.id')
+                ->leftJoin('credit_debit_notes as cdn', 'cdni.credit_debit_note_id', '=', 'cdn.id')
+                ->leftJoin('invoices as i_cdn', 'cdn.invoice_id', '=', 'i_cdn.id')
                 ->join('operations as op', 'o.operation_id', '=', 'op.id')
                 ->where('o.season_id', $season_id)
                 ->where('o.team_id', $team_id)
                 ->whereRaw('LOWER(op.name) LIKE ?', ['%inversion%'])
+                ->when($company_reason_id, function ($q) use ($company_reason_id) {
+                    $q->where(function ($w) use ($company_reason_id) {
+                        $w->where(function ($sub) use ($company_reason_id) {
+                            $sub->whereNotNull('o.invoice_product_id')
+                                ->where(function ($q2) use ($company_reason_id) {
+                                    $q2->where('i_ip.company_reason_id', $company_reason_id)
+                                       ->orWhereNull('i_ip.company_reason_id');
+                                });
+                        })->orWhere(function ($sub) use ($company_reason_id) {
+                            $sub->whereNotNull('o.credit_debit_note_item_id')
+                                ->where(function ($q2) use ($company_reason_id) {
+                                    $q2->where('i_cdn.company_reason_id', $company_reason_id)
+                                       ->orWhereNull('i_cdn.company_reason_id');
+                                });
+                        });
+                    });
+                })
                 ->selectRaw('SUM(CASE
                     WHEN o.invoice_product_id IS NOT NULL AND ip.id IS NOT NULL THEN o.quantity * ip.unit_price
                     WHEN o.credit_debit_note_item_id IS NOT NULL AND cdni.id IS NOT NULL THEN o.quantity * cdni.unit_price
@@ -234,9 +343,15 @@ class ComparativeOutflowsDashboardController extends Controller
             $percentageExecution = $budgetTotal > 0 ? ($realTotal / $budgetTotal) * 100 : 0;
             $variance = $budgetTotal > 0 ? (($realTotal - $budgetTotal) / $budgetTotal) * 100 : 0;
 
-            // Obtener superficie total para cálculos por hectárea
+            // Obtener superficie total para cálculos por hectárea (filtrada por razón social)
             $totalSurface = DB::table('cost_centers')
                 ->where('season_id', $season_id)
+                ->when($company_reason_id, function ($q) use ($company_reason_id) {
+                    $q->where(function ($w) use ($company_reason_id) {
+                        $w->where('company_reason_id', $company_reason_id)
+                          ->orWhereNull('company_reason_id');
+                    });
+                })
                 ->sum('surface');
 
             return [
@@ -285,7 +400,7 @@ class ComparativeOutflowsDashboardController extends Controller
      * Comparación mensual (no acumulada)
      * Usa EXACTAMENTE los mismos métodos que TechnicalPanelController
      */
-    private function getMonthlyComparison($season_id, $team_id, $months)
+    private function getMonthlyComparison($season_id, $team_id, $months, $company_reason_id = null)
     {
         try {
             // Usar la misma lógica que TechnicalPanelController
@@ -293,11 +408,17 @@ class ComparativeOutflowsDashboardController extends Controller
             $season = Season::select('name', 'month_id')->where('id', $season_id)->first();
             $month_id = $season ? $season->month_id : 1;
             
-            // Obtener cost centers igual que TechnicalPanelController
+            // Obtener cost centers igual que TechnicalPanelController (filtrado por razón social)
             $costCenters = CostCenter::select('id', 'name')
                 ->where('season_id', $season_id)
                 ->whereHas('season.team', function($query) use ($team_id) {
                     $query->where('team_id', $team_id);
+                })
+                ->when($company_reason_id, function ($q) use ($company_reason_id) {
+                    $q->where(function ($w) use ($company_reason_id) {
+                        $w->where('company_reason_id', $company_reason_id)
+                          ->orWhereNull('company_reason_id');
+                    });
                 })
                 ->get();
             $costCentersId = $costCenters->pluck('id');
@@ -319,8 +440,9 @@ class ComparativeOutflowsDashboardController extends Controller
             $this->getHarvestsProductsForComparison($costCentersId, $month_id, $monthsHarvests);
 
             // IMPORTANTE: Agregar Administración y Gral Campo (estaban faltando!)
-            $monthsAdministration = $this->getMonthsAdministration($team_id);
-            $monthsFields = $this->getMonthsFields($team_id);
+            // Se prorratean por superficie según razón social activa
+            $monthsAdministration = $this->getMonthsAdministration($team_id, $company_reason_id);
+            $monthsFields = $this->getMonthsFields($team_id, $company_reason_id);
 
             // Obtener inversiones mensuales
             $monthsInvestmentsRaw = $this->getInvestmentsTotalByMonth($season_id, $team_id);
@@ -337,8 +459,8 @@ class ComparativeOutflowsDashboardController extends Controller
             $consumedWithInvestmentsByMonth = [];
 
             // Batch: obtener facturado y consumido de TODOS los meses en pocas queries
-            $allInvoicedByMonth = $this->getAllInvoicedByMonth($season_id, $team_id);
-            $allConsumedByMonth = $this->getAllConsumedByMonth($season_id, $team_id);
+            $allInvoicedByMonth = $this->getAllInvoicedByMonth($season_id, $team_id, $company_reason_id);
+            $allConsumedByMonth = $this->getAllConsumedByMonth($season_id, $team_id, $company_reason_id);
 
             foreach ($months as $month) {
                 $monthId = $month['id'];
@@ -725,17 +847,23 @@ class ComparativeOutflowsDashboardController extends Controller
      * Reemplaza 12× getInvoicedForMonth() → 24 queries por 2 queries.
      * @return array [month_id => total]
      */
-    private function getAllInvoicedByMonth($season_id, $team_id)
+    private function getAllInvoicedByMonth($season_id, $team_id, $company_reason_id = null)
     {
         // Inicializar todos los meses en 0
         $result = array_fill(1, 12, 0.0);
 
         try {
-            // Query 1: Todas las facturas agrupadas por mes
+            // Query 1: Todas las facturas agrupadas por mes (filtro razón social)
             $invoicesByMonth = DB::table('invoices as i')
                 ->join('invoice_products as ip', 'i.id', '=', 'ip.invoice_id')
                 ->where('i.team_id', $team_id)
                 ->where('i.season_id', $season_id)
+                ->when($company_reason_id, function ($q) use ($company_reason_id) {
+                    $q->where(function ($w) use ($company_reason_id) {
+                        $w->where('i.company_reason_id', $company_reason_id)
+                          ->orWhereNull('i.company_reason_id');
+                    });
+                })
                 ->select(
                     DB::raw('MONTH(i.date) as month_id'),
                     DB::raw('SUM(ip.unit_price * ip.amount) as total')
@@ -747,13 +875,20 @@ class ComparativeOutflowsDashboardController extends Controller
                 $result[$monthId] = floatval($total);
             }
 
-            // Query 2: Notas agrupadas por mes y tipo (solo affects_inventory=1)
+            // Query 2: Notas agrupadas por mes y tipo (filtro razón social vía invoice)
             // Las NC financieras ya ajustaron el unit_price del invoice_product
             $notesByMonth = DB::table('credit_debit_notes as cdn')
                 ->join('credit_debit_note_items as cdni', 'cdn.id', '=', 'cdni.credit_debit_note_id')
+                ->leftJoin('invoices as i', 'cdn.invoice_id', '=', 'i.id')
                 ->where('cdn.team_id', $team_id)
                 ->where('cdn.season_id', $season_id)
                 ->where('cdn.affects_inventory', 1)
+                ->when($company_reason_id, function ($q) use ($company_reason_id) {
+                    $q->where(function ($w) use ($company_reason_id) {
+                        $w->where('i.company_reason_id', $company_reason_id)
+                          ->orWhereNull('i.company_reason_id');
+                    });
+                })
                 ->select(
                     DB::raw('MONTH(cdn.date) as month_id'),
                     'cdn.type',
@@ -783,7 +918,7 @@ class ComparativeOutflowsDashboardController extends Controller
      * Reemplaza 12× getConsumedForMonth() → 24-48 queries por ~4 queries.
      * @return array [month_id => ['total' => float, 'total_with_investments' => float]]
      */
-    private function getAllConsumedByMonth($season_id, $team_id)
+    private function getAllConsumedByMonth($season_id, $team_id, $company_reason_id = null)
     {
         // Inicializar todos los meses
         $result = [];
@@ -792,9 +927,28 @@ class ComparativeOutflowsDashboardController extends Controller
         }
 
         try {
-            // Cargar TODOS los outflows de la temporada una sola vez
+            // Cargar TODOS los outflows de la temporada una sola vez (filtro razón social)
             $allOutflows = Outflow::where('season_id', $season_id)
                 ->where('team_id', $team_id)
+                ->when($company_reason_id, function ($q) use ($company_reason_id) {
+                    $q->where(function ($w) use ($company_reason_id) {
+                        // Outflow de factura: incluir si la factura tiene la razón social o no tiene ninguna
+                        $w->whereHas('invoiceProduct.invoice', function ($q2) use ($company_reason_id) {
+                            $q2->where('company_reason_id', $company_reason_id)
+                               ->orWhereNull('company_reason_id');
+                        // Outflow de nota de crédito/débito: incluir si la nota no tiene factura
+                        // o si la factura asociada tiene la razón social o no tiene ninguna
+                        })->orWhereHas('creditDebitNoteItem.creditDebitNote', function ($q2) use ($company_reason_id) {
+                            $q2->where(function ($inner) use ($company_reason_id) {
+                                $inner->whereNull('invoice_id')
+                                      ->orWhereHas('invoice', function ($q3) use ($company_reason_id) {
+                                          $q3->where('company_reason_id', $company_reason_id)
+                                             ->orWhereNull('company_reason_id');
+                                      });
+                            });
+                        });
+                    });
+                })
                 ->with([
                     'invoiceProduct.invoice:id,date',
                     'creditDebitNoteItem.creditDebitNote:id,date',
@@ -1044,7 +1198,7 @@ class ComparativeOutflowsDashboardController extends Controller
     /**
      * Comparación por Level1
      */
-    private function getComparisonByLevel1($season_id, $team_id)
+    private function getComparisonByLevel1($season_id, $team_id, $company_reason_id = null)
     {
         try {
             // Inicializar array para almacenar todas las categorías encontradas
@@ -1053,7 +1207,7 @@ class ComparativeOutflowsDashboardController extends Controller
             // ========================================
             // 1. PRESUPUESTO por categoría - USANDO RELACIONES CON LEVEL1/LEVEL2
             // ========================================
-            $budgetByLevel = $this->getBudgetTotalsByLevel12($season_id, $team_id);
+            $budgetByLevel = $this->getBudgetTotalsByLevel12($season_id, $team_id, $company_reason_id);
             
             foreach ($budgetByLevel as $row) {
                 $fullName = $row['level1_name'] . ' - ' . $row['level2_name'] . ' - ' . $row['level3_name'];
@@ -1069,7 +1223,7 @@ class ComparativeOutflowsDashboardController extends Controller
             // 2. FACTURADO por categoría (Level2 real de la BD)
             // ========================================
             
-            // Facturas
+            // Facturas (filtro razón social)
             $invoicesByLevel2 = DB::table('invoices as i')
                 ->join('invoice_products as ip', 'i.id', '=', 'ip.invoice_id')
                 ->join('products as p', 'ip.product_id', '=', 'p.id')
@@ -1078,6 +1232,12 @@ class ComparativeOutflowsDashboardController extends Controller
                 ->leftJoin('level1s as l1', 'l2.level1_id', '=', 'l1.id')
                 ->where('i.team_id', $team_id)
                 ->where('i.season_id', $season_id)
+                ->when($company_reason_id, function ($q) use ($company_reason_id) {
+                    $q->where(function ($w) use ($company_reason_id) {
+                        $w->where('i.company_reason_id', $company_reason_id)
+                          ->orWhereNull('i.company_reason_id');
+                    });
+                })
                 ->select(
                     DB::raw('COALESCE(l1.name, "Sin Clasificar") as level1_name'),
                     DB::raw('COALESCE(l2.name, "Sin Clasificar") as level2_name'),
@@ -1101,16 +1261,23 @@ class ComparativeOutflowsDashboardController extends Controller
                 $categories[$fullName]['invoiced'] += floatval($row->total);
             }
 
-            // Notas de Crédito/Débito (solo affects_inventory=1)
+            // Notas de Crédito/Débito (solo affects_inventory=1) con filtro razón social
             $notesByLevel2 = DB::table('credit_debit_notes as cdn')
                 ->join('credit_debit_note_items as cdni', 'cdn.id', '=', 'cdni.credit_debit_note_id')
                 ->join('products as p', 'cdni.product_id', '=', 'p.id')
                 ->leftJoin('level3s as l3', 'p.level3_id', '=', 'l3.id')
                 ->leftJoin('level2s as l2', 'l3.level2_id', '=', 'l2.id')
                 ->leftJoin('level1s as l1', 'l2.level1_id', '=', 'l1.id')
+                ->leftJoin('invoices as i', 'cdn.invoice_id', '=', 'i.id')
                 ->where('cdn.team_id', $team_id)
                 ->where('cdn.season_id', $season_id)
                 ->where('cdn.affects_inventory', 1)
+                ->when($company_reason_id, function ($q) use ($company_reason_id) {
+                    $q->where(function ($w) use ($company_reason_id) {
+                        $w->where('i.company_reason_id', $company_reason_id)
+                          ->orWhereNull('i.company_reason_id');
+                    });
+                })
                 ->select(
                     DB::raw('COALESCE(l1.name, "Sin Clasificar") as level1_name'),
                     DB::raw('COALESCE(l2.name, "Sin Clasificar") as level2_name'),
@@ -1150,6 +1317,22 @@ class ComparativeOutflowsDashboardController extends Controller
                 ->where('team_id', $team_id)
                 ->whereDoesntHave('operation', function($query) {
                     $query->whereRaw('LOWER(name) LIKE ?', ['%inversion%']);
+                })
+                ->when($company_reason_id, function ($q) use ($company_reason_id) {
+                    $q->where(function ($w) use ($company_reason_id) {
+                        $w->whereHas('invoiceProduct.invoice', function ($q2) use ($company_reason_id) {
+                            $q2->where('company_reason_id', $company_reason_id)
+                               ->orWhereNull('company_reason_id');
+                        })->orWhereHas('creditDebitNoteItem.creditDebitNote', function ($q2) use ($company_reason_id) {
+                            $q2->where(function ($inner) use ($company_reason_id) {
+                                $inner->whereNull('invoice_id')
+                                      ->orWhereHas('invoice', function ($q3) use ($company_reason_id) {
+                                          $q3->where('company_reason_id', $company_reason_id)
+                                             ->orWhereNull('company_reason_id');
+                                      });
+                            });
+                        });
+                    });
                 })
                 ->with(['level3.level2.level1', 'invoiceProduct', 'creditDebitNoteItem'])
                 ->get()
@@ -1264,7 +1447,7 @@ class ComparativeOutflowsDashboardController extends Controller
      * Replica la lógica de DashboardController->getTotalsByLevel12()
      * Retorna: [level1_id, level1_name, level2_id, level2_name, total_amount]
      */
-    private function getBudgetTotalsByLevel12($season_id, $team_id)
+    private function getBudgetTotalsByLevel12($season_id, $team_id, $company_reason_id = null)
     {
         $season = \App\Models\Season::select('month_id')->where('id', $season_id)->first();
         $currentMonth = $season ? $season->month_id : 1;
@@ -1280,7 +1463,27 @@ class ComparativeOutflowsDashboardController extends Controller
                 $query->where('team_id', $team_id);
             });
         }
+        // Filtro razón social: incluir CCs con la razón social indicada O sin razón social (prorrateados)
+        if ($company_reason_id) {
+            $costCentersQuery->where(function ($w) use ($company_reason_id) {
+                $w->where('company_reason_id', $company_reason_id)
+                  ->orWhereNull('company_reason_id');
+            });
+        }
         $costCenters = $costCentersQuery->get(['id', 'fruit_id', 'surface'])->keyBy('id');
+
+        // Calcular ratio de superficie para prorratear Administración y Generales Campo
+        // (estos no tienen CC propio, se distribuyen por superficie de la temporada)
+        $surfaceRatio = 1.0;
+        if ($company_reason_id && $costCenters->isNotEmpty()) {
+            $totalSurface = \App\Models\CostCenter::where('season_id', $season_id)
+                ->whereHas('season.team', function ($q) use ($team_id) {
+                    $q->where('team_id', $team_id);
+                })
+                ->sum('surface');
+            $filteredSurface = $costCenters->sum('surface');
+            $surfaceRatio = $totalSurface > 0 ? ($filteredSurface / $totalSurface) : 0.0;
+        }
 
         $totals = [];
         
@@ -1608,7 +1811,7 @@ class ComparativeOutflowsDashboardController extends Controller
             $countMonths = $adminMonthCounts[$adm->administration_id] ?? 0;
             if ($countMonths > 0) {
                 $quantity = ($adm->quantity !== null && ($adm->quantity > 0)) ? ((in_array($adm->unit_id ?? null, [2, 4])) ? ($adm->quantity / 1000) : $adm->quantity) : 0;
-                $amount = round($adm->price * $quantity * $countMonths, 2);
+                $amount = round($adm->price * $quantity * $countMonths * $surfaceRatio, 2);
                 $addTotal($adm->level1_id, $adm->level1_name, $adm->level2_id, $adm->level2_name, $adm->level3_id, $adm->level3_name, $amount);
             }
         }
@@ -1646,7 +1849,7 @@ class ComparativeOutflowsDashboardController extends Controller
             $countMonths = $fieldMonthCounts[$fld->field_id] ?? 0;
             if ($countMonths > 0) {
                 $quantity = ($fld->quantity !== null && ($fld->quantity > 0)) ? ((in_array($fld->unit_id ?? null, [2, 4])) ? ($fld->quantity / 1000) : $fld->quantity) : 0;
-                $amount = round($fld->price * $quantity * $countMonths, 2);
+                $amount = round($fld->price * $quantity * $countMonths * $surfaceRatio, 2);
                 $addTotal($fld->level1_id, $fld->level1_name, $fld->level2_id, $fld->level2_name, $fld->level3_id, $fld->level3_name, $amount);
             }
         }
@@ -1987,7 +2190,7 @@ class ComparativeOutflowsDashboardController extends Controller
         }
     }
 
-    private function getMonthsAdministration($team_id)
+    private function getMonthsAdministration($team_id, $company_reason_id = null)
     {
         $season_id = session('season_id');
         $season = Season::select('month_id')->where('id', $season_id)->first();
@@ -1998,6 +2201,20 @@ class ComparativeOutflowsDashboardController extends Controller
             $months[] = $id;
         }
         $result = array_fill_keys($months, 0);
+
+        // Calcular ratio de superficie para prorratear según razón social
+        $surfaceRatio = 1.0;
+        if ($company_reason_id) {
+            $totalSurface = DB::table('cost_centers')->where('season_id', $season_id)->sum('surface');
+            $filteredSurface = DB::table('cost_centers')
+                ->where('season_id', $season_id)
+                ->where(function ($w) use ($company_reason_id) {
+                    $w->where('company_reason_id', $company_reason_id)
+                      ->orWhereNull('company_reason_id');
+                })
+                ->sum('surface');
+            $surfaceRatio = $totalSurface > 0 ? ($filteredSurface / $totalSurface) : 0.0;
+        }
 
         // Batch: JOIN administrations con items agrupados por mes (1 query en vez de N)
         $query = DB::table('administrations as a')
@@ -2019,13 +2236,13 @@ class ComparativeOutflowsDashboardController extends Controller
 
         foreach ($monthlyTotals as $monthId => $total) {
             if (isset($result[$monthId])) {
-                $result[$monthId] = floatval($total);
+                $result[$monthId] = floatval($total) * $surfaceRatio;
             }
         }
         return $result;
     }
 
-    private function getMonthsFields($team_id)
+    private function getMonthsFields($team_id, $company_reason_id = null)
     {
         $season_id = session('season_id');
         $season = Season::select('month_id')->where('id', $season_id)->first();
@@ -2036,6 +2253,20 @@ class ComparativeOutflowsDashboardController extends Controller
             $months[] = $id;
         }
         $result = array_fill_keys($months, 0);
+
+        // Calcular ratio de superficie para prorratear según razón social
+        $surfaceRatio = 1.0;
+        if ($company_reason_id) {
+            $totalSurface = DB::table('cost_centers')->where('season_id', $season_id)->sum('surface');
+            $filteredSurface = DB::table('cost_centers')
+                ->where('season_id', $season_id)
+                ->where(function ($w) use ($company_reason_id) {
+                    $w->where('company_reason_id', $company_reason_id)
+                      ->orWhereNull('company_reason_id');
+                })
+                ->sum('surface');
+            $surfaceRatio = $totalSurface > 0 ? ($filteredSurface / $totalSurface) : 0.0;
+        }
 
         // Batch: JOIN fields con items agrupados por mes (1 query en vez de N)
         $query = DB::table('fields as f')
@@ -2057,7 +2288,7 @@ class ComparativeOutflowsDashboardController extends Controller
 
         foreach ($monthlyTotals as $monthId => $total) {
             if (isset($result[$monthId])) {
-                $result[$monthId] = floatval($total);
+                $result[$monthId] = floatval($total) * $surfaceRatio;
             }
         }
         return $result;

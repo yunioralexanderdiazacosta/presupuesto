@@ -7,6 +7,33 @@
 
 export const changelog = [
   {
+    fecha: '2026-06-06',
+    titulo: 'Presupuestos — Filtro por Razón Social en módulos productivos',
+    items: [
+      'Se agrega el selector de Razón Social en las pestañas "Detalles" y "Gasto por Hectárea" de Fertilizantes, Mano de Obra, Servicios, Cosecha e Insumos.',
+      'Al elegir una razón social, el listado de centros de costo y la tabla se filtran para mostrar únicamente los centros asociados a esa razón social.',
+      'Si se cambia la razón social y el centro de costo seleccionado ya no pertenece a ella, la selección de centro de costo se limpia automáticamente.',
+    ]
+  },
+  {
+    fecha: '2026-06-06',
+    titulo: 'Agroquímicos — Filtro por Razón Social',
+    items: [
+      'Se agrega un selector de Razón Social en las pestañas "Detalles" y "Gasto por Hectárea" de Agroquímicos.',
+      'Al elegir una razón social, el listado de centros de costo y la tabla se filtran para mostrar únicamente los centros asociados a esa razón social.',
+      'Si se cambia la razón social y el centro de costo seleccionado ya no pertenece a ella, la selección de centro de costo se limpia automáticamente.',
+    ]
+  },
+  {
+    fecha: '2026-06-06',
+    titulo: 'Dashboard Comparativo — Filtro por Razón Social',
+    items: [
+      'Se agrega un selector de Razón Social en el Dashboard Comparativo (Presupuesto vs Real).',
+      'Al filtrar, los datos de presupuesto consideran solo los centros de costo de la razón social seleccionada; los centros de costo sin razón social asignada siempre se incluyen (prorrateados).',
+      'El filtro aplica también a los datos de facturado, consumido y remuneraciones. Las facturas e ítems sin razón social asignada se incluyen en todos los filtros.',
+    ]
+  },
+  {
     fecha: '2026-06-04',
     titulo: 'Salidas — Tabla Consumo Matriz con prorrateo por CC',
     items: [

@@ -17,6 +17,7 @@ use App\Models\Supply;
 use App\Models\Service;
 use App\Models\DoseType;
 use App\Models\Product2;
+use App\Models\CompanyReason;
 use Inertia\Inertia;
 
 use App\Http\Controllers\Traits\BudgetTotalsTrait;
@@ -114,14 +115,27 @@ class AgrochemicalsController extends Controller
             ];
         });
 
-        $costCenters = CostCenter::select('id', 'name')->where('season_id', $season_id)->whereHas('season.team', function($query) use ($user){
+        $costCenters = CostCenter::select('id', 'name', 'company_reason_id')->where('season_id', $season_id)->whereHas('season.team', function($query) use ($user){
             $query->where('team_id', $user->team_id);
         })->get()->transform(function($costCenter){
             return [
                 'label' => $costCenter->name,
-                'value' => $costCenter->id
+                'value' => $costCenter->id,
+                'company_reason_id' => $costCenter->company_reason_id,
             ];
         });
+
+        $companyReasons = CompanyReason::whereIn(
+            'id',
+            CostCenter::where('season_id', $season_id)
+                ->whereHas('season.team', fn($q) => $q->where('team_id', $user->team_id))
+                ->whereNotNull('company_reason_id')
+                ->pluck('company_reason_id')
+        )
+        ->orderBy('name')
+        ->get(['id', 'name'])
+        ->map(fn($cr) => ['value' => $cr->id, 'label' => $cr->name])
+        ->values();
 
         $agrochemicals = Agrochemical::with('subfamily:id,name', 'unit:id,name', 'items:id', 'dosetype:id,name', 'user:id,name')->whereHas('items', function($query) use ($costCenters){
             $query->whereIn('cost_center_id', $costCenters->pluck('value'));
@@ -156,15 +170,16 @@ class AgrochemicalsController extends Controller
         $data = Agrochemical::from('agrochemicals as a')
         ->join('agrochemical_items as ai', 'a.id', 'ai.agrochemical_id')
         ->join('cost_centers as cc', 'ai.cost_center_id', 'cc.id')
-        ->select('ai.cost_center_id', 'cc.name', 'cc.surface', 'cc.variety_id') // <-- Agregamos variety_id
+        ->select('ai.cost_center_id', 'cc.name', 'cc.surface', 'cc.variety_id', 'cc.company_reason_id')
         ->whereIn('ai.cost_center_id', $costCenters->pluck('value'))
-        ->groupBy('ai.cost_center_id', 'cc.name', 'cc.surface', 'cc.variety_id') // <-- Agregamos variety_id
+        ->groupBy('ai.cost_center_id', 'cc.name', 'cc.surface', 'cc.variety_id', 'cc.company_reason_id')
         ->get()
         ->transform(function($value) use ($costCenters){
             return [
                 'id' => $value->cost_center_id,
                 'name' => $value->name,
-                'variety_id' => $value->variety_id, // <-- Agregamos variety_id al array
+                'variety_id' => $value->variety_id,
+                'company_reason_id' => $value->company_reason_id,
                 'subfamilies' => $this->getSubfamilies($value->cost_center_id, $value->surface)
             ];
         });
@@ -172,15 +187,16 @@ class AgrochemicalsController extends Controller
         $data3 = Agrochemical::from('agrochemicals as a')
         ->join('agrochemical_items as ai', 'a.id', 'ai.agrochemical_id')
         ->join('cost_centers as cc', 'ai.cost_center_id', 'cc.id')
-        ->select('ai.cost_center_id', 'cc.name', 'cc.surface', 'cc.variety_id')
+        ->select('ai.cost_center_id', 'cc.name', 'cc.surface', 'cc.variety_id', 'cc.company_reason_id')
         ->whereIn('ai.cost_center_id', $costCenters->pluck('value'))
-        ->groupBy('ai.cost_center_id', 'cc.name', 'cc.surface', 'cc.variety_id')
+        ->groupBy('ai.cost_center_id', 'cc.name', 'cc.surface', 'cc.variety_id', 'cc.company_reason_id')
         ->get()
         ->transform(function($value) use ($costCenters){
             return [
                 'id' => $value->cost_center_id,
                 'name' => $value->name,
                 'variety_id' => $value->variety_id,
+                'company_reason_id' => $value->company_reason_id,
                 'subfamilies' => $this->getSubfamilies($value->cost_center_id, null, true)
             ];
         }); 
@@ -291,7 +307,7 @@ class AgrochemicalsController extends Controller
         $data4 = $this->buildData4($costCenters->pluck('value'), $season_id, $user->team_id);
 
         return Inertia::render('Agrochemicals', compact(
-            'units', 'subfamilies', 'months', 'costCenters', 'groupings', 'agrochemicals', 'data', 'data2', 'data3', 'data4', 'doseTypes', 'season',
+            'units', 'subfamilies', 'months', 'costCenters', 'companyReasons', 'groupings', 'agrochemicals', 'data', 'data2', 'data3', 'data4', 'doseTypes', 'season',
             'totalData1', 'totalData2',
             'totalAgrochemical', 'totalFertilizer', 'totalManPower', 'totalSupplies', 'totalServices', 'totalAdministration', 'totalField', 'totalHarvest', 'totalAbsolute',
             'percentageAgrochemical',

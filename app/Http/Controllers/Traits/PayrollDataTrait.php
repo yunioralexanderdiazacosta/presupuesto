@@ -500,7 +500,7 @@ trait PayrollDataTrait
      * @param  array  $months  Array de 12 meses generado por generateMonthsArray() — cada elemento tiene 'id'
      * @return int[]           Array de 12 enteros, indexado por posición del mes en la temporada
      */
-    public function getPayrollMonthly(int $teamId, int $seasonId, array $months): array
+    public function getPayrollMonthly(int $teamId, int $seasonId, array $months, ?int $companyReasonId = null): array
     {
         $contractIds = Contract::where('team_id', $teamId)->pluck('id');
 
@@ -513,49 +513,145 @@ trait PayrollDataTrait
         $result = array_fill(0, 12, 0);
 
         // ── 1. TARJAS ─────────────────────────────────────────────────────
-        DB::table('daily_yields')
-            ->where('team_id', $teamId)
-            ->where('season_id', $seasonId)
-            ->selectRaw('MONTH(date) as month_num, SUM(COALESCE(amount,0) + COALESCE(bonus_amount,0) + COALESCE(target_price_bonus,0)) as total')
-            ->groupBy('month_num')
-            ->get()
-            ->each(function ($row) use (&$result, $monthIndexMap) {
-                $idx = $monthIndexMap[(int) $row->month_num] ?? null;
-                if ($idx !== null) $result[$idx] += (float) $row->total;
-            });
+        if ($companyReasonId) {
+            $yieldSurfaceTotals = DB::table('daily_yield_cost_center as dycc2')
+                ->join('cost_centers as cc2', 'dycc2.cost_center_id', '=', 'cc2.id')
+                ->select('dycc2.daily_yield_id', DB::raw('SUM(cc2.surface) as total_surface'))
+                ->groupBy('dycc2.daily_yield_id');
 
-        // ── 2. BONOS MENSUALES ────────────────────────────────────────────
-        if ($contractIds->isNotEmpty()) {
-            DB::table('monthly_bonuses')
-                ->where('team_id', $teamId)
-                ->where(function ($q) use ($seasonId) {
-                    $q->where('season_id', $seasonId)->orWhereNull('season_id');
-                })
-                ->whereIn('contract_id', $contractIds)
-                ->selectRaw('month_id, SUM(amount) as total')
-                ->groupBy('month_id')
+            DB::table('daily_yields as dy')
+                ->join('daily_yield_cost_center as dycc', 'dycc.daily_yield_id', '=', 'dy.id')
+                ->join('cost_centers as cc', 'dycc.cost_center_id', '=', 'cc.id')
+                ->leftJoinSub($yieldSurfaceTotals, 'surf_dy', 'dycc.daily_yield_id', '=', 'surf_dy.daily_yield_id')
+                ->where('dy.team_id', $teamId)
+                ->where('dy.season_id', $seasonId)
+                ->where('cc.company_reason_id', $companyReasonId)
+                ->selectRaw("
+                    MONTH(dy.date) as month_num,
+                    COALESCE(SUM(
+                        CASE WHEN cc.surface = 0 OR COALESCE(surf_dy.total_surface, 0) = 0
+                            THEN (COALESCE(dy.amount,0) + COALESCE(dy.bonus_amount,0) + COALESCE(dy.target_price_bonus,0))
+                            ELSE (cc.surface / surf_dy.total_surface) * (COALESCE(dy.amount,0) + COALESCE(dy.bonus_amount,0) + COALESCE(dy.target_price_bonus,0))
+                        END
+                    ), 0) as total
+                ")
+                ->groupBy(DB::raw('MONTH(dy.date)'))
                 ->get()
                 ->each(function ($row) use (&$result, $monthIndexMap) {
-                    $idx = $monthIndexMap[(int) $row->month_id] ?? null;
+                    $idx = $monthIndexMap[(int) $row->month_num] ?? null;
+                    if ($idx !== null) $result[$idx] += (float) $row->total;
+                });
+        } else {
+            DB::table('daily_yields')
+                ->where('team_id', $teamId)
+                ->where('season_id', $seasonId)
+                ->selectRaw('MONTH(date) as month_num, SUM(COALESCE(amount,0) + COALESCE(bonus_amount,0) + COALESCE(target_price_bonus,0)) as total')
+                ->groupBy('month_num')
+                ->get()
+                ->each(function ($row) use (&$result, $monthIndexMap) {
+                    $idx = $monthIndexMap[(int) $row->month_num] ?? null;
                     if ($idx !== null) $result[$idx] += (float) $row->total;
                 });
         }
 
+        // ── 2. BONOS MENSUALES ────────────────────────────────────────────
+        if ($contractIds->isNotEmpty()) {
+            if ($companyReasonId) {
+                $bonusSurfaceTotals = DB::table('monthly_bonus_cost_centers as mbcc2')
+                    ->join('cost_centers as cc2', 'mbcc2.cost_center_id', '=', 'cc2.id')
+                    ->select('mbcc2.monthly_bonus_id', DB::raw('SUM(cc2.surface) as total_surface'))
+                    ->groupBy('mbcc2.monthly_bonus_id');
+
+                DB::table('monthly_bonuses as mb')
+                    ->join('monthly_bonus_cost_centers as mbcc', 'mbcc.monthly_bonus_id', '=', 'mb.id')
+                    ->join('cost_centers as cc', 'mbcc.cost_center_id', '=', 'cc.id')
+                    ->leftJoinSub($bonusSurfaceTotals, 'surf_mb', 'mbcc.monthly_bonus_id', '=', 'surf_mb.monthly_bonus_id')
+                    ->where('mb.team_id', $teamId)
+                    ->where(function ($q) use ($seasonId) {
+                        $q->where('mb.season_id', $seasonId)->orWhereNull('mb.season_id');
+                    })
+                    ->whereIn('mb.contract_id', $contractIds->toArray())
+                    ->where('cc.company_reason_id', $companyReasonId)
+                    ->selectRaw("
+                        mb.month_id,
+                        COALESCE(SUM(
+                            CASE WHEN cc.surface = 0 OR COALESCE(surf_mb.total_surface, 0) = 0
+                                THEN COALESCE(mb.amount, 0)
+                                ELSE (cc.surface / surf_mb.total_surface) * COALESCE(mb.amount, 0)
+                            END
+                        ), 0) as total
+                    ")
+                    ->groupBy('mb.month_id')
+                    ->get()
+                    ->each(function ($row) use (&$result, $monthIndexMap) {
+                        $idx = $monthIndexMap[(int) $row->month_id] ?? null;
+                        if ($idx !== null) $result[$idx] += (float) $row->total;
+                    });
+            } else {
+                DB::table('monthly_bonuses')
+                    ->where('team_id', $teamId)
+                    ->where(function ($q) use ($seasonId) {
+                        $q->where('season_id', $seasonId)->orWhereNull('season_id');
+                    })
+                    ->whereIn('contract_id', $contractIds)
+                    ->selectRaw('month_id, SUM(amount) as total')
+                    ->groupBy('month_id')
+                    ->get()
+                    ->each(function ($row) use (&$result, $monthIndexMap) {
+                        $idx = $monthIndexMap[(int) $row->month_id] ?? null;
+                        if ($idx !== null) $result[$idx] += (float) $row->total;
+                    });
+            }
+        }
+
         // ── 3. HORAS EXTRA ────────────────────────────────────────────────
         if ($contractIds->isNotEmpty()) {
-            DB::table('overtime_hours')
-                ->where('team_id', $teamId)
-                ->where(function ($q) use ($seasonId) {
-                    $q->where('season_id', $seasonId)->orWhereNull('season_id');
-                })
-                ->whereIn('contract_id', $contractIds)
-                ->selectRaw('month_id, SUM(ROUND(hours * base_salary_snapshot * hourly_rate_factor_snapshot * overtime_multiplier_snapshot)) as total')
-                ->groupBy('month_id')
-                ->get()
-                ->each(function ($row) use (&$result, $monthIndexMap) {
-                    $idx = $monthIndexMap[(int) $row->month_id] ?? null;
-                    if ($idx !== null) $result[$idx] += (float) $row->total;
-                });
+            if ($companyReasonId) {
+                $otSurfaceTotals = DB::table('overtime_hour_cost_centers as ohcc2')
+                    ->join('cost_centers as cc2', 'ohcc2.cost_center_id', '=', 'cc2.id')
+                    ->select('ohcc2.overtime_hour_id', DB::raw('SUM(cc2.surface) as total_surface'))
+                    ->groupBy('ohcc2.overtime_hour_id');
+
+                DB::table('overtime_hours as oh')
+                    ->join('overtime_hour_cost_centers as ohcc', 'ohcc.overtime_hour_id', '=', 'oh.id')
+                    ->join('cost_centers as cc', 'ohcc.cost_center_id', '=', 'cc.id')
+                    ->leftJoinSub($otSurfaceTotals, 'surf_oh', 'ohcc.overtime_hour_id', '=', 'surf_oh.overtime_hour_id')
+                    ->where('oh.team_id', $teamId)
+                    ->where(function ($q) use ($seasonId) {
+                        $q->where('oh.season_id', $seasonId)->orWhereNull('oh.season_id');
+                    })
+                    ->whereIn('oh.contract_id', $contractIds->toArray())
+                    ->where('cc.company_reason_id', $companyReasonId)
+                    ->selectRaw("
+                        oh.month_id,
+                        COALESCE(SUM(
+                            CASE WHEN cc.surface = 0 OR COALESCE(surf_oh.total_surface, 0) = 0
+                                THEN ROUND(oh.hours * oh.base_salary_snapshot * oh.hourly_rate_factor_snapshot * oh.overtime_multiplier_snapshot)
+                                ELSE (cc.surface / surf_oh.total_surface) * ROUND(oh.hours * oh.base_salary_snapshot * oh.hourly_rate_factor_snapshot * oh.overtime_multiplier_snapshot)
+                            END
+                        ), 0) as total
+                    ")
+                    ->groupBy('oh.month_id')
+                    ->get()
+                    ->each(function ($row) use (&$result, $monthIndexMap) {
+                        $idx = $monthIndexMap[(int) $row->month_id] ?? null;
+                        if ($idx !== null) $result[$idx] += (float) $row->total;
+                    });
+            } else {
+                DB::table('overtime_hours')
+                    ->where('team_id', $teamId)
+                    ->where(function ($q) use ($seasonId) {
+                        $q->where('season_id', $seasonId)->orWhereNull('season_id');
+                    })
+                    ->whereIn('contract_id', $contractIds)
+                    ->selectRaw('month_id, SUM(ROUND(hours * base_salary_snapshot * hourly_rate_factor_snapshot * overtime_multiplier_snapshot)) as total')
+                    ->groupBy('month_id')
+                    ->get()
+                    ->each(function ($row) use (&$result, $monthIndexMap) {
+                        $idx = $monthIndexMap[(int) $row->month_id] ?? null;
+                        if ($idx !== null) $result[$idx] += (float) $row->total;
+                    });
+            }
         }
 
         return array_map('intval', $result);
