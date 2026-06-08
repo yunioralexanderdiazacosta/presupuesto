@@ -1053,6 +1053,7 @@ function copyToAllCards(sourceCardId) {
                             { label: 'Fecha digitación', key: 'date' },
                             { label: 'N° Doc', key: 'number_document' },
                             { label: 'Proveedor', key: 'supplier' },
+                            { label: 'RUT Proveedor', key: 'supplier_rut' },
                             { label: 'Fecha factura', key: 'fecha_factura' },
                             { label: 'Mes contable', key: 'mes_contable' },
                             { label: 'Producto', key: 'product' },

@@ -259,6 +259,11 @@ class OutflowsController extends Controller
                         : ($outflow->creditDebitNoteItem
                             ? ($outflow->creditDebitNoteItem->creditDebitNote->supplier->name ?? '')
                             : ($outflow->fuelOutflow?->invoiceProduct?->invoice?->supplier?->name ?? '')),
+                    'supplier_rut' => $outflow->invoiceProduct
+                        ? ($outflow->invoiceProduct->invoice->supplier->rut ?? '')
+                        : ($outflow->creditDebitNoteItem
+                            ? ($outflow->creditDebitNoteItem->creditDebitNote->supplier->rut ?? '')
+                            : ($outflow->fuelOutflow?->invoiceProduct?->invoice?->supplier?->rut ?? '')),
                     'project' => $outflow->project->name ?? '',
                     'operation' => $outflow->operation->name ?? '',
                     'investment' => $outflow->investment->name ?? '',
