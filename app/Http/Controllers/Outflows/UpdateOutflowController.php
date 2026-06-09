@@ -6,6 +6,8 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\OutflowRequest;
 use App\Models\Outflow;
 
+use App\Traits\CheckSeasonLocked;
+
 class UpdateOutflowController extends Controller
 {
     public function __invoke(OutflowRequest $request, Outflow $outflow)

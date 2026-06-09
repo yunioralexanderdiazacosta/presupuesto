@@ -1,5 +1,6 @@
 <script setup>
 import { computed, ref } from 'vue';
+import { useSeasonLock } from '@/Composables/useSeasonLock';
 import axios from 'axios';
 import ExportExcelButton from '@/Components/ExportExcelButton.vue';
 import ExportPdfButton from '@/Components/ExportPdfButton.vue';
@@ -13,6 +14,8 @@ import Breadcrumb from '@/Components/Breadcrumb.vue';
 import TitleBudget from '@/Components/Budgets/TitleBudget.vue';
 import CreateSupplierModal from '@/Components/Suppliers/CreateSupplierModal.vue';
 import EditSupplierModal from '@/Components/Suppliers/EditSupplierModal.vue';
+
+const isLocked = useSeasonLock();
 
 const props = defineProps({
     suppliers: Object,
@@ -201,7 +204,7 @@ async function importExcel() {
                                 <span class="fas fa-file-import" data-fa-transform="shrink-3 down-2" :class="{'fa-spin': isImporting}"></span>
                                 <span class="d-none d-sm-inline-block ms-1">Importar</span>
                             </button>
-                            <button class="btn btn-falcon-default btn-sm" type="button" @click="openAdd()">
+                            <button class="btn btn-falcon-default btn-sm" type="button" @click="openAdd()" :disabled="isLocked">
                                 <span class="fas fa-plus" data-fa-transform="shrink-3 down-2"></span>
                                 <span class="d-none d-sm-inline-block ms-1">Nuevo</span>
                             </button>

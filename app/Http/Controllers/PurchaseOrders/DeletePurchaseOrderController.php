@@ -6,6 +6,8 @@ use App\Http\Controllers\Controller;
 use App\Models\PurchaseOrder;
 use Illuminate\Support\Facades\Auth;
 
+use App\Traits\CheckSeasonLocked;
+
 class DeletePurchaseOrderController extends Controller
 {
     public function __invoke(PurchaseOrder $purchaseOrder)

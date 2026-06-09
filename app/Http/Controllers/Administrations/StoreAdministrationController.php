@@ -6,11 +6,14 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\Administrations\StoreAdministrationRequest;
 use App\Models\Administration;
 use Illuminate\Support\Facades\Auth;
+use App\Traits\CheckSeasonLocked;
 
 class StoreAdministrationController extends Controller
 {
+    use CheckSeasonLocked;
     public function __invoke(StoreAdministrationRequest $request)
     {
+        $this->abortIfSeasonLocked();
         $products = $request->get('products');
           $user = Auth::user();
           $season_id = session('season_id'); // <-- Agrega esta línea

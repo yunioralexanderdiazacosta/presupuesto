@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Estimates;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Estimates\StoreEstimateRequest;
 use App\Models\Estimate;
+use App\Traits\CheckSeasonLocked;
 
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Log;
@@ -13,8 +14,10 @@ use Illuminate\Support\Facades\Log;
 
 class StoreEstimateController extends Controller
 {
+    use CheckSeasonLocked;
     public function __invoke(StoreEstimateRequest $request)
     {
+        $this->abortIfSeasonLocked();
         $user = Auth::user();
         $season_id = session('season_id');
 

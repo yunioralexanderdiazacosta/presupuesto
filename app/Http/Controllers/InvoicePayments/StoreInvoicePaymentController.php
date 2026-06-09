@@ -9,6 +9,8 @@ use App\Models\Invoice;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 
+use App\Traits\CheckSeasonLocked;
+
 class StoreInvoicePaymentController extends Controller
 {
     public function __invoke(StoreInvoicePaymentRequest $request)

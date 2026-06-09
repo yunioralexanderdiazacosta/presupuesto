@@ -5,6 +5,8 @@ namespace App\Http\Controllers\MonthlyBonuses;
 use App\Models\MonthlyBonus;
 use Illuminate\Support\Facades\Auth;
 
+use App\Traits\CheckSeasonLocked;
+
 class DeleteMonthlyBonusController
 {
     public function __invoke(MonthlyBonus $monthlyBonus)

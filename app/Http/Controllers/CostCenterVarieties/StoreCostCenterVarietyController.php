@@ -9,6 +9,8 @@ use App\Models\CostCenterVariety;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Validation\ValidationException;
 
+use App\Traits\CheckSeasonLocked;
+
 class StoreCostCenterVarietyController extends Controller
 {
     public function __invoke(FormCostCenterVarietyRequest $request)

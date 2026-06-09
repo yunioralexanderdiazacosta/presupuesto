@@ -6,6 +6,8 @@ use App\Http\Requests\Contracts\StoreContractRequest;
 use App\Models\Contract;
 use Illuminate\Support\Facades\Auth;
 
+use App\Traits\CheckSeasonLocked;
+
 class StoreContractController
 {
     public function __invoke(StoreContractRequest $request)

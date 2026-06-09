@@ -1,10 +1,13 @@
 <script setup>
 import { ref, computed } from 'vue';
+import { useSeasonLock } from '@/Composables/useSeasonLock';
 import Swal from 'sweetalert2';
 import { Link, router, Head } from '@inertiajs/vue3';
 import AppLayout from '@/Layouts/AppLayout.vue';
 import CreatePurchaseOrderModal from '@/Components/PurchaseOrders/CreatePurchaseOrderModal.vue';
 import EditPurchaseOrderModal from '@/Components/PurchaseOrders/EditPurchaseOrderModal.vue';
+
+const isLocked = useSeasonLock();
 
 const props = defineProps({
     purchaseOrders: Object,
@@ -203,6 +206,7 @@ function getProductsList(order) {
                         <button 
                             @click="openCreateModal" 
                             class="btn btn-falcon-default btn-sm"
+                            :disabled="isLocked"
                         >
                             <span class="fas fa-plus" data-fa-transform="shrink-3 down-2"></span>
                             <span class="d-none d-sm-inline-block ms-1">Nueva Orden</span>

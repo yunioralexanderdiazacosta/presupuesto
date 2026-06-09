@@ -6,12 +6,15 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\Estimates\UpdateEstimateRequest;
 use App\Models\Estimate;
 use Illuminate\Support\Facades\Log;
-use Illuminate\Support\Facades\Auth;    
+use Illuminate\Support\Facades\Auth;
+use App\Traits\CheckSeasonLocked;    
 
 class UpdateEstimateController extends Controller
 {
+    use CheckSeasonLocked;
     public function __invoke($id, \Illuminate\Http\Request $request)
     {
+        $this->abortIfSeasonLocked();
         $estimate = Estimate::find($id);
 
         if (!$estimate) {

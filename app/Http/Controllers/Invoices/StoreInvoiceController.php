@@ -10,11 +10,14 @@ use App\Models\Product;
 use App\Models\Unit;
 use App\Models\ExpenseReportItem;
 use Illuminate\Support\Facades\DB;
+use App\Traits\CheckSeasonLocked;
 
 class StoreInvoiceController extends Controller
 {
+    use CheckSeasonLocked;
     public function __invoke(FormInvoiceRequest $request)
     {
+        $this->abortIfSeasonLocked();
         // Obtener usuario actualizado directamente de la base de datos para evitar caché
         $user = \App\Models\User::find(Auth::id());
 

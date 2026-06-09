@@ -838,6 +838,15 @@ const navigateTo = (routeName) => {
                 <span class="fw-bold fs-8">{{$page.props.temporada ?? ''}}</span>
                 <span v-if="isAdminUser" class="fas fa-chevron-down ms-2 fs-10 opacity-75"></span>
               </component>
+              <!-- Badge temporada bloqueada -->
+              <span
+                v-if="$page.props.seasonLocked"
+                class="d-inline-flex align-items-center px-3 py-1 mb-0 mt-1 rounded-pill me-3 fw-semibold"
+                style="background: #e63757; color: #fff; font-size: 0.72rem; white-space: nowrap;"
+                v-tooltip="'Esta temporada está bloqueada. Solo lectura.'"
+              >
+                <i class="fas fa-lock me-1" style="font-size: 0.65rem;"></i> Bloqueada
+              </span>
              
               <div class="dropdown-menu border font-base start-0 mt-2 py-0 overflow-hidden w-100">
                 <div class="scrollbar list py-3" style="max-height: 24rem;">

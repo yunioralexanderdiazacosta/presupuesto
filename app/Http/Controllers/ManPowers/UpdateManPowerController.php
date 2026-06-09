@@ -6,11 +6,14 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\ManPowers\UpdateManPowerRequest;
 use Illuminate\Http\Request;
 use App\Models\ManPower;
+use App\Traits\CheckSeasonLocked;
 
 class UpdateManPowerController extends Controller
 {
+    use CheckSeasonLocked;
     public function __invoke(ManPower $manPower, UpdateManPowerRequest $request)
     {
+        $this->abortIfSeasonLocked();
         $manPower->product_name = $request->product_name;
         $manPower->workday      = $request->workday;
         $manPower->price        = $request->price;

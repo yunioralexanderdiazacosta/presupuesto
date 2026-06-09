@@ -7,11 +7,14 @@ use App\Http\Requests\Fertilizers\StoreFertilizerRequest;
 use Illuminate\Http\Request;
 use App\Models\Fertilizer;
 use Illuminate\Support\Facades\Auth;
+use App\Traits\CheckSeasonLocked;
 
 class StoreFertilizerController extends Controller
 {
+    use CheckSeasonLocked;
     public function __invoke(StoreFertilizerRequest $request)
     {
+        $this->abortIfSeasonLocked();
         $products = $request->get('products');
         $user = Auth::user();
         $season_id = session('season_id');

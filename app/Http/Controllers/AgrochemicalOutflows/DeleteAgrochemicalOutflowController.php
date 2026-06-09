@@ -7,6 +7,8 @@ use App\Models\ApplicationOrder;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 
+use App\Traits\CheckSeasonLocked;
+
 class DeleteAgrochemicalOutflowController
 {
     public function __invoke(AgrochemicalOutflow $agrochemicalOutflow)

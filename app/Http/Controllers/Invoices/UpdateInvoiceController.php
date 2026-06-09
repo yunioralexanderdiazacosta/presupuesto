@@ -7,11 +7,14 @@ use App\Http\Requests\FormInvoiceRequest;
 use App\Models\Invoice;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
+use App\Traits\CheckSeasonLocked;
 
 class UpdateInvoiceController extends Controller
 {
+    use CheckSeasonLocked;
     public function __invoke(Invoice $invoice, FormInvoiceRequest $request)
     {
+        $this->abortIfSeasonLocked();
         // Identificar qué invoice_products tienen salidas (outflows) asociadas
         $allInvoiceProductIds = DB::table('invoice_products')
             ->where('invoice_id', $invoice->id)

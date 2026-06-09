@@ -6,6 +6,8 @@ use App\Http\Controllers\Controller;
 use App\Models\Investment;
 use Illuminate\Http\Request;
 
+use App\Traits\CheckSeasonLocked;
+
 class UpdateInvestmentController extends Controller
 {
     public function __invoke(Request $request, Investment $investment)

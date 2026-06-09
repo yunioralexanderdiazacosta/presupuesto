@@ -9,6 +9,8 @@ use App\Models\DailyYield;
 use App\Models\Termination;
 use Illuminate\Support\Facades\Auth;
 
+use App\Traits\CheckSeasonLocked;
+
 class StoreDailyYieldController extends Controller
 {
     public function __invoke(StoreDailyYieldRequest $request)

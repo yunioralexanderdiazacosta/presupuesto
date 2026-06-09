@@ -9,6 +9,8 @@ use App\Models\PurchaseOrderItem;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 
+use App\Traits\CheckSeasonLocked;
+
 class UpdatePurchaseOrderController extends Controller
 {
     public function __invoke(UpdatePurchaseOrderRequest $request, PurchaseOrder $purchaseOrder)

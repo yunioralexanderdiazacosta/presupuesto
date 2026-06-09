@@ -8,6 +8,8 @@ use App\Models\Termination;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 
+use App\Traits\CheckSeasonLocked;
+
 class DeleteTerminationController extends Controller
 {
     public function __invoke(Termination $termination)

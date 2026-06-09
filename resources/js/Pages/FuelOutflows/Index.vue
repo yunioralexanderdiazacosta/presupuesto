@@ -1,5 +1,6 @@
 <script setup>
 import { ref, computed } from 'vue';
+import { useSeasonLock } from '@/Composables/useSeasonLock';
 import Swal from 'sweetalert2';
 import { Link, router, Head } from '@inertiajs/vue3';
 import AppLayout from '@/Layouts/AppLayout.vue';
@@ -20,6 +21,8 @@ function showMoreCenters(centers) {
         confirmButtonText: 'Cerrar'
     });
 }
+
+const isLocked = useSeasonLock();
 
 const props = defineProps({
     fuelOutflows: Array,
@@ -171,7 +174,7 @@ function deleteFuelOutflow(id) {
                     <button class="btn btn-info btn-sm" @click="openAnalyticsModal">
                         <i class="fas fa-chart-line"></i> Análisis
                     </button>
-                    <button class="btn btn-primary btn-sm" @click="openCreateModal">
+                    <button class="btn btn-primary btn-sm" @click="openCreateModal" :disabled="isLocked">
                         <i class="fas fa-plus"></i> Nuevo
                     </button>
                 </div>

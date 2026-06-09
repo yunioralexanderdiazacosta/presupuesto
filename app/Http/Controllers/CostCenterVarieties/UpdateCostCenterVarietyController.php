@@ -8,6 +8,8 @@ use App\Models\CostCenter;
 use App\Models\CostCenterVariety;
 use Illuminate\Validation\ValidationException;
 
+use App\Traits\CheckSeasonLocked;
+
 class UpdateCostCenterVarietyController extends Controller
 {
     public function __invoke(CostCenterVariety $costCenterVariety, FormCostCenterVarietyRequest $request)

@@ -9,6 +9,8 @@ use App\Http\Requests\ApplicationOrders\StoreApplicationOrderRequest;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 
+use App\Traits\CheckSeasonLocked;
+
 class StoreApplicationOrderController
 {
     public function __invoke(StoreApplicationOrderRequest $request)

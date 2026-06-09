@@ -7,6 +7,8 @@ use App\Models\DailyAttendance;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 
+use App\Traits\CheckSeasonLocked;
+
 class DeleteDailyAttendanceController extends Controller
 {
     public function __invoke(Request $request)

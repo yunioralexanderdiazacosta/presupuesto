@@ -12,6 +12,8 @@ use App\Http\Requests\FertilizerOutflows\StoreFertilizerOutflowRequest;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 
+use App\Traits\CheckSeasonLocked;
+
 class StoreFertilizerOutflowController
 {
     public function __invoke(StoreFertilizerOutflowRequest $request)

@@ -7,6 +7,8 @@ use App\Models\ExpenseReport;
 use App\Models\ExpenseReportItem;
 use Illuminate\Support\Facades\Auth;
 
+use App\Traits\CheckSeasonLocked;
+
 class DeleteExpenseReportItemController extends Controller
 {
     public function __invoke(ExpenseReportItem $item)

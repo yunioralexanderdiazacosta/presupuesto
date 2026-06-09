@@ -10,11 +10,14 @@ use App\Models\CreditDebitNoteItem;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
+use App\Traits\CheckSeasonLocked;
 
 class UpdateFertilizerOutflowController extends Controller
 {
+    use CheckSeasonLocked;
     public function __invoke(Request $request, FertilizerOutflow $fertilizerOutflow)
     {
+        $this->abortIfSeasonLocked();
         $user = Auth::user();
         $teamId = $user->team_id;
         $seasonId = session('season_id');

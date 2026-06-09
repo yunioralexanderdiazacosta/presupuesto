@@ -6,11 +6,14 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\Agrochemicals\StoreAgrochemicalRequest;
 use App\Models\Agrochemical;
 use Illuminate\Support\Facades\Auth;
+use App\Traits\CheckSeasonLocked;
 
 class StoreAgrochemicalController extends Controller
 {
+    use CheckSeasonLocked;
     public function __invoke(StoreAgrochemicalRequest $request)
     {
+        $this->abortIfSeasonLocked();
         $products = $request->get('products');
           $user = Auth::user();
            $season_id = session('season_id'); 

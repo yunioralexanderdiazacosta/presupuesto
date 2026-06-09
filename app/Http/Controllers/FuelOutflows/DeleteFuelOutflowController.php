@@ -6,6 +6,8 @@ use App\Models\FuelOutflow;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 
+use App\Traits\CheckSeasonLocked;
+
 class DeleteFuelOutflowController
 {
     public function __invoke(FuelOutflow $fuelOutFlow)

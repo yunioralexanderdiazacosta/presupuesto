@@ -6,11 +6,14 @@ use App\Http\Controllers\Controller;
 use Illuminate\Support\Facades\Auth;
 use App\Http\Requests\FormParcelRequest;
 use App\Models\Parcel;
+use App\Traits\CheckSeasonLocked;
 
 class StoreParcelController extends Controller
 {
+    use CheckSeasonLocked;
     public function __invoke(FormParcelRequest $request)
     {
+        $this->abortIfSeasonLocked();
         $user = Auth::user();
 
         Parcel::create([

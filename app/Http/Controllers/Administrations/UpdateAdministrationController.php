@@ -5,11 +5,14 @@ namespace App\Http\Controllers\Administrations;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Administrations\UpdateAdministrationRequest;
 use App\Models\Administration;
+use App\Traits\CheckSeasonLocked;
 
 class UpdateAdministrationController extends Controller
 {
+    use CheckSeasonLocked;
     public function __invoke(Administration $administration, UpdateAdministrationRequest $request)
     {
+        $this->abortIfSeasonLocked();
         $administration->product_name = $request->product_name;
         $administration->price        = $request->price;
         $administration->quantity     = $request->quantity;

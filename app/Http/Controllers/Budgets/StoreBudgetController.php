@@ -6,11 +6,14 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\FormBudgetRequest;
 use Illuminate\Support\Facades\Auth;
 use App\Models\Budget;
+use App\Traits\CheckSeasonLocked;
 
 class StoreBudgetController extends Controller
 {
+    use CheckSeasonLocked;
     public function __invoke(FormBudgetRequest $request)
     {
+        $this->abortIfSeasonLocked();
         $user = Auth::user();
 
         $season_id = session('season_id');

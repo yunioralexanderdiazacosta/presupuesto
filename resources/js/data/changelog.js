@@ -7,6 +7,17 @@
 
 export const changelog = [
   {
+    fecha: '2026-06-09',
+    titulo: 'Temporadas — Bloqueo de temporadas pasadas',
+    items: [
+      'Se puede bloquear una temporada para evitar ingresar o modificar datos en ella por error.',
+      'Cuando una temporada está bloqueada, los botones de creación y edición quedan deshabilitados en todos los módulos del sistema.',
+      'Se muestra una etiqueta "Bloqueada" en la barra superior cuando la temporada activa está bloqueada.',
+      'Desde la pantalla de Temporadas se puede bloquear o desbloquear cada temporada con un botón de candado.',
+      'El bloqueo también protege a nivel de servidor, impidiendo cualquier escritura aunque se intente por otros medios.',
+    ]
+  },
+  {
     fecha: '2026-06-06',
     titulo: 'Presupuestos — Filtro por Razón Social en módulos productivos',
     items: [

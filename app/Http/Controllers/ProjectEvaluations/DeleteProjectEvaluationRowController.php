@@ -7,6 +7,8 @@ use App\Models\ProjectEvaluation;
 use App\Models\ProjectEvaluationRow;
 use Illuminate\Support\Facades\Auth;
 
+use App\Traits\CheckSeasonLocked;
+
 class DeleteProjectEvaluationRowController extends Controller
 {
     public function __invoke(ProjectEvaluation $projectEvaluation, ProjectEvaluationRow $row)

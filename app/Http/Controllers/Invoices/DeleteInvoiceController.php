@@ -6,11 +6,14 @@ use App\Http\Controllers\Controller;
 use App\Models\Invoice;
 use App\Models\Outflow;
 use Illuminate\Support\Facades\DB;
+use App\Traits\CheckSeasonLocked;
 
 class DeleteInvoiceController extends Controller
 {
+    use CheckSeasonLocked;
     public function __invoke(Invoice $invoice)
     {
+        $this->abortIfSeasonLocked();
         $invoiceProductIds = DB::table('invoice_products')
             ->where('invoice_id', $invoice->id)
             ->pluck('id');

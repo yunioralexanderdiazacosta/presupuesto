@@ -8,6 +8,8 @@ use App\Models\InvoicePayment;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 
+use App\Traits\CheckSeasonLocked;
+
 class UpdateInvoicePaymentController extends Controller
 {
     public function __invoke(UpdateInvoicePaymentRequest $request, InvoicePayment $payment)

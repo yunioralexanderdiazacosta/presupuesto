@@ -8,6 +8,8 @@ use App\Models\Contract;
 use App\Models\DailyAttendance;
 use Illuminate\Support\Facades\Auth;
 
+use App\Traits\CheckSeasonLocked;
+
 class StoreDailyAttendanceController extends Controller
 {
     public function __invoke(StoreDailyAttendanceRequest $request)

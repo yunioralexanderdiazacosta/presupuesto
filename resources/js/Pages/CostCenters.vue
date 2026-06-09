@@ -1,5 +1,6 @@
 <script setup>
 import { computed, ref, nextTick } from 'vue';
+import { useSeasonLock } from '@/Composables/useSeasonLock';
 import { Link, router, Head, usePage, useForm } from '@inertiajs/vue3';
 import Swal from 'sweetalert2';
 import moment from 'moment';
@@ -15,6 +16,8 @@ import CopyCostCentersModal from '@/Components/CostCenters/CopyCostCentersModal.
 import SearchInput from '@/Components/SearchInput.vue';
 import ExportExcelButton from '@/Components/ExportExcelButton.vue';
 import ExportPdfButton from '@/Components/ExportPdfButton.vue';
+
+const isLocked = useSeasonLock();
 
 const props = defineProps({
     costCenters: Object,
@@ -215,7 +218,7 @@ const openVarietyModal = (costCenterId = null) => {
   <span class="fas fa-file-download me-1"></span>
   Ejemplo plantilla
 </a>
-<button class="btn btn-falcon-default btn-sm ms-auto" type="button" @click="openAdd()" style="margin-right: 0.8rem;"><span class="fas fa-plus" data-fa-transform="shrink-3 down-2"></span><span class="d-none d-sm-inline-block ms-1">Nuevo</span></button>
+<button class="btn btn-falcon-default btn-sm ms-auto" type="button" @click="openAdd()" :disabled="isLocked" style="margin-right: 0.8rem;"><span class="fas fa-plus" data-fa-transform="shrink-3 down-2"></span><span class="d-none d-sm-inline-block ms-1">Nuevo</span></button>
 <button class="btn btn-falcon-default btn-sm" type="button" @click="openCopy()" v-tooltip="'Copiar cuarteles desde otra temporada'"><span class="fas fa-copy" data-fa-transform="shrink-3 down-2"></span><span class="d-none d-sm-inline-block ms-1">Copiar CC</span></button>
                       </div>
                     </div>

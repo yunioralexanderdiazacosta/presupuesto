@@ -5,12 +5,15 @@ namespace App\Http\Controllers\CostCenters;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\FormCostCenterRequest;
 use App\Models\CostCenter;
+use App\Traits\CheckSeasonLocked;
 
 
 class UpdateCostCenterController extends Controller
 {
+    use CheckSeasonLocked;
     public function __invoke(CostCenter $costCenter, FormCostCenterRequest $request)
     {
+        $this->abortIfSeasonLocked();
         $costCenter->name = $request->name;
         $costCenter->surface = $request->surface;
         $costCenter->observations=$request->observations;

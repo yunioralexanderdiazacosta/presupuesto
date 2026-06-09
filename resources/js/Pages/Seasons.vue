@@ -164,6 +164,37 @@ const setDefault = (seasonId) => {
         }
     });
 }
+
+const toggleLock = (season) => {
+    const action = season.is_locked ? 'desbloquear' : 'bloquear';
+    const icon   = season.is_locked ? 'warning' : 'warning';
+    Swal.fire({
+        title: `¿${season.is_locked ? 'Desbloquear' : 'Bloquear'} temporada?`,
+        text: season.is_locked
+            ? 'Se permitirá nuevamente agregar y editar datos en esta temporada.'
+            : 'Se impedirá agregar o editar datos en esta temporada. Solo lectura.',
+        icon,
+        showCancelButton: true,
+        confirmButtonColor: season.is_locked ? 'rgb(0, 158, 247)' : '#e63757',
+        cancelButtonColor: '#6e6e6e',
+        cancelButtonText: 'Cancelar',
+        confirmButtonText: `Sí, ${action}`,
+    }).then((result) => {
+        if (result.isConfirmed) {
+            router.post(route('seasons.toggle-lock', season.id), {}, {
+                preserveScroll: true,
+                onSuccess: () => {
+                    Swal.fire({
+                        icon: season.is_locked ? 'success' : 'info',
+                        title: season.is_locked ? 'Temporada desbloqueada' : 'Temporada bloqueada',
+                        showConfirmButton: false,
+                        timer: 1200,
+                    });
+                }
+            });
+        }
+    });
+}
 </script>
 <template>
     <Head :title="title" />
@@ -227,6 +258,7 @@ const setDefault = (seasonId) => {
                         <th width="min-w-150px">Nombre</th>
                         <th width="min-w-50px" class="text-center">Color</th>
                         <th width="min-w-50px" class="text-center">Predeterminada</th>
+                        <th width="min-w-50px" class="text-center">Estado</th>
                         <th width="min-w-150px">Mes de inicio</th>
                         <th width="min-w-150px" class="text-end">Acciones</th>
                         <!--end::Table row-->
@@ -248,6 +280,14 @@ const setDefault = (seasonId) => {
                                     <button type="button" @click="setDefault(season.id)" class="btn btn-sm p-0" v-tooltip="isDefault(season.id) ? 'Es la predeterminada' : 'Establecer como predeterminada'">
                                         <i class="fas fa-star" :style="{ color: isDefault(season.id) ? '#f5803e' : '#d8d8d8', fontSize: '1.1rem' }"></i>
                                     </button>
+                                </td>
+                                <td class="text-center">
+                                    <span v-if="season.is_locked" class="badge badge-soft-danger" style="font-size: 0.72rem;">
+                                        <i class="fas fa-lock me-1"></i>Bloqueada
+                                    </span>
+                                    <span v-else class="badge badge-soft-success" style="font-size: 0.72rem;">
+                                        <i class="fas fa-lock-open me-1"></i>Activa
+                                    </span>
                                 </td>
                                 <td>{{season.month.name}}</td>
                                 <td class="text-end">
@@ -275,6 +315,13 @@ const setDefault = (seasonId) => {
                                         </span>
                                     </button>
                                     <!--end::Copy Budget-->
+                                    <!--begin::Lock-->
+                                    <button type="button" @click="toggleLock(season)" class="btn btn-icon btn-active-light-primary w-30px h-30px me-3" :v-tooltip="season.is_locked ? 'Desbloquear temporada' : 'Bloquear temporada'">
+                                        <span class="svg-icon svg-icon-3">
+                                            <i :class="season.is_locked ? 'fas fa-lock text-danger' : 'fas fa-lock-open text-muted'"></i>
+                                        </span>
+                                    </button>
+                                    <!--end::Lock-->
                                     <!--begin::Delete-->
                                     <button type="button" v-tooltip="'Eliminar'" @click="onDeleted(season.id)" class="btn btn-icon btn-active-light-primary w-30px h-30px">
                                         <span class="svg-icon svg-icon-3">

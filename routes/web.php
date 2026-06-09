@@ -408,6 +408,7 @@ use App\Http\Controllers\Seasons\StoreSeasonController;
 use App\Http\Controllers\Seasons\UpdateSeasonController;
 use App\Http\Controllers\Seasons\DeleteSeasonController;
 use App\Http\Controllers\Seasons\CopyBudgetController;
+use App\Http\Controllers\Seasons\ToggleLockSeasonController;
 use App\Http\Controllers\Machineries\StoreMachineryController;
 use App\Http\Controllers\Machineries\UpdateMachineryController;
 use App\Http\Controllers\Machineries\DeleteMachineryController;
@@ -764,6 +765,7 @@ Route::middleware([
     Route::delete('/seasons/{season}/delete', DeleteSeasonController::class)->name('seasons.delete');
     Route::post('/seasons/{season}/set-default', SetDefaultSeasonController::class)->name('seasons.set-default');
     Route::post('/seasons/{season}/copy-budget', CopyBudgetController::class)->name('seasons.copy-budget');
+    Route::post('/seasons/{season}/toggle-lock', ToggleLockSeasonController::class)->name('seasons.toggle-lock');
 
     // Guía del Sistema (fuera de check.selected.budget porque no requiere temporada)
     Route::get('/system-guide', SystemGuideController::class)->name('system-guide');

@@ -5,6 +5,8 @@ namespace App\Http\Controllers\Projects;
 use App\Http\Controllers\Controller;
 use App\Models\Project;
 
+use App\Traits\CheckSeasonLocked;
+
 class DeleteProjectController extends Controller
 {
     public function __invoke(Project $project)

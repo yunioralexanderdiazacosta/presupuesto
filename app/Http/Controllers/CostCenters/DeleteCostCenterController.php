@@ -7,11 +7,14 @@ use App\Models\CostCenter;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 use Throwable;
+use App\Traits\CheckSeasonLocked;
 
 class DeleteCostCenterController extends Controller
 {
+    use CheckSeasonLocked;
     public function __invoke(CostCenter $costCenter)
     {
+        $this->abortIfSeasonLocked();
         $usageChecks = [
             'Items de agroquímicos' => $this->countByColumn('agrochemical_items', 'cost_center_id', $costCenter->id),
             'Items de fertilizantes' => $this->countByColumn('fertilizer_items', 'cost_center_id', $costCenter->id),

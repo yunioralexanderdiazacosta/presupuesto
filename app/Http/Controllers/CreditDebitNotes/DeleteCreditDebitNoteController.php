@@ -7,6 +7,8 @@ use App\Models\CreditDebitNote;
 use App\Models\InvoiceProduct;
 use Illuminate\Support\Facades\DB;
 
+use App\Traits\CheckSeasonLocked;
+
 class DeleteCreditDebitNoteController extends Controller
 {
     public function __invoke(CreditDebitNote $note)

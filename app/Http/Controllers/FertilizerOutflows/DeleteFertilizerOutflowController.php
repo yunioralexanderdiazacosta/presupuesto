@@ -7,6 +7,8 @@ use App\Models\Outflow;
 use App\Models\FertilizerOrder;
 use Illuminate\Support\Facades\DB;
 
+use App\Traits\CheckSeasonLocked;
+
 class DeleteFertilizerOutflowController
 {
     public function __invoke(FertilizerOutflow $fertilizerOutflow)

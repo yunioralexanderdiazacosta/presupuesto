@@ -6,6 +6,8 @@ use App\Http\Requests\Contracts\UpdateContractRequest;
 use App\Models\Contract;
 use Illuminate\Support\Facades\Auth;
 
+use App\Traits\CheckSeasonLocked;
+
 class UpdateContractController
 {
     public function __invoke(UpdateContractRequest $request, Contract $contract)

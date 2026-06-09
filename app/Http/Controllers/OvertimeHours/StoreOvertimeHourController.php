@@ -8,6 +8,8 @@ use App\Models\OvertimeHour;
 use App\Models\OvertimeType;
 use Illuminate\Support\Facades\Auth;
 
+use App\Traits\CheckSeasonLocked;
+
 class StoreOvertimeHourController
 {
     public function __invoke(StoreOvertimeHourRequest $request)

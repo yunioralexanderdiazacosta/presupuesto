@@ -5,6 +5,8 @@ namespace App\Http\Controllers\ApplicationOrders;
 use App\Models\ApplicationOrder;
 use Illuminate\Support\Facades\Auth;
 
+use App\Traits\CheckSeasonLocked;
+
 class DeleteApplicationOrderController
 {
     public function __invoke(ApplicationOrder $applicationOrder)

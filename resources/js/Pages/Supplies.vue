@@ -1,5 +1,6 @@
 <script setup>
 import { computed, ref } from 'vue';
+import { useSeasonLock } from '@/Composables/useSeasonLock';
 import { Link, router, Head, usePage, useForm } from '@inertiajs/vue3';
 import Swal from 'sweetalert2';
 import AppLayout from '@/Layouts/AppLayout.vue';
@@ -14,6 +15,8 @@ import ExportExcelButton from '@/Components/ExportExcelButton.vue';
 import ExportPdfButton from '@/Components/ExportPdfButton.vue';
 import SearchInput from '@/Components/SearchInput.vue';
 
+
+const isLocked = useSeasonLock();
 
 const props = defineProps({
     supplies: Object,
@@ -446,7 +449,7 @@ const excelDataResumen = computed(() => {
                     </div>
                     <div class="col-6 col-sm-auto ms-auto text-end ps-0">
                       <div id="table-purchases-replace-element">
-                        <button class="btn btn-falcon-default btn-sm" type="button" @click="openAdd()"><span class="fas fa-plus" data-fa-transform="shrink-3 down-2"></span><span class="d-none d-sm-inline-block ms-1">Nuevo</span></button>
+                        <button class="btn btn-falcon-default btn-sm" type="button" @click="openAdd()" :disabled="isLocked"><span class="fas fa-plus" data-fa-transform="shrink-3 down-2"></span><span class="d-none d-sm-inline-block ms-1">Nuevo</span></button>
                       </div>
                     </div>
                 </div>

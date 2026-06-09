@@ -1,5 +1,6 @@
 ﻿<script setup>
 import { ref } from 'vue';
+import { useSeasonLock } from '@/Composables/useSeasonLock';
 import Swal from 'sweetalert2';
 import { Link, router, Head } from '@inertiajs/vue3';
 import AppLayout from '@/Layouts/AppLayout.vue';
@@ -7,6 +8,8 @@ import CreateInvoicePaymentModal from '@/Components/InvoicePayments/CreateInvoic
 import EditInvoicePaymentModal from '@/Components/InvoicePayments/EditInvoicePaymentModal.vue';
 import PaymentStatusBadge from '@/Components/InvoicePayments/PaymentStatusBadge.vue';
 import ExportExcelButton from '@/Components/ExportExcelButton.vue';
+
+const isLocked = useSeasonLock();
 
 const props = defineProps({
     invoices: Object,
@@ -157,7 +160,7 @@ const statusLabels = {
                                 <span class="d-none d-sm-inline-block ms-1">Dashboard</span>
                             </Link>
                             <ExportExcelButton :route="route('invoice-payments.excel')" class="btn btn-falcon-default btn-sm" />
-                            <button @click="openCreateModal()" class="btn btn-falcon-default btn-sm">
+                            <button @click="openCreateModal()" class="btn btn-falcon-default btn-sm" :disabled="isLocked">
                                 <span class="fas fa-plus" data-fa-transform="shrink-3 down-2"></span>
                                 <span class="d-none d-sm-inline-block ms-1">Registrar Pago</span>
                             </button>

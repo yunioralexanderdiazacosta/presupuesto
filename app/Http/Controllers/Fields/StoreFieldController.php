@@ -7,11 +7,14 @@ use Illuminate\Support\Facades\Auth;
 use App\Http\Requests\Fields\StoreFieldRequest;
 use Illuminate\Http\Request;
 use App\Models\Field;
+use App\Traits\CheckSeasonLocked;
 
 class StoreFieldController extends Controller
 {
+    use CheckSeasonLocked;
     public function __invoke(StoreFieldRequest $request)
     {
+        $this->abortIfSeasonLocked();
         $products = $request->get('products');
 
         $user = Auth::user();

@@ -11,6 +11,8 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Mail;
 use Spatie\Permission\Models\Role;
 
+use App\Traits\CheckSeasonLocked;
+
 class UpdatePurchaseOrderStatusController extends Controller
 {
     public function __invoke(Request $request, PurchaseOrder $purchaseOrder)

@@ -6,6 +6,8 @@ use App\Models\ProductionDispatch;
 use App\Http\Requests\ProductionDispatches\StoreProductionDispatchRequest;
 use Illuminate\Support\Facades\Auth;
 
+use App\Traits\CheckSeasonLocked;
+
 class StoreProductionDispatchController
 {
     public function __invoke(StoreProductionDispatchRequest $request)

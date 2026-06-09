@@ -5,6 +5,8 @@ namespace App\Http\Controllers\OvertimeHours;
 use App\Models\OvertimeHour;
 use Illuminate\Support\Facades\Auth;
 
+use App\Traits\CheckSeasonLocked;
+
 class DeleteOvertimeHourController
 {
     public function __invoke(OvertimeHour $overtimeHour)

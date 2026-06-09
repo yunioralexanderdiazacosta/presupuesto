@@ -10,6 +10,8 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use App\Models\CompanyReason;
 
+use App\Traits\CheckSeasonLocked;
+
 class StorePurchaseOrderController extends Controller
 {
     public function __invoke(StorePurchaseOrderRequest $request)

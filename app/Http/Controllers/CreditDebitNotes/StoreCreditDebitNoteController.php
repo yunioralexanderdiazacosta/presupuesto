@@ -14,6 +14,8 @@ use App\Models\InvoiceProduct;
 use Illuminate\Http\Request;
 
 
+use App\Traits\CheckSeasonLocked;
+
 class StoreCreditDebitNoteController extends Controller
 {
     public function __invoke(FormCreditDebitNoteRequest $request)

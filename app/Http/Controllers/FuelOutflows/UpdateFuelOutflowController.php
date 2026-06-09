@@ -9,6 +9,8 @@ use App\Http\Requests\FuelOutflows\UpdateFuelOutflowRequest;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\DB;
 
+use App\Traits\CheckSeasonLocked;
+
 class UpdateFuelOutflowController
 {
     public function __invoke(UpdateFuelOutflowRequest $request, FuelOutflow $fuelOutFlow)

@@ -12,6 +12,8 @@ use App\Models\IrrigationSector;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 
+use App\Traits\CheckSeasonLocked;
+
 class UpdateFertilizerOrderController extends Controller
 {
     public function __invoke(FormFertilizerOrderRequest $request, FertilizerOrder $fertilizerOrder)

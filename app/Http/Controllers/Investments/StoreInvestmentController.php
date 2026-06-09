@@ -7,6 +7,8 @@ use App\Models\Investment;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 
+use App\Traits\CheckSeasonLocked;
+
 class StoreInvestmentController extends Controller
 {
     public function __invoke(Request $request)

@@ -6,6 +6,8 @@ use App\Http\Controllers\Controller;
 use App\Models\ExpenseReport;
 use Illuminate\Support\Facades\Auth;
 
+use App\Traits\CheckSeasonLocked;
+
 class DeleteExpenseReportController extends Controller
 {
     public function __invoke(ExpenseReport $expenseReport)

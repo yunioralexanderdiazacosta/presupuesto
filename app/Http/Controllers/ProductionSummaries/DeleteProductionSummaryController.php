@@ -5,6 +5,8 @@ namespace App\Http\Controllers\ProductionSummaries;
 use App\Http\Controllers\Controller;
 use App\Models\ProductionSummary;
 
+use App\Traits\CheckSeasonLocked;
+
 class DeleteProductionSummaryController extends Controller
 {
     public function __invoke($id)

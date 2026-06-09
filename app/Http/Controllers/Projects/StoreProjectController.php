@@ -7,6 +7,8 @@ use App\Http\Requests\FormProjectRequest;
 use App\Models\Project;
 use Illuminate\Support\Facades\Auth;
 
+use App\Traits\CheckSeasonLocked;
+
 class StoreProjectController extends Controller
 {
     public function __invoke(FormProjectRequest $request)

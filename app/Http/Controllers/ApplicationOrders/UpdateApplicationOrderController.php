@@ -9,6 +9,8 @@ use App\Http\Requests\ApplicationOrders\UpdateApplicationOrderRequest;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 
+use App\Traits\CheckSeasonLocked;
+
 class UpdateApplicationOrderController
 {
     public function __invoke(UpdateApplicationOrderRequest $request, ApplicationOrder $applicationOrder)

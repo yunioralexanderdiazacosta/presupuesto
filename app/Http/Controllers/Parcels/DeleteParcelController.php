@@ -6,11 +6,14 @@ use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use App\Models\Parcel;
 use App\Models\CostCenter;
+use App\Traits\CheckSeasonLocked;
 
 class DeleteParcelController extends Controller
 {
+    use CheckSeasonLocked;
     public function __invoke(Parcel $parcel)
     {
+        $this->abortIfSeasonLocked();
         // Verificar si tiene centros de costo asociados
         $costCentersCount = CostCenter::where('parcel_id', $parcel->id)->count();
 

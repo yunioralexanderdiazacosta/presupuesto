@@ -6,13 +6,16 @@ use App\Http\Controllers\Controller;
 use App\Models\Estimate;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
+use App\Traits\CheckSeasonLocked;
 
 
 
 class DeleteEstimateController extends Controller
 {
+    use CheckSeasonLocked;
     public function __invoke($id)
     {
+        $this->abortIfSeasonLocked();
         $estimate = Estimate::find($id);
         Log::info('Intentando eliminar estimate', ['id' => $id, 'found' => $estimate ? true : false]);
 

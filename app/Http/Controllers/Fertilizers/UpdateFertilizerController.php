@@ -5,11 +5,14 @@ namespace App\Http\Controllers\Fertilizers;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Fertilizers\UpdateFertilizerRequest;
 use App\Models\Fertilizer;
+use App\Traits\CheckSeasonLocked;
 
 class UpdateFertilizerController extends Controller
 {
+    use CheckSeasonLocked;
     public function __invoke(Fertilizer $fertilizer, UpdateFertilizerRequest $request)
     {
+        $this->abortIfSeasonLocked();
         $fertilizer->product_name = $request->product_name;
         $fertilizer->dose         = $request->dose;
         $fertilizer->price        = $request->price;

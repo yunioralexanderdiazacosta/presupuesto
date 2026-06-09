@@ -56,6 +56,7 @@ class HandleInertiaRequests extends Middleware
             'price'       => $price,
             'temporada'   => $season ? strtoupper($season->name) : '',
             'seasonColor' => $season ? $season->color : null,
+            'seasonLocked' => $season ? (bool) $season->is_locked : false,
             'auth' => fn () => [
                 'user' => Auth::user() ? Auth::user()->load('team') : null,
             ],

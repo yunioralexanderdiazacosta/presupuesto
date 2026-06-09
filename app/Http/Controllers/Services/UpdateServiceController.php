@@ -5,12 +5,15 @@ namespace App\Http\Controllers\Services;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Services\UpdateServiceRequest;
 use App\Models\Service;
+use App\Traits\CheckSeasonLocked;
 
 
 class UpdateServiceController extends Controller
 {
+    use CheckSeasonLocked;
     public function __invoke(Service $service, UpdateServiceRequest $request)
     {
+        $this->abortIfSeasonLocked();
          
         $service->product_name = $request->product_name;
         $service->price        = $request->price;

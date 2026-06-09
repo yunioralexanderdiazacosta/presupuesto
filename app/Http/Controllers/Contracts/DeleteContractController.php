@@ -5,6 +5,8 @@ namespace App\Http\Controllers\Contracts;
 use App\Models\Contract;
 use Illuminate\Support\Facades\Auth;
 
+use App\Traits\CheckSeasonLocked;
+
 class DeleteContractController
 {
     public function __invoke(Contract $contract)

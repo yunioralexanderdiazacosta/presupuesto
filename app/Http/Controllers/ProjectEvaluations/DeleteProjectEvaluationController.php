@@ -6,6 +6,8 @@ use App\Http\Controllers\Controller;
 use App\Models\ProjectEvaluation;
 use Illuminate\Support\Facades\Auth;
 
+use App\Traits\CheckSeasonLocked;
+
 class DeleteProjectEvaluationController extends Controller
 {
     public function __invoke(ProjectEvaluation $projectEvaluation)

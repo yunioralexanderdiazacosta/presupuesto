@@ -8,6 +8,7 @@ const totalAmountCLP = computed(() => {
   return totalAmount.value.toLocaleString('es-CL', { style: 'currency', currency: 'CLP', maximumFractionDigits: 0 });
 });
 import { computed, ref, nextTick } from 'vue';
+import { useSeasonLock } from '@/Composables/useSeasonLock';
 import { Link, router, Head, usePage, useForm } from '@inertiajs/vue3';
 import Swal from 'sweetalert2';
 import AppLayout from '@/Layouts/AppLayout.vue';
@@ -20,6 +21,8 @@ import EditInvestmentModal from '@/Components/Investments/EditInvestmentModal.vu
 import ExportExcelButton from '@/Components/ExportExcelButton.vue';
 import ExportPdfButton from '@/Components/ExportPdfButton.vue';
 import SearchInput from '@/Components/SearchInput.vue';
+
+const isLocked = useSeasonLock();
 
 const props = defineProps({
   investments: Object,
@@ -187,7 +190,7 @@ function handleDelete(investment) {
           </div>
           <div class="col-6 col-sm-auto ms-auto text-end ps-0">
             <div id="table-investments-replace-element">
-              <button class="btn btn-falcon-default btn-sm" type="button" @click="openCreateModal">
+              <button class="btn btn-falcon-default btn-sm" type="button" @click="openCreateModal" :disabled="isLocked">
                 <span class="fas fa-plus" data-fa-transform="shrink-3 down-2"></span>
                 <span class="d-none d-sm-inline-block ms-1">Nueva</span>
               </button>

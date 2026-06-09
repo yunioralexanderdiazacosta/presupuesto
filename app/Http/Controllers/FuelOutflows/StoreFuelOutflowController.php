@@ -11,6 +11,8 @@ use App\Http\Requests\FuelOutflows\StoreFuelOutflowRequest;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 
+use App\Traits\CheckSeasonLocked;
+
 class StoreFuelOutflowController
 {
     public function __invoke(StoreFuelOutflowRequest $request)

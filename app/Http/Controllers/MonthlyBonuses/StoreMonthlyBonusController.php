@@ -6,6 +6,8 @@ use App\Http\Requests\MonthlyBonuses\StoreMonthlyBonusRequest;
 use App\Models\MonthlyBonus;
 use Illuminate\Support\Facades\Auth;
 
+use App\Traits\CheckSeasonLocked;
+
 class StoreMonthlyBonusController
 {
     public function __invoke(StoreMonthlyBonusRequest $request)

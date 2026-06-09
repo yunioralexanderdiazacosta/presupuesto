@@ -7,6 +7,8 @@ use App\Http\Requests\OutflowRequest;
 use App\Models\Outflow;
 use Illuminate\Support\Facades\Auth;
 
+use App\Traits\CheckSeasonLocked;
+
 class StoreOutflowController extends Controller
 {
     public function __invoke(OutflowRequest $request)

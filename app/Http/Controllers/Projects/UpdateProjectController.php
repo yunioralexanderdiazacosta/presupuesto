@@ -6,6 +6,8 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\FormProjectRequest;
 use App\Models\Project;
 
+use App\Traits\CheckSeasonLocked;
+
 class UpdateProjectController extends Controller
 {
     public function __invoke(FormProjectRequest $request, Project $project)

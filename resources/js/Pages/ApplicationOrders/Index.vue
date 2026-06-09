@@ -1,5 +1,6 @@
 <script setup>
 import { ref, computed, onMounted, nextTick, watch } from 'vue';
+import { useSeasonLock } from '@/Composables/useSeasonLock';
 import Swal from 'sweetalert2';
 import { Link, router, Head } from '@inertiajs/vue3';
 import AppLayout from '@/Layouts/AppLayout.vue';
@@ -7,7 +8,7 @@ import Breadcrumb from '@/Components/Breadcrumb.vue';
 import AgrochemicalNavBar from '@/Components/AgrochemicalOutflows/AgrochemicalNavBar.vue';
 import CreateApplicationOrderModal from '@/Components/ApplicationOrders/CreateApplicationOrderModal.vue';
 import EditApplicationOrderModal from '@/Components/ApplicationOrders/EditApplicationOrderModal.vue';
-
+const isLocked = useSeasonLock();
 const props = defineProps({
     applicationOrders: Object,
     products: Array,
@@ -156,7 +157,7 @@ watch(filteredRows, () => {
         <div class="card my-3">
                 <div class="card-header d-flex justify-content-between align-items-center">
                     <h5 class="mb-0">{{ title }}</h5>
-                    <button @click="openCreateModal" class="btn btn-falcon-default btn-sm">
+                    <button @click="openCreateModal" class="btn btn-falcon-default btn-sm" :disabled="isLocked">
                         <span class="fas fa-plus" data-fa-transform="shrink-3 down-2"></span>
                         <span class="d-none d-sm-inline-block ms-1">Nueva Orden</span>
                     </button>

@@ -8,11 +8,14 @@ use App\Models\ManPower;
 use App\Models\Unit;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use App\Traits\CheckSeasonLocked;
 
 class StoreManPowerController extends Controller
 {
+    use CheckSeasonLocked;
     public function __invoke(StoreManPowerRequest $request)
     {
+        $this->abortIfSeasonLocked();
         $products = $request->get('products');
           $user = Auth::user();
  $season_id = session('season_id'); // la temporada activa o seleccionada

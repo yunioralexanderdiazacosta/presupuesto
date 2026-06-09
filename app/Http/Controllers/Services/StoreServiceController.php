@@ -6,11 +6,14 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\Services\StoreServiceRequest;
 use App\Models\Service;
 use Illuminate\Support\Facades\Auth;
+use App\Traits\CheckSeasonLocked;
 
 class StoreServiceController extends Controller
 {
+    use CheckSeasonLocked;
     public function __invoke(StoreServiceRequest $request)
     {
+        $this->abortIfSeasonLocked();
         $products = $request->get('products');
    $user = Auth::user();
  $season_id = session('season_id'); // la temporada activa o seleccionada

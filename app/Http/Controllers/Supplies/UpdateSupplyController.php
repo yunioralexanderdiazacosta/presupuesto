@@ -5,11 +5,14 @@ namespace App\Http\Controllers\Supplies;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Supplies\UpdateSupplyRequest;
 use App\Models\Supply;
+use App\Traits\CheckSeasonLocked;
 
 class UpdateSupplyController extends Controller
 {
+    use CheckSeasonLocked;
     public function __invoke(Supply $supply, UpdateSupplyRequest $request)
     {
+        $this->abortIfSeasonLocked();
          
         $supply->product_name = $request->product_name;
         $supply->price        = $request->price;

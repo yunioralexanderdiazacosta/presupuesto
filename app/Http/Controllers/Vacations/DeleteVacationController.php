@@ -6,6 +6,8 @@ use App\Http\Controllers\Controller;
 use App\Models\Vacation;
 use Illuminate\Support\Facades\Auth;
 
+use App\Traits\CheckSeasonLocked;
+
 class DeleteVacationController extends Controller
 {
     public function __invoke(Vacation $vacation)

@@ -5,11 +5,14 @@ namespace App\Http\Controllers\CostCenters;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\FormCostCenterRequest;
 use App\Models\CostCenter;
+use App\Traits\CheckSeasonLocked;
 
 class StoreCostCenterController extends Controller
 {
+    use CheckSeasonLocked;
     public function __invoke(FormCostCenterRequest $request)
     {
+        $this->abortIfSeasonLocked();
         $season_id = session('season_id');
 
         CostCenter::create([

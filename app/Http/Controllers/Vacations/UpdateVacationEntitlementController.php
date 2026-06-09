@@ -8,6 +8,8 @@ use App\Models\VacationEntitlement;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 
+use App\Traits\CheckSeasonLocked;
+
 class UpdateVacationEntitlementController extends Controller
 {
     public function __invoke(Request $request, Employee $employee)

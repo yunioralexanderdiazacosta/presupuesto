@@ -8,6 +8,8 @@ use App\Models\CreditDebitNote;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Http\Request;
 
+use App\Traits\CheckSeasonLocked;
+
 class UpdateCreditDebitNoteController extends Controller
 {
     public function __invoke(CreditDebitNote $note, Request $request)

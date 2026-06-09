@@ -6,6 +6,8 @@ use App\Http\Controllers\Controller;
 use App\Models\InvoicePayment;
 use Illuminate\Support\Facades\Auth;
 
+use App\Traits\CheckSeasonLocked;
+
 class DeleteInvoicePaymentController extends Controller
 {
     public function __invoke(InvoicePayment $payment)

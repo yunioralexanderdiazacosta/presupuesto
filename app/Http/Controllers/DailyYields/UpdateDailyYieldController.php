@@ -6,6 +6,8 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\DailyYields\UpdateDailyYieldRequest;
 use App\Models\DailyYield;
 
+use App\Traits\CheckSeasonLocked;
+
 class UpdateDailyYieldController extends Controller
 {
     public function __invoke(UpdateDailyYieldRequest $request, DailyYield $dailyYield)

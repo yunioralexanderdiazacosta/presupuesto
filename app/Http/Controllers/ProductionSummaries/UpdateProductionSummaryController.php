@@ -6,6 +6,8 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\ProductionSummaries\UpdateProductionSummaryRequest;
 use App\Models\ProductionSummary;
 
+use App\Traits\CheckSeasonLocked;
+
 class UpdateProductionSummaryController extends Controller
 {
     public function __invoke($id, UpdateProductionSummaryRequest $request)

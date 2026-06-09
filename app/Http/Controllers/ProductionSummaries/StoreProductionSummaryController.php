@@ -9,6 +9,8 @@ use App\Models\ProductionSummary;
 use App\Models\Variety;
 use Illuminate\Support\Facades\Auth;
 
+use App\Traits\CheckSeasonLocked;
+
 class StoreProductionSummaryController extends Controller
 {
     public function __invoke(StoreProductionSummaryRequest $request)

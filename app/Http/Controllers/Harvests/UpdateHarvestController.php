@@ -5,12 +5,15 @@ namespace App\Http\Controllers\Harvests;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Harvests\UpdateHarvestRequest;
 use App\Models\Harvest;
+use App\Traits\CheckSeasonLocked;
 
 
 class UpdateHarvestController extends Controller
 {
+    use CheckSeasonLocked;
     public function __invoke(Harvest $harvest, UpdateHarvestRequest $request)
     {
+        $this->abortIfSeasonLocked();
 
         $harvest->product_name = $request->product_name;
         $harvest->price        = $request->price;
