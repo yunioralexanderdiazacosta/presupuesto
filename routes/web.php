@@ -349,6 +349,7 @@ use App\Http\Controllers\DailyAttendances\DeleteDailyAttendanceController;
 use App\Http\Controllers\DailyYields\DailyYieldController;
 use App\Http\Controllers\DailyYields\StoreDailyYieldController;
 use App\Http\Controllers\DailyYields\BulkStoreDailyYieldController;
+use App\Http\Controllers\DailyYields\BulkStoreDailyYieldByDatesController;
 use App\Http\Controllers\DailyYields\UpdateDailyYieldController;
 use App\Http\Controllers\DailyYields\DeleteDailyYieldController;
 // Rutas para Work Schedules (Horario de Trabajo - Remuneraciones)
@@ -1147,6 +1148,7 @@ Route::middleware([
     Route::get('/daily-yields', [DailyYieldController::class, 'index'])->name('daily-yields.index');
     Route::post('/daily-yields', StoreDailyYieldController::class)->name('daily-yields.store');
     Route::post('/daily-yields/bulk', BulkStoreDailyYieldController::class)->name('daily-yields.bulk-store');
+    Route::post('/daily-yields/bulk-by-dates', BulkStoreDailyYieldByDatesController::class)->name('daily-yields.bulk-store-by-dates');
     Route::put('/daily-yields/{dailyYield}', UpdateDailyYieldController::class)->name('daily-yields.update');
     Route::delete('/daily-yields/{dailyYield}', DeleteDailyYieldController::class)->name('daily-yields.delete');
 

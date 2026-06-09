@@ -83,15 +83,21 @@ class UpdateInvoiceController extends Controller
         foreach ($request->products as $rawItem) {
             $productId = (int) $rawItem['product_id'];
             if (in_array($productId, $protectedProductIdsArray)) {
-                // Solo actualizar tank_id y branch_id (el resto está bloqueado por tener outflows)
+                // Actualizar campos que no afectan la integridad de las salidas
                 $invoiceProductId = $rawItem['invoice_product_id'] ?? null;
                 if ($invoiceProductId) {
+                    $unitPrice = isset($rawItem['unit_price']) ? (float) $rawItem['unit_price'] : null;
+                    $amount    = isset($rawItem['amount'])     ? (float) $rawItem['amount']     : null;
                     DB::table('invoice_products')
                         ->where('id', $invoiceProductId)
                         ->where('invoice_id', $invoice->id)
                         ->update([
-                            'tank_id'   => $rawItem['tank_id'] ?? null,
-                            'branch_id' => $rawItem['branch_id'] ?? null,
+                            'unit_price'   => $unitPrice,
+                            'amount'       => $amount,
+                            'observations' => $rawItem['observations'] ?? null,
+                            'is_exento'    => $rawItem['is_exento'] ?? false,
+                            'tank_id'      => $rawItem['tank_id'] ?? null,
+                            'branch_id'    => $rawItem['branch_id'] ?? null,
                         ]);
                 }
             }

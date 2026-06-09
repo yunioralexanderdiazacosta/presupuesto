@@ -353,13 +353,13 @@ watch(
 
 					<!-- Precio -->
 					<td class="ps-1 pe-1" style="width:95px; min-width:95px; max-width:95px;">
-						<input type="number" class="form-control form-control-sm unit_price" :class="{'is-invalid': showProductValidation && (!product.unit_price || product.unit_price <= 0), 'bg-light': isProtected(product.product_id)}" v-model="product.unit_price" step="0.01" required :disabled="isProtected(product.product_id)" />
+						<input type="number" class="form-control form-control-sm unit_price" :class="{'is-invalid': showProductValidation && (!product.unit_price || product.unit_price <= 0)}" v-model="product.unit_price" step="0.01" required />
 						<span v-if="showProductValidation && (!product.unit_price || product.unit_price <= 0)" class="text-danger" style="font-size:0.7em;">Obligatorio</span>
 					</td>
 
 					<!-- Observaciones -->
 					<td class="ps-1 pe-1" style="width:130px; min-width:130px; max-width:130px;">
-						<input type="text" class="form-control form-control-sm" :class="{'bg-light': isProtected(product.product_id)}" v-model="product.observations" :disabled="isProtected(product.product_id)" placeholder="Observaciones..." />
+						<input type="text" class="form-control form-control-sm" v-model="product.observations" placeholder="Observaciones..." />
 					</td>
 
 					<!-- Estanque (solo combustible) -->
@@ -379,7 +379,7 @@ watch(
 
 					<!-- Exento -->
 					<td class="text-center align-middle" style="width:45px; min-width:45px; max-width:45px;">
-						<input type="checkbox" v-model="product.is_exento" :disabled="isProtected(product.product_id)" class="form-check-input" style="width:15px; height:15px; cursor:pointer;" title="Exento de IVA" />
+						<input type="checkbox" v-model="product.is_exento" class="form-check-input" style="width:15px; height:15px; cursor:pointer;" title="Exento de IVA" />
 					</td>
 
 

@@ -48,6 +48,150 @@ watch(bulkGrouping, (groupingId) => {
     }
 });
 
+// === REGISTRO MASIVO POR FECHAS ===
+const showBulkByDatesPanel = ref(false);
+const bulkDateSelectedIds = ref([]);
+const bulkSelectedDates = ref([]);
+const bulkDateGrouping = ref('');
+const bulkDateLine = reactive({
+    labor_type_id: '',
+    workdays: 1,
+    bonus_type_id: '',
+    bonus_amount: 0,
+    cost_center_ids: [],
+    observations: '',
+});
+
+watch(bulkDateGrouping, (groupingId) => {
+    if (!groupingId) return;
+    const grouping = props.groupings?.find(g => g.id == groupingId);
+    if (grouping && Array.isArray(grouping.cost_centers)) {
+        bulkDateLine.cost_center_ids = grouping.cost_centers.map(cc => cc.id);
+    }
+});
+
+// Generar todos los días del mes del selectedDate
+const daysOfCurrentMonth = computed(() => {
+    if (!props.selectedDate) return [];
+    const [year, month] = props.selectedDate.split('-').map(Number);
+    const daysInMonth = new Date(year, month, 0).getDate();
+    const days = [];
+    for (let d = 1; d <= daysInMonth; d++) {
+        const dateStr = `${year}-${String(month).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
+        const dayOfWeek = new Date(year, month - 1, d).getDay(); // 0=Dom, 6=Sab
+        days.push({
+            value: dateStr,
+            day: d,
+            label: dateStr,
+            isWeekend: dayOfWeek === 0 || dayOfWeek === 6,
+        });
+    }
+    return days;
+});
+
+function toggleDate(dateValue) {
+    const idx = bulkSelectedDates.value.indexOf(dateValue);
+    if (idx >= 0) {
+        bulkSelectedDates.value.splice(idx, 1);
+    } else {
+        bulkSelectedDates.value.push(dateValue);
+    }
+}
+
+function selectAllDates() {
+    bulkSelectedDates.value = daysOfCurrentMonth.value
+        .filter(d => !d.isWeekend)
+        .map(d => d.value);
+}
+
+const bulkDateAllSelected = computed(() =>
+    props.employees.length > 0 &&
+    props.employees.every(e => bulkDateSelectedIds.value.includes(e.id))
+);
+
+function toggleBulkDateAll() {
+    if (bulkDateAllSelected.value) {
+        bulkDateSelectedIds.value = [];
+    } else {
+        bulkDateSelectedIds.value = props.employees.map(e => e.id);
+    }
+}
+
+function openBulkByDatesPanel() {
+    showBulkByDatesPanel.value = true;
+    bulkDateSelectedIds.value = props.employees.map(e => e.id);
+    bulkSelectedDates.value = [];
+    Object.assign(bulkDateLine, {
+        labor_type_id: '',
+        workdays: 1,
+        bonus_type_id: '',
+        bonus_amount: 0,
+        cost_center_ids: [],
+        observations: '',
+    });
+    bulkDateGrouping.value = '';
+}
+
+function saveBulkByDates() {
+    if (!bulkDateLine.labor_type_id) {
+        Swal.fire({ icon: 'warning', title: 'Selecciona un tipo de labor', timer: 1500, showConfirmButton: false });
+        return;
+    }
+    if (bulkDateSelectedIds.value.length === 0) {
+        Swal.fire({ icon: 'warning', title: 'Selecciona al menos un colaborador', timer: 1500, showConfirmButton: false });
+        return;
+    }
+    if (bulkSelectedDates.value.length === 0) {
+        Swal.fire({ icon: 'warning', title: 'Selecciona al menos una fecha', timer: 1500, showConfirmButton: false });
+        return;
+    }
+
+    const employees = bulkDateSelectedIds.value.map(id => {
+        const emp = props.employees.find(e => e.id === id);
+        const selectedLabor = props.laborTypes.find(lt => String(lt.value) === String(bulkDateLine.labor_type_id));
+        const rate = (selectedLabor?.is_absence && !selectedLabor?.is_paid)
+            ? 0
+            : Math.round((emp?.daily_rate || 0) * (bulkDateLine.workdays || 1));
+        return { employee_id: id, rate };
+    });
+
+    const total = employees.length * bulkSelectedDates.value.length;
+
+    Swal.fire({
+        icon: 'question',
+        title: '¿Confirmar registro masivo?',
+        html: `Se crearán hasta <strong>${total}</strong> tarjas en <strong>${bulkSelectedDates.value.length}</strong> fecha(s) para <strong>${employees.length}</strong> colaborador(es).<br><small class="text-muted">Las que ya existan se omitirán.</small>`,
+        showCancelButton: true,
+        confirmButtonText: 'Sí, guardar',
+        cancelButtonText: 'Cancelar',
+    }).then(result => {
+        if (!result.isConfirmed) return;
+
+        const form = useForm({
+            dates: bulkSelectedDates.value,
+            labor_type_id: bulkDateLine.labor_type_id,
+            workdays: bulkDateLine.workdays,
+            bonus_type_id: bulkDateLine.bonus_type_id || null,
+            bonus_amount: bulkDateLine.bonus_amount || 0,
+            cost_center_ids: bulkDateLine.cost_center_ids,
+            observations: bulkDateLine.observations || null,
+            employees,
+        });
+
+        form.post(route('daily-yields.bulk-store-by-dates'), {
+            preserveScroll: true,
+            onSuccess: () => {
+                showBulkByDatesPanel.value = false;
+                Swal.fire({ icon: 'success', title: `Tarjas guardadas`, timer: 1500, showConfirmButton: false });
+            },
+            onError: (errors) => {
+                const msg = Object.values(errors)[0] || 'Revisa los campos.';
+                Swal.fire({ icon: 'error', title: 'Error', text: msg });
+            },
+        });
+    });
+}
+
 // Empleados elegibles para registro masivo: sin tarja "al día" ese día
 const bulkEligibleEmployees = computed(() => {
     return props.employees.filter(emp => {
@@ -601,6 +745,11 @@ function deleteLine(yieldId) {
                 </button>
             </div>
             <div class="col-auto">
+                <button @click="openBulkByDatesPanel" class="btn btn-falcon-default btn-sm">
+                    <i class="fas fa-calendar-plus me-1"></i>Masivo por fechas
+                </button>
+            </div>
+            <div class="col-auto">
                 <div class="d-flex align-items-center gap-2 border rounded px-2 py-1 bg-light">
                     <small class="text-muted text-nowrap"><i class="fas fa-print me-1"></i></small>
                     <select v-if="branches && branches.length" v-model="selectedBranchId" class="form-select form-select-sm" style="min-width: 140px;">
@@ -734,6 +883,160 @@ function deleteLine(yieldId) {
                         <button type="button" @click="showBulkPanel = false" class="btn btn-falcon-default btn-sm">Cancelar</button>
                         <button type="button" @click="saveBulk" class="btn btn-primary btn-sm" :disabled="bulkSelectedIds.length === 0 || !bulkLine.labor_type_id">
                             <i class="fas fa-save me-1"></i>Guardar {{ bulkSelectedIds.length }} tarja(s)
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Panel Registro Masivo por Fechas -->
+        <div v-if="showBulkByDatesPanel" class="card mb-3" style="border: 2px solid #0d6efd;">
+            <div class="card-header py-2 d-flex justify-content-between align-items-center" style="background-color: #e8f0fe;">
+                <span class="fw-semi-bold fs--1" style="color:#0d47a1;"><i class="fas fa-calendar-plus me-2"></i>Registro masivo por fechas — Al día</span>
+                <button type="button" @click="showBulkByDatesPanel = false" class="btn-close btn-close-sm"></button>
+            </div>
+            <div class="card-body py-2">
+                <!-- Configuración compartida -->
+                <div class="row g-2 mb-3 align-items-end">
+                    <div class="col-md-3">
+                        <label class="form-label small mb-0">Labor <span class="text-danger">*</span></label>
+                        <select v-model="bulkDateLine.labor_type_id" class="form-select form-select-sm">
+                            <option value="" disabled>Seleccione</option>
+                            <option v-for="lt in laborTypes" :key="lt.value" :value="lt.value">{{ lt.label }}</option>
+                        </select>
+                    </div>
+                    <div class="col-md-1">
+                        <label class="form-label small mb-1">Jornadas</label>
+                        <input type="number" v-model="bulkDateLine.workdays" class="form-control form-control-sm text-center"
+                            min="0.1" max="1" step="0.1" />
+                    </div>
+                    <div class="col-md-2">
+                        <label class="form-label small mb-1">Agrupación CC</label>
+                        <select v-model="bulkDateGrouping" class="form-select form-select-sm">
+                            <option value="">Sin agrupación</option>
+                            <option v-for="g in props.groupings" :key="g.id" :value="g.id">{{ g.id }}-{{ g.name }}</option>
+                        </select>
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label small mb-0">
+                            Centros de costo
+                            <span v-if="bulkDateLine.cost_center_ids.length" class="badge bg-primary ms-1" style="font-size:0.6rem;">{{ bulkDateLine.cost_center_ids.length }}</span>
+                        </label>
+                        <Multiselect
+                            v-model="bulkDateLine.cost_center_ids"
+                            :options="costCenters"
+                            mode="tags"
+                            :searchable="true"
+                            :close-on-select="false"
+                            placeholder="Seleccione CC..."
+                            class="multiselect-sm"
+                        />
+                    </div>
+                    <div class="col-md-2">
+                        <label class="form-label small mb-1">Observaciones</label>
+                        <input type="text" v-model="bulkDateLine.observations" class="form-control form-control-sm" maxlength="500" />
+                    </div>
+                </div>
+
+                <div class="row g-3">
+                    <!-- Selector de fechas del mes -->
+                    <div class="col-md-5">
+                        <label class="form-label small mb-1 fw-semibold">
+                            <i class="fas fa-calendar-alt me-1 text-primary"></i>Seleccionar fechas del mes
+                            <span class="badge bg-primary ms-1" style="font-size:0.65rem;">{{ bulkSelectedDates.length }} seleccionadas</span>
+                        </label>
+                        <div class="border rounded p-2 bg-white" style="max-height: 200px; overflow-y: auto;">
+                            <div class="d-flex flex-wrap gap-1">
+                                <button
+                                    v-for="day in daysOfCurrentMonth"
+                                    :key="day.value"
+                                    type="button"
+                                    @click="toggleDate(day.value)"
+                                    :class="[
+                                        'btn btn-sm px-2 py-1',
+                                        bulkSelectedDates.includes(day.value)
+                                            ? 'btn-primary'
+                                            : day.isWeekend
+                                                ? 'btn-light text-muted border'
+                                                : 'btn-outline-secondary'
+                                    ]"
+                                    style="min-width: 36px; font-size: 0.72rem;"
+                                    :title="day.label"
+                                >
+                                    {{ day.day }}
+                                </button>
+                            </div>
+                        </div>
+                        <div class="d-flex gap-2 mt-2">
+                            <button type="button" @click="selectAllDates" class="btn btn-outline-primary btn-sm" style="font-size:0.72rem;">
+                                <i class="fas fa-check-double me-1"></i>Todos los días hábiles
+                            </button>
+                            <button type="button" @click="bulkSelectedDates = []" class="btn btn-outline-secondary btn-sm" style="font-size:0.72rem;">
+                                <i class="fas fa-times me-1"></i>Limpiar
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Selector de empleados -->
+                    <div class="col-md-7">
+                        <label class="form-label small mb-1 fw-semibold">
+                            <i class="fas fa-users me-1 text-primary"></i>Colaboradores
+                            <span class="badge bg-primary ms-1" style="font-size:0.65rem;">{{ bulkDateSelectedIds.length }} seleccionados</span>
+                        </label>
+                        <div class="border rounded" style="max-height: 200px; overflow-y: auto;">
+                            <table class="table table-sm table-hover fs--1 mb-0">
+                                <thead class="table-light sticky-top">
+                                    <tr>
+                                        <th style="width:36px" class="text-center">
+                                            <input type="checkbox" class="form-check-input"
+                                                :checked="bulkDateAllSelected"
+                                                @change="toggleBulkDateAll" />
+                                        </th>
+                                        <th>Colaborador</th>
+                                        <th class="text-end">Tarifa/día</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr v-if="props.employees.length === 0">
+                                        <td colspan="3" class="text-center text-muted py-2">Sin colaboradores.</td>
+                                    </tr>
+                                    <tr v-for="emp in props.employees" :key="emp.id"
+                                        :class="bulkDateSelectedIds.includes(emp.id) ? 'table-primary bg-opacity-25' : ''"
+                                        style="cursor:pointer"
+                                        @click="bulkDateSelectedIds.includes(emp.id) ? bulkDateSelectedIds.splice(bulkDateSelectedIds.indexOf(emp.id), 1) : bulkDateSelectedIds.push(emp.id)">
+                                        <td class="text-center">
+                                            <input type="checkbox" class="form-check-input"
+                                                :checked="bulkDateSelectedIds.includes(emp.id)" @click.stop />
+                                        </td>
+                                        <td class="fw-semi-bold">{{ emp.full_name }}</td>
+                                        <td class="text-end text-muted">
+                                            ${{ (emp.daily_rate || 0).toLocaleString('es-CL') }}
+                                        </td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                        <div class="mt-2">
+                            <small class="text-muted">
+                                <i class="fas fa-info-circle me-1"></i>
+                                Se crearán <strong>{{ bulkDateSelectedIds.length * bulkSelectedDates.length }}</strong> tarjas en total.
+                                Las fechas donde ya exista tarja "al día" se omitirán automáticamente.
+                            </small>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="d-flex justify-content-between align-items-center mt-3 border-top pt-2">
+                    <small class="text-muted">
+                        {{ bulkDateSelectedIds.length }} colaborador(es) × {{ bulkSelectedDates.length }} fecha(s)
+                    </small>
+                    <div class="d-flex gap-2">
+                        <button type="button" @click="showBulkByDatesPanel = false" class="btn btn-falcon-default btn-sm">Cancelar</button>
+                        <button type="button" @click="saveBulkByDates"
+                            class="btn btn-primary btn-sm"
+                            :disabled="bulkDateSelectedIds.length === 0 || bulkSelectedDates.length === 0 || !bulkDateLine.labor_type_id">
+                            <i class="fas fa-save me-1"></i>
+                            Guardar {{ bulkDateSelectedIds.length * bulkSelectedDates.length }} tarja(s)
                         </button>
                     </div>
                 </div>

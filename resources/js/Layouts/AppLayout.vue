@@ -55,6 +55,13 @@ const logout = () => {
     router.post(route('logout'));
 };
 
+// ── Toggle sidebar (ocultar/mostrar completo) ─────────────
+const sidebarHidden = ref(localStorage.getItem('sidebarHidden') === 'true');
+const toggleSidebar = () => {
+    sidebarHidden.value = !sidebarHidden.value;
+    localStorage.setItem('sidebarHidden', String(sidebarHidden.value));
+};
+
 // ── Buscador del menú lateral ─────────────────────────────────
 const menuSearch = ref('');
 
@@ -147,10 +154,10 @@ const navigateTo = (routeName) => {
 </script>
 
 <template>
-  <div>
+  <div :class="{ 'sidebar-hidden': sidebarHidden }">
     <nav class="navbar navbar-light navbar-vertical navbar-expand-xl position-fixed start-0 top-0 vh-100">
         <div class="d-flex align-items-center ps-2">
-            <div class="toggle-icon-wrapper">
+            <div class="toggle-icon-wrapper d-xl-none">
               <button class="btn navbar-toggler-humburger-icon navbar-vertical-toggle" data-bs-toggle="tooltip" data-bs-placement="left" title="Toggle Navigation"><span class="navbar-toggle-icon"><span class="toggle-line"></span></span></button>
             </div>
 
@@ -818,7 +825,15 @@ const navigateTo = (routeName) => {
   <div class="content">
       <nav class="navbar navbar-light navbar-glass navbar-top navbar-expand">
 
-        <button class="btn navbar-toggler-humburger-icon navbar-toggler me-1 me-sm-3" type="button" data-bs-toggle="collapse" data-bs-target="#navbarVerticalCollapse" aria-controls="navbarVerticalCollapse" aria-expanded="false" aria-label="Toggle Navigation"><span class="navbar-toggle-icon"><span class="toggle-line"></span></span></button>
+        <button class="btn navbar-toggler-humburger-icon navbar-toggler me-1 me-sm-3 d-xl-none" type="button" data-bs-toggle="collapse" data-bs-target="#navbarVerticalCollapse" aria-controls="navbarVerticalCollapse" aria-expanded="false" aria-label="Toggle Navigation"><span class="navbar-toggle-icon"><span class="toggle-line"></span></span></button>
+        <!-- Botón toggle sidebar desktop -->
+        <button
+            @click="toggleSidebar"
+            class="btn d-none d-xl-flex align-items-center justify-content-center sidebar-toggle-btn me-2"
+            :title="sidebarHidden ? 'Mostrar menú' : 'Ocultar menú'"
+        >
+            <i class="fas fa-bars" style="font-size: 0.85rem;"></i>
+        </button>
         <a class="navbar-brand me-1 me-sm-3" href="../../index.html">
           <div class="d-flex align-items-center"><img class="me-0 mb-4" :src=" path + '/assets/img/icons/spot-illustrations/alisoft.png'" alt="" width="48" /><span class="font-sans-serif text-primary">ALISOFT</span>
           </div>
@@ -1079,6 +1094,36 @@ const navigateTo = (routeName) => {
     .navbar-vertical .navbar-nav > .nav-item {
         margin-bottom: 0.1rem;
     }
+}
+
+/* ── Toggle sidebar (ocultar/mostrar completo, solo desktop xl+) ── */
+@media (min-width: 1200px) {
+    .navbar-vertical {
+        transition: transform 0.25s ease;
+    }
+    .content {
+        transition: margin-left 0.25s ease;
+    }
+    .sidebar-hidden .navbar-vertical {
+        transform: translateX(-100%);
+    }
+    .sidebar-hidden .navbar-vertical.navbar-expand-xl + .content {
+        margin-left: 0 !important;
+    }
+}
+
+.sidebar-toggle-btn {
+    width: 32px;
+    height: 32px;
+    padding: 0;
+    color: #5e6e82;
+    border: none;
+    background: transparent;
+    border-radius: 6px;
+}
+.sidebar-toggle-btn:hover {
+    background: rgba(0, 0, 0, 0.06);
+    color: #2c7be5;
 }
 </style>
 

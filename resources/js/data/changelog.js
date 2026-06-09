@@ -8,6 +8,16 @@
 export const changelog = [
   {
     fecha: '2026-06-09',
+    titulo: 'Gestión Diaria — Registro masivo de tarjas por fechas',
+    items: [
+      'Nuevo botón "Masivo por fechas" en la gestión diaria de tarjas.',
+      'Permite registrar la misma configuración de labor, jornada, centros de costo y bono para N colaboradores en múltiples fechas del mes de forma simultánea.',
+      'Selector visual de días del mes con atajo para marcar todos los días hábiles de una vez.',
+      'Las fechas donde ya exista una tarja registrada se omiten automáticamente para evitar duplicados.',
+    ],
+  },
+  {
+    fecha: '2026-06-09',
     titulo: 'Temporadas — Bloqueo de temporadas pasadas',
     items: [
       'Se puede bloquear una temporada para evitar ingresar o modificar datos en ella por error.',
