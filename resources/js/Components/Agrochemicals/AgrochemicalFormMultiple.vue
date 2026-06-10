@@ -1,827 +1,394 @@
-<script setup>
-// Estado para agrupación seleccionada
-// (Importación única ya presente arriba)
-const selectedGrouping = ref("");
-const expandedCC = ref(false);
-
-// Watch para autocompletar cost centers al seleccionar agrupación
-watch(selectedGrouping, (newGroupingId) => {
-  if (!newGroupingId) return;
-  // Buscar la agrupación seleccionada en los datos del backend
-  const grouping = page.props.groupings?.find(g => g.id == newGroupingId);
-  if (grouping && Array.isArray(grouping.cost_centers)) {
-    // IDs de los cost centers de la agrupación
-    const groupCCs = grouping.cost_centers.map(cc => cc.id);
-    // Siempre seleccionar todos los de la agrupación
-    props.form.cc = groupCCs;
-  }
-});
-
-
-
-import { ref, computed, getCurrentInstance, watch } from "vue";
+﻿<script setup>
+import { ref, computed, watch } from "vue";
 import { usePage } from '@inertiajs/vue3';
 import Multiselect from "@vueform/multiselect";
-import TextInput from "@/Components/TextInput.vue";
 import InputError from "@/Components/InputError.vue";
 import Products2Modal from '@/Components/Products2/Products2Modal.vue';
 import axios from 'axios';
 
-const props = defineProps({
-    form: Object,
+const props = defineProps({ form: Object });
+
+const page = usePage();
+const sessionPrice = computed(() => page.props.price ?? 1);
+
+// === CC & AGRUPACION ===
+const selectedGrouping = ref("");
+const expandedCC = ref(false);
+
+watch(selectedGrouping, (newGroupingId) => {
+    if (!newGroupingId) return;
+    const grouping = page.props.groupings?.find(g => g.id == newGroupingId);
+    if (grouping && Array.isArray(grouping.cost_centers)) {
+        props.form.cc = grouping.cost_centers.map(cc => cc.id);
+    }
 });
 
-
-
-
-// Preparar acceso a productos para sugerencias (cuando estén disponibles)
-const { appContext } = getCurrentInstance();
-const page = appContext.config.globalProperties.$page || { props: {} };
-const sessionPrice = usePage().props.price ?? 1;
-
-
-// Normalizar productsList para que siempre sea [{name, level3}]
+// === LISTA DE PRODUCTOS ===
 const productsList = computed(() => {
     const raw = page.props.products || [];
     if (raw.length && typeof raw[0] === 'object' && raw[0].name) return raw;
     return [];
 });
 
-// Filtrar productos según la familia seleccionada (level3) y ordenar alfabéticamente por nombre
-const filteredProductsByFamily = computed(() => {
-    if (!props.form.subfamily_id) return [];
-    // Buscar el label de la familia seleccionada
-    const selectedFamily = page.props.subfamilies.find(f => f.value === props.form.subfamily_id);
-    if (!selectedFamily) return [];
-    // Filtrar productos cuyo level3 coincida con el label de la familia y ordenar por nombre
-    return productsList.value
-        .filter(p => p.level3 === selectedFamily.label)
-        .sort((a, b) => a.name.localeCompare(b.name));
+// === MODAL PRODUCTOS2 ===
+const products2Data = ref({ data: [], links: [] });
+const searchProducts2 = ref('');
+const currentProductIndex = ref(null);
+
+const selectedLevel3Label = computed(() => {
+    const sel = page.props.subfamilies?.find(f => f.value === props.form.subfamily_id);
+    return sel ? sel.label : '';
 });
 
-// Controlar sugerencias por producto
-const productSearch = ref([]); // Un array de v-models para cada producto
-const showSuggestions = ref([]); // Un array de flags para mostrar sugerencias
-
-// Inicializar arrays según la cantidad de productos
-const ensureProductSearchArrays = () => {
-    while (productSearch.value.length < props.form.products.length) {
-        productSearch.value.push("");
-        showSuggestions.value.push(false);
-    }
-    while (productSearch.value.length > props.form.products.length) {
-        productSearch.value.pop();
-        showSuggestions.value.pop();
-    }
+const fetchProducts2 = () => {
+    axios.get(route('products2.index'), {
+        params: { term: searchProducts2.value, level3: selectedLevel3Label.value, form: 'agrochemicals' },
+        headers: { Accept: 'application/json' }
+    }).then(res => { products2Data.value = res.data; });
 };
 
-// Llamar en el template antes de renderizar productos
-ensureProductSearchArrays();
-
-const filteredProducts = (search) => {
-    if (!search) return [];
-    return productsList.value.filter(p =>
-        p.name && p.name.toLowerCase().includes(search.toLowerCase())
-    ).slice(0, 8); // máximo 8 sugerencias
+const openProducts2Modal = (index) => {
+    currentProductIndex.value = index;
+    props.form.products[index].product_name = '';
+    searchProducts2.value = '';
+    fetchProducts2();
+    $(`#products2Modal`).modal('show');
 };
 
+const onFilterProducts2 = (term) => { searchProducts2.value = term; fetchProducts2(); };
 
-const selectSuggestion = (index, product) => {
-    props.form.products[index].product_name = product.name;
-    productSearch.value[index] = product.name;
-    showSuggestions.value[index] = false;
-    // Asignar el precio automáticamente si existe
-    if (typeof product.price !== 'undefined') {
-        // Multiplica por el dólar de sesión y guarda como entero
-        props.form.products[index].price = parseInt(Number(product.price) * Number(sessionPrice));
-    } else {
-        props.form.products[index].price = '';
-    }
-    // Asignar unidad del precio automáticamente si existe
-    if (typeof product.unit_price_id !== 'undefined') {
-        props.form.products[index].unit_id_price = product.unit_price_id;
-    } else {
-        props.form.products[index].unit_id_price = '';
-    }
+const onProduct2Select = (item) => {
+    const cleanName = item.name.replace(/\s*[xX]\s*\d+[\.,]?\d*\s*\w+$/i, '').trim();
+    const p = props.form.products[currentProductIndex.value];
+    p.product_name      = cleanName;
+    p.price             = item.price || '';
+    p.unit_id_price     = item.unit_price_id || '';
+    p.active_ingredient = item.active_ingredient || '';
+    $(`#products2Modal`).modal('hide');
 };
 
-// Watch para actualizar el precio cuando el nombre del producto cambie manualmente
+// === FILAS ===
+const addItem = () => {
+    props.form.products.push({
+        product_name: '', dose: '', price: '', mojamiento: '',
+        unit_id: '', unit_id_price: '', dose_type_id: '', observations: '', months: [],
+    });
+};
+const removeItem = (index) => props.form.products.splice(index, 1);
+
+// === MESES ===
+const toggleMonth = (product, monthValue) => {
+    const idx = product.months.indexOf(monthValue);
+    if (idx >= 0) product.months.splice(idx, 1);
+    else product.months.push(monthValue);
+};
+const selectAllMonths = (product) => {
+    const all = (page.props.months || []).map(m => m.value);
+    product.months = (product.months.length === all.length) ? [] : [...all];
+};
+const monthAbbr = (label) => label ? label.substring(0, 3) : '';
+
+// === UNIDADES ===
+const allowedPriceUnits = { 1: [1,2,8], 2: [1,2,8], 3: [3,4], 4: [3,4], 5: [5], 8: [1,2,8] };
+const disallowedDoseUnitIds = [6, 7];
+const getDoseUnitOptions = () => (page.props.units || []).filter(u => !disallowedDoseUnitIds.includes(u.value));
+const getPriceUnitOptions = (product) => {
+    const allowed = allowedPriceUnits[product.unit_id];
+    return allowed ? (page.props.units || []).filter(u => allowed.includes(u.value)) : (page.props.units || []);
+};
+
 watch(
-    () => props.form.products.map(p => p.product_name),
-    (newNames, oldNames) => {
-        // Solo actualiza la fila cuyo nombre cambió
-        newNames.forEach((name, idx) => {
-            if (name !== oldNames[idx]) {
-                const found = productsList.value.find(p => p.name === name);
-                if (found && typeof found.price !== 'undefined') {
-                    props.form.products[idx].price = parseInt(Number(found.price) * Number(sessionPrice));
-                } // Si no se encuentra, NO limpiar el precio anterior
-                // Asignar unidad del precio automáticamente si existe
-                if (found && typeof found.unit_price_id !== 'undefined') {
-                    props.form.products[idx].unit_id_price = found.unit_price_id;
-                } // Si no se encuentra, NO limpiar la unidad anterior
+    () => props.form.products.map(p => p.unit_id),
+    () => {
+        props.form.products.forEach((p, idx) => {
+            const allowed = getPriceUnitOptions(p).map(u => u.value);
+            if (p.unit_id_price && !allowed.includes(p.unit_id_price)) {
+                props.form.products[idx].unit_id_price = null;
             }
         });
     },
     { deep: true }
 );
 
-const onInput = (index) => {
-    showSuggestions.value[index] = true;
-    // Si el nombre coincide exactamente con un producto, asignar el precio
-    const name = props.form.products[index].product_name;
-    const found = productsList.value.find(p => p.name === name);
-    if (found && typeof found.price !== 'undefined') {
-        props.form.products[index].price = parseInt(Number(found.price) * Number(sessionPrice));
-    }
-};
-
-const onBlur = (index) => {
-    setTimeout(() => (showSuggestions.value[index] = false), 150);
-};
-
-const addItem = () => {
-    props.form.products.push({
-        product_name: "",
-        dose: "",
-        price: "",
-        mojamiento: "",
-        unit_id: "",
-        unit_id_price: "",
-        dose_type_id: "",
-        observations: "",
-        months: [],
-    });
-};
-
-const removeItem = (index) => {
-    props.form.products.splice(index, 1);
-};
-
-
-const selectAllMonths = (index, months) => {
-    const allMonths = months.map((m) => m.value);
-    const current = props.form.products[index].months || [];
-    if (
-        current.length === allMonths.length &&
-        allMonths.every((m) => current.includes(m))
-    ) {
-        // Si ya están todos seleccionados, deselecciona todos
-        props.form.products[index].months = [];
-    } else {
-        // Si no, selecciona todos
-        props.form.products[index].months = allMonths;
-    }
-};
-
-const formatPrice = (value) => {
-  if (value === null || value === undefined || value === '') return '';
-  return parseInt(value);
-};
-
-// Nuevas reglas para filtrar 'Unidad del precio' según la unidad de la dosis
-const allowedPriceUnitIdsForDose1 = [1, 2, 8];
-const allowedPriceUnitIdsForDose3 = [3, 4];
-const allowedPriceUnitIdsForDose8 = [1, 2, 8];
-const allowedPriceUnitIdsForDose2 = [1, 2, 8];
-const allowedPriceUnitIdsForDose4 = [3, 4];
-const allowedPriceUnitIdsForDose5 = [5];
-
-// Excluir unidades de dosis con id 6 y 7
-const disallowedDoseUnitIds = [6, 7];
-const getDoseUnitOptions = () => page.props.units.filter(u => !disallowedDoseUnitIds.includes(u.value));
-
-const getPriceUnitOptions = (product) => {
-  if (product.unit_id === 1) {
-    return page.props.units.filter(u => allowedPriceUnitIdsForDose1.includes(u.value));
-  } else if (product.unit_id === 2) {
-    return page.props.units.filter(u => allowedPriceUnitIdsForDose2.includes(u.value));
-  } else if (product.unit_id === 3) {
-    return page.props.units.filter(u => allowedPriceUnitIdsForDose3.includes(u.value));
-  } else if (product.unit_id === 4) {
-    return page.props.units.filter(u => allowedPriceUnitIdsForDose4.includes(u.value));
-  } else if (product.unit_id === 5) {
-    return page.props.units.filter(u => allowedPriceUnitIdsForDose5.includes(u.value));
-  } else if (product.unit_id === 8) {
-    return page.props.units.filter(u => allowedPriceUnitIdsForDose8.includes(u.value));
-  }
-  return page.props.units;
-};
-
 watch(
-  () => props.form.products.map(p => p.unit_id),
-  (newUnitIds) => {
-    newUnitIds.forEach((id, idx) => {
-      const currentPriceUnit = props.form.products[idx].unit_id_price;
-      if (id === 1 && !allowedPriceUnitIdsForDose1.includes(currentPriceUnit)) {
-        props.form.products[idx].unit_id_price = null;
-      }
-      if (id === 2 && !allowedPriceUnitIdsForDose2.includes(currentPriceUnit)) {
-        props.form.products[idx].unit_id_price = null;
-      }
-      if (id === 3 && !allowedPriceUnitIdsForDose3.includes(currentPriceUnit)) {
-        props.form.products[idx].unit_id_price = null;
-      }
-      if (id === 4 && !allowedPriceUnitIdsForDose4.includes(currentPriceUnit)) {
-        props.form.products[idx].unit_id_price = null;
-      }
-      if (id === 5 && !allowedPriceUnitIdsForDose5.includes(currentPriceUnit)) {
-        props.form.products[idx].unit_id_price = null;
-      }
-      if (id === 8 && !allowedPriceUnitIdsForDose8.includes(currentPriceUnit)) {
-        props.form.products[idx].unit_id_price = null;
-      }
-    });
-  },
-  { deep: true }
+    () => props.form.products.map(p => p.product_name),
+    (newNames, oldNames) => {
+        newNames.forEach((name, idx) => {
+            if (name !== oldNames?.[idx]) {
+                const found = productsList.value.find(p => p.name === name);
+                if (found?.price !== undefined)
+                    props.form.products[idx].price = parseInt(Number(found.price) * Number(sessionPrice.value));
+                if (found?.unit_price_id !== undefined)
+                    props.form.products[idx].unit_id_price = found.unit_price_id;
+            }
+        });
+    },
+    { deep: true }
 );
-
-// Estado para modal de productos2
-const products2Data = ref({ data: [], links: [] });
-const searchProducts2 = ref('');
-const currentProductIndex = ref(null);
-
-// Label nivel 3 para filtrar
-const selectedLevel3Label = computed(() => {
-  const sel = page.props.subfamilies.find(f => f.value === props.form.subfamily_id);
-  return sel ? sel.label : '';
-});
-
-// Abrir modal: cargar datos iniciales y mostrar
-const openProducts2Modal = (index) => {
-  currentProductIndex.value = index;
-  // Limpiar campo de producto actual antes de abrir modal
-  props.form.products[index].product_name = '';
-  productSearch.value[index] = '';
-  // Reiniciar búsqueda en el modal
-  searchProducts2.value = '';
-  fetchProducts2();
-  $('#products2Modal').modal('show');
-};
-
-// Petición AJAX JSON para modal
-const fetchProducts2 = () => {
-    axios.get(route('products2.index'), {
-        params: { 
-            term: searchProducts2.value, 
-            level3: selectedLevel3Label.value,
-            form: 'agrochemicals' // Indica el origen del formulario
-        },
-        headers: { Accept: 'application/json' }
-    }).then(res => {
-        products2Data.value = res.data;
-    });
-};
-
-// Manejar evento de filtro desde modal
-const onFilterProducts2 = (term) => {
-  searchProducts2.value = term;
-  fetchProducts2();
-};
-
-// Selección de producto desde modal
-const onProduct2Select = (item) => {
-  // Limpiar formato de envase (ej: "ACRAMITE 48 SC X 1 LT" → "ACRAMITE 48 SC")
-  const cleanName = item.name.replace(/\s*[xX]\s*\d+[\.,]?\d*\s*\w+$/i, '').trim();
-  props.form.products[currentProductIndex.value].product_name = cleanName;
-  // Asigna datos adicionales: price, unit_id_price, active_ingredient
-  props.form.products[currentProductIndex.value].price = item.price || '';
-  props.form.products[currentProductIndex.value].unit_id_price = item.unit_price_id || '';
-  props.form.products[currentProductIndex.value].active_ingredient = item.active_ingredient || '';
-  $('#products2Modal').modal('hide');
-};
-
-
 </script>
+
 <template>
-    <div class="row gy-1">
-        <div class="col-sm-4">
-            <label for="families" class="col-form-label mb-0">Nivel 3</label>
-            <div class="input-group mb-2">
-                <span class="input-group-text"
-                    ><i class="fas fa-layer-group"></i
-                ></span>
-                <Multiselect
-                    :placeholder="'Seleccione nivel 3'"
-                    v-model="form.subfamily_id"
-                    :close-on-select="true"
-                    :options="$page.props.subfamilies"
-                    class="form-control"
-                    :class="{ 'is-invalid': form.errors.subfamily_id }"
-                    :searchable="true"
-                    :hide-selected="false"
-                />
-            </div>
-            <InputError class="mt-2" :message="form.errors.subfamily_id" />
+    <!-- Encabezado -->
+    <div class="row g-2 mb-3">
+        <!-- Nivel 3 -->
+        <div class="col-sm-3">
+            <label class="form-label small mb-1">Nivel 3 <span class="text-danger">*</span></label>
+            <Multiselect
+                v-model="form.subfamily_id"
+                :options="$page.props.subfamilies"
+                placeholder="Seleccione nivel 3"
+                :searchable="true"
+                :close-on-select="true"
+                :class="{ 'is-invalid': form.errors.subfamily_id }"
+                class="multiselect-sm"
+            />
+            <InputError :message="form.errors.subfamily_id" />
         </div>
-        <div class="col-sm-8">
-
-            <div class="d-flex align-items-center justify-content-between">
-                <label for="cc" class="col-form-label mb-0"><i class="fas fa-sitemap me-1"></i>CC</label>
-                <div class="d-flex align-items-center gap-1">
-                    <span v-if="form.cc && form.cc.length > 0" class="badge bg-soft-primary text-primary" style="font-size: 0.7rem;">
-                        {{ form.cc.length }} seleccionados
-                    </span>
-                    <button
-                        v-if="form.cc && form.cc.length > 5"
-                        type="button"
-                        @click="expandedCC = !expandedCC"
-                        class="btn btn-sm btn-light-primary d-flex align-items-center gap-1 py-0 px-2"
-                        style="font-size: 0.7rem;"
-                    >
-                        <i class="fas" :class="expandedCC ? 'fa-compress-alt' : 'fa-expand-alt'" style="font-size: 0.65rem;"></i>
-                        {{ expandedCC ? 'Colapsar' : 'Ver todos' }}
-                    </button>
-                </div>
-            </div>
-            <div class="cc-multiselect-wrapper mb-2">
-                <Multiselect
-                    mode="tags"
-                    tagClass="small-tag"
-                    :placeholder="'Seleccione CC'"
-                    v-model="form.cc"
-                    :close-on-select="false"
-                    :options="$page.props.costCenters"
-                    class="form-control multiselect-tags-limited"
-                    :class="{ 'is-invalid': form.errors.cc, 'multiselect-tags-expanded': expandedCC }"
-                    :searchable="true"
-                    :hide-selected="false"
-                />
-            </div>
-            <InputError class="mt-2" :message="form.errors.cc" />
+        <!-- Agrupación (va antes de CC) -->
+        <div class="col-sm-3">
+            <label class="form-label small mb-1">Agrupación CC</label>
+            <Multiselect
+                v-model="selectedGrouping"
+                :options="($page.props.groupings || []).map(g => ({ value: g.id, label: g.name }))"
+                placeholder="Seleccione agrupación"
+                :searchable="true"
+                :close-on-select="true"
+                class="multiselect-sm"
+            />
         </div>
-
-
-
-
-
-
-        <!-- Selector de agrupación con Multiselect -->
-        <div class="col-sm-4">
-            <label for="grouping" class="col-form-label mb-0">Agrupación</label>
-            <div class="input-group mb-2 ">
-                <span class="input-group-text"><i class="fas fa-object-group"></i></span>
-                <Multiselect
-                    id="grouping"
-                    v-model="selectedGrouping"
-                    :options="page.props.groupings.map(g => ({ value: g.id, label: g.name }))"
-                    :placeholder="'Seleccione agrupación'"
-                    :searchable="true"
-                    :close-on-select="true"
-                    :hide-selected="false"
-                    class="form-control"
-                />
-            </div>
+        <!-- CC -->
+        <div class="col-sm-6">
+            <label class="form-label small mb-1">
+                Centros de Costo <span class="text-danger">*</span>
+                <span v-if="form.cc?.length" class="badge bg-primary ms-1" style="font-size:0.65rem;">{{ form.cc.length }} sel.</span>
+            </label>
+            <Multiselect
+                mode="tags"
+                v-model="form.cc"
+                :options="$page.props.costCenters"
+                placeholder="Seleccione CC"
+                :searchable="true"
+                :close-on-select="false"
+                :class="{ 'is-invalid': form.errors.cc }"
+                class="multiselect-sm"
+            />
+            <InputError :message="form.errors.cc" />
         </div>
     </div>
-    <template v-for="(product, index) in form.products">
-        <hr class="custom-hr" />
-        <div class="row mt-0">
-            <div class="col-sm-5 pe-0">
-                <div class="fv-row">
-                <label class="col-form-label">Nombre del producto</label>
-                <div class="input-group position-relative">
-                    <span class="input-group-text"><i class="fas fa-flask"></i></span>
-                    <input
-                        :id="'product_name_' + index"
-                        v-model="product.product_name"
-                        class="form-control"
-                        :class="{ 'is-invalid': form.errors['products.' + index + '.product_name'] }"
-                        placeholder="Escriba producto o use la lupa"
-                        autocomplete="off"
-                    />
-                    <span
-                      class="input-group-text btn btn-sm btn-outline-secondary p-1"
-                      style="cursor: pointer;"
-                      @click="openProducts2Modal(index)"
-                    >
-                      <i class="fas fa-search"></i>
-                    </span>
-                </div>
-                <InputError class="mt-2" :message="form.errors['products.' + index + '.product_name']" />
-            </div>
-            </div>
-            <div class="col-sm-3 pe-0">
-                <div class="fv-row">
-                <label class="col-form-label">Tipo de dosis</label>
-                <div class="d-flex flex-wrap gap-1">
-                    <template v-for="value in $page.props.doseTypes">
-                        <div
-                            class="form-check form-check-solid form-check-inline mb-0 mt-0 mr-1"
-                        >
+
+    <!-- Tabla de productos -->
+    <div class="border rounded" style="overflow:hidden;">
+        <table class="table table-sm table-bordered align-middle mb-0 agro-table w-100">
+            <colgroup>
+                <col style="width:22%;">   <!-- Producto -->
+                <col style="width:9%;">    <!-- Tipo dosis -->
+                <col style="width:6%;">    <!-- Dosis -->
+                <col style="width:7%;">    <!-- U. dosis -->
+                <col style="width:6%;">    <!-- Mojamiento -->
+                <col style="width:8%;">    <!-- Precio -->
+                <col style="width:7%;">    <!-- U. precio -->
+                <col>                       <!-- Meses (ocupa resto) -->
+                <col style="width:9%;">    <!-- Obs. -->
+                <col style="width:52px;">  <!-- Acciones -->
+            </colgroup>
+            <thead style="background: linear-gradient(135deg, #1a6b3c 0%, #2d9e5f 100%); color:#fff; font-size:0.72rem; white-space:nowrap;">
+                <tr>
+                    <th class="text-white">Producto</th>
+                    <th class="text-white">Tipo dosis</th>
+                    <th class="text-end text-white">Dosis</th>
+                    <th class="text-white">U. dosis</th>
+                    <th class="text-end text-white">Mojam.</th>
+                    <th class="text-end text-white">Precio $</th>
+                    <th class="text-white">U. precio</th>
+                    <th class="text-white">Meses</th>
+                    <th class="text-white">Obs.</th>
+                    <th></th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr v-for="(product, index) in form.products" :key="index"
+                    :style="{ backgroundColor: index % 2 === 0 ? '#f0faf5' : '#ffffff', borderLeft: '3px solid #2d9e5f' }">
+
+                    <!-- Producto -->
+                    <td class="p-1">
+                        <div class="d-flex gap-1 align-items-center">
                             <input
-                                class="form-check-input"
-                                type="radio"
-                                v-model="product.dose_type_id"
-                                :id="'kt_unit_' + value.id"
-                                :value="value.value"
+                                v-model="product.product_name"
+                                type="text"
+                                class="form-control form-control-sm agro-input flex-grow-1"
+                                :class="{ 'is-invalid': form.errors['products.' + index + '.product_name'] }"
+                                placeholder="Nombre del producto..."
+                                autocomplete="off"
                             />
-                            <label
-                                class="form-check-label ps-1"
-                                :for="'kt_unit_' + value.id"
-                                >{{ value.label }}</label
-                            >
+                            <button
+                                type="button"
+                                class="btn btn-outline-secondary btn-sm px-1 flex-shrink-0"
+                                @click="openProducts2Modal(index)"
+                                title="Buscar en catalogo"
+                                style="height:26px; width:26px; line-height:1; padding:0;"
+                            ><i class="fas fa-search" style="font-size:0.62rem;"></i></button>
                         </div>
-                    </template>
-                </div>
-                <small
-                    class="text-danger mt-2"
-                    :v-if="form.errors['products.' + index + '.dose_type_id']"
-                    ><br />{{
-                        form.errors["products." + index + ".dose_type_id"]
-                    }}</small
-                >
-                </div>
-            </div>
-            <div class="col-sm-3 pe-0">
-                <div class="fv-row">
-                <label class="col-form-label">Dosis</label>
-                <div class="input-group">
-                    <span class="input-group-text"
-                        ><i class="fas fa-vial"></i
-                    ></span>
-                    <TextInput
-                        id="dose"
-                        v-model="product.dose"
-                        class="form-control"
-                        type="number"
-                        step="0.00"
-                        :class="{
-                            'is-invalid':
-                                form.errors['products.' + index + '.dose'],
-                        }"
-                    />
-                </div>
-                <InputError
-                    class="mt-2"
-                    :message="form.errors['products.' + index + '.dose']"
-                />
-            </div>
-            </div>
-        </div>
-        <div class="row mt-0">
-            <div class="col-sm-3">
-                <label for="unit" class="col-form-label"
-                    >Unidad de la dosis</label
-                >
-                <div class="input-group">
-                    <span class="input-group-text"
-                        ><i class="fas fa-balance-scale"></i
-                    ></span>
-                    <Multiselect
-                        :placeholder="''"
-                        v-model="product.unit_id"
-                        :close-on-select="true"
-                        :options="getDoseUnitOptions()"
-                        class="form-control"
-                        :class="{
-                            'is-invalid':
-                                form.errors['products.' + index + '.unit_id'],
-                        }"
-                        :searchable="false"
-                        :hide-selected="false"
-                    />
-                </div>
-                <InputError
-                    class="mt-2"
-                    :message="form.errors['products.' + index + '.unit_id']"
-                />
-            </div>
-            <div class="col-sm-3">
-                <label class="col-form-label">Mojamiento</label>
-                <div class="input-group mb-0">
-                    <span class="input-group-text"
-                        ><i class="fas fa-tint"></i
-                    ></span>
-                    <TextInput
-                        id="product_name"
-                        v-model="product.mojamiento"
-                        class="form-control"
-                        type="number"
-                        :class="{
-                            'is-invalid':
-                                form.errors[
-                                    'products.' + index + '.mojamiento'
-                                ],
-                        }"
-                    />
-                </div>
-                <InputError
-                    class="mt-0"
-                    :message="form.errors['products.' + index + '.mojamiento']"
-                />
-            </div>
+                    </td>
 
-            <div class="col-sm-3">
-                <label for="price" class="col-form-label">Precio</label>
-                <div class="input-group mb-1">
-                    <span class="input-group-text"
-                        ><i class="fas fa-dollar-sign"></i
-                    ></span>
-<TextInput
-    id="price"
-    :model-value="formatPrice(product.price)"
-    @update:model-value="val => product.price = val"
-    class="form-control"
-    type="number"
-    :class="{
-        'is-invalid':
-            form.errors['products.' + index + '.price'],
-    }"
-/> 
-
-                </div>
-                <InputError
-                    class="mt-2"
-                    :message="form.errors['products.' + index + '.price']"
-                />
-            </div>
-            <div class="col-sm-3">
-                <label for="unit" class="col-form-label"
-                    >Unidad del precio</label
-                >
-                <div class="input-group mb-1">
-                    <span class="input-group-text"
-                        ><i class="fas fa-balance-scale"></i
-                    ></span>
-                    <Multiselect
-                        :placeholder="''"
-                        v-model="product.unit_id_price"
-                        :close-on-select="true"
-                        :options="getPriceUnitOptions(product)"
-                        class="form-control"
-                        :class="{
-                            'is-invalid':
-                                form.errors[
-                                    'products.' + index + '.unit_id_price'
-                                ],
-                        }"
-                        :searchable="false"
-                        :hide-selected="false"
-                    />
-                </div>
-                <InputError
-                    class="mt-2"
-                    :message="
-                        form.errors['products.' + index + '.unit_id_price']
-                    "
-                />
-            </div>
-        </div>
-
-        <div class="row">
-            <div class="col-lg-8">
-                <div class="d-flex align-items-center mb-1">
-                    <label for="months" class="col-form-label mb-1">Meses</label>
-                    <button
-                        type="button"
-                        class="btn btn-outline-primary btn-sm ms-2"
-                        @click="selectAllMonths(index, $page.props.months)"
-                    >
-                        {{
-                            product.months &&
-                            product.months.length === $page.props.months.length &&
-                            $page.props.months.every((m) => product.months.includes(m.value))
-                                ? "Deseleccionar todos"
-                                : "Seleccionar todos"
-                        }}
-                    </button><span
-                    style="cursor: pointer;"
-                    title="Por cada mes que selecciones, el producto se incluirá en el presupuesto para ese mes.">
-                    <i class="fas fa-question-circle text-info ms-1"></i>
-                  </span>
-                </div>
-                <div class="d-flex flex-wrap gap-1">
-                    <template v-for="value in $page.props.months">
-                        <div
-                            style="margin-right: 0.5rem"
-                            class="form-check form-check-solid form-check-inline mb-1"
-                        >
-                            <input
-                                class="form-check-input"
-                                type="checkbox"
-                                v-model="product.months"
-                                :id="'kt_month_' + value.id"
-                                :value="value.value"
-                            />
-                            <label
-                                class="form-check-label ps-1"
-                                :for="'kt_month_' + value.id"
-                                >{{ value.label }}</label
-                            >
+                    <!-- Tipo dosis -->
+                    <td class="p-1">
+                        <div class="d-flex flex-column gap-0">
+                            <div v-for="dt in ($page.props.doseTypes || [])" :key="dt.value" class="form-check mb-0">
+                                <input
+                                    type="radio"
+                                    v-model="product.dose_type_id"
+                                    :value="dt.value"
+                                    :id="'dt_' + index + '_' + dt.value"
+                                    class="form-check-input"
+                                    style="width:11px; height:11px; margin-top:2px;"
+                                />
+                                <label :for="'dt_' + index + '_' + dt.value" class="form-check-label ms-1" style="font-size:0.71rem; cursor:pointer;">{{ dt.label }}</label>
+                            </div>
                         </div>
-                    </template>
-                </div>
-                <small
-                    class="text-danger"
-                    v-if="form.errors['products.' + index + '.months']"
-                >
-                    <br />{{ form.errors["products." + index + ".months"] }}
-                </small>
-            </div>
+                    </td>
 
+                    <!-- Dosis -->
+                    <td class="p-1">
+                        <input v-model="product.dose" type="number" step="0.01"
+                            class="form-control form-control-sm agro-input text-end agro-no-arrows"
+                            :class="{ 'is-invalid': form.errors['products.' + index + '.dose'] }" />
+                    </td>
 
-            
-            <div class="col-lg-4 align-self-start ps-0">
-                <label for="observations" class="col-form-label">Observaciones</label>
-                    <textarea
-                        v-model="product.observations"
-                        rows="10"
-                         class="form-control mb-3 mb-lg-0"
-                        :class="{ 'is-invalid': form.errors.observations }"
-                        style="resize: vertical; min-height: 80px;"
-                    ></textarea>
-            
-                <InputError class="mt-2" :message="form.errors.observations" />
-            </div>
-        </div>
+                    <!-- Unidad dosis -->
+                    <td class="p-1">
+                        <select v-model="product.unit_id"
+                            class="form-select form-select-sm agro-input"
+                            :class="{ 'is-invalid': form.errors['products.' + index + '.unit_id'] }">
+                            <option value="">—</option>
+                            <option v-for="u in getDoseUnitOptions()" :key="u.value" :value="u.value">{{ u.label }}</option>
+                        </select>
+                    </td>
 
-         <div class="row">
-            <div class="col-lg-12 text-end">
-                <button
-                    type="button"
-                    @click="removeItem(index)"
-                    class="btn btn-sm btn-danger me-1"
-                    v-if="form.products.length > 1"
-                >
-                    <i class="fa fa-minus"></i>
-                </button>
-                <button
-                    type="button"
-                    @click="addItem()"
-                    v-if="form.products.length == index + 1"
-                    class="btn btn-sm btn-primary"
-                >
-                    <i class="fa fa-plus"></i>
-                </button>
-            </div>
-        </div>
-    <!-- Componente modal para selección de Product2 -->
+                    <!-- Mojamiento -->
+                    <td class="p-1">
+                        <input v-model="product.mojamiento" type="number"
+                            class="form-control form-control-sm agro-input text-end agro-no-arrows"
+                            :class="{ 'is-invalid': form.errors['products.' + index + '.mojamiento'], 'bg-light': product.dose_type_id != 2 }"
+                            :placeholder="product.dose_type_id == 2 ? 'L/ha' : ''"
+                            :title="product.dose_type_id != 2 ? 'Solo para tipo mojamiento' : 'Litros agua/ha'" />
+                    </td>
+
+                    <!-- Precio -->
+                    <td class="p-1">
+                        <input
+                            :value="product.price ? parseInt(product.price) : ''"
+                            @input="product.price = $event.target.value"
+                            type="number"
+                            class="form-control form-control-sm agro-input text-end agro-no-arrows"
+                            :class="{ 'is-invalid': form.errors['products.' + index + '.price'] }" />
+                    </td>
+
+                    <!-- Unidad precio -->
+                    <td class="p-1">
+                        <select v-model="product.unit_id_price"
+                            class="form-select form-select-sm agro-input"
+                            :class="{ 'is-invalid': form.errors['products.' + index + '.unit_id_price'] }">
+                            <option value="">—</option>
+                            <option v-for="u in getPriceUnitOptions(product)" :key="u.value" :value="u.value">{{ u.label }}</option>
+                        </select>
+                    </td>
+
+                    <!-- Meses -->
+                    <td class="p-1">
+                        <div class="d-grid gap-1" style="grid-template-columns: 22px repeat(6, 1fr); grid-template-rows: auto auto;">
+                            <!-- Botón "todos" ocupa 2 filas -->
+                            <button type="button" @click="selectAllMonths(product)"
+                                class="btn px-0 py-0"
+                                :class="product.months.length === ($page.props.months||[]).length ? 'btn-primary' : 'btn-outline-secondary'"
+                                style="font-size:0.58rem; height:100%; border-radius:3px; grid-row: 1 / 3;" title="Todos">✓✓</button>
+                            <!-- 12 meses en 2 filas de 6 -->
+                            <button v-for="m in ($page.props.months || [])" :key="m.value"
+                                type="button" @click="toggleMonth(product, m.value)"
+                                :class="product.months.includes(m.value) ? 'btn-primary' : 'btn-outline-secondary'"
+                                class="btn px-0 py-0"
+                                style="font-size:0.62rem; height:18px; border-radius:3px; min-width:0;">{{ monthAbbr(m.label) }}</button>
+                        </div>
+                        <small v-if="form.errors['products.' + index + '.months']" class="text-danger d-block" style="font-size:0.65rem;">
+                            {{ form.errors['products.' + index + '.months'] }}
+                        </small>
+                    </td>
+
+                    <!-- Observaciones -->
+                    <td class="p-1">
+                        <input v-model="product.observations" type="text"
+                            class="form-control form-control-sm agro-input" placeholder="..." />
+                    </td>
+
+                    <!-- Acciones -->
+                    <td class="p-1 text-center" style="white-space:nowrap;">
+                        <button v-if="form.products.length > 1" type="button" @click="removeItem(index)"
+                            class="btn btn-sm btn-outline-danger px-1 py-0" style="font-size:0.68rem; height:22px;" title="Eliminar">
+                            <i class="fas fa-times"></i>
+                        </button>
+                        <button v-if="index === form.products.length - 1" type="button" @click="addItem"
+                            class="btn btn-sm btn-outline-primary px-1 py-0 ms-1" style="font-size:0.68rem; height:22px;" title="Agregar fila">
+                            <i class="fas fa-plus"></i>
+                        </button>
+                    </td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+
     <Products2Modal
-      :products2="products2Data"
-      :term="searchProducts2"
-      :level3="selectedLevel3Label"
-      @filter="onFilterProducts2"
-      @select="onProduct2Select"
+        :products2="products2Data"
+        :term="searchProducts2"
+        :level3="selectedLevel3Label"
+        @filter="onFilterProducts2"
+        @select="onProduct2Select"
     />
-    </template>
 </template>
 
-<!-- -->
-<style>
-select,
-select.form-control {
+<style scoped>
+.agro-table { font-size: 0.78rem; }
+
+/* Ocultar flechas de inputs numéricos */
+.agro-no-arrows::-webkit-inner-spin-button,
+.agro-no-arrows::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
+.agro-no-arrows { -moz-appearance: textfield; }
+
+/* Inputs y selects de la tabla */
+.agro-input {
     height: 26px !important;
     min-height: 26px !important;
-    font-size: 0.95rem;
-    padding-top: 2px !important;
-    padding-bottom: 2px !important;
-}
-
-/* Agrandar la casilla de verificación (checkbox) */
-.form-check-input[type="checkbox"] {
-    width: 0.8em !important;
-    height: 0.8em !important;
-    min-width: 0.85em !important;
-    min-height: 0.85em !important;
-    max-width: 0.85em !important;
-    max-height: 0.85em !important;
-    vertical-align: middle;
-}
-
-/* Ajustar el alto de todos los vueform/multiselect (no solo los blue) */
-
-/* Forzar el alto de los vueform/multiselect en este archivo */
-.multiselect,
-.multiselect.form-control,
-.multiselect__tags {
-    min-height: 26px !important;
-    height: 26px !important;
-    max-height: 26px !important;
-    font-size: 0.8
-    rem !important;
-    padding-top: 2px !important;
-    padding-bottom: 2px !important;
-    line-height: 22px !important;
-}
-
-/* Forzar el alto de los inputs (TextInput y nativos), excepto textarea */
-.form-control:not(textarea),
-.form-control-lg:not(textarea),
-.form-control-sm:not(textarea) {
-    min-height: 26px !important;
-    height: 26px !important;
-    max-height: 26px !important;
-    font-size: 0.85rem !important;
-    padding-top: 2px !important;
-    padding-bottom: 2px !important;
-    line-height: 22px !important;
-}
-
-/* Ajustar el alto y alineación de los contenedores de iconos, inputs y selects */
-.input-group {
-    min-height: 26px !important;
-    height: 26px !important;
-    align-items: center !important;
-}
-
-.input-group-text {
-    min-height: 26px !important;
-    height: 26px !important;
-    max-height: 26px !important;
-    padding-top: 2px !important;
-    padding-bottom: 2px !important;
-    font-size: 1rem !important;
-    display: flex;
-    align-items: center;
-}
-
-.col-form-label,
-label {
-    font-size: 0.8rem !important;
-}
-
-/* Reducir el tamaño del texto de los labels de los meses (checkboxes) */
-.form-check-label.ps-1,
-.form-check-label.ps-2,
-.form-check-label {
-    font-size: 0.8rem !important;
-    line-height: 1.1 !important;
-    padding-left: 0.01rem !important;
-    margin-bottom: 0 !important;
-    display: inline-block;
-    vertical-align: middle;
-}
-
-.custom-hr {
-    height: 2px;
-    background: #b1b1b1;
-    border: none;
-    margin: 0.5rem 0;
-}
-/* Achicar el botón 'Seleccionar todos' */
-.btn.btn-outline-primary.btn-sm.ms-2 {
-    padding: 0.1rem 0.35rem !important;
     font-size: 0.75rem !important;
-    line-height: 1 !important;
-    height: 20px !important;
-    min-height: 20px !important;
-    border-radius: 0.15rem !important;
-}
-/* Asegura que el dropdown de autocomplete esté justo debajo del input */
-.autocomplete-list {
-    z-index: 1050 !important;
-    background: #fff;
-    top: 100%;
-    left: 0;
+    padding: 2px 5px !important;
+    width: 100%;
 }
 
-.multiselect .multiselect-options,
-.multiselect .multiselect-option,
-.multiselect__option {
-    font-size: 0.7rem !important;
-}
-
-::placeholder {
-    font-size: 0.7rem !important;
-    color: #888 !important; /* Opcional: cambia el color si lo deseas */
-    opacity: 1; /* Para asegurar que el color se aplique en todos los navegadores */
-}
-
-.input-group .form-control {
-    border-radius: 0.25rem !important;
-}
-
-/* CC expand/collapse */
-.cc-multiselect-wrapper {
-    position: relative;
-}
-.cc-multiselect-wrapper .multiselect,
-.cc-multiselect-wrapper .multiselect.form-control {
-    height: auto !important;
-    min-height: 32px !important;
-    max-height: none !important;
-}
-.multiselect-tags-limited .multiselect-tags {
-    max-height: 32px;
-    overflow: hidden;
-    transition: max-height 0.3s ease;
-}
-.multiselect-tags-expanded .multiselect-tags {
-    max-height: 200px;
-    overflow-y: auto;
-    overflow-x: hidden;
-}
-.multiselect-tags-expanded .multiselect-tags::-webkit-scrollbar {
-    width: 4px;
-}
-.multiselect-tags-expanded .multiselect-tags::-webkit-scrollbar-thumb {
-    background-color: rgba(0,0,0,0.2);
-    border-radius: 4px;
-}
-
-
-
-
+/* Labels del encabezado */
+.form-label.small { font-size: 0.78rem; }
 </style>
 
+<style>
+/* Multiselect estilo remuneraciones — aplica globalmente dentro del modal */
+.multiselect-sm {
+    font-size: 0.75rem;
+    min-height: 0;
+    --ms-py: 0.15rem;
+    --ms-px: 0.4rem;
+    --ms-tag-py: 0rem;
+    --ms-tag-px: 0.3rem;
+    --ms-tag-font-size: 0.7rem;
+    --ms-option-py: 0.2rem;
+    --ms-option-px: 0.5rem;
+    --ms-option-font-size: 0.75rem;
+}
+.multiselect-sm .multiselect-option {
+    font-size: 0.8rem;
+    padding: 3px 8px;
+    line-height: 1.9;
+}
+.multiselect-sm .multiselect-tag {
+    font-size: 0.75rem;
+    padding: 1px 4px;
+}
+.multiselect-sm .multiselect-search input {
+    font-size: 0.7rem;
+}
+</style>

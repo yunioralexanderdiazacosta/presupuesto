@@ -114,7 +114,7 @@ const openEdit = (agrochemical) => {
     form.dose_type_id = agrochemical.dose_type_id;
     form.observations = agrochemical.observations;
     form.cc = agrochemical.cc;
-    form.months = agrochemical.months; 
+    form.months = (agrochemical.months || []).map(m => parseInt(m));
     $('#editAgrochemicalModal').modal('show');
 }
 
