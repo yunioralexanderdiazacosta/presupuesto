@@ -160,6 +160,15 @@ const totalFacturasFormatted = computed(() => {
     return new Intl.NumberFormat('es-ES', { style: 'decimal', minimumFractionDigits: 0 }).format(totalFacturas.value);
 });
 
+// Totales reactivos según filtros activos (usan neto/iva ya calculados por el backend por factura)
+const filteredTotalNeto = computed(() =>
+    filteredInvoices.value.reduce((sum, i) => sum + (i.neto || 0), 0)
+);
+const filteredTotalIva = computed(() =>
+    filteredInvoices.value.reduce((sum, i) => sum + (i.iva || 0), 0)
+);
+const filteredTotalGeneral = computed(() => filteredTotalNeto.value + filteredTotalIva.value);
+
 // Vista expandida: una fila por cada producto de cada factura
 const termDetalles = ref('');
 const activeTab = ref('resumen'); // controla qué pestaña está activa
@@ -469,7 +478,7 @@ const formatCurrency = (value) => {
                             </div>
                             <div class="card-body d-flex flex-column justify-content-end py-1 px-2">
                                 <p class="font-sans-serif lh-1 mb-1 fs-10 small-card-number">
-                                    ${{ props.totalFacturas ? fmt(props.totalFacturas) : '0' }}
+                                    ${{ fmt(filteredTotalNeto) }}
                                 </p>
                             </div>
                         </div>
@@ -479,7 +488,7 @@ const formatCurrency = (value) => {
                             </div>
                             <div class="card-body d-flex flex-column justify-content-end py-1 px-2">
                                 <p class="font-sans-serif lh-1 mb-1 fs-10 small-card-number">
-                                    ${{ props.totalIva ? fmt(props.totalIva) : '0' }}
+                                    ${{ fmt(filteredTotalIva) }}
                                 </p>
                             </div>
                         </div>
@@ -489,7 +498,7 @@ const formatCurrency = (value) => {
                             </div>
                             <div class="card-body d-flex flex-column justify-content-end py-1 px-2">
                                 <p class="font-sans-serif lh-1 mb-1 fs-10 small-card-number fw-bold text-primary">
-                                    ${{ props.totalGeneral ? fmt(props.totalGeneral) : '0' }}
+                                    ${{ fmt(filteredTotalGeneral) }}
                                 </p>
                             </div>
                         </div>
