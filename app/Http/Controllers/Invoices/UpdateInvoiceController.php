@@ -104,7 +104,12 @@ class UpdateInvoiceController extends Controller
         }
 
         foreach ($this->products($request->products) as $productAttach) {
-            if (!in_array((int) $productAttach['product_id'], $protectedProductIdsArray)) {
+            // Una línea es protegida solo si tiene un invoice_product_id existente con salidas.
+            // Líneas nuevas (sin invoice_product_id) siempre se guardan.
+            $ipId = $productAttach['invoice_product_id'] ?? null;
+            $isProtectedLine = $ipId && $protectedInvoiceProductIds->contains((int) $ipId);
+
+            if (!$isProtectedLine) {
                 $invoice->products()->attach($productAttach['product_id'], [
                     'unit_price'   => $productAttach['unit_price'],
                     'amount'       => $productAttach['amount'],
@@ -169,13 +174,14 @@ class UpdateInvoiceController extends Controller
             }
             
             $data[] = [
-                'product_id'   => $prodId,
-                'unit_price'   => $item['unit_price'],
-                'amount'       => $item['amount'],
-                'observations' => $item['observations'],
-                'is_exento'    => $item['is_exento'] ?? false,
-                'branch_id'    => $item['branch_id'] ?? null,
-                'tank_id'      => $item['tank_id'] ?? null,
+                'product_id'        => $prodId,
+                'invoice_product_id'=> isset($item['invoice_product_id']) && is_numeric($item['invoice_product_id']) ? (int) $item['invoice_product_id'] : null,
+                'unit_price'        => $item['unit_price'],
+                'amount'            => $item['amount'],
+                'observations'      => $item['observations'],
+                'is_exento'         => $item['is_exento'] ?? false,
+                'branch_id'         => $item['branch_id'] ?? null,
+                'tank_id'           => $item['tank_id'] ?? null,
             ];
         }
         return $data;

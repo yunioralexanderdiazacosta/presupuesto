@@ -338,10 +338,36 @@ const onDeleted = (id) => {
                     msgSuccess("Registro eliminado correctamente");
                 },
                 onError: (errors) => {
+                    const count = errors.outflow_count || '';
+                    const countText = count ? `<strong>${count} ${count == 1 ? 'salida' : 'salidas'}</strong>` : 'salidas';
                     Swal.fire({
-                        icon: 'error',
-                        title: 'No se puede eliminar',
-                        text: errors.error || 'Esta factura tiene salidas registradas asociadas.',
+                        icon: 'warning',
+                        title: 'Factura con salidas registradas',
+                        html: `
+                            <p>${errors.error || 'Esta factura tiene salidas registradas asociadas.'}</p>
+                            <div class="alert alert-danger mt-3 text-start" style="font-size:0.85rem;">
+                                <i class="fas fa-exclamation-triangle me-1"></i>
+                                <strong>Advertencia:</strong> Si continúa, se eliminarán permanentemente ${countText} y la factura.
+                                Esta información <strong>no se podrá recuperar</strong>.
+                            </div>`,
+                        showCancelButton: true,
+                        confirmButtonColor: '#d33',
+                        cancelButtonColor: '#6e6e6e',
+                        cancelButtonText: 'Cancelar',
+                        confirmButtonText: `Sí, eliminar factura y ${count ? count + ' ' : ''}${count == 1 ? 'salida' : 'salidas'}`,
+                    }).then((forceResult) => {
+                        if (forceResult.isConfirmed) {
+                            router.delete(route('invoices.delete', id), {
+                                data: { force: 1 },
+                                preserveScroll: true,
+                                onSuccess: () => {
+                                    msgSuccess('Factura y salidas eliminadas correctamente');
+                                },
+                                onError: () => {
+                                    Swal.fire('Error', 'No se pudo eliminar la factura.', 'error');
+                                },
+                            });
+                        }
                     });
                 },
             });
