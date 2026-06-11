@@ -31,7 +31,12 @@ class ComparativeOutflowsDashboardController extends Controller
         $user = Auth::user();
         $team_id = $user->team_id;
 
-        $company_reason_id = $request->integer('company_reason_id') ?: null;
+        $company_reason_ids = collect($request->input('company_reason_ids', []))
+            ->map(fn($id) => (int) $id)
+            ->filter()
+            ->values()
+            ->toArray();
+        $company_reason_id = count($company_reason_ids) > 0 ? $company_reason_ids : null;
 
         if (!$season_id) {
             return redirect()->route('select.budget');
@@ -96,7 +101,7 @@ class ComparativeOutflowsDashboardController extends Controller
             'dollarPrice' => $dollarPrice,
             'isAdmin'     => $user->hasRole('Admin'),
             'companyReasons'        => $this->getCompanyReasons($season_id, $team_id),
-            'activeCompanyReasonId' => $company_reason_id,
+            'activeCompanyReasonIds' => $company_reason_ids,
             'summary' => $this->getSummaryComparison($season_id, $team_id, $company_reason_id),
             'monthlyComparison' => $monthlyComparison,
             'cumulativeComparison' => $this->buildCumulativeFromMonthly($monthlyComparison, $months),
@@ -176,7 +181,7 @@ class ComparativeOutflowsDashboardController extends Controller
             })
             ->when($company_reason_id, function ($q) use ($company_reason_id) {
                 $q->where(function ($w) use ($company_reason_id) {
-                    $w->where('company_reason_id', $company_reason_id)
+                    $w->whereIn('company_reason_id', $company_reason_id)
                       ->orWhereNull('company_reason_id');
                 });
             })
@@ -214,7 +219,7 @@ class ComparativeOutflowsDashboardController extends Controller
             $applyInvoiceFilter = function ($q) use ($company_reason_id) {
                 if (!$company_reason_id) return $q;
                 return $q->where(function ($w) use ($company_reason_id) {
-                    $w->where('i.company_reason_id', $company_reason_id)
+                    $w->whereIn('i.company_reason_id', $company_reason_id)
                       ->orWhereNull('i.company_reason_id');
                 });
             };
@@ -237,7 +242,7 @@ class ComparativeOutflowsDashboardController extends Controller
                 ->whereRaw('LOWER(cdn.type) IN (?, ?)', ['credito', 'nc'])
                 ->when($company_reason_id, function ($q) use ($company_reason_id) {
                     $q->where(function ($w) use ($company_reason_id) {
-                        $w->where('i.company_reason_id', $company_reason_id)
+                        $w->whereIn('i.company_reason_id', $company_reason_id)
                           ->orWhereNull('i.company_reason_id');
                     });
                 })
@@ -253,7 +258,7 @@ class ComparativeOutflowsDashboardController extends Controller
                 ->whereRaw('LOWER(cdn.type) NOT IN (?, ?)', ['credito', 'nc'])
                 ->when($company_reason_id, function ($q) use ($company_reason_id) {
                     $q->where(function ($w) use ($company_reason_id) {
-                        $w->where('i.company_reason_id', $company_reason_id)
+                        $w->whereIn('i.company_reason_id', $company_reason_id)
                           ->orWhereNull('i.company_reason_id');
                     });
                 })
@@ -278,13 +283,13 @@ class ComparativeOutflowsDashboardController extends Controller
                         $w->where(function ($sub) use ($company_reason_id) {
                             $sub->whereNotNull('o.invoice_product_id')
                                 ->where(function ($q2) use ($company_reason_id) {
-                                    $q2->where('i_ip.company_reason_id', $company_reason_id)
+                                    $q2->whereIn('i_ip.company_reason_id', $company_reason_id)
                                        ->orWhereNull('i_ip.company_reason_id');
                                 });
                         })->orWhere(function ($sub) use ($company_reason_id) {
                             $sub->whereNotNull('o.credit_debit_note_item_id')
                                 ->where(function ($q2) use ($company_reason_id) {
-                                    $q2->where('i_cdn.company_reason_id', $company_reason_id)
+                                    $q2->whereIn('i_cdn.company_reason_id', $company_reason_id)
                                        ->orWhereNull('i_cdn.company_reason_id');
                                 });
                         });
@@ -313,13 +318,13 @@ class ComparativeOutflowsDashboardController extends Controller
                         $w->where(function ($sub) use ($company_reason_id) {
                             $sub->whereNotNull('o.invoice_product_id')
                                 ->where(function ($q2) use ($company_reason_id) {
-                                    $q2->where('i_ip.company_reason_id', $company_reason_id)
+                                    $q2->whereIn('i_ip.company_reason_id', $company_reason_id)
                                        ->orWhereNull('i_ip.company_reason_id');
                                 });
                         })->orWhere(function ($sub) use ($company_reason_id) {
                             $sub->whereNotNull('o.credit_debit_note_item_id')
                                 ->where(function ($q2) use ($company_reason_id) {
-                                    $q2->where('i_cdn.company_reason_id', $company_reason_id)
+                                    $q2->whereIn('i_cdn.company_reason_id', $company_reason_id)
                                        ->orWhereNull('i_cdn.company_reason_id');
                                 });
                         });
@@ -348,7 +353,7 @@ class ComparativeOutflowsDashboardController extends Controller
                 ->where('season_id', $season_id)
                 ->when($company_reason_id, function ($q) use ($company_reason_id) {
                     $q->where(function ($w) use ($company_reason_id) {
-                        $w->where('company_reason_id', $company_reason_id)
+                        $w->whereIn('company_reason_id', $company_reason_id)
                           ->orWhereNull('company_reason_id');
                     });
                 })
@@ -416,7 +421,7 @@ class ComparativeOutflowsDashboardController extends Controller
                 })
                 ->when($company_reason_id, function ($q) use ($company_reason_id) {
                     $q->where(function ($w) use ($company_reason_id) {
-                        $w->where('company_reason_id', $company_reason_id)
+                        $w->whereIn('company_reason_id', $company_reason_id)
                           ->orWhereNull('company_reason_id');
                     });
                 })

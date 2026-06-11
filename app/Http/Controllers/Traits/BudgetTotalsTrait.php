@@ -353,7 +353,8 @@ trait BudgetTotalsTrait
         $estimates = \App\Models\Estimate::where('season_id', $season_id)
             ->where('team_id', $team_id)
             ->when($company_reason_id, function($q) use ($company_reason_id) {
-                $q->whereHas('costCenterVariety.costCenter', fn($cc) => $cc->where('company_reason_id', $company_reason_id));
+                $ids = is_array($company_reason_id) ? $company_reason_id : [$company_reason_id];
+                $q->whereHas('costCenterVariety.costCenter', fn($cc) => $cc->whereIn('company_reason_id', $ids));
             })
             ->with(['estimateStatus', 'costCenterVariety'])
             ->get();

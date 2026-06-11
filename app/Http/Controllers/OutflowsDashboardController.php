@@ -31,7 +31,12 @@ class OutflowsDashboardController extends Controller
             return redirect()->route('select.budget');
         }
 
-        $company_reason_id = $request->integer('company_reason_id') ?: null;
+        $company_reason_ids = collect($request->input('company_reason_ids', []))
+            ->map(fn($id) => (int) $id)
+            ->filter()
+            ->values()
+            ->toArray();
+        $company_reason_id = count($company_reason_ids) > 0 ? $company_reason_ids : null;
 
         // Obtener dollar_price del admin del equipo
         $adminUser = \App\Models\User::where('team_id', $team_id)
@@ -43,7 +48,7 @@ class OutflowsDashboardController extends Controller
             'dollarPrice'           => $dollarPrice,
             'isAdmin'               => $user->hasRole('Admin'),
             'companyReasons'        => $this->getCompanyReasons($season_id, $team_id),
-            'activeCompanyReasonId' => $company_reason_id,
+            'activeCompanyReasonIds' => $company_reason_ids,
             'summary'               => $this->getSummary($season_id, $team_id, $company_reason_id),
             'investments'           => $this->getInvestmentsTotal($season_id, $team_id, $company_reason_id),
             'expenses'              => $this->getExpensesTotal($season_id, $team_id, $company_reason_id),
@@ -100,9 +105,10 @@ class OutflowsDashboardController extends Controller
     private function withCompanyReasonFilter($query, $company_reason_id)
     {
         if (!$company_reason_id) return $query;
-        return $query->where(function ($w) use ($company_reason_id) {
-            $w->whereHas('invoiceProduct.invoice', fn($q) => $q->where('company_reason_id', $company_reason_id))
-              ->orWhereHas('creditDebitNoteItem.creditDebitNote.invoice', fn($q) => $q->where('company_reason_id', $company_reason_id));
+        $ids = is_array($company_reason_id) ? $company_reason_id : [$company_reason_id];
+        return $query->where(function ($w) use ($ids) {
+            $w->whereHas('invoiceProduct.invoice', fn($q) => $q->whereIn('company_reason_id', $ids))
+              ->orWhereHas('creditDebitNoteItem.creditDebitNote.invoice', fn($q) => $q->whereIn('company_reason_id', $ids));
         });
     }
 
@@ -113,11 +119,13 @@ class OutflowsDashboardController extends Controller
     private function addCompanyReasonJoin($query, $company_reason_id)
     {
         if (!$company_reason_id) return $query;
+        $ids = is_array($company_reason_id) ? $company_reason_id : [$company_reason_id];
+        $placeholders = implode(',', array_fill(0, count($ids), '?'));
         return $query
             ->leftJoin('invoices as inv_cr', 'invoice_products.invoice_id', '=', 'inv_cr.id')
             ->leftJoin('credit_debit_notes as cdn_cr', 'credit_debit_note_items.credit_debit_note_id', '=', 'cdn_cr.id')
             ->leftJoin('invoices as inv_cdn_cr', 'cdn_cr.invoice_id', '=', 'inv_cdn_cr.id')
-            ->whereRaw('COALESCE(inv_cr.company_reason_id, inv_cdn_cr.company_reason_id) = ?', [$company_reason_id]);
+            ->whereRaw("COALESCE(inv_cr.company_reason_id, inv_cdn_cr.company_reason_id) IN ({$placeholders})", $ids);
     }
 
     /**
@@ -276,7 +284,7 @@ class OutflowsDashboardController extends Controller
         try {
             $invoices = Invoice::where('season_id', $season_id)
                 ->where('team_id', $team_id)
-                ->when($company_reason_id, fn($q) => $q->where('company_reason_id', $company_reason_id))
+                ->when($company_reason_id, fn($q) => $q->whereIn('company_reason_id', $company_reason_id))
                 ->with('invoiceProducts')
                 ->get();
 
@@ -309,7 +317,7 @@ class OutflowsDashboardController extends Controller
                 ->where('team_id', $team_id)
                 ->where('type', 'credito')
                 ->where('affects_inventory', 1)
-                ->when($company_reason_id, fn($q) => $q->whereHas('invoice', fn($iq) => $iq->where('company_reason_id', $company_reason_id)))
+                ->when($company_reason_id, fn($q) => $q->whereHas('invoice', fn($iq) => $iq->whereIn('company_reason_id', $company_reason_id)))
                 ->with('items')
                 ->get();
 
@@ -342,7 +350,7 @@ class OutflowsDashboardController extends Controller
                 ->where('team_id', $team_id)
                 ->where('type', 'debito')
                 ->where('affects_inventory', 1)
-                ->when($company_reason_id, fn($q) => $q->whereHas('invoice', fn($iq) => $iq->where('company_reason_id', $company_reason_id)))
+                ->when($company_reason_id, fn($q) => $q->whereHas('invoice', fn($iq) => $iq->whereIn('company_reason_id', $company_reason_id)))
                 ->with('items')
                 ->get();
 

@@ -5,6 +5,7 @@ import { router } from '@inertiajs/vue3';
 import { Chart, registerables } from 'chart.js';
 import ChartDataLabels from 'chartjs-plugin-datalabels';
 import axios from 'axios';
+import Multiselect from '@vueform/multiselect';
 import ExportExcelButton from '@/Components/ExportExcelButton.vue';
 
 Chart.register(...registerables);
@@ -32,8 +33,8 @@ const props = defineProps({
         type: Object,
         default: () => ({})
     },
-    companyReasons:        { type: Array,  default: () => [] },
-    activeCompanyReasonId: { type: Number, default: null },
+    companyReasons:         { type: Array,  default: () => [] },
+    activeCompanyReasonIds: { type: Array,  default: () => [] },
 });
 
 let monthlyChart = null;
@@ -43,12 +44,11 @@ let cumulativeChart = null;
 const includeInvestments = ref(false);
 
 // Filtro Razón Social
-const selectedCompanyReason = ref(props.activeCompanyReasonId ?? '');
-const onCompanyReasonChange = (e) => {
-    const value = e.target.value;
+const selectedCompanyReasons = ref(props.activeCompanyReasonIds ?? []);
+const applyCompanyReasonFilter = () => {
     router.get(
         route('comparative.dashboard'),
-        value ? { company_reason_id: value } : {},
+        selectedCompanyReasons.value.length > 0 ? { company_reason_ids: selectedCompanyReasons.value } : {},
         { preserveScroll: false }
     );
 };
@@ -466,21 +466,13 @@ const toggleBarSelection = async (event, datasetIndex, barIndex, month, clickedT
                     params: {
                         month_id: bar.monthId,
                         include_investments: includeInvestments.value ? 1 : 0,
-                        ...(selectedCompanyReason.value ? { company_reason_id: selectedCompanyReason.value } : {})
+                        ...(selectedCompanyReasons.value.length > 0 ? { company_reason_ids: selectedCompanyReasons.value } : {})
                     }
                 });
                 monthlyDetailCache.value = { ...monthlyDetailCache.value, [bar.monthId]: response.data };
             }));
-            // Auto-expandir grupos nuevos
-            const allKeys = [...new Set(
-                Object.values(monthlyDetailCache.value)
-                    .flatMap(d => (d.rows || []))
-                    .filter(r => (monthlyDetailColumn.value === 'invoiced' ? r.total_invoiced : r.total_consumed) > 0)
-                    .map(r => r.level1 || 'Sin clasificar')
-            )];
-            monthlyDetailExpandedGroups.value = allKeys;
         } catch (error) {
-            console.error('Error cargando detalle mensual:', error);
+            console.error('Error recargando detalles:', error);
         } finally {
             monthlyDetailLoading.value = false;
         }
@@ -499,7 +491,7 @@ watch(includeInvestments, async () => {
                     params: {
                         month_id: bar.monthId,
                         include_investments: includeInvestments.value ? 1 : 0,
-                        ...(selectedCompanyReason.value ? { company_reason_id: selectedCompanyReason.value } : {})
+                        ...(selectedCompanyReasons.value.length > 0 ? { company_reason_ids: selectedCompanyReasons.value } : {})
                     }
                 });
                 monthlyDetailCache.value = { ...monthlyDetailCache.value, [bar.monthId]: response.data };
@@ -1289,26 +1281,38 @@ function createCumulativeChart() {
                     </div>
                 </div>
                 <!-- Filtro Razón Social -->
-                <div class="row mt-0 mb-2 ms-1 align-items-center" v-if="companyReasons?.length > 0">
+                <div class="row mt-0 mb-2 ms-1 align-items-center g-1" v-if="companyReasons?.length > 0">
                     <div class="col-auto">
                         <label class="form-label mb-0 small fw-semibold text-muted">
                             <i class="fas fa-building me-1"></i>Razón Social
                         </label>
                     </div>
-                    <div class="col" style="max-width: 360px;">
-                        <select
-                            v-model="selectedCompanyReason"
-                            class="form-select form-select-sm"
-                            @change="onCompanyReasonChange"
-                        >
-                            <option value="">Todas las razones sociales</option>
-                            <option v-for="rs in companyReasons" :key="rs.value" :value="rs.value">
-                                {{ rs.label }}
-                            </option>
-                        </select>
+                    <div class="col" style="max-width: 380px;">
+                        <Multiselect
+                            v-model="selectedCompanyReasons"
+                            :options="companyReasons"
+                            mode="multiple"
+                            :searchable="true"
+                            :close-on-select="false"
+                            :hide-selected="false"
+                            :multipleLabel="(vals) => vals.length ? vals.map(v => v.label).join(', ') : 'Todas las razones sociales'"
+                            placeholder="Todas las razones sociales"
+                            no-options-text="Sin opciones"
+                            no-results-text="Sin resultados"
+                            class="multiselect-sm multiselect-company-reason"
+                        />
                     </div>
-                    <div class="col-auto" v-if="selectedCompanyReason && selectedCompanyReason !== ''">
-                        <span class="badge bg-primary">Filtrado</span>
+                    <div class="col-auto ps-1">
+                        <button
+                            type="button"
+                            class="btn btn-falcon-primary btn-sm"
+                            @click="applyCompanyReasonFilter"
+                        >
+                            <i class="fas fa-filter fa-xs me-1"></i>Aplicar
+                        </button>
+                        <span v-if="props.activeCompanyReasonIds && props.activeCompanyReasonIds.length > 0" class="btn btn-sm btn-primary ms-1 pe-none" style="font-size:0.75rem;">
+                            {{ props.activeCompanyReasonIds.length }} filtradas
+                        </span>
                     </div>
                 </div>
             </div>
@@ -2291,5 +2295,25 @@ h4 {
 
 .table-info:hover {
     background-color: #bee5eb !important;
+}
+
+/* Multiselect razón social */
+.multiselect-company-reason {
+    font-size: 0.78rem;
+}
+.multiselect-company-reason .multiselect-multiple-label,
+.multiselect-company-reason .multiselect-placeholder {
+    font-size: 0.78rem;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 340px;
+}
+.multiselect-company-reason .multiselect-wrapper {
+    min-height: 28px;
+}
+.multiselect-company-reason .multiselect-option {
+    font-size: 0.78rem;
+    padding: 4px 10px;
 }
 </style>
