@@ -300,6 +300,17 @@ const links = [
     { title: title, active: true },
 ];
 
+// ─── Límite de filas visibles en tabla Resumen ───────────────────────────────
+const RESUMEN_PAGE_SIZE = 100;
+const visibleCount = ref(RESUMEN_PAGE_SIZE);
+
+const pagedResumen = computed(() => filteredInvoices.value.slice(0, visibleCount.value));
+
+const hasMoreResumen = computed(() => filteredInvoices.value.length > visibleCount.value);
+
+// Resetear al cambiar cualquier filtro
+watch(filteredInvoices, () => { visibleCount.value = RESUMEN_PAGE_SIZE; });
+
 const msgSuccess = (msg) => {
     Swal.fire({
         position: "center",
@@ -662,7 +673,7 @@ const formatCurrency = (value) => {
                                 <template v-else>
                                     <tr v-for="(
 invoice, index
-                                        ) in filteredInvoices" :key="index">
+                                        ) in pagedResumen" :key="index">
                                         <td class="text-center">
                                             <div class="btn-group">
                                                 <!--begin::View-->
@@ -779,6 +790,17 @@ invoice, index
                                                 class="badge bg-soft-warning text-warning ms-1" style="font-size: 0.6rem; cursor: help;">
                                                 <i class="fas fa-receipt fa-xs"></i> NC
                                             </span>
+                                        </td>
+                                    </tr>
+                                </template>
+                                <!-- Ver más -->
+                                <template v-if="hasMoreResumen">
+                                    <tr>
+                                        <td :colspan="13" class="text-center py-2">
+                                            <button type="button" class="btn btn-sm btn-falcon-default" @click="visibleCount += RESUMEN_PAGE_SIZE">
+                                                <i class="fas fa-chevron-down me-1"></i>
+                                                Ver más ({{ filteredInvoices.length - visibleCount }} restantes)
+                                            </button>
                                         </td>
                                     </tr>
                                 </template>
