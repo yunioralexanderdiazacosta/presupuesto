@@ -36,7 +36,7 @@ class DeleteInvoiceController extends Controller
                     DB::transaction(function () use ($invoiceProductIds, $invoice) {
                         // Eliminar centros de costo de las salidas
                         $outflowIds = Outflow::whereIn('invoice_product_id', $invoiceProductIds)->pluck('id');
-                        DB::table('outflow_cost_centers')->whereIn('outflow_id', $outflowIds)->delete();
+                        DB::table('outflow_cost_center')->whereIn('outflow_id', $outflowIds)->delete();
                         // Eliminar las salidas
                         Outflow::whereIn('invoice_product_id', $invoiceProductIds)->delete();
                         // Eliminar la factura (cascada elimina invoice_products)
