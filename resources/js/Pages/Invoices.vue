@@ -23,13 +23,7 @@ const title = "Facturas";
 
 const term = ref(props.term || "");
 const inputTerm = ref(props.term || "");
-
-// Sincronizar term con debounce (usado solo para el link del PDF)
-let _searchDebounce = null;
-watch(inputTerm, (val) => {
-    clearTimeout(_searchDebounce);
-    _searchDebounce = setTimeout(() => { term.value = val; }, 300);
-});
+const appliedTerm = ref(props.term || "");
 
 // ─── Filtros avanzados ──────────────────────────────────────────────────────
 const showAdvancedFilters = ref(false);
@@ -72,9 +66,9 @@ const filteredInvoices = computed(() => {
     if (!props.invoices || !props.invoices.data) return [];
     let data = props.invoices.data;
 
-    // Filtro texto libre — reactivo a inputTerm (sin necesidad de botón)
-    if (inputTerm.value) {
-        const search = inputTerm.value.toLowerCase();
+    // Filtro texto libre — solo se aplica al presionar Buscar o Enter
+    if (appliedTerm.value) {
+        const search = appliedTerm.value.toLowerCase();
         data = data.filter((item) => {
             const supplier = item.supplier?.name?.toLowerCase() || '';
             const number = item.number_document ? String(item.number_document).toLowerCase() : '';
@@ -347,7 +341,14 @@ const onFilter = () => {
 };
 
 const applySearch = () => {
+    appliedTerm.value = inputTerm.value;
     term.value = inputTerm.value;
+};
+
+const clearSearch = () => {
+    inputTerm.value = '';
+    appliedTerm.value = '';
+    term.value = '';
 };
 
 // ─── Importar desde Rendición ───────────────
@@ -512,12 +513,13 @@ const formatCurrency = (value) => {
                             <div class="col-md-5 col-12">
                                 <div class="d-flex gap-1 align-items-center">
                                     <SearchInput v-model="inputTerm" placeholder="Buscar por proveedor, número, razón social..."
-                                        style="max-width:unset; flex:1; margin-bottom:0;" />
-                                    <button v-if="inputTerm" type="button" class="btn btn-falcon-default btn-sm px-2 flex-shrink-0" @click="inputTerm = ''" title="Limpiar búsqueda" style="height:31px;">
-                                        <i class="fas fa-times"></i>
-                                    </button>
-                                    <button v-else type="button" class="btn btn-falcon-default btn-sm px-2 flex-shrink-0" style="height:31px; pointer-events:none; opacity:0.4;">
+                                        style="max-width:unset; flex:1; margin-bottom:0;"
+                                        @keyup.enter="applySearch" />
+                                    <button type="button" class="btn btn-falcon-primary btn-sm px-2 flex-shrink-0" @click="applySearch" title="Buscar" style="height:31px;">
                                         <i class="fas fa-search"></i>
+                                    </button>
+                                    <button v-if="appliedTerm || inputTerm" type="button" class="btn btn-falcon-default btn-sm px-2 flex-shrink-0" @click="clearSearch" title="Limpiar búsqueda" style="height:31px;">
+                                        <i class="fas fa-times"></i>
                                     </button>
                                 </div>
                             </div>

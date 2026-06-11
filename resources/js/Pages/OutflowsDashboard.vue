@@ -675,7 +675,7 @@ const totalCompras = computed(() => {
                             </span>
                         </label>
                     </div>
-                    <div class="col" style="max-width: 380px;">
+                    <div class="col" style="max-width: 460px;">
                         <Multiselect
                             v-model="selectedCompanyReasons"
                             :options="companyReasons"
@@ -688,6 +688,7 @@ const totalCompras = computed(() => {
                             no-options-text="Sin opciones"
                             no-results-text="Sin resultados"
                             class="multiselect-sm multiselect-company-reason"
+                            :style="{'--ms-min-h': '1.9rem', '--ms-py': '0.25rem', '--ms-font-size': '0.78rem'}"
                         />
                     </div>
                     <div class="col-auto ps-1">
@@ -1409,7 +1410,10 @@ const totalCompras = computed(() => {
     max-width: 340px;
 }
 .multiselect-company-reason .multiselect-wrapper {
-    min-height: 28px;
+    min-height: 22px;
+    height: 22px;
+    padding-top: 0;
+    padding-bottom: 0;
 }
 .multiselect-company-reason .multiselect-option {
     font-size: 0.78rem;

@@ -20,8 +20,8 @@ export const changelog = [
     fecha: '2026-06-10',
     titulo: 'Dashboard de Salidas — Filtro multiselección de Razón Social',
     items: [
-      'El filtro de Razón Social ahora permite seleccionar una o varias razones sociales al mismo tiempo.',
-      'El selector muestra una lista con casillas de verificación, lo que facilita combinar múltiples proveedores en el mismo análisis.',
+      'El filtro de Razón Social ahora permite seleccionar una o varias razones sociales al mismo tiempo desde un desplegable de selección múltiple.',
+      'Al seleccionar varias razones sociales, todos los datos del dashboard se filtran en conjunto para las razones sociales elegidas.',
     ]
   },
   {
