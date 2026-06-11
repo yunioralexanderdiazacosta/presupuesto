@@ -371,7 +371,7 @@ const openEdit = (fertilizer) => {
     form.unit_id_price = fertilizer.unit_id_price;
     form.observations = fertilizer.observations;
     form.cc = fertilizer.cc;
-    form.months = fertilizer.months; 
+    form.months = (fertilizer.months || []).map(m => parseInt(m));
     $('#editFertilizerModal').modal('show');
 }
 

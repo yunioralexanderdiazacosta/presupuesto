@@ -1,261 +1,195 @@
 <script setup>
-    import Multiselect from '@vueform/multiselect';
-	import TextInput from '@/Components/TextInput.vue';
-	import InputError from '@/Components/InputError.vue';
-	import { computed } from 'vue';
-    import { getCurrentInstance, ref, watch } from 'vue';
+import { ref, watch, getCurrentInstance, computed } from 'vue';
+import Multiselect from '@vueform/multiselect';
+import InputError from '@/Components/InputError.vue';
 
-    const { appContext } = getCurrentInstance();
-    const page = appContext.config.globalProperties.$page;
+const { form } = defineProps({ form: Object });
 
+const { appContext } = getCurrentInstance();
+const page = appContext.config.globalProperties.$page;
 
+const selectedGrouping = ref('');
+watch(selectedGrouping, (newId) => {
+    if (!newId) return;
+    const grouping = page.props.groupings?.find(g => g.id == newId);
+    if (grouping && Array.isArray(grouping.cost_centers)) {
+        form.cc = grouping.cost_centers.map(cc => cc.id);
+    }
+});
 
-	const disallowedUnitIds = [6, 7];
-	const filteredUnits = computed(() => page.props.units.filter(u => !disallowedUnitIds.includes(u.value)));
+const disallowedUnitIds = [6, 7];
+const filteredUnits = computed(() => (page.props.units || []).filter(u => !disallowedUnitIds.includes(u.value)));
+const getPriceUnitOptions = () => {
+    const map = { 1: [1, 2, 8], 2: [1, 2, 8], 3: [3, 4], 4: [3, 4], 5: [5], 8: [1, 2, 8] };
+    const allowed = map[form.unit_id];
+    const options = allowed
+        ? (page.props.units || []).filter(u => allowed.includes(u.value))
+        : (page.props.units || []);
+    return options.filter(u => !disallowedUnitIds.includes(u.value));
+};
 
-// Props de formulario
-    const { form } = defineProps({
-        form: Object
-    });
-    // Agrupación para autocompletar CC
-    const selectedGrouping = ref('');
-    const expandedCC = ref(false);
-    // Watch para llenar form.cc según agrupación
-    watch(selectedGrouping, (newId) => {
-        if (!newId) return;
-        const grouping = page.props.groupings?.find(g => g.id == newId);
-        if (grouping && Array.isArray(grouping.cost_centers)) {
-            form.cc = grouping.cost_centers.map(cc => cc.id);
-        }
-    });
+const toggleMonth = (monthValue) => {
+    const months = form.months || [];
+    const idx = months.findIndex(x => String(x) === String(monthValue));
+    if (idx >= 0) months.splice(idx, 1);
+    else months.push(monthValue);
+    form.months = [...months];
+};
+const selectAllMonths = () => {
+    const all = (page.props.months || []).map(m => m.value);
+    form.months = (form.months.length === all.length) ? [] : [...all];
+};
+const monthAbbr = (label) => label ? label.substring(0, 3) : '';
 </script>
-<script setup></script>
 <template>
-    <div class="row">
-        <div class="col-lg-6">
-            <div class="fv-row">
-                <div class="d-flex align-items-center justify-content-between">
-                    <label for="cc" class="col-form-label mb-0">CC</label>
-                    <div class="d-flex align-items-center gap-1">
-                        <span v-if="form.cc && form.cc.length > 0" class="badge bg-soft-primary text-primary" style="font-size: 0.7rem;">
-                            {{ form.cc.length }} seleccionados
-                        </span>
-                        <button
-                            v-if="form.cc && form.cc.length > 5"
-                            type="button"
-                            @click="expandedCC = !expandedCC"
-                            class="btn btn-sm btn-light-primary d-flex align-items-center gap-1 py-0 px-2"
-                            style="font-size: 0.7rem;"
-                        >
-                            <i class="fas" :class="expandedCC ? 'fa-compress-alt' : 'fa-expand-alt'" style="font-size: 0.65rem;"></i>
-                            {{ expandedCC ? 'Colapsar' : 'Ver todos' }}
-                        </button>
-                    </div>
-                </div>
-                <Multiselect
-                    mode="tags"
-                    :placeholder="'Seleccione CC'"
-                    v-model="form.cc"
-                    :close-on-select="false"
-                    :options="$page.props.costCenters"
-                    class="multiselect-blue form-control multiselect-tags-limited"
-                    :class="{'is-invalid': form.errors.cc, 'multiselect-tags-expanded': expandedCC}"
-                    :searchable="true"
-                    :hide-selected="false"
-                />
-                <InputError class="mt-2" :message="form.errors.cc" />
-            </div>
+    <!-- Encabezado: Nivel 3 / Agrupacion CC / CC -->
+    <div class="row g-2 mb-3">
+        <div class="col-sm-3">
+            <label class="form-label small mb-1">Nivel 3 <span class="text-danger">*</span></label>
+            <Multiselect
+                v-model="form.subfamily_id"
+                :options="$page.props.subfamilies"
+                placeholder="Seleccione nivel 3"
+                :searchable="true"
+                :close-on-select="true"
+                :class="{ 'is-invalid': form.errors.subfamily_id }"
+                class="multiselect-sm"
+            />
+            <InputError :message="form.errors.subfamily_id" />
         </div>
-        <div class="col-lg-6">
-            <div class="fv-row">
-                <label for="families" class="col-form-label">Nivel 3</label>
-                <Multiselect
-                    :placeholder="'Seleccione nivel 3'"
-                    v-model="form.subfamily_id"
-                    :close-on-select="true"
-                    :options="$page.props.subfamilies"
-                    class="multiselect-blue form-control"
-                    :class="{'is-invalid': form.errors.subfamily_id}"
-                    :searchable="true"
-                    :hide-selected="false"
-                />
-                <InputError class="mt-2" :message="form.errors.subfamily_id" />
-            </div>
+        <div class="col-sm-3">
+            <label class="form-label small mb-1">Agrupacion CC</label>
+            <Multiselect
+                v-model="selectedGrouping"
+                :options="page.props.groupings.map(g => ({ value: g.id, label: g.name }))"
+                placeholder="Seleccione agrupacion"
+                :searchable="true"
+                :close-on-select="true"
+                class="multiselect-sm"
+            />
+        </div>
+        <div class="col-sm-6">
+            <label class="form-label small mb-1">
+                Centros de Costo <span class="text-danger">*</span>
+                <span v-if="form.cc?.length" class="badge bg-primary ms-1">{{ form.cc.length }} sel.</span>
+            </label>
+            <Multiselect
+                mode="tags"
+                v-model="form.cc"
+                :options="$page.props.costCenters"
+                placeholder="Seleccione CC"
+                :searchable="true"
+                :close-on-select="false"
+                :class="{ 'is-invalid': form.errors.cc }"
+                class="multiselect-sm"
+            />
+            <InputError :message="form.errors.cc" />
         </div>
     </div>
 
-
-       <!-- Selector de agrupación con Multiselect -->
-        <div class="row">
-            <label for="grouping" class="col-form-label mb-0">Agrupación</label>
-            <div class="input-group mb-2 ">
-                <span class="input-group-text"><i class="fas fa-object-group"></i></span>
-                <Multiselect
-                    id="grouping"
-                    v-model="selectedGrouping"
-                    :options="page.props.groupings.map(g => ({ value: g.id, label: g.name }))"
-                    :placeholder="'Seleccione agrupación'"
-                    :searchable="true"
-                    :close-on-select="true"
-                    :hide-selected="false"
-                    class="form-control"
-                />
-            </div>
-        </div>
-
-    <div class="row">
-        <div class="col-lg-6">
-            <div class="fv-row">
-                <label class="col-form-label">Nombre del producto</label>
-                <TextInput
-                    id="product_name"
-                    v-model="form.product_name"
-                    class="form-control form-control-solid"
-                    type="text"
-                    :class="{'is-invalid': form.errors.product_name}"
-                />
-                <InputError class="mt-2" :message="form.errors.product_name" />
-            </div>
-        </div>
-        <div class="col-lg-6">
-            <div class="fv-row">
-                <label for="unit" class="col-form-label">Unidad de dosis</label>
-                 <Multiselect
-                    :placeholder="''"
-                    v-model="form.unit_id"
-                    @update:modelValue="val => form.unit_id_price = val"
-                    :close-on-select="true"
-                    :options="filteredUnits"
-                    class="multiselect-blue form-control"
-                    :class="{'is-invalid': form.errors.unit_id}"
-                    :searchable="true"
-                    :hide-selected="false"
-                />
-                <InputError class="mt-2" :message="form.errors.unit_id" />
-            </div>
-        </div>
-    </div>
-
-    <div class="row">
-        <div class="col-lg-6">
-            <div class="fv-row">
-                <label class="col-form-label">Dosis/Hectarea</label>
-                <TextInput
-                    id="dose"
-                    v-model="form.dose"
-                    class="form-control form-control-solid"
-                    type="number"
-                    step="0.00"
-                    :class="{'is-invalid': form.errors.dose}"
-                />
-                <InputError class="mt-2" :message="form.errors.dose" />
-            </div>
-        </div>
-
-        <div class="col-lg-6">
-            <div class="row">
-                <div class="col-lg-6">
-                    <div class="fv-row">
-                        <label class="col-form-label">Precio</label>
-                        <TextInput
-                            id="price"
-                            v-model="form.price"
-                            class="form-control form-control-solid"
-                            type="number"
-                            :class="{'is-invalid': form.errors.price}"
-                        />
-                        <InputError class="mt-2" :message="form.errors.price" />
-                    </div>
-                </div>
-                <div class="col-lg-6">
-                    <div class="fv-row">
-                        <label for="unit" class="col-form-label">Unidad del precio</label>
-                         <Multiselect
-                            :placeholder="''"
-                            v-model="form.unit_id_price"
-                            @update:modelValue="val => form.unit_id = val"
-                            :close-on-select="true"
-                            :options="filteredUnits"
-                            class="multiselect-blue form-control"
-                            :class="{'is-invalid': form.errors.unit_id_price}"
-                            :searchable="true"
-                            :hide-selected="false"
-                        />
-                        <InputError class="mt-2" :message="form.errors.unit_id_price" />
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <div class="fv-row">
-        <label for="months" class="col-form-label">Meses</label><br>
-        <template v-for="value in $page.props.months">
-            <div class="form-check form-check-solid form-check-inline mb-1">
-                <input class="form-check-input" type="checkbox" v-model="form.months" :id="'kt_month_'+value.id" :value="value.value">
-                <label class="form-check-label ps-2" :for="'kt_month_'+value.id">{{value.label}}</label>
-            </div>
-        </template>
-        <small class="text-danger">{{form.errors.months}}</small>
-    </div>
-
-    <div class="fv-row">
-        <label for="observations" class="col-form-label">Observaciones</label>
-        <textarea v-model="form.observations" rows="3" class="form-control form-control-lg form-control-solid mb-3 mb-lg-0" :class="{'is-invalid': form.errors.observations }" ></textarea>
-        <InputError class="mt-2" :message="form.errors.observations" />
+    <!-- Tabla fila unica de edicion -->
+    <div class="border rounded" style="overflow:hidden;">
+        <table class="table table-sm table-bordered align-middle mb-0 w-100" style="font-size:0.78rem;">
+            <colgroup>
+                <col style="width:25%;">
+                <col style="width:8%;">
+                <col style="width:10%;">
+                <col style="width:8%;">
+                <col style="width:10%;">
+                <col>
+                <col style="width:9%;">
+            </colgroup>
+            <thead style="background: linear-gradient(135deg, #1a6b3c 0%, #2d9e5f 100%); color:#fff; font-size:0.72rem; white-space:nowrap;">
+                <tr>
+                    <th class="text-white px-2 py-1">Producto</th>
+                    <th class="text-white px-2 py-1">Dosis</th>
+                    <th class="text-white px-2 py-1">U. Dosis</th>
+                    <th class="text-white px-2 py-1">Precio</th>
+                    <th class="text-white px-2 py-1">U. Precio</th>
+                    <th class="text-white px-2 py-1">Meses</th>
+                    <th class="text-white px-2 py-1">Obs.</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr style="background-color: #f0faf5; border-left: 3px solid #2d9e5f;">
+                    <!-- Producto -->
+                    <td class="p-1">
+                        <input v-model="form.product_name" type="text"
+                            class="form-control form-control-sm agro-input"
+                            placeholder="Nombre del producto..." autocomplete="off" />
+                        <InputError :message="form.errors.product_name" />
+                    </td>
+                    <!-- Dosis -->
+                    <td class="p-1">
+                        <input type="number" v-model="form.dose" step="0.01"
+                            class="form-control form-control-sm agro-input agro-no-arrows" />
+                        <InputError :message="form.errors.dose" />
+                    </td>
+                    <!-- U. Dosis -->
+                    <td class="p-1">
+                        <select v-model="form.unit_id" class="form-select form-select-sm agro-input"
+                            @change="form.unit_id_price = form.unit_id">
+                            <option value="">--</option>
+                            <option v-for="u in filteredUnits" :key="u.value" :value="u.value">{{ u.label }}</option>
+                        </select>
+                        <InputError :message="form.errors.unit_id" />
+                    </td>
+                    <!-- Precio -->
+                    <td class="p-1">
+                        <input type="number" v-model="form.price"
+                            class="form-control form-control-sm agro-input agro-no-arrows" />
+                        <InputError :message="form.errors.price" />
+                    </td>
+                    <!-- U. Precio -->
+                    <td class="p-1">
+                        <select v-model="form.unit_id_price" class="form-select form-select-sm agro-input"
+                            @change="form.unit_id = form.unit_id_price">
+                            <option value="">--</option>
+                            <option v-for="u in getPriceUnitOptions()" :key="u.value" :value="u.value">{{ u.label }}</option>
+                        </select>
+                        <InputError :message="form.errors.unit_id_price" />
+                    </td>
+                    <!-- Meses -->
+                    <td class="p-1">
+                        <div class="d-grid gap-1"
+                            style="grid-template-columns: 22px repeat(6, 1fr); grid-template-rows: auto auto;">
+                            <button type="button" @click="selectAllMonths"
+                                class="btn px-0 py-0"
+                                :class="form.months.length === ($page.props.months||[]).length ? 'btn-primary' : 'btn-outline-secondary'"
+                                style="font-size:0.58rem; height:100%; border-radius:3px; grid-row: 1 / 3;">✓✓</button>
+                            <button v-for="m in ($page.props.months || [])" :key="m.value"
+                                type="button" @click="toggleMonth(m.value)"
+                                :class="form.months.some(x => String(x) === String(m.value)) ? 'btn-primary' : 'btn-outline-secondary'"
+                                class="btn px-0 py-0"
+                                style="font-size:0.62rem; height:18px; border-radius:3px; min-width:0;">{{ monthAbbr(m.label) }}</button>
+                        </div>
+                        <small class="text-danger">{{ form.errors.months }}</small>
+                    </td>
+                    <!-- Obs. -->
+                    <td class="p-1">
+                        <input type="text" v-model="form.observations"
+                            class="form-control form-control-sm agro-input" placeholder="..." />
+                    </td>
+                </tr>
+            </tbody>
+        </table>
     </div>
 </template>
+
 <style scoped>
-.multiselect-tags-limited :deep(.multiselect-tags) {
-    max-height: 32px;
-    overflow: hidden;
-    transition: max-height 0.3s ease;
+.agro-no-arrows::-webkit-inner-spin-button,
+.agro-no-arrows::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
+.agro-no-arrows { -moz-appearance: textfield; }
+.agro-input {
+    height: 26px !important;
+    min-height: 26px !important;
+    font-size: 0.75rem !important;
+    padding: 2px 5px !important;
+    width: 100%;
 }
-.multiselect-tags-expanded :deep(.multiselect-tags) {
-    max-height: 200px;
-    overflow-y: auto;
-    overflow-x: hidden;
+select.agro-input {
+    font-size: 0.75rem !important;
+    padding-top: 0 !important;
+    padding-bottom: 0 !important;
 }
-.multiselect-tags-expanded :deep(.multiselect-tags)::-webkit-scrollbar {
-    width: 4px;
-}
-.multiselect-tags-expanded :deep(.multiselect-tags)::-webkit-scrollbar-thumb {
-    background-color: rgba(0,0,0,0.2);
-    border-radius: 4px;
-}
-</style>
-<style>
-
-.multiselect,
-.multiselect__input,
-.multiselect__single {
-  min-height: 32px !important;
-  height: 32px !important;
-  padding-top: 0.375rem !important;
-  padding-bottom: 0.375rem !important;
-  font-size: 1rem;
-}
-
-/* Agrandar la casilla de verificación (checkbox) */
-.form-check-input[type="checkbox"] {
-  width: 1.1em;
-  height: 1.1em;
-}
-
-.multiselect-blue {
-    --ms-bg: var(--kt-input-solid-bg) !important;
-    --ms-border-color: var(--kt-input-solid-bg);
-    --ms-py: 3px !important;
-    --ms-tag-bg: #2c7be5;
-    --ms-tag-color: var(--kt-primary);
-    --ms-option-bg-selected: var(--kt-primary);
-    --ms-option-bg-selected-pointed: var(--kt-primary);
-}
-
-.multiselect-tags-search, .multiselect-search{
-    background: var(--kt-input-solid-bg) !important;
-}
-
-
-
 </style>

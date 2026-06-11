@@ -9,7 +9,7 @@ const props = defineProps({
 defineEmits(['store']);
 </script>
 <template>
-    <Modal :maxWidth="'xl'" :id="'createFertilizerModal'">
+    <Modal :maxWidth="'xl'" :dialogStyle="'max-width: 88vw; width: 88vw;'" :id="'createFertilizerModal'">
         <template #header>
              <div class="d-flex align-items-center gap-2 mb-3 text-start">
                 <span class="bg-primary text-white rounded-circle d-flex align-items-center justify-content-center" style="width: 38px; height: 38px; font-size: 1.4rem;">

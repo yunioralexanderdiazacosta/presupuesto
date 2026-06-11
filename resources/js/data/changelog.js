@@ -8,6 +8,16 @@
 export const changelog = [
   {
     fecha: '2026-06-10',
+    titulo: 'Fertilizantes — Nuevo formulario de ingreso y edición',
+    items: [
+      'El formulario de creación y edición de fertilizantes fue rediseñado con un formato de tabla compacta, igual al de Agroquímicos.',
+      'Ahora se pueden ingresar varios productos a la vez sin que el modal ocupe tanto espacio vertical.',
+      'La selección de meses se hace con botones rápidos que ocupan mucho menos espacio.',
+      'Los modales se amplían para aprovechar mejor el ancho de la pantalla.',
+    ]
+  },
+  {
+    fecha: '2026-06-10',
     titulo: 'Dashboard de Salidas — Filtro multiselección de Razón Social',
     items: [
       'El filtro de Razón Social ahora permite seleccionar una o varias razones sociales al mismo tiempo.',
