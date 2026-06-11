@@ -6,6 +6,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use App\Models\Invoice;
 use App\Models\Branch;
+use App\Models\CreditDebitNote;
 use Inertia\Inertia;
 
 class InvoicesController extends Controller
@@ -76,6 +77,23 @@ class InvoicesController extends Controller
 
         $totalGeneral = $totalFacturas + $totalIva;
 
+        // Calcular totales de Notas de Débito y Crédito (informativo global de la temporada)
+        $creditDebitNotes = CreditDebitNote::with('items')
+            ->where('team_id', $user->team_id)
+            ->where('season_id', $season_id)
+            ->get();
+
+        $totalNetoDebito = 0;
+        $totalNetoCredito = 0;
+        foreach ($creditDebitNotes as $note) {
+            $subtotal = $note->items->sum(fn($item) => ($item->quantity ?? 0) * ($item->unit_price ?? 0));
+            if ($note->type === 'debito') {
+                $totalNetoDebito += $subtotal;
+            } else {
+                $totalNetoCredito += $subtotal;
+            }
+        }
+
         // Preparar datos para la vista
         $invoices = $allInvoices->map(function($invoice) {
             $neto = 0;
@@ -133,6 +151,8 @@ class InvoicesController extends Controller
             'totalFacturas' => $totalFacturas,
             'totalIva' => $totalIva,
             'totalGeneral' => $totalGeneral,
+            'totalNetoDebito' => $totalNetoDebito,
+            'totalNetoCredito' => $totalNetoCredito,
             'branches' => Branch::where('team_id', $user->team_id)
                 ->where('season_id', $season_id)
                 ->orderBy('name')

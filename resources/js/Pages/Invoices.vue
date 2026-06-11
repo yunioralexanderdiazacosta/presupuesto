@@ -16,6 +16,8 @@ const props = defineProps({
     totalFacturas: Number,
     totalIva: Number,
     totalGeneral: Number,
+    totalNetoDebito: { type: Number, default: 0 },
+    totalNetoCredito: { type: Number, default: 0 },
     branches: Array,
 });
 
@@ -472,10 +474,10 @@ const formatCurrency = (value) => {
                         </li>
                     </ul>
                     <!-- Cards de totales alineados a la derecha -->
-                    <div class="d-flex gap-2">
+                    <div class="d-flex gap-2 flex-wrap">
                         <div class="card h-100 p-1 small-card">
                             <div class="card-header pb-0 pt-1 px-2">
-                                <h6 class="mb-0 mt-1 fs-10 d-flex align-items-center small-card-title">Total Neto</h6>
+                                <h6 class="mb-0 mt-1 fs-10 d-flex align-items-center small-card-title">Total Neto Facturas</h6>
                             </div>
                             <div class="card-body d-flex flex-column justify-content-end py-1 px-2">
                                 <p class="font-sans-serif lh-1 mb-1 fs-10 small-card-number">
@@ -493,13 +495,34 @@ const formatCurrency = (value) => {
                                 </p>
                             </div>
                         </div>
+                        <div class="card h-100 p-1 small-card border-start border-2 border-warning">
+                            <div class="card-header pb-0 pt-1 px-2">
+                                <h6 class="mb-0 mt-1 fs-10 d-flex align-items-center small-card-title text-warning">Neto Notas Débito</h6>
+                            </div>
+                            <div class="card-body d-flex flex-column justify-content-end py-1 px-2">
+                                <p class="font-sans-serif lh-1 mb-1 fs-10 small-card-number">
+                                    ${{ fmt(props.totalNetoDebito) }}
+                                </p>
+                            </div>
+                        </div>
+                        <div class="card h-100 p-1 small-card border-start border-2 border-danger">
+                            <div class="card-header pb-0 pt-1 px-2">
+                                <h6 class="mb-0 mt-1 fs-10 d-flex align-items-center small-card-title text-danger">Neto Notas Crédito</h6>
+                            </div>
+                            <div class="card-body d-flex flex-column justify-content-end py-1 px-2">
+                                <p class="font-sans-serif lh-1 mb-1 fs-10 small-card-number">
+                                    ${{ fmt(props.totalNetoCredito) }}
+                                </p>
+                            </div>
+                        </div>
                         <div class="card h-100 p-1 small-card">
                             <div class="card-header pb-0 pt-1 px-2">
-                                <h6 class="mb-0 mt-1 fs-10 d-flex align-items-center small-card-title">Total General</h6>
+                                <h6 class="mb-0 mt-1 fs-10 d-flex align-items-center small-card-title">Neto General</h6>
+                                <small class="text-muted" style="font-size:0.65rem;">Fact. + Déb. − Cré.</small>
                             </div>
                             <div class="card-body d-flex flex-column justify-content-end py-1 px-2">
                                 <p class="font-sans-serif lh-1 mb-1 fs-10 small-card-number fw-bold text-primary">
-                                    ${{ fmt(filteredTotalGeneral) }}
+                                    ${{ fmt(filteredTotalNeto + props.totalNetoDebito - props.totalNetoCredito) }}
                                 </p>
                             </div>
                         </div>
