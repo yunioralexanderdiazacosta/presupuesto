@@ -43,7 +43,7 @@ class FormInvoiceRequest extends FormRequest
             'products.*.unit_price' => ['required', 'numeric', 'gt:0'],
             'products.*.amount' => ['required', 'numeric'],
             'products.*.observations' => ['nullable', 'string'],
-            'products.*.branch_id'    => ['nullable', 'integer', 'exists:branches,id'],
+            'products.*.branch_id'    => ['required', 'integer', 'exists:branches,id'],
             'expense_item_id'   => ['nullable', 'integer', 'exists:expense_report_items,id'],
             'expense_item_ids'  => ['nullable', 'array'],
             'expense_item_ids.*' => ['integer', 'exists:expense_report_items,id'],
@@ -62,6 +62,7 @@ class FormInvoiceRequest extends FormRequest
     {
         return [
             'number_document.unique' => 'Ya existe una factura con este número para el proveedor seleccionado.',
+            'products.*.branch_id.required' => 'Debe seleccionar una sucursal para cada línea de producto.',
         ];
     }
 }

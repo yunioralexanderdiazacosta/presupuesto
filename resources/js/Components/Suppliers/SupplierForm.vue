@@ -75,8 +75,10 @@
                 v-model="form.name"
                 class="form-control form-control-solid"
                 type="text"
-                placeholder="Ej: Agroquímicos del Sur"
+                placeholder="Ej: AGROQUÍMICOS DEL SUR"
                 :class="{'is-invalid': form.errors.name}"
+                @input="form.name = $event.target.value.toUpperCase()"
+                style="text-transform: uppercase;"
             />
             <InputError class="mt-1" :message="form.errors.name" />
         </div>

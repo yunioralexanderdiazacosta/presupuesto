@@ -282,8 +282,8 @@ watch(
 				   <tr class="border-bottom border-bottom-dashed align-top" v-for="(product, index) in form.products" :key="index" data-kt-element="item" style="vertical-align: top;" :class="{'bg-light': isProtected(product.product_id)}">
 						<!-- Sucursal -->
 						<td class="ps-1 pe-1 align-top" style="width:110px; min-width:110px; max-width:110px;">
-							<select v-model="product.branch_id" class="form-select form-select-sm" style="font-size:0.78rem;" :disabled="isProtected(product.product_id)">
-								<option :value="null">— Sin suc. —</option>
+							<select v-model="product.branch_id" class="form-select form-select-sm" :class="{'is-invalid': showProductValidation && !product.branch_id}" style="font-size:0.78rem;" :disabled="isProtected(product.product_id)">
+								<option :value="null" disabled>— Seleccione —</option>
 								<option v-for="b in ($page.branches || [])" :key="b.value" :value="b.value">{{ b.label }}</option>
 							</select>
 						</td>

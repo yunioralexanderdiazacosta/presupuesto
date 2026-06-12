@@ -16,7 +16,7 @@ class StoreSupplierController extends Controller
         $user = Auth::user();
 
         $supplier = Supplier::Create([
-            'name' => $request->name,
+            'name' => strtoupper($request->name),
             'rut' => $request->rut,
             'email' => $request->email,
             'contact' => $request->contact,

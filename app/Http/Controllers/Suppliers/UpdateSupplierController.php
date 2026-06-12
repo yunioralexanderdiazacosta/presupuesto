@@ -11,7 +11,7 @@ class UpdateSupplierController extends Controller
 {
     public function __invoke(Supplier $supplier, FormSupplierRequest $request)
     {
-        $supplier->name     = $request->name;
+        $supplier->name     = strtoupper($request->name);
         $supplier->rut      = $request->rut;
         $supplier->email    = $request->email;
         $supplier->contact  = $request->contact;

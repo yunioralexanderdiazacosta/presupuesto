@@ -677,7 +677,6 @@ const formatCurrency = (value) => {
                                 <th style="white-space:nowrap;">Tipo Doc.</th>
                                 <th style="white-space:nowrap;">Mes</th>
                                 <th style="white-space:nowrap; max-width:200px;">Proveedor</th>
-                                <th style="white-space:nowrap;">Sucursal</th>
                                 <th style="white-space:nowrap; max-width:180px;">Razón Social</th>
                                 <th style="white-space:nowrap;">N° Doc</th>
                                 <th style="white-space:nowrap;">Fecha</th>
@@ -742,7 +741,7 @@ invoice, index
                                         <td class="text-center">{{ invoice.id }}</td>
                                         <td style="white-space:nowrap;">{{ invoice.type_document }}</td>
                                         <td style="white-space:nowrap;">{{ invoice.month }}</td>
-                                        <td style="white-space:nowrap; max-width:200px; overflow:hidden; text-overflow:ellipsis;">{{ invoice.supplier.name }}</td>
+                                        <td style="white-space:nowrap; max-width:200px; overflow:hidden; text-overflow:ellipsis; font-size:0.78rem;" :title="invoice.supplier?.name">{{ invoice.supplier?.name }}</td>
                                         <td style="white-space:nowrap;">
                                             <template v-if="invoice.products && invoice.products.some(p => p.branch_name)">
                                                 {{ [...new Set(invoice.products.filter(p => p.branch_name).map(p => p.branch_name))].join(', ') }}
