@@ -8,6 +8,15 @@
 export const changelog = [
   {
     fecha: '2026-06-12',
+    titulo: 'Gestión Diaria — Nuevo reporte "Por Labor"',
+    items: [
+      'Se agregó una nueva vista "Por Labor" en la sección de Reportes del mes.',
+      'Muestra todas las tarjas del mes agrupadas por tipo de labor, con las columnas: Labor, Nivel 3, Nombre, Fecha, Trato, Tarifa, Cant., Monto, JH, Bono y P.Obj.',
+      'Cada grupo de labor incluye un subtotal y al final se muestra el total general del mes.',
+    ],
+  },
+  {
+    fecha: '2026-06-12',
     titulo: 'Salidas — Buscador con botón y carga más rápida',
     items: [
       'En las pestañas "Edición", "Matriz de Consumo" y "Matriz de Consumo por Hectárea", la búsqueda ahora se aplica al presionar el botón Buscar o la tecla Enter, en lugar de filtrar con cada letra, lo que hace la pantalla más fluida.',

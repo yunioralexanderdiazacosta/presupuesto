@@ -175,6 +175,7 @@ function shiftDate(days) {
                     <ReportesTab
                         v-if="currentTab === 'reportes'"
                         :selectedDate="selectedDate"
+                        :branches="branches"
                     />
                 </div>
             </div>

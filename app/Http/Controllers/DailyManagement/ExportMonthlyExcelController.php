@@ -13,7 +13,7 @@ class ExportMonthlyExcelController extends Controller
     {
         $request->validate([
             'month' => 'required|date_format:Y-m',
-            'mode' => 'required|in:planilla,detalle',
+            'mode' => 'required|in:planilla,detalle,labor',
         ]);
 
         $filename = 'tarjas-' . $request->mode . '-' . $request->month . '.xlsx';

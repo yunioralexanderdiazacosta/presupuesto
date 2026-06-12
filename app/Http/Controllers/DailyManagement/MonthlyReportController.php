@@ -32,7 +32,7 @@ class MonthlyReportController extends Controller
         }
 
         // Tarjas del mes
-        $yields = DailyYield::with(['laborType', 'laborRate', 'bonusType', 'costCenters.costCenter'])
+        $yields = DailyYield::with(['laborType.level3', 'laborRate', 'bonusType', 'costCenters.costCenter'])
             ->where('team_id', $user->team_id)
             ->where('season_id', $seasonId)
             ->whereBetween('date', [$startDate->format('Y-m-d'), $endDate->format('Y-m-d')])
@@ -45,7 +45,7 @@ class MonthlyReportController extends Controller
 
         // Contratos con tarjas en el mes
         $contractIds = $yieldsByContract->keys();
-        $contracts = Contract::with('employee')
+        $contracts = Contract::with(['employee', 'branch'])
             ->whereIn('id', $contractIds)
             ->get()
             ->keyBy('id');
@@ -79,6 +79,8 @@ class MonthlyReportController extends Controller
                     'lines' => $dayYields->map(fn($y) => [
                         'payment_type' => $y->payment_type ?? 'trato',
                         'labor_type' => $y->laborType?->name,
+                        'labor_type_id' => $y->labor_type_id,
+                        'level3_name' => $y->laborType?->level3?->name,
                         'labor_rate' => $y->laborRate?->name,
                         'rate' => $y->rate,
                         'quantity' => $y->quantity,
@@ -105,6 +107,8 @@ class MonthlyReportController extends Controller
                 'rut'                      => $employee?->rut ?? '—',
                 'position'                 => $contract?->position ?? '',
                 'net_salary'               => $contract?->net_salary ?? 0,
+                'branch_id'                => $contract?->branch_id,
+                'branch_name'              => $contract?->branch?->name ?? '—',
                 'days'                     => $days,
                 'grand_total_amount'       => $grandTotalAmount,
                 'grand_total_bonus'        => $grandTotalBonus,

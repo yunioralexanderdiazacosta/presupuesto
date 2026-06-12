@@ -35,7 +35,7 @@ class MonthlyYieldsExport implements FromView, ShouldAutoSize
             $dates[] = $startDate->copy()->day($d)->format('Y-m-d');
         }
 
-        $yields = DailyYield::with(['laborType', 'laborRate', 'bonusType', 'costCenter'])
+        $yields = DailyYield::with(['laborType.level3', 'laborRate', 'bonusType', 'costCenter'])
             ->where('team_id', $user->team_id)
             ->where('season_id', $seasonId)
             ->whereBetween('date', [$startDate->format('Y-m-d'), $endDate->format('Y-m-d')])
@@ -90,9 +90,11 @@ class MonthlyYieldsExport implements FromView, ShouldAutoSize
           ->sortBy('full_name')
           ->values();
 
-        $viewName = $this->mode === 'detalle'
-            ? 'excels.monthly-yields-detail'
-            : 'excels.monthly-yields-planilla';
+        $viewName = match($this->mode) {
+            'detalle' => 'excels.monthly-yields-detail',
+            'labor'   => 'excels.monthly-yields-labor',
+            default   => 'excels.monthly-yields-planilla',
+        };
 
         return view($viewName, [
             'employees' => $employeesData,

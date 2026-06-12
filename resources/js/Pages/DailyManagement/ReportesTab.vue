@@ -7,11 +7,14 @@ import Multiselect from '@vueform/multiselect';
 
 const props = defineProps({
     selectedDate: String,
+    branches: { type: Array, default: () => [] },
 });
 
 // Estado
 const currentMonth = ref(props.selectedDate ? props.selectedDate.substring(0, 7) : new Date().toISOString().substring(0, 7));
-const viewMode = ref('planilla'); // 'planilla' | 'detalle'
+const viewMode = ref('planilla'); // 'planilla' | 'detalle' | 'labor'
+const selectedBranchId = ref(null);
+const selectedLaborTypeId = ref(null);
 const selectedEmployeeIds = ref([]);
 const loading = ref(false);
 const reportData = ref(null);
@@ -25,6 +28,7 @@ async function fetchReport() {
         });
         reportData.value = response.data;
         selectedEmployeeIds.value = [];
+        // No resetear sucursal al cambiar mes
     } catch (error) {
         console.error('Error al cargar reporte:', error);
         Swal.fire('Error', 'No se pudo cargar el reporte mensual.', 'error');
@@ -40,16 +44,63 @@ function changeMonth() {
     fetchReport();
 }
 
-// Empleados seleccionados para detalle
-const selectedEmployees = computed(() => {
-    if (!reportData.value || selectedEmployeeIds.value.length === 0) return [];
-    return reportData.value.employees.filter(e => selectedEmployeeIds.value.includes(e.id));
+// Opciones de labor derivadas de los datos cargados (union de todas las líneas)
+const laborTypeOptions = computed(() => {
+    if (!reportData.value) return [];
+    const map = new Map();
+    for (const emp of reportData.value.employees) {
+        for (const date of reportData.value.dates) {
+            const day = emp.days[date];
+            if (!day?.lines?.length) continue;
+            for (const line of day.lines) {
+                if (line.labor_type_id && !map.has(line.labor_type_id)) {
+                    map.set(line.labor_type_id, line.labor_type || '—');
+                }
+            }
+        }
+    }
+    return [...map.entries()]
+        .map(([id, name]) => ({ value: id, label: name }))
+        .sort((a, b) => a.label.localeCompare(b.label));
 });
 
-// Empleados para el select (solo los que tienen datos)
-const employeeOptions = computed(() => {
+// Empleados filtrados por sucursal (base para todos los modos de vista)
+const filteredEmployees = computed(() => {
     if (!reportData.value) return [];
-    return reportData.value.employees.map(e => ({ value: e.id, label: e.full_name + ' (' + e.rut + ')' }));
+    let emps = reportData.value.employees;
+    if (selectedBranchId.value) {
+        emps = emps.filter(e => String(e.branch_id) === String(selectedBranchId.value));
+    }
+    if (selectedLaborTypeId.value) {
+        emps = emps.filter(e =>
+            reportData.value.dates.some(date =>
+                e.days[date]?.lines?.some(l => String(l.labor_type_id) === String(selectedLaborTypeId.value))
+            )
+        );
+    }
+    return emps;
+});
+
+// Empleados seleccionados para detalle
+const selectedEmployees = computed(() => {
+    if (selectedEmployeeIds.value.length === 0) return [];
+    return filteredEmployees.value.filter(e => selectedEmployeeIds.value.includes(e.id));
+});
+
+// Empleados para el select (solo los filtrados por sucursal)
+const employeeOptions = computed(() => {
+    return filteredEmployees.value.map(e => ({ value: e.id, label: e.full_name + ' (' + e.rut + ')' }));
+});
+
+// Totales filtrados por sucursal
+const filteredTotals = computed(() => {
+    return filteredEmployees.value.reduce((acc, e) => {
+        acc.amount       += e.grand_total_amount;
+        acc.bonus        += e.grand_total_bonus;
+        acc.target_bonus += e.grand_total_target_bonus;
+        acc.workdays     += e.grand_total_workdays;
+        return acc;
+    }, { amount: 0, bonus: 0, target_bonus: 0, workdays: 0 });
 });
 
 // Días cortos para header planilla
@@ -86,7 +137,7 @@ const monthLabel = computed(() => {
 // Totales diarios para la planilla
 function dayColumnTotal(date) {
     if (!reportData.value) return 0;
-    return reportData.value.employees.reduce((sum, e) => {
+    return filteredEmployees.value.reduce((sum, e) => {
         const day = e.days[date];
         return sum + (day ? (day.amount || 0) + (day.bonus || 0) + (day.target_bonus || 0) : 0);
     }, 0);
@@ -123,9 +174,69 @@ function goToYield(date, day) {
     }, { preserveState: false });
 }
 
+// ── Reporte por Labor ─────────────────────────────────────────────────────
+// Aplana todas las líneas de todos los empleados/días con campos de contexto
+const laborReportRows = computed(() => {
+    if (!reportData.value) return [];
+    const rows = [];
+    for (const emp of filteredEmployees.value) {
+        for (const date of reportData.value.dates) {
+            const day = emp.days[date];
+            if (!day?.lines?.length) continue;
+            for (const line of day.lines) {
+                if (selectedLaborTypeId.value && String(line.labor_type_id) !== String(selectedLaborTypeId.value)) continue;
+                rows.push({
+                    labor_type:          line.labor_type || '—',
+                    labor_type_id:       line.labor_type_id,
+                    level3_name:         line.level3_name || '—',
+                    full_name:           emp.full_name,
+                    date,
+                    payment_type:        line.payment_type,
+                    labor_rate:          line.labor_rate,
+                    rate:                line.rate,
+                    quantity:            line.quantity,
+                    amount:              line.amount,
+                    workdays:            line.workdays,
+                    bonus_amount:        line.bonus_amount,
+                    target_price_bonus:  line.target_price_bonus,
+                });
+            }
+        }
+    }
+    return rows;
+});
+
+// Agrupa las filas por Labor; dentro de cada grupo calcula totales
+const laborReportGrouped = computed(() => {
+    const map = new Map();
+    for (const row of laborReportRows.value) {
+        const key = row.labor_type;
+        if (!map.has(key)) {
+            map.set(key, { name: key, level3: row.level3_name, rows: [], total_amount: 0, total_workdays: 0, total_bonus: 0, total_target_bonus: 0 });
+        }
+        const g = map.get(key);
+        g.rows.push(row);
+        g.total_amount       += Number(row.amount || 0);
+        g.total_workdays     += Number(row.workdays || 0);
+        g.total_bonus        += Number(row.bonus_amount || 0);
+        g.total_target_bonus += Number(row.target_price_bonus || 0);
+    }
+    return [...map.values()].sort((a, b) => a.name.localeCompare(b.name));
+});
+
+// Totales generales del reporte por labor
+const laborGrandTotals = computed(() => {
+    return laborReportGrouped.value.reduce((acc, g) => {
+        acc.amount       += g.total_amount;
+        acc.workdays     += g.total_workdays;
+        acc.bonus        += g.total_bonus;
+        acc.target_bonus += g.total_target_bonus;
+        return acc;
+    }, { amount: 0, workdays: 0, bonus: 0, target_bonus: 0 });
+});
+
 // Export URLs
-function exportExcel(mode) {
-    const url = route('daily-management.export-excel') + '?month=' + currentMonth.value + '&mode=' + mode;
+function exportExcel(mode) {    const url = route('daily-management.export-excel') + '?month=' + currentMonth.value + '&mode=' + mode;
     window.open(url, '_blank');
 }
 
@@ -147,6 +258,20 @@ function exportPdf(mode) {
                 <input type="month" v-model="currentMonth" @change="changeMonth"
                     class="form-control form-control-sm" />
             </div>
+            <div class="col-md-2">
+                <label class="form-label small mb-1">Sucursal</label>
+                <select v-model="selectedBranchId" class="form-select form-select-sm">
+                    <option :value="null">Todas</option>
+                    <option v-for="b in branches" :key="b.value" :value="b.value">{{ b.label }}</option>
+                </select>
+            </div>
+            <div class="col-md-2">
+                <label class="form-label small mb-1">Labor</label>
+                <select v-model="selectedLaborTypeId" class="form-select form-select-sm">
+                    <option :value="null">Todas</option>
+                    <option v-for="l in laborTypeOptions" :key="l.value" :value="l.value">{{ l.label }}</option>
+                </select>
+            </div>
             <div class="col-md-3">
                 <label class="form-label small mb-1">Vista</label>
                 <div class="btn-group btn-group-sm w-100" role="group">
@@ -155,6 +280,9 @@ function exportPdf(mode) {
                     </button>
                     <button type="button" class="btn" :class="viewMode === 'detalle' ? 'btn-primary' : 'btn-outline-primary'" @click="viewMode = 'detalle'">
                         <i class="fas fa-user me-1"></i>Detalle
+                    </button>
+                    <button type="button" class="btn" :class="viewMode === 'labor' ? 'btn-primary' : 'btn-outline-primary'" @click="viewMode = 'labor'">
+                        <i class="fas fa-tasks me-1"></i>Por Labor
                     </button>
                 </div>
             </div>
@@ -192,7 +320,7 @@ function exportPdf(mode) {
         </div>
 
         <!-- Sin datos -->
-        <div v-else-if="reportData && reportData.employees.length === 0" class="text-center py-5">
+        <div v-else-if="reportData && filteredEmployees.length === 0" class="text-center py-5">
             <i class="fas fa-inbox fa-3x text-muted mb-3"></i>
             <p class="text-muted">No hay tarjas registradas en {{ monthLabel }}</p>
         </div>
@@ -204,25 +332,25 @@ function exportPdf(mode) {
                 <div class="col-6 col-md-3">
                     <div class="card bg-soft-primary text-center p-2">
                         <small class="text-muted">Trabajadores</small>
-                        <strong>{{ reportData.employees.length }}</strong>
+                        <strong>{{ filteredEmployees.length }}</strong>
                     </div>
                 </div>
                 <div class="col-6 col-md-3">
                     <div class="card bg-soft-success text-center p-2">
                         <small class="text-muted">Total Monto</small>
-                        <strong>${{ fmt(reportData.totals.amount) }}</strong>
+                        <strong>${{ fmt(filteredTotals.amount) }}</strong>
                     </div>
                 </div>
                 <div class="col-6 col-md-3">
                     <div class="card bg-soft-info text-center p-2">
                         <small class="text-muted">Total Bonos</small>
-                        <strong>${{ fmt(reportData.totals.bonus) }}</strong>
+                        <strong>${{ fmt(filteredTotals.bonus) }}</strong>
                     </div>
                 </div>
                 <div class="col-6 col-md-3">
                     <div class="card bg-soft-warning text-center p-2">
                         <small class="text-muted">Bono P.Objetivo</small>
-                        <strong>${{ fmt(reportData.totals.target_bonus) }}</strong>
+                        <strong>${{ fmt(filteredTotals.target_bonus) }}</strong>
                     </div>
                 </div>
             </div>
@@ -247,7 +375,7 @@ function exportPdf(mode) {
                         </tr>
                     </thead>
                     <tbody>
-                        <tr v-for="emp in reportData.employees" :key="emp.id">
+                        <tr v-for="emp in filteredEmployees" :key="emp.id">
                             <td class="fw-semi-bold sticky-col bg-white" style="white-space:nowrap; font-size:0.7rem;">
                                 <span class="badge bg-soft-primary text-primary me-1" style="font-size:0.6rem;">#{{ emp.contract_id }}</span>
                                 {{ emp.full_name }}
@@ -278,11 +406,11 @@ function exportPdf(mode) {
                                 style="font-size:0.65rem;">
                                 {{ dayColumnTotal(date) ? fmt(dayColumnTotal(date)) : '' }}
                             </td>
-                            <td class="text-end" style="font-size:0.75rem;">{{ fmt(reportData.totals.amount) }}</td>
-                            <td class="text-end" style="font-size:0.75rem;">{{ fmt(reportData.totals.bonus) }}</td>
-                            <td class="text-end text-warning" style="font-size:0.75rem;">{{ fmt(reportData.totals.target_bonus) }}</td>
-                            <td class="text-end text-primary" style="font-size:0.75rem;">{{ fmt(reportData.totals.amount + reportData.totals.bonus + reportData.totals.target_bonus) }}</td>
-                            <td class="text-center" style="font-size:0.75rem;">{{ reportData.totals.workdays }}</td>
+                            <td class="text-end" style="font-size:0.75rem;">{{ fmt(filteredTotals.amount) }}</td>
+                            <td class="text-end" style="font-size:0.75rem;">{{ fmt(filteredTotals.bonus) }}</td>
+                            <td class="text-end text-warning" style="font-size:0.75rem;">{{ fmt(filteredTotals.target_bonus) }}</td>
+                            <td class="text-end text-primary" style="font-size:0.75rem;">{{ fmt(filteredTotals.amount + filteredTotals.bonus + filteredTotals.target_bonus) }}</td>
+                            <td class="text-center" style="font-size:0.75rem;">{{ Math.round(filteredTotals.workdays * 100) / 100 }}</td>
                         </tr>
                     </tfoot>
                 </table>
@@ -431,7 +559,7 @@ function exportPdf(mode) {
                             </tr>
                         </thead>
                         <tbody>
-                            <tr v-for="emp in reportData.employees" :key="emp.id">
+                            <tr v-for="emp in filteredEmployees" :key="emp.id">
                                 <td>
                                     <span class="badge bg-soft-primary text-primary me-1" style="font-size:0.6rem;">#{{ emp.contract_id }}</span>
                                     <span class="fw-semi-bold">{{ emp.full_name }}</span>
@@ -453,17 +581,86 @@ function exportPdf(mode) {
                         <tfoot class="bg-100">
                             <tr class="fw-bold">
                                 <td colspan="3">TOTAL</td>
-                                <td class="text-center">{{ reportData.totals.workdays }} JH</td>
-                                <td class="text-end">{{ fmt(reportData.totals.amount) }}</td>
-                                <td class="text-end">{{ fmt(reportData.totals.bonus) }}</td>
-                                <td class="text-end text-warning">{{ fmt(reportData.totals.target_bonus) }}</td>
-                                <td class="text-end">{{ fmt(reportData.totals.amount + reportData.totals.bonus + reportData.totals.target_bonus) }}</td>
+                                <td class="text-center">{{ Math.round(filteredTotals.workdays * 100) / 100 }} JH</td>
+                                <td class="text-end">{{ fmt(filteredTotals.amount) }}</td>
+                                <td class="text-end">{{ fmt(filteredTotals.bonus) }}</td>
+                                <td class="text-end text-warning">{{ fmt(filteredTotals.target_bonus) }}</td>
+                                <td class="text-end">{{ fmt(filteredTotals.amount + filteredTotals.bonus + filteredTotals.target_bonus) }}</td>
                                 <td></td>
                             </tr>
                         </tfoot>
                     </table>
                 </div>
             </template>
+        </div>
+
+        <!-- REPORTE POR LABOR -->
+        <div v-else-if="reportData && viewMode === 'labor'">
+            <div class="table-responsive">
+                <table class="table table-sm table-bordered fs--2 mb-0">
+                    <thead class="bg-200">
+                        <tr>
+                            <th style="min-width:130px;">Labor</th>
+                            <th style="min-width:100px;">Nivel 3</th>
+                            <th style="min-width:130px;">Nombre</th>
+                            <th style="width:60px;">Fecha</th>
+                            <th style="width:50px;">Trato</th>
+                            <th class="text-end" style="width:65px;">Tarifa</th>
+                            <th class="text-center" style="width:50px;">Cant.</th>
+                            <th class="text-end" style="width:70px;">Monto</th>
+                            <th class="text-center" style="width:45px;">JH</th>
+                            <th class="text-end" style="width:60px;">Bono</th>
+                            <th class="text-end" style="width:60px;">P.Obj.</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <template v-for="group in laborReportGrouped" :key="group.name">
+                            <!-- Sub-cabecera de Labor -->
+                            <tr class="table-primary">
+                                <td colspan="11" class="fw-bold py-1" style="font-size:0.72rem;">
+                                    <i class="fas fa-layer-group me-1"></i>{{ group.name }}
+                                    <span class="text-muted ms-2" style="font-weight:400;">{{ group.level3 }}</span>
+                                </td>
+                            </tr>
+                            <!-- Filas de esa labor -->
+                            <tr v-for="(row, idx) in group.rows" :key="group.name + idx">
+                                <td>{{ row.labor_type }}</td>
+                                <td>{{ row.level3_name }}</td>
+                                <td style="white-space:nowrap;">{{ row.full_name }}</td>
+                                <td style="white-space:nowrap;">{{ new Date(row.date + 'T12:00:00').toLocaleDateString('es-CL', { day: '2-digit', month: '2-digit' }) }}</td>
+                                <td class="text-center">
+                                    <span class="badge" :class="row.payment_type === 'dia' ? 'bg-info' : 'bg-primary'" style="font-size:0.58rem;">
+                                        {{ row.payment_type === 'dia' ? 'Día' : 'Trato' }}
+                                    </span>
+                                </td>
+                                <td class="text-end">${{ fmt(row.rate) }}</td>
+                                <td class="text-center">{{ row.quantity }}</td>
+                                <td class="text-end fw-semi-bold">${{ fmt(row.amount) }}</td>
+                                <td class="text-center">{{ row.workdays }}</td>
+                                <td class="text-end">{{ row.bonus_amount ? '$' + fmt(row.bonus_amount) : '' }}</td>
+                                <td class="text-end text-warning">{{ row.target_price_bonus ? '$' + fmt(row.target_price_bonus) : '' }}</td>
+                            </tr>
+                            <!-- Subtotal por labor -->
+                            <tr class="bg-100 fw-bold" style="font-size:0.7rem;">
+                                <td colspan="7" class="text-end">Subtotal {{ group.name }}</td>
+                                <td class="text-end">${{ fmt(group.total_amount) }}</td>
+                                <td class="text-center">{{ Math.round(group.total_workdays * 100) / 100 }}</td>
+                                <td class="text-end">{{ group.total_bonus ? '$' + fmt(group.total_bonus) : '' }}</td>
+                                <td class="text-end text-warning">{{ group.total_target_bonus ? '$' + fmt(group.total_target_bonus) : '' }}</td>
+                            </tr>
+                        </template>
+                    </tbody>
+                    <tfoot class="bg-200 fw-bold">
+                        <tr>
+                            <td colspan="7" class="text-end">TOTAL MES</td>
+                            <td class="text-end">${{ fmt(laborGrandTotals.amount) }}</td>
+                            <td class="text-center">{{ Math.round(laborGrandTotals.workdays * 100) / 100 }}</td>
+                            <td class="text-end">${{ fmt(laborGrandTotals.bonus) }}</td>
+                            <td class="text-end text-warning">${{ fmt(laborGrandTotals.target_bonus) }}</td>
+                        </tr>
+                    </tfoot>
+                </table>
+            </div>
         </div>
     </div>
 
