@@ -52,7 +52,18 @@ const totalEdicion = computed(() => {
 const totalEdicionFormatted = computed(() => {
   return new Intl.NumberFormat('es-ES', { style: 'decimal', minimumFractionDigits: 0, maximumFractionDigits: 0 }).format(totalEdicion.value);
 });
-const termEdicion = ref("");
+const termEdicion = ref("");          // texto que el usuario escribe
+const appliedTermEdicion = ref("");   // término aplicado al presionar Buscar / Enter
+
+// Búsqueda por botón / Enter (no en vivo) en la pestaña Edición
+const applySearchEdicion = () => { appliedTermEdicion.value = termEdicion.value; };
+const clearSearchEdicion = () => { termEdicion.value = ''; appliedTermEdicion.value = ''; };
+
+// Límite de filas visibles + "Ver más" en la tabla de Edición
+const EDICION_PAGE_SIZE = 200;
+const visibleCountEdicion = ref(EDICION_PAGE_SIZE);
+const pagedOutflowDetails = computed(() => sortedOutflowDetails.value.slice(0, visibleCountEdicion.value));
+const hasMoreEdicion = computed(() => sortedOutflowDetails.value.length > visibleCountEdicion.value);
 
 // Filtros avanzados para la tabla de edición
 const filterMes = ref(null);
@@ -143,9 +154,9 @@ const filteredOutflowDetails = computed(() => {
   if (filterProject.value) result = result.filter(i => i.project === filterProject.value);
   if (filterBranchEdicion.value) result = result.filter(i => i.branch_name === filterBranchEdicion.value);
 
-  // Filtro de texto
-  if (termEdicion.value) {
-    const search = termEdicion.value.toLowerCase();
+  // Filtro de texto (aplicado por botón / Enter, no en vivo)
+  if (appliedTermEdicion.value) {
+    const search = appliedTermEdicion.value.toLowerCase();
     result = result.filter((item) => {
       return (
         (item.supplier || '').toLowerCase().includes(search) ||
@@ -214,7 +225,8 @@ const props = defineProps({
 });
 
 const title = 'Salidas de productos';
-const term  = ref("");
+const inputTerm   = ref("");   // texto que el usuario escribe
+const appliedTerm = ref("");   // término aplicado al presionar Buscar / Enter
 const filterBranch = ref('');
 const filteredOutflows = computed(() => {
   // Primero filtrar solo los outflows con stock numérico > 0
@@ -226,10 +238,10 @@ const filteredOutflows = computed(() => {
   if (filterBranch.value) {
     stockFiltered = stockFiltered.filter(outflow => String(outflow.branch_id) === String(filterBranch.value));
   }
-  // Si no hay término de búsqueda, retornar solo stockFiltered
-  if (!term.value) return stockFiltered;
+  // Si no hay término de búsqueda aplicado, retornar solo stockFiltered
+  if (!appliedTerm.value) return stockFiltered;
   // Si hay búsqueda, aplicar filtro de texto sobre stockFiltered
-  const search = term.value.toLowerCase();
+  const search = appliedTerm.value.toLowerCase();
   return stockFiltered.filter(outflow => {
     return (
       (outflow.product && outflow.product.toLowerCase().includes(search)) ||
@@ -240,6 +252,20 @@ const filteredOutflows = computed(() => {
     );
   });
 });
+
+// ─── Búsqueda por botón / Enter (no en vivo) ──────────────────────────────
+const applySearch = () => { appliedTerm.value = inputTerm.value; };
+const clearSearch = () => { inputTerm.value = ''; appliedTerm.value = ''; };
+
+// ─── Límite de filas visibles + "Ver más" ─────────────────────────────────
+const SALIDAS_PAGE_SIZE = 200;
+const visibleCountSalidas = ref(SALIDAS_PAGE_SIZE);
+const pagedOutflows = computed(() => filteredOutflows.value.slice(0, visibleCountSalidas.value));
+const hasMoreOutflows = computed(() => filteredOutflows.value.length > visibleCountSalidas.value);
+// Resetear el límite al cambiar búsqueda o sucursal
+watch(filteredOutflows, () => { visibleCountSalidas.value = SALIDAS_PAGE_SIZE; });
+// Resetear el límite de Edición/Matriz al cambiar la lista filtrada/ordenada
+watch(sortedOutflowDetails, () => { visibleCountEdicion.value = EDICION_PAGE_SIZE; });
 // Breadcrumb links
 const links = [
   { title: 'Inicio', link: 'dashboard' },
@@ -307,7 +333,7 @@ const formatPrice = (price) => {
 };
 
 const onFilter = () => {
-  router.get(route('outflows.index', {term: term.value}), { preserveState: true });  
+  router.get(route('outflows.index', {term: appliedTerm.value}), { preserveState: true });  
 }
 
 
@@ -984,8 +1010,16 @@ function copyToAllCards(sourceCardId) {
                   <div class="tab-pane fade show active" id="pill-tab-edicion" role="tabpanel" aria-labelledby="pill-edicion">
                     <!-- Filtros compactos en una sola fila -->
                     <div class="d-flex flex-wrap align-items-center gap-2 mb-2">
-                      <div style="min-width: 180px; flex: 1 1 180px; max-width: 250px;">
-                        <SearchInput v-model="termEdicion" placeholder="Buscar..." />
+                      <div class="d-flex gap-1 align-items-center" style="min-width: 220px; flex: 1 1 260px; max-width: 340px;">
+                        <SearchInput v-model="termEdicion" placeholder="Buscar..."
+                          style="max-width:unset; flex:1; margin-bottom:0;"
+                          @keyup.enter="applySearchEdicion" />
+                        <button type="button" class="btn btn-falcon-primary btn-sm px-2 flex-shrink-0" @click="applySearchEdicion" title="Buscar" style="height:31px;">
+                          <i class="fas fa-search"></i>
+                        </button>
+                        <button v-if="appliedTermEdicion || termEdicion" type="button" class="btn btn-falcon-default btn-sm px-2 flex-shrink-0" @click="clearSearchEdicion" title="Limpiar búsqueda" style="height:31px;">
+                          <i class="fas fa-times"></i>
+                        </button>
                       </div>
                       <div style="min-width: 110px; flex: 0 1 130px;">
                         <select v-model="filterMes" class="form-select form-select-sm" style="font-size:0.72rem;">
@@ -1121,7 +1155,7 @@ function copyToAllCards(sourceCardId) {
                         </thead>
                         <tbody>
                           <tr 
-                            v-for="outflow in sortedOutflowDetails" 
+                            v-for="outflow in pagedOutflowDetails" 
                             :key="outflow.id"
                             @click="!outflow.fuel_outflow_id && editOutflow(outflow)"
                             :style="outflow.fuel_outflow_id ? 'cursor: default;' : 'cursor: pointer;'"
@@ -1220,6 +1254,14 @@ function copyToAllCards(sourceCardId) {
                           <tr v-if="!props.outflowDetails || !props.outflowDetails.length">
                             <td colspan="21" class="text-center text-muted">No hay salidas registradas.</td>
                           </tr>
+                          <tr v-if="hasMoreEdicion">
+                            <td colspan="22" class="text-center py-2">
+                              <button type="button" class="btn btn-sm btn-falcon-default" @click="visibleCountEdicion += EDICION_PAGE_SIZE">
+                                <i class="fas fa-chevron-down me-1"></i>
+                                Ver más ({{ sortedOutflowDetails.length - visibleCountEdicion }} restantes)
+                              </button>
+                            </td>
+                          </tr>
                         </tbody>
                       </table>
                     </div>
@@ -1228,8 +1270,16 @@ function copyToAllCards(sourceCardId) {
                   <div class="tab-pane fade" id="pill-tab-salidas" role="tabpanel" aria-labelledby="salidas-tab">
                     <div style="max-height: 450px; overflow-y: auto; overflow-x: auto;">
                       <div class="d-flex align-items-center gap-2 mb-2">
-                        <div style="flex:1;">
-                          <SearchInput v-model="term" placeholder="Buscar por producto, proveedor, documento..." />
+                        <div class="d-flex gap-1 align-items-center" style="flex:1;">
+                          <SearchInput v-model="inputTerm" placeholder="Buscar por producto, proveedor, documento..."
+                            style="max-width:unset; flex:1; margin-bottom:0;"
+                            @keyup.enter="applySearch" />
+                          <button type="button" class="btn btn-falcon-primary btn-sm px-2 flex-shrink-0" @click="applySearch" title="Buscar" style="height:31px;">
+                            <i class="fas fa-search"></i>
+                          </button>
+                          <button v-if="appliedTerm || inputTerm" type="button" class="btn btn-falcon-default btn-sm px-2 flex-shrink-0" @click="clearSearch" title="Limpiar búsqueda" style="height:31px;">
+                            <i class="fas fa-times"></i>
+                          </button>
                         </div>
                         <div style="width:200px; flex-shrink:0;">
                           <select v-model="filterBranch" class="form-select form-select-sm">
@@ -1252,7 +1302,7 @@ function copyToAllCards(sourceCardId) {
                             <th class="text-center">Acciones</th>
                           </template>
                           <template #body>
-                            <tr v-for="outflow in filteredOutflows" :key="(outflow.credit_debit_note_item_id ? 'nota-' + outflow.credit_debit_note_item_id : 'factura-' + outflow.invoice_product_id)">
+                            <tr v-for="outflow in pagedOutflows" :key="(outflow.credit_debit_note_item_id ? 'nota-' + outflow.credit_debit_note_item_id : 'factura-' + outflow.invoice_product_id)">
                                 <td>
                                   <span v-if="outflow.origen && outflow.origen.toLowerCase().includes('factura')" class="badge bg-success">{{ outflow.origen }}</span>
                                   <span v-else class="badge bg-info text-dark">{{ outflow.origen }}</span>
@@ -1292,8 +1342,17 @@ function copyToAllCards(sourceCardId) {
                                 </td>
 
                             </tr>
-                            <tr v-if="outflows.data.length === 0">
-                                <td colspan="8"><Empty /></td>
+                            <tr v-if="filteredOutflows.length === 0">
+                                <td colspan="10"><Empty /></td>
+                            </tr>
+                            <!-- Ver más -->
+                            <tr v-if="hasMoreOutflows">
+                                <td colspan="10" class="text-center py-2">
+                                    <button type="button" class="btn btn-sm btn-falcon-default" @click="visibleCountSalidas += SALIDAS_PAGE_SIZE">
+                                        <i class="fas fa-chevron-down me-1"></i>
+                                        Ver más ({{ filteredOutflows.length - visibleCountSalidas }} restantes)
+                                    </button>
+                                </td>
                             </tr>
                           </template>
                       </Table>
@@ -1529,8 +1588,16 @@ function copyToAllCards(sourceCardId) {
                   <div class="tab-pane fade" id="pill-tab-gastos" role="tabpanel" aria-labelledby="pill-gastos">
                     <!-- Filtros -->
                     <div class="d-flex flex-wrap gap-2 align-items-center mb-2">
-                      <div style="min-width:180px; flex:1 1 180px; max-width:260px;">
-                        <SearchInput v-model="termEdicion" placeholder="Buscar..." />
+                      <div class="d-flex gap-1 align-items-center" style="min-width:180px; flex:1 1 220px; max-width:300px;">
+                        <SearchInput v-model="termEdicion" placeholder="Buscar..."
+                          style="max-width:unset; flex:1; margin-bottom:0;"
+                          @keyup.enter="applySearchEdicion" />
+                        <button type="button" class="btn btn-falcon-primary btn-sm px-2 flex-shrink-0" @click="applySearchEdicion" title="Buscar" style="height:31px;">
+                          <i class="fas fa-search"></i>
+                        </button>
+                        <button v-if="appliedTermEdicion || termEdicion" type="button" class="btn btn-falcon-default btn-sm px-2 flex-shrink-0" @click="clearSearchEdicion" title="Limpiar búsqueda" style="height:31px;">
+                          <i class="fas fa-times"></i>
+                        </button>
                       </div>
                       <div style="min-width:110px; flex:0 1 130px;">
                         <select v-model="filterMes" class="form-select form-select-sm" style="font-size:0.72rem;">
@@ -1633,7 +1700,7 @@ function copyToAllCards(sourceCardId) {
                           <tr v-if="!sortedOutflowDetails.length">
                             <td :colspan="18 + ccColumns.length" class="text-center py-3 text-muted">No hay salidas registradas.</td>
                           </tr>
-                          <tr v-for="outflow in sortedOutflowDetails" :key="outflow.id">
+                          <tr v-for="outflow in pagedOutflowDetails" :key="outflow.id">
                             <td>{{ outflow.id }}</td>
                             <td style="white-space:nowrap;">{{ outflow.date }}</td>
                             <td style="white-space:nowrap;">{{ outflow.number_document }}</td>
@@ -1667,6 +1734,14 @@ function copyToAllCards(sourceCardId) {
                               </template>
                             </td>
                           </tr>
+                          <tr v-if="hasMoreEdicion">
+                            <td :colspan="18 + ccColumns.length" class="text-center py-2">
+                              <button type="button" class="btn btn-sm btn-falcon-default" @click="visibleCountEdicion += EDICION_PAGE_SIZE">
+                                <i class="fas fa-chevron-down me-1"></i>
+                                Ver más ({{ sortedOutflowDetails.length - visibleCountEdicion }} restantes)
+                              </button>
+                            </td>
+                          </tr>
                         </tbody>
                         <!-- Fila de totales -->
                         <tfoot v-if="sortedOutflowDetails.length" style="position:sticky; bottom:0; z-index:5;">
@@ -1694,8 +1769,16 @@ function copyToAllCards(sourceCardId) {
                   <div class="tab-pane fade" id="pill-tab-detalles-compra" role="tabpanel" aria-labelledby="pill-detalles-compra">
                     <!-- Filtros -->
                     <div class="d-flex flex-wrap gap-2 align-items-center mb-2">
-                      <div style="min-width:180px; flex:1 1 180px; max-width:260px;">
-                        <SearchInput v-model="termEdicion" placeholder="Buscar..." />
+                      <div class="d-flex gap-1 align-items-center" style="min-width:180px; flex:1 1 220px; max-width:300px;">
+                        <SearchInput v-model="termEdicion" placeholder="Buscar..."
+                          style="max-width:unset; flex:1; margin-bottom:0;"
+                          @keyup.enter="applySearchEdicion" />
+                        <button type="button" class="btn btn-falcon-primary btn-sm px-2 flex-shrink-0" @click="applySearchEdicion" title="Buscar" style="height:31px;">
+                          <i class="fas fa-search"></i>
+                        </button>
+                        <button v-if="appliedTermEdicion || termEdicion" type="button" class="btn btn-falcon-default btn-sm px-2 flex-shrink-0" @click="clearSearchEdicion" title="Limpiar búsqueda" style="height:31px;">
+                          <i class="fas fa-times"></i>
+                        </button>
                       </div>
                       <div style="min-width:110px; flex:0 1 130px;">
                         <select v-model="filterMes" class="form-select form-select-sm" style="font-size:0.72rem;">
@@ -1796,7 +1879,7 @@ function copyToAllCards(sourceCardId) {
                           <tr v-if="!sortedOutflowDetails.length">
                             <td :colspan="18 + ccColumns.length" class="text-center py-3 text-muted">No hay salidas registradas.</td>
                           </tr>
-                          <tr v-for="outflow in sortedOutflowDetails" :key="outflow.id">
+                          <tr v-for="outflow in pagedOutflowDetails" :key="outflow.id">
                             <td>{{ outflow.id }}</td>
                             <td style="white-space:nowrap;">{{ outflow.date }}</td>
                             <td style="white-space:nowrap;">{{ outflow.number_document }}</td>
@@ -1827,6 +1910,14 @@ function copyToAllCards(sourceCardId) {
                               <template v-else>
                                 <span class="text-muted">—</span>
                               </template>
+                            </td>
+                          </tr>
+                          <tr v-if="hasMoreEdicion">
+                            <td :colspan="18 + ccColumns.length" class="text-center py-2">
+                              <button type="button" class="btn btn-sm btn-falcon-default" @click="visibleCountEdicion += EDICION_PAGE_SIZE">
+                                <i class="fas fa-chevron-down me-1"></i>
+                                Ver más ({{ sortedOutflowDetails.length - visibleCountEdicion }} restantes)
+                              </button>
                             </td>
                           </tr>
                         </tbody>

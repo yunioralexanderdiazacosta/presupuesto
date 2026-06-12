@@ -22,11 +22,26 @@ class UpdateInvoiceController extends Controller
 
         $protectedInvoiceProductIds = collect();
         $protectedProductIds = collect();
+        // Líneas referenciadas por notas de crédito/débito (no se deben borrar ni recrear)
+        $creditNoteInvoiceProductIds = collect();
 
         if ($allInvoiceProductIds->isNotEmpty()) {
-            $protectedInvoiceProductIds = \App\Models\Outflow::whereIn('invoice_product_id', $allInvoiceProductIds)
+            $outflowProtectedIds = \App\Models\Outflow::whereIn('invoice_product_id', $allInvoiceProductIds)
                 ->pluck('invoice_product_id')
                 ->unique();
+
+            // Proteger también las líneas vinculadas a notas de crédito/débito,
+            // para no romper el vínculo (invoice_product_id) al editar la factura.
+            $creditNoteInvoiceProductIds = DB::table('credit_debit_note_items')
+                ->whereIn('invoice_product_id', $allInvoiceProductIds)
+                ->pluck('invoice_product_id')
+                ->unique();
+
+            // Conjunto combinado de líneas protegidas (salidas + notas de crédito)
+            $protectedInvoiceProductIds = $outflowProtectedIds
+                ->merge($creditNoteInvoiceProductIds)
+                ->unique()
+                ->values();
 
             $protectedProductIds = DB::table('invoice_products')
                 ->whereIn('id', $protectedInvoiceProductIds)
@@ -44,15 +59,38 @@ class UpdateInvoiceController extends Controller
 
             if ($missingProtected->isNotEmpty()) {
                 $productNames = \App\Models\Product::whereIn('id', $missingProtected)->pluck('name')->join(', ');
-                $outflowIds = \App\Models\Outflow::whereIn('invoice_product_id',
-                    DB::table('invoice_products')
-                        ->where('invoice_id', $invoice->id)
-                        ->whereIn('product_id', $missingProtected)
-                        ->pluck('id')
-                )->pluck('id')->join(', #');
+
+                // Determinar el motivo de la protección para mostrar un mensaje claro
+                $missingProtectedIpIds = DB::table('invoice_products')
+                    ->where('invoice_id', $invoice->id)
+                    ->whereIn('product_id', $missingProtected)
+                    ->pluck('id');
+
+                $hasOutflow = \App\Models\Outflow::whereIn('invoice_product_id', $missingProtectedIpIds)->exists();
+                $hasCreditNote = DB::table('credit_debit_note_items')
+                    ->whereIn('invoice_product_id', $missingProtectedIpIds)
+                    ->exists();
+
+                if ($hasOutflow) {
+                    $outflowIds = \App\Models\Outflow::whereIn('invoice_product_id', $missingProtectedIpIds)
+                        ->pluck('id')->join(', #');
+                    return redirect()->back()->with('error',
+                        "No se puede eliminar el producto \"{$productNames}\" porque tiene salidas asociadas (Salidas #{$outflowIds})."
+                    );
+                }
+
+                if ($hasCreditNote) {
+                    $noteNumbers = DB::table('credit_debit_note_items')
+                        ->join('credit_debit_notes', 'credit_debit_note_items.credit_debit_note_id', '=', 'credit_debit_notes.id')
+                        ->whereIn('credit_debit_note_items.invoice_product_id', $missingProtectedIpIds)
+                        ->pluck('credit_debit_notes.number')->unique()->join(', ');
+                    return redirect()->back()->with('error',
+                        "No se puede eliminar el producto \"{$productNames}\" porque tiene notas de crédito/débito asociadas (Nota(s): {$noteNumbers})."
+                    );
+                }
 
                 return redirect()->back()->with('error',
-                    "No se puede eliminar el producto \"{$productNames}\" porque tiene salidas asociadas (Salidas #{$outflowIds})."
+                    "No se puede eliminar el producto \"{$productNames}\" porque tiene movimientos asociados."
                 );
             }
         }
@@ -72,7 +110,7 @@ class UpdateInvoiceController extends Controller
         $invoice->due_date          = $request->due_date;
         $invoice->save();
 
-        // Eliminar solo los productos que NO tienen salidas asociadas
+        // Eliminar solo las líneas que NO están protegidas (sin salidas ni notas de crédito asociadas)
         DB::table('invoice_products')
             ->where('invoice_id', $invoice->id)
             ->whereNotIn('id', $protectedInvoiceProductIds->toArray())
@@ -104,7 +142,7 @@ class UpdateInvoiceController extends Controller
         }
 
         foreach ($this->products($request->products) as $productAttach) {
-            // Una línea es protegida solo si tiene un invoice_product_id existente con salidas.
+            // Una línea es protegida si tiene un invoice_product_id existente con salidas o notas de crédito.
             // Líneas nuevas (sin invoice_product_id) siempre se guardan.
             $ipId = $productAttach['invoice_product_id'] ?? null;
             $isProtectedLine = $ipId && $protectedInvoiceProductIds->contains((int) $ipId);

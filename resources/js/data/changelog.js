@@ -7,6 +7,34 @@
 
 export const changelog = [
   {
+    fecha: '2026-06-12',
+    titulo: 'Salidas — Buscador con botón y carga más rápida',
+    items: [
+      'En las pestañas "Edición", "Matriz de Consumo" y "Matriz de Consumo por Hectárea", la búsqueda ahora se aplica al presionar el botón Buscar o la tecla Enter, en lugar de filtrar con cada letra, lo que hace la pantalla más fluida.',
+      'Se agregó un botón para limpiar la búsqueda rápidamente en esas pestañas.',
+      'Se corrigió la búsqueda en las pestañas de Matriz de Consumo, que no estaba aplicando el texto ingresado.',
+      'Estas tres pestañas ahora muestran los primeros 200 registros y un botón "Ver más" para cargar el resto, agilizando la apertura cuando hay muchas salidas. Los totales siguen considerando todos los registros.',
+    ],
+  },
+  {
+    fecha: '2026-06-12',
+    titulo: 'Salidas — Buscador con botón y carga progresiva',
+    items: [
+      'En la pestaña "Disponible para Salida", la búsqueda ahora se aplica al presionar el botón Buscar o la tecla Enter, en lugar de filtrar con cada letra, lo que hace la pantalla más fluida.',
+      'Se agregó un botón para limpiar la búsqueda rápidamente.',
+      'La tabla ahora muestra las primeras 200 filas y un botón "Ver más" para cargar el resto por bloques, evitando que la pantalla se vuelva lenta con muchos registros.',
+    ],
+  },
+  {
+    fecha: '2026-06-12',
+    titulo: 'Facturas y Notas de Crédito — Corrección de stock disponible',
+    items: [
+      'Se corrigió un problema por el cual, al editar una factura que tenía notas de crédito, esas notas dejaban de descontar el stock y los productos volvían a aparecer como disponibles para salida.',
+      'Ahora las líneas de una factura que tengan una nota de crédito asociada quedan protegidas al editar la factura, evitando que se pierda el vínculo.',
+      'Si se intenta quitar un producto que tiene una nota de crédito asociada, el sistema lo impide e indica el número de la nota.',
+    ],
+  },
+  {
     fecha: '2026-06-11',
     titulo: 'Facturas y Dashboard de Inversiones — Mejoras generales',
     items: [
