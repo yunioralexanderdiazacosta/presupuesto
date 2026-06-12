@@ -40,6 +40,7 @@ class InvestmentDashboardController extends Controller
             'summary'     => $this->getSummary($season_id, $team_id),
             'monthlyComparison' => $this->getMonthlyComparison($season_id, $team_id, $months),
             'investmentDetails' => $this->getInvestmentDetails($season_id, $team_id),
+            'byLevel3'    => $this->getByLevel3($season_id, $team_id),
             'months' => $months,
         ]);
     }
@@ -303,6 +304,102 @@ class InvestmentDashboardController extends Controller
             })->sortByDesc('budgeted')->values()->toArray();
         } catch (\Exception $e) {
             Log::error('InvestmentDashboard getByCostCenter: ' . $e->getMessage());
+            return [];
+        }
+    }
+
+    /**
+     * Salidas de tipo inversión agrupadas por Level3
+     */
+    private function getByLevel3($season_id, $team_id)
+    {
+        try {
+            // Una sola query: investment → level3 → product
+            $rows = DB::table('outflows as o')
+                ->join('operations as op', 'o.operation_id', '=', 'op.id')
+                ->leftJoin('investments as inv', 'o.investment_id', '=', 'inv.id')
+                ->leftJoin('level3s as l3', 'o.level3_id', '=', 'l3.id')
+                ->leftJoin('level2s as l2', 'l3.level2_id', '=', 'l2.id')
+                ->leftJoin('invoice_products as ip', 'o.invoice_product_id', '=', 'ip.id')
+                ->leftJoin('products as p', 'ip.product_id', '=', 'p.id')
+                ->leftJoin('credit_debit_note_items as cdni', 'o.credit_debit_note_item_id', '=', 'cdni.id')
+                ->leftJoin('products as p2', 'cdni.product_id', '=', 'p2.id')
+                ->where('o.season_id', $season_id)
+                ->where('o.team_id', $team_id)
+                ->whereRaw('LOWER(op.name) LIKE ?', ['%inversion%'])
+                ->selectRaw("
+                    COALESCE(inv.id, 0)              as investment_id,
+                    COALESCE(inv.name, 'Sin inversión') as investment_name,
+                    COALESCE(l3.id, 0)               as level3_id,
+                    COALESCE(l3.name, 'Sin clasificar') as level3_name,
+                    COALESCE(l2.name, '')             as level2_name,
+                    COALESCE(p.name, p2.name, 'Sin producto') as product_name,
+                    SUM(CASE
+                        WHEN o.invoice_product_id IS NOT NULL AND ip.id IS NOT NULL THEN o.quantity * ip.unit_price
+                        WHEN o.credit_debit_note_item_id IS NOT NULL AND cdni.id IS NOT NULL THEN o.quantity * cdni.unit_price
+                        ELSE 0
+                    END) as total
+                ")
+                ->groupBy('inv.id', 'inv.name', 'l3.id', 'l3.name', 'l2.name', 'p.name', 'p2.name')
+                ->orderBy('inv.name')
+                ->orderByDesc('total')
+                ->get();
+
+            // Agrupar: investment → level3 → level2 → products
+            $investments = [];
+            foreach ($rows as $row) {
+                $invId  = $row->investment_id;
+                $l3Id   = $row->level3_id;
+                $l2Name = $row->level2_name ?: 'Sin nivel 2';
+
+                if (!isset($investments[$invId])) {
+                    $investments[$invId] = [
+                        'investment_id'   => $invId,
+                        'investment_name' => $row->investment_name,
+                        'total'           => 0,
+                        'level3s'         => [],
+                    ];
+                }
+                if (!isset($investments[$invId]['level3s'][$l3Id])) {
+                    $investments[$invId]['level3s'][$l3Id] = [
+                        'level3_id'   => $l3Id,
+                        'level3_name' => $row->level3_name,
+                        'total'       => 0,
+                        'level2s'     => [],
+                    ];
+                }
+                if (!isset($investments[$invId]['level3s'][$l3Id]['level2s'][$l2Name])) {
+                    $investments[$invId]['level3s'][$l3Id]['level2s'][$l2Name] = [
+                        'level2_name' => $l2Name,
+                        'total'       => 0,
+                        'products'    => [],
+                    ];
+                }
+
+                $amount = (float) $row->total;
+                $investments[$invId]['level3s'][$l3Id]['level2s'][$l2Name]['products'][] = [
+                    'name'  => $row->product_name,
+                    'total' => $amount,
+                ];
+                $investments[$invId]['level3s'][$l3Id]['level2s'][$l2Name]['total'] += $amount;
+                $investments[$invId]['level3s'][$l3Id]['total'] += $amount;
+                $investments[$invId]['total'] += $amount;
+            }
+
+            // Convertir a arrays indexados y ordenar
+            return collect($investments)->map(function ($inv) {
+                $inv['level3s'] = collect($inv['level3s'])->map(function ($l3) {
+                    $l3['level2s'] = collect($l3['level2s'])
+                        ->sortByDesc('total')
+                        ->values()
+                        ->toArray();
+                    return $l3;
+                })->sortByDesc('total')->values()->toArray();
+                return $inv;
+            })->sortByDesc('total')->values()->toArray();
+
+        } catch (\Exception $e) {
+            Log::error('InvestmentDashboard getByLevel3: ' . $e->getMessage());
             return [];
         }
     }

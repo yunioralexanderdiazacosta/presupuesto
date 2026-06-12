@@ -13,8 +13,40 @@ const props = defineProps({
     isAdmin:     { type: Boolean, default: false },
     monthlyComparison: Object,
     investmentDetails: Array,
+    byLevel3: { type: Array, default: () => [] },
     months: Array,
 });
+
+const byLevel3Total = computed(() =>
+    (props.byLevel3 || []).reduce((sum, r) => sum + r.total, 0)
+);
+
+// Expand/collapse tabla inversiones por level3
+const expandedGroups = ref(new Set());
+const toggleInvGroup = (key) => {
+    if (expandedGroups.value.has(key)) {
+        expandedGroups.value.delete(key);
+    } else {
+        expandedGroups.value.add(key);
+    }
+    expandedGroups.value = new Set(expandedGroups.value);
+};
+const expandAllInv = () => {
+    const keys = [];
+    (props.byLevel3 || []).forEach((inv) => {
+        keys.push('inv-' + inv.investment_id);
+        (inv.level3s || []).forEach((l3) => {
+            keys.push('l3-' + inv.investment_id + '-' + l3.level3_id);
+            (l3.level2s || []).forEach((l2) => {
+                keys.push('l2-' + inv.investment_id + '-' + l3.level3_id + '-' + l2.level2_name);
+            });
+        });
+    });
+    expandedGroups.value = new Set(keys);
+};
+const collapseAllInv = () => {
+    expandedGroups.value = new Set();
+};
 
 let monthlyChart = null;
 let comparisonBarChart = null;
@@ -485,19 +517,19 @@ function createComparisonBarChart() {
                                 </ExportExcelButton>
                             </div>
                         </div>
-                        <div class="card-body p-0">
+                        <div class="card-body">
                             <div class="table-responsive">
-                                <table class="table table-sm table-hover table-striped mb-0" style="font-size: 0.8rem;">
-                                    <thead class="table-light">
+                                <table class="table table-hover align-middle mb-0" style="font-size: 0.9rem;">
+                                    <thead class="bg-light">
                                         <tr>
-                                            <th>{{ t.name }}</th>
-                                            <th class="text-center">{{ t.month }}</th>
-                                            <th class="text-center">{{ t.status }}</th>
-                                            <th class="text-end">{{ t.budgeted }}</th>
-                                            <th class="text-end">{{ t.real }}</th>
-                                            <th class="text-end">{{ t.difference }}</th>
-                                            <th class="text-end">{{ t.execution }}</th>
-                                            <th>{{ t.costCenters }}</th>
+                                            <th class="border-0 py-2"><span class="text-uppercase fw-bold">{{ t.name }}</span></th>
+                                            <th class="border-0 py-2 text-center"><span class="text-uppercase fw-bold">{{ t.month }}</span></th>
+                                            <th class="border-0 py-2 text-center"><span class="text-uppercase fw-bold">{{ t.status }}</span></th>
+                                            <th class="border-0 py-2 text-end"><span class="text-uppercase fw-bold">{{ t.budgeted }}</span></th>
+                                            <th class="border-0 py-2 text-end"><span class="text-uppercase fw-bold">{{ t.real }}</span></th>
+                                            <th class="border-0 py-2 text-end"><span class="text-uppercase fw-bold">{{ t.difference }}</span></th>
+                                            <th class="border-0 py-2 text-end"><span class="text-uppercase fw-bold">{{ t.execution }}</span></th>
+                                            <th class="border-0 py-2"><span class="text-uppercase fw-bold">{{ t.costCenters }}</span></th>
                                         </tr>
                                     </thead>
                                     <tbody>
@@ -523,7 +555,7 @@ function createComparisonBarChart() {
                                             <td class="small text-muted">{{ item.cost_centers || '-' }}</td>
                                         </tr>
                                         <!-- Fila de totales -->
-                                        <tr class="table-dark fw-bold">
+                                        <tr class="table-primary fw-bold">
                                             <td colspan="3">TOTAL</td>
                                             <td class="text-end">{{ formatCLP(summary.budgeted_total) }}</td>
                                             <td class="text-end">{{ formatCLP(summary.real_total) }}</td>
@@ -545,6 +577,110 @@ function createComparisonBarChart() {
                 </div>
             </div>
 
+
+        <!-- begin: Tabla por Level3 -->
+        <div class="card my-3">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h6 class="mb-0">
+                    <i class="fas fa-table text-info me-2"></i>Salidas de inversión por Nivel 3
+                </h6>
+                <div class="btn-group btn-group-sm" role="group">
+                    <button type="button" class="btn btn-outline-secondary btn-sm" @click="expandAllInv" v-tooltip="'Expandir todo'">
+                        <i class="fas fa-expand-alt"></i>
+                    </button>
+                    <button type="button" class="btn btn-outline-secondary btn-sm" @click="collapseAllInv" v-tooltip="'Colapsar todo'">
+                        <i class="fas fa-compress-alt"></i>
+                    </button>
+                </div>
+            </div>
+            <div class="card-body">
+                <div v-if="!byLevel3 || byLevel3.length === 0" class="text-center text-muted py-4">
+                    <i class="fas fa-inbox fa-2x mb-2 d-block"></i>Sin salidas de inversión registradas
+                </div>
+                <div v-else class="table-responsive">
+                    <table class="table table-hover align-middle mb-0" style="font-size:0.9rem;">
+                        <thead class="bg-light">
+                            <tr>
+                                <th class="border-0 py-2" style="width:55%;">
+                                    <span class="text-uppercase fw-bold">Inversión / Nivel 3 / Nivel 2 / Producto</span>
+                                </th>
+                                <th class="border-0 py-2 text-end" style="width:30%;">
+                                    <span class="text-uppercase fw-bold">Costo Total</span>
+                                </th>
+                                <th class="border-0 py-2 text-end" style="width:15%;">
+                                    <span class="text-uppercase fw-bold">%</span>
+                                </th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <template v-for="inv in byLevel3" :key="inv.investment_id">
+                                <!-- Nivel 1: Inversión -->
+                                <tr class="table-light" style="cursor:pointer;" @click="toggleInvGroup('inv-' + inv.investment_id)">
+                                    <td class="py-2 fw-bold text-primary">
+                                        <i class="fas me-2" :class="expandedGroups.has('inv-' + inv.investment_id) ? 'fa-chevron-down' : 'fa-chevron-right'"></i>
+                                        {{ inv.investment_name }}
+                                        <small class="text-muted ms-1">({{ inv.level3s.length }})</small>
+                                    </td>
+                                    <td class="py-2 text-end fw-bold text-primary">{{ formatCLP(inv.total) }}</td>
+                                    <td class="py-2 text-end">
+                                        <span class="badge bg-primary">{{ byLevel3Total > 0 ? (inv.total / byLevel3Total * 100).toFixed(1) : '0.0' }}%</span>
+                                    </td>
+                                </tr>
+                                <template v-if="expandedGroups.has('inv-' + inv.investment_id)">
+                                    <!-- Nivel 2: Level3 -->
+                                    <template v-for="l3 in inv.level3s" :key="'l3-' + inv.investment_id + '-' + l3.level3_id">
+                                        <tr style="cursor:pointer;" @click="toggleInvGroup('l3-' + inv.investment_id + '-' + l3.level3_id)">
+                                            <td class="py-2 ps-4 fw-semibold text-dark">
+                                                <i class="fas me-2 text-muted" :class="expandedGroups.has('l3-' + inv.investment_id + '-' + l3.level3_id) ? 'fa-chevron-down' : 'fa-chevron-right'"></i>
+                                                <i class="fas fa-layer-group fa-xs me-1 text-muted"></i>{{ l3.level3_name }}
+                                            </td>
+                                            <td class="py-2 text-end">{{ formatCLP(l3.total) }}</td>
+                                            <td class="py-2 text-end">
+                                                <span class="badge bg-secondary">{{ inv.total > 0 ? (l3.total / inv.total * 100).toFixed(1) : '0.0' }}%</span>
+                                            </td>
+                                        </tr>
+                                        <template v-if="expandedGroups.has('l3-' + inv.investment_id + '-' + l3.level3_id)">
+                                            <!-- Nivel 3: Level2 -->
+                                            <template v-for="l2 in l3.level2s" :key="'l2-' + inv.investment_id + '-' + l3.level3_id + '-' + l2.level2_name">
+                                                <tr style="cursor:pointer;" @click="toggleInvGroup('l2-' + inv.investment_id + '-' + l3.level3_id + '-' + l2.level2_name)">
+                                                    <td class="py-2 ps-5 text-muted">
+                                                        <i class="fas me-2 text-muted" :class="expandedGroups.has('l2-' + inv.investment_id + '-' + l3.level3_id + '-' + l2.level2_name) ? 'fa-chevron-down' : 'fa-chevron-right'"></i>
+                                                        <i class="fas fa-folder fa-xs me-1 text-warning"></i>{{ l2.level2_name }}
+                                                    </td>
+                                                    <td class="py-2 text-end">{{ formatCLP(l2.total) }}</td>
+                                                    <td class="py-2 text-end">
+                                                        <span class="badge bg-secondary" style="opacity:0.7;">{{ l3.total > 0 ? (l2.total / l3.total * 100).toFixed(1) : '0.0' }}%</span>
+                                                    </td>
+                                                </tr>
+                                                <!-- Nivel 4: Producto -->
+                                                <template v-if="expandedGroups.has('l2-' + inv.investment_id + '-' + l3.level3_id + '-' + l2.level2_name)">
+                                                    <tr v-for="prod in l2.products" :key="prod.name">
+                                                        <td class="py-1 text-muted" style="padding-left:4.5rem;">
+                                                            <i class="fas fa-box fa-xs me-2"></i>{{ prod.name }}
+                                                        </td>
+                                                        <td class="py-1 text-end text-muted">{{ formatCLP(prod.total) }}</td>
+                                                        <td class="py-1 text-end text-muted" style="font-size:0.8rem;">
+                                                            {{ l2.total > 0 ? (prod.total / l2.total * 100).toFixed(1) : '0.0' }}%
+                                                        </td>
+                                                    </tr>
+                                                </template>
+                                            </template>
+                                        </template>
+                                    </template>
+                                </template>
+                            </template>
+                            <!-- Fila total -->
+                            <tr class="table-primary fw-bold">
+                                <td class="py-2">TOTAL</td>
+                                <td class="py-2 text-end">{{ formatCLP(byLevel3Total) }}</td>
+                                <td class="py-2 text-end"><span class="badge bg-primary">100%</span></td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+        <!-- end: Tabla por Level3 -->
 
         </div>
     </AppLayout>

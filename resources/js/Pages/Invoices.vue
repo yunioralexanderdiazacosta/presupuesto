@@ -683,11 +683,11 @@ const formatCurrency = (value) => {
                                 <th style="white-space:nowrap;">Fecha</th>
                                 <th style="white-space:nowrap;">Vencimiento</th>
                                 <th style="white-space:nowrap; max-width:200px;">Productos</th>
-                                <th style="white-space:nowrap;">Rendición</th>
-                                <th style="white-space:nowrap;">Digitado por</th>
                                 <th class="text-end" style="white-space:nowrap;">Neto</th>
                                 <th class="text-end" style="white-space:nowrap;">IVA (19%)</th>
                                 <th class="text-end" style="white-space:nowrap;">Total</th>
+                                <th style="white-space:nowrap;">Rendición</th>
+                                <th style="white-space:nowrap;">Digitado por</th>
                                 <!--end::Table row-->
                             </template>
                             <!--end::Table head-->
@@ -792,16 +792,6 @@ invoice, index
                                             </span>
                                             <span v-else class="text-muted">—</span>
                                         </td>
-                                        <td style="white-space:nowrap;">
-                                            <span v-if="invoice.expense_report" class="badge bg-info">
-                                                <i class="fas fa-receipt me-1"></i>{{ invoice.expense_report }}
-                                            </span>
-                                            <span v-else class="text-muted">—</span>
-                                        </td>
-                                        <td style="white-space:nowrap;">
-                                            <span v-if="invoice.user_name" class="text-muted">{{ invoice.user_name }}</span>
-                                            <span v-else class="text-muted">—</span>
-                                        </td>
                                         <td class="text-end" style="white-space:nowrap;">
                                             ${{ fmt(invoice.neto) }}
                                         </td>
@@ -816,6 +806,16 @@ invoice, index
                                                 class="badge bg-soft-warning text-warning ms-1" style="font-size: 0.6rem; cursor: help;">
                                                 <i class="fas fa-receipt fa-xs"></i> NC
                                             </span>
+                                        </td>
+                                        <td style="white-space:nowrap;">
+                                            <span v-if="invoice.expense_report" class="badge bg-info">
+                                                <i class="fas fa-receipt me-1"></i>{{ invoice.expense_report }}
+                                            </span>
+                                            <span v-else class="text-muted">—</span>
+                                        </td>
+                                        <td style="white-space:nowrap;">
+                                            <span v-if="invoice.user_name" class="text-muted">{{ invoice.user_name }}</span>
+                                            <span v-else class="text-muted">—</span>
                                         </td>
                                     </tr>
                                 </template>

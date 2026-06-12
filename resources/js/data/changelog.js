@@ -7,6 +7,19 @@
 
 export const changelog = [
   {
+    fecha: '2026-06-11',
+    titulo: 'Facturas y Dashboard de Inversiones — Mejoras generales',
+    items: [
+      'Al eliminar una factura con salidas registradas, ahora el sistema muestra cuántas salidas tiene y permite eliminarlas todas junto con la factura, con advertencia de que la información no se puede recuperar.',
+      'Al editar una factura, ahora es posible agregar nuevas líneas de productos aunque existan otras líneas del mismo producto con salidas registradas.',
+      'La tabla de facturas ahora carga más rápido: las primeras 100 filas se muestran de inmediato y el botón "Ver más" carga el resto sin bloquear la pantalla.',
+      'Las columnas Rendición y Digitado por se movieron al final de la tabla de facturas.',
+      'Se agregaron índices en la base de datos para las tablas de facturas, salidas y notas de crédito/débito, mejorando la velocidad de carga.',
+      'En el Dashboard de Inversiones se agregó una nueva tabla que muestra el detalle de las salidas de inversión organizadas por Inversión → Nivel 3 → Nivel 2 → Producto, con filas expandibles y botones para expandir/colapsar todo.',
+      'La tabla de detalle por inversión del Dashboard de Inversiones fue rediseñada con un estilo visual más consistente con el resto del sistema.',
+    ]
+  },
+  {
     fecha: '2026-06-10',
     titulo: 'Fertilizantes — Nuevo formulario de ingreso y edición',
     items: [
