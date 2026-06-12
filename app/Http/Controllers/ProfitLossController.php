@@ -26,7 +26,7 @@ class ProfitLossController extends Controller
         }
 
         $adminUser = \App\Models\User::where('team_id', $team_id)->role('Admin')->first();
-        $dollarPrice = $adminUser?->dollar_price ?? 970;
+        $dollarPrice = (float) ($adminUser?->dollar_price ?? 970);
 
         try {
             $fruits = $this->getFruits($season_id, $team_id);

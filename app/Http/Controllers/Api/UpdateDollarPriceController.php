@@ -11,7 +11,7 @@ class UpdateDollarPriceController extends Controller
     public function __invoke(Request $request)
     {
         $request->validate([
-            'dollar_price' => 'required|integer|min:500|max:2000',
+            'dollar_price' => 'required|numeric|min:1',
         ]);
 
         $user = Auth::user();

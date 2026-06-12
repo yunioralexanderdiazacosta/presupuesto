@@ -55,7 +55,8 @@ class User extends Authenticatable
      */
     protected $casts = [
         'email_verified_at' => 'datetime',
-        'status' => 'boolean'
+        'status' => 'boolean',
+        'dollar_price' => 'float',
     ];
 
     /**

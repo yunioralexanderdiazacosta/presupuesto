@@ -42,7 +42,7 @@ class OutflowsDashboardController extends Controller
         $adminUser = \App\Models\User::where('team_id', $team_id)
             ->role('Admin')
             ->first();
-        $dollarPrice = $adminUser?->dollar_price ?? 970;
+        $dollarPrice = (float) ($adminUser?->dollar_price ?? 970);
 
         return Inertia::render('OutflowsDashboard', [
             'dollarPrice'           => $dollarPrice,

@@ -1,5 +1,5 @@
 <script setup>
-import { computed, ref } from 'vue';
+import { computed, ref, watch } from 'vue';
 import { Link, router, Head, usePage, useForm } from '@inertiajs/vue3';
 import Swal from 'sweetalert2';
 import AppLayout from '@/Layouts/AppLayout.vue';
@@ -28,6 +28,15 @@ const openCopy = (season) => {
     if (copyModalRef.value) copyModalRef.value.reset();
     $('#copyBudgetModal').modal('show');
 };
+
+// Copia reactiva local para mutaciones optimísticas (ej. toggle lock)
+const localSeasons = ref(props.seasons.data.map(s => ({ ...s })));
+// Mapa reactivo id→is_locked para reactividad garantizada en el ícono del candado
+const lockedMap = ref(Object.fromEntries(props.seasons.data.map(s => [s.id, s.is_locked])));
+watch(() => props.seasons.data, (newData) => {
+    localSeasons.value = newData.map(s => ({ ...s }));
+    newData.forEach(s => { lockedMap.value[s.id] = s.is_locked; });
+}, { deep: true });
 
 // Lista plana de todas las temporadas para el selector de destino
 const allSeasons = computed(() => props.seasons.data);
@@ -181,16 +190,19 @@ const toggleLock = (season) => {
         confirmButtonText: `Sí, ${action}`,
     }).then((result) => {
         if (result.isConfirmed) {
+            const wasLocked = season.is_locked;
             router.post(route('seasons.toggle-lock', season.id), {}, {
                 preserveScroll: true,
                 onSuccess: () => {
+                    // Refrescar la tabla con datos frescos del servidor
+                    router.reload({ only: ['seasons'], preserveScroll: true });
                     Swal.fire({
-                        icon: season.is_locked ? 'success' : 'info',
-                        title: season.is_locked ? 'Temporada desbloqueada' : 'Temporada bloqueada',
+                        icon: wasLocked ? 'success' : 'info',
+                        title: wasLocked ? 'Temporada desbloqueada' : 'Temporada bloqueada',
                         showConfirmButton: false,
                         timer: 1200,
                     });
-                }
+                },
             });
         }
     });
@@ -270,7 +282,7 @@ const toggleLock = (season) => {
                             <Empty colspan="5" />
                         </template>
                         <template v-else>
-                            <tr v-for="(season, index) in seasons.data" :key="season.id">
+                            <tr v-for="(season, index) in localSeasons" :key="season.id">
                                 <td>{{season.name}}</td>
                                 <td class="text-center">
                                     <span v-if="season.color" class="d-inline-block rounded-circle" :style="{ backgroundColor: season.color, width: '18px', height: '18px' }"></span>
@@ -282,7 +294,7 @@ const toggleLock = (season) => {
                                     </button>
                                 </td>
                                 <td class="text-center">
-                                    <span v-if="season.is_locked" class="badge badge-soft-danger" style="font-size: 0.72rem;">
+                                    <span v-if="lockedMap[season.id]" class="badge badge-soft-danger" style="font-size: 0.72rem;">
                                         <i class="fas fa-lock me-1"></i>Bloqueada
                                     </span>
                                     <span v-else class="badge badge-soft-success" style="font-size: 0.72rem;">
@@ -316,9 +328,10 @@ const toggleLock = (season) => {
                                     </button>
                                     <!--end::Copy Budget-->
                                     <!--begin::Lock-->
-                                    <button type="button" @click="toggleLock(season)" class="btn btn-icon btn-active-light-primary w-30px h-30px me-3" :v-tooltip="season.is_locked ? 'Desbloquear temporada' : 'Bloquear temporada'">
-                                        <span class="svg-icon svg-icon-3">
-                                            <i :class="season.is_locked ? 'fas fa-lock text-danger' : 'fas fa-lock-open text-muted'"></i>
+                                    <button type="button" @click="toggleLock(season)" class="btn btn-icon btn-active-light-primary w-30px h-30px me-3" v-tooltip="lockedMap[season.id] ? 'Desbloquear temporada' : 'Bloquear temporada'">
+                                        <span class="svg-icon svg-icon-3" :key="'lock-' + season.id + '-' + lockedMap[season.id]">
+                                            <i v-if="lockedMap[season.id]" class="fas fa-lock text-danger"></i>
+                                            <i v-else class="fas fa-lock-open text-muted"></i>
                                         </span>
                                     </button>
                                     <!--end::Lock-->
