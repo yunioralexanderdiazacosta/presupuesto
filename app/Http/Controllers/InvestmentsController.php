@@ -13,12 +13,19 @@ class InvestmentsController extends Controller
 {
     public function index()
     {
+        $user = \Illuminate\Support\Facades\Auth::user();
+        $season_id = session('season_id');
+
         $investments = Investment::with(['costCenters', 'season'])->latest()->paginate(20);
         \Log::info('InvestmentsController@index', [
             'total' => $investments->total(),
             'ids' => collect($investments->items())->pluck('id')->toArray(),
         ]);
-        $costCenters = CostCenter::all(['id', 'name']);
+        $costCenters = CostCenter::where('season_id', $season_id)
+            ->whereHas('season', function ($q) use ($user) {
+                $q->where('team_id', $user->team_id);
+            })
+            ->get(['id', 'name']);
         $seasons = Season::all(['id', 'name']);
         $users = User::all(['id', 'name']);
         return Inertia::render('Investments/Index', [

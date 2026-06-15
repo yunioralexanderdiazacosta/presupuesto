@@ -47,7 +47,11 @@ class IndexInvestmentController extends Controller
                 'observations' => $item->observations,
             ];
         });
-        $costCenters = CostCenter::all(['id', 'name']);
+        $costCenters = CostCenter::where('season_id', $season_id)
+            ->whereHas('season', function ($q) use ($user) {
+                $q->where('team_id', $user->team_id);
+            })
+            ->get(['id', 'name']);
         $seasons = Season::where('team_id', $user->team_id)->get(['id', 'name']);
         $users = User::all(['id', 'name']);
         $months = Month::orderBy('id')->pluck('name');
