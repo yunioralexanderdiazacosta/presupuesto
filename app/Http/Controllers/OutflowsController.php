@@ -188,6 +188,7 @@ class OutflowsController extends Controller
 
         // Cargar catálogos para selects
         $projects = \App\Models\Project::where('team_id', $user->team_id)
+            ->where('season_id', $season_id)
             ->get()
             ->map(fn($p) => ['value' => $p->id, 'label' => $p->name]);
         $operations = \App\Models\Operation::all()
