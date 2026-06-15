@@ -894,6 +894,51 @@ watch(selectedGroupings, (newVals) => {
   });
 }, { deep: true });
 
+// Función para copiar el CC de un card a todos los demás
+function copyCCToAllCards(sourceCardId) {
+  const sourceCard = selectedOutflows.value.find(sel => sel.id === sourceCardId);
+
+  if (!sourceCard) return;
+
+  if (!sourceCard.cost_center_ids || sourceCard.cost_center_ids.length === 0) {
+    Swal.fire({
+      icon: 'warning',
+      title: 'Sin centros de costo',
+      text: 'Selecciona al menos un centro de costo antes de copiar.',
+      timer: 2500,
+      showConfirmButton: false
+    });
+    return;
+  }
+
+  const targetCards = selectedOutflows.value.filter(sel => sel.id !== sourceCardId);
+
+  if (targetCards.length === 0) {
+    Swal.fire({
+      icon: 'info',
+      title: 'Información',
+      text: 'No hay otros cards abiertos para copiar el CC.',
+      timer: 2000,
+      showConfirmButton: false
+    });
+    return;
+  }
+
+  targetCards.forEach(card => {
+    card.cost_center_ids = [...sourceCard.cost_center_ids];
+  });
+
+  Swal.fire({
+    icon: 'success',
+    title: '¡CC copiado!',
+    html: `Centro(s) de costo replicados a <strong>${targetCards.length}</strong> card${targetCards.length > 1 ? 's' : ''}`,
+    timer: 2000,
+    showConfirmButton: false,
+    toast: true,
+    position: 'top-end'
+  });
+}
+
 // Función para copiar datos de un card a todos los demás
 function copyToAllCards(sourceCardId) {
   const sourceCard = selectedOutflows.value.find(sel => sel.id === sourceCardId);
@@ -1560,6 +1605,13 @@ function copyToAllCards(sourceCardId) {
 
                           <!-- Botones: Copiar y Cerrar -->
                           <div class="col-12 col-md-12 mt-2 text-end">
+                            <div 
+                              class="copy-icon-wrapper d-inline-flex me-2"
+                              @click="copyCCToAllCards(selected.id)"
+                              title="Copiar centros de costo a todos los cards abiertos"
+                            >
+                              <i class="fas fa-sitemap" style="color: #ffffff;"></i>
+                            </div>
                             <div 
                               class="copy-icon-wrapper d-inline-flex me-2"
                               @click="copyToAllCards(selected.id)"

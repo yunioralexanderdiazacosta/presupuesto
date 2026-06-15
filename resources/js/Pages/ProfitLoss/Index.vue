@@ -51,11 +51,16 @@ const activeDevStateIds = computed(() => {
     return ids;
 });
 
-// ── Toggle moneda (mismo patrón que InvestmentDashboard) ──
-const divisor = ref(props.dollarPrice);
+// ── Toggle moneda (mismo patrón que OutflowsDashboard) ──
+const LS_DIVISOR = 'profitloss_divisor';
+const LS_DIVIDIR = 'profitloss_dividir';
+const _savedDivisor = parseFloat(localStorage.getItem(LS_DIVISOR));
+const divisor = ref(!isNaN(_savedDivisor) ? _savedDivisor : props.dollarPrice);
 const divisorMin = 800;
 const divisorMax = 1300;
-const dividir = ref(true);
+const dividir = ref(localStorage.getItem(LS_DIVIDIR) !== null ? localStorage.getItem(LS_DIVIDIR) === '1' : true);
+watch(divisor, v => localStorage.setItem(LS_DIVISOR, v));
+watch(dividir, v => localStorage.setItem(LS_DIVIDIR, v ? '1' : '0'));
 const savingDollar = ref(false);
 
 const showUSD = computed(() => dividir.value);
@@ -76,10 +81,11 @@ const saveDollarPrice = async () => {
     if (!props.isAdmin) return;
     savingDollar.value = true;
     try {
-        await axios.patch(route('api.dollar-price.update'), { dollar_price: divisor.value });
-        Swal.fire({ icon: 'success', title: 'Precio dólar actualizado', showConfirmButton: false, timer: 1000 });
-    } catch {
-        Swal.fire({ icon: 'error', title: 'Error al guardar' });
+        const response = await axios.patch(route('api.dollar-price.update'), { dollar_price: divisor.value });
+        divisor.value = response.data.dollar_price;
+        Swal.fire({ icon: 'success', title: 'Guardado', text: `Tipo de cambio: $${Number(response.data.dollar_price).toLocaleString('es-CL')}`, timer: 1800, showConfirmButton: false });
+    } catch (e) {
+        Swal.fire({ icon: 'error', title: 'Error al guardar', text: e?.response?.data?.errors?.dollar_price?.[0] || e?.response?.data?.message || 'No se pudo guardar el tipo de cambio.' });
     } finally {
         savingDollar.value = false;
     }
@@ -351,7 +357,11 @@ watch(allRows, () => setupCollapseChevron());
                                     :step="1"
                                     style="width:220px; flex-shrink:0;"
                                 />
-                                <span class="text-muted small ms-1"><b>{{ divisor }}</b></span>
+                                <input type="number" v-model.number="divisor"
+                                       min="1" step="0.0001"
+                                       class="form-control form-control-sm text-end"
+                                       style="width:110px; flex-shrink:0;"
+                                       title="Ingresa el tipo de cambio manualmente (hasta 4 decimales)" />
                                 <button v-if="isAdmin" @click="saveDollarPrice" :disabled="savingDollar"
                                     class="btn btn-sm btn-outline-secondary py-0 px-2"
                                     title="Guardar como valor predeterminado para el equipo">
