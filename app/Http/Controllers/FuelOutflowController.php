@@ -346,16 +346,19 @@ class FuelOutflowController extends Controller
         // Consumo total por maquinaria
         $consumoPorMaquinaria = DB::table('fuel_outflows')
             ->join('machineries', 'fuel_outflows.machinery_id', '=', 'machineries.id')
+            ->leftJoin('branches', 'machineries.branch_id', '=', 'branches.id')
             ->where('fuel_outflows.team_id', $user->team_id)
             ->where('fuel_outflows.season_id', $season_id)
             ->select(
                 'machineries.id as machinery_id',
                 'machineries.cod_machinery as machinery_name',
+                'machineries.branch_id',
+                'branches.name as branch_name',
                 DB::raw('SUM(fuel_outflows.liters) as total_litros'),
                 DB::raw('COUNT(*) as cantidad_registros'),
                 DB::raw('AVG(fuel_outflows.liters) as promedio_litros')
             )
-            ->groupBy('machineries.id', 'machineries.cod_machinery')
+            ->groupBy('machineries.id', 'machineries.cod_machinery', 'machineries.branch_id', 'branches.name')
             ->orderByDesc('total_litros')
             ->get();
 
@@ -401,12 +404,15 @@ class FuelOutflowController extends Controller
         $consumptionAverages = DB::table('fuel_outflows')
             ->join('machineries', 'fuel_outflows.machinery_id', '=', 'machineries.id')
             ->leftJoin('counters', 'fuel_outflows.counter_id', '=', 'counters.id')
+            ->leftJoin('branches', 'machineries.branch_id', '=', 'branches.id')
             ->where('fuel_outflows.team_id', $user->team_id)
             ->where('fuel_outflows.season_id', $season_id)
             ->whereNotNull('fuel_outflows.counter_value')
             ->select(
                 'machineries.id as machinery_id',
                 'machineries.cod_machinery as machinery_name',
+                'machineries.branch_id',
+                'branches.name as branch_name',
                 'counters.id as counter_id',
                 'counters.name as counter_name',
                 DB::raw('SUM(fuel_outflows.liters) as total_liters'),
@@ -414,7 +420,7 @@ class FuelOutflowController extends Controller
                 DB::raw('MIN(fuel_outflows.counter_value) as min_counter'),
                 DB::raw('MAX(fuel_outflows.counter_value) as max_counter')
             )
-            ->groupBy('machineries.id', 'machineries.cod_machinery', 'counters.id', 'counters.name')
+            ->groupBy('machineries.id', 'machineries.cod_machinery', 'machineries.branch_id', 'branches.name', 'counters.id', 'counters.name')
             ->orderByDesc('total_liters')
             ->get();
 
@@ -444,6 +450,8 @@ class FuelOutflowController extends Controller
             return [
                 'machinery_id'     => $row->machinery_id,
                 'machinery_name'   => $row->machinery_name,
+                'branch_id'        => $row->branch_id,
+                'branch_name'      => $row->branch_name,
                 'counter_name'     => $unit,
                 'unit_label'       => $unitLabel,
                 'is_odometer'      => $isKm,

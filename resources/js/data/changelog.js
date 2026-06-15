@@ -8,6 +8,17 @@
 export const changelog = [
   {
     fecha: '2026-06-12',
+    titulo: 'Combustibles — Filtro por sucursal en análisis de consumo',
+    items: [
+      'En el análisis de consumo de combustible, pestaña "Promedios", se agregó un selector de sucursal para filtrar las maquinarias por sucursal asignada.',
+      'En la pestaña "Gráficos", se agregó el mismo filtro: el gráfico de barras y el ranking de maquinarias muestran solo las de la sucursal seleccionada.',
+      'En la pestaña "Stock Disponible", se agregó filtro por sucursal en la sección de estanques, filtrando tanto las cards visuales como la tabla detallada.',
+      'Cada card de maquinaria en "Promedios" y "Gráficos" muestra la sucursal a la que pertenece.',
+      'Los filtros aparecen solo cuando hay elementos de más de una sucursal.',
+    ],
+  },
+  {
+    fecha: '2026-06-12',
     titulo: 'Gestión Diaria — Nuevo reporte "Por Labor"',
     items: [
       'Se agregó una nueva vista "Por Labor" en la sección de Reportes del mes.',

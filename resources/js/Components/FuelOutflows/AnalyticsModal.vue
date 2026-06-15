@@ -46,16 +46,11 @@ async function loadAnalytics() {
 
 // Preparar datos para el gráfico de barras
 const chartLabels = computed(() => {
-    if (!analyticsData.value?.consumo_por_maquinaria) return [];
-    const labels = analyticsData.value.consumo_por_maquinaria.map(m => m.machinery_name);
-    console.log('Chart Labels:', labels);
-    return labels;
+    return filteredConsumoPorMaquinaria.value.map(m => m.machinery_name);
 });
 
 const chartData = computed(() => {
-    if (!analyticsData.value?.consumo_por_maquinaria) return [];
-    const data = analyticsData.value.consumo_por_maquinaria.map(m => parseFloat(m.total_litros));
-    return data;
+    return filteredConsumoPorMaquinaria.value.map(m => parseFloat(m.total_litros));
 });
 
 // Paleta de colores para las barras
@@ -65,14 +60,84 @@ const BAR_COLORS = [
 ];
 
 const chartColors = computed(() => {
-    if (!analyticsData.value?.consumo_por_maquinaria) return [];
-    return analyticsData.value.consumo_por_maquinaria.map((_, i) => BAR_COLORS[i % BAR_COLORS.length]);
+    return filteredConsumoPorMaquinaria.value.map((_, i) => BAR_COLORS[i % BAR_COLORS.length]);
 });
 
-// Total de litros para calcular % por maquinaria
+// Total de litros para calcular % por maquinaria (filtrado)
 const totalLitros = computed(() => {
-    if (!analyticsData.value?.consumo_por_maquinaria) return 0;
-    return analyticsData.value.consumo_por_maquinaria.reduce((sum, m) => sum + parseFloat(m.total_litros), 0);
+    return filteredConsumoPorMaquinaria.value.reduce((sum, m) => sum + parseFloat(m.total_litros), 0);
+});
+
+// Filtro de sucursal en tab Stock Disponible
+const filterBranchStock = ref('');
+
+const availableBranchesStock = computed(() => {
+    if (!analyticsData.value?.stock_por_estanque?.length) return [];
+    const seen = new Set();
+    const result = [];
+    for (const t of analyticsData.value.stock_por_estanque) {
+        if (t.branch_name && !seen.has(t.branch_name)) {
+            seen.add(t.branch_name);
+            result.push({ value: t.branch_name, label: t.branch_name });
+        }
+    }
+    return result;
+});
+
+const filteredStockPorEstanque = computed(() => {
+    if (!analyticsData.value?.stock_por_estanque) return [];
+    if (!filterBranchStock.value) return analyticsData.value.stock_por_estanque;
+    return analyticsData.value.stock_por_estanque.filter(
+        t => t.branch_name === filterBranchStock.value
+    );
+});
+
+// Filtro de sucursal en tab Gráficos
+const filterBranchGraficos = ref('');
+
+const availableBranchesGraficos = computed(() => {
+    if (!analyticsData.value?.consumo_por_maquinaria?.length) return [];
+    const seen = new Set();
+    const result = [];
+    for (const m of analyticsData.value.consumo_por_maquinaria) {
+        if (m.branch_id && !seen.has(m.branch_id)) {
+            seen.add(m.branch_id);
+            result.push({ value: String(m.branch_id), label: m.branch_name });
+        }
+    }
+    return result;
+});
+
+const filteredConsumoPorMaquinaria = computed(() => {
+    if (!analyticsData.value?.consumo_por_maquinaria) return [];
+    if (!filterBranchGraficos.value) return analyticsData.value.consumo_por_maquinaria;
+    return analyticsData.value.consumo_por_maquinaria.filter(
+        m => String(m.branch_id) === filterBranchGraficos.value
+    );
+});
+
+// Filtro de sucursal en tab Promedios
+const filterBranchPromedios = ref('');
+
+const availableBranchesPromedios = computed(() => {
+    if (!analyticsData.value?.consumption_averages?.length) return [];
+    const seen = new Set();
+    const result = [];
+    for (const m of analyticsData.value.consumption_averages) {
+        if (m.branch_id && !seen.has(m.branch_id)) {
+            seen.add(m.branch_id);
+            result.push({ value: String(m.branch_id), label: m.branch_name });
+        }
+    }
+    return result;
+});
+
+const filteredConsumptionAverages = computed(() => {
+    if (!analyticsData.value?.consumption_averages) return [];
+    if (!filterBranchPromedios.value) return analyticsData.value.consumption_averages;
+    return analyticsData.value.consumption_averages.filter(
+        m => String(m.branch_id) === filterBranchPromedios.value
+    );
 });
 
 function closeModal() {
@@ -196,6 +261,16 @@ function closeModal() {
                             <div class="row mb-4">
                                 <div class="col-12">
                                     <h6 class="mb-3"><i class="fas fa-drum me-2 text-warning"></i>Stock por Estanque</h6>
+                                    <div v-if="availableBranchesStock.length > 1" class="mb-3">
+                                        <select v-model="filterBranchStock" class="form-select form-select-sm" style="max-width:220px;">
+                                            <option value="">Todas las sucursales</option>
+                                            <option
+                                                v-for="b in availableBranchesStock"
+                                                :key="b.value"
+                                                :value="b.value"
+                                            >{{ b.label }}</option>
+                                        </select>
+                                    </div>
                                     <div v-if="loadingAnalytics" class="text-center py-3">
                                         <div class="spinner-border spinner-border-sm text-primary" role="status"></div>
                                         <span class="ms-2 text-muted">Cargando...</span>
@@ -205,7 +280,7 @@ function closeModal() {
                                     <div v-else-if="analyticsData?.stock_por_estanque?.length">
                                         <div class="row g-3 mb-4">
                                             <div
-                                                v-for="t in analyticsData.stock_por_estanque"
+                                                v-for="t in filteredStockPorEstanque"
                                                 :key="t.tank_id"
                                                 class="col-12 col-sm"
                                             >
@@ -288,7 +363,7 @@ function closeModal() {
                                                             </tr>
                                                         </thead>
                                                         <tbody>
-                                                            <tr v-for="t in analyticsData.stock_por_estanque" :key="t.tank_id"
+                                                            <tr v-for="t in filteredStockPorEstanque" :key="t.tank_id"
                                                                 :class="{ 'table-danger': t.stock < 0, 'table-success': t.stock > 0 && t.porcentaje >= 50, 'table-warning': t.stock >= 0 && t.porcentaje !== null && t.porcentaje < 50 }">
                                                                 <td><strong>{{ t.tank_name }}</strong></td>
                                                                 <td>{{ t.branch_name ?? '—' }}</td>
@@ -336,7 +411,19 @@ function closeModal() {
                             </div>
 
                             <div v-else-if="analyticsData && chartData.length > 0">
-                                <h6 class="mb-3">Consumo Total por Maquinaria</h6>
+                                <div class="d-flex align-items-center gap-3 mb-3 flex-wrap">
+                                    <h6 class="mb-0 flex-grow-1">Consumo Total por Maquinaria</h6>
+                                    <div v-if="availableBranchesGraficos.length > 1" style="min-width:200px;">
+                                        <select v-model="filterBranchGraficos" class="form-select form-select-sm" @change="chartKey++">
+                                            <option value="">Todas las sucursales</option>
+                                            <option
+                                                v-for="b in availableBranchesGraficos"
+                                                :key="b.value"
+                                                :value="b.value"
+                                            >{{ b.label }}</option>
+                                        </select>
+                                    </div>
+                                </div>
 
                                 <!-- Gráfico de Barras -->
                                 <div class="card mb-4">
@@ -357,7 +444,7 @@ function closeModal() {
                                 <!-- Ranking de Consumo -->
                                 <div class="row g-3">
                                     <div
-                                        v-for="(m, i) in analyticsData.consumo_por_maquinaria"
+                                        v-for="(m, i) in filteredConsumoPorMaquinaria"
                                         :key="m.machinery_id"
                                         class="col-12 col-sm-6 col-md-4"
                                     >
@@ -369,7 +456,10 @@ function closeModal() {
                                                             class="rounded-circle d-flex align-items-center justify-content-center fw-bold"
                                                             :style="{ background: BAR_COLORS[i % BAR_COLORS.length], color: '#fff', width: '28px', height: '28px', fontSize: '0.75rem', flexShrink: 0 }"
                                                         >#{{ i + 1 }}</div>
-                                                        <div class="fw-semibold" style="font-size:0.85rem;">{{ m.machinery_name }}</div>
+                                                        <div>
+                                                            <div class="fw-semibold" style="font-size:0.85rem;">{{ m.machinery_name }}</div>
+                                                            <div v-if="m.branch_name" class="text-muted" style="font-size:0.72rem;">{{ m.branch_name }}</div>
+                                                        </div>
                                                     </div>
                                                     <span class="badge bg-secondary rounded-pill" style="font-size:0.7rem;">{{ m.cantidad_registros }} reg.</span>
                                                 </div>
@@ -408,14 +498,26 @@ function closeModal() {
                             </div>
 
                             <div v-else-if="analyticsData?.consumption_averages?.length">
-                                <p class="text-muted small mb-3">
-                                    <i class="fas fa-info-circle me-1"></i>
-                                    Calculado en base al rango entre la primera y última lectura del contador por maquinaria en esta temporada.
-                                </p>
+                                <div class="d-flex align-items-center gap-3 mb-3 flex-wrap">
+                                    <p class="text-muted small mb-0 flex-grow-1">
+                                        <i class="fas fa-info-circle me-1"></i>
+                                        Calculado en base al rango entre la primera y última lectura del contador por maquinaria en esta temporada.
+                                    </p>
+                                    <div v-if="availableBranchesPromedios.length > 1" style="min-width:200px;">
+                                        <select v-model="filterBranchPromedios" class="form-select form-select-sm">
+                                            <option value="">Todas las sucursales</option>
+                                            <option
+                                                v-for="b in availableBranchesPromedios"
+                                                :key="b.value"
+                                                :value="b.value"
+                                            >{{ b.label }}</option>
+                                        </select>
+                                    </div>
+                                </div>
 
                                 <div class="row g-3">
                                     <div
-                                        v-for="(m, i) in analyticsData.consumption_averages"
+                                        v-for="(m, i) in filteredConsumptionAverages"
                                         :key="m.machinery_id"
                                         class="col-12 col-sm-6 col-md-4"
                                     >
@@ -429,7 +531,9 @@ function closeModal() {
                                                     >#{{ i + 1 }}</div>
                                                     <div>
                                                         <div class="fw-semibold" style="font-size:0.88rem;">{{ m.machinery_name }}</div>
-                                                        <div class="text-muted" style="font-size:0.72rem;">{{ m.counter_name }}</div>
+                                                        <div class="text-muted" style="font-size:0.72rem;">
+                                                            <span v-if="m.branch_name">{{ m.branch_name }} · </span>{{ m.counter_name }}
+                                                        </div>
                                                     </div>
                                                 </div>
 
