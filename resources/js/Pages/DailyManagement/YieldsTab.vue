@@ -501,6 +501,24 @@ function saveLine(empId) {
     const emp = props.employees.find(e => e.id === empId);
     const remaining = (!emp || emp.remaining_workdays === null) ? null : emp.remaining_workdays;
 
+    // Validar jornada > 0 (siempre)
+    if (!newLine.workdays || newLine.workdays <= 0) {
+        Swal.fire({ icon: 'warning', title: 'Jornada requerida', text: 'Debes ingresar una jornada mayor a 0.', timer: 2000, showConfirmButton: false });
+        return;
+    }
+
+    // Validar CC obligatorio para día trabajado y trato (no aplica a ausencias no pagadas)
+    if (!isUnpaidAbsence.value && (!newLine.cost_center_ids || newLine.cost_center_ids.length === 0)) {
+        Swal.fire({ icon: 'warning', title: 'Centro de Costo requerido', text: 'Debes seleccionar al menos un Centro de Costo.', timer: 2000, showConfirmButton: false });
+        return;
+    }
+
+    // Validar monto > 0 para día trabajado y trato
+    if (!isUnpaidAbsence.value && (!newLine.rate || newLine.rate <= 0)) {
+        Swal.fire({ icon: 'warning', title: 'Monto requerido', text: 'El monto debe ser mayor a 0.', timer: 2000, showConfirmButton: false });
+        return;
+    }
+
     if (remaining !== null && remaining >= 0) {
         if (newLine.workdays > remaining) {
             Swal.fire({

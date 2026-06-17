@@ -119,11 +119,21 @@
                                                     {{ row.workdays > 0 ? '$ ' + fmt(Math.round(row.amount / row.workdays)) : '—' }}
                                                 </td>
                                             </tr>
+                                            <!-- Fila de monto sin CC asignado (no distribuido) -->
+                                            <tr v-if="branchUnassigned > 0" style="background:#fff8e1; font-size:0.75rem;">
+                                                <td class="text-muted fst-italic">
+                                                    <i class="fas fa-exclamation-triangle text-warning me-1" style="font-size:0.65rem;" v-tooltip="'Registros sin Centro de Costo asignado'"></i>
+                                                    Sin CC asignado
+                                                </td>
+                                                <td class="text-end text-muted fst-italic">$ {{ fmt(Math.round(branchUnassigned)) }}</td>
+                                                <td class="text-end text-muted">—</td>
+                                                <td class="text-end text-muted">—</td>
+                                            </tr>
                                         </tbody>
                                         <tfoot v-if="currentByBranch.length > 0">
                                             <tr class="fw-bold" style="background:#dce8f0;">
                                                 <td>TOTAL</td>
-                                                <td class="text-end">$ {{ fmt(Math.round(branchTotals.amount)) }}</td>
+                                                <td class="text-end">$ {{ fmt(Math.round(branchUnassigned > 0 ? currentData.amount : branchTotals.amount)) }}</td>
                                                 <td class="text-end">{{ fmtDec(branchTotals.workdays) }}</td>
                                                 <td class="text-end">
                                                     {{ branchTotals.workdays > 0 ? '$ ' + fmt(Math.round(branchTotals.amount / branchTotals.workdays)) : '—' }}
@@ -742,6 +752,14 @@ const branchTotals = computed(() => currentByBranch.value.reduce(
     (acc, r) => ({ amount: acc.amount + r.amount, workdays: acc.workdays + r.workdays }),
     { amount: 0, workdays: 0 }
 ));
+
+// Monto no distribuido a ninguna sucursal (registros sin CC asignado)
+// Solo aplica cuando no hay filtros activos (parcela, RS, sucursal)
+const branchUnassigned = computed(() => {
+    if (selectedParcel.value || selectedRS.value || selectedBranch.value) return 0;
+    const diff = (currentData.value.amount ?? 0) - branchTotals.value.amount;
+    return diff > 0.5 ? diff : 0; // margen de redondeo
+});
 
 const tratoTotals = computed(() => currentByTrato.value.reduce(
     (acc, r) => ({ quantity: acc.quantity + r.quantity, amount: acc.amount + r.amount }),
