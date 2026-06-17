@@ -677,6 +677,7 @@ const formatCurrency = (value) => {
                                 <th style="white-space:nowrap;">Tipo Doc.</th>
                                 <th style="white-space:nowrap;">Mes</th>
                                 <th style="white-space:nowrap; max-width:200px;">Proveedor</th>
+                                <th style="white-space:nowrap;">Sucursal</th>
                                 <th style="white-space:nowrap; max-width:180px;">Razón Social</th>
                                 <th style="white-space:nowrap;">N° Doc</th>
                                 <th style="white-space:nowrap;">Fecha</th>

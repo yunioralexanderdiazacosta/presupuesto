@@ -28,6 +28,7 @@ class InvoicePaymentController extends Controller
         $dateTo        = $request->date_to ?? '';
         $supplierId    = $request->supplier_id ?? '';
         $paymentStatus = $request->payment_status ?? '';
+        $paymentType   = $request->has('payment_type') ? $request->payment_type : '1'; // Default: Crédito
 
         // Query base: Facturas del equipo/temporada con totales calculados via subquery
         // total_neto: suma pura de productos (sin IVA)
@@ -48,7 +49,45 @@ class InvoicePaymentController extends Controller
             })
             ->when($dateFrom, fn($q, $date) => $q->whereDate('invoices.date', '>=', $date))
             ->when($dateTo,   fn($q, $date) => $q->whereDate('invoices.date', '<=', $date))
-            ->when($supplierId, fn($q, $id) => $q->where('invoices.supplier_id', $id));
+            ->when($supplierId, fn($q, $id) => $q->where('invoices.supplier_id', $id))
+            ->when($paymentType !== '', fn($q) => $q->where('invoices.payment_type', $paymentType));
+
+        // Resumen por estado (sin filtro de payment_status para mostrar siempre los totales completos)
+        $summaryBase = Invoice::select(
+                DB::raw("(SELECT COALESCE(SUM(ip.unit_price * ip.amount), 0) FROM invoice_products ip WHERE ip.invoice_id = invoices.id) * CASE WHEN UPPER(td.name) IN ('FACTURA', 'NOTA CREDITO', 'NOTA DEBITO') THEN 1.19 ELSE 1.0 END as total_invoice"),
+                DB::raw('(SELECT COALESCE(SUM(pay.amount), 0) FROM invoice_payments pay WHERE pay.invoice_id = invoices.id) as total_paid')
+            )
+            ->leftJoin('type_documents as td', 'td.id', '=', 'invoices.type_document_id')
+            ->where('invoices.team_id', $user->team_id)
+            ->where('invoices.season_id', $season_id)
+            ->when($term, function ($q, $search) {
+                $q->where(function($q2) use ($search) {
+                    $q2->where('invoices.number_document', 'like', '%'.$search.'%')
+                       ->orWhereHas('supplier', fn($sq) => $sq->where('name', 'like', '%'.$search.'%'));
+                });
+            })
+            ->when($dateFrom, fn($q, $date) => $q->whereDate('invoices.date', '>=', $date))
+            ->when($dateTo,   fn($q, $date) => $q->whereDate('invoices.date', '<=', $date))
+            ->when($supplierId, fn($q, $id) => $q->where('invoices.supplier_id', $id))
+            ->when($paymentType !== '', fn($q) => $q->where('invoices.payment_type', $paymentType));
+
+        $summaryRaw = DB::query()->fromSub($summaryBase, 'sub')->selectRaw("
+            COUNT(*) as total_count,
+            COALESCE(SUM(total_invoice), 0) as total_amount,
+            SUM(CASE WHEN total_paid = 0 THEN 1 ELSE 0 END) as pending_count,
+            COALESCE(SUM(CASE WHEN total_paid = 0 THEN total_invoice ELSE 0 END), 0) as pending_amount,
+            SUM(CASE WHEN total_paid > 0 AND total_paid < total_invoice THEN 1 ELSE 0 END) as partial_count,
+            COALESCE(SUM(CASE WHEN total_paid > 0 AND total_paid < total_invoice THEN (total_invoice - total_paid) ELSE 0 END), 0) as partial_balance,
+            SUM(CASE WHEN total_paid >= total_invoice AND total_invoice > 0 THEN 1 ELSE 0 END) as paid_count,
+            COALESCE(SUM(CASE WHEN total_paid >= total_invoice AND total_invoice > 0 THEN total_paid ELSE 0 END), 0) as paid_amount
+        ")->first();
+
+        $summary = [
+            'total'   => ['count' => (int) $summaryRaw->total_count,   'amount'  => (float) $summaryRaw->total_amount],
+            'pending' => ['count' => (int) $summaryRaw->pending_count,  'amount'  => (float) $summaryRaw->pending_amount],
+            'partial' => ['count' => (int) $summaryRaw->partial_count,  'balance' => (float) $summaryRaw->partial_balance],
+            'paid'    => ['count' => (int) $summaryRaw->paid_count,     'amount'  => (float) $summaryRaw->paid_amount],
+        ];
 
         // Filtro por estado de pago usando HAVING (sobre los subqueries)
         if ($paymentStatus === 'pending') {
@@ -121,12 +160,14 @@ class InvoicePaymentController extends Controller
             'invoices'  => $invoices,
             'banks'     => $banks,
             'suppliers' => $suppliers,
+            'summary'   => $summary,
             'filters'   => [
                 'term'           => $term,
                 'date_from'      => $dateFrom,
                 'date_to'        => $dateTo,
                 'supplier_id'    => $supplierId,
                 'payment_status' => $paymentStatus,
+                'payment_type'   => $paymentType,
             ],
         ]);
     }

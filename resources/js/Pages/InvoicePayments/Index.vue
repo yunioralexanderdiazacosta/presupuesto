@@ -15,6 +15,7 @@ const props = defineProps({
     invoices: Object,
     banks: Array,
     suppliers: Array,
+    summary: Object,
     filters: Object,
 });
 
@@ -25,6 +26,7 @@ const filterDateFrom       = ref(props.filters.date_from || '');
 const filterDateTo         = ref(props.filters.date_to || '');
 const filterSupplierId     = ref(props.filters.supplier_id || null);
 const filterPaymentStatus  = ref(props.filters.payment_status || null);
+const filterPaymentType    = ref(props.filters.payment_type ?? '1'); // Default: Crédito
 const showFilters          = ref(false);
 
 // Filas expandidas (para ver pagos de una factura)
@@ -63,6 +65,7 @@ function search() {
         date_to:        filterDateTo.value,
         supplier_id:    filterSupplierId.value,
         payment_status: filterPaymentStatus.value,
+        payment_type:   filterPaymentType.value,
     }, { preserveState: true, replace: true });
 }
 
@@ -72,6 +75,7 @@ function clearFilters() {
     filterDateTo.value        = '';
     filterSupplierId.value    = null;
     filterPaymentStatus.value = null;
+    filterPaymentType.value   = '1'; // Volver a Crédito por defecto
     search();
 }
 
@@ -172,7 +176,7 @@ const statusLabels = {
             <div class="card-body bg-body-tertiary">
                 <!-- Búsqueda y Filtros -->
                 <div class="row mb-3">
-                    <div class="col-md-8">
+                    <div class="col-md-5">
                         <div class="input-group input-group-sm">
                             <input v-model="term" @keyup.enter="search" type="text" class="form-control"
                                 placeholder="Buscar por número de documento o proveedor...">
@@ -181,11 +185,90 @@ const statusLabels = {
                             </button>
                         </div>
                     </div>
+                    <div class="col-md-3">
+                        <select v-model="filterPaymentType" @change="search" class="form-select form-select-sm">
+                            <option value="">Todos (Crédito + Contado)</option>
+                            <option value="1">Crédito</option>
+                            <option value="2">Contado</option>
+                        </select>
+                    </div>
                     <div class="col-md-4 text-end">
                         <button @click="showFilters = !showFilters" class="btn btn-falcon-default btn-sm">
                             <i class="fas fa-filter me-1"></i>
                             {{ showFilters ? 'Ocultar' : 'Mostrar' }} Filtros
                         </button>
+                    </div>
+                </div>
+
+                <!-- Cards KPI por estado de pago -->
+                <div class="row g-2 mb-3" v-if="summary">
+                    <div class="col-6 col-md-3">
+                        <div
+                            class="card border-0 shadow-sm h-100"
+                            style="cursor:pointer; border-left: 3px solid #6c757d !important;"
+                            :class="filterPaymentStatus === null ? 'bg-soft-secondary' : ''"
+                            @click="filterPaymentStatus = null; search()"
+                        >
+                            <div class="card-body py-2 px-3">
+                                <div class="d-flex justify-content-between align-items-center mb-1">
+                                    <small class="text-muted fw-semibold">Total</small>
+                                    <span class="badge bg-secondary rounded-pill">{{ summary.total.count }}</span>
+                                </div>
+                                <div class="fw-bold fs-9">$ {{ formatCurrency(summary.total.amount) }}</div>
+                                <small class="text-muted" style="font-size:0.7rem;">monto total</small>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-6 col-md-3">
+                        <div
+                            class="card border-0 shadow-sm h-100"
+                            style="cursor:pointer; border-left: 3px solid #dc3545 !important;"
+                            :class="filterPaymentStatus === 'pending' ? 'bg-soft-danger' : ''"
+                            @click="filterPaymentStatus = 'pending'; search()"
+                        >
+                            <div class="card-body py-2 px-3">
+                                <div class="d-flex justify-content-between align-items-center mb-1">
+                                    <small class="text-danger fw-semibold">Pendientes</small>
+                                    <span class="badge bg-danger rounded-pill">{{ summary.pending.count }}</span>
+                                </div>
+                                <div class="fw-bold fs-9 text-danger">$ {{ formatCurrency(summary.pending.amount) }}</div>
+                                <small class="text-muted" style="font-size:0.7rem;">por pagar</small>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-6 col-md-3">
+                        <div
+                            class="card border-0 shadow-sm h-100"
+                            style="cursor:pointer; border-left: 3px solid #fd7e14 !important;"
+                            :class="filterPaymentStatus === 'partial' ? 'bg-soft-warning' : ''"
+                            @click="filterPaymentStatus = 'partial'; search()"
+                        >
+                            <div class="card-body py-2 px-3">
+                                <div class="d-flex justify-content-between align-items-center mb-1">
+                                    <small class="fw-semibold" style="color:#fd7e14;">Parciales</small>
+                                    <span class="badge rounded-pill" style="background:#fd7e14;">{{ summary.partial.count }}</span>
+                                </div>
+                                <div class="fw-bold fs-9" style="color:#fd7e14;">$ {{ formatCurrency(summary.partial.balance) }}</div>
+                                <small class="text-muted" style="font-size:0.7rem;">saldo restante</small>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-6 col-md-3">
+                        <div
+                            class="card border-0 shadow-sm h-100"
+                            style="cursor:pointer; border-left: 3px solid #198754 !important;"
+                            :class="filterPaymentStatus === 'paid' ? 'bg-soft-success' : ''"
+                            @click="filterPaymentStatus = 'paid'; search()"
+                        >
+                            <div class="card-body py-2 px-3">
+                                <div class="d-flex justify-content-between align-items-center mb-1">
+                                    <small class="text-success fw-semibold">Pagadas</small>
+                                    <span class="badge bg-success rounded-pill">{{ summary.paid.count }}</span>
+                                </div>
+                                <div class="fw-bold fs-9 text-success">$ {{ formatCurrency(summary.paid.amount) }}</div>
+                                <small class="text-muted" style="font-size:0.7rem;">pagado</small>
+                            </div>
+                        </div>
                     </div>
                 </div>
 

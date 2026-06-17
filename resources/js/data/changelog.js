@@ -7,6 +7,24 @@
 
 export const changelog = [
   {
+    fecha: '2026-06-17',
+    titulo: 'Facturas — Cards de resumen por estado de pago',
+    items: [
+      'Se agregaron 4 cards informativos en la vista de pagos de facturas: Total, Pendientes, Parciales y Pagadas.',
+      'Cada card muestra la cantidad de facturas y el monto correspondiente a ese estado.',
+      'Los cards son clickeables y filtran la tabla directamente al hacer clic en ellos.',
+    ]
+  },
+  {
+    fecha: '2026-06-17',
+    titulo: 'Facturas — Filtro por forma de pago (Crédito / Contado)',
+    items: [
+      'En el módulo de pagos de facturas, se agregó un selector de forma de pago (Crédito / Contado) visible en la barra principal.',
+      'Por defecto, la tabla muestra solo las facturas de tipo Crédito.',
+      'Se puede cambiar a "Contado" o a "Todos" para ver todas las facturas.',
+    ]
+  },
+  {
     fecha: '2026-06-12',
     titulo: 'Combustibles — Filtro por sucursal en análisis de consumo',
     items: [
