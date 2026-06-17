@@ -511,7 +511,7 @@
                                                     </span>
                                                 </td>
                                                 <td class="text-end">$ {{ fmt(Math.round(parcel.amount)) }}</td>
-                                                <td class="text-end fw-semibold">{{ parcel.percentage }}%</td>
+                                                <td class="text-end fw-semibold">{{ row.total_amount > 0 ? (parcel.amount / row.total_amount * 100).toFixed(1) : '0' }}%</td>
                                                 <td class="text-end text-muted">{{ fmtDec(parcel.workdays) }}</td>
                                             </tr>
                                             <!-- Subtotal del RS expandido -->

@@ -128,7 +128,7 @@ const exceedsQuantity = (item) => {
     <div class="d-flex align-items-center justify-content-between mt-4 ms-3 me-3">
       <h5 class="mb-0">Items</h5>
       <div v-if="type === 'credito' && invoiceTotal > 0" class="text-muted" style="font-size: 0.75rem;">
-        <i class="fas fa-file-invoice me-1"></i>Total factura: <strong>{{ invoiceTotal.toLocaleString('es-CL', { style: 'currency', currency: 'CLP', minimumFractionDigits: 0 }) }}</strong>
+        <i class="fas fa-file-invoice me-1"></i>Total neto factura: <strong>{{ invoiceTotal.toLocaleString('es-CL', { style: 'currency', currency: 'CLP', minimumFractionDigits: 0 }) }}</strong>
       </div>
     </div>
     <table class="table">
@@ -196,19 +196,38 @@ const exceedsQuantity = (item) => {
       </div>
     </div>
 
-    <div class="text-end mt-2 mb-4 me-4">
-      <strong>
-        Total de la nota
-        <span v-if="type === 'credito'">(Crédito)</span>
-        <span v-else-if="type === 'debito'">(Débito)</span>
-        :
-        <span :class="type === 'credito' ? 'text-danger' : 'text-success'">
-          {{ total.toLocaleString('es-CL', { style: 'currency', currency: 'CLP', minimumFractionDigits: 0 }) }}
-        </span>
-        <span v-if="type === 'credito' && invoiceTotal > 0" class="text-muted ms-2" style="font-size: 0.75rem;">
-          ({{ Math.min(100, (Math.abs(total) / invoiceTotal * 100)).toFixed(1) }}% de la factura)
-        </span>
-      </strong>
+    <div class="d-flex justify-content-end mt-2 mb-4 me-4">
+      <table style="font-size: 0.85rem; min-width: 260px;">
+        <tbody>
+          <tr>
+            <td class="text-end pe-3 text-muted">Neto</td>
+            <td class="text-end fw-semibold" :class="type === 'credito' ? 'text-danger' : 'text-success'">
+              {{ Math.abs(total).toLocaleString('es-CL', { style: 'currency', currency: 'CLP', minimumFractionDigits: 0 }) }}
+            </td>
+          </tr>
+          <tr>
+            <td class="text-end pe-3 text-muted">IVA (19%)</td>
+            <td class="text-end fw-semibold" :class="type === 'credito' ? 'text-danger' : 'text-success'">
+              {{ Math.round(Math.abs(total) * 0.19).toLocaleString('es-CL', { style: 'currency', currency: 'CLP', minimumFractionDigits: 0 }) }}
+            </td>
+          </tr>
+          <tr class="border-top">
+            <td class="text-end pe-3 fw-bold pt-1">
+              Total
+              <span v-if="type === 'credito'" class="text-muted fw-normal">(Crédito)</span>
+              <span v-else-if="type === 'debito'" class="text-muted fw-normal">(Débito)</span>
+            </td>
+            <td class="text-end fw-bold pt-1" :class="type === 'credito' ? 'text-danger' : 'text-success'">
+              {{ Math.round(Math.abs(total) * 1.19).toLocaleString('es-CL', { style: 'currency', currency: 'CLP', minimumFractionDigits: 0 }) }}
+            </td>
+          </tr>
+          <tr v-if="type === 'credito' && invoiceTotal > 0">
+            <td colspan="2" class="text-end text-muted" style="font-size: 0.75rem;">
+              ({{ Math.min(100, (Math.abs(total) / invoiceTotal * 100)).toFixed(1) }}% de la factura)
+            </td>
+          </tr>
+        </tbody>
+      </table>
     </div>
   </div>
 </template>
