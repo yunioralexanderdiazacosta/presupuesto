@@ -52,6 +52,7 @@ class TerminationController extends Controller
                 'notas'        => $t->notas,
                 'settlement'   => $t->settlement,
                 'vacation_days'    => $t->vacation_days,
+                'vacation_amount'  => $t->vacation_amount,
                 'indemnification'  => $t->indemnification,
                 'notice_month'     => $t->notice_month,
                 'years_of_service' => $t->years_of_service,
