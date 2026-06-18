@@ -16,6 +16,7 @@ class Termination extends Model
         'notas',
         'settlement',
         'vacation_days',
+        'vacation_amount',
         'indemnification',
         'notice_month',
         'years_of_service',

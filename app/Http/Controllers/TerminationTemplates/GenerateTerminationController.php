@@ -149,6 +149,7 @@ class GenerateTerminationController
         $template->setValue('mes_aviso',          $termination->notice_month !== null ? number_format($termination->notice_month, 0, ',', '.') : '');
         $template->setValue('descuento_afc',      $termination->afc_discount !== null ? number_format($termination->afc_discount, 0, ',', '.') : '');
         $template->setValue('dias_vacaciones',    $termination->vacation_days !== null ? (string) $termination->vacation_days : '');
+        $template->setValue('monto_vacaciones',   $termination->vacation_amount !== null ? number_format($termination->vacation_amount, 0, ',', '.') : '');
         $template->setValue('anos_servicio',      $termination->years_of_service !== null ? (string) $termination->years_of_service : '');
         $template->setValue('notas',              $termination->notas ?? '');
 

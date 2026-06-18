@@ -70,6 +70,7 @@ class TerminationTemplateController extends Controller
             ['field' => '${mes_aviso}',          'description' => 'Mes de aviso (formateado)'],
             ['field' => '${descuento_afc}',      'description' => 'Descuento AFC (formateado)'],
             ['field' => '${dias_vacaciones}',    'description' => 'Días de vacaciones pendientes'],
+            ['field' => '${monto_vacaciones}',   'description' => 'Monto por vacaciones (formateado)'],
             ['field' => '${anos_servicio}',      'description' => 'Años de servicio'],
             ['field' => '${notas}',              'description' => 'Notas del término'],
             // Datos de la empresa

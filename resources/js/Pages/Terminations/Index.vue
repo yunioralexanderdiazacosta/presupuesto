@@ -1,5 +1,5 @@
 <script setup>
-import { ref, computed } from 'vue';
+import { ref, computed, watch } from 'vue';
 import Swal from 'sweetalert2';
 import { router, Head } from '@inertiajs/vue3';
 import AppLayout from '@/Layouts/AppLayout.vue';
@@ -28,6 +28,7 @@ const form = ref({
     notas: '',
     settlement: '',
     vacation_days: '',
+    vacation_amount: '',
     indemnification: '',
     notice_month: '',
     years_of_service: '',
@@ -36,6 +37,15 @@ const form = ref({
 
 const submitting = ref(false);
 const formCollapsed = ref(false);
+
+// Auto-calcular Total finiquito como suma de los 4 campos monetarios
+watch(
+    () => [form.value.vacation_amount, form.value.indemnification, form.value.notice_month, form.value.afc_discount],
+    ([vac, ind, mes, afc]) => {
+        const sum = (Number(vac) || 0) + (Number(ind) || 0) + (Number(mes) || 0) + (Number(afc) || 0);
+        form.value.settlement = sum > 0 ? sum : '';
+    }
+);
 
 const handleSubmit = () => {
     if (!form.value.contract_ids.length) {
@@ -65,7 +75,7 @@ const handleSubmit = () => {
             submitting.value = true;
             router.post(route('terminations.store'), form.value, {
                 onSuccess: () => {
-                    form.value = { contract_ids: [], causal_termino_id: '', fecha_termino: '', notas: '', settlement: '', vacation_days: '', indemnification: '', notice_month: '', years_of_service: '', afc_discount: '' };
+                    form.value = { contract_ids: [], causal_termino_id: '', fecha_termino: '', notas: '', settlement: '', vacation_days: '', vacation_amount: '', indemnification: '', notice_month: '', years_of_service: '', afc_discount: '' };
                     Swal.fire({
                         icon: 'success',
                         title: 'Registrado',
@@ -117,8 +127,9 @@ const excelHeaders = [
     { label: 'Finiquito',       key: 'settlement',       type: 'number' },
     { label: 'Indemnización',   key: 'indemnification',  type: 'number' },
     { label: 'Mes de Aviso',    key: 'notice_month',     type: 'number' },
-    { label: 'Días Vacaciones', key: 'vacation_days',    type: 'number' },
-    { label: 'Años Servicio',   key: 'years_of_service', type: 'number' },
+    { label: 'Días Vacaciones',  key: 'vacation_days',    type: 'number' },
+    { label: '$ Monto Vacaciones', key: 'vacation_amount',  type: 'number' },
+    { label: 'Años Servicio',    key: 'years_of_service', type: 'number' },
     { label: 'Descuento AFC',   key: 'afc_discount',     type: 'number' },
     { label: 'Notas',           key: 'notas' },
     { label: 'Registrado por',  key: 'created_by' },
@@ -135,6 +146,7 @@ const excelData = computed(() =>
         indemnification: t.indemnification != null ? Number(t.indemnification) : '',
         notice_month:    t.notice_month != null ? Number(t.notice_month) : '',
         vacation_days:   t.vacation_days != null ? Number(t.vacation_days) : '',
+        vacation_amount: t.vacation_amount != null ? Number(t.vacation_amount) : '',
         years_of_service: t.years_of_service != null ? Number(t.years_of_service) : '',
         afc_discount:    t.afc_discount != null ? Number(t.afc_discount) : '',
         notas:           t.notas || '',
@@ -248,8 +260,8 @@ const handleAnular = (t) => {
                                     />
                                 </div>
 
-                                <!-- Notas -->
-                                <div class="col-md-8">
+                                <!-- Notas + Años de servicio + Días de vacaciones -->
+                                <div class="col-md-6">
                                     <label class="form-label small fw-semibold">Notas (opcional)</label>
                                     <textarea
                                         v-model="form.notas"
@@ -259,23 +271,6 @@ const handleAnular = (t) => {
                                         placeholder="Observaciones adicionales..."
                                     ></textarea>
                                 </div>
-
-                                <!-- Finiquito -->
-                                <div class="col-md-4">
-                                    <label class="form-label small fw-semibold">Finiquito (opcional)</label>
-                                    <div class="input-group input-group-sm">
-                                        <span class="input-group-text">$</span>
-                                        <input
-                                            v-model="form.settlement"
-                                            type="number"
-                                            min="0"
-                                            class="form-control form-control-sm"
-                                            placeholder="0"
-                                        />
-                                    </div>
-                                </div>
-
-                                <!-- Años de servicio + Vacaciones -->
                                 <div class="col-md-3">
                                     <label class="form-label small fw-semibold">Años de Servicio</label>
                                     <input
@@ -299,7 +294,20 @@ const handleAnular = (t) => {
                                     />
                                 </div>
 
-                                <!-- Indemnización + Mes de aviso + AFC -->
+                                <!-- $ Monto Vacaciones + Indemnización + Mes de aviso + AFC + Finiquito -->
+                                <div class="col-md-2">
+                                    <label class="form-label small fw-semibold">$ Monto Vacaciones</label>
+                                    <div class="input-group input-group-sm">
+                                        <span class="input-group-text">$</span>
+                                        <input
+                                            v-model="form.vacation_amount"
+                                            type="number"
+                                            min="0"
+                                            :class="['form-control form-control-sm', form.vacation_amount !== '' && form.vacation_amount !== null ? 'input-filled' : '']"
+                                            placeholder="0"
+                                        />
+                                    </div>
+                                </div>
                                 <div class="col-md-2">
                                     <label class="form-label small fw-semibold">Indemnización</label>
                                     <div class="input-group input-group-sm">
@@ -308,7 +316,7 @@ const handleAnular = (t) => {
                                             v-model="form.indemnification"
                                             type="number"
                                             min="0"
-                                            class="form-control form-control-sm"
+                                            :class="['form-control form-control-sm', form.indemnification !== '' && form.indemnification !== null ? 'input-filled' : '']"
                                             placeholder="0"
                                         />
                                     </div>
@@ -321,7 +329,7 @@ const handleAnular = (t) => {
                                             v-model="form.notice_month"
                                             type="number"
                                             min="0"
-                                            class="form-control form-control-sm"
+                                            :class="['form-control form-control-sm', form.notice_month !== '' && form.notice_month !== null ? 'input-filled' : '']"
                                             placeholder="0"
                                         />
                                     </div>
@@ -334,7 +342,22 @@ const handleAnular = (t) => {
                                             v-model="form.afc_discount"
                                             type="number"
                                             min="0"
-                                            class="form-control form-control-sm"
+                                            :class="['form-control form-control-sm', form.afc_discount !== '' && form.afc_discount !== null ? 'input-filled' : '']"
+                                            placeholder="0"
+                                        />
+                                    </div>
+                                </div>
+                                <div class="col-md-4">
+                                    <label class="form-label small fw-semibold">$ Total finiquito
+                                        <span class="text-muted fw-normal" style="font-size: 0.7rem;">(se calcula automáticamente)</span>
+                                    </label>
+                                    <div class="input-group input-group-sm">
+                                        <span class="input-group-text">$</span>
+                                        <input
+                                            v-model="form.settlement"
+                                            type="number"
+                                            min="0"
+                                            :class="['form-control form-control-sm', form.settlement !== '' && form.settlement !== null ? 'input-filled' : '']"
                                             placeholder="0"
                                         />
                                     </div>
@@ -397,6 +420,7 @@ const handleAnular = (t) => {
                                         <th class="text-end">Indemnización</th>
                                         <th class="text-end">Mes de Aviso</th>
                                         <th class="text-center">Días Vacaciones</th>
+                                        <th class="text-end">$ Monto Vacaciones</th>
                                         <th class="text-center">Años Servicio</th>
                                         <th class="text-end">Descuento AFC</th>
                                         <th>Notas</th>
@@ -407,7 +431,7 @@ const handleAnular = (t) => {
                                 </thead>
                                 <tbody>
                                     <tr v-if="!filteredTerminations.length">
-                                        <td colspan="14" class="text-center text-muted py-3">No hay registros.</td>
+                                        <td colspan="15" class="text-center text-muted py-3">No hay registros.</td>
                                     </tr>
                                     <tr v-for="t in filteredTerminations" :key="t.id">
                                         <td>{{ t.employee }}</td>
@@ -418,6 +442,7 @@ const handleAnular = (t) => {
                                         <td class="text-end">{{ t.indemnification != null ? '$' + Number(t.indemnification).toLocaleString('es-CL') : '—' }}</td>
                                         <td class="text-end">{{ t.notice_month != null ? '$' + Number(t.notice_month).toLocaleString('es-CL') : '—' }}</td>
                                         <td class="text-center">{{ t.vacation_days ?? '—' }}</td>
+                                        <td class="text-end">{{ t.vacation_amount != null ? '$' + Number(t.vacation_amount).toLocaleString('es-CL') : '—' }}</td>
                                         <td class="text-center">{{ t.years_of_service ?? '—' }}</td>
                                         <td class="text-end">{{ t.afc_discount != null ? '$' + Number(t.afc_discount).toLocaleString('es-CL') : '—' }}</td>
                                         <td>{{ t.notas ?? '—' }}</td>
@@ -444,3 +469,10 @@ const handleAnular = (t) => {
         </div>
     </AppLayout>
 </template>
+
+<style scoped>
+.input-filled {
+    border-color: #4a7055 !important;
+    box-shadow: 0 0 0 0.15rem rgba(74, 112, 85, 0.2) !important;
+}
+</style>
