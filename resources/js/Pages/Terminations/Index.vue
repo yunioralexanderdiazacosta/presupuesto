@@ -42,7 +42,7 @@ const formCollapsed = ref(false);
 watch(
     () => [form.value.vacation_amount, form.value.indemnification, form.value.notice_month, form.value.afc_discount],
     ([vac, ind, mes, afc]) => {
-        const sum = (Number(vac) || 0) + (Number(ind) || 0) + (Number(mes) || 0) + (Number(afc) || 0);
+        const sum = (Number(vac) || 0) + (Number(ind) || 0) + (Number(mes) || 0) - (Number(afc) || 0);
         form.value.settlement = sum > 0 ? sum : '';
     }
 );
