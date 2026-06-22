@@ -1,246 +1,216 @@
-<script setup>
-    import { ref, getCurrentInstance, watch } from 'vue';
-    import { useForm } from '@inertiajs/vue3';
-    import Multiselect from '@vueform/multiselect';
-	import TextInput from '@/Components/TextInput.vue';
-	import InputError from '@/Components/InputError.vue';
-    import CalculateWorkDayModal from '@/Components/ManPowers/CalculateWorkDayModal2.vue';
+﻿<script setup>
+import { ref, watch } from 'vue';
+import { usePage, useForm } from '@inertiajs/vue3';
+import Multiselect from '@vueform/multiselect';
+import InputError from '@/Components/InputError.vue';
+import CalculateWorkDayModal from '@/Components/ManPowers/CalculateWorkDayModal2.vue';
 
-	const valid = ref(false);
- const { appContext } = getCurrentInstance();
-    const page = appContext.config.globalProperties.$page;
+const props = defineProps({ form: Object });
+const page = usePage();
 
-
-    
-// Props de formulario
-    const { form } = defineProps({
-        form: Object
-    });
-    // Agrupación para autocompletar CC
-    const selectedGrouping = ref('');
-    const expandedCC = ref(false);
-    // Watch para llenar form.cc según agrupación
-    watch(selectedGrouping, (newId) => {
-        if (!newId) return;
-        const grouping = page.props.groupings?.find(g => g.id == newId);
-        if (grouping && Array.isArray(grouping.cost_centers)) {
-            form.cc = grouping.cost_centers.map(cc => cc.id);
-        }
-    });
-
-    const formWorkDay = useForm({
-        performance: '',
-        floors: ''
-    });
-
-    const storeWorkDay = () => {
-        onValidated();
-        if(valid.value == true){
-            props.form.workday = (formWorkDay.floors / formWorkDay.performance).toFixed(2).replace(/\.00$/, '');
-            $('#calculateWorkDay2').modal('hide');
-            formWorkDay.reset();
-        }
+// === CC & AGRUPACION ===
+const selectedGrouping = ref('');
+watch(selectedGrouping, (newId) => {
+    if (!newId) return;
+    const grouping = page.props.groupings?.find(g => g.id == newId);
+    if (grouping && Array.isArray(grouping.cost_centers)) {
+        props.form.cc = grouping.cost_centers.map(cc => cc.id);
     }
+});
 
-    const onCalculated = () => {
+// === CALCULADORA JORNADAS ===
+const valid = ref(false);
+const formWorkDay = useForm({ performance: '', floors: '' });
+
+const storeWorkDay = () => {
+    onValidated();
+    if (valid.value) {
+        props.form.workday = (formWorkDay.floors / formWorkDay.performance).toFixed(2).replace(/\.00$/, '');
+        $('#calculateWorkDay2').modal('hide');
         formWorkDay.reset();
-        $('#calculateWorkDay2').modal('show');
     }
+};
 
-    const onValidated = () => {
-        formWorkDay.errors = {};
-        valid.value = true;
-        if(formWorkDay.performance == ""){
-            formWorkDay.errors.performance = 'Este campo es obligatorio';
-            valid.value = false;
-        } if(formWorkDay.floors == ""){
-            formWorkDay.errors.floors = 'Este campo es obligatorio';
-            valid.value = false;
-        }
-    }
+const onCalculated = () => {
+    formWorkDay.reset();
+    $('#calculateWorkDay2').modal('show');
+};
+
+const onValidated = () => {
+    formWorkDay.errors = {};
+    valid.value = true;
+    if (formWorkDay.performance === '') { formWorkDay.errors.performance = 'Este campo es obligatorio'; valid.value = false; }
+    if (formWorkDay.floors === '') { formWorkDay.errors.floors = 'Este campo es obligatorio'; valid.value = false; }
+};
+
+// === MESES ===
+const toggleMonth = (monthValue) => {
+    const idx = props.form.months.indexOf(monthValue);
+    if (idx >= 0) props.form.months.splice(idx, 1);
+    else props.form.months.push(monthValue);
+};
+const selectAllMonths = () => {
+    const all = (page.props.months || []).map(m => m.value);
+    props.form.months = (props.form.months.length === all.length) ? [] : [...all];
+};
+const monthAbbr = (label) => label ? label.substring(0, 3) : '';
 </script>
 <template>
-    <div class="row">
-        <div class="col-lg-6">
-            <div class="fv-row">
-                <div class="d-flex align-items-center justify-content-between">
-                    <label for="cc" class="col-form-label mb-0">CC</label>
-                    <div class="d-flex align-items-center gap-1">
-                        <span v-if="form.cc && form.cc.length > 0" class="badge bg-soft-primary text-primary" style="font-size: 0.7rem;">
-                            {{ form.cc.length }} seleccionados
-                        </span>
-                        <button
-                            v-if="form.cc && form.cc.length > 5"
-                            type="button"
-                            @click="expandedCC = !expandedCC"
-                            class="btn btn-sm btn-light-primary d-flex align-items-center gap-1 py-0 px-2"
-                            style="font-size: 0.7rem;"
-                        >
-                            <i class="fas" :class="expandedCC ? 'fa-compress-alt' : 'fa-expand-alt'" style="font-size: 0.65rem;"></i>
-                            {{ expandedCC ? 'Colapsar' : 'Ver todos' }}
-                        </button>
-                    </div>
-                </div>
-                <Multiselect
-                    mode="tags"
-                    :placeholder="'Seleccione CC'"
-                    v-model="form.cc"
-                    :close-on-select="false"
-                    :options="$page.props.costCenters"
-                    class="multiselect-blue form-control multiselect-tags-limited"
-                    :class="{'is-invalid': form.errors.cc, 'multiselect-tags-expanded': expandedCC}"
-                    :searchable="true"
-                    :hide-selected="false"
-                />
-                <InputError class="mt-2" :message="form.errors.cc" />
-            </div>
+    <!-- Encabezado -->
+    <div class="row g-2 mb-3">
+        <!-- Nivel 3 -->
+        <div class="col-sm-3">
+            <label class="form-label small mb-1">Nivel 3 <span class="text-danger">*</span></label>
+            <Multiselect
+                v-model="form.subfamily_id"
+                :options="$page.props.subfamilies"
+                placeholder="Seleccione nivel 3"
+                :searchable="true"
+                :close-on-select="true"
+                :class="{ 'is-invalid': form.errors.subfamily_id }"
+                class="multiselect-sm"
+            />
+            <InputError :message="form.errors.subfamily_id" />
         </div>
-        <div class="col-lg-6">
-            <div class="fv-row">
-                <label for="families" class="col-form-label">Nivel 3</label>
-                <Multiselect
-                    :placeholder="'Seleccione nivel 3'"
-                    v-model="form.subfamily_id"
-                    :close-on-select="true"
-                    :options="$page.props.subfamilies"
-                    class="multiselect-blue form-control"
-                    :class="{'is-invalid': form.errors.subfamily_id}"
-                    :searchable="true"
-                    :hide-selected="false"
-                />
-                <InputError class="mt-2" :message="form.errors.subfamily_id" />
-            </div>
+        <!-- AgrupaciÃ³n -->
+        <div class="col-sm-3">
+            <label class="form-label small mb-1">AgrupaciÃ³n CC</label>
+            <Multiselect
+                v-model="selectedGrouping"
+                :options="($page.props.groupings || []).map(g => ({ value: g.id, label: g.name }))"
+                placeholder="Seleccione agrupaciÃ³n"
+                :searchable="true"
+                :close-on-select="true"
+                class="multiselect-sm"
+            />
+        </div>
+        <!-- CC -->
+        <div class="col-sm-6">
+            <label class="form-label small mb-1">
+                Centros de Costo <span class="text-danger">*</span>
+                <span v-if="form.cc?.length" class="badge bg-primary ms-1" style="font-size:0.65rem;">{{ form.cc.length }} sel.</span>
+            </label>
+            <Multiselect
+                mode="tags"
+                v-model="form.cc"
+                :options="$page.props.costCenters"
+                placeholder="Seleccione CC"
+                :searchable="true"
+                :close-on-select="false"
+                :class="{ 'is-invalid': form.errors.cc }"
+                class="multiselect-sm"
+            />
+            <InputError :message="form.errors.cc" />
         </div>
     </div>
 
-     <!-- Selector de agrupación con Multiselect -->
-        <div class="row">
-            <label for="grouping" class="col-form-label mb-0">Agrupación</label>
-            <div class="input-group mb-2 ">
-                <span class="input-group-text"><i class="fas fa-object-group"></i></span>
-                <Multiselect
-                    id="grouping"
-                    v-model="selectedGrouping"
-                    :options="page.props.groupings.map(g => ({ value: g.id, label: g.name }))"
-                    :placeholder="'Seleccione agrupación'"
-                    :searchable="true"
-                    :close-on-select="true"
-                    :hide-selected="false"
-                    class="form-control"
-                />
-            </div>
-        </div>
+    <!-- Tabla -->
+    <div class="border rounded" style="overflow:hidden;">
+        <table class="table table-sm table-bordered align-middle mb-0 agro-table w-100">
+            <colgroup>
+                <col style="width:22%;">
+                <col style="width:12%;">
+                <col style="width:10%;">
+                <col>
+                <col style="width:10%;">
+            </colgroup>
+            <thead style="background: linear-gradient(135deg, #6b1a2a 0%, #a0304a 100%); color:#fff; font-size:0.72rem; white-space:nowrap;">
+                <tr>
+                    <th class="text-white px-2 py-1">Nombre del producto</th>
+                    <th class="text-white px-2 py-1">Jornadas/ha</th>
+                    <th class="text-white px-2 py-1">Precio $</th>
+                    <th class="text-white px-2 py-1">Meses</th>
+                    <th class="text-white px-2 py-1">Obs.</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr style="background-color:#faf0f2; border-left:3px solid #a0304a;">
+                    <!-- Nombre -->
+                    <td class="p-1">
+                        <input v-model="form.product_name" type="text"
+                            class="form-control form-control-sm agro-input"
+                            :class="{ 'is-invalid': form.errors.product_name }"
+                            placeholder="Nombre del producto..." autocomplete="off" />
+                        <InputError :message="form.errors.product_name" />
+                    </td>
 
-    <div class="row">
-        <div class="col-lg-4">
-            <div class="fv-row">
-                <label class="col-form-label">Nombre del producto</label>
-                <TextInput
-                    id="product_name"
-                    v-model="form.product_name"
-                    class="form-control form-control-solid"
-                    type="text"
-                    :class="{'is-invalid': form.errors.product_name}"
-                />
-                <InputError class="mt-2" :message="form.errors.product_name" />
-            </div>
-        </div>
-    
-        <div class="col-lg-4">
-            <div class="fv-row">
-                <label class="col-form-label">Jornadas/hectarea</label>
-                <div class="input-group">
-                    <input type="number" id="workday" v-model="form.workday" class="form-control form-control-solid" aria-describedby="jornadas" step="0.00" :class="{'is-invalid': form.errors.workday}">
-                    <button type="button" @click="onCalculated()" id="jornadas" class="btn btn-light text-primary"><i class="fas fa-question-circle" style="font-size: 20px"></i></button>
-                </div>
-                <InputError class="mt-2" :message="form.errors.workday" />
-            </div>
-        </div>
+                    <!-- Jornadas -->
+                    <td class="p-1">
+                        <div class="input-group input-group-sm">
+                            <input type="number" v-model="form.workday" step="0.01"
+                                class="form-control form-control-sm agro-input agro-no-arrows"
+                                :class="{ 'is-invalid': form.errors.workday }" />
+                            <button type="button" @click="onCalculated()"
+                                class="btn btn-outline-secondary px-1"
+                                title="Calcular jornadas"
+                                style="height:26px; line-height:1; padding:0 4px;">
+                                <i class="fas fa-calculator" style="font-size:0.62rem;"></i>
+                            </button>
+                        </div>
+                        <InputError :message="form.errors.workday" />
+                    </td>
 
-        <div class="col-lg-4">
-            <div class="fv-row">
-                <label class="col-form-label">Precio</label>
-                <TextInput
-                    id="price"
-                    v-model="form.price"
-                    class="form-control form-control-solid"
-                    type="number"
-                    :class="{'is-invalid': form.errors.price}"
-                />
-                <InputError class="mt-2" :message="form.errors.price" />
-            </div>
-        </div>
+                    <!-- Precio -->
+                    <td class="p-1">
+                        <input v-model="form.price" type="number"
+                            class="form-control form-control-sm agro-input text-end agro-no-arrows"
+                            :class="{ 'is-invalid': form.errors.price }" />
+                        <InputError :message="form.errors.price" />
+                    </td>
 
+                    <!-- Meses -->
+                    <td class="p-1">
+                        <div class="d-grid gap-1" style="grid-template-columns: 22px repeat(6, 1fr); grid-template-rows: auto auto;">
+                            <button type="button" @click="selectAllMonths()"
+                                class="btn px-0 py-0"
+                                :class="form.months.length === ($page.props.months||[]).length ? 'btn-primary' : 'btn-outline-secondary'"
+                                style="font-size:0.58rem; height:100%; border-radius:3px; grid-row: 1 / 3;" title="Todos">&#10003;&#10003;</button>
+                            <button v-for="m in ($page.props.months || [])" :key="m.value"
+                                type="button" @click="toggleMonth(m.value)"
+                                :class="form.months.some(x => String(x) === String(m.value)) ? 'btn-primary' : 'btn-outline-secondary'"
+                                class="btn px-0 py-0"
+                                style="font-size:0.62rem; height:18px; border-radius:3px; min-width:0;">{{ monthAbbr(m.label) }}</button>
+                        </div>
+                        <small v-if="form.errors.months" class="text-danger d-block" style="font-size:0.65rem;">{{ form.errors.months }}</small>
+                    </td>
+
+                    <!-- Observaciones -->
+                    <td class="p-1">
+                        <input v-model="form.observations" type="text"
+                            class="form-control form-control-sm agro-input" placeholder="..." />
+                        <InputError :message="form.errors.observations" />
+                    </td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+
+    <!-- Modal calculadora jornadas -->
     <CalculateWorkDayModal @store="storeWorkDay" :form="formWorkDay" />
-    </div>
-
-    <div class="fv-row">
-        <label for="months" class="col-form-label">Meses</label><br>
-        <template v-for="value in $page.props.months" :key="value.id">
-            <div class="form-check form-check-solid form-check-inline mb-1">
-                <input class="form-check-input" type="checkbox" v-model="form.months" :id="'kt_month_'+value.id" :value="value.value">
-                <label class="form-check-label ps-2" :for="'kt_month_'+value.id">{{value.label}}</label>
-            </div>
-        </template>
-        <small class="text-danger">{{form.errors.months}}</small>
-    </div>
-
-    <div class="fv-row">
-        <label for="observations" class="col-form-label">Observaciones</label>
-          <div class="input-group mb-2">
-        <span class="input-group-text"><i class="fas fa-comment-dots"></i></span>
-        <textarea v-model="form.observations" rows="2" class="form-control form-control-lg form-control-solid mb-3 mb-lg-0" :class="{'is-invalid': form.errors.observations }" ></textarea>
-         </div>
-        <InputError class="mt-2" :message="form.errors.observations" />
-    </div>
 </template>
+
 <style scoped>
-.multiselect-tags-limited :deep(.multiselect-tags) {
-    max-height: 32px;
-    overflow: hidden;
-    transition: max-height 0.3s ease;
+.agro-no-arrows::-webkit-inner-spin-button,
+.agro-no-arrows::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
+.agro-no-arrows { -moz-appearance: textfield; }
+.agro-input {
+    height: 26px !important;
+    min-height: 26px !important;
+    max-height: 26px !important;
+    padding-top: 2px !important;
+    padding-bottom: 2px !important;
+    font-size: 0.82rem !important;
+    line-height: 22px !important;
 }
-.multiselect-tags-expanded :deep(.multiselect-tags) {
-    max-height: 200px;
-    overflow-y: auto;
-    overflow-x: hidden;
+.agro-table td, .agro-table th {
+    vertical-align: middle;
 }
-.multiselect-tags-expanded :deep(.multiselect-tags)::-webkit-scrollbar {
-    width: 4px;
-}
-.multiselect-tags-expanded :deep(.multiselect-tags)::-webkit-scrollbar-thumb {
-    background-color: rgba(0,0,0,0.2);
-    border-radius: 4px;
-}
-</style>
-<style>
-.multiselect,
-.multiselect__input,
-.multiselect__single {
-  min-height: 32px !important;
-  height: 32px !important;
-  padding-top: 0.375rem !important;
-  padding-bottom: 0.375rem !important;
-  font-size: 1rem;
-}
-
-/* Agrandar la casilla de verificación (checkbox) */
-.form-check-input[type="checkbox"] {
-  width: 1.1em;
-  height: 1.1em;
-}
-
-.multiselect-blue {
-    --ms-bg: var(--kt-input-solid-bg) !important;
-    --ms-border-color: var(--kt-input-solid-bg);
-    --ms-py: 3px !important;
-    --ms-tag-bg: #2c7be5;
-    --ms-tag-color: var(--kt-primary);
-    --ms-option-bg-selected: var(--kt-primary);
-    --ms-option-bg-selected-pointed: var(--kt-primary);
-}
-
-.multiselect-tags-search, .multiselect-search{
-    background: var(--kt-input-solid-bg) !important;
+.multiselect-sm {
+    --ms-py: 2px;
+    --ms-px: 6px;
+    --ms-font-size: 0.82rem;
+    --ms-line-height: 1.4;
+    --ms-min-height: 28px;
+    --ms-tag-font-size: 0.75rem;
 }
 </style>

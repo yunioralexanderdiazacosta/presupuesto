@@ -118,7 +118,7 @@ const removeItem = (index) => props.form.products.splice(index, 1);
                 <col style="width:9%;">
                 <col style="width:52px;">
             </colgroup>
-            <thead style="background: linear-gradient(135deg, #1a6b3c 0%, #2d9e5f 100%); color:#fff; font-size:0.72rem; white-space:nowrap;">
+            <thead style="background: linear-gradient(135deg, #1a3d6b 0%, #2563a8 100%); color:#fff; font-size:0.72rem; white-space:nowrap;">
                 <tr>
                     <th class="text-white px-2 py-1">Producto</th>
                     <th class="text-white px-2 py-1">Dosis</th>
@@ -134,7 +134,7 @@ const removeItem = (index) => props.form.products.splice(index, 1);
                 <tr
                     v-for="(product, index) in props.form.products"
                     :key="index"
-                    :style="{ backgroundColor: index % 2 === 0 ? '#f0faf5' : '#ffffff', borderLeft: '3px solid #2d9e5f' }"
+                    :style="{ backgroundColor: index % 2 === 0 ? '#f0f5fb' : '#ffffff', borderLeft: '3px solid #2563a8' }"
                 >
                     <!-- Producto -->
                     <td class="p-1">

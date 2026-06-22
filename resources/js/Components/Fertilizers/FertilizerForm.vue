@@ -99,7 +99,7 @@ const monthAbbr = (label) => label ? label.substring(0, 3) : '';
                 <col>
                 <col style="width:9%;">
             </colgroup>
-            <thead style="background: linear-gradient(135deg, #1a6b3c 0%, #2d9e5f 100%); color:#fff; font-size:0.72rem; white-space:nowrap;">
+            <thead style="background: linear-gradient(135deg, #1a3d6b 0%, #2563a8 100%); color:#fff; font-size:0.72rem; white-space:nowrap;">
                 <tr>
                     <th class="text-white px-2 py-1">Producto</th>
                     <th class="text-white px-2 py-1">Dosis</th>
@@ -111,7 +111,7 @@ const monthAbbr = (label) => label ? label.substring(0, 3) : '';
                 </tr>
             </thead>
             <tbody>
-                <tr style="background-color: #f0faf5; border-left: 3px solid #2d9e5f;">
+                <tr style="background-color: #f0f5fb; border-left: 3px solid #2563a8;">
                     <!-- Producto -->
                     <td class="p-1">
                         <input v-model="form.product_name" type="text"
