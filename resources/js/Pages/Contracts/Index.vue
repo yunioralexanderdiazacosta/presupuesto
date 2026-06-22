@@ -311,6 +311,7 @@ const excelData = computed(() =>
                     <table class="table table-bordered table-striped table-hover table-sm fs-10 mb-0">
                         <thead class="table-primary">
                             <tr>
+                                <th class="text-center">ID</th>
                                 <th class="text-center">Estado</th>
                                 <th>Colaborador</th>
                                 <th>RUT</th>
@@ -328,6 +329,7 @@ const excelData = computed(() =>
                         </thead>
                         <tbody>
                             <tr v-for="item in filteredRows" :key="item.id">
+                                <td class="text-center fw-semibold">{{ item.id }}</td>
                                 <td class="text-center">
                                     <span :class="item.is_active ? 'badge bg-success' : 'badge bg-secondary'">
                                         {{ item.is_active ? 'Vigente' : 'Finalizado' }}
@@ -367,7 +369,7 @@ const excelData = computed(() =>
                                 </td>
                             </tr>
                             <tr v-if="filteredRows.length === 0">
-                                <td colspan="13" class="text-center text-muted">No hay contratos registrados.</td>
+                                <td colspan="14" class="text-center text-muted">No hay contratos registrados.</td>
                             </tr>
                         </tbody>
                     </table>

@@ -89,7 +89,11 @@ const selectedEmployees = computed(() => {
 
 // Empleados para el select (solo los filtrados por sucursal)
 const employeeOptions = computed(() => {
-    return filteredEmployees.value.map(e => ({ value: e.id, label: e.full_name + ' (' + e.rut + ')' }));
+    return filteredEmployees.value.map(e => ({
+        value: e.id,
+        label: e.full_name + ' (' + e.rut + ')',
+        contract_id: e.contract_id,
+    }));
 });
 
 // Totales filtrados por sucursal
@@ -298,7 +302,21 @@ function exportPdf(mode) {
                     no-results-text="Sin resultados"
                     no-options-text="Sin colaboradores"
                     class="multiselect-sm"
-                />
+                >
+                    <template #option="{ option }">
+                        <span class="me-2">{{ option.label }}</span>
+                        <span class="badge bg-soft-primary text-primary" style="font-size:0.65rem;">#{{ option.contract_id }}</span>
+                    </template>
+                    <template #tag="{ option, handleTagRemove, disabled }">
+                        <div class="multiselect-tag">
+                            {{ option.label }}
+                            <span class="badge bg-soft-primary text-primary ms-1" style="font-size:0.6rem;">#{{ option.contract_id }}</span>
+                            <span v-if="!disabled" class="multiselect-tag-remove" @click.prevent="handleTagRemove(option, $event)">
+                                <span class="multiselect-tag-remove-icon"></span>
+                            </span>
+                        </div>
+                    </template>
+                </Multiselect>
             </div>
             <div class="col-md-3 ms-auto">
                 <label class="form-label small mb-1">Exportar</label>

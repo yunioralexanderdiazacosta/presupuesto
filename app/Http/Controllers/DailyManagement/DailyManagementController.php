@@ -69,6 +69,7 @@ class DailyManagementController extends Controller
         // === EMPLEADOS (con datos de asistencia + tarjas) ===
         // Incluye empleados con contrato activo HOY + empleados cuyo contrato fue
         // terminado DESPUÉS de la fecha consultada (para poder digitar tarjas retroactivas)
+        // + empleados que ya tienen tarjas registradas en esa fecha (para fechas históricas)
         $contractsOnDate = Contract::where('team_id', $user->team_id)
             ->where('contract_date', '<=', $date)
             ->where(function ($q) use ($date) {
@@ -80,26 +81,42 @@ class DailyManagementController extends Controller
             ->pluck('employee_id')
             ->unique();
 
+        // Empleados que ya tienen tarjas en esa fecha (histórico): siempre deben aparecer
+        $employeesWithYieldsOnDate = $allYields->pluck('employee_id')->unique();
+
+        $allEmployeeIds = $contractsOnDate->merge($employeesWithYieldsOnDate)->unique();
+
         $employees = Employee::with(['contracts' => fn($q) => $q->where('team_id', request()->user()->team_id)->with('terminations')->orderByDesc('contract_date')])
             ->where('team_id', $user->team_id)
-            ->whereIn('id', $contractsOnDate)
+            ->whereIn('id', $allEmployeeIds)
             ->orderBy('paternal_surname')
             ->get()
             ->map(function ($e) use ($attendances, $yieldsByEmployee, $maxWorkdayPerDay, $date) {
-                // Contrato vigente en la fecha: activo hoy, O terminado en fecha >= $date
-                // Usar format() para evitar comparación Carbon vs string
-                $contract = $e->contracts
-                    ->filter(function ($c) use ($date) {
-                        if ($c->contract_date->format('Y-m-d') > $date) return false;
-                        if ($c->is_active) return true;
-                        return $c->terminations
-                            ->filter(fn($t) => $t->fecha_termino->format('Y-m-d') >= $date)
-                            ->isNotEmpty();
-                    })
-                    ->sortByDesc(fn($c) => $c->contract_date->format('Y-m-d'))
-                    ->first();
                 $att = $attendances->get($e->id);
                 $empYields = $yieldsByEmployee->get($e->id, collect());
+
+                // Prioridad 1: usar el contract_id guardado en las tarjas del día
+                // (es históricamente preciso: se guardó en el momento de crear la tarja)
+                $contractIdFromYields = $empYields->whereNotNull('contract_id')->first()?->contract_id;
+
+                if ($contractIdFromYields) {
+                    $contract = $e->contracts->firstWhere('id', $contractIdFromYields);
+                } else {
+                    // Prioridad 2: resolver contrato vigente en la fecha (para días sin tarjas)
+                    $contract = $e->contracts
+                        ->filter(function ($c) use ($date) {
+                            if ($c->contract_date->format('Y-m-d') > $date) return false;
+                            if ($c->is_active) return true;
+                            return $c->terminations
+                                ->filter(fn($t) => $t->fecha_termino->format('Y-m-d') >= $date)
+                                ->isNotEmpty();
+                        })
+                        ->sortByDesc(fn($c) => $c->contract_date->format('Y-m-d'))
+                        ->first();
+                }
+
+                $resolvedContractId = $contractIdFromYields ?? $contract?->id;
+
                 $totalWorkdays = $empYields->sum('workdays');
                 $totalAmount = $empYields->sum('amount');
                 $totalBonus = $empYields->sum('bonus_amount');
@@ -109,7 +126,7 @@ class DailyManagementController extends Controller
                     'id' => $e->id,
                     'full_name' => $e->full_name,
                     'rut' => $e->rut,
-                    'contract_id' => $contract?->id,
+                    'contract_id' => $resolvedContractId,
                     'position' => $contract?->position ?? '',
                     'base_salary' => $contract?->base_salary ?? 0,
                     'net_salary' => $contract?->net_salary ?? 0,
@@ -146,7 +163,7 @@ class DailyManagementController extends Controller
                     'yield_count' => $empYields->count(),
                 ];
             })
-            ->filter(fn($e) => $e['contract_id'] !== null) // excluir si no se resolvió contrato vigente
+            ->filter(fn($e) => $e['contract_id'] !== null) // excluir si no hay contrato ni tarjas
             ->values();
 
         // === CENTROS DE COSTO ===
