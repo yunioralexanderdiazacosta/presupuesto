@@ -38,7 +38,7 @@ class InvoicePaymentController extends Controller
             ->selectRaw("(SELECT COALESCE(SUM(ip.unit_price * ip.amount), 0) FROM invoice_products ip WHERE ip.invoice_id = invoices.id) * CASE WHEN UPPER(td.name) IN ('FACTURA', 'NOTA CREDITO', 'NOTA DEBITO') THEN 1.19 ELSE 1.0 END as total_invoice")
             ->selectRaw('(SELECT COALESCE(SUM(pay.amount), 0) FROM invoice_payments pay WHERE pay.invoice_id = invoices.id) as total_paid')
             ->leftJoin('type_documents as td', 'td.id', '=', 'invoices.type_document_id')
-            ->with(['supplier', 'typeDocument', 'payments.bank', 'payments.user'])
+            ->with(['supplier', 'typeDocument', 'companyReason', 'payments.bank', 'payments.user'])
             ->where('invoices.team_id', $user->team_id)
             ->where('invoices.season_id', $season_id)
             ->when($term, function ($q, $search) {
@@ -127,6 +127,7 @@ class InvoicePaymentController extends Controller
                     'supplier'        => $invoice->supplier
                         ? ['id' => $invoice->supplier->id, 'name' => $invoice->supplier->name]
                         : null,
+                    'company_reason'  => $invoice->companyReason?->name,
                     'type_document'   => $invoice->typeDocument?->name,
                     'total_neto'      => $totalNeto,
                     'iva'             => $iva,

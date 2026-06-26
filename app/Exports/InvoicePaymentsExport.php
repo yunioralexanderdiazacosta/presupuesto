@@ -22,7 +22,7 @@ class InvoicePaymentsExport implements FromCollection, WithHeadings, WithMapping
 
     public function collection()
     {
-        return InvoicePayment::with(['invoice.supplier', 'invoice.typeDocument', 'bank', 'user'])
+        return InvoicePayment::with(['invoice.supplier', 'invoice.companyReason', 'invoice.typeDocument', 'bank', 'user'])
             ->where('team_id', $this->team_id)
             ->where('season_id', $this->season_id)
             ->latest('payment_date')
@@ -36,6 +36,7 @@ class InvoicePaymentsExport implements FromCollection, WithHeadings, WithMapping
             'Fecha Pago',
             'Número Factura',
             'Proveedor',
+            'Razón Social',
             'Tipo Documento',
             'Monto',
             'Método Pago',
@@ -60,6 +61,7 @@ class InvoicePaymentsExport implements FromCollection, WithHeadings, WithMapping
             $payment->payment_date ? \Carbon\Carbon::parse($payment->payment_date)->format('d-m-Y') : '',
             $payment->invoice->number_document ?? '',
             $payment->invoice->supplier->name ?? '',
+            $payment->invoice->companyReason->name ?? '',
             $payment->invoice->typeDocument->name ?? '',
             $payment->amount, // Exportar número puro para Excel
             $paymentMethods[$payment->payment_method] ?? '',

@@ -1,5 +1,5 @@
 ﻿<script setup>
-import { ref } from 'vue';
+import { ref, computed } from 'vue';
 import { useSeasonLock } from '@/Composables/useSeasonLock';
 import Swal from 'sweetalert2';
 import { Link, router, Head } from '@inertiajs/vue3';
@@ -140,6 +140,34 @@ const statusLabels = {
     partial: 'Parcial',
     paid:    'Pagada',
 };
+
+const excelHeaders = [
+    { label: 'Fecha',          key: 'fecha' },
+    { label: 'N° Documento',   key: 'number_document' },
+    { label: 'Proveedor',      key: 'supplier' },
+    { label: 'Razón Social',   key: 'company_reason' },
+    { label: 'Tipo Doc.',      key: 'type_document' },
+    { label: 'Total Factura',  key: 'total_invoice',  type: 'number' },
+    { label: 'Total Pagado',   key: 'total_paid',     type: 'number' },
+    { label: 'Saldo',          key: 'balance',        type: 'number' },
+    { label: 'Estado Pago',    key: 'payment_status' },
+    { label: 'Vencimiento',    key: 'due_date' },
+];
+
+const excelData = computed(() =>
+    (props.invoices?.data ?? []).map(invoice => ({
+        fecha:           formatDate(invoice.date),
+        number_document: invoice.number_document,
+        supplier:        invoice.supplier?.name ?? '-',
+        company_reason:  invoice.company_reason ?? '-',
+        type_document:   invoice.type_document ?? '-',
+        total_invoice:   invoice.total_invoice,
+        total_paid:      invoice.total_paid,
+        balance:         invoice.balance,
+        payment_status:  statusLabels[invoice.payment_status] ?? invoice.payment_status,
+        due_date:        formatDate(invoice.due_date),
+    }))
+);
 </script>
 
 <template>
@@ -163,7 +191,7 @@ const statusLabels = {
                                 <span class="fas fa-chart-line" data-fa-transform="shrink-3 down-2"></span>
                                 <span class="d-none d-sm-inline-block ms-1">Dashboard</span>
                             </Link>
-                            <ExportExcelButton :route="route('invoice-payments.excel')" class="btn btn-falcon-default btn-sm" />
+                            <ExportExcelButton :data="excelData" :headers="excelHeaders" filename="facturas.xlsx" class="btn btn-falcon-default btn-sm" />
                             <button @click="openCreateModal()" class="btn btn-falcon-default btn-sm" :disabled="isLocked">
                                 <span class="fas fa-plus" data-fa-transform="shrink-3 down-2"></span>
                                 <span class="d-none d-sm-inline-block ms-1">Registrar Pago</span>
@@ -319,13 +347,14 @@ const statusLabels = {
 
             <div class="card-body bg-body-tertiary">
                 <div class="table-responsive">
-                    <table class="table table-sm table-hover fs-10">
+                    <table id="invoice-payments-table" class="table table-sm table-hover fs-10">
                         <thead class="bg-200 text-900">
                             <tr>
                                 <th style="width:30px;"></th>
                                 <th>Fecha</th>
                                 <th>N° Documento</th>
                                 <th>Proveedor</th>
+                                <th>Razón Social</th>
                                 <th>Tipo Doc.</th>
                                 <th class="text-end">Total Factura</th>
                                 <th class="text-end">Total Pagado</th>
@@ -353,6 +382,7 @@ const statusLabels = {
                                     <td class="text-nowrap">{{ formatDate(invoice.date) }}</td>
                                     <td class="fw-semibold">{{ invoice.number_document }}</td>
                                     <td>{{ invoice.supplier?.name ?? '-' }}</td>
+                                    <td>{{ invoice.company_reason ?? '-' }}</td>
                                     <td>{{ invoice.type_document ?? '-' }}</td>
                                     <td class="text-end text-nowrap">
                                         $ {{ formatCurrency(invoice.total_invoice) }}
@@ -394,7 +424,7 @@ const statusLabels = {
                                 </tr>
 
                                 <!-- Fila expandida: detalle de pagos -->
-                                <tr v-if="expandedRows[invoice.id]" class="bg-100">
+                                <tr v-if="expandedRows[invoice.id]" class="bg-100 no-export">
                                     <td colspan="12" class="p-0">
                                         <div class="px-4 py-2">
                                             <p class="text-muted small mb-2 fw-semibold">

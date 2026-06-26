@@ -7,6 +7,14 @@
 
 export const changelog = [
   {
+    fecha: '2026-06-26',
+    titulo: 'Facturas — Razón Social en tabla y exportación',
+    items: [
+      'Se agregó la columna "Razón Social" en la tabla de facturas, mostrando la empresa que realizó la compra.',
+      'La exportación a Excel también incluye ahora la Razón Social de cada factura.',
+    ]
+  },
+  {
     fecha: '2026-06-17',
     titulo: 'Facturas — Cards de resumen por estado de pago',
     items: [
