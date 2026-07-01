@@ -32,6 +32,11 @@ defineProps({
                 
             </tbody>
             <!--end::Table body-->
+            <!--begin::Table foot-->
+            <tfoot v-if="$slots.footer">
+                <slot name="footer"></slot>
+            </tfoot>
+            <!--end::Table foot-->
         </table>
         <!--end::Table-->
  

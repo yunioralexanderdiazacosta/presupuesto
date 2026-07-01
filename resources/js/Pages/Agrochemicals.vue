@@ -70,6 +70,12 @@ const form = useForm({
 // Buscador global para la tabla de agroquímicos
 const search = ref('');
 
+// Toggle global por columna
+const expandAllMonths = ref(false);
+const expandAllCc = ref(false);
+const MONTH_PREVIEW = 3;
+const CC_PREVIEW = 2;
+
 // Computed para filtrar los agroquímicos según el texto de búsqueda
 const filteredAgrochemicals = computed(() => {
   // Si no hay datos, retorna array vacío para evitar errores
@@ -90,6 +96,14 @@ const filteredAgrochemicals = computed(() => {
       dosetype.includes(term)
     );
   });
+});
+
+const edicionTotals = computed(() => {
+  const items = filteredAgrochemicals.value;
+  return {
+    count: items.length,
+    totalPrice: items.reduce((sum, item) => sum + (Number(item.price) || 0), 0),
+  };
 });
 
 const title = 'Agroquimicos';
@@ -549,6 +563,7 @@ const onFilter = () => {
                             <!--begin::Table head-->
                             <template #header>
                                 <!--begin::Table row-->
+                                <th scope="col" width="min-w-50px">#</th>
                                 <th scope="col" width="min-w-100px">Nombre</th>
                                 <th scope="col" width="min-w-100px">Nivel 3</th>
                                 <th scope="col" width="min-w-100px">Dosis</th>
@@ -556,6 +571,18 @@ const onFilter = () => {
                                 <th scope="col" width="min-w-100px">Tipo Dosis</th>
                                 <th scope="col" width="min-w-100px">Mojamiento</th>
                                 <th scope="col" width="min-w-100px">Precio</th>
+                                <th scope="col" width="min-w-150px" style="white-space:nowrap">
+                                    Meses
+                                    <span @click="expandAllMonths = !expandAllMonths" class="badge ms-1" :class="expandAllMonths ? 'bg-primary' : 'bg-secondary'" style="cursor:pointer;font-size:0.65rem;" v-tooltip="expandAllMonths ? 'Colapsar meses' : 'Expandir meses'">
+                                        {{ expandAllMonths ? '−' : '+' }}
+                                    </span>
+                                </th>
+                                <th scope="col" width="min-w-150px" style="white-space:nowrap">
+                                    Centros de Costo
+                                    <span @click="expandAllCc = !expandAllCc" class="badge ms-1" :class="expandAllCc ? 'bg-primary' : 'bg-secondary'" style="cursor:pointer;font-size:0.65rem;" v-tooltip="expandAllCc ? 'Colapsar CC' : 'Expandir CC'">
+                                        {{ expandAllCc ? '−' : '+' }}
+                                    </span>
+                                </th>
                                 <th scope="col" width="min-w-100px">Digitado por</th>
                                 <th scope="col" width="min-w-150px" class="text-end text-center">Acciones</th>
                                 <!--end::Table row-->
@@ -564,10 +591,11 @@ const onFilter = () => {
                             <!--begin::Table body-->
                             <template #body>
                                 <template v-if="filteredAgrochemicals.length == 0">
-                                    <Empty colspan="8" />
+                                    <Empty colspan="12" />
                                 </template>
                                 <template v-else>
                                     <tr v-for="(agrochemical, index) in filteredAgrochemicals" :key="index">
+                                        <td class="text-muted">{{agrochemical.id}}</td>
                                         <td>
                                             <span class="text-dark  fw-bold mb-1">{{agrochemical.product_name}}</span>
                                         </td>
@@ -576,7 +604,23 @@ const onFilter = () => {
                                         <td>{{agrochemical.unit.name}}</td>
                                         <td>{{agrochemical.dosetype.name}}</td>
                                         <td>{{agrochemical.mojamiento}}</td>
-                                        <td>{{agrochemical.price}}</td>
+                                        <td class="text-center">{{ Number(agrochemical.price).toLocaleString('es-CL') }}</td>
+                                        <td>
+                                            <template v-if="agrochemical.months && agrochemical.months.length">
+                                                {{ (expandAllMonths ? agrochemical.months : agrochemical.months.slice(0, MONTH_PREVIEW))
+                                                    .map(mId => ($page.props.months || []).find(x => String(x.value) === String(mId))?.label || mId)
+                                                    .join(', ') }}<span v-if="!expandAllMonths && agrochemical.months.length > MONTH_PREVIEW" class="text-muted"> …</span>
+                                            </template>
+                                            <span v-else class="text-muted">—</span>
+                                        </td>
+                                        <td>
+                                            <template v-if="agrochemical.cc && agrochemical.cc.length">
+                                                {{ (expandAllCc ? agrochemical.cc : agrochemical.cc.slice(0, CC_PREVIEW))
+                                                    .map(ccId => (props.costCenters.find(c => String(c.value) === String(ccId)) || {}).label || ccId)
+                                                    .join(', ') }}<span v-if="!expandAllCc && agrochemical.cc.length > CC_PREVIEW" class="text-muted"> …</span>
+                                            </template>
+                                            <span v-else class="text-muted">—</span>
+                                        </td>
                                         <td>{{ agrochemical.user ? agrochemical.user.name : '—' }}</td>
                                         <td class="text-end text-center">
                                             <!--begin::Update-->
@@ -594,6 +638,14 @@ const onFilter = () => {
                                 </template>
                             </template>
                             <!--end::Table body-->
+                            <template #footer>
+                                <tr class="fw-bold table-light">
+                                    <td colspan="2" class="text-end text-muted" style="font-size:0.8rem;">{{ edicionTotals.count }} registro{{ edicionTotals.count !== 1 ? 's' : '' }}</td>
+                                    <td colspan="5"></td>
+                                    <td style="text-align:center !important;">{{ edicionTotals.totalPrice.toLocaleString('es-ES') }}</td>
+                                    <td colspan="4"></td>
+                                </tr>
+                            </template>
                         </Table>
                       </div>
                     </div>
