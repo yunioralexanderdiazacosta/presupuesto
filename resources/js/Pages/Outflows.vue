@@ -1741,7 +1741,7 @@ function copyToAllCards(sourceCardId) {
                       ><i class="fas fa-times me-1"></i>{{ Object.keys(selectedMatrizRows).length }} selecc.</button>
                     </div>
                     <div style="max-height: 520px; overflow: auto;">
-                      <table class="table table-bordered table-striped table-hover table-sm mb-0" style="font-size:0.7rem; min-width: max-content;">
+                      <table class="table table-bordered table-hover table-sm mb-0" style="font-size:0.7rem; min-width: max-content;">
                         <thead class="table-primary" style="position: sticky; top: 0; z-index: 10;">
                           <tr>
                             <!-- Columnas fijas -->
@@ -1934,7 +1934,7 @@ function copyToAllCards(sourceCardId) {
                       ><i class="fas fa-times me-1"></i>{{ Object.keys(selectedMatrizHaRows).length }} selecc.</button>
                     </div>
                     <div style="max-height: 520px; overflow: auto;">
-                      <table class="table table-bordered table-striped table-hover table-sm mb-0" style="font-size:0.7rem; min-width: max-content;">
+                      <table class="table table-bordered table-hover table-sm mb-0" style="font-size:0.7rem; min-width: max-content;">
                         <thead class="table-success" style="position: sticky; top: 0; z-index: 10;">
                           <tr>
                             <th style="white-space:nowrap;">ID</th>
