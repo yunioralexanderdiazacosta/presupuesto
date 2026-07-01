@@ -176,7 +176,7 @@ public $totalHarvest = 0;
 
         $manPowers = ManPower::with('subfamily:id,name', 'items:id', 'user:id,name')->whereHas('items', function($query) use ($costCenters){
             $query->whereIn('cost_center_id', $costCenters->pluck('value'));
-        })->paginate(10)->through(function($manPower){
+        })->orderBy('id')->paginate(10)->through(function($manPower){
             $items = $manPower->items->pluck('pivot');
             $months = array_column($items->toArray(), 'month_id');
             $cc = array_column($items->toArray(), 'cost_center_id');

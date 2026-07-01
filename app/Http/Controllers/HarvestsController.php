@@ -199,7 +199,7 @@ class HarvestsController extends Controller
 
         $harvests = Harvest::with('subfamily:id,name', 'unit:id,name', 'unit2:id,name', 'items:id', 'user:id,name')->whereHas('items', function($query) use ($costCenters){
             $query->whereIn('cost_center_id', $costCenters->pluck('value'));
-        })->paginate(10)->through(function($harvest){
+        })->orderBy('id')->paginate(10)->through(function($harvest){
             $items = $harvest->items->pluck('pivot');
             $months = array_column($items->toArray(), 'month_id');
             $cc = array_column($items->toArray(), 'cost_center_id');

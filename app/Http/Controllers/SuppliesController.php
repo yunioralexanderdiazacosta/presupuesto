@@ -177,6 +177,7 @@ class SuppliesController extends Controller
             ->whereHas('items', function($query) use ($costCenters){
                 $query->whereIn('cost_center_id', $costCenters->pluck('value'));
             })
+            ->orderBy('id')
             ->paginate(10)
             ->through(function($supply){
                 $items = $supply->items->pluck('pivot');

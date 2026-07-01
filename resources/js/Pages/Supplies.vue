@@ -89,6 +89,20 @@ const filteredSupplies = computed(() => {
   });
 });
 
+const edicionTotals = computed(() => {
+  const items = filteredSupplies.value;
+  return {
+    count: items.length,
+    totalPrice: items.reduce((sum, item) => sum + (Number(item.price) || 0), 0),
+  };
+});
+
+// Toggle global por columna (Edición tab)
+const expandAllMonths = ref(false);
+const expandAllCc = ref(false);
+const MONTH_PREVIEW = 3;
+const CC_PREVIEW = 2;
+
 // Filtra los cost centers por fruit_id y variedad_id para la pestaña Detalles
 // Además, asegura que cc.total esté correctamente calculado para el rowspan
 const filteredData = computed(() => {
@@ -506,12 +520,25 @@ const excelDataResumen = computed(() => {
                             <!--begin::Table head-->
                             <template #header>
                                 <!--begin::Table row-->
+                                <th width="min-w-50px">#</th>
                                 <th width="min-w-100px">Nombre</th>
                                 <th width="min-w-100px">SubFamilia</th>
                                 <th width="min-w-100px">Cantidad</th>
                                 <th width="min-w-100px">Unidad</th>
                                 <th width="min-w-100px">Precio</th>
                                 <th width="min-w-100px">Unidad de $</th>
+                                <th width="min-w-150px" style="white-space:nowrap">
+                                    Meses
+                                    <span @click="expandAllMonths = !expandAllMonths" class="badge ms-1" :class="expandAllMonths ? 'bg-primary' : 'bg-secondary'" style="cursor:pointer;font-size:0.65rem;" v-tooltip="expandAllMonths ? 'Colapsar meses' : 'Expandir meses'">
+                                        {{ expandAllMonths ? '−' : '+' }}
+                                    </span>
+                                </th>
+                                <th width="min-w-150px" style="white-space:nowrap">
+                                    Centros de Costo
+                                    <span @click="expandAllCc = !expandAllCc" class="badge ms-1" :class="expandAllCc ? 'bg-primary' : 'bg-secondary'" style="cursor:pointer;font-size:0.65rem;" v-tooltip="expandAllCc ? 'Colapsar CC' : 'Expandir CC'">
+                                        {{ expandAllCc ? '−' : '+' }}
+                                    </span>
+                                </th>
                                 <th width="min-w-100px">Digitado por</th>
                                 <th width="min-w-150px" class="text-end text-center">Acciones</th>
                                 <!--end::Table row-->
@@ -520,18 +547,35 @@ const excelDataResumen = computed(() => {
                             <!--begin::Table body-->
                             <template #body>
                                 <template v-if="filteredSupplies.length === 0">
-                                    <Empty colspan="7" />
+                                    <Empty colspan="11" />
                                 </template>
                                 <template v-else>
                                     <tr v-for="(supply, index) in filteredSupplies" :key="index">
+                                        <td class="text-muted">{{supply.id}}</td>
                                         <td>
                                             <span class="text-dark  fw-bold mb-1">{{supply.product_name}}</span>
                                         </td>
                                         <td>{{supply.subfamily.name}}</td>
                                         <td>{{supply.quantity}}</td>
                                         <td>{{supply.unit.name}}</td>
-                                        <td>{{supply.price}}</td>
+                                        <td class="text-center">{{ Number(supply.price).toLocaleString('es-CL') }}</td>
                                         <td>{{supply.unit2.name}}</td>
+                                        <td>
+                                            <template v-if="supply.months && supply.months.length">
+                                                {{ (expandAllMonths ? supply.months : supply.months.slice(0, MONTH_PREVIEW))
+                                                    .map(mId => ($page.props.months || []).find(x => String(x.value) === String(mId))?.label || mId)
+                                                    .join(', ') }}<span v-if="!expandAllMonths && supply.months.length > MONTH_PREVIEW" class="text-muted"> …</span>
+                                            </template>
+                                            <span v-else class="text-muted">—</span>
+                                        </td>
+                                        <td>
+                                            <template v-if="supply.cc && supply.cc.length">
+                                                {{ (expandAllCc ? supply.cc : supply.cc.slice(0, CC_PREVIEW))
+                                                    .map(ccId => (props.costCenters.find(c => String(c.value) === String(ccId)) || {}).label || ccId)
+                                                    .join(', ') }}<span v-if="!expandAllCc && supply.cc.length > CC_PREVIEW" class="text-muted"> …</span>
+                                            </template>
+                                            <span v-else class="text-muted">—</span>
+                                        </td>
                                         <td>{{ supply.user ? supply.user.name : '—' }}</td>
                                         <td class="text-end text-center">
                                             <!--begin::Update-->
@@ -549,6 +593,14 @@ const excelDataResumen = computed(() => {
                                 </template>
                             </template>
                             <!--end::Table body-->
+                            <template #footer>
+                                <tr class="fw-bold table-light">
+                                    <td colspan="2" class="text-end text-muted" style="font-size:0.8rem;">{{ edicionTotals.count }} registro{{ edicionTotals.count !== 1 ? 's' : '' }}</td>
+                                    <td colspan="3"></td>
+                                    <td style="text-align:center !important;">{{ edicionTotals.totalPrice.toLocaleString('es-CL') }}</td>
+                                    <td colspan="5"></td>
+                                </tr>
+                            </template>
                         </Table>
                         </div>
                     </div>

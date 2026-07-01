@@ -182,7 +182,7 @@ public $totalHarvest = 0;
 
         $services = Service::with('subfamily:id,name', 'unit:id,name', 'unit2:id,name', 'items:id', 'user:id,name')->whereHas('items', function($query) use ($costCenters){
             $query->whereIn('cost_center_id', $costCenters->pluck('value'));
-        })->paginate(10)->through(function($service){
+        })->orderBy('id')->paginate(10)->through(function($service){
             $items = $service->items->pluck('pivot');
             $months = array_column($items->toArray(), 'month_id');
             $cc = array_column($items->toArray(), 'cost_center_id');
