@@ -523,10 +523,15 @@ const onFilter = () => {
                 <div class="tab-content border p-3 mt-3" id="pill-myTabContent">
                     <div class="tab-pane fade show active" id="pill-tab-edicion" role="tabpanel" aria-labelledby="edicion-tab">
                         <div class="d-flex justify-content-between align-items-center gap-1 mb-1">
-                          <SearchInput
-                            v-model="search"
-                            placeholder="Buscar por nombre, nivel 2, unidad, tipo dosis..."
-                          />
+                          <div class="d-flex align-items-center gap-2">
+                            <span class="badge bg-light text-dark border px-2 py-1" style="font-size:0.8rem;white-space:nowrap;" v-tooltip="'Total calculado: cantidad × precio unitario × superficie de los centros de costo seleccionados'">
+                              <span class="text-muted me-1">Total:</span><strong>{{ totalFilteredData }}</strong>
+                            </span>
+                            <SearchInput
+                              v-model="search"
+                              placeholder="Buscar por nombre, nivel 2, unidad, tipo dosis..."
+                            />
+                          </div>
                           <div class="d-flex align-items-center gap-1">
                             <ExportExcelButton
                               :data="agrochemicals.data"

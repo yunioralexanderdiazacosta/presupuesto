@@ -483,10 +483,15 @@ const excelDataResumen = computed(() => {
                 <div class="tab-pane fade show active" id="pill-tab-edicion" role="tabpanel" aria-labelledby="edicion-tab">
                     <!-- Buscador global y botones de exportación -->
                     <div class="d-flex justify-content-between align-items-center gap-1 mb-1">
-                      <SearchInput
-                        v-model="search"
-                        placeholder="Buscar por nombre, subfamilia, unidad..."
-                      />
+                      <div class="d-flex align-items-center gap-2">
+                        <span class="badge bg-light text-dark border px-2 py-1" style="font-size:0.8rem;white-space:nowrap;" v-tooltip="'Total calculado: cantidad × precio unitario × superficie de los centros de costo seleccionados'">
+                          <span class="text-muted me-1">Total:</span><strong>{{ totalFilteredData }}</strong>
+                        </span>
+                        <SearchInput
+                          v-model="search"
+                          placeholder="Buscar por nombre, subfamilia, unidad..."
+                        />
+                      </div>
                       <div class="d-flex align-items-center gap-1">
                         <ExportExcelButton
                           :data="harvests.data"

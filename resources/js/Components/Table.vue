@@ -57,10 +57,22 @@ thead.sticky-header {
   z-index: 10;
 }
 
-thead.sticky-header th {
+thead.sticky-header :deep(th) {
   background-color: #f8f9fa !important;
   border-bottom: 2px solid #dee2e6;
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+/* Sticky tfoot */
+tfoot {
+  position: sticky;
+  bottom: 0;
+  z-index: 9;
+}
+
+tfoot :deep(td) {
+  background-color: #f8f9fa !important;
+  border-top: 2px solid #dee2e6;
 }
 
 </style>
