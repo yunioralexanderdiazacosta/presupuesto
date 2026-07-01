@@ -7,6 +7,27 @@
 
 export const changelog = [
   {
+    fecha: '2026-06-30',
+    titulo: 'Presupuesto — Mejoras en tabla de edición (6 módulos)',
+    items: [
+      'En los módulos de Agroquímicos, Fertilizantes, Mano de Obra, Insumos, Servicios y Cosecha: la tabla de edición ahora muestra el número de registro (#) para identificar y ordenar cada fila.',
+      'Se agregó la columna "Meses" mostrando los meses asignados a cada producto. Si son muchos, se truncan y se pueden expandir todos con un botón en el encabezado de la columna.',
+      'Se agregó la columna "Centros de Costo" con el mismo comportamiento de expansión desde el encabezado.',
+      'El precio unitario ahora se muestra con separador de miles y centrado.',
+      'Se agregó una fila de totales al pie de la tabla con el conteo de registros visibles y la suma de precios unitarios.',
+      'Se agregó el monto total del presupuesto junto al buscador, con un tooltip explicando cómo se calcula.',
+      'El encabezado de la tabla ya no se vuelve transparente al hacer scroll; ahora mantiene un fondo sólido.',
+      'La fila de totales al pie de la tabla permanece siempre visible al hacer scroll.',
+    ]
+  },
+  {
+    fecha: '2026-06-30',
+    titulo: 'Salidas — Resaltado de fila en Matriz de Consumo',
+    items: [
+      'En la tabla "Matriz de Consumo", al hacer clic en una fila se resalta en amarillo para facilitar su seguimiento horizontal en tablas anchas. Hacer clic nuevamente la deselecciona.',
+    ]
+  },
+  {
     fecha: '2026-06-26',
     titulo: 'Facturas — Razón Social en tabla y exportación',
     items: [

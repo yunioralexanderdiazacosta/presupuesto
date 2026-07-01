@@ -73,6 +73,9 @@ const filterLevel1 = ref(null);
 const filterLevel2 = ref(null);
 const filterLevel3 = ref(null);
 const filterProject = ref(null);
+
+// Fila seleccionada en Matriz de Consumo
+const selectedMatrizRow = ref(null);
 const filterBranchEdicion = ref(null);
 
 // Opciones únicas extraídas de los datos ya cargados
@@ -1752,7 +1755,11 @@ function copyToAllCards(sourceCardId) {
                           <tr v-if="!sortedOutflowDetails.length">
                             <td :colspan="18 + ccColumns.length" class="text-center py-3 text-muted">No hay salidas registradas.</td>
                           </tr>
-                          <tr v-for="outflow in pagedOutflowDetails" :key="outflow.id">
+                          <tr v-for="outflow in pagedOutflowDetails" :key="outflow.id"
+                            @click="selectedMatrizRow = selectedMatrizRow === outflow.id ? null : outflow.id"
+                            :class="{ 'matriz-row-selected': selectedMatrizRow === outflow.id }"
+                            style="cursor:pointer;"
+                          >
                             <td>{{ outflow.id }}</td>
                             <td style="white-space:nowrap;">{{ outflow.date }}</td>
                             <td style="white-space:nowrap;">{{ outflow.number_document }}</td>
@@ -2023,6 +2030,13 @@ function copyToAllCards(sourceCardId) {
 
 
 <style>
+/* Fila seleccionada en Matriz de Consumo */
+.matriz-row-selected td {
+    background-color: #fff3cd !important;
+    border-top: 1px solid #ffc107 !important;
+    border-bottom: 1px solid #ffc107 !important;
+}
+
 .multiselect-blue {
     min-height: 26px !important;
     height: 26px !important;
