@@ -74,8 +74,21 @@ const filterLevel2 = ref(null);
 const filterLevel3 = ref(null);
 const filterProject = ref(null);
 
-// Fila seleccionada en Matriz de Consumo
-const selectedMatrizRow = ref(null);
+// Filas seleccionadas en Matriz de Consumo (selección múltiple)
+const selectedMatrizRows = ref({});
+const toggleMatrizRow = (id) => {
+  const s = { ...selectedMatrizRows.value };
+  s[id] ? delete s[id] : (s[id] = true);
+  selectedMatrizRows.value = s;
+};
+
+// Filas seleccionadas en Matriz de Consumo por Hectárea (selección múltiple)
+const selectedMatrizHaRows = ref({});
+const toggleMatrizHaRow = (id) => {
+  const s = { ...selectedMatrizHaRows.value };
+  s[id] ? delete s[id] : (s[id] = true);
+  selectedMatrizHaRows.value = s;
+};
 const filterBranchEdicion = ref(null);
 
 // Opciones únicas extraídas de los datos ya cargados
@@ -1718,6 +1731,14 @@ function copyToAllCards(sourceCardId) {
                         <i class="fas fa-file-excel me-1"></i> Excel
                       </ExportExcelButton>
                       <small class="text-muted ms-auto">{{ sortedOutflowDetails.length }} registros</small>
+                      <button
+                        v-if="Object.keys(selectedMatrizRows).length"
+                        type="button"
+                        class="btn btn-sm btn-warning py-0 px-2"
+                        @click="selectedMatrizRows = {}"
+                        style="font-size:0.75rem;"
+                        v-tooltip="'Limpiar filas seleccionadas'"
+                      ><i class="fas fa-times me-1"></i>{{ Object.keys(selectedMatrizRows).length }} selecc.</button>
                     </div>
                     <div style="max-height: 520px; overflow: auto;">
                       <table class="table table-bordered table-striped table-hover table-sm mb-0" style="font-size:0.7rem; min-width: max-content;">
@@ -1756,8 +1777,8 @@ function copyToAllCards(sourceCardId) {
                             <td :colspan="18 + ccColumns.length" class="text-center py-3 text-muted">No hay salidas registradas.</td>
                           </tr>
                           <tr v-for="outflow in pagedOutflowDetails" :key="outflow.id"
-                            @click="selectedMatrizRow = selectedMatrizRow === outflow.id ? null : outflow.id"
-                            :class="{ 'matriz-row-selected': selectedMatrizRow === outflow.id }"
+                            @click="toggleMatrizRow(outflow.id)"
+                            :class="{ 'matriz-row-selected': selectedMatrizRows[outflow.id] }"
                             style="cursor:pointer;"
                           >
                             <td>{{ outflow.id }}</td>
@@ -1903,6 +1924,14 @@ function copyToAllCards(sourceCardId) {
                         <i class="fas fa-file-excel me-1"></i> Excel
                       </ExportExcelButton>
                       <small class="text-muted ms-auto">{{ sortedOutflowDetails.length }} registros</small>
+                      <button
+                        v-if="Object.keys(selectedMatrizHaRows).length"
+                        type="button"
+                        class="btn btn-sm btn-warning py-0 px-2"
+                        @click="selectedMatrizHaRows = {}"
+                        style="font-size:0.75rem;"
+                        v-tooltip="'Limpiar filas seleccionadas'"
+                      ><i class="fas fa-times me-1"></i>{{ Object.keys(selectedMatrizHaRows).length }} selecc.</button>
                     </div>
                     <div style="max-height: 520px; overflow: auto;">
                       <table class="table table-bordered table-striped table-hover table-sm mb-0" style="font-size:0.7rem; min-width: max-content;">
@@ -1938,7 +1967,11 @@ function copyToAllCards(sourceCardId) {
                           <tr v-if="!sortedOutflowDetails.length">
                             <td :colspan="18 + ccColumns.length" class="text-center py-3 text-muted">No hay salidas registradas.</td>
                           </tr>
-                          <tr v-for="outflow in pagedOutflowDetails" :key="outflow.id">
+                          <tr v-for="outflow in pagedOutflowDetails" :key="outflow.id"
+                            @click="toggleMatrizHaRow(outflow.id)"
+                            :class="{ 'matriz-row-selected': selectedMatrizHaRows[outflow.id] }"
+                            style="cursor:pointer;"
+                          >
                             <td>{{ outflow.id }}</td>
                             <td style="white-space:nowrap;">{{ outflow.date }}</td>
                             <td style="white-space:nowrap;">{{ outflow.number_document }}</td>
