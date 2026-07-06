@@ -438,7 +438,35 @@ class FuelOutflowController extends Controller
             ->select('a.machinery_id', 'a.liters as last_liters')
             ->pluck('last_liters', 'machinery_id');
 
-        $consumptionAverages = $consumptionAverages->map(function ($row) use ($lastReadingLiters) {
+        // Monto total gastado por maquinaria: SUM(litros * precio_unitario_factura)
+        // Se consulta sin filtro de counter_value para incluir todos los registros.
+        $totalCostPerMachinery = DB::table('fuel_outflows')
+            ->leftJoin('invoice_products', 'fuel_outflows.invoice_product_id', '=', 'invoice_products.id')
+            ->where('fuel_outflows.team_id', (int) $user->team_id)
+            ->where('fuel_outflows.season_id', (int) $season_id)
+            ->select(
+                'fuel_outflows.machinery_id',
+                DB::raw('SUM(fuel_outflows.liters * COALESCE(invoice_products.unit_price, 0)) as total_cost')
+            )
+            ->groupBy('fuel_outflows.machinery_id')
+            ->pluck('total_cost', 'machinery_id');
+
+        // Costo del ÚLTIMO registro de contador por maquinaria (se excluye igual que last_liters)
+        $lastCostPerMachinery = DB::table('fuel_outflows as a')
+            ->join(
+                DB::raw('(SELECT machinery_id, MAX(counter_value) as max_cv FROM fuel_outflows WHERE team_id = ' . (int)$user->team_id . ' AND season_id = ' . (int)$season_id . ' AND counter_value IS NOT NULL GROUP BY machinery_id) as b'),
+                function ($join) {
+                    $join->on('a.machinery_id', '=', 'b.machinery_id')
+                         ->on('a.counter_value', '=', 'b.max_cv');
+                }
+            )
+            ->leftJoin('invoice_products', 'a.invoice_product_id', '=', 'invoice_products.id')
+            ->where('a.team_id', $user->team_id)
+            ->where('a.season_id', $season_id)
+            ->select('a.machinery_id', DB::raw('a.liters * COALESCE(invoice_products.unit_price, 0) as last_cost'))
+            ->pluck('last_cost', 'machinery_id');
+
+        $consumptionAverages = $consumptionAverages->map(function ($row) use ($lastReadingLiters, $totalCostPerMachinery, $lastCostPerMachinery) {
             $totalLiters     = (float) $row->total_liters;
             $lastLiters      = (float) ($lastReadingLiters[$row->machinery_id] ?? 0);
             $effectiveLiters = max(0, $totalLiters - $lastLiters);
@@ -446,6 +474,9 @@ class FuelOutflowController extends Controller
             $unit            = $row->counter_name ?? '—';
             $isKm            = str_contains(strtolower($unit), 'odom') || str_contains(strtolower($unit), 'km');
             $unitLabel       = $isKm ? 'km/L' : 'L/h';
+            $totalCost       = (float) ($totalCostPerMachinery[$row->machinery_id] ?? 0);
+            $lastCost        = (float) ($lastCostPerMachinery[$row->machinery_id] ?? 0);
+            $effectiveCost   = max(0, $totalCost - $lastCost);
 
             return [
                 'machinery_id'     => $row->machinery_id,
@@ -462,6 +493,7 @@ class FuelOutflowController extends Controller
                 'counter_delta'    => round($counterDelta, 1),
                 'min_counter'      => round((float) $row->min_counter, 1),
                 'max_counter'      => round((float) $row->max_counter, 1),
+                'total_cost'       => round($effectiveCost, 0),
                 // Para odómetro: km/L (mayor es mejor). Para horómetro: L/h.
                 'avg_per_unit'     => ($counterDelta > 0 && $effectiveLiters > 0 && (int)$row->record_count >= 2)
                                         ? ($isKm

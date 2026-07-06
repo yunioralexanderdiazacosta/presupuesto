@@ -11,7 +11,7 @@ import AnalyticsModal from '@/Components/FuelOutflows/AnalyticsModal.vue';
 
 // Función para mostrar detalles de centros de costo adicionales
 function showMoreCenters(centers) {
-    const items = centers.slice(2).map(cc => {
+    const items = centers.slice(3).map(cc => {
         return `<li><strong>${cc.name}</strong>${cc.observations ? ' - ' + cc.observations : ''}</li>`;
     }).join('');
     Swal.fire({
@@ -241,23 +241,12 @@ function deleteFuelOutflow(id) {
                         <td>{{ item.date }}</td>
                         <td>{{ item.machinery?.cod_machinery || '-' }}</td>
                         <td>{{ item.operator?.name || '-' }}</td>
-                        <!-- ...existing code... -->
-                                                <td>
-                                                    <ul class="mb-0 ps-3">
-                                                        <li v-for="cc in (item.costCenters || []).slice(0,2)" :key="cc.name">
-                                                            <span class="fw-bold">{{ cc.name }}</span>
-                                                            <span v-if="cc.observations"> - {{ cc.observations }}</span>
-                                                        </li>
-                                                        <li v-if="!item.costCenters || !item.costCenters.length">
-                                                            <span class="text-muted">-</span>
-                                                        </li>
-                                                        <li v-if="(item.costCenters || []).length > 2">
-                                                            <a href="#" class="text-primary small text-decoration-underline" @click.prevent="showMoreCenters(item.costCenters)">
-                                                                +{{ item.costCenters.length - 2 }} más
-                                                            </a>
-                                                        </li>
-                                                    </ul>
-                                                </td>
+                        <td>
+                            <span v-if="item.costCenters && item.costCenters.length">
+                                {{ item.costCenters.slice(0, 3).map(cc => cc.name).join(', ') }}<template v-if="item.costCenters.length > 3">, <a href="#" class="text-primary small" @click.prevent="showMoreCenters(item.costCenters)">+{{ item.costCenters.length - 3 }} más</a></template>
+                            </span>
+                            <span v-else class="text-muted">-</span>
+                        </td>
                         <td>{{ item.product?.name || '-' }}</td>
                         <td>{{ item.liters }}</td>
                         <td>{{ item.counter?.name || '-' }}</td>

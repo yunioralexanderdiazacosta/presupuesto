@@ -140,6 +140,79 @@ const filteredConsumptionAverages = computed(() => {
     );
 });
 
+function printPromedios() {
+    const rows = filteredConsumptionAverages.value;
+    if (!rows.length) return;
+
+    const fmtN = (n, dec = 0) => Number(n).toLocaleString('es-CL', { minimumFractionDigits: dec, maximumFractionDigits: dec });
+    const fmtM = (n) => n > 0 ? '$' + Number(n).toLocaleString('es-CL', { maximumFractionDigits: 0 }) : '—';
+
+    const tableRows = rows.map(m => {
+        const precioLitro = (m.total_cost > 0 && m.effective_liters > 0)
+            ? '$' + Math.round(m.total_cost / m.effective_liters).toLocaleString('es-CL')
+            : '—';
+        const avgLabel = m.avg_per_unit !== null
+            ? fmtN(m.avg_per_unit, 3) + ' ' + m.unit_label
+            : 'Sin datos';
+        return `<tr>
+            <td>${m.machinery_name}</td>
+            <td>${m.branch_name || '—'}</td>
+            <td>${m.counter_name}</td>
+            <td class="num">${fmtN(m.effective_liters, 1)} L</td>
+            <td class="num">${fmtM(m.total_cost)}</td>
+            <td class="num">${precioLitro}</td>
+            <td class="num">${avgLabel}</td>
+            <td class="num">${fmtN(m.counter_delta, 1)}</td>
+            <td class="num">${m.record_count}</td>
+        </tr>`;
+    }).join('');
+
+    const html = `<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<title>Promedios de Consumo — Combustible</title>
+<style>
+  body { font-family: Arial, sans-serif; font-size: 12px; color: #222; margin: 20px; }
+  h2 { font-size: 15px; margin-bottom: 4px; }
+  p.sub { font-size: 11px; color: #666; margin-bottom: 14px; }
+  table { width: 100%; border-collapse: collapse; }
+  th { background: #1a3a5c; color: #fff; padding: 6px 8px; text-align: left; font-size: 11px; }
+  td { padding: 5px 8px; border-bottom: 1px solid #e0e0e0; font-size: 11px; }
+  tr:nth-child(even) td { background: #f5f8fc; }
+  .num { text-align: right; }
+  @media print { body { margin: 10px; } @page { size: landscape; } }
+</style>
+</head>
+<body>
+<h2>Promedios de Consumo de Combustible por Maquinaria</h2>
+<p class="sub">Calculado en base al rango entre la primera y última lectura del contador por maquinaria en esta temporada.</p>
+<table>
+  <thead>
+    <tr>
+      <th>Maquinaria</th>
+      <th>Sucursal</th>
+      <th>Contador</th>
+      <th class="num">Litros consumidos</th>
+      <th class="num">Monto gastado</th>
+      <th class="num">Precio prom./litro</th>
+      <th class="num">Consumo promedio</th>
+      <th class="num">Total unidades</th>
+      <th class="num">Registros</th>
+    </tr>
+  </thead>
+  <tbody>${tableRows}</tbody>
+</table>
+</body>
+</html>`;
+
+    const win = window.open('', '_blank');
+    win.document.write(html);
+    win.document.close();
+    win.focus();
+    win.print();
+}
+
 function closeModal() {
     emit('close');
 }
@@ -513,6 +586,14 @@ function closeModal() {
                                             >{{ b.label }}</option>
                                         </select>
                                     </div>
+                                    <button
+                                        type="button"
+                                        class="btn btn-sm btn-falcon-default"
+                                        @click="printPromedios"
+                                        title="Imprimir tabla de promedios"
+                                    >
+                                        <i class="fas fa-print me-1"></i> Imprimir
+                                    </button>
                                 </div>
 
                                 <div class="row g-3">
@@ -552,6 +633,16 @@ function closeModal() {
                                                     <div class="d-flex justify-content-between border-bottom pb-1 mb-1">
                                                         <span class="text-muted">Litros consumidos</span>
                                                         <strong>{{ m.effective_liters.toLocaleString('es-CL', { minimumFractionDigits: 1 }) }} L</strong>
+                                                    </div>
+                                                    <div class="d-flex justify-content-between border-bottom pb-1 mb-1">
+                                                        <span class="text-muted">Monto gastado</span>
+                                                        <strong :style="{ color: BAR_COLORS[i % BAR_COLORS.length] }">
+                                                            ${{ m.total_cost > 0 ? m.total_cost.toLocaleString('es-CL', { maximumFractionDigits: 0 }) : '—' }}
+                                                        </strong>
+                                                    </div>
+                                                    <div v-if="m.total_cost > 0 && m.effective_liters > 0" class="d-flex justify-content-between border-bottom pb-1 mb-1">
+                                                        <span class="text-muted">Precio prom./litro</span>
+                                                        <span>${{ Math.round(m.total_cost / m.effective_liters).toLocaleString('es-CL') }}</span>
                                                     </div>
                                                     <div class="d-flex justify-content-between border-bottom pb-1 mb-1">
                                                         <span class="text-muted">Último llenado (excluido)</span>

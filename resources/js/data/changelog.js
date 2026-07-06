@@ -7,6 +7,14 @@
 
 export const changelog = [
   {
+    fecha: '2026-07-06',
+    titulo: 'Combustible — Monto gastado por maquinaria en análisis de promedios',
+    items: [
+      'En la pestaña "Promedios" del análisis de consumo de combustible, cada maquinaria ahora muestra el monto total gastado en dinero (pesos), calculado en base al precio unitario de cada factura desde la que se consumió el combustible.',
+      'También se muestra el precio promedio por litro, calculado dividiendo el monto total entre los litros efectivamente consumidos.',
+    ]
+  },
+  {
     fecha: '2026-06-30',
     titulo: 'Presupuesto — Mejoras en tabla de edición (6 módulos)',
     items: [
