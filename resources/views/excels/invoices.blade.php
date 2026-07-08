@@ -4,6 +4,7 @@
             <th><b>Proveedor</b></th>
             <th><b>Número de Documento</b></th>
             <th><b>Razón Social</b></th>
+            <th><b>Mes</b></th>
             <th><b>Fecha</b></th>
             <th><b>Fecha Vencimiento</b></th>
             <th><b>Total</b></th>
@@ -15,6 +16,7 @@
             <td>{{ $invoice['supplier']['name'] }}</td>
             <td>{{ $invoice['number_document'] }}</td>
             <td>{{ $invoice['companyReason']['name'] }}</td>
+            <td>{{ $invoice['month'] }}</td>
             <td>{{ $invoice['date'] }}</td>
             <td>{{ $invoice['due_date'] }}</td>
             <td>{{ $invoice['total'] }}</td>

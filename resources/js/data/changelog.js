@@ -7,6 +7,13 @@
 
 export const changelog = [
   {
+    fecha: '2026-07-08',
+    titulo: 'Facturas — Columna Mes en exportación Excel',
+    items: [
+      'Se agregó la columna "Mes" (mes contable) al Excel descargable desde el listado de facturas.',
+    ]
+  },
+  {
     fecha: '2026-07-06',
     titulo: 'Combustible — Monto gastado por maquinaria en análisis de promedios',
     items: [

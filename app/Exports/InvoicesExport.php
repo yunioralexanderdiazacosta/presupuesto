@@ -22,7 +22,7 @@ class InvoicesExport implements FromView, ShouldAutoSize
         $user = Auth::user();
         $season_id = session('season_id');
 
-        $invoices = Invoice::with('supplier', 'companyReason')
+        $invoices = Invoice::with('supplier', 'companyReason', 'month')
         ->where('team_id', $user->team_id)
         ->where('season_id', $season_id)
         ->when($this->term, function ($query) {
@@ -45,6 +45,7 @@ class InvoicesExport implements FromView, ShouldAutoSize
                 'supplier'          => $invoice->supplier,
                 'companyReason'     => $invoice->companyReason,
                 'number_document'   => $invoice->number_document,
+                'month'             => $invoice->month ? $invoice->month->name : null,
                 'total'             => $this->get_total($invoice)
             ];
         }); 
