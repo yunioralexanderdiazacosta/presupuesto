@@ -23,7 +23,7 @@ class ConsolidatedDocumentsController extends Controller
             5 => 'Mayo', 6 => 'Junio', 7 => 'Julio', 8 => 'Agosto',
             9 => 'Septiembre', 10 => 'Octubre', 11 => 'Noviembre', 12 => 'Diciembre'
         ];
-        $invoices = Invoice::with(['supplier', 'companyReason', 'typeDocument', 'invoiceProducts.branch'])
+        $invoices = Invoice::with(['supplier', 'companyReason', 'typeDocument', 'invoiceProducts.branch', 'month'])
             ->where('team_id', $user->team_id)
             ->where('season_id', $season_id)
             ->get()
@@ -55,7 +55,7 @@ class ConsolidatedDocumentsController extends Controller
                 return [
                     'tipo' => $tipo_doc,
                     'razon_social' => $invoice->companyReason->name ?? '',
-                    'mes_contable' => $mes_texto,
+                    'mes_contable' => $invoice->month ? $invoice->month->name : $mes_texto,
                     'fecha' => date('d-m-Y', strtotime($invoice->date)),
                     'proveedor' => $invoice->supplier->name ?? '',
                     'n_doc' => $invoice->number_document,
