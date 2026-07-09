@@ -142,32 +142,62 @@ const statusLabels = {
 };
 
 const excelHeaders = [
-    { label: 'Fecha',          key: 'fecha' },
+    { label: 'Fecha Factura',  key: 'fecha' },
     { label: 'N° Documento',   key: 'number_document' },
     { label: 'Proveedor',      key: 'supplier' },
+    { label: 'RUT Proveedor',  key: 'supplier_rut' },
     { label: 'Razón Social',   key: 'company_reason' },
     { label: 'Tipo Doc.',      key: 'type_document' },
     { label: 'Total Factura',  key: 'total_invoice',  type: 'number' },
-    { label: 'Total Pagado',   key: 'total_paid',     type: 'number' },
     { label: 'Saldo',          key: 'balance',        type: 'number' },
     { label: 'Estado Pago',    key: 'payment_status' },
     { label: 'Vencimiento',    key: 'due_date' },
+    { label: 'Fecha Pago',     key: 'payment_date' },
+    { label: 'Monto Pagado',   key: 'payment_amount', type: 'number' },
+    { label: 'Banco',          key: 'bank' },
+    { label: 'Método Pago',    key: 'payment_method' },
+    { label: 'N° Transacción', key: 'transaction_number' },
 ];
 
-const excelData = computed(() =>
-    (props.invoices?.data ?? []).map(invoice => ({
-        fecha:           formatDate(invoice.date),
-        number_document: invoice.number_document,
-        supplier:        invoice.supplier?.name ?? '-',
-        company_reason:  invoice.company_reason ?? '-',
-        type_document:   invoice.type_document ?? '-',
-        total_invoice:   invoice.total_invoice,
-        total_paid:      invoice.total_paid,
-        balance:         invoice.balance,
-        payment_status:  statusLabels[invoice.payment_status] ?? invoice.payment_status,
-        due_date:        formatDate(invoice.due_date),
-    }))
-);
+const excelData = computed(() => {
+    const rows = [];
+    for (const invoice of (props.invoices?.data ?? [])) {
+        const base = {
+            fecha:            formatDate(invoice.date),
+            number_document:  invoice.number_document,
+            supplier:         invoice.supplier?.name ?? '-',
+            supplier_rut:     invoice.supplier?.rut ?? '-',
+            company_reason:   invoice.company_reason ?? '-',
+            type_document:    invoice.type_document ?? '-',
+            total_invoice:    invoice.total_invoice,
+            balance:          invoice.balance,
+            payment_status:   statusLabels[invoice.payment_status] ?? invoice.payment_status,
+            due_date:         formatDate(invoice.due_date),
+        };
+        if (invoice.payments && invoice.payments.length > 0) {
+            for (const p of invoice.payments) {
+                rows.push({
+                    ...base,
+                    payment_date:       formatDate(p.payment_date),
+                    payment_amount:     p.amount,
+                    bank:               p.bank ?? '-',
+                    payment_method:     p.payment_method_name ?? '-',
+                    transaction_number: p.transaction_number ?? '-',
+                });
+            }
+        } else {
+            rows.push({
+                ...base,
+                payment_date:       '',
+                payment_amount:     '',
+                bank:               '',
+                payment_method:     '',
+                transaction_number: '',
+            });
+        }
+    }
+    return rows;
+});
 </script>
 
 <template>
@@ -353,7 +383,7 @@ const excelData = computed(() =>
                                 <th style="width:30px;"></th>
                                 <th>Fecha</th>
                                 <th>N° Documento</th>
-                                <th>Proveedor</th>
+                                <th style="max-width:200px;">Proveedor</th>
                                 <th>Razón Social</th>
                                 <th>Tipo Doc.</th>
                                 <th class="text-end">Total Factura</th>
@@ -381,7 +411,7 @@ const excelData = computed(() =>
                                     </td>
                                     <td class="text-nowrap">{{ formatDate(invoice.date) }}</td>
                                     <td class="fw-semibold">{{ invoice.number_document }}</td>
-                                    <td>{{ invoice.supplier?.name ?? '-' }}</td>
+                                    <td style="max-width:200px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;" :title="invoice.supplier?.name">{{ invoice.supplier?.name ?? '-' }}</td>
                                     <td>{{ invoice.company_reason ?? '-' }}</td>
                                     <td>{{ invoice.type_document ?? '-' }}</td>
                                     <td class="text-end text-nowrap">

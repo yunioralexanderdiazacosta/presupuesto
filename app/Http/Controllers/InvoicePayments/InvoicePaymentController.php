@@ -108,8 +108,8 @@ class InvoicePaymentController extends Controller
                 $tipoDoc      = strtoupper($invoice->typeDocument?->name ?? '');
                 $hasIva       = in_array($tipoDoc, ['FACTURA', 'NOTA CREDITO', 'NOTA DEBITO']);
                 $iva          = $hasIva ? round($totalNeto * 0.19) : 0;
-                $totalInvoice = $totalNeto + $iva;
-                $balance      = $totalInvoice - $totalPaid;
+                $totalInvoice = round($totalNeto + $iva);
+                $balance      = round($totalInvoice - $totalPaid);
 
                 if ($totalPaid >= $totalInvoice && $totalInvoice > 0) {
                     $status = 'paid';
@@ -125,7 +125,7 @@ class InvoicePaymentController extends Controller
                     'date'            => $invoice->date,
                     'due_date'        => $invoice->due_date,
                     'supplier'        => $invoice->supplier
-                        ? ['id' => $invoice->supplier->id, 'name' => $invoice->supplier->name]
+                        ? ['id' => $invoice->supplier->id, 'name' => $invoice->supplier->name, 'rut' => $invoice->supplier->rut]
                         : null,
                     'company_reason'  => $invoice->companyReason?->name,
                     'type_document'   => $invoice->typeDocument?->name,
@@ -199,10 +199,10 @@ class InvoicePaymentController extends Controller
             $tipoDoc = strtoupper($invoice->typeDocument?->name ?? '');
             $hasIva  = in_array($tipoDoc, ['FACTURA', 'NOTA CREDITO', 'NOTA DEBITO']);
             $iva     = $hasIva ? round($totalNeto * 0.19) : 0;
-            $totalInvoice = $totalNeto + $iva;
+            $totalInvoice = round($totalNeto + $iva);
 
             $totalPaid = $invoice->payments()->sum('amount');
-            $balance = $totalInvoice - $totalPaid;
+            $balance = round($totalInvoice - $totalPaid);
 
             return [
                 'id' => $invoice->id,

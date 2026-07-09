@@ -29,12 +29,12 @@ class StoreInvoicePaymentController extends Controller
         $totalNeto = $invoice->invoiceProducts->sum(fn($ip) => $ip->unit_price * $ip->amount);
         $tipoDoc   = strtoupper($invoice->typeDocument?->name ?? '');
         $hasIva    = in_array($tipoDoc, ['FACTURA', 'NOTA CREDITO', 'NOTA DEBITO']);
-        $totalInvoice = $totalNeto + ($hasIva ? round($totalNeto * 0.19) : 0);
+        $totalInvoice = round($totalNeto + ($hasIva ? round($totalNeto * 0.19) : 0));
         $totalPaid = $invoice->payments()->sum('amount');
-        $balance = $totalInvoice - $totalPaid;
+        $balance = round($totalInvoice - $totalPaid);
 
         if ($request->amount > $balance) {
-            return back()->withErrors(['amount' => 'El monto no puede exceder el saldo pendiente de '.number_format($balance, 2)]);
+            return back()->withErrors(['amount' => 'El monto no puede exceder el saldo pendiente de '.number_format($balance, 0, ',', '.')]);
         }
 
         $payment = InvoicePayment::create([

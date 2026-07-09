@@ -7,6 +7,15 @@
 
 export const changelog = [
   {
+    fecha: '2026-07-09',
+    titulo: 'Pago de Facturas — Mejora en exportación Excel',
+    items: [
+      'El Excel ahora muestra una fila por cada pago registrado, permitiendo ver el banco utilizado en cada transacción.',
+      'Se agregaron las columnas RUT Proveedor, Banco, Método de Pago, Fecha de Pago, Monto Pagado y N° de Transacción.',
+      'Las facturas sin pagos siguen apareciendo en el listado con los campos de pago en blanco.',
+    ]
+  },
+  {
     fecha: '2026-07-08',
     titulo: 'Facturas — Columna Mes en exportación Excel',
     items: [
