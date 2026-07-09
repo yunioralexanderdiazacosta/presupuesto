@@ -173,13 +173,13 @@ class SuppliesController extends Controller
         ->map(fn($cr) => ['value' => $cr->id, 'label' => $cr->name])
         ->values();
 
-        $supplies = Supply::with('subfamily:id,name', 'unit:id,name', 'unit2:id,name', 'items:id', 'user:id,name')
+        $suppliesCollection = Supply::with('subfamily:id,name', 'unit:id,name', 'unit2:id,name', 'items:id', 'user:id,name')
             ->whereHas('items', function($query) use ($costCenters){
                 $query->whereIn('cost_center_id', $costCenters->pluck('value'));
             })
             ->orderBy('id')
-            ->paginate(10)
-            ->through(function($supply){
+            ->get()
+            ->map(function($supply){
                 $items = $supply->items->pluck('pivot');
                 $months = array_column($items->toArray(), 'month_id');
                 $cc = array_column($items->toArray(), 'cost_center_id');
@@ -200,6 +200,7 @@ class SuppliesController extends Controller
                     'user'          => $supply->user ? ['name' => $supply->user->name] : null
                 ];
             });
+        $supplies = ['data' => $suppliesCollection->values()->toArray(), 'links' => []];
 
         $data = Supply::from('supplies as s')
             ->join('supply_items as si', 's.id', 'si.supply_id')

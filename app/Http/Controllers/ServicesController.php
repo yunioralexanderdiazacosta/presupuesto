@@ -180,9 +180,9 @@ public $totalHarvest = 0;
         ->map(fn($cr) => ['value' => $cr->id, 'label' => $cr->name])
         ->values();
 
-        $services = Service::with('subfamily:id,name', 'unit:id,name', 'unit2:id,name', 'items:id', 'user:id,name')->whereHas('items', function($query) use ($costCenters){
+        $servicesCollection = Service::with('subfamily:id,name', 'unit:id,name', 'unit2:id,name', 'items:id', 'user:id,name')->whereHas('items', function($query) use ($costCenters){
             $query->whereIn('cost_center_id', $costCenters->pluck('value'));
-        })->orderBy('id')->paginate(10)->through(function($service){
+        })->orderBy('id')->get()->map(function($service){
             $items = $service->items->pluck('pivot');
             $months = array_column($items->toArray(), 'month_id');
             $cc = array_column($items->toArray(), 'cost_center_id');
@@ -203,6 +203,7 @@ public $totalHarvest = 0;
                 'user'          => $service->user ? ['name' => $service->user->name] : null
             ];
         });
+        $services = ['data' => $servicesCollection->values()->toArray(), 'links' => []];
 
     
         $data = Service::from('services as s')

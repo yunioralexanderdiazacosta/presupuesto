@@ -197,9 +197,9 @@ class HarvestsController extends Controller
         ->map(fn($cr) => ['value' => $cr->id, 'label' => $cr->name])
         ->values();
 
-        $harvests = Harvest::with('subfamily:id,name', 'unit:id,name', 'unit2:id,name', 'items:id', 'user:id,name')->whereHas('items', function($query) use ($costCenters){
+        $harvestsCollection = Harvest::with('subfamily:id,name', 'unit:id,name', 'unit2:id,name', 'items:id', 'user:id,name')->whereHas('items', function($query) use ($costCenters){
             $query->whereIn('cost_center_id', $costCenters->pluck('value'));
-        })->orderBy('id')->paginate(10)->through(function($harvest){
+        })->orderBy('id')->get()->map(function($harvest){
             $items = $harvest->items->pluck('pivot');
             $months = array_column($items->toArray(), 'month_id');
             $cc = array_column($items->toArray(), 'cost_center_id');
@@ -220,6 +220,7 @@ class HarvestsController extends Controller
                 'cc'            => array_values(array_unique($cc))
             ];
         });
+        $harvests = ['data' => $harvestsCollection->values()->toArray(), 'links' => []];
 
 
         $data = Harvest::from('harvests as h')

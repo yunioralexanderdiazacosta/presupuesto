@@ -241,11 +241,11 @@ class FieldsController extends Controller
 
 
 
-        $fields = Field::with(['subfamily:id,name', 'unit:id,name', 'items', 'user:id,name'])
+        $fieldsCollection = Field::with(['subfamily:id,name', 'unit:id,name', 'items', 'user:id,name'])
             ->where('team_id', $team_id)
             ->where('season_id', $season_id)
-            ->paginate(10)
-            ->through(function ($field) {
+            ->get()
+            ->map(function ($field) {
                 return [
                     'id'            => $field->id,
                     'product_name'  => $field->product_name,
@@ -260,6 +260,7 @@ class FieldsController extends Controller
                     'months'        => $field->items->pluck('month_id')->map(fn($m) => (string)$m)->unique()->values()->toArray(),
                 ];
             });
+        $fields = ['data' => $fieldsCollection->values()->toArray(), 'links' => []];
 
 
         // Nueva consulta para data, sin relación a cost centers

@@ -8,6 +8,13 @@
 export const changelog = [
   {
     fecha: '2026-07-09',
+    titulo: 'Insumos — Tabla sin límite de registros',
+    items: [
+      'La tabla de insumos ahora muestra todos los registros sin límite ni paginación.',
+    ]
+  },
+  {
+    fecha: '2026-07-09',
     titulo: 'Pago de Facturas — Mejora en exportación Excel',
     items: [
       'El Excel ahora muestra una fila por cada pago registrado, permitiendo ver el banco utilizado en cada transacción.',

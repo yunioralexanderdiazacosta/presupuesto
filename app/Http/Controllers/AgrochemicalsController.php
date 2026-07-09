@@ -137,9 +137,9 @@ class AgrochemicalsController extends Controller
         ->map(fn($cr) => ['value' => $cr->id, 'label' => $cr->name])
         ->values();
 
-        $agrochemicals = Agrochemical::with('subfamily:id,name', 'unit:id,name', 'items:id', 'dosetype:id,name', 'user:id,name')->whereHas('items', function($query) use ($costCenters){
+        $agrochemicalsCollection = Agrochemical::with('subfamily:id,name', 'unit:id,name', 'items:id', 'dosetype:id,name', 'user:id,name')->whereHas('items', function($query) use ($costCenters){
             $query->whereIn('cost_center_id', $costCenters->pluck('value'));
-    })->orderBy('id')->paginate(1000)->through(function($agrochemical){
+    })->orderBy('id')->get()->map(function($agrochemical){
             $items = $agrochemical->items->pluck('pivot');
             $months = array_column($items->toArray(), 'month_id');
             $cc = array_column($items->toArray(), 'cost_center_id');
@@ -163,6 +163,7 @@ class AgrochemicalsController extends Controller
                 'user'          => $agrochemical->user ? ['name' => $agrochemical->user->name] : null
             ];
         });
+        $agrochemicals = ['data' => $agrochemicalsCollection->values()->toArray(), 'links' => []];
 
         $products = Product2::select('name', 'level3', 'price', 'unit_price_id')->get()->toArray();
 

@@ -182,9 +182,9 @@ class FertilizersController extends Controller
         ->map(fn($cr) => ['value' => $cr->id, 'label' => $cr->name])
         ->values();
 
-        $fertilizers = Fertilizer::with('subfamily:id,name', 'unit:id,name', 'items:id', 'unit2:id,name', 'user:id,name')->whereHas('items', function($query) use ($costCenters){
+        $fertilizersCollection = Fertilizer::with('subfamily:id,name', 'unit:id,name', 'items:id', 'unit2:id,name', 'user:id,name')->whereHas('items', function($query) use ($costCenters){
             $query->whereIn('cost_center_id', $costCenters->pluck('value'));
-        })->orderBy('id')->paginate(10)->through(function($fertilizer){
+        })->orderBy('id')->get()->map(function($fertilizer){
             $items = $fertilizer->items->pluck('pivot');
             $months = array_column($items->toArray(), 'month_id');
             $cc = array_column($items->toArray(), 'cost_center_id');
@@ -205,8 +205,9 @@ class FertilizersController extends Controller
                 'user'          => $fertilizer->user ? ['name' => $fertilizer->user->name] : null
             ];
         });
+        $fertilizers = ['data' => $fertilizersCollection->values()->toArray(), 'links' => []];
 
-        $products = $fertilizers->pluck('product_name')->unique()->values();
+        $products = $fertilizersCollection->pluck('product_name')->unique()->values();
 
         $data = Fertilizer::from('fertilizers as f')
             ->join('fertilizer_items as fi', 'f.id', 'fi.fertilizer_id')
