@@ -175,13 +175,14 @@ class HarvestsController extends Controller
             array_push($months, $object);
         }
 
-        $costCenters = CostCenter::select('id', 'name', 'company_reason_id')->where('season_id', $season_id)->whereHas('season.team', function($query) use ($user){
+        $costCenters = CostCenter::select('id', 'name', 'company_reason_id', 'branch_id')->where('season_id', $season_id)->whereHas('season.team', function($query) use ($user){
             $query->where('team_id', $user->team_id);
         })->get()->transform(function($costCenter){
             return [
                 'label' => $costCenter->name,
                 'value' => $costCenter->id,
                 'company_reason_id' => $costCenter->company_reason_id,
+                'branch_id' => $costCenter->branch_id,
             ];
         });
 
@@ -196,6 +197,13 @@ class HarvestsController extends Controller
         ->get(['id', 'name'])
         ->map(fn($cr) => ['value' => $cr->id, 'label' => $cr->name])
         ->values();
+
+        $branches = \App\Models\Branch::where('team_id', $user->team_id)
+            ->where('season_id', $season_id)
+            ->orderBy('name')
+            ->get(['id', 'name'])
+            ->map(fn($b) => ['value' => $b->id, 'label' => $b->name])
+            ->values();
 
         $harvestsCollection = Harvest::with('subfamily:id,name', 'unit:id,name', 'unit2:id,name', 'items:id', 'user:id,name')->whereHas('items', function($query) use ($costCenters){
             $query->whereIn('cost_center_id', $costCenters->pluck('value'));
@@ -226,9 +234,9 @@ class HarvestsController extends Controller
         $data = Harvest::from('harvests as h')
         ->join('harvest_items as hi', 'h.id', 'hi.harvest_id')
         ->join('cost_centers as cc', 'hi.cost_center_id', 'cc.id')
-        ->select('hi.cost_center_id', 'cc.name', 'cc.surface', 'cc.variety_id', 'cc.company_reason_id')
+        ->select('hi.cost_center_id', 'cc.name', 'cc.surface', 'cc.variety_id', 'cc.company_reason_id', 'cc.branch_id')
         ->whereIn('hi.cost_center_id', $costCenters->pluck('value'))
-        ->groupBy('hi.cost_center_id', 'cc.name', 'cc.surface', 'cc.variety_id', 'cc.company_reason_id')
+        ->groupBy('hi.cost_center_id', 'cc.name', 'cc.surface', 'cc.variety_id', 'cc.company_reason_id', 'cc.branch_id')
         ->get()
         ->transform(function($value) use ($costCenters){
             return [
@@ -236,6 +244,7 @@ class HarvestsController extends Controller
                 'name' => $value->name,
                 'variety_id' => $value->variety_id, // Add variety_id
                 'company_reason_id' => $value->company_reason_id,
+                'branch_id' => $value->branch_id,
                 'subfamilies' => $this->getSubfamilies($value->cost_center_id, $value->surface),
                 'total' => $this->getTotal($value->cost_center_id)
             ];
@@ -244,9 +253,9 @@ class HarvestsController extends Controller
         $data3 = Harvest::from('harvests as h')
         ->join('harvest_items as hi', 'h.id', 'hi.harvest_id')
         ->join('cost_centers as cc', 'hi.cost_center_id', 'cc.id')
-        ->select('hi.cost_center_id', 'cc.name', 'cc.surface', 'cc.variety_id', 'cc.company_reason_id')
+        ->select('hi.cost_center_id', 'cc.name', 'cc.surface', 'cc.variety_id', 'cc.company_reason_id', 'cc.branch_id')
         ->whereIn('hi.cost_center_id', $costCenters->pluck('value'))
-        ->groupBy('hi.cost_center_id', 'cc.name', 'cc.surface', 'cc.variety_id', 'cc.company_reason_id')
+        ->groupBy('hi.cost_center_id', 'cc.name', 'cc.surface', 'cc.variety_id', 'cc.company_reason_id', 'cc.branch_id')
         ->get();
 
     // Preload subfamilies and totals for all cost centers in one go
@@ -349,6 +358,7 @@ class HarvestsController extends Controller
             'name' => $value->name,
             'variety_id' => $value->variety_id,
             'company_reason_id' => $value->company_reason_id,
+            'branch_id' => $value->branch_id,
             'subfamilies' => $subfamilies,
             'total' => $totalsByCostCenter[$costCenterId] ?? 0
         ];
@@ -447,7 +457,7 @@ class HarvestsController extends Controller
 
         $data4 = $this->buildData4($costCentersId, $season_id, $user->team_id);
 
-        return Inertia::render('Harvests', compact('units', 'subfamilies', 'months', 'costCenters', 'companyReasons', 'groupings', 'harvests', 'data', 'data2', 'data3', 'data4', 'season', 'totalData1', 'totalData2', 'percentage', 'varieties', 'fruits', 'level2s'));
+        return Inertia::render('Harvests', compact('units', 'subfamilies', 'months', 'costCenters', 'companyReasons', 'branches', 'groupings', 'harvests', 'data', 'data2', 'data3', 'data4', 'season', 'totalData1', 'totalData2', 'percentage', 'varieties', 'fruits', 'level2s'));
     }
 
     private function getSubfamilies($costCenterId, $surface = null, $bills = false)

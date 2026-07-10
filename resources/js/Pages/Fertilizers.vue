@@ -27,6 +27,7 @@ const props = defineProps({
     percentage: String,
      costCenters: { type: Array, default: () => [] }, // <-- AGREGAR ESTA LÍNEA
     companyReasons: { type: Array, default: () => [] },
+    branches: { type: Array, default: () => [] },
     varieties: {
       type: Array,
       default: () => []
@@ -42,15 +43,29 @@ const selectedFruit = ref('');
 const selectedVariety = ref('');
 const selectedCostCenter = ref('');
 const selectedCompanyReason = ref('');
+const selectedBranch = ref('');
 const selectedProduct = ref('');
 const hideCc = ref(false);
 
 const filteredCostCenters = computed(() => {
-  if (!selectedCompanyReason.value) return props.costCenters;
-  return props.costCenters.filter(cc => String(cc.company_reason_id) === String(selectedCompanyReason.value));
+  let ccs = props.costCenters;
+  if (selectedCompanyReason.value) {
+    ccs = ccs.filter(cc => String(cc.company_reason_id) === String(selectedCompanyReason.value));
+  }
+  if (selectedBranch.value) {
+    ccs = ccs.filter(cc => String(cc.branch_id) === String(selectedBranch.value));
+  }
+  return ccs;
 });
 
 const onCompanyReasonChange = () => {
+  if (selectedCostCenter.value) {
+    const stillValid = filteredCostCenters.value.some(cc => String(cc.value) === String(selectedCostCenter.value));
+    if (!stillValid) selectedCostCenter.value = '';
+  }
+};
+
+const onBranchChange = () => {
   if (selectedCostCenter.value) {
     const stillValid = filteredCostCenters.value.some(cc => String(cc.value) === String(selectedCostCenter.value));
     if (!stillValid) selectedCostCenter.value = '';
@@ -122,6 +137,9 @@ const edicionTotals = computed(() => {
 // Además, asegura que cc.total esté correctamente calculado para el rowspan
 const filteredData = computed(() => {
   let data = props.data;
+  if (selectedBranch.value) {
+    data = data.filter(cc => String(cc.branch_id) === String(selectedBranch.value));
+  }
   if (selectedCompanyReason.value) {
     data = data.filter(cc => String(cc.company_reason_id) === String(selectedCompanyReason.value));
   }
@@ -240,6 +258,9 @@ const filteredVarietiesGastos = computed(() => {
 });
 const filteredDataGastos = computed(() => {
   let data = props.data3;
+  if (selectedBranch.value) {
+    data = data.filter(cc => String(cc.branch_id) === String(selectedBranch.value));
+  }
   if (selectedCompanyReason.value) {
     data = data.filter(cc => String(cc.company_reason_id) === String(selectedCompanyReason.value));
   }
@@ -645,6 +666,13 @@ const onFilter = () => {
 
                         <!-- Select de especie (fruta) y variedades, lado a lado -->
                         <div class="mb-3 d-flex align-items-end gap-2 flex-wrap">
+                          <div class="col-auto" v-if="props.branches && props.branches.length > 0">
+                            <label for="branchSelect" class="form-label">Filtrar por sucursal:</label>
+                            <select id="branchSelect" v-model="selectedBranch" @change="onBranchChange" class="form-select form-select-sm" style="min-width: 180px; max-width: 220px;">
+                              <option value="">Todas</option>
+                              <option v-for="branch in props.branches" :key="branch.value" :value="branch.value">{{ branch.label }}</option>
+                            </select>
+                          </div>
                           <div class="col-auto" v-if="props.companyReasons && props.companyReasons.length > 0">
                             <label for="companyReasonSelect" class="form-label">Filtrar por razón social:</label>
                             <select id="companyReasonSelect" v-model="selectedCompanyReason" @change="onCompanyReasonChange" class="form-select form-select-sm" style="min-width: 180px; max-width: 220px;">
@@ -822,6 +850,13 @@ const onFilter = () => {
 
                         <!-- Select de especie (fruta) y variedades para Gastos por Hectarea, lado a lado -->
                         <div class="mb-3 d-flex align-items-end gap-2 flex-wrap">
+                          <div class="col-auto" v-if="props.branches && props.branches.length > 0">
+                            <label for="branchSelectGastos" class="form-label">Filtrar por sucursal:</label>
+                            <select id="branchSelectGastos" v-model="selectedBranch" @change="onBranchChange" class="form-select form-select-sm" style="min-width: 180px; max-width: 220px;">
+                              <option value="">Todas</option>
+                              <option v-for="branch in props.branches" :key="branch.value" :value="branch.value">{{ branch.label }}</option>
+                            </select>
+                          </div>
                            <div class="col-auto" v-if="props.companyReasons && props.companyReasons.length > 0">
                             <label for="companyReasonSelectGastos" class="form-label">Filtrar por razón social:</label>
                             <select id="companyReasonSelectGastos" v-model="selectedCompanyReason" @change="onCompanyReasonChange" class="form-select form-select-sm" style="min-width: 180px; max-width: 220px;">

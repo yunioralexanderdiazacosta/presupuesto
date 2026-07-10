@@ -158,13 +158,14 @@ public $totalHarvest = 0;
             array_push($months, $object);
         }
 
-        $costCenters = CostCenter::select('id', 'name', 'company_reason_id')->where('season_id', $season_id)->whereHas('season.team', function($query) use ($user){
+        $costCenters = CostCenter::select('id', 'name', 'company_reason_id', 'branch_id')->where('season_id', $season_id)->whereHas('season.team', function($query) use ($user){
             $query->where('team_id', $user->team_id);
         })->get()->transform(function($costCenter){
             return [
                 'label' => $costCenter->name,
                 'value' => $costCenter->id,
                 'company_reason_id' => $costCenter->company_reason_id,
+                'branch_id' => $costCenter->branch_id,
             ];
         });
 
@@ -179,6 +180,13 @@ public $totalHarvest = 0;
         ->get(['id', 'name'])
         ->map(fn($cr) => ['value' => $cr->id, 'label' => $cr->name])
         ->values();
+
+        $branches = \App\Models\Branch::where('team_id', $user->team_id)
+            ->where('season_id', $season_id)
+            ->orderBy('name')
+            ->get(['id', 'name'])
+            ->map(fn($b) => ['value' => $b->id, 'label' => $b->name])
+            ->values();
 
         $servicesCollection = Service::with('subfamily:id,name', 'unit:id,name', 'unit2:id,name', 'items:id', 'user:id,name')->whereHas('items', function($query) use ($costCenters){
             $query->whereIn('cost_center_id', $costCenters->pluck('value'));
@@ -209,9 +217,9 @@ public $totalHarvest = 0;
         $data = Service::from('services as s')
         ->join('service_items as si', 's.id', 'si.service_id')
         ->join('cost_centers as cc', 'si.cost_center_id', 'cc.id')
-        ->select('si.cost_center_id', 'cc.name', 'cc.surface', 'cc.variety_id', 'cc.company_reason_id')
+        ->select('si.cost_center_id', 'cc.name', 'cc.surface', 'cc.variety_id', 'cc.company_reason_id', 'cc.branch_id')
         ->whereIn('si.cost_center_id', $costCenters->pluck('value'))
-        ->groupBy('si.cost_center_id', 'cc.name', 'cc.surface', 'cc.variety_id', 'cc.company_reason_id')
+        ->groupBy('si.cost_center_id', 'cc.name', 'cc.surface', 'cc.variety_id', 'cc.company_reason_id', 'cc.branch_id')
         ->get()
         ->transform(function($value) use ($costCenters){
             return [
@@ -219,6 +227,7 @@ public $totalHarvest = 0;
                 'name' => $value->name,
                 'variety_id' => $value->variety_id, // Add variety_id
                 'company_reason_id' => $value->company_reason_id,
+                'branch_id' => $value->branch_id,
                 'subfamilies' => $this->getSubfamilies($value->cost_center_id, $value->surface),
                 'total' => $this->getTotal($value->cost_center_id)
             ];
@@ -227,9 +236,9 @@ public $totalHarvest = 0;
         $data3 = Service::from('services as s')
         ->join('service_items as si', 's.id', 'si.service_id')
         ->join('cost_centers as cc', 'si.cost_center_id', 'cc.id')
-        ->select('si.cost_center_id', 'cc.name', 'cc.surface', 'cc.variety_id', 'cc.company_reason_id')
+        ->select('si.cost_center_id', 'cc.name', 'cc.surface', 'cc.variety_id', 'cc.company_reason_id', 'cc.branch_id')
         ->whereIn('si.cost_center_id', $costCenters->pluck('value'))
-        ->groupBy('si.cost_center_id', 'cc.name', 'cc.surface', 'cc.variety_id', 'cc.company_reason_id')
+        ->groupBy('si.cost_center_id', 'cc.name', 'cc.surface', 'cc.variety_id', 'cc.company_reason_id', 'cc.branch_id')
         ->get();
 
     // Preload subfamilies and totals for all cost centers in one go
@@ -331,6 +340,7 @@ public $totalHarvest = 0;
             'name' => $value->name,
             'variety_id' => $value->variety_id,
             'company_reason_id' => $value->company_reason_id,
+            'branch_id' => $value->branch_id,
             'subfamilies' => $subfamilies,
             'total' => $totalsByCostCenter[$costCenterId] ?? 0
         ];
@@ -421,7 +431,7 @@ public $totalHarvest = 0;
 
         $data4 = $this->buildData4($costCentersId, $season_id, $user->team_id);
 
-        return Inertia::render('Services', compact('units', 'subfamilies', 'months', 'costCenters', 'companyReasons', 'groupings', 'services', 'data', 'data2', 'data3', 'data4', 'season', 'totalData1', 'totalData2', 'percentage', 'varieties', 'fruits'));
+        return Inertia::render('Services', compact('units', 'subfamilies', 'months', 'costCenters', 'companyReasons', 'branches', 'groupings', 'services', 'data', 'data2', 'data3', 'data4', 'season', 'totalData1', 'totalData2', 'percentage', 'varieties', 'fruits'));
     }
 
     private function getSubfamilies($costCenterId, $surface = null, $bills = false)

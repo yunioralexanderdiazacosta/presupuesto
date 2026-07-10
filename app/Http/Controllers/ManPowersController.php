@@ -151,7 +151,7 @@ public $totalHarvest = 0;
             array_push($months, $object);
         }
 
-        $costCenters = CostCenter::select('id', 'name', 'variety_id', 'company_reason_id')->where('season_id', $season_id)->whereHas('season.team', function($query) use ($user){
+        $costCenters = CostCenter::select('id', 'name', 'variety_id', 'company_reason_id', 'branch_id')->where('season_id', $season_id)->whereHas('season.team', function($query) use ($user){
             $query->where('team_id', $user->team_id);
         })->get()->transform(function($costCenter){
             return [
@@ -159,6 +159,7 @@ public $totalHarvest = 0;
                 'value' => $costCenter->id,
                 'variety_id' => $costCenter->variety_id,
                 'company_reason_id' => $costCenter->company_reason_id,
+                'branch_id' => $costCenter->branch_id,
             ];
         });
 
@@ -173,6 +174,13 @@ public $totalHarvest = 0;
         ->get(['id', 'name'])
         ->map(fn($cr) => ['value' => $cr->id, 'label' => $cr->name])
         ->values();
+
+        $branches = \App\Models\Branch::where('team_id', $user->team_id)
+            ->where('season_id', $season_id)
+            ->orderBy('name')
+            ->get(['id', 'name'])
+            ->map(fn($b) => ['value' => $b->id, 'label' => $b->name])
+            ->values();
 
         $manPowersCollection = ManPower::with('subfamily:id,name', 'items:id', 'user:id,name')->whereHas('items', function($query) use ($costCenters){
             $query->whereIn('cost_center_id', $costCenters->pluck('value'));
@@ -201,9 +209,9 @@ public $totalHarvest = 0;
         $data = ManPower::from('man_powers as mp')
         ->join('manpower_items as mpi', 'mp.id', 'mpi.man_power_id')
         ->join('cost_centers as cc', 'mpi.cost_center_id', 'cc.id')
-        ->select('mpi.cost_center_id', 'cc.name', 'cc.surface', 'cc.variety_id', 'cc.company_reason_id')
+        ->select('mpi.cost_center_id', 'cc.name', 'cc.surface', 'cc.variety_id', 'cc.company_reason_id', 'cc.branch_id')
         ->whereIn('mpi.cost_center_id', $costCenters->pluck('value'))
-        ->groupBy('mpi.cost_center_id', 'cc.name', 'cc.surface', 'cc.variety_id', 'cc.company_reason_id')
+        ->groupBy('mpi.cost_center_id', 'cc.name', 'cc.surface', 'cc.variety_id', 'cc.company_reason_id', 'cc.branch_id')
         ->get()
         ->transform(function($value) use ($costCenters){
             return [
@@ -211,6 +219,7 @@ public $totalHarvest = 0;
                 'name' => $value->name,
                 'variety_id' => $value->variety_id,
                 'company_reason_id' => $value->company_reason_id,
+                'branch_id' => $value->branch_id,
                 'subfamilies' => $this->getSubfamilies($value->cost_center_id, $value->surface),
                 'total' => $this->getTotal($value->cost_center_id)
             ];
@@ -219,9 +228,9 @@ public $totalHarvest = 0;
         $data3 = ManPower::from('man_powers as mp')
         ->join('manpower_items as mpi', 'mp.id', 'mpi.man_power_id')
         ->join('cost_centers as cc', 'mpi.cost_center_id', 'cc.id')
-        ->select('mpi.cost_center_id', 'cc.name', 'cc.surface', 'cc.variety_id', 'cc.company_reason_id')
+        ->select('mpi.cost_center_id', 'cc.name', 'cc.surface', 'cc.variety_id', 'cc.company_reason_id', 'cc.branch_id')
         ->whereIn('mpi.cost_center_id', $costCenters->pluck('value'))
-        ->groupBy('mpi.cost_center_id', 'cc.name', 'cc.surface', 'cc.variety_id', 'cc.company_reason_id')
+        ->groupBy('mpi.cost_center_id', 'cc.name', 'cc.surface', 'cc.variety_id', 'cc.company_reason_id', 'cc.branch_id')
         ->get()
         ->transform(function($value) use ($costCenters){
             return [
@@ -229,6 +238,7 @@ public $totalHarvest = 0;
                 'name' => $value->name,
                 'variety_id' => $value->variety_id,
                 'company_reason_id' => $value->company_reason_id,
+                'branch_id' => $value->branch_id,
                 'subfamilies' => $this->getSubfamilies($value->cost_center_id, null, true),
                 'total' => $this->getTotal($value->cost_center_id)
             ];
@@ -335,7 +345,7 @@ public $totalHarvest = 0;
 
 
 
-        return Inertia::render('ManPowers', compact('subfamilies', 'months', 'costCenters', 'companyReasons', 'groupings', 'manPowers', 'season', 'data', 'data2', 'data3', 'data4', 'totalData1', 'totalData2',
+        return Inertia::render('ManPowers', compact('subfamilies', 'months', 'costCenters', 'companyReasons', 'branches', 'groupings', 'manPowers', 'season', 'data', 'data2', 'data3', 'data4', 'totalData1', 'totalData2',
         'totalAgrochemical', 'totalFertilizer', 'totalManPower', 'totalSupplies', 'totalServices', 'totalHarvest', 'totalAdministration', 'totalField', 'totalAbsolute',
             'percentageManPower',
             'varieties', 'fruits'));

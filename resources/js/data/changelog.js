@@ -7,6 +7,48 @@
 
 export const changelog = [
   {
+    fecha: '2026-07-10',
+    titulo: 'Mano de Obra — Filtro por sucursal en pestañas Detalles y Gastos por Hectárea',
+    items: [
+      'Se agregó el selector de sucursal en las pestañas Detalles y Gastos por Hectárea, permitiendo filtrar los centros de costo y sus datos por sucursal.',
+    ]
+  },
+  {
+    fecha: '2026-07-10',
+    titulo: 'Cosecha — Filtro por sucursal en pestañas Detalles y Gastos por Hectárea',
+    items: [
+      'Se agregó el selector de sucursal en las pestañas Detalles y Gastos por Hectárea, permitiendo filtrar los centros de costo y sus datos por sucursal.',
+    ]
+  },
+  {
+    fecha: '2026-07-10',
+    titulo: 'Servicios — Filtro por sucursal en pestañas Detalles y Gastos por Hectárea',
+    items: [
+      'Se agregó el selector de sucursal en las pestañas Detalles y Gastos por Hectárea, permitiendo filtrar los centros de costo y sus datos por sucursal.',
+    ]
+  },
+  {
+    fecha: '2026-07-10',
+    titulo: 'Insumos — Filtro por sucursal en pestañas Detalles y Gastos por Hectárea',
+    items: [
+      'Se agregó el selector de sucursal en las pestañas Detalles y Gastos por Hectárea, permitiendo filtrar los centros de costo y sus datos por sucursal.',
+    ]
+  },
+  {
+    fecha: '2026-07-10',
+    titulo: 'Fertilizantes — Filtro por sucursal en pestañas Detalles y Gastos por Hectárea',
+    items: [
+      'Se agregó el selector de sucursal en las pestañas Detalles y Gastos por Hectárea, permitiendo filtrar los centros de costo y sus datos por sucursal.',
+    ]
+  },
+  {
+    fecha: '2026-07-10',
+    titulo: 'Agroquímicos — Filtro por sucursal en pestaña Detalles',
+    items: [
+      'Se agregó el selector de sucursal en la pestaña Detalles, permitiendo filtrar los centros de costo y sus datos por sucursal.',
+    ]
+  },
+  {
     fecha: '2026-07-09',
     titulo: 'Insumos — Tabla sin límite de registros',
     items: [
