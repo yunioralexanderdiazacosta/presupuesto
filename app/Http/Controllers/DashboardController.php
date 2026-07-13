@@ -157,6 +157,16 @@ class DashboardController extends Controller
             $season_id = session('season_id');
             $season = Season::select('name', 'month_id')->where('id', $season_id)->first();
 
+            // Filtro de sucursal (opcional)
+            $selectedBranchId = $request->input('branch_id') ? (int) $request->input('branch_id') : null;
+
+            // Sucursales disponibles para el select del frontend
+            $branches = \App\Models\Branch::where('season_id', $season_id)
+                ->orderBy('name')
+                ->get(['id', 'name'])
+                ->map(fn($b) => ['value' => $b->id, 'label' => $b->name])
+                ->values();
+
             $this->month_id = $season ? $season['month_id'] : 1;
             $months = array();
             $currentMonth = $this->month_id;
@@ -168,9 +178,15 @@ class DashboardController extends Controller
                 ];
                 array_push($months, $object);
             }
-            $costCenters = CostCenter::select('id', 'name')->where('season_id', $season_id)->whereHas('season.team', function ($query) use ($user) {
-                $query->where('team_id', $user->team_id);
-            })->get()->transform(function ($costCenter) {
+            $costCentersQuery = CostCenter::select('id', 'name')
+                ->where('season_id', $season_id)
+                ->whereHas('season.team', function ($query) use ($user) {
+                    $query->where('team_id', $user->team_id);
+                });
+            if ($selectedBranchId) {
+                $costCentersQuery->where('branch_id', $selectedBranchId);
+            }
+            $costCenters = $costCentersQuery->get()->transform(function ($costCenter) {
                 return [
                     'label' => $costCenter->name,
                     'value' => $costCenter->id
@@ -183,6 +199,16 @@ class DashboardController extends Controller
                 ->select('id', 'development_state_id', 'surface', 'fruit_id')
                 ->get();
             $this->cachedSurfaces = $this->cachedCostCenters->pluck('surface', 'id');
+
+            // Factor de prorrateo para Administración y Generales Campo cuando hay filtro de sucursal
+            $prorationFactor = 1.0;
+            if ($selectedBranchId) {
+                $totalAllSurface = CostCenter::where('season_id', $season_id)
+                    ->whereHas('season.team', fn($q) => $q->where('team_id', $user->team_id))
+                    ->sum('surface');
+                $branchSurface = (float) $this->cachedCostCenters->sum('surface');
+                $prorationFactor = $totalAllSurface > 0 ? ($branchSurface / (float) $totalAllSurface) : 0.0;
+            }
 
             // OPTIMIZACIÓN: Reusar los productos consultados (evita queries duplicadas por rubro)
             $agrochemicalProducts = $this->getAgrochemicalProducts($costCentersId);
@@ -203,6 +229,15 @@ class DashboardController extends Controller
             // OPTIMIZACIÓN: Calcular totales de administración y fields UNA sola vez (se reusan más abajo)
             $administrationTotalsByLevel12 = $this->getAdministrationTotalsByLevel12($user->team_id);
             $fieldTotalsByLevel12 = $this->getFieldTotalsByLevel12($user->team_id);
+            // Prorratear Administración y Generales Campo por proporción de superficie de sucursal
+            if ($selectedBranchId && $prorationFactor < 1.0) {
+                $administrationTotalsByLevel12 = $administrationTotalsByLevel12->map(fn($row) =>
+                    array_merge((array) $row, ['total_amount' => round((float) $row['total_amount'] * $prorationFactor, 2)])
+                );
+                $fieldTotalsByLevel12 = $fieldTotalsByLevel12->map(fn($row) =>
+                    array_merge((array) $row, ['total_amount' => round((float) $row['total_amount'] * $prorationFactor, 2)])
+                );
+            }
             $totalAdministration = $administrationTotalsByLevel12->sum('total_amount');
             $totalFields = $fieldTotalsByLevel12->sum('total_amount');
             $totalSeason = number_format(($this->totalAgrochemical + $this->totalFertilizer + $this->totalManPower + $this->totalServices + $this->totalSupplies + $this->totalHarvests + $totalAdministration + $totalFields), 0, ',', '.');
@@ -216,6 +251,11 @@ class DashboardController extends Controller
             // NUEVO: Calcular y formatear los meses de administración y fields
             $monthsAdministrationRaw = $this->getMonthsAdministration($user->team_id);
             $monthsFieldsRaw = $this->getMonthsFields($user->team_id);
+            // Prorratear meses de Administración y Campos por sucursal
+            if ($selectedBranchId && $prorationFactor < 1.0) {
+                foreach ($monthsAdministrationRaw as $k => $v) { $monthsAdministrationRaw[$k] = $v * $prorationFactor; }
+                foreach ($monthsFieldsRaw as $k => $v) { $monthsFieldsRaw[$k] = $v * $prorationFactor; }
+            }
             $monthsAdministration = [];
             foreach ($monthsAdministrationRaw as $key => $value) {
                 $monthsAdministration[$key] = number_format($value, 0, ',', '.');
@@ -473,12 +513,31 @@ $totalInvestments = \App\Models\Investment::where('season_id', $season_id)
             $devStates = \App\Models\DevelopmentState::all(['id', 'name'])->keyBy('id')->toArray();
 
             // OPTIMIZACIÓN: administrationTotalsByLevel12 y fieldTotalsByLevel12 ya calculados arriba
-            $totalsByLevel12 = $this->getTotalsByLevel12($user->team_id);
+            $totalsByLevel12 = $this->getTotalsByLevel12($user->team_id, $costCentersId);
 
             // OPTIMIZACIÓN: totalSurface ya calculado arriba con cachedCostCenters
             $entityCounts = self::getEntityCounts($season_id, $user->team_id);
-            // Calcular los totales y porcentajes de cada rubro principal
-            $mainTotalsAndPercents = $this->getMainBudgetTotalsAndPercents($season_id, $user->team_id);
+            // Construir mainTotalsAndPercents desde valores ya filtrados por sucursal (evita re-query sin filtro)
+            $mainTotalsRaw = [
+                'Generales Campo' => (float) $totalFields,
+                'Administración'  => (float) $totalAdministration,
+                'Fertilizantes'   => (float) $this->totalFertilizer,
+                'Mano de Obra'    => (float) $this->totalManPower,
+                'Agroquímicos'    => (float) $this->totalAgrochemical,
+                'Insumos'         => (float) $this->totalSupplies,
+                'Servicios'       => (float) $this->totalServices,
+                'Cosecha'         => (float) $this->totalHarvests,
+            ];
+            $grandTotalMain = array_sum($mainTotalsRaw);
+            $mainTotalsAndPercents = array_map(
+                fn($label, $total) => [
+                    'label'   => $label,
+                    'total'   => $total,
+                    'percent' => $grandTotalMain > 0 ? round(($total / $grandTotalMain) * 100, 2) : 0,
+                ],
+                array_keys($mainTotalsRaw),
+                array_values($mainTotalsRaw)
+            );
             $fruitDevStateSummary = $this->buildFruitDevelopmentStateSummary(
                 $fruitNames,
                 $devStates,
@@ -544,7 +603,9 @@ $totalInvestments = \App\Models\Investment::where('season_id', $season_id)
                 'adminFieldsByFruit',
                 'totalHarvestByFruit',
                 'fruitDevStateSummary',
-                'totalInvestments'
+                'totalInvestments',
+                'branches',
+                'selectedBranchId'
             ));
         }
     }
@@ -1867,7 +1928,7 @@ $totalInvestments = \App\Models\Investment::where('season_id', $season_id)
      * Obtiene los totales generales (agroquímicos, fertilizantes, mano de obra, servicios, insumos) agrupados por Level 1 y Level 2.
      * Devuelve una colección con: [level1_id, level1_name, level2_id, level2_name, total_amount]
      */
-    private function getTotalsByLevel12($team_id = null)
+    private function getTotalsByLevel12($team_id = null, $costCenterIds = null)
     {
         $season_id = session('season_id');
         $season = \App\Models\Season::select('month_id')->where('id', $season_id)->first();
@@ -1877,14 +1938,19 @@ $totalInvestments = \App\Models\Investment::where('season_id', $season_id)
             $id = date('n', mktime(0, 0, 0, $x, 1));
             $months[] = $id;
         }
-        $costCentersQuery = \App\Models\CostCenter::where('season_id', $season_id);
-        if ($team_id) {
-            $costCentersQuery->whereHas('season.team', function ($query) use ($team_id) {
-                $query->where('team_id', $team_id);
-            });
+        // Si se reciben IDs específicos (ej: filtro de sucursal), usarlos directamente
+        if ($costCenterIds !== null && count($costCenterIds) > 0) {
+            $costCenters = \App\Models\CostCenter::whereIn('id', $costCenterIds)->get(['id', 'fruit_id', 'surface'])->keyBy('id');
+        } else {
+            $costCentersQuery = \App\Models\CostCenter::where('season_id', $season_id);
+            if ($team_id) {
+                $costCentersQuery->whereHas('season.team', function ($query) use ($team_id) {
+                    $query->where('team_id', $team_id);
+                });
+            }
+            // OPTIMIZACIÓN: incluir surface en la query inicial para evitar N+1
+            $costCenters = $costCentersQuery->get(['id', 'fruit_id', 'surface'])->keyBy('id');
         }
-        // OPTIMIZACIÓN: incluir surface en la query inicial para evitar N+1
-        $costCenters = $costCentersQuery->get(['id', 'fruit_id', 'surface'])->keyBy('id');
         // Pre-cargar los nombres de fruta
         $fruitIds = $costCenters->pluck('fruit_id')->unique()->filter();
         $fruits = $fruitIds->count() ? \App\Models\Fruit::whereIn('id', $fruitIds)->pluck('name', 'id') : collect();

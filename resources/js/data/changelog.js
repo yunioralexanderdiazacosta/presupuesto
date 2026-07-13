@@ -7,6 +7,14 @@
 
 export const changelog = [
   {
+    fecha: '2026-07-13',
+    titulo: 'Tablero — Filtro por sucursal',
+    items: [
+      'Se agregó un selector de sucursal en el tablero principal. Al seleccionar una sucursal, todos los totales, gráficos y tablas se actualizan mostrando solo los datos de los cuarteles de esa sucursal.',
+      'La opción "Todas" muestra el consolidado completo sin filtro.',
+    ]
+  },
+  {
     fecha: '2026-07-10',
     titulo: 'Mano de Obra — Filtro por sucursal en pestañas Detalles y Gastos por Hectárea',
     items: [

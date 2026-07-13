@@ -2,7 +2,7 @@
 import { Head } from '@inertiajs/vue3';
 import AppLayout from '@/Layouts/AppLayout.vue';
 import FalconBarChart from '@/Components/FalconBarChart.vue';
-import { onMounted, ref, computed, nextTick } from 'vue'
+import { onMounted, ref, computed, nextTick, watch } from 'vue'
 import { router } from '@inertiajs/vue3'
 
 
@@ -97,7 +97,15 @@ const props = defineProps({
   adminFieldsByFruit: Object, // <-- nuevo prop para admin+fields prorrateado por especie
   totalHarvestByFruit: Object, // <-- nuevo prop para total de cosecha por especie
   fruitDevStateSummary: Array,
-  totalInvestments: Number
+  totalInvestments: Number,
+  branches: { type: Array, default: () => [] },
+  selectedBranchId: { type: Number, default: null },
+});
+
+const selectedBranch = ref(props.selectedBranchId ?? '');
+
+watch(selectedBranch, (val) => {
+  router.get('/dashboard', { branch_id: val || '' }, { preserveState: false, replace: true });
 });
 
 // Select de estimación
@@ -115,6 +123,17 @@ const totalByFruit = computed(() => {
   (props.totalsByLevel12 || []).forEach(row => {
     if (row.fruit_id) {
       map[row.fruit_id] = (map[row.fruit_id] || 0) + Number(row.total_amount || 0);
+    }
+  });
+  return map;
+});
+
+// Mapa fruit_id → nombre del frutal, construido desde totalsByLevel12 (siempre completo, no depende de estimaciones)
+const fruitNameByFruit = computed(() => {
+  const map = {};
+  (props.totalsByLevel12 || []).forEach(row => {
+    if (row.fruit_id && row.fruit_name) {
+      map[String(row.fruit_id)] = row.fruit_name;
     }
   });
   return map;
@@ -586,6 +605,14 @@ onMounted(() => {
       <div class="row mb-2">
         <div class="col-12">
           <div class="d-flex flex-wrap align-items-center gap-3">
+            <!-- Filtro de Sucursal -->
+            <div class="d-flex align-items-center gap-2">
+              <label class="form-label mb-0 small fw-semibold" style="white-space:nowrap;">Sucursal:</label>
+              <select v-model="selectedBranch" class="form-select form-select-sm" style="min-width:160px;max-width:220px;">
+                <option value="">Todas</option>
+                <option v-for="branch in branches" :key="branch.value" :value="branch.value">{{ branch.label }}</option>
+              </select>
+            </div>
             <div class="form-check form-switch d-flex align-items-center mb-2 me-4">
               <input class="form-check-input" type="checkbox" id="dividir-switch" v-model="dividir">
               <label class="form-check-label ms-2 mb-0" for="dividir-switch">ver en Usd</label>
@@ -673,7 +700,7 @@ onMounted(() => {
           <div class="card ecommerce-card-min-width mb-2">
             <div class="card-header pb-2 bg-success bg-opacity-10 d-flex align-items-center justify-content-between">
               <h6 class="mb-0 mt-1 d-flex align-items-center fs-10">
-                Total {{ fruitNames && fruitNames[fruitId] ? fruitNames[fruitId] : ('Fruta ' + fruitId) }}
+                Total {{ fruitNameByFruit[String(fruitId)] || (fruitNames && fruitNames[fruitId]) || ('Fruta ' + fruitId) }}
               </h6>
               <div class="d-flex align-items-center ms-2" style="margin-bottom:0;">
                 <div class="form-check form-switch me-1" style="margin-bottom:0;">
