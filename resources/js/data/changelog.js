@@ -11,6 +11,9 @@ export const changelog = [
     titulo: 'Tablero — Filtro por sucursal',
     items: [
       'Se agregó un selector de sucursal en el tablero principal. Al seleccionar una sucursal, todos los totales, gráficos y tablas se actualizan mostrando solo los datos de los cuarteles de esa sucursal.',
+      'Los costos de Administración y Generales Campo se prorratean automáticamente según la proporción de superficie de la sucursal seleccionada.',
+      'Los indicadores por rubro (gráfico de gauges), los totales por especie y la tabla de resumen ahora respetan correctamente el filtro de sucursal.',
+      'Se corrigió que las tarjetas de total por frutal mostraban "Fruta 1", "Fruta 2" en vez del nombre real del frutal.',
       'La opción "Todas" muestra el consolidado completo sin filtro.',
     ]
   },
