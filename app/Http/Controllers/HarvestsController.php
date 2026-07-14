@@ -121,9 +121,10 @@ class HarvestsController extends Controller
         $this->month_id = $season['month_id'];
 
 
-        // Obtener el Level1 correspondiente a 'Cosecha' para el equipo del usuario
+        // Obtener el Level1 correspondiente a 'Cosecha' para el equipo del usuario y la temporada activa
         $level1 = \App\Models\Level1::where('name', 'Cosecha')
             ->where('team_id', $user->team_id)
+            ->where('season_id', $season_id)
             ->first();
 
         $level2s = collect();

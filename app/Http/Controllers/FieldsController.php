@@ -96,9 +96,10 @@ class FieldsController extends Controller
 
 
 
-        // Obtener el Level1 correspondiente a 'field' para el equipo del usuario
+        // Obtener el Level1 correspondiente a 'field' para el equipo del usuario y la temporada activa
         $level1 = Level1::where('name', 'Generales campo')
             ->where('team_id', $user->team_id)
+            ->where('season_id', $season_id)
             ->first();
 
 

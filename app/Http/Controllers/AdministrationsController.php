@@ -88,9 +88,10 @@ class AdministrationsController extends Controller
             : 0;
 
 
-        // Obtener el Level1 correspondiente a 'administracion' para el equipo del usuario
+        // Obtener el Level1 correspondiente a 'administracion' para el equipo del usuario y la temporada activa
         $level1 = Level1::where('name', 'Administracion')
             ->where('team_id', $user->team_id)
+            ->where('season_id', $season_id)
             ->first();
             
         $level2s =  Level2::from('level2s as l2')
