@@ -3,13 +3,15 @@ import SupplierForm from './SupplierForm.vue';
 import Modal from '@/Components/Modal.vue';
 
 const props = defineProps({
-    form: Object
+    form: Object,
+    banks: { type: Array, default: () => [] },
+    accountTypes: { type: Array, default: () => [] },
 });
 
 defineEmits(['store']);
 </script>
 <template>
-    <Modal :maxWidth="'lg'" :id="'createSupplierModal'">
+    <Modal :maxWidth="'xl'" :id="'createSupplierModal'">
         <template #header>
             <h5 class="modal-title mb-0 d-flex align-items-center">
                 <i class="fas fa-truck text-primary me-2"></i>
@@ -17,7 +19,7 @@ defineEmits(['store']);
             </h5>
         </template>
         <template #body>
-            <SupplierForm :form="form" />
+            <SupplierForm :form="form" :banks="banks" :account-types="accountTypes" />
         </template>
         <template #footer>
             <button

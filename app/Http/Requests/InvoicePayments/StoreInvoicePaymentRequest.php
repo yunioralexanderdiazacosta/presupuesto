@@ -19,6 +19,7 @@ class StoreInvoicePaymentRequest extends FormRequest
             'amount' => 'required|numeric|min:0.01',
             'payment_method' => 'required|in:1,2,3',
             'bank_id' => 'required_if:payment_method,1|nullable|exists:banks,id',
+            'supplier_bank_account_id' => 'nullable|exists:supplier_bank_accounts,id',
             'transaction_number' => 'required_if:payment_method,1,3|nullable|string|max:255',
             'observations' => 'nullable|string|max:1000',
         ];

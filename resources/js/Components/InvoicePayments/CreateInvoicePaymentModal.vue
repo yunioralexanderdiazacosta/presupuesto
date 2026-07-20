@@ -25,6 +25,7 @@ const form = useForm({
     amount: '',
     payment_method: null,
     bank_id: null,
+    supplier_bank_account_id: null,
     transaction_number: '',
     observations: '',
 });
@@ -295,6 +296,7 @@ watch(() => props.show, (newVal) => {
                 <InvoicePaymentForm 
                     :form="form" 
                     :banks="banks"
+                    :supplier-accounts="selectedInvoice.bank_accounts || []"
                     :max-amount="selectedInvoice.balance"
                 />
             </div>

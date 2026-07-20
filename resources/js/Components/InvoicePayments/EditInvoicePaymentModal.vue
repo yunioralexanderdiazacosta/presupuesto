@@ -9,6 +9,10 @@ const props = defineProps({
     show: Boolean,
     payment: Object,
     banks: Array,
+    supplierAccounts: {
+        type: Array,
+        default: () => []
+    },
 });
 
 const emit = defineEmits(['close']);
@@ -18,6 +22,7 @@ const form = useForm({
     amount: '',
     payment_method: null,
     bank_id: null,
+    supplier_bank_account_id: null,
     transaction_number: '',
     observations: '',
 });
@@ -31,6 +36,7 @@ watch(() => props.payment, (newPayment) => {
         form.amount = newPayment.amount || '';
         form.payment_method = newPayment.payment_method || null;
         form.bank_id = newPayment.bank_id || null;
+        form.supplier_bank_account_id = newPayment.supplier_bank_account_id || null;
         form.transaction_number = newPayment.transaction_number || '';
         form.observations = newPayment.observations || '';
         form.clearErrors();
@@ -87,6 +93,7 @@ watch(() => props.show, (newVal) => {
                 v-if="payment"
                 :form="form" 
                 :banks="banks"
+                :supplier-accounts="supplierAccounts"
             />
         </template>
 

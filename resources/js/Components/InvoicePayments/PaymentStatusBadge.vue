@@ -3,7 +3,7 @@ const props = defineProps({
     status: {
         type: String,
         required: true,
-        validator: (value) => ['pending', 'partial', 'paid'].includes(value)
+        validator: (value) => ['pending', 'partial', 'paid', 'annulled'].includes(value)
     }
 });
 
@@ -19,6 +19,10 @@ const statusConfig = {
     paid: {
         label: 'Pagado',
         class: 'bg-success text-white'
+    },
+    annulled: {
+        label: 'Anulada',
+        class: 'bg-dark text-white'
     }
 };
 </script>

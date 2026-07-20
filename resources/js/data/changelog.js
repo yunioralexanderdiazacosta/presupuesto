@@ -7,6 +7,44 @@
 
 export const changelog = [
   {
+    fecha: '2026-07-20',
+    titulo: 'Pago de Facturas — Cuenta bancaria del proveedor',
+    items: [
+      'Al registrar o editar un pago, ahora se puede seleccionar a qué cuenta bancaria del proveedor se pagó.',
+      'Si el proveedor tiene varias cuentas, se eligen desde una lista (Banco • Tipo • N° de cuenta); si no tiene ninguna, el pago se registra igual.',
+      'La cuenta pagada queda guardada y se muestra en el detalle de pagos de cada factura.',
+      'La exportación a Excel incluye la cuenta del proveedor en columnas separadas: Banco, Tipo de cuenta y N° de cuenta.',
+    ]
+  },
+  {
+    fecha: '2026-07-20',
+    titulo: 'Proveedores — Cuentas bancarias',
+    items: [
+      'Ahora cada proveedor puede tener una o varias cuentas bancarias.',
+      'Al crear o editar un proveedor se pueden agregar y quitar cuentas, indicando banco, tipo de cuenta y número de cuenta.',
+      'Las cuentas son opcionales; un proveedor puede quedar sin ninguna.',
+    ]
+  },
+  {
+    fecha: '2026-07-20',
+    titulo: 'Pago de Facturas — Aviso de notas de crédito/débito',
+    items: [
+      'La tabla de facturas ahora muestra un distintivo cuando una factura tiene notas de crédito (NC) o débito (ND) asociadas, con el detalle al pasar el mouse.',
+      'El "Saldo" de cada factura ahora considera automáticamente las notas: descuenta las notas de crédito y suma las de débito, mostrando siempre el monto real por pagar.',
+      'Las facturas anuladas por una nota de crédito se marcan claramente como "ANULADA", su saldo queda en $0 y ya no se pueden pagar por error.',
+      'Se agregó un indicador "Anuladas" en el resumen superior y un filtro rápido para verlas.',
+      'Al registrar un pago, las facturas anuladas ya no aparecen disponibles para seleccionar.',
+    ]
+  },
+  {
+    fecha: '2026-07-20',
+    titulo: 'Proveedores — Protección al eliminar',
+    items: [
+      'Ahora no es posible eliminar un proveedor que tenga facturas, órdenes de compra, notas de crédito/débito o rendiciones de gastos asociadas.',
+      'Al intentar borrarlo, se muestra una alerta indicando exactamente qué documentos lo impiden y cuántos, evitando la pérdida accidental de información.',
+    ]
+  },
+  {
     fecha: '2026-07-13',
     titulo: 'Tablero — Filtro por sucursal',
     items: [

@@ -5,6 +5,10 @@ import InputError from '@/Components/InputError.vue';
 const props = defineProps({
     form: Object,
     banks: Array,
+    supplierAccounts: {
+        type: Array,
+        default: () => []
+    },
     maxAmount: {
         type: Number,
         default: null
@@ -109,6 +113,27 @@ watch(() => props.form.payment_method, (newMethod) => {
                     </option>
                 </select>
                 <InputError class="mt-1" :message="form.errors.bank_id" />
+            </div>
+        </div>
+
+        <div v-if="supplierAccounts && supplierAccounts.length > 0" class="col-md-12">
+            <div class="mb-3">
+                <label for="supplier_bank_account_id" class="form-label small fw-bold">
+                    Cuenta bancaria del proveedor
+                    <span class="text-muted fw-normal">(Opcional)</span>
+                </label>
+                <select
+                    id="supplier_bank_account_id"
+                    v-model="form.supplier_bank_account_id"
+                    class="form-select form-select-sm"
+                    :class="{'is-invalid': form.errors.supplier_bank_account_id}"
+                >
+                    <option :value="null">Sin especificar</option>
+                    <option v-for="account in supplierAccounts" :key="account.value" :value="account.value">
+                        {{ account.label }}
+                    </option>
+                </select>
+                <InputError class="mt-1" :message="form.errors.supplier_bank_account_id" />
             </div>
         </div>
 

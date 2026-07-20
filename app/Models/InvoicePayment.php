@@ -17,6 +17,7 @@ class InvoicePayment extends Model
         'season_id',
         'user_id',
         'bank_id',
+        'supplier_bank_account_id',
         'payment_date',
         'amount',
         'payment_method',
@@ -52,6 +53,11 @@ class InvoicePayment extends Model
     public function bank()
     {
         return $this->belongsTo(Bank::class);
+    }
+
+    public function supplierBankAccount()
+    {
+        return $this->belongsTo(SupplierBankAccount::class);
     }
 
     public function getPaymentMethodNameAttribute()

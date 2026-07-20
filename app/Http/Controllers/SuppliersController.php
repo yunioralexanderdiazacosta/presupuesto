@@ -5,6 +5,8 @@ namespace App\Http\Controllers;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use App\Models\Supplier;
+use App\Models\Bank;
+use App\Models\AccountType;
 use Inertia\Inertia;
 use App\Exports\SuppliersTemplateExport;
 use App\Imports\SuppliersImport;
@@ -22,11 +24,20 @@ class SuppliersController extends Controller
             $query->where('name', 'like', '%'.$search.'%')->orWhere('rut', 'like', '%'.$search.'%');
         })
         ->where('team_id', $user->team_id)
+        ->with(['bankAccounts.bank:id,name', 'bankAccounts.accountType:id,name'])
         ->orderBy('name', 'asc')
         ->paginate(2000)
         ->withQueryString();
 
-        return Inertia::render('Suppliers', compact('suppliers', 'term'));
+        $banks = Bank::where('active', true)->orderBy('name')
+            ->get(['id', 'name'])
+            ->map(fn($b) => ['value' => $b->id, 'label' => $b->name]);
+
+        $accountTypes = AccountType::where('active', true)->orderBy('name')
+            ->get(['id', 'name'])
+            ->map(fn($t) => ['value' => $t->id, 'label' => $t->name]);
+
+        return Inertia::render('Suppliers', compact('suppliers', 'term', 'banks', 'accountTypes'));
     }
 
     public function import(Request $request)

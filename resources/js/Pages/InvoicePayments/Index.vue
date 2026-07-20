@@ -39,6 +39,7 @@ function toggleRow(id) {
 const showCreateModal = ref(false);
 const showEditModal   = ref(false);
 const editingPayment  = ref(null);
+const editingSupplierAccounts = ref([]);
 const preselectedInvoice = ref(null);
 
 function openCreateModal(invoice = null) {
@@ -49,13 +50,15 @@ function closeCreateModal() {
     showCreateModal.value = false;
     preselectedInvoice.value = null;
 }
-function openEditModal(payment) {
+function openEditModal(payment, invoice = null) {
     editingPayment.value = payment;
+    editingSupplierAccounts.value = invoice?.bank_accounts || [];
     showEditModal.value = true;
 }
 function closeEditModal() {
     showEditModal.value = false;
     editingPayment.value = null;
+    editingSupplierAccounts.value = [];
 }
 
 function search() {
@@ -109,6 +112,7 @@ function formatDate(dateStr) {
 
 function getDueDateStatus(invoice) {
     if (!invoice.due_date) return null;
+    if (invoice.is_annulled) return null;
     if (invoice.payment_status === 'paid') return 'paid';
     const today = new Date(); today.setHours(0,0,0,0);
     const due   = new Date(invoice.due_date); due.setHours(0,0,0,0);
@@ -136,10 +140,21 @@ const dueDateConfig = {
 };
 
 const statusLabels = {
-    pending: 'Pendiente',
-    partial: 'Parcial',
-    paid:    'Pagada',
+    pending:  'Pendiente',
+    partial:  'Parcial',
+    paid:     'Pagada',
+    annulled: 'Anulada',
 };
+
+// Texto para el tooltip con el detalle de notas de crédito/débito de una factura
+function notesTooltip(invoice) {
+    if (!invoice.notes || invoice.notes.length === 0) return '';
+    return invoice.notes.map((n) => {
+        const tipo = n.type === 'credito' ? 'NC' : 'ND';
+        const anul = n.is_annulment ? ' (ANULACIÓN)' : '';
+        return `${tipo} N° ${n.number}${anul}: $${formatCurrency(n.total)}`;
+    }).join('\n');
+}
 
 const excelHeaders = [
     { label: 'Fecha Factura',  key: 'fecha' },
@@ -157,6 +172,9 @@ const excelHeaders = [
     { label: 'Banco',          key: 'bank' },
     { label: 'Método Pago',    key: 'payment_method' },
     { label: 'N° Transacción', key: 'transaction_number' },
+    { label: 'Cuenta Prov. - Banco',  key: 'sba_bank' },
+    { label: 'Cuenta Prov. - Tipo',   key: 'sba_type' },
+    { label: 'Cuenta Prov. - N°',     key: 'sba_number' },
 ];
 
 const excelData = computed(() => {
@@ -183,6 +201,9 @@ const excelData = computed(() => {
                     bank:               p.bank ?? '-',
                     payment_method:     p.payment_method_name ?? '-',
                     transaction_number: p.transaction_number ?? '-',
+                    sba_bank:           p.supplier_bank_account_bank ?? '-',
+                    sba_type:           p.supplier_bank_account_type ?? '-',
+                    sba_number:         p.supplier_bank_account_number ?? '-',
                 });
             }
         } else {
@@ -193,6 +214,9 @@ const excelData = computed(() => {
                 bank:               '',
                 payment_method:     '',
                 transaction_number: '',
+                sba_bank:           '',
+                sba_type:           '',
+                sba_number:         '',
             });
         }
     }
@@ -260,7 +284,7 @@ const excelData = computed(() => {
 
                 <!-- Cards KPI por estado de pago -->
                 <div class="row g-2 mb-3" v-if="summary">
-                    <div class="col-6 col-md-3">
+                    <div class="col-6 col-md">
                         <div
                             class="card border-0 shadow-sm h-100"
                             style="cursor:pointer; border-left: 3px solid #6c757d !important;"
@@ -277,7 +301,7 @@ const excelData = computed(() => {
                             </div>
                         </div>
                     </div>
-                    <div class="col-6 col-md-3">
+                    <div class="col-6 col-md">
                         <div
                             class="card border-0 shadow-sm h-100"
                             style="cursor:pointer; border-left: 3px solid #dc3545 !important;"
@@ -294,7 +318,7 @@ const excelData = computed(() => {
                             </div>
                         </div>
                     </div>
-                    <div class="col-6 col-md-3">
+                    <div class="col-6 col-md">
                         <div
                             class="card border-0 shadow-sm h-100"
                             style="cursor:pointer; border-left: 3px solid #fd7e14 !important;"
@@ -311,7 +335,7 @@ const excelData = computed(() => {
                             </div>
                         </div>
                     </div>
-                    <div class="col-6 col-md-3">
+                    <div class="col-6 col-md">
                         <div
                             class="card border-0 shadow-sm h-100"
                             style="cursor:pointer; border-left: 3px solid #198754 !important;"
@@ -328,12 +352,29 @@ const excelData = computed(() => {
                             </div>
                         </div>
                     </div>
+                    <div class="col-6 col-md">
+                        <div
+                            class="card border-0 shadow-sm h-100"
+                            style="cursor:pointer; border-left: 3px solid #212529 !important;"
+                            :class="filterPaymentStatus === 'annulled' ? 'bg-soft-secondary' : ''"
+                            @click="filterPaymentStatus = 'annulled'; search()"
+                        >
+                            <div class="card-body py-2 px-3">
+                                <div class="d-flex justify-content-between align-items-center mb-1">
+                                    <small class="fw-semibold text-dark">Anuladas</small>
+                                    <span class="badge bg-dark rounded-pill">{{ summary.annulled?.count ?? 0 }}</span>
+                                </div>
+                                <div class="fw-bold fs-9 text-dark">$ {{ formatCurrency(summary.annulled?.amount ?? 0) }}</div>
+                                <small class="text-muted" style="font-size:0.7rem;">no se pagan</small>
+                            </div>
+                        </div>
+                    </div>
                 </div>
 
                 <!-- Filtros rápidos de estado -->
                 <div class="d-flex gap-2 mb-3 flex-wrap">
                     <button
-                        v-for="(label, key) in { '': 'Todos', pending: 'Pendientes', partial: 'Parciales', paid: 'Pagadas' }"
+                        v-for="(label, key) in { '': 'Todos', pending: 'Pendientes', partial: 'Parciales', paid: 'Pagadas', annulled: 'Anuladas' }"
                         :key="key"
                         @click="filterPaymentStatus = key || null; search()"
                         class="btn btn-sm"
@@ -410,7 +451,37 @@ const excelData = computed(() => {
                                         ></i>
                                     </td>
                                     <td class="text-nowrap">{{ formatDate(invoice.date) }}</td>
-                                    <td class="fw-semibold">{{ invoice.number_document }}</td>
+                                    <td class="fw-semibold">
+                                        <div class="d-flex align-items-center flex-wrap gap-1">
+                                            <span>{{ invoice.number_document }}</span>
+                                            <span
+                                                v-if="invoice.is_annulled"
+                                                class="badge bg-dark text-white"
+                                                v-tooltip="notesTooltip(invoice)"
+                                                style="cursor:help;"
+                                            >
+                                                <i class="fas fa-ban fa-xs me-1"></i>ANULADA
+                                            </span>
+                                            <template v-else-if="invoice.has_notes">
+                                                <span
+                                                    v-if="invoice.credit_total > 0"
+                                                    class="badge bg-danger text-white"
+                                                    v-tooltip="notesTooltip(invoice)"
+                                                    style="cursor:help;"
+                                                >
+                                                    <i class="fas fa-file-invoice-dollar fa-xs me-1"></i>NC
+                                                </span>
+                                                <span
+                                                    v-if="invoice.debit_total > 0"
+                                                    class="badge bg-primary text-white"
+                                                    v-tooltip="notesTooltip(invoice)"
+                                                    style="cursor:help;"
+                                                >
+                                                    <i class="fas fa-file-invoice-dollar fa-xs me-1"></i>ND
+                                                </span>
+                                            </template>
+                                        </div>
+                                    </td>
                                     <td style="max-width:200px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;" :title="invoice.supplier?.name">{{ invoice.supplier?.name ?? '-' }}</td>
                                     <td>{{ invoice.company_reason ?? '-' }}</td>
                                     <td>{{ invoice.type_document ?? '-' }}</td>
@@ -443,13 +514,21 @@ const excelData = computed(() => {
                                     </td>
                                     <td class="text-center">
                                         <button
-                                            v-if="invoice.payment_status !== 'paid'"
+                                            v-if="invoice.payment_status !== 'paid' && !invoice.is_annulled"
                                             @click.stop="openCreateModal(invoice)"
                                             class="btn btn-falcon-default btn-sm"
                                             v-tooltip="'Registrar pago'"
                                         >
                                             <i class="fas fa-dollar-sign"></i>
                                         </button>
+                                        <span
+                                            v-else-if="invoice.is_annulled"
+                                            class="text-muted"
+                                            v-tooltip="'Factura anulada por nota de crédito. No se puede pagar.'"
+                                            style="cursor:help;"
+                                        >
+                                            <i class="fas fa-ban"></i>
+                                        </span>
                                     </td>
                                 </tr>
 
@@ -467,6 +546,7 @@ const excelData = computed(() => {
                                                         <th class="text-end">Monto</th>
                                                         <th>Método</th>
                                                         <th>Banco</th>
+                                                        <th>Cuenta Proveedor</th>
                                                         <th>Nro. Transacción</th>
                                                         <th>Usuario</th>
                                                         <th class="text-center">Acciones</th>
@@ -487,10 +567,11 @@ const excelData = computed(() => {
                                                             </span>
                                                         </td>
                                                         <td>{{ payment.bank ?? '-' }}</td>
+                                                        <td>{{ payment.supplier_bank_account ?? '-' }}</td>
                                                         <td>{{ payment.transaction_number || '-' }}</td>
                                                         <td>{{ payment.user ?? '-' }}</td>
                                                         <td class="text-center">
-                                                            <button @click="openEditModal(payment)" class="btn btn-falcon-default btn-sm me-1" title="Editar">
+                                                            <button @click="openEditModal(payment, invoice)" class="btn btn-falcon-default btn-sm me-1" title="Editar">
                                                                 <i class="fas fa-edit"></i>
                                                             </button>
                                                             <button @click="deletePayment(payment.id)" class="btn btn-falcon-default btn-sm" title="Eliminar">
@@ -541,6 +622,7 @@ const excelData = computed(() => {
             :show="showEditModal"
             :payment="editingPayment"
             :banks="banks"
+            :supplier-accounts="editingSupplierAccounts"
             @close="closeEditModal"
         />
     </AppLayout>

@@ -17,5 +17,15 @@ class UpdateSupplierController extends Controller
         $supplier->contact  = $request->contact;
         $supplier->phone    = $request->phone;
         $supplier->save();
+
+        // Sincronizar cuentas bancarias: reemplazar por las enviadas
+        $supplier->bankAccounts()->delete();
+        foreach ($request->accounts ?? [] as $account) {
+            $supplier->bankAccounts()->create([
+                'bank_id'         => $account['bank_id'],
+                'account_type_id' => $account['account_type_id'],
+                'account_number'  => $account['account_number'],
+            ]);
+        }
     }
 }

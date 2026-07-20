@@ -43,6 +43,7 @@ class StoreInvoicePaymentController extends Controller
             'season_id' => $season_id,
             'user_id' => $user->id,
             'bank_id' => $request->bank_id,
+            'supplier_bank_account_id' => $request->supplier_bank_account_id,
             'payment_date' => $request->payment_date,
             'amount' => $request->amount,
             'payment_method' => $request->payment_method,

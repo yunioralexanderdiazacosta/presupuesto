@@ -10,4 +10,9 @@ class Supplier extends Model
     use HasFactory;
 
     protected $fillable = ['team_id','name','email','rut','contact','phone'];
+
+    public function bankAccounts()
+    {
+        return $this->hasMany(SupplierBankAccount::class);
+    }
 }

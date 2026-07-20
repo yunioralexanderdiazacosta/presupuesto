@@ -3,18 +3,20 @@ import SupplierForm from './SupplierForm.vue';
 import Modal from '@/Components/Modal.vue';
 
 const props = defineProps({
-    form: Object
+    form: Object,
+    banks: { type: Array, default: () => [] },
+    accountTypes: { type: Array, default: () => [] },
 });
 
 defineEmits(['update']);
 </script>
 <template>
-    <Modal :maxWidth="'lg'" :id="'editSupplierModal'">
+    <Modal :maxWidth="'xl'" :id="'editSupplierModal'">
         <template #header>
             <h1 class="mb-3">Editar proveedor</h1>
         </template>
         <template #body>
-            <SupplierForm :form="form" />
+            <SupplierForm :form="form" :banks="banks" :account-types="accountTypes" />
         </template>
         <template #footer>
             <button type="button" id="kt_modal_update_cost_center_cancel" data-bs-dismiss="modal" class="btn btn-light me-3">Cerrar</button>

@@ -1,14 +1,24 @@
 <script setup>
     import { ref } from 'vue';
-    import Multiselect from '@vueform/multiselect';
 	import TextInput from '@/Components/TextInput.vue';
 	import InputError from '@/Components/InputError.vue';
 
-	defineProps({
-		form: Object
+	const props = defineProps({
+		form: Object,
+		banks: { type: Array, default: () => [] },
+		accountTypes: { type: Array, default: () => [] },
 	});
 
     const rutError = ref('');
+
+    function addAccount() {
+        if (!Array.isArray(props.form.accounts)) props.form.accounts = [];
+        props.form.accounts.push({ bank_id: '', account_type_id: '', account_number: '' });
+    }
+
+    function removeAccount(index) {
+        props.form.accounts.splice(index, 1);
+    }
 
     function validateRut(rut) {
         if (!rut) return false;
@@ -151,18 +161,76 @@
         </div>
     </div>
 
-    <!--
-    <div class="fv-row mb-3">
-        <label for="month" class="form-label required fs-6 fw-bold mb-3">Presupuesto</label>
-        <Multiselect
-            :placeholder="'Seleccione el presupuesto'"
-            v-model="form.budget_id"
-            :close-on-select="false"
-            :options="$page.props.budgets"
-            class="multiselect-blue form-control"
-            :class="{'is-invalid': form.errors.budget_id}"
-            :searchable="true"
-        />
-        <InputError class="mt-2" :message="form.errors.budget_id" />
-    </div>-->
+    <!-- Cuentas bancarias (opcional, varias por proveedor) -->
+    <div class="mt-4">
+        <div class="d-flex align-items-center justify-content-between mb-2">
+            <label class="col-form-label fw-bold mb-0">
+                <i class="fas fa-university text-primary me-1"></i>Cuentas bancarias
+                <small class="text-muted fw-normal ms-1">(opcional)</small>
+            </label>
+            <button type="button" class="btn btn-falcon-default btn-sm" @click="addAccount">
+                <i class="fas fa-plus me-1"></i>Agregar cuenta
+            </button>
+        </div>
+
+        <div v-if="!form.accounts || form.accounts.length === 0" class="text-muted small fst-italic px-1">
+            Este proveedor no tiene cuentas bancarias registradas.
+        </div>
+
+        <div
+            v-for="(account, index) in form.accounts"
+            :key="index"
+            class="border rounded p-2 mb-2 bg-body-tertiary"
+        >
+            <div class="row g-2 align-items-end">
+                <div class="col-lg-4">
+                    <label class="form-label small mb-1">Banco <span class="text-danger">*</span></label>
+                    <select
+                        v-model="account.bank_id"
+                        class="form-select form-select-sm"
+                    >
+                        <option :value="''" disabled>Seleccione banco</option>
+                        <option v-for="bank in banks" :key="bank.value" :value="bank.value">
+                            {{ bank.label }}
+                        </option>
+                    </select>
+                    <InputError class="mt-1" :message="form.errors[`accounts.${index}.bank_id`]" />
+                </div>
+                <div class="col-lg-3">
+                    <label class="form-label small mb-1">Tipo de cuenta <span class="text-danger">*</span></label>
+                    <select
+                        v-model="account.account_type_id"
+                        class="form-select form-select-sm"
+                    >
+                        <option :value="''" disabled>Seleccione tipo</option>
+                        <option v-for="type in accountTypes" :key="type.value" :value="type.value">
+                            {{ type.label }}
+                        </option>
+                    </select>
+                    <InputError class="mt-1" :message="form.errors[`accounts.${index}.account_type_id`]" />
+                </div>
+                <div class="col-lg-4">
+                    <label class="form-label small mb-1">N° de cuenta <span class="text-danger">*</span></label>
+                    <input
+                        type="text"
+                        v-model="account.account_number"
+                        class="form-control form-control-solid"
+                        placeholder="Ej: 00012345678"
+                        maxlength="30"
+                    />
+                    <InputError class="mt-1" :message="form.errors[`accounts.${index}.account_number`]" />
+                </div>
+                <div class="col-lg-1 text-end">
+                    <button
+                        type="button"
+                        class="btn btn-link text-danger p-0"
+                        v-tooltip="'Quitar cuenta'"
+                        @click="removeAccount(index)"
+                    >
+                        <i class="fas fa-trash-alt"></i>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
 </template>

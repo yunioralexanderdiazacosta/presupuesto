@@ -19,7 +19,9 @@ const isLocked = useSeasonLock();
 
 const props = defineProps({
     suppliers: Object,
-    term: String
+    term: String,
+    banks: { type: Array, default: () => [] },
+    accountTypes: { type: Array, default: () => [] },
 });
 
 const form = useForm({
@@ -28,7 +30,8 @@ const form = useForm({
     rut: '',
     contact: '',
     email: '',
-    phone: ''
+    phone: '',
+    accounts: []
 });
 
 const title = 'Proveedores';
@@ -72,6 +75,11 @@ const openEdit = (supplier) => {
     form.contact = supplier.contact;
     form.email = supplier.email;
     form.phone = supplier.phone;
+    form.accounts = (supplier.bank_accounts ?? []).map(a => ({
+        bank_id: Number(a.bank_id),
+        account_type_id: Number(a.account_type_id),
+        account_number: a.account_number,
+    }));
     $('#editSupplierModal').modal('show');
 }
 
@@ -122,6 +130,14 @@ const onDeleted = (id) => {
                 preserveScroll: true,
                 onSuccess: () => {
                     msgSuccess('Registro eliminado correctamente');
+                },
+                onError: (errors) => {
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'No se puede eliminar',
+                        text: errors.supplier || 'El proveedor tiene documentos asociados y no puede eliminarse.',
+                        confirmButtonColor: 'rgb(0, 158, 247)',
+                    });
                 }
             });
         }
@@ -279,8 +295,8 @@ async function importExcel() {
             </div>
         </div>
  </div>
-        <CreateSupplierModal @store="storeSupplier" :form="form" />
-        <EditSupplierModal @update="updateSupplier" :form="form" />
+        <CreateSupplierModal @store="storeSupplier" :form="form" :banks="banks" :account-types="accountTypes" />
+        <EditSupplierModal @update="updateSupplier" :form="form" :banks="banks" :account-types="accountTypes" />
     </AppLayout>
 </template>
 

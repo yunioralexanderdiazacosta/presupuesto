@@ -26,7 +26,11 @@ class FormSupplierRequest extends FormRequest
             'rut'       => 'required|string|max:20',
             'email'     => 'nullable|email|max:255',
             'contact'   => 'nullable|string|max:255',
-            'phone'     => 'nullable|string|max:50'
+            'phone'     => 'nullable|string|max:50',
+            'accounts'                    => 'nullable|array',
+            'accounts.*.bank_id'          => 'required|exists:banks,id',
+            'accounts.*.account_type_id'  => 'required|exists:account_types,id',
+            'accounts.*.account_number'   => 'required|string|max:30',
         ];
     }
 
@@ -39,6 +43,9 @@ class FormSupplierRequest extends FormRequest
             'name.required'  => 'El nombre del proveedor es obligatorio.',
             'rut.required'   => 'El RUT del proveedor es obligatorio.',
             'email.email'    => 'El email ingresado no es válido.',
+            'accounts.*.bank_id.required'         => 'El banco es obligatorio en cada cuenta.',
+            'accounts.*.account_type_id.required' => 'El tipo de cuenta es obligatorio en cada cuenta.',
+            'accounts.*.account_number.required'  => 'El número de cuenta es obligatorio en cada cuenta.',
         ];
     }
 }

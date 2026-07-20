@@ -24,6 +24,14 @@ class StoreSupplierController extends Controller
             'team_id' => $user->team_id
         ]);
 
+        foreach ($request->accounts ?? [] as $account) {
+            $supplier->bankAccounts()->create([
+                'bank_id'         => $account['bank_id'],
+                'account_type_id' => $account['account_type_id'],
+                'account_number'  => $account['account_number'],
+            ]);
+        }
+
         // Retornar el proveedor creado en flash para que Inertia lo pase al frontend
         return redirect()->back()->with('supplier', $supplier);
     }
