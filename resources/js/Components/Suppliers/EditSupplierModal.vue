@@ -13,7 +13,21 @@ defineEmits(['update']);
 <template>
     <Modal :maxWidth="'xl'" :id="'editSupplierModal'">
         <template #header>
-            <h1 class="mb-3">Editar proveedor</h1>
+            <div class="d-flex align-items-center gap-2 mb-3 text-start">
+                <span class="bg-warning text-white rounded-circle d-flex align-items-center justify-content-center"
+                      style="width: 38px; height: 38px; font-size: 1.4rem;">
+                    <i class="fas fa-edit"></i>
+                </span>
+                <span>
+                    <span class="fw-bold" style="font-size: 1.2rem; color: #2d3748; letter-spacing: 0.5px;">
+                        Editar Proveedor
+                    </span>
+                    <br>
+                    <span class="text-muted" style="font-size: 0.85rem;">
+                        Actualice los datos del proveedor
+                    </span>
+                </span>
+            </div>
         </template>
         <template #body>
             <SupplierForm :form="form" :banks="banks" :account-types="accountTypes" />
