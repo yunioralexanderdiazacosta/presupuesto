@@ -7,6 +7,14 @@
 
 export const changelog = [
   {
+    fecha: '2026-07-27',
+    titulo: 'Proveedores — Se evitan RUT duplicados',
+    items: [
+      'Al crear o editar un proveedor, el sistema ya no permite registrar un RUT que ya exista en tu equipo.',
+      'Si intentas guardar un RUT repetido, se muestra un aviso indicando que ya existe un proveedor con ese RUT.',
+    ]
+  },
+  {
     fecha: '2026-07-20',
     titulo: 'Pago de Facturas — Cuenta bancaria del proveedor',
     items: [
