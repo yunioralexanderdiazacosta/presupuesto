@@ -41,6 +41,7 @@ use App\Http\Controllers\Products2\DeleteProduct2Controller;
     use App\Http\Controllers\Api\UpdateProductCarenciaReingresoController;
     use App\Http\Controllers\Api\GetPendingExpenseReportItemsController;
     use App\Http\Controllers\Api\StoreSupplierApiController;
+    use App\Http\Controllers\Api\GetSupplierFormDataController;
     use App\Http\Controllers\Api\GetCostCenterVarietiesController;
     use App\Http\Controllers\Api\GetFuelTanksController;
 
@@ -554,6 +555,7 @@ Route::middleware([
     Route::patch('/api/dollar-price', UpdateDollarPriceController::class)->name('api.dollar-price.update');
     Route::get('/api/pending-expense-items', GetPendingExpenseReportItemsController::class)->name('api.pending-expense-items');
     Route::post('/api/suppliers', StoreSupplierApiController::class)->name('api.suppliers.store');
+    Route::get('/api/supplier-form-data', GetSupplierFormDataController::class)->name('api.suppliers.form-data');
     Route::get('/api/cost-center-varieties/{costCenterId}', GetCostCenterVarietiesController::class)->name('api.cost-center-varieties');
     Route::get('/api/fuel-tanks', GetFuelTanksController::class)->name('api.fuel-tanks');
 

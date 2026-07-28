@@ -1,5 +1,6 @@
 <script setup>
-    import { ref } from 'vue';
+    import { ref, onMounted } from 'vue';
+    import axios from 'axios';
 	import TextInput from '@/Components/TextInput.vue';
 	import InputError from '@/Components/InputError.vue';
 
@@ -10,6 +11,23 @@
 	});
 
     const rutError = ref('');
+
+    // Opciones locales: priorizan los props; si llegan vacíos (ej. modal usado
+    // desde Facturas sin pasar props), se cargan por API para que el componente
+    // sea autosuficiente en cualquier contexto.
+    const bankOptions = ref([...props.banks]);
+    const accountTypeOptions = ref([...props.accountTypes]);
+
+    onMounted(async () => {
+        if (bankOptions.value.length > 0 && accountTypeOptions.value.length > 0) return;
+        try {
+            const { data } = await axios.get(route('api.suppliers.form-data'));
+            if (bankOptions.value.length === 0) bankOptions.value = data.banks ?? [];
+            if (accountTypeOptions.value.length === 0) accountTypeOptions.value = data.accountTypes ?? [];
+        } catch (e) {
+            console.error('No se pudieron cargar bancos/tipos de cuenta:', e);
+        }
+    });
 
     function addAccount() {
         if (!Array.isArray(props.form.accounts)) props.form.accounts = [];
@@ -190,7 +208,7 @@
                         class="form-select form-select-sm"
                     >
                         <option :value="''" disabled>Seleccione banco</option>
-                        <option v-for="bank in banks" :key="bank.value" :value="bank.value">
+                        <option v-for="bank in bankOptions" :key="bank.value" :value="bank.value">
                             {{ bank.label }}
                         </option>
                     </select>
@@ -203,7 +221,7 @@
                         class="form-select form-select-sm"
                     >
                         <option :value="''" disabled>Seleccione tipo</option>
-                        <option v-for="type in accountTypes" :key="type.value" :value="type.value">
+                        <option v-for="type in accountTypeOptions" :key="type.value" :value="type.value">
                             {{ type.label }}
                         </option>
                     </select>

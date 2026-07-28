@@ -1,5 +1,6 @@
 <script setup>
 import { Head } from '@inertiajs/vue3';
+import { router } from '@inertiajs/vue3';
 import AppLayout from '@/Layouts/AppLayout.vue';
 import FalconBarChart from '@/Components/FalconBarChart.vue';
 import FalconPieChart from '@/Components/FalconPieChart.vue';
@@ -23,6 +24,14 @@ const props = defineProps({
     varietyDevStates: { type: Array, default: () => [] },
     costPerHaByCC: { type: Array, default: () => [] },
     costByCCLevel2: { type: Array, default: () => [] },
+    branches: { type: Array, default: () => [] },
+    selectedBranchId: { type: Number, default: null },
+});
+
+// Filtro de sucursal: recarga la vista con el branch_id seleccionado
+const selectedBranch = ref(props.selectedBranchId ?? '');
+watch(selectedBranch, (val) => {
+    router.get('/hectare-dashboard', { branch_id: val || '' }, { preserveState: false, replace: true });
 });
 
 // Formato números
@@ -573,10 +582,19 @@ watch(monthlyChartRef, (val) => {
                         </h5>
                     </div>
                     <div class="col-auto ms-auto text-end ps-0">
-                        <div class="d-flex align-items-center gap-2">
-                            <label class="form-label small mb-0 text-nowrap">Incluir Administracion en analisis:</label>
-                            <div class="form-check form-switch mb-0">
-                                <input class="form-check-input" type="checkbox" v-model="includeAdmin" id="toggleAdmin">
+                        <div class="d-flex align-items-center gap-3">
+                            <div class="d-flex align-items-center gap-2">
+                                <label class="form-label small mb-0 text-nowrap fw-semibold">Sucursal:</label>
+                                <select v-model="selectedBranch" class="form-select form-select-sm" style="min-width:150px;max-width:220px;">
+                                    <option value="">Todas</option>
+                                    <option v-for="branch in branches" :key="branch.value" :value="branch.value">{{ branch.label }}</option>
+                                </select>
+                            </div>
+                            <div class="d-flex align-items-center gap-2">
+                                <label class="form-label small mb-0 text-nowrap">Incluir Administracion en analisis:</label>
+                                <div class="form-check form-switch mb-0">
+                                    <input class="form-check-input" type="checkbox" v-model="includeAdmin" id="toggleAdmin">
+                                </div>
                             </div>
                         </div>
                     </div>

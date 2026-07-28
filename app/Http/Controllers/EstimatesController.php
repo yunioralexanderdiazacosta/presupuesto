@@ -59,11 +59,19 @@ class EstimatesController extends Controller
         $fruits = Fruit::where('team_id', $user->team_id)->get();
         $estimate_statuses = EstimateStatus::whereIn('fruit_id', $fruits->pluck('id'))->get();
 
+        // Sucursales para el filtro del frontend
+        $branches = \App\Models\Branch::where('season_id', $season_id)
+            ->orderBy('name')
+            ->get(['id', 'name'])
+            ->map(fn($b) => ['value' => $b->id, 'label' => $b->name])
+            ->values();
+
         return Inertia::render('Estimates', [
             'costCenterVarieties' => $costCenterVarieties,
             'estimates' => $estimates,
             'estimate_statuses' => $estimate_statuses,
             'fruits' => $fruits,
+            'branches' => $branches,
             'season_id' => $season_id,
         ]);
     }

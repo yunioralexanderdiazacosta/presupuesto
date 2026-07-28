@@ -7,6 +7,32 @@
 
 export const changelog = [
   {
+    fecha: '2026-07-28',
+    titulo: 'Estimaciones — Filtro y columna por sucursal',
+    items: [
+      'Se agregó un selector de sucursal que filtra las variedades por cuartel mostradas en la tabla de estimaciones.',
+      'La tabla y la exportación a Excel ahora incluyen una columna con la sucursal de cada cuartel.',
+      'Los indicadores (total de kilos, promedio kg/ha, superficie y registros) se ajustan a la sucursal elegida. La opción "Todas las sucursales" muestra todo como antes.',
+    ]
+  },
+  {
+    fecha: '2026-07-28',
+    titulo: 'Presupiuesto - Gestión por Hectárea — Filtro por sucursal',
+    items: [
+      'Se agregó un selector de sucursal que filtra todas las tablas, gráficos e indicadores del dashboard de gestión por hectárea.',
+      'Al elegir una sucursal, tanto los costos como las superficies se ajustan a esa sucursal para que el costo por hectárea sea correcto.',
+      'La opción "Todas" muestra la información consolidada como antes.',
+    ]
+  },
+  {
+    fecha: '2026-07-28',
+    titulo: 'Facturas — Crear proveedor con cuenta bancaria',
+    items: [
+      'Al crear un proveedor desde la pantalla de Facturas, ahora el selector de banco carga correctamente las opciones.',
+      'También es posible registrar las cuentas bancarias del proveedor (banco, tipo de cuenta y número) directamente desde esa ventana, igual que en el módulo de Proveedores.',
+    ]
+  },
+  {
     fecha: '2026-07-27',
     titulo: 'Generales Campo y Administración — Asignación por sucursal',
     items: [

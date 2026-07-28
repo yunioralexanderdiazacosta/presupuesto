@@ -42,6 +42,7 @@ const supplierForm = useForm({
     contact: '',
     email: '',
     phone: '',
+    accounts: [],
 });
 
 // Sincronización bidireccional entre plazo y tipo de pago

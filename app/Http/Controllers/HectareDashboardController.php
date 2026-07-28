@@ -21,49 +21,51 @@ class HectareDashboardController extends Controller
             return redirect()->route('select.budget');
         }
 
+        // Filtro de sucursal (opcional). Si es null → todas las sucursales.
+        $branchId = $request->input('branch_id') ? (int) $request->input('branch_id') : null;
+
+        // Sucursales disponibles para el select del frontend
+        $branches = \App\Models\Branch::where('season_id', $season_id)
+            ->orderBy('name')
+            ->get(['id', 'name'])
+            ->map(fn($b) => ['value' => $b->id, 'label' => $b->name])
+            ->values();
+
         return Inertia::render('HectareDashboard', [
-            'surfaceByDevelopmentState' => $this->getSurfaceByDevelopmentState($season_id, $team_id),
-            'surfaceByFruit'           => $this->getSurfaceByFruit($season_id, $team_id),
-            'costPerHaByDevState'      => $this->getCostPerHaByDevelopmentState($season_id, $team_id),
-            'costPerHaByFruit'         => $this->getCostPerHaByFruit($season_id, $team_id),
-            'costPerHaByFruitDevState' => $this->getCostPerHaByFruitAndDevState($season_id, $team_id),
-            'costPerHaByLevel1'        => $this->getCostPerHaByLevel1($season_id, $team_id),
-            'costPerHaByLevel2'        => $this->getCostPerHaByLevel2($season_id, $team_id),
-            'monthlyCostPerHa'         => $this->getMonthlyCostPerHa($season_id, $team_id),
-            'surfaceByVariety'         => $this->getSurfaceByVariety($season_id, $team_id),
-            'costPerHaByVariety'       => $this->getCostPerHaByVariety($season_id, $team_id),
-            'costByVarietyLevel2'      => $this->getCostByVarietyLevel2($season_id, $team_id),
-            'varietyDevStates'         => $this->getVarietyDevStates($season_id, $team_id),
-            'costPerHaByCC'            => $this->getCostPerHaByCC($season_id, $team_id),
-            'costByCCLevel2'           => $this->getCostByCCLevel2($season_id, $team_id),
+            'surfaceByDevelopmentState' => $this->getSurfaceByDevelopmentState($season_id, $team_id, $branchId),
+            'surfaceByFruit'           => $this->getSurfaceByFruit($season_id, $team_id, $branchId),
+            'costPerHaByDevState'      => $this->getCostPerHaByDevelopmentState($season_id, $team_id, $branchId),
+            'costPerHaByFruit'         => $this->getCostPerHaByFruit($season_id, $team_id, $branchId),
+            'costPerHaByFruitDevState' => $this->getCostPerHaByFruitAndDevState($season_id, $team_id, $branchId),
+            'costPerHaByLevel1'        => $this->getCostPerHaByLevel1($season_id, $team_id, $branchId),
+            'costPerHaByLevel2'        => $this->getCostPerHaByLevel2($season_id, $team_id, $branchId),
+            'monthlyCostPerHa'         => $this->getMonthlyCostPerHa($season_id, $team_id, $branchId),
+            'surfaceByVariety'         => $this->getSurfaceByVariety($season_id, $team_id, $branchId),
+            'costPerHaByVariety'       => $this->getCostPerHaByVariety($season_id, $team_id, $branchId),
+            'costByVarietyLevel2'      => $this->getCostByVarietyLevel2($season_id, $team_id, $branchId),
+            'varietyDevStates'         => $this->getVarietyDevStates($season_id, $team_id, $branchId),
+            'costPerHaByCC'            => $this->getCostPerHaByCC($season_id, $team_id, $branchId),
+            'costByCCLevel2'           => $this->getCostByCCLevel2($season_id, $team_id, $branchId),
+            'branches'                 => $branches,
+            'selectedBranchId'         => $branchId,
         ]);
     }
 
     /**
      * Superficie total por estado de desarrollo
      */
-    private function getSurfaceByDevelopmentState($season_id, $team_id)
+    private function getSurfaceByDevelopmentState($season_id, $team_id, $branchId = null)
     {
         try {
-            $results = CostCenter::where('season_id', $season_id)
-                ->whereHas('agrochemicals', function () {}, '>=', 0) // solo CC del team via outflows
+            $results = CostCenter::query()
                 ->join('development_states', 'cost_centers.development_state_id', '=', 'development_states.id')
-                ->whereIn('cost_centers.id', function ($query) use ($team_id, $season_id) {
-                    $query->select('cost_center_id')
-                        ->from('outflow_cost_center')
-                        ->join('outflows', 'outflow_cost_center.outflow_id', '=', 'outflows.id')
-                        ->where('outflows.team_id', $team_id)
-                        ->where('outflows.season_id', $season_id);
-                })
-                ->orWhere(function ($q) use ($season_id) {
-                    $q->where('cost_centers.season_id', $season_id);
-                })
+                ->where('cost_centers.season_id', $season_id)
+                ->when($branchId, fn($q) => $q->where('cost_centers.branch_id', $branchId))
                 ->select(
                     'development_states.name as state_name',
                     DB::raw('SUM(cost_centers.surface) as total_surface'),
                     DB::raw('COUNT(cost_centers.id) as count_cc')
                 )
-                ->where('cost_centers.season_id', $season_id)
                 ->groupBy('development_states.id', 'development_states.name')
                 ->orderBy('total_surface', 'desc')
                 ->get();
@@ -82,12 +84,13 @@ class HectareDashboardController extends Controller
     /**
      * Superficie total por frutal
      */
-    private function getSurfaceByFruit($season_id, $team_id)
+    private function getSurfaceByFruit($season_id, $team_id, $branchId = null)
     {
         try {
             $results = DB::table('cost_centers')
                 ->join('fruits', 'cost_centers.fruit_id', '=', 'fruits.id')
                 ->where('cost_centers.season_id', $season_id)
+                ->when($branchId, fn($q) => $q->where('cost_centers.branch_id', $branchId))
                 ->select(
                     'fruits.id as fruit_id',
                     'fruits.name as fruit_name',
@@ -140,7 +143,7 @@ class HectareDashboardController extends Controller
     /**
      * Query base con todos los joins necesarios para prorrateo
      */
-    private function baseOutflowQuery($season_id, $team_id, $excludeInvestments = true)
+    private function baseOutflowQuery($season_id, $team_id, $excludeInvestments = true, $branchId = null)
     {
         $query = DB::table('outflows')
             ->join('outflow_cost_center', 'outflows.id', '=', 'outflow_cost_center.outflow_id')
@@ -154,6 +157,10 @@ class HectareDashboardController extends Controller
             ->leftJoin('credit_debit_notes', 'credit_debit_note_items.credit_debit_note_id', '=', 'credit_debit_notes.id')
             ->where('outflows.season_id', $season_id)
             ->where('outflows.team_id', $team_id);
+
+        if ($branchId) {
+            $query->where('cost_centers.branch_id', $branchId);
+        }
 
         if ($excludeInvestments) {
             $query->leftJoin('operations', 'outflows.operation_id', '=', 'operations.id')
@@ -169,12 +176,12 @@ class HectareDashboardController extends Controller
     /**
      * Costo total y costo/ha por estado de desarrollo (sin inversiones)
      */
-    private function getCostPerHaByDevelopmentState($season_id, $team_id)
+    private function getCostPerHaByDevelopmentState($season_id, $team_id, $branchId = null)
     {
         try {
             $amountExpr = $this->proratedAmountExpression();
 
-            $results = $this->baseOutflowQuery($season_id, $team_id)
+            $results = $this->baseOutflowQuery($season_id, $team_id, true, $branchId)
                 ->join('development_states', 'cost_centers.development_state_id', '=', 'development_states.id')
                 ->leftJoin('fruits', 'cost_centers.fruit_id', '=', 'fruits.id')
                 ->selectRaw("
@@ -191,6 +198,7 @@ class HectareDashboardController extends Controller
             $surfaces = DB::table('cost_centers')
                 ->join('development_states', 'cost_centers.development_state_id', '=', 'development_states.id')
                 ->where('cost_centers.season_id', $season_id)
+                ->when($branchId, fn($q) => $q->where('cost_centers.branch_id', $branchId))
                 ->select(
                     'development_states.id as state_id',
                     'cost_centers.fruit_id',
@@ -222,12 +230,12 @@ class HectareDashboardController extends Controller
     /**
      * Costo total y costo/ha por frutal (sin inversiones)
      */
-    private function getCostPerHaByFruit($season_id, $team_id)
+    private function getCostPerHaByFruit($season_id, $team_id, $branchId = null)
     {
         try {
             $amountExpr = $this->proratedAmountExpression();
 
-            $results = $this->baseOutflowQuery($season_id, $team_id)
+            $results = $this->baseOutflowQuery($season_id, $team_id, true, $branchId)
                 ->leftJoin('fruits', 'cost_centers.fruit_id', '=', 'fruits.id')
                 ->selectRaw("
                     COALESCE(fruits.name, 'Sin Frutal') as fruit_name,
@@ -241,6 +249,7 @@ class HectareDashboardController extends Controller
             $surfaces = DB::table('cost_centers')
                 ->leftJoin('fruits', 'cost_centers.fruit_id', '=', 'fruits.id')
                 ->where('cost_centers.season_id', $season_id)
+                ->when($branchId, fn($q) => $q->where('cost_centers.branch_id', $branchId))
                 ->selectRaw("COALESCE(fruits.name, 'Sin Frutal') as fruit_name, SUM(cost_centers.surface) as total_surface")
                 ->groupBy('fruits.id', 'fruits.name')
                 ->pluck('total_surface', 'fruit_name');
@@ -264,12 +273,12 @@ class HectareDashboardController extends Controller
     /**
      * Cruce: Costo/ha por Frutal × Estado de Desarrollo (sin inversiones)
      */
-    private function getCostPerHaByFruitAndDevState($season_id, $team_id)
+    private function getCostPerHaByFruitAndDevState($season_id, $team_id, $branchId = null)
     {
         try {
             $amountExpr = $this->proratedAmountExpression();
 
-            $results = $this->baseOutflowQuery($season_id, $team_id)
+            $results = $this->baseOutflowQuery($season_id, $team_id, true, $branchId)
                 ->leftJoin('fruits', 'cost_centers.fruit_id', '=', 'fruits.id')
                 ->join('development_states', 'cost_centers.development_state_id', '=', 'development_states.id')
                 ->selectRaw("
@@ -286,6 +295,7 @@ class HectareDashboardController extends Controller
                 ->leftJoin('fruits', 'cost_centers.fruit_id', '=', 'fruits.id')
                 ->join('development_states', 'cost_centers.development_state_id', '=', 'development_states.id')
                 ->where('cost_centers.season_id', $season_id)
+                ->when($branchId, fn($q) => $q->where('cost_centers.branch_id', $branchId))
                 ->selectRaw("
                     CONCAT(COALESCE(fruits.name, 'Sin Frutal'), '||', development_states.name) as combo_key,
                     SUM(cost_centers.surface) as total_surface
@@ -314,7 +324,7 @@ class HectareDashboardController extends Controller
     /**
      * Costo/ha por Level 1 (categoría de presupuesto) (sin inversiones)
      */
-    private function getCostPerHaByLevel1($season_id, $team_id)
+    private function getCostPerHaByLevel1($season_id, $team_id, $branchId = null)
     {
         try {
             $amountExpr = $this->proratedAmountExpression();
@@ -322,6 +332,7 @@ class HectareDashboardController extends Controller
             // Superficie total de CC que tienen outflows en la temporada
             $totalSurface = DB::table('cost_centers')
                 ->where('cost_centers.season_id', $season_id)
+                ->when($branchId, fn($q) => $q->where('cost_centers.branch_id', $branchId))
                 ->whereIn('cost_centers.id', function ($q) use ($team_id, $season_id) {
                     $q->select('cost_center_id')
                         ->from('outflow_cost_center')
@@ -331,7 +342,7 @@ class HectareDashboardController extends Controller
                 })
                 ->sum('surface');
 
-            $results = $this->baseOutflowQuery($season_id, $team_id)
+            $results = $this->baseOutflowQuery($season_id, $team_id, true, $branchId)
                 ->leftJoin('level3s', 'outflows.level3_id', '=', 'level3s.id')
                 ->leftJoin('level2s', 'level3s.level2_id', '=', 'level2s.id')
                 ->leftJoin('level1s', 'level2s.level1_id', '=', 'level1s.id')
@@ -367,13 +378,14 @@ class HectareDashboardController extends Controller
     /**
      * Costo/ha agrupado por Level2 (con su Level1 padre)
      */
-    private function getCostPerHaByLevel2($season_id, $team_id)
+    private function getCostPerHaByLevel2($season_id, $team_id, $branchId = null)
     {
         try {
             $amountExpr = $this->proratedAmountExpression();
 
             $totalSurface = DB::table('cost_centers')
                 ->where('cost_centers.season_id', $season_id)
+                ->when($branchId, fn($q) => $q->where('cost_centers.branch_id', $branchId))
                 ->whereIn('cost_centers.id', function ($q) use ($team_id, $season_id) {
                     $q->select('cost_center_id')
                         ->from('outflow_cost_center')
@@ -383,7 +395,7 @@ class HectareDashboardController extends Controller
                 })
                 ->sum('surface');
 
-            $results = $this->baseOutflowQuery($season_id, $team_id)
+            $results = $this->baseOutflowQuery($season_id, $team_id, true, $branchId)
                 ->leftJoin('level3s', 'outflows.level3_id', '=', 'level3s.id')
                 ->leftJoin('level2s', 'level3s.level2_id', '=', 'level2s.id')
                 ->leftJoin('level1s', 'level2s.level1_id', '=', 'level1s.id')
@@ -421,7 +433,7 @@ class HectareDashboardController extends Controller
     /**
      * Evolución mensual del costo/ha acumulado (sin inversiones)
      */
-    private function getMonthlyCostPerHa($season_id, $team_id)
+    private function getMonthlyCostPerHa($season_id, $team_id, $branchId = null)
     {
         try {
             $amountExpr = $this->proratedAmountExpression();
@@ -445,6 +457,7 @@ class HectareDashboardController extends Controller
             // Superficie total de CC con outflows
             $totalSurface = DB::table('cost_centers')
                 ->where('cost_centers.season_id', $season_id)
+                ->when($branchId, fn($q) => $q->where('cost_centers.branch_id', $branchId))
                 ->whereIn('cost_centers.id', function ($q) use ($team_id, $season_id) {
                     $q->select('cost_center_id')
                         ->from('outflow_cost_center')
@@ -456,7 +469,7 @@ class HectareDashboardController extends Controller
 
             $dateExpr = "COALESCE(invoices.date, credit_debit_notes.date, outflows.date)";
 
-            $results = $this->baseOutflowQuery($season_id, $team_id)
+            $results = $this->baseOutflowQuery($season_id, $team_id, true, $branchId)
                 ->whereRaw("{$dateExpr} BETWEEN ? AND ?", [$dateFrom, $dateTo])
                 ->selectRaw("
                     DATE_FORMAT({$dateExpr}, '%Y-%m') as month,
@@ -520,7 +533,7 @@ class HectareDashboardController extends Controller
     /**
      * Superficie por variedad + estado de desarrollo (desde cost_center_varieties)
      */
-    private function getSurfaceByVariety($season_id, $team_id)
+    private function getSurfaceByVariety($season_id, $team_id, $branchId = null)
     {
         try {
             $results = DB::table('cost_center_varieties')
@@ -528,6 +541,7 @@ class HectareDashboardController extends Controller
                 ->leftJoin('development_states', 'cost_center_varieties.development_state_id', '=', 'development_states.id')
                 ->where('cost_center_varieties.season_id', $season_id)
                 ->where('cost_center_varieties.team_id', $team_id)
+                ->when($branchId, fn($q) => $q->join('cost_centers', 'cost_center_varieties.cost_center_id', '=', 'cost_centers.id')->where('cost_centers.branch_id', $branchId))
                 ->select(
                     'varieties.name as variety_name',
                     DB::raw("COALESCE(development_states.name, 'Sin Estado') as state_name"),
@@ -557,7 +571,7 @@ class HectareDashboardController extends Controller
     /**
      * Costo/ha por variedad + estado de desarrollo.
      */
-    private function getCostPerHaByVariety($season_id, $team_id)
+    private function getCostPerHaByVariety($season_id, $team_id, $branchId = null)
     {
         try {
             $amountExpr = $this->proratedAmountExpression();
@@ -568,7 +582,7 @@ class HectareDashboardController extends Controller
                 ->where('team_id', $team_id)
                 ->groupBy('cost_center_id');
 
-            $results = $this->baseOutflowQuery($season_id, $team_id)
+            $results = $this->baseOutflowQuery($season_id, $team_id, true, $branchId)
                 ->join('cost_center_varieties', 'cost_centers.id', '=', 'cost_center_varieties.cost_center_id')
                 ->join('varieties', 'cost_center_varieties.variety_id', '=', 'varieties.id')
                 ->leftJoin('development_states as ccv_dev_states', 'cost_center_varieties.development_state_id', '=', 'ccv_dev_states.id')
@@ -597,6 +611,7 @@ class HectareDashboardController extends Controller
                 ->join('varieties', 'cost_center_varieties.variety_id', '=', 'varieties.id')
                 ->where('cost_center_varieties.season_id', $season_id)
                 ->where('cost_center_varieties.team_id', $team_id)
+                ->when($branchId, fn($q) => $q->join('cost_centers', 'cost_center_varieties.cost_center_id', '=', 'cost_centers.id')->where('cost_centers.branch_id', $branchId))
                 ->select(
                     'varieties.name as variety_name',
                     DB::raw('COALESCE(cost_center_varieties.development_state_id, 0) as state_id'),
@@ -630,13 +645,14 @@ class HectareDashboardController extends Controller
     /**
      * Lista de estados de desarrollo presentes en cost_center_varieties
      */
-    private function getVarietyDevStates($season_id, $team_id)
+    private function getVarietyDevStates($season_id, $team_id, $branchId = null)
     {
         try {
             return DB::table('cost_center_varieties')
                 ->join('development_states', 'cost_center_varieties.development_state_id', '=', 'development_states.id')
                 ->where('cost_center_varieties.season_id', $season_id)
                 ->where('cost_center_varieties.team_id', $team_id)
+                ->when($branchId, fn($q) => $q->join('cost_centers', 'cost_center_varieties.cost_center_id', '=', 'cost_centers.id')->where('cost_centers.branch_id', $branchId))
                 ->select('development_states.id', 'development_states.name')
                 ->distinct()
                 ->orderBy('development_states.name')
@@ -652,7 +668,7 @@ class HectareDashboardController extends Controller
     /**
      * Costo por variedad desglosado por Level 2
      */
-    private function getCostByVarietyLevel2($season_id, $team_id)
+    private function getCostByVarietyLevel2($season_id, $team_id, $branchId = null)
     {
         try {
             $amountExpr = $this->proratedAmountExpression();
@@ -663,7 +679,7 @@ class HectareDashboardController extends Controller
                 ->where('team_id', $team_id)
                 ->groupBy('cost_center_id');
 
-            $results = $this->baseOutflowQuery($season_id, $team_id)
+            $results = $this->baseOutflowQuery($season_id, $team_id, true, $branchId)
                 ->join('cost_center_varieties', 'cost_centers.id', '=', 'cost_center_varieties.cost_center_id')
                 ->join('varieties', 'cost_center_varieties.variety_id', '=', 'varieties.id')
                 ->leftJoin('level3s', 'outflows.level3_id', '=', 'level3s.id')
@@ -711,12 +727,12 @@ class HectareDashboardController extends Controller
     /**
      * Costo total y costo/ha por centro de costo
      */
-    private function getCostPerHaByCC($season_id, $team_id)
+    private function getCostPerHaByCC($season_id, $team_id, $branchId = null)
     {
         try {
             $amountExpr = $this->proratedAmountExpression();
 
-            $results = $this->baseOutflowQuery($season_id, $team_id)
+            $results = $this->baseOutflowQuery($season_id, $team_id, true, $branchId)
                 ->leftJoin('fruits', 'cost_centers.fruit_id', '=', 'fruits.id')
                 ->selectRaw("
                     cost_centers.id as cc_id,
@@ -755,12 +771,12 @@ class HectareDashboardController extends Controller
     /**
      * Costo por centro de costo desglosado por Level1 / Level2
      */
-    private function getCostByCCLevel2($season_id, $team_id)
+    private function getCostByCCLevel2($season_id, $team_id, $branchId = null)
     {
         try {
             $amountExpr = $this->proratedAmountExpression();
 
-            $results = $this->baseOutflowQuery($season_id, $team_id)
+            $results = $this->baseOutflowQuery($season_id, $team_id, true, $branchId)
                 ->leftJoin('level3s', 'outflows.level3_id', '=', 'level3s.id')
                 ->leftJoin('level2s', 'level3s.level2_id', '=', 'level2s.id')
                 ->leftJoin('level1s', 'level2s.level1_id', '=', 'level1s.id')

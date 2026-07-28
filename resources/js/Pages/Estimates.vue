@@ -11,12 +11,27 @@ const costCenterVarieties = computed(() => page.props.costCenterVarieties || [])
 const estimates = computed(() => page.props.estimates || []);
 const estimate_statuses = computed(() => page.props.estimate_statuses || []);
 const fruits = computed(() => page.props.fruits || []);
+const branches = computed(() => page.props.branches || []);
 const season_id = computed(() => page.props.season_id);
 
 // ── Opciones para selects ──
 const fruitOptions = computed(() =>
     fruits.value.map(f => ({ value: f.id, label: f.name }))
 );
+
+// Filtro de sucursal (client-side). '' = todas.
+const branchOptions = computed(() => [
+    { value: '', label: 'Todas las sucursales' },
+    ...branches.value,
+]);
+const selectedBranch = ref('');
+
+// Resuelve el nombre de la sucursal a partir del branch_id del cuartel
+function branchLabelById(branchId) {
+    if (!branchId) return '-';
+    const found = branches.value.find(b => String(b.value) === String(branchId));
+    return found ? found.label : '-';
+}
 
 const selectedFruitId = ref(fruitOptions.value.length ? fruitOptions.value[0].value : '');
 
@@ -89,6 +104,7 @@ const rows = computed(() => {
 
     return costCenterVarieties.value
         .filter(ccv => ccv.fruit_id == selectedFruitId.value)
+        .filter(ccv => !selectedBranch.value || String(ccv.cost_center?.branch_id) === String(selectedBranch.value))
         .map(ccv => {
             const estimate = estimates.value.find(
                 e => e.cost_center_variety_id == ccv.id && e.estimate_status_id == selectedEstimateStatusId.value
@@ -109,6 +125,7 @@ const rows = computed(() => {
                 id: estimate ? estimate.id : null,
                 ccvId: ccv.id,
                 costCenterName: ccv.cost_center?.name || '-',
+                branchName: ccv.cost_center?.branch?.name || branchLabelById(ccv.cost_center?.branch_id),
                 varietyName: ccv.variety?.name || '-',
                 rootstockName: ccv.rootstock?.name || '-',
                 devStateName: ccv.development_state?.name || '-',
@@ -133,7 +150,7 @@ function updateObservation(ccvId, value) {
 }
 
 // Resetear inputs al cambiar filtros
-watch([selectedFruitId, selectedEstimateStatusId], () => {
+watch([selectedFruitId, selectedEstimateStatusId, selectedBranch], () => {
     kilosInputs.value = {};
     observationsInputs.value = {};
     modifiedRows.value = {};
@@ -223,6 +240,7 @@ async function handleSave() {
 // ── Exportar Excel ──
 const excelHeaders = [
     { label: 'Cuartel',         key: 'costCenterName' },
+    { label: 'Sucursal',        key: 'branchName' },
     { label: 'Variedad',        key: 'varietyName' },
     { label: 'Portainjerto',    key: 'rootstockName' },
     { label: 'Superficie (ha)', key: 'surface',     type: 'number' },
@@ -234,6 +252,7 @@ const excelHeaders = [
 const excelData = computed(() =>
     rows.value.map(r => ({
         costCenterName: r.costCenterName,
+        branchName:     r.branchName,
         varietyName:    r.varietyName,
         rootstockName:  r.rootstockName,
         surface:        r.surface || 0,
@@ -305,7 +324,18 @@ function handleDelete(row) {
             <div class="card-body bg-body-tertiary">
                 <!-- Filtros -->
                 <div class="row g-2 align-items-end mb-3">
-                    <div class="col-md-5">
+                    <div class="col-md-3">
+                        <label class="form-label fw-bold mb-1"><i class="fas fa-store me-1"></i> Sucursal</label>
+                        <Multiselect
+                            v-model="selectedBranch"
+                            :options="branchOptions"
+                            placeholder="Todas las sucursales"
+                            :searchable="true"
+                            :can-clear="false"
+                            class="multiselect-blue"
+                        />
+                    </div>
+                    <div class="col-md-4">
                         <label class="form-label fw-bold mb-1"><i class="fas fa-seedling me-1"></i> Especie</label>
                         <Multiselect
                             v-model="selectedFruitId"
@@ -316,7 +346,7 @@ function handleDelete(row) {
                             class="multiselect-blue"
                         />
                     </div>
-                    <div class="col-md-5">
+                    <div class="col-md-3">
                         <label class="form-label fw-bold mb-1"><i class="fas fa-clipboard-list me-1"></i> Nombre Estimación</label>
                         <Multiselect
                             v-model="selectedEstimateStatusId"
@@ -402,6 +432,7 @@ function handleDelete(row) {
                             <tr>
                                 <th style="width: 90px">Estado</th>
                                 <th>Cuartel</th>
+                                <th>Sucursal</th>
                                 <th>Variedad</th>
                                 <th>Portainjerto</th>
                                 <th class="text-end" style="width: 100px">Superficie</th>
@@ -424,6 +455,7 @@ function handleDelete(row) {
                                     <span v-else class="badge bg-secondary">Vacío</span>
                                 </td>
                                 <td>{{ row.costCenterName }}</td>
+                                <td>{{ row.branchName }}</td>
                                 <td>{{ row.varietyName }}</td>
                                 <td>{{ row.rootstockName }}</td>
                                 <td class="text-end">{{ row.surface ? row.surface.toLocaleString('es-CL', { minimumFractionDigits: 2 }) : '-' }}</td>
@@ -469,7 +501,7 @@ function handleDelete(row) {
                         </tbody>
                         <tfoot class="table-light fw-bold">
                             <tr>
-                                <td colspan="4" class="text-end">Totales:</td>
+                                <td colspan="5" class="text-end">Totales:</td>
                                 <td class="text-end">{{ totalSurface.toLocaleString('es-CL', { minimumFractionDigits: 2 }) }}</td>
                                 <td class="text-end">{{ averageKilosHa.toLocaleString('es-CL') }} prom.</td>
                                 <td class="text-end">{{ totalKilos.toLocaleString('es-CL') }}</td>
