@@ -1,5 +1,5 @@
 <script setup>
-import { computed, ref } from 'vue';
+import { computed, ref, watch, onMounted } from 'vue';
 import { useSeasonLock } from '@/Composables/useSeasonLock';
 import { Link, router, Head, usePage, useForm } from '@inertiajs/vue3';
 import Swal from 'sweetalert2';
@@ -41,19 +41,46 @@ const props = defineProps({
     data: Array,
     data1: Array,
     data2: Array,
-    data3: Array, // <-- Declarado correctamente
+    data3: Array,
     data4: Object,
     team_id: [Number, String],
     season_id: [Number, String],
-    percentageField: Number
+    percentageField: Number,
+    branches: { type: Array, default: () => [] },
+    selectedBranchId: { type: Number, default: null },
 });
 
-const selectedTeamId = ref(props.team_id || null);
+const selectedTeamId   = ref(props.team_id || null);
 const selectedSeasonId = ref(props.season_id || null);
+const selectedBranch   = ref(props.selectedBranchId || '');
+const activeTab = ref('pill-tab-edicion');
+
+onMounted(() => {
+    const urlParams = new URLSearchParams(window.location.search);
+    const tabParam = urlParams.get('tab');
+    if (tabParam) {
+        activeTab.value = tabParam;
+        const tabLink = document.querySelector(`a[href="#${tabParam}"]`);
+        if (tabLink && window.bootstrap) {
+            window.bootstrap.Tab.getOrCreateInstance(tabLink).show();
+        }
+    }
+    document.querySelectorAll('[data-bs-toggle="tab"]').forEach(el => {
+        el.addEventListener('show.bs.tab', (e) => {
+            const target = e.target.getAttribute('href')?.replace('#', '');
+            if (target) activeTab.value = target;
+        });
+    });
+});
+
+watch(selectedBranch, (val) => {
+    router.get(route('fields.index'), { branch_id: val || '', tab: activeTab.value }, { preserveState: false, replace: true });
+});
 
 var acum = ref(0);
 
 const formMultiple = useForm({
+    branch_id: null,
     subfamily_id: '',
     products: [
         {
@@ -70,6 +97,7 @@ const formMultiple = useForm({
 const form = useForm({
     product_name: '',
     subfamily_id: '',
+    branch_id: null,
     price: '',
     quantity: '',
     unit_id: 5,
@@ -111,6 +139,7 @@ const openEdit = (field) => {
     form.subfamily_id = field.subfamily_id;
     form.unit_id = field.unit_id;
     form.observations = field.observations;
+    form.branch_id = field.branch_id ?? null;
     form.months = field.months; 
     $('#editFieldModal').modal('show');
 }
@@ -215,14 +244,20 @@ const acum_products = (quantity) => {
                 </div>
             </div>
             <div class="card-body bg-body-tertiary">
-                <ul class="nav nav-pills" id="pill-myTab" role="tablist">
+                <div class="d-flex align-items-center gap-3 mb-2">
+                    <select v-if="branches && branches.length > 0" v-model="selectedBranch" class="form-select form-select-sm" style="max-width:260px;">
+                        <option value="">Todas las sucursales</option>
+                        <option v-for="b in branches" :key="b.value" :value="b.value">{{ b.label }}</option>
+                    </select>
+                    <ul class="nav nav-pills mb-0" id="pill-myTab" role="tablist">
                     <li class="nav-item"><a class="nav-link active" id="pill-edicion" data-bs-toggle="tab" href="#pill-tab-edicion" role="tab" aria-controls="pill-tab-edicion" aria-selected="true">Edición</a></li>
                     <li class="nav-item"><a class="nav-link" id="pill-detalles" data-bs-toggle="tab" href="#pill-tab-detalles" role="tab" aria-controls="pill-tab-detalles" aria-selected="false">Detalles</a></li>
                     <li class="nav-item"><a class="nav-link" id="pill-gastos" data-bs-toggle="tab" href="#pill-tab-gastos" role="tab" aria-controls="pill-tab-gastos" aria-selected="false">Gastos por Hectarea</a></li>
                      <li class="nav-item"><a class="nav-link" id="pill-detalles-compra" data-bs-toggle="tab" href="#pill-tab-detalles-compra" role="tab" aria-controls="pill-tab-detalles-compra" aria-selected="false">Detalle de compra</a></li>
                      <li class="nav-item"><a class="nav-link" id="pill-resumen" data-bs-toggle="tab" href="#pill-tab-resumen" role="tab" aria-controls="pill-tab-resumen" aria-selected="false">Resumen $/Ha</a></li>
 
-                </ul>
+                    </ul>
+                </div>
                 <div class="tab-content border p-3 mt-3" id="pill-myTabContent">
                     <div class="tab-pane fade show active" id="pill-tab-edicion" role="tabpanel" aria-labelledby="edicion-tab">
                         <!-- Buscador global y botones de exportación -->
@@ -265,6 +300,7 @@ const acum_products = (quantity) => {
                             <template #header>
                                 <!--begin::Table row-->
                                 <th scope="col" width="min-w-100px">Nombre</th>
+                                <th scope="col" width="min-w-100px">Sucursal</th>
                                 <th scope="col" width="min-w-100px">SubFamilia</th>
                                 <th scope="col" width="min-w-100px">Cantidad</th>
                                 <th scope="col" width="min-w-100px">Unidad</th>
@@ -283,6 +319,9 @@ const acum_products = (quantity) => {
                                     <tr v-for="(field, index) in filteredFields" :key="index">
                                         <td>
                                             <span class="text-dark  fw-bold mb-1">{{field.product_name}}</span>
+                                        </td>
+                                        <td class="text-muted" style="font-size:0.8rem;">
+                                            {{ branches.find(b => String(b.value) === String(field.branch_id))?.label ?? '—' }}
                                         </td>
                                         <td>{{field.subfamily.name}}</td>
                                         <td>{{field.quantity}}</td>
@@ -388,7 +427,7 @@ const acum_products = (quantity) => {
   </template>
 </tbody>
  <!-- Fila de totales por mes -->
-  <tr class="table-dark fw-bold">
+  <tr class="fw-bold" style="background:#eaf0f6;">
     <td colspan="6" class="text-end text-dark">Total por mes</td>
     <td v-for="(month, mIdx) in $page.props.months" class="col-month col-amount">
       {{

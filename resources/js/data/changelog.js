@@ -8,6 +8,23 @@
 export const changelog = [
   {
     fecha: '2026-07-27',
+    titulo: 'Generales Campo y Administración — Asignación por sucursal',
+    items: [
+      'Al registrar un gasto de Generales Campo o Administración, ahora es posible asignarle una sucursal específica.',
+      'Si se asigna sucursal, el costo por hectárea se calcula solo sobre la superficie de esa sucursal. Si no se asigna, el prorrateo sigue siendo global como antes.',
+      'Los registros existentes no se ven afectados y continúan funcionando de forma global.',
+    ]
+  },
+  {
+    fecha: '2026-07-27',
+    titulo: 'Panel principal — Estimación y costo por kilo por especie',
+    items: [
+      'La estimación de kilos y el costo por kilo (cosecha y total) ahora se muestran en un recuadro por cada especie con datos, en lugar de un único bloque donde solo aparecía una especie.',
+      'Cada recuadro tiene su propio selector de estimación con únicamente las etapas disponibles para esa especie, y parte mostrando su estimación más reciente.',
+    ]
+  },
+  {
+    fecha: '2026-07-27',
     titulo: 'Proveedores — Se evitan RUT duplicados',
     items: [
       'Al crear o editar un proveedor, el sistema ya no permite registrar un RUT que ya exista en tu equipo.',

@@ -26,9 +26,10 @@ class StoreAdministrationController extends Controller
                 'observations'  => $product['observations'],
                 'unit_id'       => $product['unit_id'],
                 'team_id'       => $user->team_id,
-                'user_id'       => $user->id, // Asignar el ID del usuario autenticado 'user_id'
-                'season_id' => $season_id, // la temporada activa o seleccionada
-                'subfamily_id'  => $request->subfamily_id, 
+                'user_id'       => $user->id,
+                'season_id'     => $season_id,
+                'subfamily_id'  => $request->subfamily_id,
+                'branch_id'     => $request->branch_id ?: null,
             ]);
 
             // Guardar los meses asociados en administration_items

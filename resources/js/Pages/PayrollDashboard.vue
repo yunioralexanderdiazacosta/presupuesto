@@ -4,18 +4,35 @@
             <!-- HEADER -->
             <div class="card-header">
                 <div class="row flex-between-center">
-                    <div class="col-auto d-flex align-items-center gap-2 pe-0">
+                    <div class="col d-flex align-items-center gap-2 pe-0">
                         <h5 class="fs-9 mb-0 text-nowrap py-2 py-xl-0">
                             <i class="fas fa-chart-bar me-2"></i>Dashboard de Remuneraciones
                         </h5>
-                        <select v-model="selectedBranch" class="form-select form-select-sm" style="min-width:150px;">
+                        <select v-model="selectedBranch" class="form-select form-select-sm flex-shrink-0" style="min-width:150px;max-width:200px;">
                             <option value="">Todas las sucursales</option>
                             <option v-for="b in branches" :key="b.id" :value="b.id">{{ b.name }}</option>
                         </select>
-                        <select v-model="selectedMonth" class="form-select form-select-sm" style="min-width:160px;">
+                        <select v-model="selectedMonth" class="form-select form-select-sm flex-shrink-0" style="min-width:160px;max-width:200px;">
                             <option value="all">Temporada completa</option>
                             <option v-for="m in months" :key="m.id" :value="m.id">{{ m.name }}</option>
                         </select>
+                        <!-- Multi-select Nivel 3 -->
+                        <div class="flex-grow-1" style="min-width:180px;">
+                            <Multiselect
+                                v-model="selectedLevel3s"
+                                :options="level3Options"
+                                mode="tags"
+                                value-prop="id"
+                                label="name"
+                                track-by="name"
+                                placeholder="Todos los Nivel 3"
+                                :searchable="true"
+                                :close-on-select="false"
+                                :hide-selected="false"
+                                class="multiselect-sm"
+                                :style="{'--ms-min-height':'24px','--ms-tag-font-size':'0.65rem','--ms-tag-py':'0px','--ms-py':'1px','--ms-px':'6px','--ms-font-size':'0.75rem'}"
+                            />
+                        </div>
                     </div>
                     <div class="col-auto ms-auto text-end ps-0"></div>
                 </div>
@@ -284,6 +301,9 @@
                             <span v-if="selectedRS" @click="selectedRS = ''" title="Quitar filtro" class="badge bg-soft-danger text-danger ms-1" style="font-size:0.68rem;cursor:pointer;">
                                 {{ currentByCompanyReason.find(r => String(r.company_reason_id) === String(selectedRS))?.company_reason_name ?? 'RS' }} ×
                             </span>
+                            <span v-if="selectedLevel3s.length" @click="clearLevel3s" title="Quitar filtro Nivel 3" class="badge bg-warning text-dark ms-1" style="font-size:0.68rem;cursor:pointer;">
+                                {{ selectedLevel3s.length }} Nivel 3{{ selectedLevel3s.length > 1 ? '' : '' }} ×
+                            </span>
                         </span>
                         <span class="badge bg-soft-secondary text-secondary" style="font-size:0.7rem;">{{ currentMonthLabel }}</span>
                     </div>
@@ -399,6 +419,9 @@
                             <span v-if="selectedRS" @click="selectedRS = ''" title="Quitar filtro" class="badge bg-soft-danger text-danger ms-1" style="font-size:0.68rem;cursor:pointer;">
                                 {{ currentByCompanyReason.find(r => String(r.company_reason_id) === String(selectedRS))?.company_reason_name ?? 'RS' }} ×
                             </span>
+                            <span v-if="selectedLevel3s.length" @click="clearLevel3s" title="Quitar filtro Nivel 3" class="badge bg-warning text-dark ms-1" style="font-size:0.68rem;cursor:pointer;">
+                                {{ selectedLevel3s.length }} Nivel 3 ×
+                            </span>
                         </span>
                         <ExportExcelButton
                             :data="currentByCostCenter"
@@ -472,6 +495,9 @@
                         <span class="fw-semibold small" style="color:#bf360c;">
                             <i class="fas fa-exchange-alt me-1"></i>Distribución por Parcela según RS Contratante
                             <span class="text-muted fw-normal ms-1" style="font-size:0.72rem;">(click en fila para ver detalle)</span>
+                            <span v-if="selectedLevel3s.length" @click="clearLevel3s" title="Quitar filtro Nivel 3" class="badge bg-warning text-dark ms-1" style="font-size:0.68rem;cursor:pointer;">
+                                {{ selectedLevel3s.length }} Nivel 3 ×
+                            </span>
                         </span>
                         <span class="badge bg-soft-secondary text-secondary" style="font-size:0.7rem;">{{ currentMonthLabel }}</span>
                     </div>
@@ -556,6 +582,7 @@
 <script setup>
 import { ref, computed, onMounted, watch } from 'vue';
 import AppLayout from '@/Layouts/AppLayout.vue';
+import Multiselect from '@vueform/multiselect';
 import { Chart, registerables } from 'chart.js';
 import ExportExcelButton from '@/Components/ExportExcelButton.vue';
 
@@ -583,6 +610,7 @@ const selectedMonth    = ref('all');
 const selectedBranch   = ref('');
 const selectedParcel   = ref('');
 const selectedRS       = ref('');
+const selectedLevel3s = ref([]);   // multi-select Nivel 3
 const expandedRS       = ref(null);
 const amountsChartRef  = ref(null);
 const workdaysChartRef = ref(null);
@@ -626,6 +654,22 @@ const selectedParcelName = computed(() => {
     return all.find(r => String(r.parcel_id) === String(selectedParcel.value))?.parcel_name ?? 'Parcela';
 });
 
+// Opciones de Nivel 3 derivadas de byCostCenter['all']
+const level3Options = computed(() => {
+    const rows = props.byCostCenter?.['all'] ?? [];
+    const seen = new Set();
+    const opts = [];
+    rows.forEach(r => {
+        if (r.level3 && !seen.has(r.level3)) {
+            seen.add(r.level3);
+            opts.push({ id: r.level3, name: r.level3 });
+        }
+    });
+    return opts.sort((a, b) => a.name.localeCompare(b.name, 'es'));
+});
+
+const clearLevel3s = () => { selectedLevel3s.value = []; };
+
 // ——— Computed: mes actual (para etiqueta) ———
 const currentMonthName = computed(() => {
     if (selectedMonth.value === 'all') return '';
@@ -638,108 +682,151 @@ const currentMonthLabel = computed(() =>
 
 // ——— Computed: datos del período seleccionado ———
 const currentData = computed(() => {
-    if (selectedMonth.value === 'all') return props.seasonTotals;
-    return props.byMonth[selectedMonth.value] ?? { amount: 0, workdays: 0 };
+    const base = selectedMonth.value === 'all' ? props.seasonTotals : (props.byMonth[selectedMonth.value] ?? { amount: 0, workdays: 0 });
+    if (!selectedLevel3s.value.length) return base;
+    // Sumar solo los Nivel 3 seleccionados desde byMonth
+    const key = selectedMonth.value === 'all' ? 'all' : selectedMonth.value;
+    const months = selectedMonth.value === 'all' ? props.months : [{ id: selectedMonth.value }];
+    let amount = 0, workdays = 0;
+    if (selectedMonth.value === 'all') {
+        props.months.forEach(m => {
+            const byLT = props.byMonth[m.id]?.by_level3 ?? {};
+            selectedLevel3s.value.forEach(lt => {
+                amount   += byLT[lt]?.amount   ?? 0;
+                workdays += byLT[lt]?.workdays ?? 0;
+            });
+        });
+    } else {
+        const byLT = props.byMonth[selectedMonth.value]?.by_level3 ?? {};
+        selectedLevel3s.value.forEach(lt => {
+            amount   += byLT[lt]?.amount   ?? 0;
+            workdays += byLT[lt]?.workdays ?? 0;
+        });
+    }
+    return { amount, workdays };
 });
 
 const currentByLevel = computed(() => {
     const key = selectedMonth.value === 'all' ? 'all' : selectedMonth.value;
     const rows = props.byLevel[key] ?? [];
+    let filtered;
     if (selectedParcel.value) {
-        return rows.map(r => {
+        filtered = rows.map(r => {
             const pData = (r.by_parcel ?? {})[String(selectedParcel.value)];
             return { ...r, amount: pData?.amount ?? 0, workdays: pData?.workdays ?? 0 };
         }).filter(r => r.amount > 0);
-    }
-    if (selectedRS.value) {
-        return rows.map(r => {
+    } else if (selectedRS.value) {
+        filtered = rows.map(r => {
             const crData = (r.by_company_reason ?? {})[String(selectedRS.value)];
             return { ...r, amount: crData?.amount ?? 0, workdays: crData?.workdays ?? 0 };
         }).filter(r => r.amount > 0);
-    }
-    if (!selectedBranch.value) return rows;
-    return rows
-        .map(r => {
+    } else if (selectedBranch.value) {
+        filtered = rows.map(r => {
             const bData = (r.by_branch ?? {})[String(selectedBranch.value)];
-            return {
-                ...r,
-                amount:   bData?.amount   ?? 0,
-                workdays: bData?.workdays ?? 0,
-            };
-        })
-        .filter(r => r.amount > 0);
+            return { ...r, amount: bData?.amount ?? 0, workdays: bData?.workdays ?? 0 };
+        }).filter(r => r.amount > 0);
+    } else {
+        filtered = rows;
+    }
+    // Filtro de Nivel 3: filtrar directamente por r.level3 en currentByLevel
+    if (selectedLevel3s.value.length) {
+        const allCCRows = props.byCostCenter?.['all'] ?? [];
+        filtered = filtered.filter(r => selectedLevel3s.value.includes(r.level3));
+    }
+    return filtered;
 });
 
 const currentByBranch = computed(() => {
     const key = selectedMonth.value === 'all' ? 'all' : selectedMonth.value;
     const rows = props.byBranch[key] ?? [];
+    let filtered;
     if (selectedParcel.value) {
-        return rows.map(r => {
+        filtered = rows.map(r => {
             const pData = (r.by_parcel ?? {})[String(selectedParcel.value)];
             return { ...r, amount: pData?.amount ?? 0, workdays: pData?.workdays ?? 0 };
         }).filter(r => r.amount > 0);
-    }
-    if (selectedRS.value) {
-        return rows.map(r => {
+    } else if (selectedRS.value) {
+        filtered = rows.map(r => {
             const crData = (r.by_company_reason ?? {})[String(selectedRS.value)];
             return { ...r, amount: crData?.amount ?? 0, workdays: crData?.workdays ?? 0 };
         }).filter(r => r.amount > 0);
+    } else if (selectedBranch.value) {
+        filtered = rows.filter(r => String(r.branch_id) === String(selectedBranch.value));
+    } else {
+        filtered = rows;
     }
-    if (!selectedBranch.value) return rows;
-    return rows.filter(r => String(r.branch_id) === String(selectedBranch.value));
+    if (selectedLevel3s.value.length) {
+        filtered = filtered.map(r => {
+            const byLT = r.by_level3 ?? {};
+            const amount   = selectedLevel3s.value.reduce((s, lt) => s + (byLT[lt]?.amount   ?? 0), 0);
+            const workdays = selectedLevel3s.value.reduce((s, lt) => s + (byLT[lt]?.workdays ?? 0), 0);
+            return { ...r, amount, workdays };
+        }).filter(r => r.amount > 0);
+    }
+    return filtered;
 });
 
 const currentByTrato = computed(() => {
     const key = selectedMonth.value === 'all' ? 'all' : selectedMonth.value;
     const rows = props.byTrato[key] ?? [];
+    let filtered;
     if (selectedParcel.value) {
-        return rows.map(r => {
+        filtered = rows.map(r => {
             const pData = (r.by_parcel ?? {})[String(selectedParcel.value)];
             return { ...r, quantity: pData?.quantity ?? 0, amount: pData?.amount ?? 0 };
         }).filter(r => r.amount > 0);
-    }
-    if (selectedRS.value) {
-        return rows.map(r => {
+    } else if (selectedRS.value) {
+        filtered = rows.map(r => {
             const crData = (r.by_company_reason ?? {})[String(selectedRS.value)];
             return { ...r, quantity: crData?.quantity ?? 0, amount: crData?.amount ?? 0 };
         }).filter(r => r.amount > 0);
-    }
-    if (!selectedBranch.value) return rows;
-    return rows
-        .map(r => {
+    } else if (selectedBranch.value) {
+        filtered = rows.map(r => {
             const bData = (r.by_branch ?? {})[String(selectedBranch.value)];
-            return {
-                ...r,
-                quantity: bData?.quantity ?? 0,
-                amount:   bData?.amount   ?? 0,
-            };
-        })
-        .filter(r => r.amount > 0);
+            return { ...r, quantity: bData?.quantity ?? 0, amount: bData?.amount ?? 0 };
+        }).filter(r => r.amount > 0);
+    } else {
+        filtered = rows;
+    }
+    if (selectedLevel3s.value.length) {
+        filtered = filtered.map(r => {
+            const byLT = r.by_level3 ?? {};
+            const amount   = selectedLevel3s.value.reduce((s, lt) => s + (byLT[lt]?.amount   ?? 0), 0);
+            const quantity = selectedLevel3s.value.reduce((s, lt) => s + (byLT[lt]?.quantity ?? 0), 0);
+            return { ...r, amount, quantity };
+        }).filter(r => r.amount > 0);
+    }
+    return filtered;
 });
 
 const currentByParcel = computed(() => {
     const key = selectedMonth.value === 'all' ? 'all' : selectedMonth.value;
     const rows = props.byParcel[key] ?? [];
+    let filtered;
     if (selectedParcel.value) {
-        return rows.filter(r => String(r.parcel_id) === String(selectedParcel.value));
-    }
-    if (selectedRS.value) {
-        return rows.map(r => {
+        filtered = rows.filter(r => String(r.parcel_id) === String(selectedParcel.value));
+    } else if (selectedRS.value) {
+        filtered = rows.map(r => {
             const crData = (r.by_company_reason ?? {})[String(selectedRS.value)];
             return { ...r, amount: crData?.amount ?? 0, workdays: crData?.workdays ?? 0 };
         }).filter(r => r.amount > 0);
-    }
-    if (!selectedBranch.value) return rows;
-    return rows
-        .map(r => {
+    } else if (selectedBranch.value) {
+        filtered = rows.map(r => {
             const bData = (r.by_branch ?? {})[String(selectedBranch.value)];
-            return {
-                ...r,
-                amount:   bData?.amount   ?? 0,
-                workdays: bData?.workdays ?? 0,
-            };
-        })
-        .filter(r => r.amount > 0);
+            return { ...r, amount: bData?.amount ?? 0, workdays: bData?.workdays ?? 0 };
+        }).filter(r => r.amount > 0);
+    } else {
+        filtered = rows;
+    }
+    if (selectedLevel3s.value.length) {
+        filtered = filtered.map(r => {
+            const byLT = r.by_level3 ?? {};
+            const amount   = selectedLevel3s.value.reduce((s, lt) => s + (byLT[lt]?.amount   ?? 0), 0);
+            const workdays = selectedLevel3s.value.reduce((s, lt) => s + (byLT[lt]?.workdays ?? 0), 0);
+            return { ...r, amount, workdays };
+        }).filter(r => r.amount > 0);
+    }
+    return filtered;
 });
 
 // ——— Computed: totales de tablas ———
@@ -774,19 +861,29 @@ const parcelTotals = computed(() => currentByParcel.value.reduce(
 const currentByCompanyReason = computed(() => {
     const key = selectedMonth.value === 'all' ? 'all' : selectedMonth.value;
     const rows = props.byCompanyReason[key] ?? [];
+    let filtered;
     if (selectedParcel.value) {
-        return rows.map(r => {
+        filtered = rows.map(r => {
             const pData = (r.by_parcel ?? {})[String(selectedParcel.value)];
             return { ...r, amount: pData?.amount ?? 0, workdays: pData?.workdays ?? 0 };
         }).filter(r => r.amount > 0);
-    }
-    if (selectedBranch.value) {
-        return rows.map(r => {
+    } else if (selectedBranch.value) {
+        filtered = rows.map(r => {
             const bData = (r.by_branch ?? {})[String(selectedBranch.value)];
             return { ...r, amount: bData?.amount ?? 0, workdays: bData?.workdays ?? 0 };
         }).filter(r => r.amount > 0);
+    } else {
+        filtered = rows;
     }
-    return rows;
+    if (selectedLevel3s.value.length) {
+        filtered = filtered.map(r => {
+            const byLT = r.by_level3 ?? {};
+            const amount   = selectedLevel3s.value.reduce((s, lt) => s + (byLT[lt]?.amount   ?? 0), 0);
+            const workdays = selectedLevel3s.value.reduce((s, lt) => s + (byLT[lt]?.workdays ?? 0), 0);
+            return { ...r, amount, workdays };
+        }).filter(r => r.amount > 0);
+    }
+    return filtered;
 });
 
 const companyReasonTotals = computed(() => currentByCompanyReason.value.reduce(
@@ -796,7 +893,23 @@ const companyReasonTotals = computed(() => currentByCompanyReason.value.reduce(
 
 const currentByRSDetail = computed(() => {
     const key = selectedMonth.value === 'all' ? 'all' : selectedMonth.value;
-    return props.byRSDetail[key] ?? [];
+    const rows = props.byRSDetail[key] ?? [];
+    if (!selectedLevel3s.value.length) return rows;
+
+    // Filtrar por nivel 3: recalcular totales de RS y montos de parcelas
+    return rows.map(rsRow => {
+        const byLT = rsRow.by_level3 ?? {};
+        const total_amount   = selectedLevel3s.value.reduce((s, lt) => s + (byLT[lt]?.amount   ?? 0), 0);
+        const total_workdays = selectedLevel3s.value.reduce((s, lt) => s + (byLT[lt]?.workdays ?? 0), 0);
+
+        const parcels = (rsRow.parcels ?? []).map(p => {
+            const pByLT = p.by_level3 ?? {};
+            const pAmt = selectedLevel3s.value.reduce((s, lt) => s + (pByLT[lt]?.amount ?? 0), 0);
+            return { ...p, amount: pAmt };
+        }).filter(p => p.amount > 0);
+
+        return { ...rsRow, total_amount, total_workdays, parcels };
+    }).filter(r => r.total_amount > 0);
 });
 
 const rsDetailTotals = computed(() => currentByRSDetail.value.reduce(
@@ -817,6 +930,9 @@ const currentByCostCenter = computed(() => {
         rows = rows.filter(r => String(r.company_reason_id) === String(selectedRS.value));
     } else if (selectedBranch.value) {
         rows = rows.filter(r => String(r.branch_id) === String(selectedBranch.value));
+    }
+    if (selectedLevel3s.value.length) {
+        rows = rows.filter(r => selectedLevel3s.value.includes(r.level3));
     }
     return rows;
 });
@@ -842,6 +958,20 @@ const BAR_COLORS = {
     workdays: 'rgba(40, 167, 100, 0.8)',
 };
 
+// Datos de gráfico filtrados por labor (recalcula desde byMonth si hay selección)
+const filteredChartData = computed(() => {
+    if (!selectedLevel3s.value.length) return props.chartData;
+    const amounts  = props.months.map(m => {
+        const byLT = props.byMonth[m.id]?.by_level3 ?? {};
+        return selectedLevel3s.value.reduce((s, lt) => s + (byLT[lt]?.amount ?? 0), 0);
+    });
+    const workdays = props.months.map(m => {
+        const byLT = props.byMonth[m.id]?.by_level3 ?? {};
+        return selectedLevel3s.value.reduce((s, lt) => s + (byLT[lt]?.workdays ?? 0), 0);
+    });
+    return { labels: props.chartData.labels, amounts, workdays };
+});
+
 function createAmountsChart() {
     if (!amountsChartRef.value) return;
     if (amountsChart) { amountsChart.destroy(); amountsChart = null; }
@@ -849,10 +979,10 @@ function createAmountsChart() {
     amountsChart = new Chart(amountsChartRef.value, {
         type: 'bar',
         data: {
-            labels: props.chartData.labels,
+            labels: filteredChartData.value.labels,
             datasets: [{
                 label: 'Total remuneraciones ($)',
-                data: props.chartData.amounts,
+                data: filteredChartData.value.amounts,
                 backgroundColor: BAR_COLORS.amount,
                 borderRadius: 3,
             }],
@@ -887,10 +1017,10 @@ function createWorkdaysChart() {
     workdaysChart = new Chart(workdaysChartRef.value, {
         type: 'bar',
         data: {
-            labels: props.chartData.labels,
+            labels: filteredChartData.value.labels,
             datasets: [{
                 label: 'Jornadas (JH)',
-                data: props.chartData.workdays,
+                data: filteredChartData.value.workdays,
                 backgroundColor: BAR_COLORS.workdays,
                 borderRadius: 3,
             }],
@@ -939,6 +1069,17 @@ watch(selectedMonth, () => {
     expandedRS.value = null;
     selectedRS.value = '';
 });
+
+watch(selectedLevel3s, () => {
+    if (amountsChart) {
+        amountsChart.data.datasets[0].data = filteredChartData.value.amounts;
+        amountsChart.update();
+    }
+    if (workdaysChart) {
+        workdaysChart.data.datasets[0].data = filteredChartData.value.workdays;
+        workdaysChart.update();
+    }
+}, { deep: true });
 
 onMounted(() => {
     createAmountsChart();

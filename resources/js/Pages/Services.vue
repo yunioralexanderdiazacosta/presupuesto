@@ -189,6 +189,16 @@ const parseNum = (val) => {
   return isNaN(num) ? 0 : num;
 };
 
+// Helpers para subtotales de Nivel 3 en tabla Detalles
+function parseAmt(val) {
+  if (typeof val === 'number') return val;
+  if (!val) return 0;
+  return Number(String(val).replace(/\./g, '').replace(/,/g, '.')) || 0;
+}
+function fmtAmt(val) {
+  return Math.round(parseAmt(val)).toLocaleString('es-ES', { minimumFractionDigits: 0, maximumFractionDigits: 0 });
+}
+
 // Vista consolidada: agrupa por subfamilia y suma productos con mismo nombre
 const consolidatedData = computed(() => {
   const sfMap = {};
@@ -765,12 +775,12 @@ const excelDataResumen = computed(() => {
                                 <template v-for="cc in filteredData">
                                     <template v-for="(subfamily, index2) in cc.subfamilies">
                                         <tr>
-                                            <td v-if="index2 == 0" :rowspan="cc.total" class="cell-group">{{cc.name}}</td>
+                                            <td v-if="index2 == 0" :rowspan="cc.total + cc.subfamilies.length" class="cell-group">{{cc.name}}</td>
                                             <td :rowspan="subfamily.products.length" class="cell-group">{{subfamily.name}}</td>
                                             <td>{{subfamily.products[0].name}}</td>
                                             <td>{{subfamily.products[0].totalQuantity}}</td>
                                             <td>{{subfamily.products[0].unit}}</td>
-                                            <td>{{subfamily.products[0].totalAmount}}</td>
+                                            <td>{{ fmtAmt(subfamily.products[0].totalAmount) }}</td>
                                             <td class="col-month col-amount" v-for="value in subfamily.products[0].months">{{value}}</td>
                                         </tr>
                                         <template v-for="(product, index3) in subfamily.products">
@@ -778,10 +788,18 @@ const excelDataResumen = computed(() => {
                                                 <td>{{product.name}}</td>
                                                 <td>{{product.totalQuantity}}</td>
                                                 <td>{{product.unit}}</td>
-                                                <td>{{product.totalAmount}}</td>
+                                                <td>{{ fmtAmt(product.totalAmount) }}</td>
                                                 <td class="col-month col-amount" v-for="value in product.months">{{value}}</td>
                                             </tr>
                                         </template>
+                                        <!-- Subtotal Nivel 3 -->
+                                        <tr class="table-secondary" style="font-size:0.78rem;">
+                                          <td colspan="4" class="text-end py-1 text-muted fst-italic">Subtotal {{ subfamily.name }}</td>
+                                          <td class="py-1 fw-bold">{{ fmtAmt(subfamily.products.reduce((s,p) => s + parseAmt(p.totalAmount), 0)) }}</td>
+                                          <td class="col-month col-amount py-1 fw-bold" v-for="(_, mi) in (subfamily.products[0]?.months || [])" :key="mi">
+                                            {{ fmtAmt(subfamily.products.reduce((s,p) => s + parseAmt(p.months[mi]), 0)) }}
+                                          </td>
+                                        </tr>
                                     </template>
                                 </template>
                             </tbody>
@@ -804,6 +822,14 @@ const excelDataResumen = computed(() => {
                                     <td class="col-month col-amount" v-for="value in product.months">{{ value }}</td>
                                   </tr>
                                 </template>
+                                <!-- Subtotal Nivel 3 -->
+                                <tr class="table-secondary" style="font-size:0.78rem;">
+                                  <td colspan="4" class="text-end py-1 text-muted fst-italic">Subtotal {{ sf.name }}</td>
+                                  <td class="py-1 fw-bold">{{ fmtAmt(sf.products.reduce((s,p) => s + parseAmt(p.totalAmount), 0)) }}</td>
+                                  <td class="col-month col-amount py-1 fw-bold" v-for="(_, mi) in (sf.products[0]?.months || [])" :key="mi">
+                                    {{ fmtAmt(sf.products.reduce((s,p) => s + parseAmt(p.months[mi]), 0)) }}
+                                  </td>
+                                </tr>
                               </template>
                             </tbody>
                             <tfoot>

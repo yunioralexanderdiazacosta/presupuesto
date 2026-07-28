@@ -16,8 +16,14 @@
 <script setup></script>
 <template>
     <div class="row">
-       
-        <div class="col-lg-6">
+        <div class="col-lg-4" v-if="$page.props.branches && $page.props.branches.length > 0">
+            <label class="form-label small mb-1">Sucursal <span class="text-danger">*</span></label>
+            <select v-model="form.branch_id" class="form-select form-select-sm">
+                <option :value="null" disabled>Seleccione sucursal...</option>
+                <option v-for="b in $page.props.branches" :key="b.value" :value="b.value">{{ b.label }}</option>
+            </select>
+        </div>
+        <div class="col-lg-4">
             <div class="fv-row">
                 <label for="families" class="col-form-label">Familia</label>
                 <Multiselect

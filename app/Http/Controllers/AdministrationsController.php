@@ -55,12 +55,12 @@ class AdministrationsController extends Controller
 
     public function __invoke()
     {
-      
         // Calcular totales globales de cada rubro
-        $user = Auth::user();
+        $user      = Auth::user();
         $season_id = session('season_id');
-        $team_id = $user->team_id;
-        $season = Season::select('name', 'month_id')->where('id', $season_id)->first();
+        $team_id   = $user->team_id;
+        $branchId  = request('branch_id') ? (int) request('branch_id') : null;
+        $season    = Season::select('name', 'month_id')->where('id', $season_id)->first();
         $this->month_id = $season['month_id'];
 
         $totalAdministration = $this->getTotalAdministration($season_id, $team_id);
@@ -145,6 +145,7 @@ class AdministrationsController extends Controller
         $administrationsCollection = Administration::with(['subfamily:id,name', 'unit:id,name', 'items', 'user:id,name'])
             ->where('team_id', $team_id)
             ->where('season_id', $season_id)
+            ->when($branchId, fn($q) => $q->where('branch_id', $branchId))
             ->get()
             ->map(function($admin) {
                 return [
@@ -155,6 +156,7 @@ class AdministrationsController extends Controller
                     'unit_id'       => $admin->unit_id,
                     'price'         => $admin->price,
                     'observations'  => $admin->observations,
+                    'branch_id'     => $admin->branch_id,
                     'subfamily'     => $admin->subfamily,
                     'unit'          => $admin->unit,
                     'user'          => $admin->user ? ['name' => $admin->user->name] : null,
@@ -171,18 +173,19 @@ class AdministrationsController extends Controller
             ->select('l2.id', 'l2.name')
             ->where('f.team_id', $team_id)
             ->where('f.season_id', $season_id)
+            ->when($branchId, fn($q) => $q->where('f.branch_id', $branchId))
             ->groupBy('l2.id', 'l2.name')
             ->get()
-            ->transform(function($value) use ($team_id, $season_id){
+            ->transform(function($value) use ($team_id, $season_id, $branchId){
                 return [
                     'id'           => $value->id,
                     'name'         => $value->name,
-                    'subfamilies'  => $this->getSubfamilies($value->id, $team_id, $season_id)
+                    'subfamilies'  => $this->getSubfamilies($value->id, $team_id, $season_id, $branchId)
                 ];
             });
 
-        $data2 = Level3::get()->map(function($subfamily) use ($team_id, $season_id) {
-            $products = $this->getProducts2($subfamily->id, $team_id, $season_id);
+        $data2 = Level3::get()->map(function($subfamily) use ($team_id, $season_id, $branchId) {
+            $products = $this->getProducts2($subfamily->id, $team_id, $season_id, $branchId);
             if ($products->count() > 0) {
                 return [
                     'name' => $subfamily->name,
@@ -194,13 +197,24 @@ class AdministrationsController extends Controller
 
         // --- Data3 agrupado: Gastos por Hectarea agrupado por level2, level3, producto ---
         $surfaceTotal = $this->totalsurface($season_id);
+        // Mapa branch_id => surface para proration por sucursal
+        $surfaceByBranch = DB::table('cost_centers')
+            ->where('season_id', $season_id)
+            ->whereNotNull('branch_id')
+            ->groupBy('branch_id')
+            ->selectRaw('branch_id, SUM(surface) as surface')
+            ->pluck('surface', 'branch_id');
+        $activeSurface = $branchId && isset($surfaceByBranch[$branchId])
+            ? (float) $surfaceByBranch[$branchId]
+            : $surfaceTotal;
         // Preload all administration_items for all administrations in this season
         $adminsRaw = \App\Models\Administration::from('administrations as f')
             ->join('level3s as s', 'f.subfamily_id', 's.id')
             ->join('level2s as l2', 's.level2_id', 'l2.id')
             ->join('units as u', 'f.unit_id', 'u.id')
-            ->select('f.id', 'f.product_name', 'f.price', 'f.quantity', 'f.unit_id', 'u.name as unit_name', 's.name as level3_name', 'l2.name as level2_name')
+            ->select('f.id', 'f.product_name', 'f.price', 'f.quantity', 'f.unit_id', 'u.name as unit_name', 's.name as level3_name', 'l2.name as level2_name', 'f.branch_id')
             ->where('f.season_id', $season_id)
+            ->when($branchId, fn($q) => $q->where('f.branch_id', $branchId))
             ->get();
 
         $adminIds = $adminsRaw->pluck('id')->unique();
@@ -215,9 +229,14 @@ class AdministrationsController extends Controller
             ->whereIn('month_id', $monthsRange)
             ->get();
 
-        $data3Raw = $adminsRaw->map(function($value) use ($surfaceTotal, $monthsRange, $adminItems) {
+        $data3Raw = $adminsRaw->map(function($value) use ($surfaceTotal, $surfaceByBranch, $activeSurface, $branchId, $monthsRange, $adminItems) {
             $quantity = (($value->unit_id == 4) || ($value->unit_id == 2)) ? ($value->quantity / 1000) : $value->quantity;
-            $amount = $surfaceTotal > 0 ? ($value->price * $quantity) / $surfaceTotal : 0;
+            $surface = $branchId
+                ? $activeSurface
+                : ($value->branch_id && isset($surfaceByBranch[$value->branch_id])
+                    ? (float) $surfaceByBranch[$value->branch_id]
+                    : $surfaceTotal);
+            $amount = $surface > 0 ? ($value->price * $quantity) / $surface : 0;
             // Vectorized months calculation
             $activeMonths = $adminItems->where('administration_id', $value->id)->pluck('month_id')->toArray();
             $monthsArr = [];
@@ -280,11 +299,16 @@ class AdministrationsController extends Controller
 
       
 
+        $branches = \App\Models\Branch::where('team_id', $team_id)
+            ->where('season_id', $season_id)
+            ->orderBy('name')
+            ->get(['id', 'name'])
+            ->map(fn($b) => ['value' => $b->id, 'label' => $b->name]);
+
         $season = isset($season) ? $season : null;
 
         $data4 = $this->buildData4($season_id, $team_id);
 
-        // Usar la variable local $percentageAdministration para asegurar el valor correcto
         return Inertia::render('Administrations', compact(
             'units',
             'subfamilies',
@@ -298,14 +322,15 @@ class AdministrationsController extends Controller
             'level2s',
             'team_id',
             'season_id',
-            'percentageAdministration'
-        ));
+            'percentageAdministration',
+            'branches'
+        ) + ['selectedBranchId' => $branchId]);
     }
 
 
 
     // --- Métodos auxiliares deben estar dentro de la clase, no fuera ---
-    public function getSubfamilies($id, $team_id, $season_id)
+    public function getSubfamilies($id, $team_id, $season_id, $branchId = null)
     {
         $subfamilies = Administration::from('administrations as f')
             ->join('level3s as s', 'f.subfamily_id', 's.id')
@@ -313,20 +338,21 @@ class AdministrationsController extends Controller
             ->where('l2.id', $id)
             ->where('f.team_id', $team_id)
             ->where('f.season_id', $season_id)
+            ->when($branchId, fn($q) => $q->where('f.branch_id', $branchId))
             ->select('s.id', 's.name')
             ->groupBy('s.id', 's.name')
             ->get()
-            ->transform(function($subfamily) use ($team_id, $season_id){
+            ->transform(function($subfamily) use ($team_id, $season_id, $branchId){
                 return [
                     'id' => $subfamily->id,
                     'name' => $subfamily->name,
-                    'products' => $this->getProducts($subfamily->id, $team_id, $season_id)
+                    'products' => $this->getProducts($subfamily->id, $team_id, $season_id, $branchId)
                 ];
             });
         return $subfamilies;
     }
 
-    public function getProducts($id, $team_id, $season_id)
+    public function getProducts($id, $team_id, $season_id, $branchId = null)
     {
         $productsRaw = Administration::from('administrations as f')
             ->join('units as u', 'f.unit_id', 'u.id')
@@ -334,6 +360,7 @@ class AdministrationsController extends Controller
             ->where('f.subfamily_id', $id)
             ->where('f.team_id', $team_id)
             ->where('f.season_id', $season_id)
+            ->when($branchId, fn($q) => $q->where('f.branch_id', $branchId))
             ->groupBy('f.id', 'f.product_name', 'f.quantity', 'f.price', 'f.unit_id', 'u.name')
             ->get();
 
@@ -405,7 +432,7 @@ class AdministrationsController extends Controller
         return $months[$id] ?? '';
     }
 
-    private function getProducts2($subfamilyId, $team_id, $season_id)
+    private function getProducts2($subfamilyId, $team_id, $season_id, $branchId = null)
     {
         $products = Administration::from('administrations as f')
             ->join('administration_items as fi', 'f.id', 'fi.administration_id')
@@ -414,6 +441,7 @@ class AdministrationsController extends Controller
             ->where('f.subfamily_id', $subfamilyId)
             ->where('f.team_id', $team_id)
             ->where('f.season_id', $season_id)
+            ->when($branchId, fn($q) => $q->where('f.branch_id', $branchId))
             ->groupBy('f.id', 'f.product_name', 'f.price', 'f.quantity', 'u.name')
             ->get()
             ->transform(function($value) use ($team_id, $season_id){
@@ -476,9 +504,11 @@ class AdministrationsController extends Controller
      * Resumen de costos por Nivel 3 (subfamilia) con $/Ha.
      * Sin desglose por estado de desarrollo (Administrations es global).
      */
-    private function buildData4($season_id, $team_id)
+    private function buildData4($season_id, $team_id, $branchId = null)
     {
-        $grandTotalSurface = CostCenter::where('season_id', $season_id)->sum('surface');
+        $grandTotalSurface = $branchId
+            ? (float) DB::table('cost_centers')->where('season_id', $season_id)->where('branch_id', $branchId)->sum('surface')
+            : CostCenter::where('season_id', $season_id)->sum('surface');
 
         // Meses activos de la temporada
         $season = Season::select('month_id')->where('id', $season_id)->first();
@@ -496,6 +526,7 @@ class AdministrationsController extends Controller
             ->where('l1.name', 'Administracion')
             ->where('f.season_id', $season_id)
             ->where('f.team_id', $team_id)
+            ->when($branchId, fn($q) => $q->where('f.branch_id', $branchId))
             ->select('f.id', 'f.price', 'f.quantity', 'f.unit_id', 'f.subfamily_id', 'l3.name as subfamily_name')
             ->get();
 

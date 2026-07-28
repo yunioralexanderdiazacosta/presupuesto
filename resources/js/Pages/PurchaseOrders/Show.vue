@@ -44,6 +44,23 @@ function printOrder() {
 <template>
     <Head :title="`Orden de Compra ${purchaseOrder.order_number}`" />
     <AppLayout>
+        <!-- Header corporativo solo visible al imprimir -->
+        <div class="print-header d-none">
+            <div class="print-header-inner">
+                <div class="print-header-brand">
+                    <span class="print-header-logo">⬡</span>
+                    <div>
+                        <div class="print-header-title">Alisoft</div>
+                        <div class="print-header-subtitle">Software de Gestión Agrícola</div>
+                    </div>
+                </div>
+                <div class="print-header-doc">
+                    <div class="print-header-doc-number">Orden de Compra #{{ purchaseOrder.order_number }}</div>
+                    <div class="print-header-doc-date">Emitido: {{ new Date().toLocaleDateString('es-CL') }}</div>
+                </div>
+            </div>
+        </div>
+
         <div class="card my-3">
             <div class="card-header">
                 <div class="row flex-between-center">
@@ -206,12 +223,22 @@ function printOrder() {
                             <div class="card-body">
                                 <h6 class="card-title text-muted mb-3">
                                     <i class="fas fa-sitemap me-2"></i>Centros de Costo
+                                    <span class="badge bg-secondary ms-2" style="font-size:0.7rem;">{{ purchaseOrder.cost_centers.length }}</span>
                                 </h6>
-                                <ul class="mb-0">
-                                    <li v-for="cc in purchaseOrder.cost_centers" :key="cc.id">
+                                <div class="row g-0 border rounded" style="font-size:0.72rem;">
+                                    <div
+                                        v-for="(cc, idx) in purchaseOrder.cost_centers"
+                                        :key="cc.id"
+                                        class="col-3 px-2 py-1"
+                                        :class="{
+                                            'border-end': (idx + 1) % 4 !== 0,
+                                            'border-top': idx >= 4,
+                                            'bg-light': Math.floor(idx / 4) % 2 === 1,
+                                        }"
+                                    >
                                         {{ cc.name }}
-                                    </li>
-                                </ul>
+                                    </div>
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -252,32 +279,192 @@ function printOrder() {
                 </div>
             </div>
         </div>
+        <!-- Footer corporativo solo visible al imprimir -->
+        <div class="print-footer d-none">
+            <div class="print-footer-line"></div>
+            <div class="print-footer-inner">
+                <span>Alisoft &mdash; Software de Gestión Agrícola</span>
+                <span class="print-footer-sep">|</span>
+                <span>Documento generado el {{ new Date().toLocaleDateString('es-CL', { year: 'numeric', month: 'long', day: 'numeric' }) }}</span>
+                <span class="print-footer-sep">|</span>
+                <span>Este documento es de uso interno y confidencial</span>
+            </div>
+        </div>
     </AppLayout>
 </template>
 
 <style scoped>
 @media print {
-    .btn, 
-    .card-header button, 
-    nav,
-    .sidebar,
-    .navbar {
+    .btn,
+    .card-header button,
+    .card-header {
         display: none !important;
     }
-    
+
+    /* Cards sin sombra y con padding reducido */
     .card {
-        border: none !important;
+        border: 1px solid #dee2e6 !important;
         box-shadow: none !important;
+        margin-bottom: 6px !important;
     }
-    
+
     .card-body {
-        padding: 1rem !important;
+        padding: 6px 8px !important;
     }
-    
+
+    /* Textos más pequeños */
+    h4, h5, h6, .card-title {
+        font-size: 0.82rem !important;
+        margin-bottom: 4px !important;
+    }
+
+    p, li, span, td, th, small, strong, label {
+        font-size: 0.75rem !important;
+        line-height: 1.3 !important;
+    }
+
+    /* Reducir gaps y márgenes de rows */
+    .row {
+        margin-left: 0 !important;
+        margin-right: 0 !important;
+    }
+
+    .g-3, .g-2, .g-1 {
+        --bs-gutter-x: 6px !important;
+        --bs-gutter-y: 6px !important;
+    }
+
+    .mb-3, .mb-4 { margin-bottom: 6px !important; }
+    .mt-3, .mt-4 { margin-top: 6px !important; }
+    .py-1 { padding-top: 2px !important; padding-bottom: 2px !important; }
+
     /* Mantener colores de badges en impresión */
     .badge {
         -webkit-print-color-adjust: exact;
         print-color-adjust: exact;
+        font-size: 0.65rem !important;
+        padding: 2px 5px !important;
+    }
+
+    /* Tabla de ítems más compacta */
+    table { font-size: 0.7rem !important; }
+    th, td { padding: 3px 5px !important; }
+}
+</style>
+
+<!-- Estilos globales de impresión: afectan al AppLayout (navbar, sidebar, topbar) -->
+<style>
+@media print {
+    @page { margin: 8mm 10mm; }
+
+    body, html { font-size: 10px !important; }
+
+    /* Ocultar sidebar vertical, topbar y cualquier nav del layout */
+    .navbar-vertical,
+    .navbar-top,
+    .navbar-glass,
+    nav.navbar,
+    .sidebar,
+    .sidebar-hidden,
+    .navbar-toggler,
+    footer {
+        display: none !important;
+    }
+
+    /* Quitar el margen izquierdo que Bootstrap aplica para el sidebar */
+    .content,
+    main,
+    #main-content,
+    .main-content,
+    [class*="content-"] {
+        margin-left: 0 !important;
+        padding-left: 0 !important;
+        width: 100% !important;
+        max-width: 100% !important;
+    }
+
+    /* ── Header corporativo ── */
+    .print-header {
+        display: block !important;
+        margin-bottom: 8px;
+    }
+
+    .print-header-inner {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 6px 0 6px 0;
+        border-bottom: 2px solid #1a6b3a;
+    }
+
+    .print-header-brand {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+    }
+
+    .print-header-logo {
+        font-size: 1.6rem;
+        color: #1a6b3a;
+        line-height: 1;
+    }
+
+    .print-header-title {
+        font-size: 1rem;
+        font-weight: 700;
+        color: #1a6b3a;
+        letter-spacing: 0.04em;
+        line-height: 1.1;
+    }
+
+    .print-header-subtitle {
+        font-size: 0.62rem;
+        color: #555;
+        letter-spacing: 0.02em;
+        text-transform: uppercase;
+    }
+
+    .print-header-doc {
+        text-align: right;
+    }
+
+    .print-header-doc-number {
+        font-size: 0.88rem;
+        font-weight: 700;
+        color: #222;
+    }
+
+    .print-header-doc-date {
+        font-size: 0.65rem;
+        color: #777;
+    }
+
+    /* ── Footer corporativo ── */
+    .print-footer {
+        display: block !important;
+        margin-top: 10px;
+    }
+
+    .print-footer-line {
+        height: 1.5px;
+        background: #1a6b3a;
+        margin-bottom: 4px;
+    }
+
+    .print-footer-inner {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        gap: 6px;
+        font-size: 0.62rem;
+        color: #666;
+        text-align: center;
+        flex-wrap: wrap;
+    }
+
+    .print-footer-sep {
+        color: #1a6b3a;
+        font-weight: bold;
     }
 }
 </style>

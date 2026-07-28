@@ -9,7 +9,7 @@ class Administration extends Model
 {
     use HasFactory;
 
-protected $fillable = ['product_name', 'price', 'observations', 'quantity', 'unit_id','subfamily_id', 'team_id', 'season_id', 'user_id'];
+protected $fillable = ['product_name', 'price', 'observations', 'quantity', 'unit_id', 'subfamily_id', 'team_id', 'season_id', 'user_id', 'branch_id'];
 
     public function items()
     {

@@ -278,7 +278,7 @@ class PayrollDashboardController extends Controller
     {
         $result = [];
         foreach ($months as $m) {
-            $result[$m['id']] = ['amount' => 0, 'workdays' => 0.0];
+            $result[$m['id']] = ['amount' => 0, 'workdays' => 0.0, 'by_level3' => []];
         }
 
         foreach ($yields as $y) {
@@ -290,16 +290,34 @@ class PayrollDashboardController extends Controller
             if ($yieldCCs->has($y->id)) {
                 $result[$mid]['workdays'] += (float) ($y->workdays ?? 0);
             }
+            $lt = $y->level3_name ?? 'Sin Labor';
+            if (!isset($result[$mid]['by_level3'][$lt])) {
+                $result[$mid]['by_level3'][$lt] = ['amount' => 0.0, 'workdays' => 0.0];
+            }
+            $result[$mid]['by_level3'][$lt]['amount'] += $total;
+            if ($yieldCCs->has($y->id)) {
+                $result[$mid]['by_level3'][$lt]['workdays'] += (float) ($y->workdays ?? 0);
+            }
         }
 
         foreach ($bonuses as $b) {
             if (!isset($result[$b->month_id])) continue;
             $result[$b->month_id]['amount'] += (int) ($b->amount ?? 0);
+            $lt = $b->level3_name ?? 'Sin Labor';
+            if (!isset($result[$b->month_id]['by_level3'][$lt])) {
+                $result[$b->month_id]['by_level3'][$lt] = ['amount' => 0.0, 'workdays' => 0.0];
+            }
+            $result[$b->month_id]['by_level3'][$lt]['amount'] += (int) ($b->amount ?? 0);
         }
 
         foreach ($overtimes as $o) {
             if (!isset($result[$o->month_id])) continue;
             $result[$o->month_id]['amount'] += (int) ($o->amount ?? 0);
+            $lt = $o->level3_name ?? 'Sin Labor';
+            if (!isset($result[$o->month_id]['by_level3'][$lt])) {
+                $result[$o->month_id]['by_level3'][$lt] = ['amount' => 0.0, 'workdays' => 0.0];
+            }
+            $result[$o->month_id]['by_level3'][$lt]['amount'] += (int) ($o->amount ?? 0);
         }
 
         return $result;
@@ -427,10 +445,10 @@ class PayrollDashboardController extends Controller
             $result[$mid] = [];
         }
 
-        $addToParcel = function (&$bucket, int $parcelId, string $parcelName, int|string $branchId, int|string $crId, float $amount, float $workdays = 0) {
+        $addToParcel = function (&$bucket, int $parcelId, string $parcelName, int|string $branchId, int|string $crId, string $laborType, float $amount, float $workdays = 0) {
             $key = $parcelId;
             if (!isset($bucket[$key])) {
-                $bucket[$key] = ['parcel_id' => $parcelId, 'parcel_name' => $parcelName, 'amount' => 0.0, 'workdays' => 0.0, 'by_branch' => [], 'by_company_reason' => []];
+                $bucket[$key] = ['parcel_id' => $parcelId, 'parcel_name' => $parcelName, 'amount' => 0.0, 'workdays' => 0.0, 'by_branch' => [], 'by_company_reason' => [], 'by_level3' => []];
             }
             $bucket[$key]['amount']   += $amount;
             $bucket[$key]['workdays'] += $workdays;
@@ -448,13 +466,20 @@ class PayrollDashboardController extends Controller
             }
             $bucket[$key]['by_company_reason'][$crKey]['amount']   += $amount;
             $bucket[$key]['by_company_reason'][$crKey]['workdays'] += $workdays;
+
+            if (!isset($bucket[$key]['by_level3'][$laborType])) {
+                $bucket[$key]['by_level3'][$laborType] = ['amount' => 0.0, 'workdays' => 0.0];
+            }
+            $bucket[$key]['by_level3'][$laborType]['amount']   += $amount;
+            $bucket[$key]['by_level3'][$laborType]['workdays'] += $workdays;
         };
 
         // Función genérica de prorrateo
         $prorate = function ($record, $ccGrouped, float $totalAmount, float $workdays = 0) use (&$result, &$addToParcel, $parcels) {
-            $mid       = $record->month_id ?? null;
-            $ccs       = $ccGrouped->get($record->id, collect());
-            $totalSurf = $ccs->sum('surface');
+            $mid        = $record->month_id ?? null;
+            $ccs        = $ccGrouped->get($record->id, collect());
+            $totalSurf  = $ccs->sum('surface');
+            $laborType  = $record->level3_name ?? 'Sin Labor';
 
             foreach ($ccs as $cc) {
                 $parcelId   = $cc->parcel_id;
@@ -473,9 +498,9 @@ class PayrollDashboardController extends Controller
                 $wdSlice  = $workdays * $proportion;
 
                 if ($mid && isset($result[$mid])) {
-                    $addToParcel($result[$mid], $parcelId, $parcelName, $branchId, $crId, $amtSlice, $wdSlice);
+                    $addToParcel($result[$mid], $parcelId, $parcelName, $branchId, $crId, $laborType, $amtSlice, $wdSlice);
                 }
-                $addToParcel($result['all'], $parcelId, $parcelName, $branchId, $crId, $amtSlice, $wdSlice);
+                $addToParcel($result['all'], $parcelId, $parcelName, $branchId, $crId, $laborType, $amtSlice, $wdSlice);
             }
         };
 
@@ -519,10 +544,10 @@ class PayrollDashboardController extends Controller
             $result[$mid] = [];
         }
 
-        $addToBranch = function (&$bucket, int|string $branchId, string $branchName, int|string $parcelId, int|string $crId, float $amount, float $workdays = 0) {
+        $addToBranch = function (&$bucket, int|string $branchId, string $branchName, int|string $parcelId, int|string $crId, string $laborType, float $amount, float $workdays = 0) {
             $key = $branchId;
             if (!isset($bucket[$key])) {
-                $bucket[$key] = ['branch_id' => $branchId, 'branch_name' => $branchName, 'amount' => 0.0, 'workdays' => 0.0, 'by_parcel' => [], 'by_company_reason' => []];
+                $bucket[$key] = ['branch_id' => $branchId, 'branch_name' => $branchName, 'amount' => 0.0, 'workdays' => 0.0, 'by_parcel' => [], 'by_company_reason' => [], 'by_level3' => []];
             }
             $bucket[$key]['amount']   += $amount;
             $bucket[$key]['workdays'] += $workdays;
@@ -540,12 +565,19 @@ class PayrollDashboardController extends Controller
             }
             $bucket[$key]['by_company_reason'][$crKey]['amount']   += $amount;
             $bucket[$key]['by_company_reason'][$crKey]['workdays'] += $workdays;
+
+            if (!isset($bucket[$key]['by_level3'][$laborType])) {
+                $bucket[$key]['by_level3'][$laborType] = ['amount' => 0.0, 'workdays' => 0.0];
+            }
+            $bucket[$key]['by_level3'][$laborType]['amount']   += $amount;
+            $bucket[$key]['by_level3'][$laborType]['workdays'] += $workdays;
         };
 
         $prorate = function ($record, $ccGrouped, float $totalAmount, float $workdays = 0) use (&$result, &$addToBranch, $branchNames) {
-            $mid       = $record->month_id ?? null;
-            $ccs       = $ccGrouped->get($record->id, collect());
-            $totalSurf = $ccs->sum('surface');
+            $mid        = $record->month_id ?? null;
+            $ccs        = $ccGrouped->get($record->id, collect());
+            $totalSurf  = $ccs->sum('surface');
+            $laborType  = $record->level3_name ?? 'Sin Labor';
 
             foreach ($ccs as $cc) {
                 $branchId   = $cc->branch_id ?? 0;
@@ -563,9 +595,9 @@ class PayrollDashboardController extends Controller
                 $wdSlice  = $workdays * $proportion;
 
                 if ($mid && isset($result[$mid])) {
-                    $addToBranch($result[$mid], $branchId, $branchName, $cc->parcel_id ?? 0, $crId, $amtSlice, $wdSlice);
+                    $addToBranch($result[$mid], $branchId, $branchName, $cc->parcel_id ?? 0, $crId, $laborType, $amtSlice, $wdSlice);
                 }
-                $addToBranch($result['all'], $branchId, $branchName, $cc->parcel_id ?? 0, $crId, $amtSlice, $wdSlice);
+                $addToBranch($result['all'], $branchId, $branchName, $cc->parcel_id ?? 0, $crId, $laborType, $amtSlice, $wdSlice);
             }
         };
 
@@ -607,10 +639,10 @@ class PayrollDashboardController extends Controller
             $result[$mid] = [];
         }
 
-        $addToRS = function (&$bucket, int|string $crId, string $crName, int|string $branchId, int|string $parcelId, float $amount, float $workdays = 0) {
+        $addToRS = function (&$bucket, int|string $crId, string $crName, int|string $branchId, int|string $parcelId, string $laborType, float $amount, float $workdays = 0) {
             $key = (string) $crId;
             if (!isset($bucket[$key])) {
-                $bucket[$key] = ['company_reason_id' => $crId, 'company_reason_name' => $crName, 'amount' => 0.0, 'workdays' => 0.0, 'by_branch' => [], 'by_parcel' => []];
+                $bucket[$key] = ['company_reason_id' => $crId, 'company_reason_name' => $crName, 'amount' => 0.0, 'workdays' => 0.0, 'by_branch' => [], 'by_parcel' => [], 'by_level3' => []];
             }
             $bucket[$key]['amount']   += $amount;
             $bucket[$key]['workdays'] += $workdays;
@@ -628,13 +660,20 @@ class PayrollDashboardController extends Controller
             }
             $bucket[$key]['by_parcel'][$pKey]['amount']   += $amount;
             $bucket[$key]['by_parcel'][$pKey]['workdays'] += $workdays;
+
+            if (!isset($bucket[$key]['by_level3'][$laborType])) {
+                $bucket[$key]['by_level3'][$laborType] = ['amount' => 0.0, 'workdays' => 0.0];
+            }
+            $bucket[$key]['by_level3'][$laborType]['amount']   += $amount;
+            $bucket[$key]['by_level3'][$laborType]['workdays'] += $workdays;
         };
 
         $prorate = function ($record, $ccGrouped, float $totalAmount, float $workdays = 0) use (&$result, &$addToRS, $companyReasonNames) {
-            $mid       = $record->month_id ?? null;
-            $ccs       = $ccGrouped->get($record->id, collect());
-            $totalSurf = $ccs->sum('surface');
-            $nCCs      = count($ccs);
+            $mid        = $record->month_id ?? null;
+            $ccs        = $ccGrouped->get($record->id, collect());
+            $totalSurf  = $ccs->sum('surface');
+            $nCCs       = count($ccs);
+            $laborType  = $record->level3_name ?? 'Sin Labor';
 
             if ($nCCs === 0) return;
 
@@ -650,9 +689,9 @@ class PayrollDashboardController extends Controller
                 $wdSlice  = $workdays * $prop;
 
                 if ($mid && isset($result[$mid])) {
-                    $addToRS($result[$mid], $crId, $crName, $branchId, $parcelId, $amtSlice, $wdSlice);
+                    $addToRS($result[$mid], $crId, $crName, $branchId, $parcelId, $laborType, $amtSlice, $wdSlice);
                 }
-                $addToRS($result['all'], $crId, $crName, $branchId, $parcelId, $amtSlice, $wdSlice);
+                $addToRS($result['all'], $crId, $crName, $branchId, $parcelId, $laborType, $amtSlice, $wdSlice);
             }
         };
 
@@ -703,7 +742,7 @@ class PayrollDashboardController extends Controller
             $result[$mid] = [];
         }
 
-        $add = function (&$bucket, int|string $employerCRId, string $employerCRName, int|string $parcelId, string $parcelName, int|string $parcelCRId, string $parcelCRName, float $amount, float $workdays = 0) {
+        $add = function (&$bucket, int|string $employerCRId, string $employerCRName, int|string $parcelId, string $parcelName, int|string $parcelCRId, string $parcelCRName, string $level3Name, float $amount, float $workdays = 0) {
             $crKey = (string) $employerCRId;
             if (!isset($bucket[$crKey])) {
                 $bucket[$crKey] = [
@@ -711,11 +750,19 @@ class PayrollDashboardController extends Controller
                     'company_reason_name' => $employerCRName,
                     'total_amount'        => 0.0,
                     'total_workdays'      => 0.0,
+                    'by_level3'           => [],
                     'parcels'             => [],
                 ];
             }
             $bucket[$crKey]['total_amount']   += $amount;
             $bucket[$crKey]['total_workdays'] += $workdays;
+
+            // Sub-bucket Nivel 3 a nivel de RS
+            if (!isset($bucket[$crKey]['by_level3'][$level3Name])) {
+                $bucket[$crKey]['by_level3'][$level3Name] = ['amount' => 0.0, 'workdays' => 0.0];
+            }
+            $bucket[$crKey]['by_level3'][$level3Name]['amount']   += $amount;
+            $bucket[$crKey]['by_level3'][$level3Name]['workdays'] += $workdays;
 
             $pKey = (string) $parcelId;
             if (!isset($bucket[$crKey]['parcels'][$pKey])) {
@@ -726,10 +773,18 @@ class PayrollDashboardController extends Controller
                     'parcel_company_reason_name' => $parcelCRName,
                     'amount'                     => 0.0,
                     'workdays'                   => 0.0,
+                    'by_level3'                  => [],
                 ];
             }
             $bucket[$crKey]['parcels'][$pKey]['amount']   += $amount;
             $bucket[$crKey]['parcels'][$pKey]['workdays'] += $workdays;
+
+            // Sub-bucket Nivel 3 a nivel de parcela
+            if (!isset($bucket[$crKey]['parcels'][$pKey]['by_level3'][$level3Name])) {
+                $bucket[$crKey]['parcels'][$pKey]['by_level3'][$level3Name] = ['amount' => 0.0, 'workdays' => 0.0];
+            }
+            $bucket[$crKey]['parcels'][$pKey]['by_level3'][$level3Name]['amount']   += $amount;
+            $bucket[$crKey]['parcels'][$pKey]['by_level3'][$level3Name]['workdays'] += $workdays;
         };
 
         $prorate = function ($record, $ccGrouped, float $totalAmount, float $workdays, int|string $employerCRId) use (&$result, &$add, $companyReasonNames, $parcels) {
@@ -740,6 +795,7 @@ class PayrollDashboardController extends Controller
             } else {
                 $employerCRName = $companyReasonNames[$employerCRId] ?? 'Sin RS contratante';
             }
+            $level3Name     = $record->level3_name ?? 'Sin Clasificar';
             $mid            = $record->month_id ?? null;
             $ccs            = $ccGrouped->get($record->id, collect());
             // Solo CCs con parcel_id para no perder monto en la proración
@@ -760,9 +816,9 @@ class PayrollDashboardController extends Controller
                 $wdSlice  = $workdays * $prop;
 
                 if ($mid && isset($result[$mid])) {
-                    $add($result[$mid], $employerCRId, $employerCRName, $parcelId, $parcelName, $parcelCRId, $parcelCRName, $amtSlice, $wdSlice);
+                    $add($result[$mid], $employerCRId, $employerCRName, $parcelId, $parcelName, $parcelCRId, $parcelCRName, $level3Name, $amtSlice, $wdSlice);
                 }
-                $add($result['all'], $employerCRId, $employerCRName, $parcelId, $parcelName, $parcelCRId, $parcelCRName, $amtSlice, $wdSlice);
+                $add($result['all'], $employerCRId, $employerCRName, $parcelId, $parcelName, $parcelCRId, $parcelCRName, $level3Name, $amtSlice, $wdSlice);
             }
         };
 
@@ -796,6 +852,7 @@ class PayrollDashboardController extends Controller
                     'company_reason_name' => $crData['company_reason_name'],
                     'total_amount'        => round($crData['total_amount']),
                     'total_workdays'      => $crData['total_workdays'],
+                    'by_level3'           => $crData['by_level3'] ?? [],
                     'parcels'             => $parcelRows,
                 ];
             }
@@ -835,6 +892,7 @@ class PayrollDashboardController extends Controller
                     'by_branch'  => [],
                     'by_parcel'  => [],
                     'by_company_reason' => [],
+                    'by_level3'     => [],
                 ];
             }
             $bucket[$key]['quantity'] += $quantity;
@@ -860,6 +918,8 @@ class PayrollDashboardController extends Controller
             }
             $bucket[$key]['by_company_reason'][$crKey]['quantity'] += $quantity;
             $bucket[$key]['by_company_reason'][$crKey]['amount']   += $amount;
+
+            // by_level3: usar level3_name del registro (pasado como parámetro adicional)
         };
 
         foreach ($yields as $y) {
@@ -869,6 +929,7 @@ class PayrollDashboardController extends Controller
             $tratoName = $y->labor_rate_name ?? 'Sin Nombre';
             $price     = (int) ($y->rate ?? 0);
             $mid       = $y->month_id;
+            $laborType = $y->level3_name ?? 'Sin Labor';
 
             $ccs       = $yieldCCs->get($y->id, collect());
             $totalSurf = $ccs->sum('surface');
@@ -879,8 +940,16 @@ class PayrollDashboardController extends Controller
                 $amt = (float) ($y->amount ?? 0);
                 if ($mid && isset($result[$mid])) {
                     $addToTrato($result[$mid], $tratoId, $tratoName, $price, 0, 0, 0, $qty, $amt);
+                    $result[$mid][$tratoId]['by_level3'][$laborType] = $result[$mid][$tratoId]['by_level3'][$laborType] ?? ['quantity' => 0.0, 'amount' => 0.0];
+                    $result[$mid][(string)$tratoId]['by_level3'][$laborType]['quantity'] += $qty;
+                    $result[$mid][(string)$tratoId]['by_level3'][$laborType]['amount']   += $amt;
                 }
                 $addToTrato($result['all'], $tratoId, $tratoName, $price, 0, 0, 0, $qty, $amt);
+                if (!isset($result['all'][(string)$tratoId]['by_level3'][$laborType])) {
+                    $result['all'][(string)$tratoId]['by_level3'][$laborType] = ['quantity' => 0.0, 'amount' => 0.0];
+                }
+                $result['all'][(string)$tratoId]['by_level3'][$laborType]['quantity'] += $qty;
+                $result['all'][(string)$tratoId]['by_level3'][$laborType]['amount']   += $amt;
                 continue;
             }
 
@@ -896,8 +965,18 @@ class PayrollDashboardController extends Controller
 
                 if ($mid && isset($result[$mid])) {
                     $addToTrato($result[$mid], $tratoId, $tratoName, $price, $branchId, $parcelId, $crId, $qty, $amt);
+                    if (!isset($result[$mid][(string)$tratoId]['by_level3'][$laborType])) {
+                        $result[$mid][(string)$tratoId]['by_level3'][$laborType] = ['quantity' => 0.0, 'amount' => 0.0];
+                    }
+                    $result[$mid][(string)$tratoId]['by_level3'][$laborType]['quantity'] += $qty;
+                    $result[$mid][(string)$tratoId]['by_level3'][$laborType]['amount']   += $amt;
                 }
                 $addToTrato($result['all'], $tratoId, $tratoName, $price, $branchId, $parcelId, $crId, $qty, $amt);
+                if (!isset($result['all'][(string)$tratoId]['by_level3'][$laborType])) {
+                    $result['all'][(string)$tratoId]['by_level3'][$laborType] = ['quantity' => 0.0, 'amount' => 0.0];
+                }
+                $result['all'][(string)$tratoId]['by_level3'][$laborType]['quantity'] += $qty;
+                $result['all'][(string)$tratoId]['by_level3'][$laborType]['amount']   += $amt;
             }
         }
 
@@ -998,7 +1077,7 @@ class PayrollDashboardController extends Controller
             $ccs         = $ccGrouped->get($record->id, collect());
             $totalSurf   = $ccs->sum('surface');
             $nCCs        = count($ccs);
-            $laborType   = $record->labor_type_name ?? 'Sin Labor';
+            $laborType   = $record->level3_name ?? 'Sin Labor';
             $laborTypeId = $record->labor_type_id   ?? 0;
             $level3      = $record->level3_name     ?? 'Sin Clasificar';
             $level2      = $record->level2_name     ?? 'Sin Clasificar';

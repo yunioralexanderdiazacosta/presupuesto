@@ -52,8 +52,15 @@ const selectAllMonths = (index) => {
 </script>
 <script setup></script>
 <template>
-    <div class="row">
-        <div class="col-lg-6">
+    <div class="row mb-3" v-if="$page.props.branches && $page.props.branches.length > 0">
+        <div class="col-lg-4">
+            <label class="form-label small mb-1">Sucursal <span class="text-danger">*</span></label>
+            <select v-model="form.branch_id" class="form-select form-select-sm" :class="{ 'is-invalid': form.errors.branch_id }">
+                <option :value="null" disabled>Seleccione sucursal...</option>
+                <option v-for="b in $page.props.branches" :key="b.value" :value="b.value">{{ b.label }}</option>
+            </select>
+        </div>
+        <div class="col-lg-4">
             <div class="fv-row">
                 <label for="level2_id" class="col-form-label">Nivel 2</label>
                 <Multiselect
@@ -70,7 +77,7 @@ const selectAllMonths = (index) => {
                 <InputError class="mt-2" :message="form.errors.level2_id" />
             </div>
         </div>
-        <div class="col-lg-6">
+        <div class="col-lg-4">
             <div class="fv-row">
                 <label for="families" class="col-form-label">Nivel 3</label>
                 <Multiselect
