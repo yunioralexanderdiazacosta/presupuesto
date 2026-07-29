@@ -7,6 +7,29 @@
 
 export const changelog = [
   {
+    fecha: '2026-07-29',
+    titulo: 'Rendiciones — Producto en el correo de aprobación',
+    items: [
+      'El correo que se envía al aprobador ahora incluye una columna con el producto de cada documento, antes de la descripción.',
+    ],
+  },
+  {
+    fecha: '2026-07-29',
+    titulo: 'Facturas — Importar rendición trae el producto',
+    items: [
+      'Al importar un documento desde una rendición de gastos, ahora se completa automáticamente el producto en la nueva factura.',
+      'Si el producto ya existe en tu catálogo, se selecciona el producto existente (con su unidad) en vez de crear uno nuevo.',
+    ],
+  },
+  {
+    fecha: '2026-07-29',
+    titulo: 'Rendiciones — Campos obligatorios al agregar documento',
+    items: [
+      'Al agregar un documento a una rendición, ahora es obligatorio completar Monto, Tipo de Documento, Nº de Documento y Producto, además del Proveedor.',
+      'Si falta algún dato, el sistema avisa qué campos debe completar antes de guardar.',
+    ],
+  },
+  {
     fecha: '2026-07-28',
     titulo: 'Estimaciones — Filtro y columna por sucursal',
     items: [

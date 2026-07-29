@@ -130,6 +130,7 @@
                 <tr>
                     <th>Fecha</th>
                     <th>Proveedor</th>
+                    <th>Producto</th>
                     <th>Descripción</th>
                     <th>Monto</th>
                 </tr>
@@ -139,12 +140,13 @@
                 <tr>
                     <td>{{ $item->date->format('d/m/Y') }}</td>
                     <td>{{ $item->supplier->name ?? 'N/A' }}</td>
-                    <td>{{ $item->description ?? ($item->product->name ?? '—') }}</td>
+                    <td>{{ $item->product_name ?? '—' }}</td>
+                    <td>{{ $item->description ?? '—' }}</td>
                     <td>${{ number_format($item->amount, 0, ',', '.') }}</td>
                 </tr>
                 @endforeach
                 <tr class="total-row">
-                    <td colspan="3" style="text-align: right;">TOTAL:</td>
+                    <td colspan="4" style="text-align: right;">TOTAL:</td>
                     <td>${{ number_format($expenseReport->items->sum('amount'), 0, ',', '.') }}</td>
                 </tr>
             </tbody>

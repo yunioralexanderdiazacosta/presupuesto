@@ -46,12 +46,24 @@ const onFileChange = (e) => {
 };
 
 const submitItem = () => {
+    // Validación de campos obligatorios
+    const faltantes = [];
+    if (!itemForm.amount || Number(itemForm.amount) <= 0) faltantes.push('Monto');
+    if (!itemForm.type_document_id) faltantes.push('Tipo Documento');
+    if (!itemForm.document_number || !itemForm.document_number.trim()) faltantes.push('Nº Documento');
+    if (!itemForm.product_name || !itemForm.product_name.trim()) faltantes.push('Producto');
+    if (!itemForm.supplier_id) faltantes.push('Proveedor');
+    if (faltantes.length > 0) {
+        Swal.fire('Campos obligatorios', 'Debe completar: ' + faltantes.join(', '), 'warning');
+        return;
+    }
+
     const formData = new FormData();
     formData.append('date', itemForm.date);
     formData.append('supplier_id', itemForm.supplier_id);
-    if (itemForm.type_document_id) formData.append('type_document_id', itemForm.type_document_id);
-    if (itemForm.document_number) formData.append('document_number', itemForm.document_number);
-    if (itemForm.product_name) formData.append('product_name', itemForm.product_name);
+    formData.append('type_document_id', itemForm.type_document_id);
+    formData.append('document_number', itemForm.document_number);
+    formData.append('product_name', itemForm.product_name);
     if (itemForm.description) formData.append('description', itemForm.description);
     formData.append('amount', itemForm.amount);
     if (itemForm.receipt) formData.append('receipt', itemForm.receipt);
@@ -486,23 +498,23 @@ const pendingAmount = computed(() => formatCurrency(props.report.pending_amount)
 
                                     <!-- Tipo Documento -->
                                     <div class="col-6 col-md-4">
-                                        <label class="form-label small mb-1">Tipo Documento</label>
-                                        <select v-model="itemForm.type_document_id" class="form-select form-select-sm">
-                                            <option value="">Sin especificar</option>
+                                        <label class="form-label small mb-1">Tipo Documento <span class="text-danger">*</span></label>
+                                        <select v-model="itemForm.type_document_id" class="form-select form-select-sm" required>
+                                            <option value="" disabled selected>Seleccione...</option>
                                             <option v-for="t in typeDocuments" :key="t.value" :value="t.value">{{ t.label }}</option>
                                         </select>
                                     </div>
 
                                     <!-- Nº Documento -->
                                     <div class="col-6 col-md-4">
-                                        <label class="form-label small mb-1">Nº Documento</label>
-                                        <input type="text" v-model="itemForm.document_number" class="form-control form-control-sm" placeholder="Ej: 001-12345">
+                                        <label class="form-label small mb-1">Nº Documento <span class="text-danger">*</span></label>
+                                        <input type="text" v-model="itemForm.document_number" class="form-control form-control-sm" placeholder="Ej: 001-12345" required>
                                     </div>
 
                                     <!-- Producto -->
                                     <div class="col-6 col-md-4">
-                                        <label class="form-label small mb-1">Producto / Concepto</label>
-                                        <input type="text" v-model="itemForm.product_name" class="form-control form-control-sm" placeholder="Ej: Herbicida, Repuesto...">
+                                        <label class="form-label small mb-1">Producto / Concepto <span class="text-danger">*</span></label>
+                                        <input type="text" v-model="itemForm.product_name" class="form-control form-control-sm" placeholder="Ej: Herbicida, Repuesto..." required>
                                     </div>
 
                                     <!-- Descripción -->
@@ -543,7 +555,7 @@ const pendingAmount = computed(() => formatCurrency(props.report.pending_amount)
                                 type="button" 
                                 class="btn btn-sm btn-primary flex-fill flex-md-grow-0" 
                                 @click="submitItem"
-                                :disabled="itemForm.processing || !itemForm.supplier_id || !itemForm.amount"
+                                :disabled="itemForm.processing || !itemForm.supplier_id || !itemForm.amount || !itemForm.type_document_id || !itemForm.document_number || !itemForm.product_name"
                             >
                                 <i class="fas fa-plus me-1"></i>
                                 {{ itemForm.processing ? 'Guardando...' : 'Agregar Documento' }}

@@ -45,10 +45,23 @@ onMounted(() => {
 function syncProductOptionsFromForm() {
 	if (!props.form || !Array.isArray(props.form.products)) return;
 	props.form.products.forEach(p => {
-		if (
-			p.product_id &&
-			!productOptions.some(opt => opt.value === p.product_id)
-		) {
+		if (!p.product_id) return;
+
+		// Si es un string (nombre), intentar resolverlo contra un producto existente
+		// por nombre (case-insensitive). Si coincide, usar su ID real para que
+		// se comporte como una selección normal de invoices (autocompleta unidad, etc.).
+		if (typeof p.product_id === 'string' && !/^\d+$/.test(p.product_id)) {
+			const match = productOptions.find(opt =>
+				/^\d+$/.test(String(opt.value)) &&
+				String(opt.label).trim().toLowerCase() === p.product_id.trim().toLowerCase()
+			);
+			if (match) {
+				p.product_id = match.value;
+				return;
+			}
+		}
+
+		if (!productOptions.some(opt => opt.value === p.product_id)) {
 			// Si es numérico, buscar el label en los productos de la página
 			if (typeof p.product_id === 'number' || /^\d+$/.test(p.product_id)) {
 				let label = p.product_name || p.label;

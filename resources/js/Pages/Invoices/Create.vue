@@ -44,7 +44,7 @@ const form = useForm({
 		? props.prefill.products
 		: [
 			{
-				product_id: props.prefill?.product_id || '',
+				product_id: props.prefill?.product_name || props.prefill?.product_id || '',
 				unit_price: props.prefill?.amount || 0.00,
 				amount: 1,
 				observations: props.prefill?.description || '',
