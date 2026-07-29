@@ -200,16 +200,6 @@ class DashboardController extends Controller
                 ->get();
             $this->cachedSurfaces = $this->cachedCostCenters->pluck('surface', 'id');
 
-            // Factor de prorrateo para Administración y Generales Campo cuando hay filtro de sucursal
-            $prorationFactor = 1.0;
-            if ($selectedBranchId) {
-                $totalAllSurface = CostCenter::where('season_id', $season_id)
-                    ->whereHas('season.team', fn($q) => $q->where('team_id', $user->team_id))
-                    ->sum('surface');
-                $branchSurface = (float) $this->cachedCostCenters->sum('surface');
-                $prorationFactor = $totalAllSurface > 0 ? ($branchSurface / (float) $totalAllSurface) : 0.0;
-            }
-
             // OPTIMIZACIÓN: Reusar los productos consultados (evita queries duplicadas por rubro)
             $agrochemicalProducts = $this->getAgrochemicalProducts($costCentersId);
             $fertilizerProducts = $this->getFertilizerProducts($costCentersId);
@@ -227,17 +217,9 @@ class DashboardController extends Controller
                 ]
             ];
             // OPTIMIZACIÓN: Calcular totales de administración y fields UNA sola vez (se reusan más abajo)
-            $administrationTotalsByLevel12 = $this->getAdministrationTotalsByLevel12($user->team_id);
-            $fieldTotalsByLevel12 = $this->getFieldTotalsByLevel12($user->team_id);
-            // Prorratear Administración y Generales Campo por proporción de superficie de sucursal
-            if ($selectedBranchId && $prorationFactor < 1.0) {
-                $administrationTotalsByLevel12 = $administrationTotalsByLevel12->map(fn($row) =>
-                    array_merge((array) $row, ['total_amount' => round((float) $row['total_amount'] * $prorationFactor, 2)])
-                );
-                $fieldTotalsByLevel12 = $fieldTotalsByLevel12->map(fn($row) =>
-                    array_merge((array) $row, ['total_amount' => round((float) $row['total_amount'] * $prorationFactor, 2)])
-                );
-            }
+            // Administración y Generales Campo tienen branch_id directo: se filtran por sucursal (no se prorratean)
+            $administrationTotalsByLevel12 = $this->getAdministrationTotalsByLevel12($user->team_id, $selectedBranchId);
+            $fieldTotalsByLevel12 = $this->getFieldTotalsByLevel12($user->team_id, $selectedBranchId);
             $totalAdministration = $administrationTotalsByLevel12->sum('total_amount');
             $totalFields = $fieldTotalsByLevel12->sum('total_amount');
             $totalSeason = number_format(($this->totalAgrochemical + $this->totalFertilizer + $this->totalManPower + $this->totalServices + $this->totalSupplies + $this->totalHarvests + $totalAdministration + $totalFields), 0, ',', '.');
@@ -248,14 +230,9 @@ class DashboardController extends Controller
             $totalSupplies = number_format($this->totalSupplies, 0, ',', '.');
             $totalHarvests = number_format($this->totalHarvests, 0, ',', '.');
 
-            // NUEVO: Calcular y formatear los meses de administración y fields
-            $monthsAdministrationRaw = $this->getMonthsAdministration($user->team_id);
-            $monthsFieldsRaw = $this->getMonthsFields($user->team_id);
-            // Prorratear meses de Administración y Campos por sucursal
-            if ($selectedBranchId && $prorationFactor < 1.0) {
-                foreach ($monthsAdministrationRaw as $k => $v) { $monthsAdministrationRaw[$k] = $v * $prorationFactor; }
-                foreach ($monthsFieldsRaw as $k => $v) { $monthsFieldsRaw[$k] = $v * $prorationFactor; }
-            }
+            // NUEVO: Calcular y formatear los meses de administración y fields (filtrados por sucursal)
+            $monthsAdministrationRaw = $this->getMonthsAdministration($user->team_id, $selectedBranchId);
+            $monthsFieldsRaw = $this->getMonthsFields($user->team_id, $selectedBranchId);
             $monthsAdministration = [];
             foreach ($monthsAdministrationRaw as $key => $value) {
                 $monthsAdministration[$key] = number_format($value, 0, ',', '.');
@@ -1802,7 +1779,7 @@ $totalInvestments = \App\Models\Investment::where('season_id', $season_id)
      * Obtiene los totales de administración agrupados por Level 1 y Level 2.
      * Devuelve una colección con: [level1_id, level1_name, level2_id, level2_name, total_amount]
      */
-    private function getAdministrationTotalsByLevel12($team_id = null)
+    private function getAdministrationTotalsByLevel12($team_id = null, $branchId = null)
     {
         $season_id = session('season_id');
         $season = \App\Models\Season::select('month_id')->where('id', $season_id)->first();
@@ -1830,6 +1807,9 @@ $totalInvestments = \App\Models\Investment::where('season_id', $season_id)
             ->where('a.season_id', $season_id);
         if ($team_id) {
             $administrations->where('a.team_id', $team_id);
+        }
+        if ($branchId) {
+            $administrations->where('a.branch_id', $branchId);
         }
         $administrations = $administrations->get();
 
@@ -1863,7 +1843,7 @@ $totalInvestments = \App\Models\Investment::where('season_id', $season_id)
 
 
 
-    private function getFieldTotalsByLevel12($team_id = null)
+    private function getFieldTotalsByLevel12($team_id = null, $branchId = null)
     {
         $season_id = session('season_id');
         $season = \App\Models\Season::select('month_id')->where('id', $season_id)->first();
@@ -1891,6 +1871,9 @@ $totalInvestments = \App\Models\Investment::where('season_id', $season_id)
             ->where('a.season_id', $season_id);
         if ($team_id) {
             $fields->where('a.team_id', $team_id);
+        }
+        if ($branchId) {
+            $fields->where('a.branch_id', $branchId);
         }
         $fields = $fields->get()->keyBy('field_id');
 
@@ -2201,7 +2184,7 @@ $totalInvestments = \App\Models\Investment::where('season_id', $season_id)
     }
 
     // Calcula los totales mensuales de administración
-    private function getMonthsAdministration($team_id = null)
+    private function getMonthsAdministration($team_id = null, $branchId = null)
     {
         $season_id = session('season_id');
         $season = \App\Models\Season::select('month_id')->where('id', $season_id)->first();
@@ -2218,6 +2201,9 @@ $totalInvestments = \App\Models\Investment::where('season_id', $season_id)
             ->where('a.season_id', $season_id);
         if ($team_id) {
             $administrations->where('a.team_id', $team_id);
+        }
+        if ($branchId) {
+            $administrations->where('a.branch_id', $branchId);
         }
         $administrations = $administrations->get()->keyBy('id');
 
@@ -2245,7 +2231,7 @@ $totalInvestments = \App\Models\Investment::where('season_id', $season_id)
     }
 
     // Calcula los totales mensuales de fields
-    private function getMonthsFields($team_id = null)
+    private function getMonthsFields($team_id = null, $branchId = null)
     {
         $season_id = session('season_id');
         $season = \App\Models\Season::select('month_id')->where('id', $season_id)->first();
@@ -2262,6 +2248,9 @@ $totalInvestments = \App\Models\Investment::where('season_id', $season_id)
             ->where('a.season_id', $season_id);
         if ($team_id) {
             $fields->where('a.team_id', $team_id);
+        }
+        if ($branchId) {
+            $fields->where('a.branch_id', $branchId);
         }
         $fields = $fields->get()->keyBy('id');
 

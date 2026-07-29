@@ -8,6 +8,14 @@
 export const changelog = [
   {
     fecha: '2026-07-29',
+    titulo: 'Tablero — Generales Campo y Administración por sucursal',
+    items: [
+      'Al filtrar el tablero por una sucursal, los montos de "Generales Campo" y "Administración" ahora muestran el valor real de esa sucursal, coincidiendo con la vista de Generales Campo.',
+      'Se corrigió un cálculo que repartía estos montos por superficie y mostraba un total menor al real.',
+    ],
+  },
+  {
+    fecha: '2026-07-29',
     titulo: 'Rendiciones — Producto en el correo de aprobación',
     items: [
       'El correo que se envía al aprobador ahora incluye una columna con el producto de cada documento, antes de la descripción.',
