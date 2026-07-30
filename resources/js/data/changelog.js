@@ -8,6 +8,24 @@
 export const changelog = [
   {
     fecha: '2026-07-29',
+    titulo: 'Dashboard de salidas — Montos correctos al filtrar por razón social',
+    items: [
+      'Al filtrar por razón social, las tarjetas de consumos (Total Consumido, Gastos, Inversiones, por nivel y por proyecto) ahora muestran solo la parte del consumo que corresponde a los centros de costo de esa razón social.',
+      'Antes, un consumo repartido entre centros de costo de distintas razones sociales sumaba su monto completo en cada una, inflando los totales; ahora se reparte de forma proporcional y los totales cuadran con el desglose por estado de desarrollo.',
+      'Sin filtro de razón social, los montos siguen mostrando el total completo de cada consumo, como antes.',
+    ],
+  },
+  {
+    fecha: '2026-07-29',
+    titulo: 'Dashboard de salidas — Razón social según centro de costo',
+    items: [
+      'Al filtrar el dashboard de salidas por razón social, los consumos ahora se agrupan por la razón social del centro de costo donde se cargó cada consumo, no por la de la factura.',
+      'Esto refleja correctamente los casos en que una compra de una razón social se consume en centros de costo de otra razón social.',
+      'Las tarjetas de "Detalle de Compras" (Total Facturas, Notas de Débito, Notas de Crédito y Total Compras) siguen mostrándose según la razón social de la factura.',
+    ],
+  },
+  {
+    fecha: '2026-07-29',
     titulo: 'Tablero — Generales Campo y Administración por sucursal',
     items: [
       'Al filtrar el tablero por una sucursal, los montos de "Generales Campo" y "Administración" ahora muestran el valor real de esa sucursal, coincidiendo con la vista de Generales Campo.',

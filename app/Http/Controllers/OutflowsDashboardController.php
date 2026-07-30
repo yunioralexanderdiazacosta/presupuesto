@@ -99,33 +99,83 @@ class OutflowsDashboardController extends Controller
     }
 
     /**
-     * Aplica el filtro de razón social a un query Eloquent de Outflow.
-     * Los outflows llegan a company_reason a través de su factura o nota.
+     * Indica si un consumo "toca" alguna de las razones sociales filtradas, es
+     * decir, si al menos uno de sus centros de costo pertenece a esa(s) RS.
+     * Sin filtro devuelve true (todos los consumos cuentan).
+     *
+     * Requiere el outflow con costCenters.costCenter cargado.
      */
-    private function withCompanyReasonFilter($query, $company_reason_id)
+    private function outflowMatchesCompanyReason($outflow, $company_reason_id): bool
     {
-        if (!$company_reason_id) return $query;
+        if (!$company_reason_id) return true;
         $ids = is_array($company_reason_id) ? $company_reason_id : [$company_reason_id];
-        return $query->where(function ($w) use ($ids) {
-            $w->whereHas('invoiceProduct.invoice', fn($q) => $q->whereIn('company_reason_id', $ids))
-              ->orWhereHas('creditDebitNoteItem.creditDebitNote.invoice', fn($q) => $q->whereIn('company_reason_id', $ids));
-        });
+        return $outflow->costCenters->contains(
+            fn($occ) => $occ->costCenter && in_array((int) $occ->costCenter->company_reason_id, $ids, true)
+        );
     }
 
     /**
-     * Agrega JOINs y WHERE de razón social a un DB query builder que ya tiene
-     * invoice_products y credit_debit_note_items unidos.
+     * Calcula el monto de un consumo prorrateado entre sus centros de costo por
+     * superficie (hectáreas). Si se pasa $company_reason_id, devuelve solo la
+     * porción correspondiente a los CC de esa(s) razón(es) social(es).
+     *
+     * El monto completo (cantidad × precio) es único por consumo; el pivote
+     * outflow_cost_center no guarda cantidad por CC, por eso se reparte por
+     * superficie. Si la superficie total es 0, se reparte en partes iguales.
+     *
+     * Requiere el outflow con invoiceProduct, creditDebitNoteItem y
+     * costCenters.costCenter cargados.
+     */
+    private function proratedOutflowAmount($outflow, $company_reason_id = null): float
+    {
+        // Monto completo del consumo (cantidad × precio unitario)
+        $unitPrice = 0.0;
+        if ($outflow->invoice_product_id && $outflow->invoiceProduct) {
+            $unitPrice = (float) $outflow->invoiceProduct->unit_price;
+        } elseif ($outflow->credit_debit_note_item_id && $outflow->creditDebitNoteItem) {
+            $unitPrice = (float) $outflow->creditDebitNoteItem->unit_price;
+        }
+        $full = (float) $outflow->quantity * $unitPrice;
+        if ($full == 0.0) return 0.0;
+
+        $ccs = $outflow->costCenters;
+
+        // Sin centros de costo: sin filtro aporta completo; con filtro no aporta
+        if ($ccs === null || $ccs->isEmpty()) {
+            return $company_reason_id ? 0.0 : $full;
+        }
+
+        // CC que corresponden a la(s) razón(es) social(es) filtradas (o todos)
+        if ($company_reason_id) {
+            $ids = is_array($company_reason_id) ? $company_reason_id : [$company_reason_id];
+            $matching = $ccs->filter(
+                fn($occ) => $occ->costCenter && in_array((int) $occ->costCenter->company_reason_id, $ids, true)
+            );
+        } else {
+            $matching = $ccs;
+        }
+
+        if ($matching->isEmpty()) return 0.0;
+
+        // Prorrateo por superficie; si la superficie total es 0, reparto equitativo
+        $totalSurface = $ccs->sum(fn($occ) => (float) ($occ->costCenter->surface ?? 0));
+        if ($totalSurface > 0) {
+            $matchSurface = $matching->sum(fn($occ) => (float) ($occ->costCenter->surface ?? 0));
+            return $full * ($matchSurface / $totalSurface);
+        }
+        return $full * ($matching->count() / $ccs->count());
+    }
+
+    /**
+     * Agrega el WHERE de razón social a un DB query builder que ya tiene la
+     * tabla cost_centers unida (vía outflow_cost_center). La razón social se
+     * toma del centro de costo del consumo, NO de la factura de origen.
      */
     private function addCompanyReasonJoin($query, $company_reason_id)
     {
         if (!$company_reason_id) return $query;
         $ids = is_array($company_reason_id) ? $company_reason_id : [$company_reason_id];
-        $placeholders = implode(',', array_fill(0, count($ids), '?'));
-        return $query
-            ->leftJoin('invoices as inv_cr', 'invoice_products.invoice_id', '=', 'inv_cr.id')
-            ->leftJoin('credit_debit_notes as cdn_cr', 'credit_debit_note_items.credit_debit_note_id', '=', 'cdn_cr.id')
-            ->leftJoin('invoices as inv_cdn_cr', 'cdn_cr.invoice_id', '=', 'inv_cdn_cr.id')
-            ->whereRaw("COALESCE(inv_cr.company_reason_id, inv_cdn_cr.company_reason_id) IN ({$placeholders})", $ids);
+        return $query->whereIn('cost_centers.company_reason_id', $ids);
     }
 
     /**
@@ -163,31 +213,24 @@ class OutflowsDashboardController extends Controller
     private function getSummary($season_id, $team_id, $company_reason_id = null)
     {
         try {
-            $outflows = $this->withCompanyReasonFilter(
-                Outflow::where('season_id', $season_id)
-                    ->where('team_id', $team_id)
-                    ->with(['invoiceProduct', 'creditDebitNoteItem']),
-                $company_reason_id
-            )->get();
+            $outflows = Outflow::where('season_id', $season_id)
+                ->where('team_id', $team_id)
+                ->with(['invoiceProduct', 'creditDebitNoteItem', 'costCenters.costCenter'])
+                ->get();
 
-            $totalCount = $outflows->count();
-
-            // Calcular el total sumando quantity × unit_price de cada outflow
-            $totalAmount = $outflows->sum(function($outflow) {
-                // Si viene de invoice_product
-                if ($outflow->invoice_product_id && $outflow->invoiceProduct) {
-                    return $outflow->quantity * $outflow->invoiceProduct->unit_price;
+            $totalAmount = 0.0;
+            $totalCount = 0;
+            foreach ($outflows as $outflow) {
+                if (!$this->outflowMatchesCompanyReason($outflow, $company_reason_id)) {
+                    continue;
                 }
-                // Si viene de credit_debit_note_item
-                if ($outflow->credit_debit_note_item_id && $outflow->creditDebitNoteItem) {
-                    return $outflow->quantity * $outflow->creditDebitNoteItem->unit_price;
-                }
-                return 0;
-            });
+                $totalCount++;
+                $totalAmount += $this->proratedOutflowAmount($outflow, $company_reason_id);
+            }
 
             return [
-                'total_amount' => floatval($totalAmount ?? 0),
-                'total_count' => intval($totalCount ?? 0),
+                'total_amount' => floatval($totalAmount),
+                'total_count' => intval($totalCount),
                 'avg_per_outflow' => $totalCount > 0 ? floatval($totalAmount / $totalCount) : 0,
             ];
         } catch (\Exception $e) {
@@ -204,32 +247,27 @@ class OutflowsDashboardController extends Controller
     private function getInvestmentsTotal($season_id, $team_id, $company_reason_id = null)
     {
         try {
-            $outflows = $this->withCompanyReasonFilter(
-                Outflow::where('season_id', $season_id)
-                    ->where('team_id', $team_id)
-                    ->whereHas('operation', function($query) {
-                        $query->whereRaw('LOWER(name) LIKE ?', ['%inversion%']);
-                    })
-                    ->with(['invoiceProduct', 'creditDebitNoteItem', 'operation']),
-                $company_reason_id
-            )->get();
+            $outflows = Outflow::where('season_id', $season_id)
+                ->where('team_id', $team_id)
+                ->whereHas('operation', function($query) {
+                    $query->whereRaw('LOWER(name) LIKE ?', ['%inversion%']);
+                })
+                ->with(['invoiceProduct', 'creditDebitNoteItem', 'operation', 'costCenters.costCenter'])
+                ->get();
 
-            $totalCount = $outflows->count();
-
-            // Calcular el total sumando quantity × unit_price
-            $totalAmount = $outflows->sum(function($outflow) {
-                if ($outflow->invoice_product_id && $outflow->invoiceProduct) {
-                    return $outflow->quantity * $outflow->invoiceProduct->unit_price;
+            $totalAmount = 0.0;
+            $totalCount = 0;
+            foreach ($outflows as $outflow) {
+                if (!$this->outflowMatchesCompanyReason($outflow, $company_reason_id)) {
+                    continue;
                 }
-                if ($outflow->credit_debit_note_item_id && $outflow->creditDebitNoteItem) {
-                    return $outflow->quantity * $outflow->creditDebitNoteItem->unit_price;
-                }
-                return 0;
-            });
+                $totalCount++;
+                $totalAmount += $this->proratedOutflowAmount($outflow, $company_reason_id);
+            }
 
             return [
-                'total' => floatval($totalAmount ?? 0),
-                'count' => intval($totalCount ?? 0),
+                'total' => floatval($totalAmount),
+                'count' => intval($totalCount),
             ];
         } catch (\Exception $e) {
             Log::error('Error en OutflowsDashboard getInvestmentsTotal: ' . $e->getMessage());
@@ -243,32 +281,27 @@ class OutflowsDashboardController extends Controller
     private function getExpensesTotal($season_id, $team_id, $company_reason_id = null)
     {
         try {
-            $outflows = $this->withCompanyReasonFilter(
-                Outflow::where('season_id', $season_id)
-                    ->where('team_id', $team_id)
-                    ->whereHas('operation', function($query) {
-                        $query->whereRaw('LOWER(name) LIKE ?', ['%gasto%']);
-                    })
-                    ->with(['invoiceProduct', 'creditDebitNoteItem', 'operation']),
-                $company_reason_id
-            )->get();
+            $outflows = Outflow::where('season_id', $season_id)
+                ->where('team_id', $team_id)
+                ->whereHas('operation', function($query) {
+                    $query->whereRaw('LOWER(name) LIKE ?', ['%gasto%']);
+                })
+                ->with(['invoiceProduct', 'creditDebitNoteItem', 'operation', 'costCenters.costCenter'])
+                ->get();
 
-            $totalCount = $outflows->count();
-
-            // Calcular el total sumando quantity × unit_price
-            $totalAmount = $outflows->sum(function($outflow) {
-                if ($outflow->invoice_product_id && $outflow->invoiceProduct) {
-                    return $outflow->quantity * $outflow->invoiceProduct->unit_price;
+            $totalAmount = 0.0;
+            $totalCount = 0;
+            foreach ($outflows as $outflow) {
+                if (!$this->outflowMatchesCompanyReason($outflow, $company_reason_id)) {
+                    continue;
                 }
-                if ($outflow->credit_debit_note_item_id && $outflow->creditDebitNoteItem) {
-                    return $outflow->quantity * $outflow->creditDebitNoteItem->unit_price;
-                }
-                return 0;
-            });
+                $totalCount++;
+                $totalAmount += $this->proratedOutflowAmount($outflow, $company_reason_id);
+            }
 
             return [
-                'total' => floatval($totalAmount ?? 0),
-                'count' => intval($totalCount ?? 0),
+                'total' => floatval($totalAmount),
+                'count' => intval($totalCount),
             ];
         } catch (\Exception $e) {
             Log::error('Error en OutflowsDashboard getExpensesTotal: ' . $e->getMessage());
@@ -389,38 +422,33 @@ class OutflowsDashboardController extends Controller
     private function getOutflowsByLevel1($season_id, $team_id, $company_reason_id = null)
     {
         try {
-            $outflows = $this->withCompanyReasonFilter(
-                Outflow::where('season_id', $season_id)
-                    ->where('team_id', $team_id)
-                    ->whereDoesntHave('operation', function($query) {
-                        $query->whereRaw('LOWER(name) LIKE ?', ['%inversion%']);
-                    })
-                    ->with([
-                        'level3.level2.level1',
-                        'invoiceProduct',
-                        'creditDebitNoteItem'
-                    ]),
-                $company_reason_id
-            )->get();
+            $outflows = Outflow::where('season_id', $season_id)
+                ->where('team_id', $team_id)
+                ->whereDoesntHave('operation', function($query) {
+                    $query->whereRaw('LOWER(name) LIKE ?', ['%inversion%']);
+                })
+                ->with([
+                    'level3.level2.level1',
+                    'invoiceProduct',
+                    'creditDebitNoteItem',
+                    'costCenters.costCenter'
+                ])
+                ->get();
 
             // Agrupar por level1 y calcular totales
             $groupedData = [];
 
             foreach ($outflows as $outflow) {
-                $level1Name = null;
-                $amount = 0;
+                // Monto prorrateado según la razón social del centro de costo
+                $amount = $this->proratedOutflowAmount($outflow, $company_reason_id);
+                if ($amount <= 0) {
+                    continue;
+                }
 
+                $level1Name = null;
                 // Obtener el level1 desde la jerarquía outflow → level3 → level2 → level1
                 if ($outflow->level3 && $outflow->level3->level2 && $outflow->level3->level2->level1) {
                     $level1Name = $outflow->level3->level2->level1->name;
-                }
-
-                // Calcular el monto según el origen (invoice o nota de crédito/débito)
-                if ($outflow->invoice_product_id && $outflow->invoiceProduct) {
-                    $amount = $outflow->quantity * $outflow->invoiceProduct->unit_price;
-                }
-                elseif ($outflow->credit_debit_note_item_id && $outflow->creditDebitNoteItem) {
-                    $amount = $outflow->quantity * $outflow->creditDebitNoteItem->unit_price;
                 }
 
                 // Si no tiene level1, agruparlo como "Sin Clasificar"
@@ -464,27 +492,31 @@ class OutflowsDashboardController extends Controller
     private function getOutflowsByLevel2($season_id, $team_id, $company_reason_id = null)
     {
         try {
-            $outflows = $this->withCompanyReasonFilter(
-                Outflow::where('season_id', $season_id)
-                    ->where('team_id', $team_id)
-                    ->whereDoesntHave('operation', function($query) {
-                        $query->whereRaw('LOWER(name) LIKE ?', ['%inversion%']);
-                    })
-                    ->with([
-                        'level3.level2.level1',
-                        'invoiceProduct',
-                        'creditDebitNoteItem'
-                    ]),
-                $company_reason_id
-            )->get();
+            $outflows = Outflow::where('season_id', $season_id)
+                ->where('team_id', $team_id)
+                ->whereDoesntHave('operation', function($query) {
+                    $query->whereRaw('LOWER(name) LIKE ?', ['%inversion%']);
+                })
+                ->with([
+                    'level3.level2.level1',
+                    'invoiceProduct',
+                    'creditDebitNoteItem',
+                    'costCenters.costCenter'
+                ])
+                ->get();
 
             // Agrupar por level2 y calcular totales
             $groupedData = [];
 
             foreach ($outflows as $outflow) {
+                // Monto prorrateado según la razón social del centro de costo
+                $amount = $this->proratedOutflowAmount($outflow, $company_reason_id);
+                if ($amount <= 0) {
+                    continue;
+                }
+
                 $level2Name = null;
                 $level1Name = null;
-                $amount = 0;
 
                 // Obtener el level2 y level1 desde la jerarquía outflow → level3 → level2 → level1
                 if ($outflow->level3 && $outflow->level3->level2) {
@@ -492,14 +524,6 @@ class OutflowsDashboardController extends Controller
                     if ($outflow->level3->level2->level1) {
                         $level1Name = $outflow->level3->level2->level1->name;
                     }
-                }
-
-                // Calcular el monto según el origen (invoice o nota de crédito/débito)
-                if ($outflow->invoice_product_id && $outflow->invoiceProduct) {
-                    $amount = $outflow->quantity * $outflow->invoiceProduct->unit_price;
-                }
-                elseif ($outflow->credit_debit_note_item_id && $outflow->creditDebitNoteItem) {
-                    $amount = $outflow->quantity * $outflow->creditDebitNoteItem->unit_price;
                 }
 
                 // Si no tiene level2, agruparlo como "Sin Clasificar"
@@ -549,30 +573,24 @@ class OutflowsDashboardController extends Controller
     private function getOutflowsByProject($season_id, $team_id, $company_reason_id = null)
     {
         try {
-            $outflows = $this->withCompanyReasonFilter(
-                Outflow::where('season_id', $season_id)
-                    ->where('team_id', $team_id)
-                    ->with(['invoiceProduct', 'creditDebitNoteItem', 'project']),
-                $company_reason_id
-            )->get();
+            $outflows = Outflow::where('season_id', $season_id)
+                ->where('team_id', $team_id)
+                ->with(['invoiceProduct', 'creditDebitNoteItem', 'project', 'costCenters.costCenter'])
+                ->get();
 
             $groupedData = [];
 
             foreach ($outflows as $outflow) {
-                $projectName = null;
-                $amount = 0;
+                // Monto prorrateado según la razón social del centro de costo
+                $amount = $this->proratedOutflowAmount($outflow, $company_reason_id);
+                if ($amount <= 0) {
+                    continue;
+                }
 
+                $projectName = null;
                 // Obtener el nombre del proyecto
                 if ($outflow->project_id && $outflow->project) {
                     $projectName = $outflow->project->name;
-                }
-
-                // Calcular el monto (cantidad × precio unitario)
-                if ($outflow->invoice_product_id && $outflow->invoiceProduct) {
-                    $amount = $outflow->quantity * $outflow->invoiceProduct->unit_price;
-                }
-                elseif ($outflow->credit_debit_note_item_id && $outflow->creditDebitNoteItem) {
-                    $amount = $outflow->quantity * $outflow->creditDebitNoteItem->unit_price;
                 }
 
                 // Si no tiene proyecto, agruparlo como "Sin Proyecto"
