@@ -20,10 +20,11 @@ use Illuminate\Support\Facades\Log;
 use Inertia\Inertia;
 use App\Http\Controllers\Traits\BudgetTotalsTrait;
 use App\Http\Controllers\Traits\PayrollDataTrait;
+use App\Http\Controllers\Traits\OutflowProrationTrait;
 
 class ComparativeOutflowsDashboardController extends Controller
 {
-    use BudgetTotalsTrait, PayrollDataTrait;
+    use BudgetTotalsTrait, PayrollDataTrait, OutflowProrationTrait;
 
     public function index(\Illuminate\Http\Request $request)
     {
@@ -269,73 +270,31 @@ class ComparativeOutflowsDashboardController extends Controller
             $invoicedTotal = floatval($invoicesTotal + $notesTotal);
             Log::info("getSummaryComparison - Budget: $budgetTotal, Facturado: $invoicedTotal (Invoices: $invoicesTotal + Notes: $notesTotal)");
 
-            // Total Consumido CON inversiones — filtro de razón social por factura
-            $consumedTotalWithInvestments = (float) (DB::table('outflows as o')
-                ->leftJoin('invoice_products as ip', 'o.invoice_product_id', '=', 'ip.id')
-                ->leftJoin('invoices as i_ip', 'ip.invoice_id', '=', 'i_ip.id')
-                ->leftJoin('credit_debit_note_items as cdni', 'o.credit_debit_note_item_id', '=', 'cdni.id')
-                ->leftJoin('credit_debit_notes as cdn', 'cdni.credit_debit_note_id', '=', 'cdn.id')
-                ->leftJoin('invoices as i_cdn', 'cdn.invoice_id', '=', 'i_cdn.id')
-                ->where('o.season_id', $season_id)
-                ->where('o.team_id', $team_id)
-                ->when($company_reason_id, function ($q) use ($company_reason_id) {
-                    $q->where(function ($w) use ($company_reason_id) {
-                        $w->where(function ($sub) use ($company_reason_id) {
-                            $sub->whereNotNull('o.invoice_product_id')
-                                ->where(function ($q2) use ($company_reason_id) {
-                                    $q2->whereIn('i_ip.company_reason_id', $company_reason_id)
-                                       ->orWhereNull('i_ip.company_reason_id');
-                                });
-                        })->orWhere(function ($sub) use ($company_reason_id) {
-                            $sub->whereNotNull('o.credit_debit_note_item_id')
-                                ->where(function ($q2) use ($company_reason_id) {
-                                    $q2->whereIn('i_cdn.company_reason_id', $company_reason_id)
-                                       ->orWhereNull('i_cdn.company_reason_id');
-                                });
-                        });
-                    });
-                })
-                ->selectRaw('SUM(CASE
-                    WHEN o.invoice_product_id IS NOT NULL AND ip.id IS NOT NULL THEN o.quantity * ip.unit_price
-                    WHEN o.credit_debit_note_item_id IS NOT NULL AND cdni.id IS NOT NULL THEN o.quantity * cdni.unit_price
-                    ELSE 0
-                END) as total')
-                ->value('total') ?? 0);
+            // ── Consumido: razón social por CENTRO DE COSTO + prorrateo por superficie ──
+            // (mismo criterio que el Dashboard de Salidas; NO se filtra por la factura)
+            $consumedOutflows = Outflow::where('season_id', $season_id)
+                ->where('team_id', $team_id)
+                ->with([
+                    'invoiceProduct:id,unit_price',
+                    'creditDebitNoteItem:id,unit_price',
+                    'costCenters.costCenter:id,company_reason_id,surface',
+                    'operation:id,name',
+                ])
+                ->get();
 
-            // Consumido SOLO inversiones
-            $consumedInvestmentsTotal = (float) (DB::table('outflows as o')
-                ->leftJoin('invoice_products as ip', 'o.invoice_product_id', '=', 'ip.id')
-                ->leftJoin('invoices as i_ip', 'ip.invoice_id', '=', 'i_ip.id')
-                ->leftJoin('credit_debit_note_items as cdni', 'o.credit_debit_note_item_id', '=', 'cdni.id')
-                ->leftJoin('credit_debit_notes as cdn', 'cdni.credit_debit_note_id', '=', 'cdn.id')
-                ->leftJoin('invoices as i_cdn', 'cdn.invoice_id', '=', 'i_cdn.id')
-                ->join('operations as op', 'o.operation_id', '=', 'op.id')
-                ->where('o.season_id', $season_id)
-                ->where('o.team_id', $team_id)
-                ->whereRaw('LOWER(op.name) LIKE ?', ['%inversion%'])
-                ->when($company_reason_id, function ($q) use ($company_reason_id) {
-                    $q->where(function ($w) use ($company_reason_id) {
-                        $w->where(function ($sub) use ($company_reason_id) {
-                            $sub->whereNotNull('o.invoice_product_id')
-                                ->where(function ($q2) use ($company_reason_id) {
-                                    $q2->whereIn('i_ip.company_reason_id', $company_reason_id)
-                                       ->orWhereNull('i_ip.company_reason_id');
-                                });
-                        })->orWhere(function ($sub) use ($company_reason_id) {
-                            $sub->whereNotNull('o.credit_debit_note_item_id')
-                                ->where(function ($q2) use ($company_reason_id) {
-                                    $q2->whereIn('i_cdn.company_reason_id', $company_reason_id)
-                                       ->orWhereNull('i_cdn.company_reason_id');
-                                });
-                        });
-                    });
-                })
-                ->selectRaw('SUM(CASE
-                    WHEN o.invoice_product_id IS NOT NULL AND ip.id IS NOT NULL THEN o.quantity * ip.unit_price
-                    WHEN o.credit_debit_note_item_id IS NOT NULL AND cdni.id IS NOT NULL THEN o.quantity * cdni.unit_price
-                    ELSE 0
-                END) as total')
-                ->value('total') ?? 0);
+            $consumedTotalWithInvestments = 0.0;
+            $consumedInvestmentsTotal = 0.0;
+            foreach ($consumedOutflows as $outflow) {
+                if (!$this->outflowMatchesCompanyReason($outflow, $company_reason_id)) continue;
+                $amount = $this->proratedOutflowAmount($outflow, $company_reason_id);
+                if ($amount == 0.0) continue;
+
+                $consumedTotalWithInvestments += $amount;
+                $isInvestment = $outflow->operation && stripos($outflow->operation->name, 'inversion') !== false;
+                if ($isInvestment) {
+                    $consumedInvestmentsTotal += $amount;
+                }
+            }
 
             // Consumido SIN inversiones = Total - Inversiones
             $consumedTotal = $consumedTotalWithInvestments - $consumedInvestmentsTotal;
@@ -932,49 +891,35 @@ class ComparativeOutflowsDashboardController extends Controller
         }
 
         try {
-            // Cargar TODOS los outflows de la temporada una sola vez (filtro razón social)
+            // Cargar TODOS los outflows de la temporada una sola vez.
+            // Razón social por CENTRO DE COSTO + prorrateo por superficie (mismo
+            // criterio que el Dashboard de Salidas; el filtro es por CC, no por factura).
             $allOutflows = Outflow::where('season_id', $season_id)
                 ->where('team_id', $team_id)
-                ->when($company_reason_id, function ($q) use ($company_reason_id) {
-                    $q->where(function ($w) use ($company_reason_id) {
-                        // Outflow de factura: incluir si la factura tiene la razón social o no tiene ninguna
-                        $w->whereHas('invoiceProduct.invoice', function ($q2) use ($company_reason_id) {
-                            $q2->where('company_reason_id', $company_reason_id)
-                               ->orWhereNull('company_reason_id');
-                        // Outflow de nota de crédito/débito: incluir si la nota no tiene factura
-                        // o si la factura asociada tiene la razón social o no tiene ninguna
-                        })->orWhereHas('creditDebitNoteItem.creditDebitNote', function ($q2) use ($company_reason_id) {
-                            $q2->where(function ($inner) use ($company_reason_id) {
-                                $inner->whereNull('invoice_id')
-                                      ->orWhereHas('invoice', function ($q3) use ($company_reason_id) {
-                                          $q3->where('company_reason_id', $company_reason_id)
-                                             ->orWhereNull('company_reason_id');
-                                      });
-                            });
-                        });
-                    });
-                })
                 ->with([
+                    'invoiceProduct:id,unit_price,invoice_id',
                     'invoiceProduct.invoice:id,date',
+                    'creditDebitNoteItem:id,unit_price,credit_debit_note_id',
                     'creditDebitNoteItem.creditDebitNote:id,date',
-                    'operation:id,name'
+                    'costCenters.costCenter:id,company_reason_id,surface',
+                    'operation:id,name',
                 ])
                 ->get();
 
             foreach ($allOutflows as $outflow) {
-                $monthId = null;
-                $amount = 0;
+                if (!$this->outflowMatchesCompanyReason($outflow, $company_reason_id)) continue;
 
-                // Determinar mes y monto desde la factura o nota
+                $monthId = null;
+                // Determinar mes desde la factura o nota
                 if ($outflow->invoice_product_id && $outflow->invoiceProduct && $outflow->invoiceProduct->invoice) {
                     $monthId = (int) date('n', strtotime($outflow->invoiceProduct->invoice->date));
-                    $amount = $outflow->quantity * $outflow->invoiceProduct->unit_price;
                 } elseif ($outflow->credit_debit_note_item_id && $outflow->creditDebitNoteItem && $outflow->creditDebitNoteItem->creditDebitNote) {
                     $monthId = (int) date('n', strtotime($outflow->creditDebitNoteItem->creditDebitNote->date));
-                    $amount = $outflow->quantity * $outflow->creditDebitNoteItem->unit_price;
                 }
+                if (!$monthId) continue;
 
-                if (!$monthId || $amount == 0) continue;
+                $amount = $this->proratedOutflowAmount($outflow, $company_reason_id);
+                if ($amount == 0.0) continue;
 
                 // Verificar si es inversión
                 $isInvestment = $outflow->operation && stripos($outflow->operation->name, 'inversion') !== false;
@@ -1316,6 +1261,8 @@ class ComparativeOutflowsDashboardController extends Controller
 
             // ========================================
             // 3. CONSUMIDO por categoría (Level2 real de la BD)
+            //    Razón social por CENTRO DE COSTO + prorrateo por superficie
+            //    (mismo criterio que el Dashboard de Salidas)
             // ========================================
             
             $outflowsByLevel2 = Outflow::where('season_id', $season_id)
@@ -1323,23 +1270,12 @@ class ComparativeOutflowsDashboardController extends Controller
                 ->whereDoesntHave('operation', function($query) {
                     $query->whereRaw('LOWER(name) LIKE ?', ['%inversion%']);
                 })
-                ->when($company_reason_id, function ($q) use ($company_reason_id) {
-                    $q->where(function ($w) use ($company_reason_id) {
-                        $w->whereHas('invoiceProduct.invoice', function ($q2) use ($company_reason_id) {
-                            $q2->where('company_reason_id', $company_reason_id)
-                               ->orWhereNull('company_reason_id');
-                        })->orWhereHas('creditDebitNoteItem.creditDebitNote', function ($q2) use ($company_reason_id) {
-                            $q2->where(function ($inner) use ($company_reason_id) {
-                                $inner->whereNull('invoice_id')
-                                      ->orWhereHas('invoice', function ($q3) use ($company_reason_id) {
-                                          $q3->where('company_reason_id', $company_reason_id)
-                                             ->orWhereNull('company_reason_id');
-                                      });
-                            });
-                        });
-                    });
-                })
-                ->with(['level3.level2.level1', 'invoiceProduct', 'creditDebitNoteItem'])
+                ->with([
+                    'level3.level2.level1',
+                    'invoiceProduct:id,unit_price',
+                    'creditDebitNoteItem:id,unit_price',
+                    'costCenters.costCenter:id,company_reason_id,surface',
+                ])
                 ->get()
                 ->groupBy(function($outflow) {
                     if ($outflow->level3 && $outflow->level3->level2) {
@@ -1352,14 +1288,9 @@ class ComparativeOutflowsDashboardController extends Controller
                 });
 
             foreach ($outflowsByLevel2 as $fullName => $outflows) {
-                $total = $outflows->sum(function($outflow) {
-                    if ($outflow->invoice_product_id && $outflow->invoiceProduct) {
-                        return $outflow->quantity * $outflow->invoiceProduct->unit_price;
-                    }
-                    if ($outflow->credit_debit_note_item_id && $outflow->creditDebitNoteItem) {
-                        return $outflow->quantity * $outflow->creditDebitNoteItem->unit_price;
-                    }
-                    return 0;
+                $total = $outflows->sum(function($outflow) use ($company_reason_id) {
+                    if (!$this->outflowMatchesCompanyReason($outflow, $company_reason_id)) return 0.0;
+                    return $this->proratedOutflowAmount($outflow, $company_reason_id);
                 });
 
                 if (!isset($categories[$fullName])) {

@@ -7,6 +7,15 @@
 
 export const changelog = [
   {
+    fecha: '2026-07-30',
+    titulo: 'Comparativo de salidas — Consumido coherente con el dashboard de salidas',
+    items: [
+      'Al filtrar por razón social, el "consumido" del comparativo (resumen, gráfico mensual y detalle por categoría) ahora usa el mismo criterio que el dashboard de salidas: la razón social del centro de costo donde se cargó cada consumo, repartido de forma proporcional.',
+      'Antes el comparativo calculaba el consumido según la razón social de la factura, por lo que al filtrar mostraba un monto distinto al del dashboard de salidas; ahora ambos coinciden exactamente.',
+      'El "facturado" del comparativo se mantiene según la razón social de la factura, ya que representa lo comprado y no lo consumido.',
+    ],
+  },
+  {
     fecha: '2026-07-29',
     titulo: 'Dashboard de salidas — Montos correctos al filtrar por razón social',
     items: [
