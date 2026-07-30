@@ -8,6 +8,15 @@
 export const changelog = [
   {
     fecha: '2026-07-30',
+    titulo: 'Nuevo Dashboard — Detalle de Salidas por Sucursal',
+    items: [
+      'Se agregó un nuevo dashboard que permite analizar el consumo y el stock valorizado agrupados por sucursal.',
+      'Muestra una tarjeta por sucursal con el monto consumido y el valor del stock disponible.',
+      'Incluye una tabla que permite ver el monto por Área (Nivel 1), y abrirla para ver el detalle por Categoría (Nivel 2) y Subcategoría (Nivel 3), filtrando por una sucursal específica si se desea.',
+    ]
+  },
+  {
+    fecha: '2026-07-30',
     titulo: 'Inventario — Nueva pestaña "Inventario Valorizado"',
     items: [
       'Se agregó la pestaña "Inventario Valorizado", que muestra el valor en dinero del stock disponible de cada producto (cantidad × precio de costo), además de la cantidad y el precio promedio.',

@@ -393,20 +393,16 @@ function printKardex(key) {
               <div class="tab-pane fade" id="pill-tab-valorizado" role="tabpanel" aria-labelledby="pill-valorizado">
                 <!-- Search Input, filtro de sucursal y cards de valor total, en una sola fila -->
                 <div class="d-flex flex-wrap align-items-center gap-2 mb-3">
-                  <div class="d-flex gap-2 align-items-center" style="min-width:220px; flex:1 1 400px;">
-                    <div style="flex:1;">
-                      <SearchInput
-                        v-model="term"
-                        placeholder="Buscar por producto, nivel 2, nivel 3 o sucursal..."
-                        style="margin-bottom:0;"
-                      />
-                    </div>
-                    <div style="width:180px; flex-shrink:0;">
-                      <select v-model="filterBranch" class="form-select form-select-sm">
-                        <option value="">Todas las sucursales</option>
-                        <option v-for="b in props.branches" :key="b.value" :value="b.value">{{ b.label }}</option>
-                      </select>
-                    </div>
+                  <div class="d-flex gap-2 align-items-center flex-shrink-0">
+                    <SearchInput
+                      v-model="term"
+                      placeholder="Buscar por producto, nivel 2, nivel 3 o sucursal..."
+                      style="margin-bottom:0 !important; margin-top:0 !important;"
+                    />
+                    <select v-model="filterBranch" class="form-select form-select-sm" style="width:280px; flex-shrink:0;">
+                      <option value="">Todas las sucursales</option>
+                      <option v-for="b in props.branches" :key="b.value" :value="b.value">{{ b.label }}</option>
+                    </select>
                   </div>
                   <ExportExcelButton
                     :data="filteredValorizedInventory"

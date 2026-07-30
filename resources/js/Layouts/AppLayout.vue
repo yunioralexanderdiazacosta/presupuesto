@@ -82,6 +82,7 @@ const menuItems = [
     { label: 'Dashboard Gestión', route: 'outflows.dashboard', icon: 'fas fa-chart-bar', section: 'Gestión' },
     { label: 'Comparativo Presupuesto vs Real', route: 'comparative.dashboard', icon: 'fas fa-chart-line', section: 'Gestión' },
     { label: 'Gestión por Hectárea', route: 'hectare.dashboard', icon: 'fas fa-seedling', section: 'Gestión' },
+    { label: 'Detalle de Salidas por Sucursal', route: 'dashboard-detail-outflows.index', icon: 'fas fa-code-branch', section: 'Gestión' },
     { label: 'Dashboard Inversiones', route: 'investment.dashboard', icon: 'fas fa-chart-pie', section: 'Gestión' },
     { label: 'Utilidad / Pérdida', route: 'profit-loss.index', icon: 'fas fa-balance-scale', section: 'Gestión' },
     { label: 'Facturas y otros', route: 'invoices.index', icon: 'fas fa-file-invoice', section: 'Registro de Gastos' },
@@ -371,6 +372,13 @@ const navigateTo = (routeName) => {
                           <Link class="nav-link" :href="route('hectare.dashboard')">
                             <div class="d-flex align-items-center">
                               <span class="nav-link-text ps-4"><i class="fas fa-seedling me-2"></i>Gestión por Hectárea</span>
+                            </div>
+                          </Link>
+                        </li>
+                        <li class="nav-item">
+                          <Link class="nav-link" :href="route('dashboard-detail-outflows.index')">
+                            <div class="d-flex align-items-center">
+                              <span class="nav-link-text ps-4"><i class="fas fa-code-branch me-2"></i>Detalle de Salidas por Sucursal</span>
                             </div>
                           </Link>
                         </li>

@@ -356,6 +356,7 @@ trait HasInventory
             ->leftJoin('units', 'products.unit_id', '=', 'units.id')
             ->leftJoin('level2s', 'products.level2_id', '=', 'level2s.id')
             ->leftJoin('level3s', 'products.level3_id', '=', 'level3s.id')
+            ->leftJoin('level1s', 'level2s.level1_id', '=', 'level1s.id')
             ->leftJoin('branches', 'invoice_products.branch_id', '=', 'branches.id')
             ->where('invoices.team_id', $team_id)
             ->where('invoices.season_id', $season_id)
@@ -367,6 +368,8 @@ trait HasInventory
                 'branches.name as branch_name',
                 'products.id as product_id',
                 'products.name as product_name',
+                'level2s.level1_id',
+                'level1s.name as level1_name',
                 'products.level2_id',
                 'level2s.name as level2_name',
                 'products.level3_id',
@@ -393,6 +396,8 @@ trait HasInventory
             $key = $ip->product_id . '-' . ($ip->branch_id ?? 'null');
             if (!isset($result[$key])) {
                 $result[$key] = [
+                    'level1_id' => $ip->level1_id,
+                    'level1_name' => $ip->level1_name,
                     'level2_id' => $ip->level2_id,
                     'level2_name' => $ip->level2_name,
                     'level3_id' => $ip->level3_id,
@@ -417,6 +422,7 @@ trait HasInventory
             ->leftJoin('units', 'products.unit_id', '=', 'units.id')
             ->leftJoin('level2s', 'products.level2_id', '=', 'level2s.id')
             ->leftJoin('level3s', 'products.level3_id', '=', 'level3s.id')
+            ->leftJoin('level1s', 'level2s.level1_id', '=', 'level1s.id')
             ->leftJoin('branches', 'credit_debit_note_items.branch_id', '=', 'branches.id')
             ->where('credit_debit_notes.team_id', $team_id)
             ->where('credit_debit_notes.season_id', $season_id)
@@ -428,6 +434,8 @@ trait HasInventory
                 'credit_debit_note_items.unit_price',
                 'credit_debit_note_items.branch_id',
                 'branches.name as branch_name',
+                'level2s.level1_id',
+                'level1s.name as level1_name',
                 'products.id as product_id',
                 'products.name as product_name',
                 'products.level2_id',
@@ -449,6 +457,8 @@ trait HasInventory
             $key = $item->product_id . '-' . ($item->branch_id ?? 'null');
             if (!isset($result[$key])) {
                 $result[$key] = [
+                    'level1_id' => $item->level1_id,
+                    'level1_name' => $item->level1_name,
                     'level2_id' => $item->level2_id,
                     'level2_name' => $item->level2_name,
                     'level3_id' => $item->level3_id,

@@ -91,7 +91,11 @@ class DuplicateInvoiceController extends Controller
             ->pluck('id')
             ->toArray();
 
-        $invoice->load('invoiceProducts.product');
+        $invoice->load('invoiceProducts.product', 'invoiceProducts.branch');
+
+        // Mapa nombre -> id de sucursal de la temporada activa, para remapear
+        // el branch_id de la factura original (puede pertenecer a otra temporada)
+        $branchIdByName = $branches->keyBy('label')->map(fn($b) => $b['value']);
 
         $prefill = [
             'is_duplicate'      => true,
@@ -111,7 +115,7 @@ class DuplicateInvoiceController extends Controller
                 'amount'       => $ip->amount,
                 'observations' => $ip->observations ?? '',
                 'is_exento'    => $ip->is_exento ?? false,
-                'branch_id'    => $ip->branch_id ?? null,
+                'branch_id'    => $branchIdByName->get($ip->branch->name ?? null) ?? null,
                 'tank_id'      => $ip->tank_id ?? null,
             ])->values()->toArray(),
         ];
