@@ -298,4 +298,179 @@ trait HasInventory
 
         return $stocksByProduct;
     }
+
+    /**
+     * Calcula el inventario valorizado (stock * precio de costo) agrupado por nivel2, nivel3, producto y sucursal.
+     * El stock y precio se calculan a nivel de lote (línea de factura o item de nota de débito), igual que
+     * getAvailableStocksByInvoiceProduct, para reflejar el precio real de costo de cada lote consumido/restante.
+     */
+    public function getValorizedInventory($team_id, $season_id)
+    {
+        // Consumos de outflows por lote (factura o nota de débito)
+        $outflowsByInvoiceProduct = DB::table('outflows')
+            ->select('invoice_product_id', DB::raw('SUM(quantity) as total_consumido'))
+            ->where('team_id', $team_id)
+            ->where('season_id', $season_id)
+            ->whereNotNull('invoice_product_id')
+            ->groupBy('invoice_product_id')
+            ->pluck('total_consumido', 'invoice_product_id');
+
+        $outflowsByDebitNoteItem = DB::table('outflows')
+            ->select('credit_debit_note_item_id', DB::raw('SUM(quantity) as total_consumido'))
+            ->where('team_id', $team_id)
+            ->where('season_id', $season_id)
+            ->whereNotNull('credit_debit_note_item_id')
+            ->groupBy('credit_debit_note_item_id')
+            ->pluck('total_consumido', 'credit_debit_note_item_id');
+
+        // Devoluciones (notas de crédito que afectan inventario) sobre líneas de factura
+        $creditNotesReturns = DB::table('credit_debit_note_items')
+            ->join('credit_debit_notes', 'credit_debit_note_items.credit_debit_note_id', '=', 'credit_debit_notes.id')
+            ->where('credit_debit_notes.team_id', $team_id)
+            ->where('credit_debit_notes.season_id', $season_id)
+            ->where('credit_debit_notes.type', 'credito')
+            ->where('credit_debit_notes.affects_inventory', 1)
+            ->whereNotNull('credit_debit_note_items.invoice_product_id')
+            ->select('credit_debit_note_items.invoice_product_id', DB::raw('SUM(credit_debit_note_items.quantity) as total_devuelto'))
+            ->groupBy('credit_debit_note_items.invoice_product_id')
+            ->pluck('total_devuelto', 'credit_debit_note_items.invoice_product_id');
+
+        // Notas de crédito financieras (no afectan inventario, solo ajustan el costo de la línea)
+        $financialNCsByIP = DB::table('credit_debit_note_items')
+            ->join('credit_debit_notes', 'credit_debit_note_items.credit_debit_note_id', '=', 'credit_debit_notes.id')
+            ->where('credit_debit_notes.team_id', $team_id)
+            ->where('credit_debit_notes.season_id', $season_id)
+            ->where('credit_debit_notes.type', 'credito')
+            ->where('credit_debit_notes.affects_inventory', 0)
+            ->whereNotNull('credit_debit_note_items.invoice_product_id')
+            ->select('credit_debit_note_items.invoice_product_id', DB::raw('SUM(credit_debit_note_items.quantity * credit_debit_note_items.unit_price) as nc_total'))
+            ->groupBy('credit_debit_note_items.invoice_product_id')
+            ->pluck('nc_total', 'credit_debit_note_items.invoice_product_id');
+
+        $result = [];
+
+        // --- Lotes de factura ---
+        $invoiceProducts = DB::table('invoice_products')
+            ->join('invoices', 'invoice_products.invoice_id', '=', 'invoices.id')
+            ->join('products', 'invoice_products.product_id', '=', 'products.id')
+            ->leftJoin('units', 'products.unit_id', '=', 'units.id')
+            ->leftJoin('level2s', 'products.level2_id', '=', 'level2s.id')
+            ->leftJoin('level3s', 'products.level3_id', '=', 'level3s.id')
+            ->leftJoin('branches', 'invoice_products.branch_id', '=', 'branches.id')
+            ->where('invoices.team_id', $team_id)
+            ->where('invoices.season_id', $season_id)
+            ->select(
+                'invoice_products.id',
+                'invoice_products.amount',
+                'invoice_products.unit_price',
+                'invoice_products.branch_id',
+                'branches.name as branch_name',
+                'products.id as product_id',
+                'products.name as product_name',
+                'products.level2_id',
+                'level2s.name as level2_name',
+                'products.level3_id',
+                'level3s.name as level3_name',
+                'units.name as unit_name'
+            )
+            ->get();
+
+        foreach ($invoiceProducts as $ip) {
+            $consumido = $outflowsByInvoiceProduct[$ip->id] ?? 0;
+            $devuelto = $creditNotesReturns[$ip->id] ?? 0;
+            $cantidadOriginal = $ip->amount ?? 0;
+            $stockDisponible = round($cantidadOriginal - $consumido - $devuelto, 2);
+
+            if ($stockDisponible <= 0) {
+                continue;
+            }
+
+            $ncFinanciero = $financialNCsByIP[$ip->id] ?? 0;
+            $effectivePrice = $cantidadOriginal > 0
+                ? round($ip->unit_price - ($ncFinanciero / $cantidadOriginal), 2)
+                : $ip->unit_price;
+
+            $key = $ip->product_id . '-' . ($ip->branch_id ?? 'null');
+            if (!isset($result[$key])) {
+                $result[$key] = [
+                    'level2_id' => $ip->level2_id,
+                    'level2_name' => $ip->level2_name,
+                    'level3_id' => $ip->level3_id,
+                    'level3_name' => $ip->level3_name,
+                    'product_id' => $ip->product_id,
+                    'product_name' => $ip->product_name,
+                    'unit_name' => $ip->unit_name,
+                    'branch_id' => $ip->branch_id,
+                    'branch_name' => $ip->branch_name,
+                    'cantidad' => 0,
+                    'valor' => 0,
+                ];
+            }
+            $result[$key]['cantidad'] += $stockDisponible;
+            $result[$key]['valor'] += $stockDisponible * $effectivePrice;
+        }
+
+        // --- Lotes de nota de débito (compras de inventario sin factura) ---
+        $debitItems = DB::table('credit_debit_note_items')
+            ->join('credit_debit_notes', 'credit_debit_note_items.credit_debit_note_id', '=', 'credit_debit_notes.id')
+            ->join('products', 'credit_debit_note_items.product_id', '=', 'products.id')
+            ->leftJoin('units', 'products.unit_id', '=', 'units.id')
+            ->leftJoin('level2s', 'products.level2_id', '=', 'level2s.id')
+            ->leftJoin('level3s', 'products.level3_id', '=', 'level3s.id')
+            ->leftJoin('branches', 'credit_debit_note_items.branch_id', '=', 'branches.id')
+            ->where('credit_debit_notes.team_id', $team_id)
+            ->where('credit_debit_notes.season_id', $season_id)
+            ->where('credit_debit_notes.type', 'debito')
+            ->where('credit_debit_notes.affects_inventory', 1)
+            ->select(
+                'credit_debit_note_items.id',
+                'credit_debit_note_items.quantity',
+                'credit_debit_note_items.unit_price',
+                'credit_debit_note_items.branch_id',
+                'branches.name as branch_name',
+                'products.id as product_id',
+                'products.name as product_name',
+                'products.level2_id',
+                'level2s.name as level2_name',
+                'products.level3_id',
+                'level3s.name as level3_name',
+                'units.name as unit_name'
+            )
+            ->get();
+
+        foreach ($debitItems as $item) {
+            $consumido = $outflowsByDebitNoteItem[$item->id] ?? 0;
+            $stockDisponible = round($item->quantity - $consumido, 2);
+
+            if ($stockDisponible <= 0) {
+                continue;
+            }
+
+            $key = $item->product_id . '-' . ($item->branch_id ?? 'null');
+            if (!isset($result[$key])) {
+                $result[$key] = [
+                    'level2_id' => $item->level2_id,
+                    'level2_name' => $item->level2_name,
+                    'level3_id' => $item->level3_id,
+                    'level3_name' => $item->level3_name,
+                    'product_id' => $item->product_id,
+                    'product_name' => $item->product_name,
+                    'unit_name' => $item->unit_name,
+                    'branch_id' => $item->branch_id,
+                    'branch_name' => $item->branch_name,
+                    'cantidad' => 0,
+                    'valor' => 0,
+                ];
+            }
+            $result[$key]['cantidad'] += $stockDisponible;
+            $result[$key]['valor'] += $stockDisponible * $item->unit_price;
+        }
+
+        return array_values(array_map(function ($row) {
+            $row['cantidad'] = round($row['cantidad'], 2);
+            $row['valor'] = round($row['valor'], 2);
+            $row['precio_promedio'] = $row['cantidad'] > 0 ? round($row['valor'] / $row['cantidad'], 2) : 0;
+            return $row;
+        }, $result));
+    }
 }

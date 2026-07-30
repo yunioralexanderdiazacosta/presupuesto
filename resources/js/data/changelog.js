@@ -8,6 +8,25 @@
 export const changelog = [
   {
     fecha: '2026-07-30',
+    titulo: 'Inventario — Nueva pestaña "Inventario Valorizado"',
+    items: [
+      'Se agregó la pestaña "Inventario Valorizado", que muestra el valor en dinero del stock disponible de cada producto (cantidad × precio de costo), además de la cantidad y el precio promedio.',
+      'El valor se calcula considerando el costo real de compra de cada lote (factura o nota de débito) y descuenta correctamente devoluciones y descuentos por notas de crédito, igual que en el Kardex.',
+      'Se agregaron cards con el valor total del inventario y el valor por cada sucursal.',
+      'La pestaña "Edición" del Inventario se renombró a "Inventario" para mayor claridad.',
+      'Se quitaron las pestañas "Gastos por Hectárea" y "Detalle de compra" del Inventario, que no tenían contenido.',
+    ]
+  },
+  {
+    fecha: '2026-07-30',
+    titulo: 'Salidas — Monto total por sucursal en Matriz de Consumo',
+    items: [
+      'En la vista de Salidas, junto al card "Total Neto Salidas" ahora se muestra un card por cada sucursal con su monto total consumido.',
+      'Los montos por sucursal respetan los filtros aplicados y suman exactamente el total neto.',
+    ]
+  },
+  {
+    fecha: '2026-07-30',
     titulo: 'Comparativo de salidas — Consumido coherente con el dashboard de salidas',
     items: [
       'Al filtrar por razón social, el "consumido" del comparativo (resumen, gráfico mensual y detalle por categoría) ahora usa el mismo criterio que el dashboard de salidas: la razón social del centro de costo donde se cargó cada consumo, repartido de forma proporcional.',

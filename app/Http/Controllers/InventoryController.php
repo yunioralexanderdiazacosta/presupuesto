@@ -21,6 +21,7 @@ class InventoryController extends Controller
         $team_id = $user->team_id;
 
         $inventory = $this->getInventory($team_id, $season_id);
+        $valorizedInventory = $this->getValorizedInventory($team_id, $season_id);
 
         // Cargar unidades para el formulario de productos
         $units = Unit::get()->transform(function($unit){
@@ -40,6 +41,7 @@ class InventoryController extends Controller
 
         return Inertia::render('Inventory', [
             'inventory' => $inventory,
+            'valorizedInventory' => $valorizedInventory,
             'units' => $units,
             'level1s' => $level1s,
             'branches' => Branch::where('team_id', $team_id)

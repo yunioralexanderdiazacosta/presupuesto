@@ -52,6 +52,24 @@ const totalEdicion = computed(() => {
 const totalEdicionFormatted = computed(() => {
   return new Intl.NumberFormat('es-ES', { style: 'decimal', minimumFractionDigits: 0, maximumFractionDigits: 0 }).format(totalEdicion.value);
 });
+
+// Monto total por sucursal (mismo criterio que Total Neto Salidas: respeta filtros)
+const totalsByBranch = computed(() => {
+  const map = {};
+  filteredOutflowDetails.value.forEach(outflow => {
+    const name = outflow.branch_name || 'Sin sucursal';
+    const val = Number(outflow.unit_price || 0) * Number(outflow.quantity || 0);
+    if (isNaN(val)) return;
+    map[name] = (map[name] || 0) + val;
+  });
+  return Object.entries(map)
+    .map(([name, total]) => ({
+      name,
+      total,
+      formatted: new Intl.NumberFormat('es-ES', { style: 'decimal', minimumFractionDigits: 0, maximumFractionDigits: 0 }).format(total),
+    }))
+    .sort((a, b) => b.total - a.total);
+});
 const termEdicion = ref("");          // texto que el usuario escribe
 const appliedTermEdicion = ref("");   // término aplicado al presionar Buscar / Enter
 
@@ -1053,14 +1071,26 @@ function copyToAllCards(sourceCardId) {
                       </ul>
                     </div>
                     <div class="col-auto text-end">
-                      <div class="card h-100 p-1 small-card">
-                        <div class="card-header pb-0 pt-1 px-2">
-                          <h6 class="mb-0 mt-1 fs-10 d-flex align-items-center small-card-title">Total Neto Salidas</h6>
+                      <div class="d-flex flex-wrap gap-2 justify-content-end">
+                        <div v-for="b in totalsByBranch" :key="b.name" class="card h-100 p-1 small-card">
+                          <div class="card-header pb-0 pt-1 px-2">
+                            <h6 class="mb-0 mt-1 fs-10 d-flex align-items-center small-card-title">{{ b.name }}</h6>
+                          </div>
+                          <div class="card-body d-flex flex-column justify-content-end py-1 px-2">
+                            <p class="font-sans-serif lh-1 mb-1 fs-10 small-card-number">
+                              {{ b.formatted }}
+                            </p>
+                          </div>
                         </div>
-                        <div class="card-body d-flex flex-column justify-content-end py-1 px-2">
-                          <p class="font-sans-serif lh-1 mb-1 fs-10 small-card-number">
-                            {{ totalEdicionFormatted }}
-                          </p>
+                        <div class="card h-100 p-1 small-card">
+                          <div class="card-header pb-0 pt-1 px-2">
+                            <h6 class="mb-0 mt-1 fs-10 d-flex align-items-center small-card-title">Total Neto Salidas</h6>
+                          </div>
+                          <div class="card-body d-flex flex-column justify-content-end py-1 px-2">
+                            <p class="font-sans-serif lh-1 mb-1 fs-10 small-card-number">
+                              {{ totalEdicionFormatted }}
+                            </p>
+                          </div>
                         </div>
                       </div>
                     </div>

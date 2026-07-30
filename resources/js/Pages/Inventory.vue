@@ -17,6 +17,7 @@ import * as XLSX from 'xlsx';
 
 const props = defineProps({
   inventory: Array,
+  valorizedInventory: { type: Array, default: () => [] },
   kardex: Array,
   branches: { type: Array, default: () => [] },
 });
@@ -55,6 +56,46 @@ const filteredInventory = computed(() => {
     data = data.filter(item => String(item.branch_id) === String(filterBranch.value));
   }
   return data;
+});
+
+// Filtro local para tab Inventario Valorizado (mismos filtros: term + filterBranch)
+const filteredValorizedInventory = computed(() => {
+  if (!props.valorizedInventory || !props.valorizedInventory.length) return [];
+  let data = props.valorizedInventory;
+  if (term.value) {
+    const search = term.value.toLowerCase();
+    data = data.filter(item => {
+      const level2 = item.level2_name ? item.level2_name.toLowerCase() : '';
+      const level3 = item.level3_name ? item.level3_name.toLowerCase() : '';
+      const product = item.product_name ? item.product_name.toLowerCase() : '';
+      const branch = item.branch_name ? item.branch_name.toLowerCase() : '';
+      return level2.includes(search) || level3.includes(search) || product.includes(search) || branch.includes(search);
+    });
+  }
+  if (filterBranch.value) {
+    data = data.filter(item => String(item.branch_id) === String(filterBranch.value));
+  }
+  return data;
+});
+
+const numberFormatter = new Intl.NumberFormat('es-ES', { style: 'decimal', minimumFractionDigits: 0, maximumFractionDigits: 0 });
+
+// Valor total del inventario valorizado (respeta filtros aplicados)
+const totalValorizedInventory = computed(() => {
+  return filteredValorizedInventory.value.reduce((sum, item) => sum + Number(item.valor || 0), 0);
+});
+const totalValorizedInventoryFormatted = computed(() => numberFormatter.format(totalValorizedInventory.value));
+
+// Valor total por sucursal (respeta filtros aplicados)
+const valorizedTotalsByBranch = computed(() => {
+  const map = {};
+  filteredValorizedInventory.value.forEach(item => {
+    const name = item.branch_name || 'Sin sucursal';
+    map[name] = (map[name] || 0) + Number(item.valor || 0);
+  });
+  return Object.entries(map)
+    .map(([name, total]) => ({ name, total, formatted: numberFormatter.format(total) }))
+    .sort((a, b) => b.total - a.total);
 });
 // El kardexView ahora será un diccionario: { [product_id_branch_id]: movimientos[] }
 const kardexView = ref({});
@@ -204,6 +245,17 @@ const inventoryEdicionHeaders = [
   { label: 'Unidad', key: 'unit_name' },
 ];
 
+const inventoryValorizedHeaders = [
+  { label: 'Sucursal', key: 'branch_name' },
+  { label: 'Nivel 2', key: 'level2_name' },
+  { label: 'Nivel 3', key: 'level3_name' },
+  { label: 'Producto', key: 'product_name' },
+  { label: 'Stock', key: 'cantidad' },
+  { label: 'Unidad', key: 'unit_name' },
+  { label: 'Precio Promedio', key: 'precio_promedio' },
+  { label: 'Valor Total', key: 'valor' },
+];
+
 const inventoryKardexHeaders = [
   { label: 'Sucursal', key: 'branch_name' },
   { label: 'Nivel 2', key: 'level2_name' },
@@ -266,10 +318,9 @@ function printKardex(key) {
 
          <div class="card-body bg-body-tertiary">
             <ul class="nav nav-pills" id="pill-myTab" role="tablist">
-                <li class="nav-item"><a class="nav-link active" id="pill-edicion" data-bs-toggle="tab" href="#pill-tab-edicion" role="tab" aria-controls="pill-tab-edicion" aria-selected="true">Edición</a></li>
+                <li class="nav-item"><a class="nav-link active" id="pill-edicion" data-bs-toggle="tab" href="#pill-tab-edicion" role="tab" aria-controls="pill-tab-edicion" aria-selected="true">Inventario</a></li>
+                <li class="nav-item"><a class="nav-link" id="pill-valorizado" data-bs-toggle="tab" href="#pill-tab-valorizado" role="tab" aria-controls="pill-tab-valorizado" aria-selected="false">Inventario Valorizado</a></li>
                 <li class="nav-item"><a class="nav-link" id="pill-kardex" data-bs-toggle="tab" href="#pill-tab-kardex" role="tab" aria-controls="pill-tab-kardex" aria-selected="false">Kardex</a></li>
-                <li class="nav-item"><a class="nav-link" id="pill-gastos" data-bs-toggle="tab" href="#pill-tab-gastos" role="tab" aria-controls="pill-tab-gastos" aria-selected="false">Gastos por Hectarea</a></li>
-                 <li class="nav-item"><a class="nav-link" id="pill-detalles-compra" data-bs-toggle="tab" href="#pill-tab-detalles-compra" role="tab" aria-controls="pill-tab-detalles-compra" aria-selected="false">Detalle de compra</a></li>
             </ul>
            <div class="tab-content border p-3 mt-3" id="pill-myTabContent">
        
@@ -339,7 +390,90 @@ function printKardex(key) {
                 </div>
               </div>
 
-
+              <div class="tab-pane fade" id="pill-tab-valorizado" role="tabpanel" aria-labelledby="pill-valorizado">
+                <!-- Search Input, filtro de sucursal y cards de valor total, en una sola fila -->
+                <div class="d-flex flex-wrap align-items-center gap-2 mb-3">
+                  <div class="d-flex gap-2 align-items-center" style="min-width:220px; flex:1 1 400px;">
+                    <div style="flex:1;">
+                      <SearchInput
+                        v-model="term"
+                        placeholder="Buscar por producto, nivel 2, nivel 3 o sucursal..."
+                        style="margin-bottom:0;"
+                      />
+                    </div>
+                    <div style="width:180px; flex-shrink:0;">
+                      <select v-model="filterBranch" class="form-select form-select-sm">
+                        <option value="">Todas las sucursales</option>
+                        <option v-for="b in props.branches" :key="b.value" :value="b.value">{{ b.label }}</option>
+                      </select>
+                    </div>
+                  </div>
+                  <ExportExcelButton
+                    :data="filteredValorizedInventory"
+                    :headers="inventoryValorizedHeaders"
+                    filename="inventario_valorizado.xlsx"
+                    class="btn btn-falcon-default btn-sm flex-shrink-0"
+                  />
+                  <div class="d-flex flex-wrap gap-2 ms-auto">
+                    <div v-for="b in valorizedTotalsByBranch" :key="b.name" class="card h-100 p-1 small-card">
+                      <div class="card-header pb-0 pt-1 px-2">
+                        <h6 class="mb-0 mt-1 fs-10 d-flex align-items-center small-card-title">{{ b.name }}</h6>
+                      </div>
+                      <div class="card-body d-flex flex-column justify-content-end py-1 px-2">
+                        <p class="font-sans-serif lh-1 mb-1 fs-10 small-card-number">{{ b.formatted }}</p>
+                      </div>
+                    </div>
+                    <div class="card h-100 p-1 small-card">
+                      <div class="card-header pb-0 pt-1 px-2">
+                        <h6 class="mb-0 mt-1 fs-10 d-flex align-items-center small-card-title">Valor Total Inventario</h6>
+                      </div>
+                      <div class="card-body d-flex flex-column justify-content-end py-1 px-2">
+                        <p class="font-sans-serif lh-1 mb-1 fs-10 small-card-number">{{ totalValorizedInventoryFormatted }}</p>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+                <div class="table-responsive mb-4">
+                <table class="table table-bordered table-striped table-sm small">
+                  <thead class="table-primary text-white">
+                    <tr>
+                      <th>Sucursal</th>
+                      <th>Nivel 2</th>
+                      <th>Nivel 3</th>
+                      <th>Producto</th>
+                      <th class="text-end">Stock</th>
+                      <th>Unidad</th>
+                      <th class="text-end">Precio Promedio</th>
+                      <th class="text-end">Valor Total</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr v-for="item in filteredValorizedInventory" :key="item.product_id + '-' + (item.branch_id ?? 'null')">
+                      <td>
+                        <span v-if="item.branch_name">{{ item.branch_name }}</span>
+                        <span v-else class="text-muted">—</span>
+                      </td>
+                      <td>{{ item.level2_name || '--' }}</td>
+                      <td>{{ item.level3_name || '--' }}</td>
+                      <td>{{ item.product_name }}</td>
+                      <td class="text-end">{{ item.cantidad }}</td>
+                      <td>{{ item.unit_name || '' }}</td>
+                      <td class="text-end">${{ Number(item.precio_promedio || 0).toLocaleString('es-ES') }}</td>
+                      <td class="text-end">${{ Number(item.valor || 0).toLocaleString('es-ES') }}</td>
+                    </tr>
+                    <tr v-if="!filteredValorizedInventory.length">
+                      <td colspan="8" class="text-center text-muted">No hay datos de inventario valorizado.</td>
+                    </tr>
+                  </tbody>
+                  <tfoot v-if="filteredValorizedInventory.length">
+                    <tr class="table-secondary fw-bold">
+                      <td colspan="7" class="text-end">Total</td>
+                      <td class="text-end">${{ totalValorizedInventoryFormatted }}</td>
+                    </tr>
+                  </tfoot>
+                </table>
+                </div>
+              </div>
 
                <div class="tab-pane fade" id="pill-tab-kardex" role="tabpanel" aria-labelledby="pill-kardex">
                   <!-- Search Input para Kardex -->
