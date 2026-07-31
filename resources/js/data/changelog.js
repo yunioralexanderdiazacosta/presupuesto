@@ -7,6 +7,13 @@
 
 export const changelog = [
   {
+    fecha: '2026-07-31',
+    titulo: 'Reportes de Remuneraciones — Corrección en descarga de Excel',
+    items: [
+      'Se corrigió un error en la Nómina de Pago y en Anticipos donde el botón "Excel" descargaba un archivo que no se abría correctamente como planilla.',
+    ]
+  },
+  {
     fecha: '2026-07-30',
     titulo: 'Nuevo Dashboard — Detalle de Salidas por Sucursal',
     items: [

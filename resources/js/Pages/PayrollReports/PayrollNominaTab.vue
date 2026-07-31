@@ -10,7 +10,7 @@
                 <ExportExcelButton
                     :data="excelData"
                     :headers="excelHeaders"
-                    :filename="`nomina-pago-${month}`"
+                    :filename="`nomina-pago-${month}.xlsx`"
                     class="btn btn-falcon-default btn-sm"
                 />
                 <a

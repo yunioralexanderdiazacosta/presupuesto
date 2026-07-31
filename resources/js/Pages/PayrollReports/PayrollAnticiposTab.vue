@@ -10,7 +10,7 @@
                 <ExportExcelButton
                     :data="excelData"
                     :headers="excelHeaders"
-                    :filename="`anticipos-${month}`"
+                    :filename="`anticipos-${month}.xlsx`"
                     class="btn btn-falcon-default btn-sm"
                 />
                 <a
