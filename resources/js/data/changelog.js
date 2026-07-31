@@ -8,6 +8,40 @@
 export const changelog = [
   {
     fecha: '2026-07-31',
+    titulo: 'Salidas — Tarjetas y filtro de sucursal corregidos',
+    items: [
+      'Las tarjetas de monto por sucursal (arriba de la pestaña Edición) ahora reflejan la sucursal real del cuartel donde se consumió, repartiendo el monto proporcionalmente cuando una salida se usó en cuarteles de distintas sucursales.',
+      'El filtro de sucursal de la pestaña Edición ahora busca por la sucursal del cuartel en vez de la sucursal indicada al ingresar la factura.',
+      'Se quitó la columna "Sucursal" de la tabla de Edición, ya que una misma salida puede repartirse entre cuarteles de más de una sucursal (esa información ahora se ve reflejada en las tarjetas y el filtro).',
+    ]
+  },
+  {
+    fecha: '2026-07-31',
+    titulo: 'Detalle de Salidas por Sucursal — Corrección en el criterio de sucursal',
+    items: [
+      'La tabla de montos ahora asigna cada consumo a la sucursal real del cuartel (centro de costo) donde se usó, en vez de la sucursal indicada al ingresar la factura de compra.',
+      'Cuando un consumo se reparte entre cuarteles de distintas sucursales, el monto se divide proporcionalmente según la superficie de cada uno, igual que en la vista por hectárea.',
+      'Se corrigió además el cálculo de combustibles, que antes no se estaba sumando correctamente en la vista por hectárea.',
+    ]
+  },
+  {
+    fecha: '2026-07-31',
+    titulo: 'Detalle de Salidas por Sucursal — Nueva vista de gasto por hectárea',
+    items: [
+      'Se agregó una tabla de "Consumo por Hectárea" que muestra el gasto dividido por la superficie cultivada, para comparar de forma justa entre sucursales de distinto tamaño.',
+      'Incluye un filtro por estado de desarrollo (producción, año 2, administración, etc.) y permite ver una o varias sucursales al mismo tiempo, igual que la tabla de montos.',
+    ]
+  },
+  {
+    fecha: '2026-07-31',
+    titulo: 'Detalle de Salidas por Sucursal — Comparación entre sucursales',
+    items: [
+      'El filtro de sucursal ahora permite seleccionar varias sucursales a la vez.',
+      'Al elegir más de una sucursal, la tabla muestra el monto de cada una en columnas separadas para comparar fácilmente, en vez de sumarlas en un solo total.',
+    ]
+  },
+  {
+    fecha: '2026-07-31',
     titulo: 'Reportes de Remuneraciones — Corrección en descarga de Excel',
     items: [
       'Se corrigió un error en la Nómina de Pago y en Anticipos donde el botón "Excel" descargaba un archivo que no se abría correctamente como planilla.',

@@ -8,10 +8,11 @@ use Illuminate\Support\Facades\Auth;
 use Inertia\Inertia;
 use App\Traits\HasInventory;
 use App\Traits\HasOutflowBranchStats;
+use App\Traits\HasOutflowHectareStats;
 
 class DashboardDetailOutflowsController extends Controller
 {
-    use HasInventory, HasOutflowBranchStats;
+    use HasInventory, HasOutflowBranchStats, HasOutflowHectareStats;
 
     public function index(Request $request)
     {
@@ -30,9 +31,12 @@ class DashboardDetailOutflowsController extends Controller
             ->values();
 
         return Inertia::render('DashboardDetailOutflows', [
-            'consumoPorSucursal' => $this->getConsumoPorSucursal($team_id, $season_id),
-            'stockValorizado'    => $this->getValorizedInventory($team_id, $season_id),
-            'branches'           => $branches,
+            'consumoPorSucursal'      => $this->getConsumoPorSucursal($team_id, $season_id),
+            'stockValorizado'         => $this->getValorizedInventory($team_id, $season_id),
+            'branches'                => $branches,
+            'consumoPorHectarea'      => $this->getConsumoPorHectarea($team_id, $season_id),
+            'superficiePorSucursal'   => $this->getSuperficiePorSucursalEstado($team_id, $season_id),
+            'developmentStates'       => $this->getDevelopmentStatesForSeason($season_id),
         ]);
     }
 }

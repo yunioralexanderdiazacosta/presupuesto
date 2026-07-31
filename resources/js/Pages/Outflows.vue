@@ -53,14 +53,14 @@ const totalEdicionFormatted = computed(() => {
   return new Intl.NumberFormat('es-ES', { style: 'decimal', minimumFractionDigits: 0, maximumFractionDigits: 0 }).format(totalEdicion.value);
 });
 
-// Monto total por sucursal (mismo criterio que Total Neto Salidas: respeta filtros)
+// Monto total por sucursal DEL CENTRO DE COSTO (prorrateado), respeta filtros
 const totalsByBranch = computed(() => {
   const map = {};
   filteredOutflowDetails.value.forEach(outflow => {
-    const name = outflow.branch_name || 'Sin sucursal';
-    const val = Number(outflow.unit_price || 0) * Number(outflow.quantity || 0);
-    if (isNaN(val)) return;
-    map[name] = (map[name] || 0) + val;
+    outflowBranchAmounts(outflow).forEach(({ branch_name, amount }) => {
+      if (isNaN(amount)) return;
+      map[branch_name] = (map[branch_name] || 0) + amount;
+    });
   });
   return Object.entries(map)
     .map(([name, total]) => ({
@@ -154,8 +154,9 @@ const projectOptions = computed(() => {
 });
 const branchEdicionOptions = computed(() => {
   if (!props.outflowDetails?.length) return [];
-  const unique = [...new Set(props.outflowDetails.map(i => i.branch_name).filter(Boolean))];
-  return unique.sort().map(v => ({ value: v, label: v }));
+  const set = new Set();
+  props.outflowDetails.forEach(o => outflowBranchAmounts(o).forEach(b => set.add(b.branch_name)));
+  return [...set].sort().map(v => ({ value: v, label: v }));
 });
 
 // Limpiar niveles hijos al cambiar padre
@@ -186,7 +187,8 @@ const filteredOutflowDetails = computed(() => {
   if (filterLevel2.value) result = result.filter(i => i.level2_name === filterLevel2.value);
   if (filterLevel3.value) result = result.filter(i => i.level3_name === filterLevel3.value);
   if (filterProject.value) result = result.filter(i => i.project === filterProject.value);
-  if (filterBranchEdicion.value) result = result.filter(i => i.branch_name === filterBranchEdicion.value);
+  // Sucursal ahora se filtra por la del centro de costo, no la de la factura (una fila puede tocar varias)
+  if (filterBranchEdicion.value) result = result.filter(i => outflowBranchAmounts(i).some(b => b.branch_name === filterBranchEdicion.value));
 
   // Filtro de texto (aplicado por botón / Enter, no en vivo)
   if (appliedTermEdicion.value) {
@@ -626,6 +628,29 @@ function getProrationAmount(outflow, ccId) {
     cantidadAsignada = quantity;
   }
   return cantidadAsignada * unitPrice;
+}
+
+// id de centro de costo -> branch_id (catálogo, ya trae branch_id por CC)
+const ccBranchLookup = computed(() => Object.fromEntries((props.cost_centers || []).map(c => [String(c.value), c.branch_id])));
+// id de sucursal -> nombre
+const branchNameLookup = computed(() => Object.fromEntries((props.branches || []).map(b => [String(b.value), b.label])));
+
+/**
+ * Reparte el monto de un outflow entre las sucursales DE SUS CENTROS DE COSTO
+ * (mismo prorrateo por superficie que getProrationAmount). Sin CC asignado,
+ * el monto completo va a 'Sin sucursal'.
+ */
+function outflowBranchAmounts(outflow) {
+  const ccs = outflow.cost_centers || [];
+  const totalAmount = Number(outflow.unit_price || 0) * Number(outflow.quantity || 0);
+  if (!ccs.length) {
+    return [{ branch_name: 'Sin sucursal', amount: totalAmount }];
+  }
+  return ccs.map(cc => {
+    const branchId = ccBranchLookup.value[String(cc.id)];
+    const branch_name = branchId ? (branchNameLookup.value[String(branchId)] || 'Sin sucursal') : 'Sin sucursal';
+    return { branch_name, amount: getProrationAmount(outflow, cc.id) || 0 };
+  });
 }
 
 /** Suma total de la columna de un CC sobre todos los outflows filtrados */
@@ -1239,7 +1264,6 @@ function copyToAllCards(sourceCardId) {
                             <th @click="setSort('total')" :class="sortClass('total')">Total</th>
                             <th @click="setSort('notes')" :class="sortClass('notes')">Notas</th>
                             <th @click="setSort('centros_costo')" :class="sortClass('centros_costo')">Centros de Costo</th>
-                            <th @click="setSort('branch_name')" :class="sortClass('branch_name')">Sucursal</th>
                             <th @click="setSort('user')" :class="sortClass('user')">Usuario</th>
                             <th class="text-center">Acciones</th>
                           </tr>
@@ -1321,7 +1345,6 @@ function copyToAllCards(sourceCardId) {
                                 </li>
                               </ul>
                             </td>
-                            <td>{{ outflow.branch_name || '—' }}</td>
                             <td style="white-space:nowrap;">{{ outflow.user }}</td>
                             <td class="text-center" style="white-space:nowrap;">
                               <template v-if="outflow.fuel_outflow_id">
@@ -1343,10 +1366,10 @@ function copyToAllCards(sourceCardId) {
                             </td>
                           </tr>
                           <tr v-if="!props.outflowDetails || !props.outflowDetails.length">
-                            <td colspan="21" class="text-center text-muted">No hay salidas registradas.</td>
+                            <td colspan="20" class="text-center text-muted">No hay salidas registradas.</td>
                           </tr>
                           <tr v-if="hasMoreEdicion">
-                            <td colspan="22" class="text-center py-2">
+                            <td colspan="21" class="text-center py-2">
                               <button type="button" class="btn btn-sm btn-falcon-default" @click="visibleCountEdicion += EDICION_PAGE_SIZE">
                                 <i class="fas fa-chevron-down me-1"></i>
                                 Ver más ({{ sortedOutflowDetails.length - visibleCountEdicion }} restantes)
