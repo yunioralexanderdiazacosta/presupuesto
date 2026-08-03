@@ -482,6 +482,8 @@ use App\Http\Controllers\GroupingsController;
 use App\Http\Controllers\OutflowsController;
 use App\Http\Controllers\OutflowsDashboardController;
 use App\Http\Controllers\ComparativeOutflowsDashboardController;
+use App\Http\Controllers\Api\GetComparativeMonthlyDetailController;
+use App\Http\Controllers\Api\GetComparativePayrollMonthlyDetailController;
 use App\Http\Controllers\HectareDashboardController;
 use App\Http\Controllers\InvestmentDashboardController;
 use App\Http\Controllers\DashboardDetailOutflowsController;
@@ -894,7 +896,8 @@ Route::middleware([
     
     // Dashboard Comparativo (Presupuesto vs Real)
     Route::get('/comparative-dashboard', [ComparativeOutflowsDashboardController::class, 'index'])->name('comparative.dashboard');
-    Route::get('/api/comparative-dashboard/monthly-detail', \App\Http\Controllers\Api\GetComparativeMonthlyDetailController::class)->name('api.comparative.monthly-detail');
+    Route::get('/api/comparative-dashboard/monthly-detail', GetComparativeMonthlyDetailController::class)->name('api.comparative.monthly-detail');
+    Route::get('/api/comparative-dashboard/payroll-monthly-detail', GetComparativePayrollMonthlyDetailController::class)->name('api.comparative.payroll-monthly-detail');
 
     // Dashboard Gestión por Hectárea
     Route::get('/hectare-dashboard', [HectareDashboardController::class, 'index'])->name('hectare.dashboard');

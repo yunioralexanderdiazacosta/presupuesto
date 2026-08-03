@@ -1,5 +1,5 @@
 <script setup>
-import { computed, ref } from 'vue';
+import { computed, ref, watch } from 'vue';
 import { router, useForm } from '@inertiajs/vue3';
 import AppLayout from '@/Layouts/AppLayout.vue';
 import Empty from '@/Components/Empty.vue';
@@ -39,6 +39,43 @@ const productForm = useForm({
 // Filtro local
 const term = ref('');
 const filterBranch = ref('');
+const filterLevel1 = ref('');
+const filterLevel2 = ref('');
+
+// Combina ambas fuentes de datos para calcular las opciones de los selects Nivel 1 / Nivel 2
+const allInventoryRows = computed(() => [...(props.inventory || []), ...(props.valorizedInventory || [])]);
+
+// Opciones de Nivel 1 presentes en el inventario
+const level1Options = computed(() => {
+  const map = {};
+  allInventoryRows.value.forEach(item => {
+    if (item.level1_id) map[item.level1_id] = item.level1_name;
+  });
+  return Object.entries(map)
+    .map(([value, label]) => ({ value, label }))
+    .sort((a, b) => a.label.localeCompare(b.label));
+});
+
+// Opciones de Nivel 2: dependientes del Nivel 1 seleccionado (si hay uno elegido)
+const level2Options = computed(() => {
+  const map = {};
+  allInventoryRows.value.forEach(item => {
+    if (!item.level2_id) return;
+    if (filterLevel1.value && String(item.level1_id) !== String(filterLevel1.value)) return;
+    map[item.level2_id] = item.level2_name;
+  });
+  return Object.entries(map)
+    .map(([value, label]) => ({ value, label }))
+    .sort((a, b) => a.label.localeCompare(b.label));
+});
+
+// Si cambia el Nivel 1, limpiar el Nivel 2 si ya no pertenece a las opciones disponibles
+watch(filterLevel1, () => {
+  if (filterLevel2.value && !level2Options.value.some(o => String(o.value) === String(filterLevel2.value))) {
+    filterLevel2.value = '';
+  }
+});
+
 const filteredInventory = computed(() => {
   if (!props.inventory || !props.inventory.length) return [];
   let data = props.inventory;
@@ -55,10 +92,16 @@ const filteredInventory = computed(() => {
   if (filterBranch.value) {
     data = data.filter(item => String(item.branch_id) === String(filterBranch.value));
   }
+  if (filterLevel1.value) {
+    data = data.filter(item => String(item.level1_id) === String(filterLevel1.value));
+  }
+  if (filterLevel2.value) {
+    data = data.filter(item => String(item.level2_id) === String(filterLevel2.value));
+  }
   return data;
 });
 
-// Filtro local para tab Inventario Valorizado (mismos filtros: term + filterBranch)
+// Filtro local para tab Inventario Valorizado (mismos filtros: term + filterBranch + filterLevel1 + filterLevel2)
 const filteredValorizedInventory = computed(() => {
   if (!props.valorizedInventory || !props.valorizedInventory.length) return [];
   let data = props.valorizedInventory;
@@ -74,6 +117,12 @@ const filteredValorizedInventory = computed(() => {
   }
   if (filterBranch.value) {
     data = data.filter(item => String(item.branch_id) === String(filterBranch.value));
+  }
+  if (filterLevel1.value) {
+    data = data.filter(item => String(item.level1_id) === String(filterLevel1.value));
+  }
+  if (filterLevel2.value) {
+    data = data.filter(item => String(item.level2_id) === String(filterLevel2.value));
   }
   return data;
 });
@@ -326,24 +375,31 @@ function printKardex(key) {
        
               <div class="tab-pane fade show active" id="pill-tab-edicion" role="tabpanel" aria-labelledby="pill-edicion">
                 <!-- Search Input para tab Edición -->
-                <div class="d-flex align-items-center gap-2 mb-3">
-                  <div style="flex:1;">
+                <div class="d-flex flex-wrap align-items-center gap-2 mb-3">
+                  <div class="d-flex gap-2 align-items-center flex-shrink-0">
                     <SearchInput
                       v-model="term"
                       placeholder="Buscar por producto, nivel 2, nivel 3 o sucursal..."
+                      style="margin-bottom:0 !important; margin-top:0 !important;"
                     />
-                  </div>
-                  <div style="width:180px; flex-shrink:0;">
-                    <select v-model="filterBranch" class="form-select form-select-sm">
+                    <select v-model="filterBranch" class="form-select form-select-sm" style="width:280px; flex-shrink:0;">
                       <option value="">Todas las sucursales</option>
                       <option v-for="b in props.branches" :key="b.value" :value="b.value">{{ b.label }}</option>
+                    </select>
+                    <select v-model="filterLevel1" class="form-select form-select-sm" style="width:200px; flex-shrink:0;">
+                      <option value="">Todos los Nivel 1</option>
+                      <option v-for="o in level1Options" :key="o.value" :value="o.value">{{ o.label }}</option>
+                    </select>
+                    <select v-model="filterLevel2" class="form-select form-select-sm" style="width:200px; flex-shrink:0;">
+                      <option value="">Todos los Nivel 2</option>
+                      <option v-for="o in level2Options" :key="o.value" :value="o.value">{{ o.label }}</option>
                     </select>
                   </div>
                   <ExportExcelButton
                     :data="filteredInventory"
                     :headers="inventoryEdicionHeaders"
                     filename="inventario_edicion.xlsx"
-                    class="btn btn-falcon-default btn-sm flex-shrink-0"
+                    class="btn btn-falcon-default btn-sm flex-shrink-0 ms-auto"
                   />                  
                 </div>
                 <div class="table-responsive mb-4">
@@ -403,14 +459,22 @@ function printKardex(key) {
                       <option value="">Todas las sucursales</option>
                       <option v-for="b in props.branches" :key="b.value" :value="b.value">{{ b.label }}</option>
                     </select>
+                    <select v-model="filterLevel1" class="form-select form-select-sm" style="width:200px; flex-shrink:0;">
+                      <option value="">Todos los Nivel 1</option>
+                      <option v-for="o in level1Options" :key="o.value" :value="o.value">{{ o.label }}</option>
+                    </select>
+                    <select v-model="filterLevel2" class="form-select form-select-sm" style="width:200px; flex-shrink:0;">
+                      <option value="">Todos los Nivel 2</option>
+                      <option v-for="o in level2Options" :key="o.value" :value="o.value">{{ o.label }}</option>
+                    </select>
                   </div>
                   <ExportExcelButton
                     :data="filteredValorizedInventory"
                     :headers="inventoryValorizedHeaders"
                     filename="inventario_valorizado.xlsx"
-                    class="btn btn-falcon-default btn-sm flex-shrink-0"
+                    class="btn btn-falcon-default btn-sm flex-shrink-0 ms-auto"
                   />
-                  <div class="d-flex flex-wrap gap-2 ms-auto">
+                  <div class="d-flex flex-wrap gap-2">
                     <div v-for="b in valorizedTotalsByBranch" :key="b.name" class="card h-100 p-1 small-card">
                       <div class="card-header pb-0 pt-1 px-2">
                         <h6 class="mb-0 mt-1 fs-10 d-flex align-items-center small-card-title">{{ b.name }}</h6>
@@ -473,24 +537,31 @@ function printKardex(key) {
 
                <div class="tab-pane fade" id="pill-tab-kardex" role="tabpanel" aria-labelledby="pill-kardex">
                   <!-- Search Input para Kardex -->
-                  <div class="d-flex align-items-center gap-2 mb-3">
-                    <div style="flex:1;">
+                  <div class="d-flex flex-wrap align-items-center gap-2 mb-3">
+                    <div class="d-flex gap-2 align-items-center flex-shrink-0">
                       <SearchInput
                         v-model="term"
                         placeholder="Buscar por producto, nivel 2, nivel 3 o sucursal..."
+                        style="margin-bottom:0 !important; margin-top:0 !important;"
                       />
-                    </div>
-                    <div style="width:180px; flex-shrink:0;">
-                      <select v-model="filterBranch" class="form-select form-select-sm">
+                      <select v-model="filterBranch" class="form-select form-select-sm" style="width:280px; flex-shrink:0;">
                         <option value="">Todas las sucursales</option>
                         <option v-for="b in props.branches" :key="b.value" :value="b.value">{{ b.label }}</option>
+                      </select>
+                      <select v-model="filterLevel1" class="form-select form-select-sm" style="width:200px; flex-shrink:0;">
+                        <option value="">Todos los Nivel 1</option>
+                        <option v-for="o in level1Options" :key="o.value" :value="o.value">{{ o.label }}</option>
+                      </select>
+                      <select v-model="filterLevel2" class="form-select form-select-sm" style="width:200px; flex-shrink:0;">
+                        <option value="">Todos los Nivel 2</option>
+                        <option v-for="o in level2Options" :key="o.value" :value="o.value">{{ o.label }}</option>
                       </select>
                     </div>
                     <ExportExcelButton
                       :data="filteredInventory"
                       :headers="inventoryKardexHeaders"
                       filename="inventario_kardex.xlsx"
-                      class="btn btn-falcon-default btn-sm flex-shrink-0"
+                      class="btn btn-falcon-default btn-sm flex-shrink-0 ms-auto"
                     />
                   </div>
                   <div class="table-responsive mb-4">

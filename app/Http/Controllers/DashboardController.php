@@ -386,12 +386,17 @@ class DashboardController extends Controller
 
 
 
-// Calcular el total de inversiones para el equipo y temporada actual
-$totalInvestments = \App\Models\Investment::where('season_id', $season_id)
+// Calcular el total de inversiones para el equipo y temporada actual (filtrado por sucursal si corresponde)
+$totalInvestmentsQuery = \App\Models\Investment::where('season_id', $season_id)
     ->whereHas('season', function($q) use ($user) {
         $q->where('team_id', $user->team_id);
-    })
-    ->sum('amount');
+    });
+if ($selectedBranchId) {
+    $totalInvestmentsQuery->whereHas('costCenters', function($q) use ($selectedBranchId) {
+        $q->where('branch_id', $selectedBranchId);
+    });
+}
+$totalInvestments = $totalInvestmentsQuery->sum('amount');
 
 
             // Calcular totales de servicios por estado de desarrollo

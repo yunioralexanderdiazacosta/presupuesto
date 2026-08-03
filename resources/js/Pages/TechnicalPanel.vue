@@ -3,7 +3,8 @@
 import AppLayout from '@/Layouts/AppLayout.vue';
 import {computed} from 'vue'
 import ExportExcelButton from '@/Components/ExportExcelButton.vue';
-import { ref } from 'vue';
+import { ref, watch } from 'vue';
+import { router } from '@inertiajs/vue3';
 
 
 
@@ -67,7 +68,15 @@ const props = defineProps({
   totalAdministration: Number, // <-- AGREGADO para mostrar administración total
   mainTotalsAndPercents: Array, // <-- nuevo prop para los gauges
   monthsInvestments: Object, // <-- inversiones mensuales
-  totalInvestments: Number // <-- total inversiones
+  totalInvestments: Number, // <-- total inversiones
+  branches: { type: Array, default: () => [] },
+  selectedBranchId: { type: Number, default: null },
+});
+
+const selectedBranch = ref(props.selectedBranchId ?? '');
+
+watch(selectedBranch, (val) => {
+  router.get('/technicalpanel', { branch_id: val || '' }, { preserveState: false, replace: true });
 });
 
 
@@ -86,8 +95,8 @@ const totalFieldsCalc = computed(() => {
 
 
 
-// Agrupar por Level1 y Level2, y mapear subtotales por fruta, sumando administración/campo repartido
-
+// Agrupar por Level1 y Level2 real (el catálogo es único por team+temporada), y mapear
+// subtotales por fruta, sumando administración/campo repartido.
 function groupTotalsByLevelAndFruit() {
   // Obtener especies (fruits) presentes
   const fruits = props.totalsByLevel12?.reduce((acc, r) => {
@@ -104,56 +113,36 @@ function groupTotalsByLevelAndFruit() {
       totalSurface += Number(row.surface);
     }
   });
-  // Agrupar totales generales por level1/level2/fruta
+  // Agrupar totales generales por level1_id/level2_id real y fruta
   const groups = {};
-  (props.totalsByLevel12 || []).forEach(row => {
-    const key = row.level1_id + '-' + row.level2_id;
+  const getGroup = (level1_id, level1_name, level2_id, level2_name) => {
+    const key = level1_id + '-' + level2_id;
     if (!groups[key]) {
-      groups[key] = {
-        level1_id: row.level1_id,
-        level1_name: row.level1_name,
-        level2_id: row.level2_id,
-        level2_name: row.level2_name,
-        fruits: {}
-      };
+      groups[key] = { level1_id, level1_name, level2_id, level2_name, fruits: {} };
     }
+    return groups[key];
+  };
+  (props.totalsByLevel12 || []).forEach(row => {
+    const g = getGroup(row.level1_id, row.level1_name, row.level2_id, row.level2_name);
     if (row.fruit_id) {
-      groups[key].fruits[row.fruit_id] = row.total_amount;
+      g.fruits[row.fruit_id] = (g.fruits[row.fruit_id] || 0) + Number(row.total_amount || 0);
     }
   });
   // Prorratear administración y campo repartido según superficie
   (props.administrationTotalsByLevel12 || []).forEach(row => {
-    const key = row.level1_id + '-' + row.level2_id;
+    const g = getGroup(row.level1_id, row.level1_name, row.level2_id, row.level2_name);
     fruitIds.forEach(fruitId => {
       const prop = totalSurface > 0 ? (surfaceByFruit[fruitId] || 0) / totalSurface : 0;
       const prorrateo = Number(row.total_amount) * prop;
-      if (!groups[key]) {
-        groups[key] = {
-          level1_id: row.level1_id,
-          level1_name: row.level1_name,
-          level2_id: row.level2_id,
-          level2_name: row.level2_name,
-          fruits: {}
-        };
-      }
-      groups[key].fruits[fruitId] = (groups[key].fruits[fruitId] || 0) + prorrateo;
+      g.fruits[fruitId] = (g.fruits[fruitId] || 0) + prorrateo;
     });
   });
   (props.fieldTotalsByLevel12 || []).forEach(row => {
-    const key = row.level1_id + '-' + row.level2_id;
+    const g = getGroup(row.level1_id, row.level1_name, row.level2_id, row.level2_name);
     fruitIds.forEach(fruitId => {
       const prop = totalSurface > 0 ? (surfaceByFruit[fruitId] || 0) / totalSurface : 0;
       const prorrateo = Number(row.total_amount) * prop;
-      if (!groups[key]) {
-        groups[key] = {
-          level1_id: row.level1_id,
-          level1_name: row.level1_name,
-          level2_id: row.level2_id,
-          level2_name: row.level2_name,
-          fruits: {}
-        };
-      }
-      groups[key].fruits[fruitId] = (groups[key].fruits[fruitId] || 0) + prorrateo;
+      g.fruits[fruitId] = (g.fruits[fruitId] || 0) + prorrateo;
     });
   });
   // Ordenar los grupos por level1_id y luego por level2_id
@@ -180,6 +169,13 @@ function groupTotalsByLevelAndFruit() {
 <div class="row mb-2">
   <div class="col-12">
     <div class="d-flex flex-wrap align-items-center gap-3">
+      <div class="d-flex align-items-center gap-2">
+        <label class="form-label mb-0 small fw-semibold" style="white-space:nowrap;">Sucursal:</label>
+        <select v-model="selectedBranch" class="form-select form-select-sm" style="min-width:260px;max-width:340px;">
+          <option value="">Todas</option>
+          <option v-for="branch in branches" :key="branch.value" :value="branch.value">{{ branch.label }}</option>
+        </select>
+      </div>
       <div class="form-check form-switch d-flex align-items-center mb-0 me-4">
         <input class="form-check-input" type="checkbox" id="dividir-switch" v-model="dividir">
         <label class="form-check-label ms-2 mb-0" for="dividir-switch">ver en Usd</label>
@@ -488,8 +484,8 @@ function groupTotalsByLevelAndFruit() {
                   <thead class="table-light border-bottom">
                     <tr>
                       <th class="text-uppercase text-secondary small fw-bold"></th>
-                      <th class="text-uppercase text-secondary small fw-bold">TOTAL</th>
-                      <th class="text-uppercase text-primary small fw-bold" v-for="month in $page.props.months">{{month.label}}</th>
+                      <th class="text-uppercase text-secondary small fw-bold text-end">TOTAL</th>
+                      <th class="text-uppercase text-primary small fw-bold text-end" v-for="month in $page.props.months">{{month.label}}</th>
                     </tr>
                   </thead>
                   <tbody>

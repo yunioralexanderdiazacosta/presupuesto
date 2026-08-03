@@ -7,6 +7,30 @@
 
 export const changelog = [
   {
+    fecha: '2026-08-03',
+    titulo: 'Dashboard Comparativo — Detalle correcto al hacer clic en Remuneraciones',
+    items: [
+      'Al hacer clic en la barra de Remuneraciones del gráfico mensual, ahora se muestra el detalle real de remuneraciones del mes (agrupado por rubro y categoría), en lugar de mostrar por error los datos de Consumos.',
+      'Se agregó la etiqueta "Remuneraciones" y su propio color en el título y la tabla de detalle, para diferenciarla claramente de Facturado y Consumos.',
+    ]
+  },
+  {
+    fecha: '2026-08-03',
+    titulo: 'Inventario — Nuevos filtros por Nivel 1 y Nivel 2',
+    items: [
+      'Se agregaron dos nuevos filtros (Nivel 1 y Nivel 2) junto al de Sucursal en las pestañas Inventario, Inventario Valorizado y Kardex.',
+      'El filtro de Nivel 2 se ajusta automáticamente según el Nivel 1 elegido, mostrando solo las categorías relacionadas.',
+    ]
+  },
+  {
+    fecha: '2026-08-03',
+    titulo: 'Panel Técnico — Nuevo filtro por Sucursal',
+    items: [
+      'Se agregó un selector de Sucursal en la parte superior del Panel Técnico que permite ver toda la información (tablas, totales y montos mensuales) filtrada por una sucursal específica o por todas en conjunto.',
+      'Al elegir una sucursal, se actualizan de forma coherente todas las secciones de la vista: totales por rubro, estado de desarrollo, gasto por hectárea y totales de administración/campo.',
+    ]
+  },
+  {
     fecha: '2026-07-31',
     titulo: 'Salidas — Tarjetas y filtro de sucursal corregidos',
     items: [

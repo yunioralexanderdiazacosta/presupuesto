@@ -153,9 +153,9 @@ class CopyBudgetController extends Controller
         $itemsSkipped = 0;
 
         foreach ($items as $item) {
-            $newSubfamilyId = $l3Map[$item->subfamily_id] ?? $item->subfamily_id;
+            $newSubfamilyId = $l3Map[$item->subfamily_id] ?? null;
             if ($item->subfamily_id && !isset($l3Map[$item->subfamily_id])) {
-                $warnings[] = "Agroquímico \"{$item->product_name}\": subfamilia no mapeada, se usó la subfamilia original.";
+                $warnings[] = "Agroquímico \"{$item->product_name}\": subfamilia no encontrada en temporada destino, se copió sin subfamilia.";
             }
 
             $new = Agrochemical::create([
@@ -207,7 +207,10 @@ class CopyBudgetController extends Controller
         $itemsSkipped = 0;
 
         foreach ($items as $item) {
-            $newSubfamilyId = $l3Map[$item->subfamily_id] ?? $item->subfamily_id;
+            $newSubfamilyId = $l3Map[$item->subfamily_id] ?? null;
+            if ($item->subfamily_id && !isset($l3Map[$item->subfamily_id])) {
+                $warnings[] = "Fertilizante \"{$item->product_name}\": subfamilia no encontrada en temporada destino, se copió sin subfamilia.";
+            }
 
             $new = Fertilizer::create([
                 'product_name'  => $item->product_name,
@@ -255,7 +258,10 @@ class CopyBudgetController extends Controller
         $itemsSkipped = 0;
 
         foreach ($items as $item) {
-            $newSubfamilyId = $l3Map[$item->subfamily_id] ?? $item->subfamily_id;
+            $newSubfamilyId = $l3Map[$item->subfamily_id] ?? null;
+            if ($item->subfamily_id && !isset($l3Map[$item->subfamily_id])) {
+                $warnings[] = "Insumo \"{$item->product_name}\": subfamilia no encontrada en temporada destino, se copió sin subfamilia.";
+            }
 
             $new = Supply::create([
                 'product_name'  => $item->product_name,
@@ -304,7 +310,10 @@ class CopyBudgetController extends Controller
         $itemsSkipped = 0;
 
         foreach ($items as $item) {
-            $newSubfamilyId = $l3Map[$item->subfamily_id] ?? $item->subfamily_id;
+            $newSubfamilyId = $l3Map[$item->subfamily_id] ?? null;
+            if ($item->subfamily_id && !isset($l3Map[$item->subfamily_id])) {
+                $warnings[] = "Servicio \"{$item->product_name}\": subfamilia no encontrada en temporada destino, se copió sin subfamilia.";
+            }
 
             $new = Service::create([
                 'product_name'  => $item->product_name,
@@ -352,7 +361,10 @@ class CopyBudgetController extends Controller
         $itemsSkipped = 0;
 
         foreach ($items as $item) {
-            $newSubfamilyId = $l3Map[$item->subfamily_id] ?? $item->subfamily_id;
+            $newSubfamilyId = $l3Map[$item->subfamily_id] ?? null;
+            if ($item->subfamily_id && !isset($l3Map[$item->subfamily_id])) {
+                $warnings[] = "Cosecha \"{$item->product_name}\": subfamilia no encontrada en temporada destino, se copió sin subfamilia.";
+            }
 
             $new = Harvest::create([
                 'product_name'  => $item->product_name,
@@ -400,7 +412,10 @@ class CopyBudgetController extends Controller
         $itemsSkipped = 0;
 
         foreach ($items as $item) {
-            $newSubfamilyId = $l3Map[$item->subfamily_id] ?? $item->subfamily_id;
+            $newSubfamilyId = $l3Map[$item->subfamily_id] ?? null;
+            if ($item->subfamily_id && !isset($l3Map[$item->subfamily_id])) {
+                $warnings[] = "Mano de obra \"{$item->product_name}\": subfamilia no encontrada en temporada destino, se copió sin subfamilia.";
+            }
 
             $new = ManPower::create([
                 'product_name' => $item->product_name,
@@ -446,7 +461,10 @@ class CopyBudgetController extends Controller
         $itemsCopied = 0;
 
         foreach ($items as $item) {
-            $newSubfamilyId = $l3Map[$item->subfamily_id] ?? $item->subfamily_id;
+            $newSubfamilyId = $l3Map[$item->subfamily_id] ?? null;
+            if ($item->subfamily_id && !isset($l3Map[$item->subfamily_id])) {
+                $warnings[] = "Administración \"{$item->product_name}\": subfamilia no encontrada en temporada destino, se copió sin subfamilia.";
+            }
 
             $new = Administration::create([
                 'product_name' => $item->product_name,
@@ -488,7 +506,10 @@ class CopyBudgetController extends Controller
         $itemsCopied = 0;
 
         foreach ($items as $item) {
-            $newSubfamilyId = $l3Map[$item->subfamily_id] ?? $item->subfamily_id;
+            $newSubfamilyId = $l3Map[$item->subfamily_id] ?? null;
+            if ($item->subfamily_id && !isset($l3Map[$item->subfamily_id])) {
+                $warnings[] = "Campo \"{$item->product_name}\": subfamilia no encontrada en temporada destino, se copió sin subfamilia.";
+            }
 
             $new = Field::create([
                 'product_name' => $item->product_name,

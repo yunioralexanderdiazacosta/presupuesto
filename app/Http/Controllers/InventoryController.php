@@ -32,7 +32,7 @@ class InventoryController extends Controller
         });
 
         // Cargar niveles 1 para el formulario de productos
-        $level1s = Level1::where('season_id', $season_id)->get()->transform(function($level){
+        $level1s = Level1::where('season_id', $season_id)->where('team_id', $team_id)->get()->transform(function($level){
             return [
                 'label' => $level->name,
                 'value' => $level->id

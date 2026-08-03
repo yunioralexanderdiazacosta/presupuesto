@@ -359,6 +359,7 @@ const DATASET_COLORS = {
     budget:   { active: 'rgba(54, 162, 235, 0.9)',  dim: 'rgba(54, 162, 235, 0.15)' },
     invoiced: { active: 'rgba(75, 192, 192, 0.9)',  dim: 'rgba(75, 192, 192, 0.15)' },
     consumed: { active: 'rgba(255, 159, 64, 0.9)',  dim: 'rgba(255, 159, 64, 0.15)' },
+    payroll:  { active: 'rgba(40, 167, 69, 0.9)',   dim: 'rgba(40, 167, 69, 0.15)' },
 };
 
 function applyMultiBarHighlight() {
@@ -388,6 +389,50 @@ function clearBarHighlight() {
     });
     monthlyChart.update();
 }
+
+// Caché y agrupación dedicadas para el detalle de Remuneraciones (Nivel1/Nivel2, sin producto)
+const payrollDetailCache = ref({}); // { [monthId]: { rows: [{level1, level2, total_payroll}] } }
+
+const payrollDetailGrouped = computed(() => {
+    const selectedMonthIds = selectedBars.value.map(b => b.monthId);
+    if (selectedMonthIds.length === 0) return [];
+
+    const l2Map = {};
+    for (const monthId of selectedMonthIds) {
+        const data = payrollDetailCache.value[monthId];
+        if (!data?.rows) continue;
+        for (const row of data.rows) {
+            if (!row.total_payroll || row.total_payroll <= 0) continue;
+            const key = `${row.level1}||${row.level2}`;
+            if (!l2Map[key]) l2Map[key] = { level1: row.level1, level2: row.level2, total: 0 };
+            l2Map[key].total += row.total_payroll;
+        }
+    }
+
+    const l1Map = {};
+    for (const item of Object.values(l2Map)) {
+        if (item.total <= 0) continue;
+        if (!l1Map[item.level1]) l1Map[item.level1] = { level1: item.level1, rows: [], subtotal: 0 };
+        l1Map[item.level1].rows.push(item);
+        l1Map[item.level1].subtotal += item.total;
+    }
+    return Object.values(l1Map).sort((a, b) => a.level1.localeCompare(b.level1));
+});
+
+const payrollDetailTotals = computed(() => {
+    const selectedMonthIds = selectedBars.value.map(b => b.monthId);
+    return selectedMonthIds.reduce((acc, monthId) => {
+        const data = payrollDetailCache.value[monthId];
+        if (!data?.rows) return acc;
+        data.rows.forEach(row => { acc += row.total_payroll || 0; });
+        return acc;
+    }, 0);
+});
+
+// Grupo activo según el tipo de columna seleccionada (para botones expandir/colapsar y estado vacío)
+const activeDetailGrouped = computed(() =>
+    monthlyDetailColumn.value === 'payroll' ? payrollDetailGrouped.value : monthlyDetailGrouped.value
+);
 
 // Agrupar y acumular filas de TODOS los meses seleccionados por nivel 1
 const monthlyDetailGrouped = computed(() => {
@@ -432,10 +477,11 @@ const toggleBarSelection = async (event, datasetIndex, barIndex, month, clickedT
     const key = `${datasetIndex}:${barIndex}`;
     const isCtrl = event.ctrlKey || event.metaKey;
 
-    // Si se cambia de columna (invoiced ↔ consumed), limpiar todo y empezar de cero
+    // Si se cambia de columna (invoiced ↔ consumed ↔ payroll), limpiar todo y empezar de cero
     if (selectedBars.value.length > 0 && clickedType !== monthlyDetailColumn.value) {
         selectedBars.value = [];
         monthlyDetailCache.value = {};
+        payrollDetailCache.value = {};
         monthlyDetailExpandedGroups.value = [];
     }
     monthlyDetailColumn.value = clickedType;
@@ -466,19 +512,30 @@ const toggleBarSelection = async (event, datasetIndex, barIndex, month, clickedT
     applyMultiBarHighlight();
 
     // Cargar datos de meses que no están en caché
-    const toFetch = selectedBars.value.filter(b => !monthlyDetailCache.value[b.monthId]);
+    const cache = clickedType === 'payroll' ? payrollDetailCache : monthlyDetailCache;
+    const toFetch = selectedBars.value.filter(b => !cache.value[b.monthId]);
     if (toFetch.length > 0) {
         monthlyDetailLoading.value = true;
         try {
             await Promise.all(toFetch.map(async (bar) => {
-                const response = await axios.get(route('api.comparative.monthly-detail'), {
-                    params: {
-                        month_id: bar.monthId,
-                        include_investments: includeInvestments.value ? 1 : 0,
-                        ...(selectedCompanyReasons.value.length > 0 ? { company_reason_ids: selectedCompanyReasons.value } : {})
-                    }
-                });
-                monthlyDetailCache.value = { ...monthlyDetailCache.value, [bar.monthId]: response.data };
+                if (clickedType === 'payroll') {
+                    const response = await axios.get(route('api.comparative.payroll-monthly-detail'), {
+                        params: {
+                            month_id: bar.monthId,
+                            ...(selectedCompanyReasons.value.length > 0 ? { company_reason_ids: selectedCompanyReasons.value } : {})
+                        }
+                    });
+                    payrollDetailCache.value = { ...payrollDetailCache.value, [bar.monthId]: response.data };
+                } else {
+                    const response = await axios.get(route('api.comparative.monthly-detail'), {
+                        params: {
+                            month_id: bar.monthId,
+                            include_investments: includeInvestments.value ? 1 : 0,
+                            ...(selectedCompanyReasons.value.length > 0 ? { company_reason_ids: selectedCompanyReasons.value } : {})
+                        }
+                    });
+                    monthlyDetailCache.value = { ...monthlyDetailCache.value, [bar.monthId]: response.data };
+                }
             }));
         } catch (error) {
             console.error('Error recargando detalles:', error);
@@ -488,10 +545,10 @@ const toggleBarSelection = async (event, datasetIndex, barIndex, month, clickedT
     }
 };
 
-// Al cambiar toggle de inversiones, limpiar caché y recargar meses seleccionados
+// Al cambiar toggle de inversiones, limpiar caché y recargar meses seleccionados (no aplica a Remuneraciones)
 watch(includeInvestments, async () => {
-    if (selectedBars.value.length > 0) {
-        const barsSnapshot = [...selectedBars.value];
+    const barsSnapshot = selectedBars.value.filter(b => b.column !== 'payroll');
+    if (barsSnapshot.length > 0) {
         monthlyDetailCache.value = {};
         monthlyDetailLoading.value = true;
         try {
@@ -877,6 +934,7 @@ const detailCategoryExcelData = computed(() => {
 watch([includeInvestments, dividir, divisor, isEnglish, showBudget, showInvoiced, showConsumed, showPayroll], () => {
     selectedBars.value = [];
     monthlyDetailCache.value = {};
+    payrollDetailCache.value = {};
     clearBarHighlight();
     createMonthlyChart();
     createCumulativeChart();
@@ -1499,7 +1557,7 @@ function createCumulativeChart() {
                                 <canvas id="monthlyChart"></canvas>
                             </div>
                             <div class="text-center mt-2">
-                                <small class="text-muted"><i class="fas fa-hand-pointer me-1"></i>Clic en barra de <strong>Facturado</strong> o <strong>Consumos</strong> para ver detalle &nbsp;·&nbsp; <kbd>Ctrl</kbd>+Clic para seleccionar múltiples meses</small>
+                                <small class="text-muted"><i class="fas fa-hand-pointer me-1"></i>Clic en barra de <strong>Facturado</strong>, <strong>Consumos</strong> o <strong>Remuneraciones</strong> para ver detalle &nbsp;·&nbsp; <kbd>Ctrl</kbd>+Clic para seleccionar múltiples meses</small>
                             </div>
                         </div>
                     </div>
@@ -1515,14 +1573,16 @@ function createCumulativeChart() {
                                 <div class="col-auto d-flex align-items-center gap-2">
                                     <h6 class="mb-0">
                                         <i class="fas fa-list me-2"></i>
-                                        Detalle de <span :class="monthlyDetailColumn === 'invoiced' ? 'text-success' : ''"
-                                            :style="monthlyDetailColumn === 'consumed' ? 'color: rgb(255, 159, 64)' : ''"
-                                        >{{ monthlyDetailColumn === 'invoiced' ? 'Facturado' : 'Consumos' }}</span>
+                                        Detalle de <span
+                                            :class="monthlyDetailColumn === 'invoiced' ? 'text-success' : ''"
+                                            :style="monthlyDetailColumn === 'consumed' ? 'color: rgb(255, 159, 64)' : (monthlyDetailColumn === 'payroll' ? 'color: rgb(40, 167, 69)' : '')"
+                                        >{{ monthlyDetailColumn === 'invoiced' ? 'Facturado' : (monthlyDetailColumn === 'payroll' ? 'Remuneraciones' : 'Consumos') }}</span>
                                         — <span class="text-primary">{{ monthlyDetailMonthNames }}</span>
                                         <span v-if="selectedBars.length > 1" class="badge bg-primary ms-1" style="font-size:0.68rem;">{{ selectedBars.length }} meses</span>
                                     </h6>
-                                    <!-- Badge inversiones -->
+                                    <!-- Badge inversiones (no aplica a Remuneraciones) -->
                                     <span
+                                        v-if="monthlyDetailColumn !== 'payroll'"
                                         class="badge rounded-pill"
                                         :class="includeInvestments ? 'bg-warning text-dark' : 'bg-secondary'"
                                         style="font-size: 0.7rem; font-weight: 500;"
@@ -1531,9 +1591,9 @@ function createCumulativeChart() {
                                         <i class="fas fa-tractor fa-xs me-1"></i>{{ includeInvestments ? 'Con inv.' : 'Sin inv.' }}
                                     </span>
                                     <!-- Botones expandir/colapsar todo -->
-                                    <template v-if="monthlyDetailGrouped.length > 0">
+                                    <template v-if="activeDetailGrouped.length > 0">
                                         <button
-                                            @click="monthlyDetailExpandedGroups = monthlyDetailGrouped.map(g => g.level1)"
+                                            @click="monthlyDetailExpandedGroups = activeDetailGrouped.map(g => g.level1)"
                                             class="btn btn-sm btn-falcon-default py-0 px-2"
                                             style="font-size:0.72rem"
                                             v-tooltip="'Expandir todo'"
@@ -1548,7 +1608,7 @@ function createCumulativeChart() {
                                 </div>
                                 <div class="col-auto">
                                     <button
-                                        @click="selectedBars = []; monthlyDetailCache = {}; monthlyDetailColumn = 'invoiced'; monthlyDetailExpandedGroups = []; clearBarHighlight()"
+                                        @click="selectedBars = []; monthlyDetailCache = {}; payrollDetailCache = {}; monthlyDetailColumn = 'invoiced'; monthlyDetailExpandedGroups = []; clearBarHighlight()"
                                         class="btn btn-sm btn-falcon-default"
                                     >
                                         <i class="fas fa-times fa-xs me-1"></i>Cerrar
@@ -1562,8 +1622,44 @@ function createCumulativeChart() {
                                 <i class="fas fa-spinner fa-spin fa-lg text-primary"></i>
                                 <p class="text-muted mt-2 mb-0">Cargando detalle...</p>
                             </div>
-                            <!-- Tabla agrupada por Nivel 1 -->
-                            <div v-else-if="monthlyDetailGrouped.length > 0" class="table-responsive">
+                            <!-- Tabla de Remuneraciones agrupada por Nivel 1 (Nivel 2, sin producto) -->
+                            <div v-else-if="monthlyDetailColumn === 'payroll' && activeDetailGrouped.length > 0" class="table-responsive">
+                                <table class="table table-sm table-bordered mb-0" style="font-size: 0.8rem;">
+                                    <thead class="table-dark">
+                                        <tr>
+                                            <th>Nivel 2</th>
+                                            <th class="text-end">Remuneraciones</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <template v-for="group in activeDetailGrouped" :key="group.level1">
+                                            <tr class="table-info cursor-pointer" @click="monthlyDetailExpandedGroups.includes(group.level1) ? monthlyDetailExpandedGroups.splice(monthlyDetailExpandedGroups.indexOf(group.level1), 1) : monthlyDetailExpandedGroups.push(group.level1)">
+                                                <td class="fw-bold">
+                                                    <i class="fas fa-xs me-2"
+                                                        :class="monthlyDetailExpandedGroups.includes(group.level1) ? 'fa-chevron-down' : 'fa-chevron-right'"
+                                                    ></i>
+                                                    {{ group.level1 }}
+                                                </td>
+                                                <td class="text-end fw-bold" style="color: rgb(40, 167, 69)">{{ formatCLP(group.subtotal) }}</td>
+                                            </tr>
+                                            <template v-if="monthlyDetailExpandedGroups.includes(group.level1)">
+                                                <tr v-for="(row, i) in group.rows" :key="i">
+                                                    <td class="ps-4 fw-semibold">{{ row.level2 }}</td>
+                                                    <td class="text-end">{{ formatCLP(row.total) }}</td>
+                                                </tr>
+                                            </template>
+                                        </template>
+                                    </tbody>
+                                    <tfoot class="table-light fw-bold">
+                                        <tr>
+                                            <td class="text-end fw-bold">Total</td>
+                                            <td class="text-end" style="color: rgb(40, 167, 69)">{{ formatCLP(payrollDetailTotals) }}</td>
+                                        </tr>
+                                    </tfoot>
+                                </table>
+                            </div>
+                            <!-- Tabla de Facturado/Consumos agrupada por Nivel 1 -->
+                            <div v-else-if="monthlyDetailColumn !== 'payroll' && monthlyDetailGrouped.length > 0" class="table-responsive">
                                 <table class="table table-sm table-bordered mb-0" style="font-size: 0.8rem;">
                                     <thead class="table-dark">
                                         <tr>

@@ -16,6 +16,7 @@ use App\Models\Service;
 use App\Models\Harvest;
 use Inertia\Inertia;
 use App\Models\Fruit;
+use App\Models\Branch;
 use App\Services\WeatherService;
 use Spatie\Permission\Traits\HasRoles;
 
@@ -164,6 +165,16 @@ class TechnicalPanelController extends Controller
             $season_id = session('season_id');
         $season = Season::select('name', 'month_id')->where('id', $season_id)->first();
 
+        // Filtro de sucursal (opcional), controla toda la vista igual que en el Dashboard
+        $selectedBranchId = $request->input('branch_id') ? (int) $request->input('branch_id') : null;
+
+        // Sucursales disponibles para el select del frontend
+        $branches = Branch::where('season_id', $season_id)
+            ->orderBy('name')
+            ->get(['id', 'name'])
+            ->map(fn($b) => ['value' => $b->id, 'label' => $b->name])
+            ->values();
+
         $this->month_id = $season ? $season['month_id'] : 1;
         $months = array();
         $currentMonth = $this->month_id;
@@ -175,9 +186,13 @@ class TechnicalPanelController extends Controller
             ];
             array_push($months, $object);
         }
-        $costCenters = CostCenter::select('id', 'name')->where('season_id', $season_id)->whereHas('season.team', function($query) use ($user){
+        $costCentersQuery = CostCenter::select('id', 'name')->where('season_id', $season_id)->whereHas('season.team', function($query) use ($user){
             $query->where('team_id', $user->team_id);
-        })->get()->transform(function($costCenter){
+        });
+        if ($selectedBranchId) {
+            $costCentersQuery->where('branch_id', $selectedBranchId);
+        }
+        $costCenters = $costCentersQuery->get()->transform(function($costCenter){
             return [
                 'label' => $costCenter->name,
                 'value' => $costCenter->id
@@ -228,9 +243,11 @@ class TechnicalPanelController extends Controller
                 "cutout" => 0
             ]
         ];
-        // Calcular totales de administración y fields
-        $totalAdministration = $this->getAdministrationTotalsByLevel12($user->team_id)->sum('total_amount');
-        $totalFields = $this->getFieldTotalsByLevel12($user->team_id)->sum('total_amount');
+        // Calcular totales de administración y fields (filtrados por sucursal si corresponde)
+        $administrationTotalsByLevel12 = $this->getAdministrationTotalsByLevel12($user->team_id, $selectedBranchId);
+        $fieldTotalsByLevel12 = $this->getFieldTotalsByLevel12($user->team_id, $selectedBranchId);
+        $totalAdministration = $administrationTotalsByLevel12->sum('total_amount');
+        $totalFields = $fieldTotalsByLevel12->sum('total_amount');
         $totalSeason = number_format(($this->totalAgrochemical + $this->totalFertilizer + $this->totalManPower + $this->totalServices + $this->totalSupplies + $totalAdministration + $totalFields), 0, ',', '.');
         // Enviar los totales como números puros para el frontend (para Totales Mensuales)
         $totalAgrochemical = $this->totalAgrochemical;
@@ -240,11 +257,11 @@ class TechnicalPanelController extends Controller
         $totalSupplies = $this->totalSupplies;
         $totalHarvests = $this->totalHarvests;
 
-        // NUEVO: Calcular y formatear los meses de administración y fields
-        $monthsAdministrationRaw = $this->getMonthsAdministration($user->team_id);
-        $monthsFieldsRaw = $this->getMonthsFields($user->team_id);
-        // Inversiones: obtener totales mensuales y total general
-        $monthsInvestmentsRaw = $this->getInvestmentsTotalByMonth($season_id, $user->team_id);
+        // NUEVO: Calcular y formatear los meses de administración y fields (filtrados por sucursal si corresponde)
+        $monthsAdministrationRaw = $this->getMonthsAdministration($user->team_id, $selectedBranchId);
+        $monthsFieldsRaw = $this->getMonthsFields($user->team_id, $selectedBranchId);
+        // Inversiones: obtener totales mensuales y total general (filtradas por sucursal si corresponde)
+        $monthsInvestmentsRaw = $this->getInvestmentsTotalByMonth($season_id, $user->team_id, $selectedBranchId);
         $monthsInvestments = [];
         foreach($monthsInvestmentsRaw as $key => $value){
             $monthsInvestments[$key] = (float)$value;
@@ -371,16 +388,33 @@ class TechnicalPanelController extends Controller
         // Obtener nombres de estados de desarrollo
         $devStates = \App\Models\DevelopmentState::all(['id', 'name'])->keyBy('id')->toArray();
 
-        // Obtener totales de administración por Level1 y Level2 (sin season_id)
-        $administrationTotalsByLevel12 = $this->getAdministrationTotalsByLevel12($user->team_id);
-        $fieldTotalsByLevel12 = $this->getFieldTotalsByLevel12($user->team_id);
+        // administrationTotalsByLevel12 y fieldTotalsByLevel12 ya se calcularon arriba (filtrados por sucursal)
         $totalsByLevel12 = $this->getTotalsByLevel12($user->team_id);
 
         // Calcular el total de superficie usando datos cacheados
         $totalSurface = $this->cachedCostCenters->sum('surface');
         $entityCounts = self::getEntityCounts($season_id, $user->team_id);
-        // Calcular los totales y porcentajes de cada rubro principal
-        $mainTotalsAndPercents = $this->getMainBudgetTotalsAndPercents($season_id, $user->team_id);
+        // Calcular los totales y porcentajes de cada rubro principal, usando los mismos totales ya filtrados por sucursal
+        $mainTotalsRaw = [
+            'Generales Campo' => (float) $totalFields,
+            'Administración'  => (float) $totalAdministration,
+            'Fertilizantes'   => (float) $this->totalFertilizer,
+            'Mano de Obra'    => (float) $this->totalManPower,
+            'Agroquímicos'    => (float) $this->totalAgrochemical,
+            'Insumos'         => (float) $this->totalSupplies,
+            'Servicios'       => (float) $this->totalServices,
+            'Cosecha'         => (float) $this->totalHarvests,
+        ];
+        $grandTotalMain = array_sum($mainTotalsRaw);
+        $mainTotalsAndPercents = array_map(
+            fn($label, $total) => [
+                'label'   => $label,
+                'total'   => $total,
+                'percent' => $grandTotalMain > 0 ? round(($total / $grandTotalMain) * 100, 2) : 0,
+            ],
+            array_keys($mainTotalsRaw),
+            array_values($mainTotalsRaw)
+        );
         // Construir fruitsMap y pasarlo al frontend
         $fruitsMap = $this->getFruitsMap($user->team_id);
         return Inertia::render('TechnicalPanel', compact(
@@ -413,7 +447,9 @@ class TechnicalPanelController extends Controller
             'entityCounts',
             'totalSurface',
             'mainTotalsAndPercents', // <-- nuevo prop para los gauges
-            'fruitsMap'
+            'fruitsMap',
+            'branches',
+            'selectedBranchId'
         ));
 
 
@@ -1097,7 +1133,7 @@ class TechnicalPanelController extends Controller
      * Obtiene los totales de administración agrupados por Level 1 y Level 2.
      * Devuelve una colección con: [level1_id, level1_name, level2_id, level2_name, total_amount]
      */
-    private function getAdministrationTotalsByLevel12($team_id = null)
+    private function getAdministrationTotalsByLevel12($team_id = null, $branchId = null)
     {
         $season_id = session('season_id');
         $season = \App\Models\Season::select('month_id')->where('id', $season_id)->first();
@@ -1120,6 +1156,9 @@ class TechnicalPanelController extends Controller
             ->where('a.season_id', $season_id);
         if ($team_id) {
             $administrations->where('a.team_id', $team_id);
+        }
+        if ($branchId) {
+            $administrations->where('a.branch_id', $branchId);
         }
         $administrations = $administrations->get();
 
@@ -1159,7 +1198,7 @@ class TechnicalPanelController extends Controller
         return collect(array_values($totals));
     }
 
-    private function getFieldTotalsByLevel12($team_id = null)
+    private function getFieldTotalsByLevel12($team_id = null, $branchId = null)
     {
         $season_id = session('season_id');
         $season = \App\Models\Season::select('month_id')->where('id', $season_id)->first();
@@ -1182,6 +1221,9 @@ class TechnicalPanelController extends Controller
             ->where('a.season_id', $season_id);
         if ($team_id) {
             $fields->where('a.team_id', $team_id);
+        }
+        if ($branchId) {
+            $fields->where('a.branch_id', $branchId);
         }
         $fields = $fields->get();
 
@@ -1414,7 +1456,7 @@ class TechnicalPanelController extends Controller
      * Totales mensuales de administración.
      * OPTIMIZADO: 1 batch query para items en lugar de N queries individuales.
      */
-    private function getMonthsAdministration($team_id = null)
+    private function getMonthsAdministration($team_id = null, $branchId = null)
     {
         $season_id = session('season_id');
         $months = $this->cachedMonths;
@@ -1425,6 +1467,9 @@ class TechnicalPanelController extends Controller
             ->where('a.season_id', $season_id);
         if ($team_id) {
             $administrations->where('a.team_id', $team_id);
+        }
+        if ($branchId) {
+            $administrations->where('a.branch_id', $branchId);
         }
         $administrations = $administrations->get();
 
@@ -1460,7 +1505,7 @@ class TechnicalPanelController extends Controller
      * Totales mensuales de fields.
      * OPTIMIZADO: 1 batch query para items en lugar de N queries individuales.
      */
-    private function getMonthsFields($team_id = null)
+    private function getMonthsFields($team_id = null, $branchId = null)
     {
         $season_id = session('season_id');
         $months = $this->cachedMonths;
@@ -1471,6 +1516,9 @@ class TechnicalPanelController extends Controller
             ->where('a.season_id', $season_id);
         if ($team_id) {
             $fields->where('a.team_id', $team_id);
+        }
+        if ($branchId) {
+            $fields->where('a.branch_id', $branchId);
         }
         $fields = $fields->get();
 

@@ -9,16 +9,23 @@ trait BudgetTotalsTrait
 {
     /**
      * Obtiene el total de inversiones agrupado por mes para una season y team dados.
+     * Si se indica $branchId, solo incluye inversiones vinculadas a algún cost center de esa sucursal
+     * (la relación se obtiene a través de la tabla pivote cost_center_investment).
      * Devuelve un array asociativo: [mes (int 1-12) => total (float)]
      */
-    public function getInvestmentsTotalByMonth($season_id, $team_id)
+    public function getInvestmentsTotalByMonth($season_id, $team_id, $branchId = null)
     {
         // Filtrar inversiones por season y team (a través de la relación con season)
-        $investments = \App\Models\Investment::where('season_id', $season_id)
+        $investmentsQuery = \App\Models\Investment::where('season_id', $season_id)
             ->whereHas('season', function($q) use ($team_id) {
                 $q->where('team_id', $team_id);
-            })
-            ->get(['amount', 'month_execute']);
+            });
+        if ($branchId) {
+            $investmentsQuery->whereHas('costCenters', function($q) use ($branchId) {
+                $q->where('branch_id', $branchId);
+            });
+        }
+        $investments = $investmentsQuery->get(['id', 'amount', 'month_execute']);
 
 
         // Agrupar y sumar por mes
