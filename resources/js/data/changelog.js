@@ -8,6 +8,32 @@
 export const changelog = [
   {
     fecha: '2026-08-03',
+    titulo: 'Dashboard Comparativo — Nueva tabla de Detalle Mensual por Categoría',
+    items: [
+      'Se agregó una tabla nueva que muestra, mes a mes, el Presupuesto, el Real (Facturado + Remuneraciones) y la Diferencia de cada categoría.',
+      'Incluye un filtro para elegir qué meses ver (uno o varios a la vez), mostrando cada mes elegido en su propio grupo de columnas.',
+      'Las categorías se organizan en un árbol: Nivel 1 aparece cerrado por defecto y se puede desplegar hasta Nivel 2 y Nivel 3 haciendo clic.',
+      'Al elegir más de un mes, se agrega al final una columna de "Total selección" con la suma de Presupuesto, Real y Diferencia de todos los meses elegidos.',
+    ]
+  },
+  {
+    fecha: '2026-08-03',
+    titulo: 'Dashboard Comparativo — Diferencia vs Consumido ahora descuenta Remuneraciones',
+    items: [
+      'En la tabla "Resumen Mensual: Presupuesto vs Costos", la fila de Diferencia contra Consumido no restaba las Remuneraciones del mes, mostrando un resultado más alto de lo real.',
+      'Ahora esa fila descuenta las Remuneraciones igual que la fila de Diferencia contra Facturado, quedando ambas consistentes.',
+    ]
+  },
+  {
+    fecha: '2026-08-03',
+    titulo: 'Dashboard Comparativo — Remuneraciones distribuidas correctamente en Detalle por Categoría',
+    items: [
+      'La columna "Remun." de la tabla "Detalle por Categoría" mostraba todo el monto de remuneraciones amontonado en una sola subfamilia (Nivel 3) en vez de distribuirlo entre las categorías reales donde se generó.',
+      'Ahora cada monto de remuneraciones aparece en la fila exacta de Nivel 1/Nivel 2/Nivel 3 que le corresponde, igual que Presupuestado, Facturado y Consumido.',
+    ]
+  },
+  {
+    fecha: '2026-08-03',
     titulo: 'Dashboard Comparativo — Detalle correcto al hacer clic en Remuneraciones',
     items: [
       'Al hacer clic en la barra de Remuneraciones del gráfico mensual, ahora se muestra el detalle real de remuneraciones del mes (agrupado por rubro y categoría), en lugar de mostrar por error los datos de Consumos.',

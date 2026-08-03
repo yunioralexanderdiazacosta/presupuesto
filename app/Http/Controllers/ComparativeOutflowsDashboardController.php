@@ -60,13 +60,18 @@ class ComparativeOutflowsDashboardController extends Controller
         $monthlyComparison = $this->getMonthlyComparison($season_id, $team_id, $months, $company_reason_id);
         $comparisonByLevel1 = $this->getComparisonByLevel1($season_id, $team_id, $company_reason_id);
         $payrollByLevel2    = $this->getPayrollByLevel2($team_id, $season_id, $company_reason_id);
+        $payrollByLevel3    = $this->getPayrollByLevel3($team_id, $season_id, $company_reason_id);
 
-        // ── Merge payroll en las filas de detailedTable (por nombre de Level2) ──
-        foreach ($payrollByLevel2 as $level2Name => $payrollData) {
+        // ── Merge payroll en las filas de detailedTable (match exacto por Nivel1+Nivel2+Nivel3) ──
+        foreach ($payrollByLevel3 as $payrollRow) {
             $found = false;
             foreach ($comparisonByLevel1 as &$row) {
-                if (strcasecmp(trim($row['level2']), trim($level2Name)) === 0) {
-                    $row['payroll']    = (float) $payrollData['total'];
+                if (
+                    strcasecmp(trim($row['level1']), trim($payrollRow['level1'])) === 0 &&
+                    strcasecmp(trim($row['level2']), trim($payrollRow['level2'])) === 0 &&
+                    strcasecmp(trim($row['level3']), trim($payrollRow['level3'])) === 0
+                ) {
+                    $row['payroll']    = (float) $payrollRow['total'];
                     $row['difference'] = $row['budget'] - $row['invoiced'] - $row['payroll'];
                     $found = true;
                     break;
@@ -74,18 +79,19 @@ class ComparativeOutflowsDashboardController extends Controller
             }
             unset($row);
 
-            // Si no existe fila con ese Level2, crear una nueva (nómina sin presupuesto)
-            if (!$found && $payrollData['total'] > 0) {
+            // Si no existe fila con ese Nivel3, crear una nueva (nómina sin presupuesto)
+            if (!$found && $payrollRow['total'] > 0) {
                 $comparisonByLevel1[] = [
-                    'category'   => $payrollData['level1'] . ' - ' . $level2Name,
-                    'level1'     => $payrollData['level1'],
-                    'level2'     => $level2Name,
+                    'category'   => $payrollRow['level1'] . ' - ' . $payrollRow['level2'] . ' - ' . $payrollRow['level3'],
+                    'level1'     => $payrollRow['level1'],
+                    'level2'     => $payrollRow['level2'],
+                    'level3'     => $payrollRow['level3'],
                     'budget'     => 0.0,
                     'invoiced'   => 0.0,
                     'consumed'   => 0.0,
                     'real'       => 0.0,
-                    'payroll'    => (float) $payrollData['total'],
-                    'difference' => -(float) $payrollData['total'],
+                    'payroll'    => (float) $payrollRow['total'],
+                    'difference' => -(float) $payrollRow['total'],
                     'variance'   => 0.0,
                     'status'     => 'over',
                 ];
@@ -114,6 +120,7 @@ class ComparativeOutflowsDashboardController extends Controller
             'payrollSummary'   => $this->getPayrollSummary($team_id, $season_id, $company_reason_id),
             'payrollMonthly'   => $this->getPayrollMonthly($team_id, $season_id, $months, $company_reason_id),
             'payrollByLevel2'  => $payrollByLevel2,
+            'comparisonByLevel1Monthly' => $this->getComparisonByLevel1Monthly($season_id, $team_id, $company_reason_id, $months),
         ]);
     }
 
@@ -1379,11 +1386,202 @@ class ComparativeOutflowsDashboardController extends Controller
     // getComparisonByLevel2 y getDetailedComparisonTable eliminados: se calculan una sola vez en index()
 
     /**
+     * Facturado (facturas + notas de crédito/débito) agrupado por Nivel1/2/3 y por mes de temporada.
+     * Usa i.month_id / cdn.month_id (no requiere parsear fechas) y los indexa según la posición
+     * de cada mes en el array $months generado por generateMonthsArray().
+     *
+     * @return array ["level1||level2||level3" => ['level1'=>, 'level2'=>, 'level3'=>, 'monthly'=> float[12]]]
+     */
+    private function getInvoicedMonthlyByLevel123($season_id, $team_id, $company_reason_id, array $months): array
+    {
+        $monthIndexMap = [];
+        foreach ($months as $i => $m) {
+            $monthIndexMap[(int) $m['id']] = $i;
+        }
+
+        $map = [];
+        $addAmount = function ($level1, $level2, $level3, $monthId, $amount) use (&$map, $monthIndexMap) {
+            $idx = $monthIndexMap[(int) $monthId] ?? null;
+            if ($idx === null) return;
+            $level1 = $level1 ?: 'Sin Clasificar';
+            $level2 = $level2 ?: 'Sin Clasificar';
+            $level3 = $level3 ?: 'Sin Clasificar';
+            $key = $level1 . '||' . $level2 . '||' . $level3;
+            if (!isset($map[$key])) {
+                $map[$key] = ['level1' => $level1, 'level2' => $level2, 'level3' => $level3, 'monthly' => array_fill(0, 12, 0.0)];
+            }
+            $map[$key]['monthly'][$idx] += (float) $amount;
+        };
+
+        // Facturas
+        $invoicesByMonth = DB::table('invoices as i')
+            ->join('invoice_products as ip', 'i.id', '=', 'ip.invoice_id')
+            ->join('products as p', 'ip.product_id', '=', 'p.id')
+            ->leftJoin('level3s as l3', 'p.level3_id', '=', 'l3.id')
+            ->leftJoin('level2s as l2', 'l3.level2_id', '=', 'l2.id')
+            ->leftJoin('level1s as l1', 'l2.level1_id', '=', 'l1.id')
+            ->where('i.team_id', $team_id)
+            ->where('i.season_id', $season_id)
+            ->when($company_reason_id, function ($q) use ($company_reason_id) {
+                $q->where(function ($w) use ($company_reason_id) {
+                    $w->whereIn('i.company_reason_id', $company_reason_id)
+                      ->orWhereNull('i.company_reason_id');
+                });
+            })
+            ->select(
+                DB::raw('COALESCE(l1.name, "Sin Clasificar") as level1_name'),
+                DB::raw('COALESCE(l2.name, "Sin Clasificar") as level2_name'),
+                DB::raw('COALESCE(l3.name, "Sin Clasificar") as level3_name'),
+                'i.month_id',
+                DB::raw('SUM(ip.unit_price * ip.amount) as total')
+            )
+            ->groupBy('level1_name', 'level2_name', 'level3_name', 'i.month_id')
+            ->get();
+
+        foreach ($invoicesByMonth as $row) {
+            $addAmount($row->level1_name, $row->level2_name, $row->level3_name, $row->month_id, $row->total);
+        }
+
+        // Notas de crédito/débito (solo affects_inventory=1)
+        $notesByMonth = DB::table('credit_debit_notes as cdn')
+            ->join('credit_debit_note_items as cdni', 'cdn.id', '=', 'cdni.credit_debit_note_id')
+            ->join('products as p', 'cdni.product_id', '=', 'p.id')
+            ->leftJoin('level3s as l3', 'p.level3_id', '=', 'l3.id')
+            ->leftJoin('level2s as l2', 'l3.level2_id', '=', 'l2.id')
+            ->leftJoin('level1s as l1', 'l2.level1_id', '=', 'l1.id')
+            ->leftJoin('invoices as i', 'cdn.invoice_id', '=', 'i.id')
+            ->where('cdn.team_id', $team_id)
+            ->where('cdn.season_id', $season_id)
+            ->where('cdn.affects_inventory', 1)
+            ->when($company_reason_id, function ($q) use ($company_reason_id) {
+                $q->where(function ($w) use ($company_reason_id) {
+                    $w->whereIn('i.company_reason_id', $company_reason_id)
+                      ->orWhereNull('i.company_reason_id');
+                });
+            })
+            ->select(
+                DB::raw('COALESCE(l1.name, "Sin Clasificar") as level1_name'),
+                DB::raw('COALESCE(l2.name, "Sin Clasificar") as level2_name'),
+                DB::raw('COALESCE(l3.name, "Sin Clasificar") as level3_name'),
+                'cdn.month_id',
+                'cdn.type',
+                DB::raw('SUM(cdni.unit_price * cdni.quantity) as total')
+            )
+            ->groupBy('level1_name', 'level2_name', 'level3_name', 'cdn.month_id', 'cdn.type')
+            ->get();
+
+        foreach ($notesByMonth as $row) {
+            $type = strtolower($row->type);
+            $signedTotal = ($type === 'credito' || $type === 'nc') ? -$row->total : $row->total;
+            $addAmount($row->level1_name, $row->level2_name, $row->level3_name, $row->month_id, $signedTotal);
+        }
+
+        return $map;
+    }
+
+    /**
+     * Detalle por Categoría (Nivel1/2/3) con desglose MENSUAL de Presupuesto, Real (Facturado + Remuneraciones)
+     * y Diferencia. Se calcula una sola vez por carga de página; el filtro de meses se aplica en el frontend.
+     *
+     * @return array [{level1, level2, level3, budget_monthly: float[12], invoiced_monthly: float[12],
+     *                 payroll_monthly: float[12], real_monthly: float[12], difference_monthly: float[12], ...totales}]
+     */
+    private function getComparisonByLevel1Monthly($season_id, $team_id, $company_reason_id, array $months): array
+    {
+        try {
+            $budgetRows  = $this->getBudgetTotalsByLevel12($season_id, $team_id, $company_reason_id, true);
+            $invoicedMap = $this->getInvoicedMonthlyByLevel123($season_id, $team_id, $company_reason_id, $months);
+            $payrollRows = $this->getPayrollByLevel3Monthly($team_id, $season_id, $months, $company_reason_id);
+
+            $categories = [];
+            $emptyRow = function ($level1, $level2, $level3) {
+                return [
+                    'level1' => $level1, 'level2' => $level2, 'level3' => $level3,
+                    'budget_monthly'   => array_fill(0, 12, 0.0),
+                    'invoiced_monthly' => array_fill(0, 12, 0.0),
+                    'payroll_monthly'  => array_fill(0, 12, 0.0),
+                ];
+            };
+
+            foreach ($budgetRows as $row) {
+                $key = $row['level1_name'] . '||' . $row['level2_name'] . '||' . $row['level3_name'];
+                if (!isset($categories[$key])) {
+                    $categories[$key] = $emptyRow($row['level1_name'], $row['level2_name'], $row['level3_name']);
+                }
+                foreach ($row['monthly'] as $i => $v) {
+                    $categories[$key]['budget_monthly'][$i] += (float) $v;
+                }
+            }
+
+            foreach ($invoicedMap as $key => $data) {
+                if (!isset($categories[$key])) {
+                    $categories[$key] = $emptyRow($data['level1'], $data['level2'], $data['level3']);
+                }
+                foreach ($data['monthly'] as $i => $v) {
+                    $categories[$key]['invoiced_monthly'][$i] += (float) $v;
+                }
+            }
+
+            foreach ($payrollRows as $data) {
+                $key = $data['level1'] . '||' . $data['level2'] . '||' . $data['level3'];
+                if (!isset($categories[$key])) {
+                    $categories[$key] = $emptyRow($data['level1'], $data['level2'], $data['level3']);
+                }
+                foreach ($data['monthly'] as $i => $v) {
+                    $categories[$key]['payroll_monthly'][$i] += (float) $v;
+                }
+            }
+
+            $result = [];
+            foreach ($categories as $data) {
+                $realMonthly = [];
+                $differenceMonthly = [];
+                for ($i = 0; $i < 12; $i++) {
+                    $real = $data['invoiced_monthly'][$i] + $data['payroll_monthly'][$i];
+                    $realMonthly[] = $real;
+                    $differenceMonthly[] = $data['budget_monthly'][$i] - $real;
+                }
+                $data['real_monthly']       = $realMonthly;
+                $data['difference_monthly'] = $differenceMonthly;
+                $data['budget_total']       = array_sum($data['budget_monthly']);
+                $data['invoiced_total']     = array_sum($data['invoiced_monthly']);
+                $data['payroll_total']      = array_sum($data['payroll_monthly']);
+                $data['real_total']         = array_sum($realMonthly);
+                $data['difference_total']   = array_sum($differenceMonthly);
+                $result[] = $data;
+            }
+
+            // Mismo criterio de orden que getComparisonByLevel1()
+            usort($result, function ($a, $b) {
+                $normalize = function ($str) {
+                    $str = strtolower(trim($str));
+                    return str_replace(['á', 'é', 'í', 'ó', 'ú', 'ñ'], ['a', 'e', 'i', 'o', 'u', 'n'], $str);
+                };
+                $level1Order = [
+                    'costos directos' => 1, 'administracion' => 2, 'generales campo' => 3,
+                    'cosecha' => 4, 'sin clasificar' => 5,
+                ];
+                $orderA = $level1Order[$normalize($a['level1'])] ?? 99;
+                $orderB = $level1Order[$normalize($b['level1'])] ?? 99;
+                if ($orderA !== $orderB) return $orderA - $orderB;
+                $cmp = strcmp(strtolower($a['level2']), strtolower($b['level2']));
+                if ($cmp !== 0) return $cmp;
+                return strcmp(strtolower($a['level3'] ?? ''), strtolower($b['level3'] ?? ''));
+            });
+
+            return $result;
+        } catch (\Exception $e) {
+            Log::error('Error en ComparativeDashboard getComparisonByLevel1Monthly: ' . $e->getMessage());
+            return [];
+        }
+    }
+
+    /**
      * Obtiene los totales de presupuesto agrupados por Level1 y Level2
      * Replica la lógica de DashboardController->getTotalsByLevel12()
      * Retorna: [level1_id, level1_name, level2_id, level2_name, total_amount]
      */
-    private function getBudgetTotalsByLevel12($season_id, $team_id, $company_reason_id = null)
+    private function getBudgetTotalsByLevel12($season_id, $team_id, $company_reason_id = null, $trackMonthly = false)
     {
         $season = \App\Models\Season::select('month_id')->where('id', $season_id)->first();
         $currentMonth = $season ? $season->month_id : 1;
@@ -1423,7 +1621,7 @@ class ComparativeOutflowsDashboardController extends Controller
 
         $totals = [];
         
-        $addTotal = function ($level1_id, $level1_name, $level2_id, $level2_name, $level3_id, $level3_name, $amount) use (&$totals) {
+        $addTotal = function ($level1_id, $level1_name, $level2_id, $level2_name, $level3_id, $level3_name, $amount, $monthlyAmounts = null) use (&$totals, $trackMonthly) {
             $key = $level1_id . '-' . $level2_id . '-' . $level3_id;
             if (!isset($totals[$key])) {
                 $totals[$key] = [
@@ -1435,8 +1633,16 @@ class ComparativeOutflowsDashboardController extends Controller
                     'level3_name' => $level3_name,
                     'total_amount' => 0
                 ];
+                if ($trackMonthly) {
+                    $totals[$key]['monthly'] = array_fill(0, 12, 0.0);
+                }
             }
             $totals[$key]['total_amount'] += $amount;
+            if ($trackMonthly && $monthlyAmounts) {
+                foreach ($monthlyAmounts as $i => $v) {
+                    $totals[$key]['monthly'][$i] += $v;
+                }
+            }
         };
 
         // AGROCHEMICALS
@@ -1484,12 +1690,14 @@ class ComparativeOutflowsDashboardController extends Controller
             
             $amountFirst = round($a->price * $quantityFirst, 2);
             
-            foreach ($months as $month) {
+            $monthlyAmounts = array_fill(0, 12, 0.0);
+            foreach ($months as $idx => $month) {
                 $exists = isset($agroItemIndex[$a->id][$a->cost_center_id][$month]);
-                $amount += ($exists ? $amountFirst : 0);
+                $monthlyAmounts[$idx] = $exists ? $amountFirst : 0;
+                $amount += $monthlyAmounts[$idx];
             }
             
-            $addTotal($a->level1_id, $a->level1_name, $a->level2_id, $a->level2_name, $a->level3_id, $a->level3_name, $amount);
+            $addTotal($a->level1_id, $a->level1_name, $a->level2_id, $a->level2_name, $a->level3_id, $a->level3_name, $amount, $monthlyAmounts);
         }
 
         // FERTILIZERS
@@ -1529,12 +1737,14 @@ class ComparativeOutflowsDashboardController extends Controller
             $quantityFirst = round($dose * $surface, 2);
             $amountFirst = round($f->price * $quantityFirst, 2);
             
-            foreach ($months as $month) {
+            $monthlyAmounts = array_fill(0, 12, 0.0);
+            foreach ($months as $idx => $month) {
                 $exists = isset($fertItemIndex[$f->id][$f->cost_center_id][$month]);
-                $amount += ($exists ? $amountFirst : 0);
+                $monthlyAmounts[$idx] = $exists ? $amountFirst : 0;
+                $amount += $monthlyAmounts[$idx];
             }
             
-            $addTotal($f->level1_id, $f->level1_name, $f->level2_id, $f->level2_name, $f->level3_id, $f->level3_name, $amount);
+            $addTotal($f->level1_id, $f->level1_name, $f->level2_id, $f->level2_name, $f->level3_id, $f->level3_name, $amount, $monthlyAmounts);
         }
 
         // MANPOWER
@@ -1573,12 +1783,14 @@ class ComparativeOutflowsDashboardController extends Controller
             $quantityFirst = round($mp->workday * $surface, 2);
             $amountFirst = round($mp->price * $quantityFirst, 2);
             
-            foreach ($months as $month) {
+            $monthlyAmounts = array_fill(0, 12, 0.0);
+            foreach ($months as $idx => $month) {
                 $exists = isset($mpItemIndex[$mp->id][$mp->cost_center_id][$month]);
-                $amount += ($exists ? $amountFirst : 0);
+                $monthlyAmounts[$idx] = $exists ? $amountFirst : 0;
+                $amount += $monthlyAmounts[$idx];
             }
             
-            $addTotal($mp->level1_id, $mp->level1_name, $mp->level2_id, $mp->level2_name, $mp->level3_id, $mp->level3_name, $amount);
+            $addTotal($mp->level1_id, $mp->level1_name, $mp->level2_id, $mp->level2_name, $mp->level3_id, $mp->level3_name, $amount, $monthlyAmounts);
         }
 
         // SUPPLIES
@@ -1618,12 +1830,14 @@ class ComparativeOutflowsDashboardController extends Controller
             $quantityFirst = round($quantity * $surface, 2);
             $amountFirst = round($s->price * $quantityFirst, 2);
             
-            foreach ($months as $month) {
+            $monthlyAmounts = array_fill(0, 12, 0.0);
+            foreach ($months as $idx => $month) {
                 $exists = isset($supItemIndex[$s->id][$s->cost_center_id][$month]);
-                $amount += ($exists ? $amountFirst : 0);
+                $monthlyAmounts[$idx] = $exists ? $amountFirst : 0;
+                $amount += $monthlyAmounts[$idx];
             }
             
-            $addTotal($s->level1_id, $s->level1_name, $s->level2_id, $s->level2_name, $s->level3_id, $s->level3_name, $amount);
+            $addTotal($s->level1_id, $s->level1_name, $s->level2_id, $s->level2_name, $s->level3_id, $s->level3_name, $amount, $monthlyAmounts);
         }
 
         // SERVICES
@@ -1662,12 +1876,14 @@ class ComparativeOutflowsDashboardController extends Controller
             $quantityFirst = round($srv->quantity * $surface, 2);
             $amountFirst = round($srv->price * $quantityFirst, 2);
             
-            foreach ($months as $month) {
+            $monthlyAmounts = array_fill(0, 12, 0.0);
+            foreach ($months as $idx => $month) {
                 $exists = isset($srvItemIndex[$srv->id][$srv->cost_center_id][$month]);
-                $amount += ($exists ? $amountFirst : 0);
+                $monthlyAmounts[$idx] = $exists ? $amountFirst : 0;
+                $amount += $monthlyAmounts[$idx];
             }
             
-            $addTotal($srv->level1_id, $srv->level1_name, $srv->level2_id, $srv->level2_name, $srv->level3_id, $srv->level3_name, $amount);
+            $addTotal($srv->level1_id, $srv->level1_name, $srv->level2_id, $srv->level2_name, $srv->level3_id, $srv->level3_name, $amount, $monthlyAmounts);
         }
 
         // HARVESTS
@@ -1706,12 +1922,14 @@ class ComparativeOutflowsDashboardController extends Controller
             $quantityFirst = round($h->quantity * $surface, 2);
             $amountFirst = round($h->price * $quantityFirst, 2);
             
-            foreach ($months as $month) {
+            $monthlyAmounts = array_fill(0, 12, 0.0);
+            foreach ($months as $idx => $month) {
                 $exists = isset($harvItemIndex[$h->id][$h->cost_center_id][$month]);
-                $amount += ($exists ? $amountFirst : 0);
+                $monthlyAmounts[$idx] = $exists ? $amountFirst : 0;
+                $amount += $monthlyAmounts[$idx];
             }
             
-            $addTotal($h->level1_id, $h->level1_name, $h->level2_id, $h->level2_name, $h->level3_id, $h->level3_name, $amount);
+            $addTotal($h->level1_id, $h->level1_name, $h->level2_id, $h->level2_name, $h->level3_id, $h->level3_name, $amount, $monthlyAmounts);
         }
 
         // ADMINISTRATIONS
@@ -1735,20 +1953,29 @@ class ComparativeOutflowsDashboardController extends Controller
             ->where('a.team_id', $team_id)
             ->get();
 
-        // Pre-cargar meses activos de administración en batch
-        $adminMonthCounts = DB::table('administration_items')
-            ->select('administration_id', DB::raw('COUNT(DISTINCT month_id) as month_count'))
+        // Pre-cargar meses activos de administración en batch (con detalle de qué month_id específico)
+        $adminMonthsIndex = DB::table('administration_items')
+            ->select('administration_id', 'month_id')
             ->whereIn('administration_id', $administrations->pluck('administration_id'))
             ->whereIn('month_id', $months)
-            ->groupBy('administration_id')
-            ->pluck('month_count', 'administration_id');
+            ->groupBy('administration_id', 'month_id')
+            ->get()
+            ->groupBy('administration_id');
 
         foreach ($administrations as $adm) {
-            $countMonths = $adminMonthCounts[$adm->administration_id] ?? 0;
+            $activeMonths = $adminMonthsIndex->get($adm->administration_id, collect())->pluck('month_id')->toArray();
+            $countMonths = count($activeMonths);
             if ($countMonths > 0) {
                 $quantity = ($adm->quantity !== null && ($adm->quantity > 0)) ? ((in_array($adm->unit_id ?? null, [2, 4])) ? ($adm->quantity / 1000) : $adm->quantity) : 0;
-                $amount = round($adm->price * $quantity * $countMonths * $surfaceRatio, 2);
-                $addTotal($adm->level1_id, $adm->level1_name, $adm->level2_id, $adm->level2_name, $adm->level3_id, $adm->level3_name, $amount);
+                $amountPerMonth = round($adm->price * $quantity * $surfaceRatio, 2);
+                $monthlyAmounts = array_fill(0, 12, 0.0);
+                foreach ($months as $idx => $month) {
+                    if (in_array($month, $activeMonths)) {
+                        $monthlyAmounts[$idx] = $amountPerMonth;
+                    }
+                }
+                $amount = round($amountPerMonth * $countMonths, 2);
+                $addTotal($adm->level1_id, $adm->level1_name, $adm->level2_id, $adm->level2_name, $adm->level3_id, $adm->level3_name, $amount, $monthlyAmounts);
             }
         }
 
@@ -1773,20 +2000,29 @@ class ComparativeOutflowsDashboardController extends Controller
             ->where('f.team_id', $team_id)
             ->get();
 
-        // Pre-cargar meses activos de fields en batch
-        $fieldMonthCounts = DB::table('field_items')
-            ->select('field_id', DB::raw('COUNT(DISTINCT month_id) as month_count'))
+        // Pre-cargar meses activos de fields en batch (con detalle de qué month_id específico)
+        $fieldMonthsIndex = DB::table('field_items')
+            ->select('field_id', 'month_id')
             ->whereIn('field_id', $fields->pluck('field_id'))
             ->whereIn('month_id', $months)
-            ->groupBy('field_id')
-            ->pluck('month_count', 'field_id');
+            ->groupBy('field_id', 'month_id')
+            ->get()
+            ->groupBy('field_id');
 
         foreach ($fields as $fld) {
-            $countMonths = $fieldMonthCounts[$fld->field_id] ?? 0;
+            $activeMonths = $fieldMonthsIndex->get($fld->field_id, collect())->pluck('month_id')->toArray();
+            $countMonths = count($activeMonths);
             if ($countMonths > 0) {
                 $quantity = ($fld->quantity !== null && ($fld->quantity > 0)) ? ((in_array($fld->unit_id ?? null, [2, 4])) ? ($fld->quantity / 1000) : $fld->quantity) : 0;
-                $amount = round($fld->price * $quantity * $countMonths * $surfaceRatio, 2);
-                $addTotal($fld->level1_id, $fld->level1_name, $fld->level2_id, $fld->level2_name, $fld->level3_id, $fld->level3_name, $amount);
+                $amountPerMonth = round($fld->price * $quantity * $surfaceRatio, 2);
+                $monthlyAmounts = array_fill(0, 12, 0.0);
+                foreach ($months as $idx => $month) {
+                    if (in_array($month, $activeMonths)) {
+                        $monthlyAmounts[$idx] = $amountPerMonth;
+                    }
+                }
+                $amount = round($amountPerMonth * $countMonths, 2);
+                $addTotal($fld->level1_id, $fld->level1_name, $fld->level2_id, $fld->level2_name, $fld->level3_id, $fld->level3_name, $amount, $monthlyAmounts);
             }
         }
 

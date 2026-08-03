@@ -494,6 +494,350 @@ trait PayrollDataTrait
     }
 
     /**
+     * Remuneraciones agrupadas por Level1/Level2/Level3 (labor_type.level3_id).
+     * Igual ruta de clasificación que getPayrollByLevel2, pero sin colapsar Level3,
+     * para poder fusionar el monto exacto en la fila correspondiente de la tabla
+     * "Detalle por Categoría" (que sí distingue Level3).
+     *
+     * @return array [{level1: string, level2: string, level3: string, total: float}]
+     */
+    public function getPayrollByLevel3(int $teamId, int $seasonId, array|null $companyReasonId = null): array
+    {
+        $contractIds = Contract::where('team_id', $teamId)->pluck('id');
+
+        // ── 1. TARJAS ─────────────────────────────────────────────────────
+        if ($companyReasonId) {
+            $yieldSurfaceTotals = DB::table('daily_yield_cost_center as dycc2')
+                ->join('cost_centers as cc2', 'dycc2.cost_center_id', '=', 'cc2.id')
+                ->select('dycc2.daily_yield_id', DB::raw('SUM(cc2.surface) as total_surface'))
+                ->groupBy('dycc2.daily_yield_id');
+
+            $yieldsRows = DB::table('daily_yields as dy')
+                ->leftJoin('labor_types as lt', 'dy.labor_type_id', '=', 'lt.id')
+                ->leftJoin('level3s as l3', 'lt.level3_id', '=', 'l3.id')
+                ->leftJoin('level2s as l2', 'l3.level2_id', '=', 'l2.id')
+                ->leftJoin('level1s as l1', 'l2.level1_id', '=', 'l1.id')
+                ->join('daily_yield_cost_center as dycc', 'dycc.daily_yield_id', '=', 'dy.id')
+                ->join('cost_centers as cc', 'dycc.cost_center_id', '=', 'cc.id')
+                ->leftJoinSub($yieldSurfaceTotals, 'surf_dy', 'dycc.daily_yield_id', '=', 'surf_dy.daily_yield_id')
+                ->where('dy.team_id', $teamId)
+                ->where('dy.season_id', $seasonId)
+                ->whereIn('cc.company_reason_id', $companyReasonId)
+                ->selectRaw("COALESCE(l3.name, 'Sin Clasificar') as level3_name, COALESCE(l2.name, 'Sin Clasificar') as level2_name, COALESCE(l1.name, 'Sin Clasificar') as level1_name,
+                    COALESCE(SUM(
+                        CASE WHEN cc.surface = 0 OR COALESCE(surf_dy.total_surface, 0) = 0
+                            THEN (COALESCE(dy.amount,0) + COALESCE(dy.bonus_amount,0) + COALESCE(dy.target_price_bonus,0))
+                            ELSE (cc.surface / surf_dy.total_surface) * (COALESCE(dy.amount,0) + COALESCE(dy.bonus_amount,0) + COALESCE(dy.target_price_bonus,0))
+                        END
+                    ), 0) as total")
+                ->groupBy('l3.name', 'l2.name', 'l1.name')
+                ->get();
+        } else {
+            $yieldsRows = DB::table('daily_yields as dy')
+                ->leftJoin('labor_types as lt', 'dy.labor_type_id', '=', 'lt.id')
+                ->leftJoin('level3s as l3', 'lt.level3_id', '=', 'l3.id')
+                ->leftJoin('level2s as l2', 'l3.level2_id', '=', 'l2.id')
+                ->leftJoin('level1s as l1', 'l2.level1_id', '=', 'l1.id')
+                ->where('dy.team_id', $teamId)
+                ->where('dy.season_id', $seasonId)
+                ->selectRaw("COALESCE(l3.name, 'Sin Clasificar') as level3_name, COALESCE(l2.name, 'Sin Clasificar') as level2_name, COALESCE(l1.name, 'Sin Clasificar') as level1_name,
+                    SUM(COALESCE(dy.amount,0) + COALESCE(dy.bonus_amount,0) + COALESCE(dy.target_price_bonus,0)) as total")
+                ->groupBy('l3.name', 'l2.name', 'l1.name')
+                ->get();
+        }
+
+        // ── 2. BONOS MENSUALES ────────────────────────────────────────────
+        $bonusRows = collect();
+        if ($contractIds->isNotEmpty()) {
+            if ($companyReasonId) {
+                $bonusSurfaceTotals = DB::table('monthly_bonus_cost_centers as mbcc2')
+                    ->join('cost_centers as cc2', 'mbcc2.cost_center_id', '=', 'cc2.id')
+                    ->select('mbcc2.monthly_bonus_id', DB::raw('SUM(cc2.surface) as total_surface'))
+                    ->groupBy('mbcc2.monthly_bonus_id');
+
+                $bonusRows = DB::table('monthly_bonuses as mb')
+                    ->leftJoin('labor_types as lt', 'mb.labor_type_id', '=', 'lt.id')
+                    ->leftJoin('level3s as l3', 'lt.level3_id', '=', 'l3.id')
+                    ->leftJoin('level2s as l2', 'l3.level2_id', '=', 'l2.id')
+                    ->leftJoin('level1s as l1', 'l2.level1_id', '=', 'l1.id')
+                    ->join('monthly_bonus_cost_centers as mbcc', 'mbcc.monthly_bonus_id', '=', 'mb.id')
+                    ->join('cost_centers as cc', 'mbcc.cost_center_id', '=', 'cc.id')
+                    ->leftJoinSub($bonusSurfaceTotals, 'surf_mb', 'mbcc.monthly_bonus_id', '=', 'surf_mb.monthly_bonus_id')
+                    ->where('mb.team_id', $teamId)
+                    ->where(function ($q) use ($seasonId) {
+                        $q->where('mb.season_id', $seasonId)->orWhereNull('mb.season_id');
+                    })
+                    ->whereIn('mb.contract_id', $contractIds->toArray())
+                    ->whereIn('cc.company_reason_id', $companyReasonId)
+                    ->selectRaw("COALESCE(l3.name, 'Sin Clasificar') as level3_name, COALESCE(l2.name, 'Sin Clasificar') as level2_name, COALESCE(l1.name, 'Sin Clasificar') as level1_name,
+                        COALESCE(SUM(
+                            CASE WHEN cc.surface = 0 OR COALESCE(surf_mb.total_surface, 0) = 0
+                                THEN COALESCE(mb.amount, 0)
+                                ELSE (cc.surface / surf_mb.total_surface) * COALESCE(mb.amount, 0)
+                            END
+                        ), 0) as total")
+                    ->groupBy('l3.name', 'l2.name', 'l1.name')
+                    ->get();
+            } else {
+                $bonusRows = DB::table('monthly_bonuses as mb')
+                    ->leftJoin('labor_types as lt', 'mb.labor_type_id', '=', 'lt.id')
+                    ->leftJoin('level3s as l3', 'lt.level3_id', '=', 'l3.id')
+                    ->leftJoin('level2s as l2', 'l3.level2_id', '=', 'l2.id')
+                    ->leftJoin('level1s as l1', 'l2.level1_id', '=', 'l1.id')
+                    ->where('mb.team_id', $teamId)
+                    ->where(function ($q) use ($seasonId) {
+                        $q->where('mb.season_id', $seasonId)->orWhereNull('mb.season_id');
+                    })
+                    ->whereIn('mb.contract_id', $contractIds->toArray())
+                    ->selectRaw("COALESCE(l3.name, 'Sin Clasificar') as level3_name, COALESCE(l2.name, 'Sin Clasificar') as level2_name, COALESCE(l1.name, 'Sin Clasificar') as level1_name,
+                        SUM(mb.amount) as total")
+                    ->groupBy('l3.name', 'l2.name', 'l1.name')
+                    ->get();
+            }
+        }
+
+        // ── 3. HORAS EXTRA ────────────────────────────────────────────────
+        $otRows = collect();
+        if ($contractIds->isNotEmpty()) {
+            if ($companyReasonId) {
+                $otSurfaceTotals = DB::table('overtime_hour_cost_centers as ohcc2')
+                    ->join('cost_centers as cc2', 'ohcc2.cost_center_id', '=', 'cc2.id')
+                    ->select('ohcc2.overtime_hour_id', DB::raw('SUM(cc2.surface) as total_surface'))
+                    ->groupBy('ohcc2.overtime_hour_id');
+
+                $otRows = DB::table('overtime_hours as oh')
+                    ->leftJoin('labor_types as lt', 'oh.labor_type_id', '=', 'lt.id')
+                    ->leftJoin('level3s as l3', 'lt.level3_id', '=', 'l3.id')
+                    ->leftJoin('level2s as l2', 'l3.level2_id', '=', 'l2.id')
+                    ->leftJoin('level1s as l1', 'l2.level1_id', '=', 'l1.id')
+                    ->join('overtime_hour_cost_centers as ohcc', 'ohcc.overtime_hour_id', '=', 'oh.id')
+                    ->join('cost_centers as cc', 'ohcc.cost_center_id', '=', 'cc.id')
+                    ->leftJoinSub($otSurfaceTotals, 'surf_oh', 'ohcc.overtime_hour_id', '=', 'surf_oh.overtime_hour_id')
+                    ->where('oh.team_id', $teamId)
+                    ->where(function ($q) use ($seasonId) {
+                        $q->where('oh.season_id', $seasonId)->orWhereNull('oh.season_id');
+                    })
+                    ->whereIn('oh.contract_id', $contractIds->toArray())
+                    ->whereIn('cc.company_reason_id', $companyReasonId)
+                    ->selectRaw("COALESCE(l3.name, 'Sin Clasificar') as level3_name, COALESCE(l2.name, 'Sin Clasificar') as level2_name, COALESCE(l1.name, 'Sin Clasificar') as level1_name,
+                        COALESCE(SUM(
+                            CASE WHEN cc.surface = 0 OR COALESCE(surf_oh.total_surface, 0) = 0
+                                THEN ROUND(oh.hours * oh.base_salary_snapshot * oh.hourly_rate_factor_snapshot * oh.overtime_multiplier_snapshot)
+                                ELSE (cc.surface / surf_oh.total_surface) * ROUND(oh.hours * oh.base_salary_snapshot * oh.hourly_rate_factor_snapshot * oh.overtime_multiplier_snapshot)
+                            END
+                        ), 0) as total")
+                    ->groupBy('l3.name', 'l2.name', 'l1.name')
+                    ->get();
+            } else {
+                $otRows = DB::table('overtime_hours as oh')
+                    ->leftJoin('labor_types as lt', 'oh.labor_type_id', '=', 'lt.id')
+                    ->leftJoin('level3s as l3', 'lt.level3_id', '=', 'l3.id')
+                    ->leftJoin('level2s as l2', 'l3.level2_id', '=', 'l2.id')
+                    ->leftJoin('level1s as l1', 'l2.level1_id', '=', 'l1.id')
+                    ->where('oh.team_id', $teamId)
+                    ->where(function ($q) use ($seasonId) {
+                        $q->where('oh.season_id', $seasonId)->orWhereNull('oh.season_id');
+                    })
+                    ->whereIn('oh.contract_id', $contractIds->toArray())
+                    ->selectRaw("COALESCE(l3.name, 'Sin Clasificar') as level3_name, COALESCE(l2.name, 'Sin Clasificar') as level2_name, COALESCE(l1.name, 'Sin Clasificar') as level1_name,
+                        COALESCE(SUM(ROUND(oh.hours * oh.base_salary_snapshot * oh.hourly_rate_factor_snapshot * oh.overtime_multiplier_snapshot)), 0) as total")
+                    ->groupBy('l3.name', 'l2.name', 'l1.name')
+                    ->get();
+            }
+        }
+
+        // ── Merge ─────────────────────────────────────────────────────────
+        $map = [];
+        foreach ($yieldsRows->merge($bonusRows)->merge($otRows) as $row) {
+            $level1 = $row->level1_name ?? 'Sin Clasificar';
+            $level2 = $row->level2_name ?? 'Sin Clasificar';
+            $level3 = $row->level3_name ?? 'Sin Clasificar';
+            $key = $level1 . '||' . $level2 . '||' . $level3;
+            if (!isset($map[$key])) {
+                $map[$key] = ['level1' => $level1, 'level2' => $level2, 'level3' => $level3, 'total' => 0.0];
+            }
+            $map[$key]['total'] += (float) $row->total;
+        }
+
+        return array_values($map);
+    }
+
+    /**
+     * Remuneraciones agrupadas por Level1/Level2/Level3 Y por mes de temporada, en una sola pasada.
+     * Combina la granularidad de getPayrollByLevel3() con la indexación por mes de getPayrollMonthly().
+     *
+     * @param  array  $months  Array de 12 meses generado por generateMonthsArray() — cada elemento tiene 'id'
+     * @return array [{level1: string, level2: string, level3: string, monthly: float[12]}]
+     */
+    public function getPayrollByLevel3Monthly(int $teamId, int $seasonId, array $months, array|null $companyReasonId = null): array
+    {
+        $contractIds = Contract::where('team_id', $teamId)->pluck('id');
+
+        $monthIndexMap = [];
+        foreach ($months as $i => $m) {
+            $monthIndexMap[(int) $m['id']] = $i;
+        }
+
+        $map = [];
+        $addRow = function ($row, $monthNum) use (&$map, $monthIndexMap) {
+            $idx = $monthIndexMap[(int) $monthNum] ?? null;
+            if ($idx === null) return;
+            $level1 = $row->level1_name ?? 'Sin Clasificar';
+            $level2 = $row->level2_name ?? 'Sin Clasificar';
+            $level3 = $row->level3_name ?? 'Sin Clasificar';
+            $key = $level1 . '||' . $level2 . '||' . $level3;
+            if (!isset($map[$key])) {
+                $map[$key] = ['level1' => $level1, 'level2' => $level2, 'level3' => $level3, 'monthly' => array_fill(0, 12, 0.0)];
+            }
+            $map[$key]['monthly'][$idx] += (float) $row->total;
+        };
+
+        // ── 1. TARJAS ─────────────────────────────────────────────────────
+        if ($companyReasonId) {
+            $yieldSurfaceTotals = DB::table('daily_yield_cost_center as dycc2')
+                ->join('cost_centers as cc2', 'dycc2.cost_center_id', '=', 'cc2.id')
+                ->select('dycc2.daily_yield_id', DB::raw('SUM(cc2.surface) as total_surface'))
+                ->groupBy('dycc2.daily_yield_id');
+
+            $yieldsRows = DB::table('daily_yields as dy')
+                ->leftJoin('labor_types as lt', 'dy.labor_type_id', '=', 'lt.id')
+                ->leftJoin('level3s as l3', 'lt.level3_id', '=', 'l3.id')
+                ->leftJoin('level2s as l2', 'l3.level2_id', '=', 'l2.id')
+                ->leftJoin('level1s as l1', 'l2.level1_id', '=', 'l1.id')
+                ->join('daily_yield_cost_center as dycc', 'dycc.daily_yield_id', '=', 'dy.id')
+                ->join('cost_centers as cc', 'dycc.cost_center_id', '=', 'cc.id')
+                ->leftJoinSub($yieldSurfaceTotals, 'surf_dy', 'dycc.daily_yield_id', '=', 'surf_dy.daily_yield_id')
+                ->where('dy.team_id', $teamId)
+                ->where('dy.season_id', $seasonId)
+                ->whereIn('cc.company_reason_id', $companyReasonId)
+                ->selectRaw("MONTH(dy.date) as month_num, COALESCE(l3.name, 'Sin Clasificar') as level3_name, COALESCE(l2.name, 'Sin Clasificar') as level2_name, COALESCE(l1.name, 'Sin Clasificar') as level1_name,
+                    COALESCE(SUM(
+                        CASE WHEN cc.surface = 0 OR COALESCE(surf_dy.total_surface, 0) = 0
+                            THEN (COALESCE(dy.amount,0) + COALESCE(dy.bonus_amount,0) + COALESCE(dy.target_price_bonus,0))
+                            ELSE (cc.surface / surf_dy.total_surface) * (COALESCE(dy.amount,0) + COALESCE(dy.bonus_amount,0) + COALESCE(dy.target_price_bonus,0))
+                        END
+                    ), 0) as total")
+                ->groupBy(DB::raw('MONTH(dy.date)'), 'l3.name', 'l2.name', 'l1.name')
+                ->get();
+        } else {
+            $yieldsRows = DB::table('daily_yields as dy')
+                ->leftJoin('labor_types as lt', 'dy.labor_type_id', '=', 'lt.id')
+                ->leftJoin('level3s as l3', 'lt.level3_id', '=', 'l3.id')
+                ->leftJoin('level2s as l2', 'l3.level2_id', '=', 'l2.id')
+                ->leftJoin('level1s as l1', 'l2.level1_id', '=', 'l1.id')
+                ->where('dy.team_id', $teamId)
+                ->where('dy.season_id', $seasonId)
+                ->selectRaw("MONTH(dy.date) as month_num, COALESCE(l3.name, 'Sin Clasificar') as level3_name, COALESCE(l2.name, 'Sin Clasificar') as level2_name, COALESCE(l1.name, 'Sin Clasificar') as level1_name,
+                    SUM(COALESCE(dy.amount,0) + COALESCE(dy.bonus_amount,0) + COALESCE(dy.target_price_bonus,0)) as total")
+                ->groupBy(DB::raw('MONTH(dy.date)'), 'l3.name', 'l2.name', 'l1.name')
+                ->get();
+        }
+        foreach ($yieldsRows as $row) { $addRow($row, $row->month_num); }
+
+        // ── 2. BONOS MENSUALES ────────────────────────────────────────────
+        if ($contractIds->isNotEmpty()) {
+            if ($companyReasonId) {
+                $bonusSurfaceTotals = DB::table('monthly_bonus_cost_centers as mbcc2')
+                    ->join('cost_centers as cc2', 'mbcc2.cost_center_id', '=', 'cc2.id')
+                    ->select('mbcc2.monthly_bonus_id', DB::raw('SUM(cc2.surface) as total_surface'))
+                    ->groupBy('mbcc2.monthly_bonus_id');
+
+                $bonusRows = DB::table('monthly_bonuses as mb')
+                    ->leftJoin('labor_types as lt', 'mb.labor_type_id', '=', 'lt.id')
+                    ->leftJoin('level3s as l3', 'lt.level3_id', '=', 'l3.id')
+                    ->leftJoin('level2s as l2', 'l3.level2_id', '=', 'l2.id')
+                    ->leftJoin('level1s as l1', 'l2.level1_id', '=', 'l1.id')
+                    ->join('monthly_bonus_cost_centers as mbcc', 'mbcc.monthly_bonus_id', '=', 'mb.id')
+                    ->join('cost_centers as cc', 'mbcc.cost_center_id', '=', 'cc.id')
+                    ->leftJoinSub($bonusSurfaceTotals, 'surf_mb', 'mbcc.monthly_bonus_id', '=', 'surf_mb.monthly_bonus_id')
+                    ->where('mb.team_id', $teamId)
+                    ->where(function ($q) use ($seasonId) {
+                        $q->where('mb.season_id', $seasonId)->orWhereNull('mb.season_id');
+                    })
+                    ->whereIn('mb.contract_id', $contractIds->toArray())
+                    ->whereIn('cc.company_reason_id', $companyReasonId)
+                    ->selectRaw("mb.month_id as month_num, COALESCE(l3.name, 'Sin Clasificar') as level3_name, COALESCE(l2.name, 'Sin Clasificar') as level2_name, COALESCE(l1.name, 'Sin Clasificar') as level1_name,
+                        COALESCE(SUM(
+                            CASE WHEN cc.surface = 0 OR COALESCE(surf_mb.total_surface, 0) = 0
+                                THEN COALESCE(mb.amount, 0)
+                                ELSE (cc.surface / surf_mb.total_surface) * COALESCE(mb.amount, 0)
+                            END
+                        ), 0) as total")
+                    ->groupBy('mb.month_id', 'l3.name', 'l2.name', 'l1.name')
+                    ->get();
+            } else {
+                $bonusRows = DB::table('monthly_bonuses as mb')
+                    ->leftJoin('labor_types as lt', 'mb.labor_type_id', '=', 'lt.id')
+                    ->leftJoin('level3s as l3', 'lt.level3_id', '=', 'l3.id')
+                    ->leftJoin('level2s as l2', 'l3.level2_id', '=', 'l2.id')
+                    ->leftJoin('level1s as l1', 'l2.level1_id', '=', 'l1.id')
+                    ->where('mb.team_id', $teamId)
+                    ->where(function ($q) use ($seasonId) {
+                        $q->where('mb.season_id', $seasonId)->orWhereNull('mb.season_id');
+                    })
+                    ->whereIn('mb.contract_id', $contractIds->toArray())
+                    ->selectRaw("mb.month_id as month_num, COALESCE(l3.name, 'Sin Clasificar') as level3_name, COALESCE(l2.name, 'Sin Clasificar') as level2_name, COALESCE(l1.name, 'Sin Clasificar') as level1_name,
+                        SUM(mb.amount) as total")
+                    ->groupBy('mb.month_id', 'l3.name', 'l2.name', 'l1.name')
+                    ->get();
+            }
+            foreach ($bonusRows as $row) { $addRow($row, $row->month_num); }
+        }
+
+        // ── 3. HORAS EXTRA ────────────────────────────────────────────────
+        if ($contractIds->isNotEmpty()) {
+            if ($companyReasonId) {
+                $otSurfaceTotals = DB::table('overtime_hour_cost_centers as ohcc2')
+                    ->join('cost_centers as cc2', 'ohcc2.cost_center_id', '=', 'cc2.id')
+                    ->select('ohcc2.overtime_hour_id', DB::raw('SUM(cc2.surface) as total_surface'))
+                    ->groupBy('ohcc2.overtime_hour_id');
+
+                $otRows = DB::table('overtime_hours as oh')
+                    ->leftJoin('labor_types as lt', 'oh.labor_type_id', '=', 'lt.id')
+                    ->leftJoin('level3s as l3', 'lt.level3_id', '=', 'l3.id')
+                    ->leftJoin('level2s as l2', 'l3.level2_id', '=', 'l2.id')
+                    ->leftJoin('level1s as l1', 'l2.level1_id', '=', 'l1.id')
+                    ->join('overtime_hour_cost_centers as ohcc', 'ohcc.overtime_hour_id', '=', 'oh.id')
+                    ->join('cost_centers as cc', 'ohcc.cost_center_id', '=', 'cc.id')
+                    ->leftJoinSub($otSurfaceTotals, 'surf_oh', 'ohcc.overtime_hour_id', '=', 'surf_oh.overtime_hour_id')
+                    ->where('oh.team_id', $teamId)
+                    ->where(function ($q) use ($seasonId) {
+                        $q->where('oh.season_id', $seasonId)->orWhereNull('oh.season_id');
+                    })
+                    ->whereIn('oh.contract_id', $contractIds->toArray())
+                    ->whereIn('cc.company_reason_id', $companyReasonId)
+                    ->selectRaw("oh.month_id as month_num, COALESCE(l3.name, 'Sin Clasificar') as level3_name, COALESCE(l2.name, 'Sin Clasificar') as level2_name, COALESCE(l1.name, 'Sin Clasificar') as level1_name,
+                        COALESCE(SUM(
+                            CASE WHEN cc.surface = 0 OR COALESCE(surf_oh.total_surface, 0) = 0
+                                THEN ROUND(oh.hours * oh.base_salary_snapshot * oh.hourly_rate_factor_snapshot * oh.overtime_multiplier_snapshot)
+                                ELSE (cc.surface / surf_oh.total_surface) * ROUND(oh.hours * oh.base_salary_snapshot * oh.hourly_rate_factor_snapshot * oh.overtime_multiplier_snapshot)
+                            END
+                        ), 0) as total")
+                    ->groupBy('oh.month_id', 'l3.name', 'l2.name', 'l1.name')
+                    ->get();
+            } else {
+                $otRows = DB::table('overtime_hours as oh')
+                    ->leftJoin('labor_types as lt', 'oh.labor_type_id', '=', 'lt.id')
+                    ->leftJoin('level3s as l3', 'lt.level3_id', '=', 'l3.id')
+                    ->leftJoin('level2s as l2', 'l3.level2_id', '=', 'l2.id')
+                    ->leftJoin('level1s as l1', 'l2.level1_id', '=', 'l1.id')
+                    ->where('oh.team_id', $teamId)
+                    ->where(function ($q) use ($seasonId) {
+                        $q->where('oh.season_id', $seasonId)->orWhereNull('oh.season_id');
+                    })
+                    ->whereIn('oh.contract_id', $contractIds->toArray())
+                    ->selectRaw("oh.month_id as month_num, COALESCE(l3.name, 'Sin Clasificar') as level3_name, COALESCE(l2.name, 'Sin Clasificar') as level2_name, COALESCE(l1.name, 'Sin Clasificar') as level1_name,
+                        COALESCE(SUM(ROUND(oh.hours * oh.base_salary_snapshot * oh.hourly_rate_factor_snapshot * oh.overtime_multiplier_snapshot)), 0) as total")
+                    ->groupBy('oh.month_id', 'l3.name', 'l2.name', 'l1.name')
+                    ->get();
+            }
+            foreach ($otRows as $row) { $addRow($row, $row->month_num); }
+        }
+
+        return array_values($map);
+    }
+
+    /**
      * Remuneraciones agrupadas por Level2 para UN mes específico (month_id 1-12).
      * Misma ruta de clasificación que getPayrollByLevel2, pero filtrado por mes:
      * tarjas por MONTH(date), bonos y HE por month_id.
