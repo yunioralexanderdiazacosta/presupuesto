@@ -1958,7 +1958,7 @@ class ComparativeOutflowsDashboardController extends Controller
             $countMonths = count($activeMonths);
             if ($countMonths > 0) {
                 $quantity = ($adm->quantity !== null && ($adm->quantity > 0)) ? ((in_array($adm->unit_id ?? null, [2, 4])) ? ($adm->quantity / 1000) : $adm->quantity) : 0;
-                $ratio = (!$company_reason_id || is_null($adm->branch_id)) ? 1.0 : ($branchRatios[$adm->branch_id] ?? 0.0);
+                $ratio = !$company_reason_id ? 1.0 : (is_null($adm->branch_id) ? 0.0 : ($branchRatios[$adm->branch_id] ?? 0.0));
                 $amountPerMonth = round($adm->price * $quantity * $ratio, 2);
                 $monthlyAmounts = array_fill(0, 12, 0.0);
                 foreach ($months as $idx => $month) {
@@ -2007,7 +2007,7 @@ class ComparativeOutflowsDashboardController extends Controller
             $countMonths = count($activeMonths);
             if ($countMonths > 0) {
                 $quantity = ($fld->quantity !== null && ($fld->quantity > 0)) ? ((in_array($fld->unit_id ?? null, [2, 4])) ? ($fld->quantity / 1000) : $fld->quantity) : 0;
-                $ratio = (!$company_reason_id || is_null($fld->branch_id)) ? 1.0 : ($branchRatios[$fld->branch_id] ?? 0.0);
+                $ratio = !$company_reason_id ? 1.0 : (is_null($fld->branch_id) ? 0.0 : ($branchRatios[$fld->branch_id] ?? 0.0));
                 $amountPerMonth = round($fld->price * $quantity * $ratio, 2);
                 $monthlyAmounts = array_fill(0, 12, 0.0);
                 foreach ($months as $idx => $month) {
@@ -2425,10 +2425,10 @@ class ComparativeOutflowsDashboardController extends Controller
             if (!isset($result[$row->month_id])) {
                 continue;
             }
-            // Sin razón social filtrada, o sin sucursal asignada (se considera compartido): 100%
-            $ratio = (!$company_reason_id || is_null($row->branch_id))
+            // Sin razón social filtrada: 100%. Con filtro, sin sucursal asignada: se excluye (igual que fields.index al filtrar por sucursal)
+            $ratio = !$company_reason_id
                 ? 1.0
-                : ($branchRatios[$row->branch_id] ?? 0.0);
+                : (is_null($row->branch_id) ? 0.0 : ($branchRatios[$row->branch_id] ?? 0.0));
             $result[$row->month_id] += floatval($row->total) * $ratio;
         }
         return $result;
@@ -2472,9 +2472,9 @@ class ComparativeOutflowsDashboardController extends Controller
             if (!isset($result[$row->month_id])) {
                 continue;
             }
-            $ratio = (!$company_reason_id || is_null($row->branch_id))
+            $ratio = !$company_reason_id
                 ? 1.0
-                : ($branchRatios[$row->branch_id] ?? 0.0);
+                : (is_null($row->branch_id) ? 0.0 : ($branchRatios[$row->branch_id] ?? 0.0));
             $result[$row->month_id] += floatval($row->total) * $ratio;
         }
         return $result;
