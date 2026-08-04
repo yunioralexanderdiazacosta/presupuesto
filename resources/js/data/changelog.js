@@ -7,6 +7,15 @@
 
 export const changelog = [
   {
+    fecha: '2026-08-04',
+    titulo: 'Dashboard Comparativo — Corrección de montos en Generales Campo y Administración al filtrar por razón social',
+    items: [
+      'Al filtrar el dashboard comparativo por una razón social específica, los montos de "Generales Campo" y "Administración" no coincidían con lo cargado originalmente para esa sucursal.',
+      'Ahora estos montos se calculan según la sucursal real de cada registro, buscando a qué razón social pertenece esa sucursal a través de sus centros de costo, en lugar de repartir un porcentaje general del equipo.',
+      'Los registros sin sucursal asignada siguen mostrándose siempre, igual que antes.',
+    ]
+  },
+  {
     fecha: '2026-08-03',
     titulo: 'Dashboard Comparativo — Nueva tabla de Detalle Mensual por Categoría',
     items: [

@@ -2362,6 +2362,37 @@ class ComparativeOutflowsDashboardController extends Controller
         }
     }
 
+    /**
+     * Calcula, por sucursal (branch_id), el ratio de superficie que corresponde
+     * a las razones sociales filtradas. Una sucursal puede tener centros de costo
+     * de más de una razón social, por eso se prorratea a nivel de esa sucursal
+     * específica (no sobre el total de superficie de todo el equipo).
+     */
+    private function getBranchCompanyReasonRatios($season_id, $company_reason_id)
+    {
+        if (!$company_reason_id) {
+            return [];
+        }
+
+        $branchSurfaces = DB::table('cost_centers')
+            ->where('season_id', $season_id)
+            ->whereNotNull('branch_id')
+            ->select('branch_id', 'company_reason_id', DB::raw('SUM(surface) as surface'))
+            ->groupBy('branch_id', 'company_reason_id')
+            ->get()
+            ->groupBy('branch_id');
+
+        $ratios = [];
+        foreach ($branchSurfaces as $branchId => $rows) {
+            $total = $rows->sum('surface');
+            $filtered = $rows->filter(function ($r) use ($company_reason_id) {
+                return is_null($r->company_reason_id) || in_array($r->company_reason_id, $company_reason_id);
+            })->sum('surface');
+            $ratios[$branchId] = $total > 0 ? ($filtered / $total) : 0.0;
+        }
+        return $ratios;
+    }
+
     private function getMonthsAdministration($team_id, $company_reason_id = null)
     {
         $season_id = session('season_id');
@@ -2374,25 +2405,15 @@ class ComparativeOutflowsDashboardController extends Controller
         }
         $result = array_fill_keys($months, 0);
 
-        // Calcular ratio de superficie para prorratear según razón social
-        $surfaceRatio = 1.0;
-        if ($company_reason_id) {
-            $totalSurface = DB::table('cost_centers')->where('season_id', $season_id)->sum('surface');
-            $filteredSurface = DB::table('cost_centers')
-                ->where('season_id', $season_id)
-                ->where(function ($w) use ($company_reason_id) {
-                    $w->where('company_reason_id', $company_reason_id)
-                      ->orWhereNull('company_reason_id');
-                })
-                ->sum('surface');
-            $surfaceRatio = $totalSurface > 0 ? ($filteredSurface / $totalSurface) : 0.0;
-        }
+        // Ratio de atribución por sucursal según razón social filtrada
+        $branchRatios = $this->getBranchCompanyReasonRatios($season_id, $company_reason_id);
 
-        // Batch: JOIN administrations con items agrupados por mes (1 query en vez de N)
+        // Batch: JOIN administrations con items agrupados por mes y sucursal
         $query = DB::table('administrations as a')
             ->join('administration_items as ai', 'a.id', '=', 'ai.administration_id')
             ->select(
                 'ai.month_id',
+                'a.branch_id',
                 DB::raw('SUM(ROUND(a.price * CASE
                     WHEN a.quantity IS NOT NULL AND a.quantity > 0 THEN
                         CASE WHEN a.unit_id IN (2, 4) THEN a.quantity / 1000 ELSE a.quantity END
@@ -2404,12 +2425,17 @@ class ComparativeOutflowsDashboardController extends Controller
         if ($team_id) {
             $query->where('a.team_id', $team_id);
         }
-        $monthlyTotals = $query->groupBy('ai.month_id')->pluck('total', 'month_id');
+        $rows = $query->groupBy('ai.month_id', 'a.branch_id')->get();
 
-        foreach ($monthlyTotals as $monthId => $total) {
-            if (isset($result[$monthId])) {
-                $result[$monthId] = floatval($total) * $surfaceRatio;
+        foreach ($rows as $row) {
+            if (!isset($result[$row->month_id])) {
+                continue;
             }
+            // Sin razón social filtrada, o sin sucursal asignada (se considera compartido): 100%
+            $ratio = (!$company_reason_id || is_null($row->branch_id))
+                ? 1.0
+                : ($branchRatios[$row->branch_id] ?? 0.0);
+            $result[$row->month_id] += floatval($row->total) * $ratio;
         }
         return $result;
     }
@@ -2426,25 +2452,15 @@ class ComparativeOutflowsDashboardController extends Controller
         }
         $result = array_fill_keys($months, 0);
 
-        // Calcular ratio de superficie para prorratear según razón social
-        $surfaceRatio = 1.0;
-        if ($company_reason_id) {
-            $totalSurface = DB::table('cost_centers')->where('season_id', $season_id)->sum('surface');
-            $filteredSurface = DB::table('cost_centers')
-                ->where('season_id', $season_id)
-                ->where(function ($w) use ($company_reason_id) {
-                    $w->where('company_reason_id', $company_reason_id)
-                      ->orWhereNull('company_reason_id');
-                })
-                ->sum('surface');
-            $surfaceRatio = $totalSurface > 0 ? ($filteredSurface / $totalSurface) : 0.0;
-        }
+        // Ratio de atribución por sucursal según razón social filtrada
+        $branchRatios = $this->getBranchCompanyReasonRatios($season_id, $company_reason_id);
 
-        // Batch: JOIN fields con items agrupados por mes (1 query en vez de N)
+        // Batch: JOIN fields con items agrupados por mes y sucursal
         $query = DB::table('fields as f')
             ->join('field_items as fi', 'f.id', '=', 'fi.field_id')
             ->select(
                 'fi.month_id',
+                'f.branch_id',
                 DB::raw('SUM(ROUND(f.price * CASE
                     WHEN f.quantity IS NOT NULL AND f.quantity > 0 THEN
                         CASE WHEN f.unit_id IN (2, 4) THEN f.quantity / 1000 ELSE f.quantity END
@@ -2456,12 +2472,16 @@ class ComparativeOutflowsDashboardController extends Controller
         if ($team_id) {
             $query->where('f.team_id', $team_id);
         }
-        $monthlyTotals = $query->groupBy('fi.month_id')->pluck('total', 'month_id');
+        $rows = $query->groupBy('fi.month_id', 'f.branch_id')->get();
 
-        foreach ($monthlyTotals as $monthId => $total) {
-            if (isset($result[$monthId])) {
-                $result[$monthId] = floatval($total) * $surfaceRatio;
+        foreach ($rows as $row) {
+            if (!isset($result[$row->month_id])) {
+                continue;
             }
+            $ratio = (!$company_reason_id || is_null($row->branch_id))
+                ? 1.0
+                : ($branchRatios[$row->branch_id] ?? 0.0);
+            $result[$row->month_id] += floatval($row->total) * $ratio;
         }
         return $result;
     }
