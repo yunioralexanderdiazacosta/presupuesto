@@ -612,6 +612,9 @@ onMounted(() => {
     
     createMonthlyChart();
     createCumulativeChart();
+
+    // La tabla "Detalle por Categoría" aparece agrupada por Nivel 1 por defecto
+    groupByLevel1();
 });
 
 // Valores reactivos del presupuesto según el toggle
@@ -2032,6 +2035,176 @@ function createCumulativeChart() {
                 </div>
             </div>
 
+            <!-- Detalle Mensual por Categoría -->
+            <div class="row g-3 mb-3">
+                <div class="col-12">
+                    <div class="card">
+                        <div class="card-header">
+                            <div class="d-flex align-items-center justify-content-between mb-2">
+                                <h6 class="mb-0">
+                                    <i class="fas fa-calendar-alt me-2"></i>Detalle Mensual por Categoría
+                                </h6>
+                                <button
+                                    class="btn btn-sm"
+                                    :class="isMonthlyDetailAllExpanded ? 'btn-warning' : 'btn-outline-primary'"
+                                    @click="toggleMonthlyExpandAll"
+                                    :title="isMonthlyDetailAllExpanded ? 'Colapsar todas las categorías' : 'Expandir todas las categorías'">
+                                    <i class="fas me-1" :class="isMonthlyDetailAllExpanded ? 'fa-list' : 'fa-folder-tree'"></i>
+                                    {{ isMonthlyDetailAllExpanded ? 'Colapsar Todo' : 'Expandir Todo' }}
+                                </button>
+                            </div>
+                            <div class="row align-items-center g-1">
+                                <div class="col-auto">
+                                    <label class="form-label mb-0 small fw-semibold text-muted">
+                                        <i class="fas fa-calendar me-1"></i>Meses
+                                    </label>
+                                </div>
+                                <div class="col" style="max-width: 420px;">
+                                    <Multiselect
+                                        v-model="selectedMonthlyDetailMonths"
+                                        :options="monthlyDetailMonthOptions"
+                                        mode="multiple"
+                                        :searchable="true"
+                                        :close-on-select="false"
+                                        :hide-selected="false"
+                                        :multipleLabel="(vals) => vals.length ? vals.map(v => v.label).join(', ') : 'Selecciona meses'"
+                                        placeholder="Selecciona meses"
+                                        no-options-text="Sin opciones"
+                                        no-results-text="Sin resultados"
+                                        class="multiselect-sm multiselect-company-reason"
+                                        :style="{'--ms-min-h': '1.9rem', '--ms-py': '0.25rem', '--ms-font-size': '0.78rem'}"
+                                    />
+                                </div>
+                            </div>
+                        </div>
+                        <div class="card-body">
+                            <div v-if="orderedSelectedMonths.length === 0" class="text-center py-4 text-muted">
+                                <i class="fas fa-calendar-times fa-lg"></i>
+                                <p class="mt-2 mb-0">Selecciona al menos un mes para ver el detalle</p>
+                            </div>
+                            <div v-else class="table-responsive" style="max-height: 640px;">
+                                <table class="table table-sm table-hover mb-0 monthly-detail-table" style="font-size: 0.78rem;" :style="{'--zone-color': totalSelectionZoneColor, '--zone-width': totalSelectionZoneWidth}">
+                                    <thead class="table-light">
+                                        <tr>
+                                            <th class="sticky-col text-truncate" rowspan="2" style="width: 160px; max-width: 160px; background-color:#f8f9fa; border: 2px solid #dee2e6;" title="Categoría">Categoría</th>
+                                            <th v-for="(mIdx, mi) in orderedSelectedMonths" :key="'h-' + mIdx" colspan="3" class="text-center">
+                                                {{ months[mIdx]?.name }}
+                                            </th>
+                                            <th v-if="orderedSelectedMonths.length > 1" colspan="3" class="text-center total-zone-top total-zone-left total-zone-right total-zone-tl total-zone-tr">
+                                                Total selección
+                                            </th>
+                                        </tr>
+                                        <tr>
+                                            <template v-for="(mIdx, mi) in orderedSelectedMonths" :key="'sh-' + mIdx">
+                                                <th class="text-end month-divider" style="min-width: 95px;">Presup.</th>
+                                                <th class="text-end" style="min-width: 95px;">Real</th>
+                                                <th class="text-end" style="min-width: 95px;">Dif.</th>
+                                            </template>
+                                            <template v-if="orderedSelectedMonths.length > 1">
+                                                <th class="text-end total-zone-left" style="min-width: 95px;">Presup.</th>
+                                                <th class="text-end" style="min-width: 95px;">Real</th>
+                                                <th class="text-end total-zone-right" style="min-width: 95px;">Dif.</th>
+                                            </template>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <template v-for="l1 in monthlyDetailTree" :key="'ml1-' + l1.name">
+                                            <!-- Fila Nivel 1 -->
+                                            <tr class="table-info cursor-pointer" @click="toggleMonthlyL1(l1.name)">
+                                                <td class="sticky-col fw-bold text-truncate" style="background-color:#d1ecf1;" :title="l1.name">
+                                                    <i class="fas me-1" :class="expandedMonthlyL1.has(l1.name) ? 'fa-chevron-down' : 'fa-chevron-right'"></i>
+                                                    {{ l1.name }}
+                                                </td>
+                                                <template v-for="(mIdx, mi) in orderedSelectedMonths" :key="'l1v-' + l1.name + '-' + mIdx">
+                                                    <td class="text-end month-divider">{{ formatCLP(l1.budget_monthly[mIdx]) }}</td>
+                                                    <td class="text-end">{{ formatCLP(l1.real_monthly[mIdx]) }}</td>
+                                                    <td class="text-end" :class="l1.difference_monthly[mIdx] >= 0 ? 'text-success' : 'text-danger'">
+                                                        {{ formatCLP(l1.difference_monthly[mIdx]) }}
+                                                    </td>
+                                                </template>
+                                                <template v-if="orderedSelectedMonths.length > 1">
+                                                    <td class="text-end fw-bold total-col total-zone-left">{{ formatCLP(sumSelectedMonths(l1.budget_monthly)) }}</td>
+                                                    <td class="text-end fw-bold total-col">{{ formatCLP(sumSelectedMonths(l1.real_monthly)) }}</td>
+                                                    <td class="text-end fw-bold total-col total-zone-right" :class="sumSelectedMonths(l1.difference_monthly) >= 0 ? 'text-success' : 'text-danger'">
+                                                        {{ formatCLP(sumSelectedMonths(l1.difference_monthly)) }}
+                                                    </td>
+                                                </template>
+                                            </tr>
+
+                                            <template v-if="expandedMonthlyL1.has(l1.name)">
+                                                <template v-for="l2 in l1.level2Groups" :key="'ml2-' + l2.key">
+                                                    <!-- Fila Nivel 2 -->
+                                                    <tr class="cursor-pointer" @click="toggleMonthlyL2(l2.key)">
+                                                        <td class="sticky-col fw-semibold ps-3 text-truncate" style="background-color:#dde5f0;" :title="l2.name">
+                                                            <i class="fas fa-xs me-1" :class="expandedMonthlyL2.has(l2.key) ? 'fa-chevron-down' : 'fa-chevron-right'"></i>
+                                                            └ {{ l2.name }}
+                                                        </td>
+                                                        <template v-for="(mIdx, mi) in orderedSelectedMonths" :key="'l2v-' + l2.key + '-' + mIdx">
+                                                            <td class="text-end month-divider" style="background-color:#dde5f0;">{{ formatCLP(l2.budget_monthly[mIdx]) }}</td>
+                                                            <td class="text-end" style="background-color:#dde5f0;">{{ formatCLP(l2.real_monthly[mIdx]) }}</td>
+                                                            <td class="text-end" style="background-color:#dde5f0;" :class="l2.difference_monthly[mIdx] >= 0 ? 'text-success' : 'text-danger'">
+                                                                {{ formatCLP(l2.difference_monthly[mIdx]) }}
+                                                            </td>
+                                                        </template>
+                                                        <template v-if="orderedSelectedMonths.length > 1">
+                                                            <td class="text-end fw-semibold total-col total-zone-left">{{ formatCLP(sumSelectedMonths(l2.budget_monthly)) }}</td>
+                                                            <td class="text-end fw-semibold total-col">{{ formatCLP(sumSelectedMonths(l2.real_monthly)) }}</td>
+                                                            <td class="text-end fw-semibold total-col total-zone-right" :class="sumSelectedMonths(l2.difference_monthly) >= 0 ? 'text-success' : 'text-danger'">
+                                                                {{ formatCLP(sumSelectedMonths(l2.difference_monthly)) }}
+                                                            </td>
+                                                        </template>
+                                                    </tr>
+
+                                                    <!-- Filas Nivel 3 -->
+                                                    <template v-if="expandedMonthlyL2.has(l2.key)">
+                                                        <tr v-for="item in l2.items" :key="'ml3-' + l2.key + '-' + item.level3" class="table-light">
+                                                            <td class="sticky-col small ps-4 text-truncate" style="background-color:#f8f9fa;" :title="item.level3">└ {{ item.level3 }}</td>
+                                                            <template v-for="(mIdx, mi) in orderedSelectedMonths" :key="'l3v-' + l2.key + '-' + item.level3 + '-' + mIdx">
+                                                                <td class="text-end month-divider">{{ formatCLP(item.budget_monthly[mIdx]) }}</td>
+                                                                <td class="text-end">{{ formatCLP(item.real_monthly[mIdx]) }}</td>
+                                                                <td class="text-end" :class="item.difference_monthly[mIdx] >= 0 ? 'text-success' : 'text-danger'">
+                                                                    {{ formatCLP(item.difference_monthly[mIdx]) }}
+                                                                </td>
+                                                            </template>
+                                                            <template v-if="orderedSelectedMonths.length > 1">
+                                                                <td class="text-end total-col total-zone-left">{{ formatCLP(sumSelectedMonths(item.budget_monthly)) }}</td>
+                                                                <td class="text-end total-col">{{ formatCLP(sumSelectedMonths(item.real_monthly)) }}</td>
+                                                                <td class="text-end total-col total-zone-right" :class="sumSelectedMonths(item.difference_monthly) >= 0 ? 'text-success' : 'text-danger'">
+                                                                    {{ formatCLP(sumSelectedMonths(item.difference_monthly)) }}
+                                                                </td>
+                                                            </template>
+                                                        </tr>
+                                                    </template>
+                                                </template>
+                                            </template>
+                                        </template>
+                                    </tbody>
+                                    <tfoot class="table-light">
+                                        <tr>
+                                            <td class="sticky-col fw-bold" style="background-color:#f8f9fa;">TOTAL</td>
+                                            <template v-for="(mIdx, mi) in orderedSelectedMonths" :key="'tv-' + mIdx">
+                                                <td class="text-end month-divider">{{ formatCLP(monthlyDetailGrandTotal.budget_monthly[mIdx]) }}</td>
+                                                <td class="text-end">{{ formatCLP(monthlyDetailGrandTotal.real_monthly[mIdx]) }}</td>
+                                                <td class="text-end" :class="monthlyDetailGrandTotal.difference_monthly[mIdx] >= 0 ? 'text-success' : 'text-danger'">
+                                                    {{ formatCLP(monthlyDetailGrandTotal.difference_monthly[mIdx]) }}
+                                                </td>
+                                            </template>
+                                            <template v-if="orderedSelectedMonths.length > 1">
+                                                <td class="text-end fw-bold total-zone-left total-zone-bottom total-zone-bl">{{ formatCLP(sumSelectedMonths(monthlyDetailGrandTotal.budget_monthly)) }}</td>
+                                                <td class="text-end fw-bold total-zone-bottom">{{ formatCLP(sumSelectedMonths(monthlyDetailGrandTotal.real_monthly)) }}</td>
+                                                <td class="text-end fw-bold total-zone-right total-zone-bottom total-zone-br" :class="sumSelectedMonths(monthlyDetailGrandTotal.difference_monthly) >= 0 ? 'text-success' : 'text-danger'">
+                                                    {{ formatCLP(sumSelectedMonths(monthlyDetailGrandTotal.difference_monthly)) }}
+                                                </td>
+                                            </template>
+                                        </tr>
+                                    </tfoot>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
             <!-- Tabla de Evolución Acumulada -->
             <div class="row g-3 mb-3">
                 <div class="col-12">
@@ -2064,7 +2237,7 @@ function createCumulativeChart() {
                                 </ExportExcelButton>
                             </div>
                         </div>
-                        <div class="card-body p-0">
+                        <div class="card-body">
                             <div class="table-responsive">
                                 <table class="table table-sm table-hover mb-0" style="font-size: 0.8rem;">
                                     <thead class="table-light">
@@ -2517,177 +2690,6 @@ function createCumulativeChart() {
                 </div>
             </div>
 
-            <!-- Detalle Mensual por Categoría -->
-            <div class="row g-3 mb-3">
-                <div class="col-12">
-                    <div class="card">
-                        <div class="card-header">
-                            <div class="d-flex align-items-center justify-content-between mb-2">
-                                <h6 class="mb-0">
-                                    <i class="fas fa-calendar-alt me-2"></i>Detalle Mensual por Categoría
-                                </h6>
-                                <button
-                                    class="btn btn-sm"
-                                    :class="isMonthlyDetailAllExpanded ? 'btn-warning' : 'btn-outline-primary'"
-                                    @click="toggleMonthlyExpandAll"
-                                    :title="isMonthlyDetailAllExpanded ? 'Colapsar todas las categorías' : 'Expandir todas las categorías'">
-                                    <i class="fas me-1" :class="isMonthlyDetailAllExpanded ? 'fa-list' : 'fa-folder-tree'"></i>
-                                    {{ isMonthlyDetailAllExpanded ? 'Colapsar Todo' : 'Expandir Todo' }}
-                                </button>
-                            </div>
-                            <div class="row align-items-center g-1">
-                                <div class="col-auto">
-                                    <label class="form-label mb-0 small fw-semibold text-muted">
-                                        <i class="fas fa-calendar me-1"></i>Meses
-                                    </label>
-                                </div>
-                                <div class="col" style="max-width: 420px;">
-                                    <Multiselect
-                                        v-model="selectedMonthlyDetailMonths"
-                                        :options="monthlyDetailMonthOptions"
-                                        mode="multiple"
-                                        :searchable="true"
-                                        :close-on-select="false"
-                                        :hide-selected="false"
-                                        :multipleLabel="(vals) => vals.length ? vals.map(v => v.label).join(', ') : 'Selecciona meses'"
-                                        placeholder="Selecciona meses"
-                                        no-options-text="Sin opciones"
-                                        no-results-text="Sin resultados"
-                                        class="multiselect-sm multiselect-company-reason"
-                                        :style="{'--ms-min-h': '1.9rem', '--ms-py': '0.25rem', '--ms-font-size': '0.78rem'}"
-                                    />
-                                </div>
-                            </div>
-                        </div>
-                        <div class="card-body p-0">
-                            <div v-if="orderedSelectedMonths.length === 0" class="text-center py-4 text-muted">
-                                <i class="fas fa-calendar-times fa-lg"></i>
-                                <p class="mt-2 mb-0">Selecciona al menos un mes para ver el detalle</p>
-                            </div>
-                            <div v-else class="table-responsive" style="max-height: 640px;">
-                                <table class="table table-sm table-hover mb-0 monthly-detail-table" style="font-size: 0.78rem;" :style="{'--zone-color': totalSelectionZoneColor, '--zone-width': totalSelectionZoneWidth}">
-                                    <thead class="table-light">
-                                        <tr>
-                                            <th class="sticky-col text-truncate" rowspan="2" style="width: 160px; max-width: 160px; background-color:#f8f9fa;" title="Categoría">Categoría</th>
-                                            <th v-for="(mIdx, mi) in orderedSelectedMonths" :key="'h-' + mIdx" colspan="3" class="text-center month-zone-top"
-                                                :class="{'month-zone-left month-zone-tl': mi === 0, 'month-zone-right month-zone-tr': mi === orderedSelectedMonths.length - 1}">
-                                                {{ months[mIdx]?.name }}
-                                            </th>
-                                            <th v-if="orderedSelectedMonths.length > 1" colspan="3" class="text-center total-zone-top total-zone-left total-zone-right total-zone-tl total-zone-tr">
-                                                Total selección
-                                            </th>
-                                        </tr>
-                                        <tr>
-                                            <template v-for="(mIdx, mi) in orderedSelectedMonths" :key="'sh-' + mIdx">
-                                                <th class="text-end border-start" :class="{'month-zone-left': mi === 0}" style="min-width: 95px;">Presup.</th>
-                                                <th class="text-end" style="min-width: 95px;">Real</th>
-                                                <th class="text-end" :class="{'month-zone-right': mi === orderedSelectedMonths.length - 1}" style="min-width: 95px;">Dif.</th>
-                                            </template>
-                                            <template v-if="orderedSelectedMonths.length > 1">
-                                                <th class="text-end total-zone-left" style="min-width: 95px;">Presup.</th>
-                                                <th class="text-end" style="min-width: 95px;">Real</th>
-                                                <th class="text-end total-zone-right" style="min-width: 95px;">Dif.</th>
-                                            </template>
-                                        </tr>
-                                    </thead>
-                                    <tbody>
-                                        <template v-for="l1 in monthlyDetailTree" :key="'ml1-' + l1.name">
-                                            <!-- Fila Nivel 1 -->
-                                            <tr class="table-info cursor-pointer" @click="toggleMonthlyL1(l1.name)">
-                                                <td class="sticky-col fw-bold text-truncate" style="background-color:#d1ecf1;" :title="l1.name">
-                                                    <i class="fas me-1" :class="expandedMonthlyL1.has(l1.name) ? 'fa-chevron-down' : 'fa-chevron-right'"></i>
-                                                    {{ l1.name }}
-                                                </td>
-                                                <template v-for="(mIdx, mi) in orderedSelectedMonths" :key="'l1v-' + l1.name + '-' + mIdx">
-                                                    <td class="text-end border-start" :class="{'month-zone-left': mi === 0}">{{ formatCLP(l1.budget_monthly[mIdx]) }}</td>
-                                                    <td class="text-end">{{ formatCLP(l1.real_monthly[mIdx]) }}</td>
-                                                    <td class="text-end" :class="[l1.difference_monthly[mIdx] >= 0 ? 'text-success' : 'text-danger', mi === orderedSelectedMonths.length - 1 ? 'month-zone-right' : '']">
-                                                        {{ formatCLP(l1.difference_monthly[mIdx]) }}
-                                                    </td>
-                                                </template>
-                                                <template v-if="orderedSelectedMonths.length > 1">
-                                                    <td class="text-end fw-bold total-col total-zone-left">{{ formatCLP(sumSelectedMonths(l1.budget_monthly)) }}</td>
-                                                    <td class="text-end fw-bold total-col">{{ formatCLP(sumSelectedMonths(l1.real_monthly)) }}</td>
-                                                    <td class="text-end fw-bold total-col total-zone-right" :class="sumSelectedMonths(l1.difference_monthly) >= 0 ? 'text-success' : 'text-danger'">
-                                                        {{ formatCLP(sumSelectedMonths(l1.difference_monthly)) }}
-                                                    </td>
-                                                </template>
-                                            </tr>
-
-                                            <template v-if="expandedMonthlyL1.has(l1.name)">
-                                                <template v-for="l2 in l1.level2Groups" :key="'ml2-' + l2.key">
-                                                    <!-- Fila Nivel 2 -->
-                                                    <tr class="cursor-pointer" @click="toggleMonthlyL2(l2.key)">
-                                                        <td class="sticky-col fw-semibold ps-3 text-truncate" style="background-color:#dde5f0;" :title="l2.name">
-                                                            <i class="fas fa-xs me-1" :class="expandedMonthlyL2.has(l2.key) ? 'fa-chevron-down' : 'fa-chevron-right'"></i>
-                                                            └ {{ l2.name }}
-                                                        </td>
-                                                        <template v-for="(mIdx, mi) in orderedSelectedMonths" :key="'l2v-' + l2.key + '-' + mIdx">
-                                                            <td class="text-end border-start" :class="{'month-zone-left': mi === 0}" style="background-color:#dde5f0;">{{ formatCLP(l2.budget_monthly[mIdx]) }}</td>
-                                                            <td class="text-end" style="background-color:#dde5f0;">{{ formatCLP(l2.real_monthly[mIdx]) }}</td>
-                                                            <td class="text-end" style="background-color:#dde5f0;" :class="[l2.difference_monthly[mIdx] >= 0 ? 'text-success' : 'text-danger', mi === orderedSelectedMonths.length - 1 ? 'month-zone-right' : '']">
-                                                                {{ formatCLP(l2.difference_monthly[mIdx]) }}
-                                                            </td>
-                                                        </template>
-                                                        <template v-if="orderedSelectedMonths.length > 1">
-                                                            <td class="text-end fw-semibold total-col total-zone-left">{{ formatCLP(sumSelectedMonths(l2.budget_monthly)) }}</td>
-                                                            <td class="text-end fw-semibold total-col">{{ formatCLP(sumSelectedMonths(l2.real_monthly)) }}</td>
-                                                            <td class="text-end fw-semibold total-col total-zone-right" :class="sumSelectedMonths(l2.difference_monthly) >= 0 ? 'text-success' : 'text-danger'">
-                                                                {{ formatCLP(sumSelectedMonths(l2.difference_monthly)) }}
-                                                            </td>
-                                                        </template>
-                                                    </tr>
-
-                                                    <!-- Filas Nivel 3 -->
-                                                    <template v-if="expandedMonthlyL2.has(l2.key)">
-                                                        <tr v-for="item in l2.items" :key="'ml3-' + l2.key + '-' + item.level3" class="table-light">
-                                                            <td class="sticky-col small ps-4 text-truncate" style="background-color:#f8f9fa;" :title="item.level3">└ {{ item.level3 }}</td>
-                                                            <template v-for="(mIdx, mi) in orderedSelectedMonths" :key="'l3v-' + l2.key + '-' + item.level3 + '-' + mIdx">
-                                                                <td class="text-end border-start" :class="{'month-zone-left': mi === 0}">{{ formatCLP(item.budget_monthly[mIdx]) }}</td>
-                                                                <td class="text-end">{{ formatCLP(item.real_monthly[mIdx]) }}</td>
-                                                                <td class="text-end" :class="[item.difference_monthly[mIdx] >= 0 ? 'text-success' : 'text-danger', mi === orderedSelectedMonths.length - 1 ? 'month-zone-right' : '']">
-                                                                    {{ formatCLP(item.difference_monthly[mIdx]) }}
-                                                                </td>
-                                                            </template>
-                                                            <template v-if="orderedSelectedMonths.length > 1">
-                                                                <td class="text-end total-col total-zone-left">{{ formatCLP(sumSelectedMonths(item.budget_monthly)) }}</td>
-                                                                <td class="text-end total-col">{{ formatCLP(sumSelectedMonths(item.real_monthly)) }}</td>
-                                                                <td class="text-end total-col total-zone-right" :class="sumSelectedMonths(item.difference_monthly) >= 0 ? 'text-success' : 'text-danger'">
-                                                                    {{ formatCLP(sumSelectedMonths(item.difference_monthly)) }}
-                                                                </td>
-                                                            </template>
-                                                        </tr>
-                                                    </template>
-                                                </template>
-                                            </template>
-                                        </template>
-                                    </tbody>
-                                    <tfoot class="table-light">
-                                        <tr>
-                                            <td class="sticky-col fw-bold" style="background-color:#f8f9fa;">TOTAL</td>
-                                            <template v-for="(mIdx, mi) in orderedSelectedMonths" :key="'tv-' + mIdx">
-                                                <td class="text-end border-start month-zone-bottom" :class="{'month-zone-left month-zone-bl': mi === 0}">{{ formatCLP(monthlyDetailGrandTotal.budget_monthly[mIdx]) }}</td>
-                                                <td class="text-end month-zone-bottom">{{ formatCLP(monthlyDetailGrandTotal.real_monthly[mIdx]) }}</td>
-                                                <td class="text-end month-zone-bottom" :class="[monthlyDetailGrandTotal.difference_monthly[mIdx] >= 0 ? 'text-success' : 'text-danger', mi === orderedSelectedMonths.length - 1 ? 'month-zone-right month-zone-br' : '']">
-                                                    {{ formatCLP(monthlyDetailGrandTotal.difference_monthly[mIdx]) }}
-                                                </td>
-                                            </template>
-                                            <template v-if="orderedSelectedMonths.length > 1">
-                                                <td class="text-end fw-bold total-zone-left total-zone-bottom total-zone-bl">{{ formatCLP(sumSelectedMonths(monthlyDetailGrandTotal.budget_monthly)) }}</td>
-                                                <td class="text-end fw-bold total-zone-bottom">{{ formatCLP(sumSelectedMonths(monthlyDetailGrandTotal.real_monthly)) }}</td>
-                                                <td class="text-end fw-bold total-zone-right total-zone-bottom total-zone-br" :class="sumSelectedMonths(monthlyDetailGrandTotal.difference_monthly) >= 0 ? 'text-success' : 'text-danger'">
-                                                    {{ formatCLP(sumSelectedMonths(monthlyDetailGrandTotal.difference_monthly)) }}
-                                                </td>
-                                            </template>
-                                        </tr>
-                                    </tfoot>
-                                </table>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
         </div>
     </AppLayout>
 </template>
@@ -2743,6 +2745,11 @@ thead .sticky-col {
     background-color: #eef0f2 !important;
 }
 
+/* Línea vertical entre meses, mismo color que el borde del header (a partir de la fila de sub-encabezados) */
+.month-divider {
+    border-left: 2px solid #dee2e6 !important;
+}
+
 /* border-collapse: separate es necesario para que se vean las esquinas redondeadas de la zona "Total selección" */
 .monthly-detail-table {
     border-collapse: separate;
@@ -2772,32 +2779,6 @@ thead .sticky-col {
     border-bottom-left-radius: 8px;
 }
 .total-zone-br {
-    border-bottom-right-radius: 8px;
-}
-
-/* Borde gris-azulado suave alrededor de cada grupo de columnas mensual (Presup./Real/Dif.) */
-.month-zone-left {
-    border-left: 2px solid #9aa5b1 !important;
-}
-.month-zone-right {
-    border-right: 2px solid #9aa5b1 !important;
-}
-.month-zone-top {
-    border-top: 2px solid #9aa5b1 !important;
-}
-.month-zone-bottom {
-    border-bottom: 2px solid #9aa5b1 !important;
-}
-.month-zone-tl {
-    border-top-left-radius: 8px;
-}
-.month-zone-tr {
-    border-top-right-radius: 8px;
-}
-.month-zone-bl {
-    border-bottom-left-radius: 8px;
-}
-.month-zone-br {
     border-bottom-right-radius: 8px;
 }
 
