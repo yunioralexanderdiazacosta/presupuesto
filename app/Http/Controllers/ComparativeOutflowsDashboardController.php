@@ -1606,18 +1606,8 @@ class ComparativeOutflowsDashboardController extends Controller
         }
         $costCenters = $costCentersQuery->get(['id', 'fruit_id', 'surface'])->keyBy('id');
 
-        // Calcular ratio de superficie para prorratear Administración y Generales Campo
-        // (estos no tienen CC propio, se distribuyen por superficie de la temporada)
-        $surfaceRatio = 1.0;
-        if ($company_reason_id && $costCenters->isNotEmpty()) {
-            $totalSurface = \App\Models\CostCenter::where('season_id', $season_id)
-                ->whereHas('season.team', function ($q) use ($team_id) {
-                    $q->where('team_id', $team_id);
-                })
-                ->sum('surface');
-            $filteredSurface = $costCenters->sum('surface');
-            $surfaceRatio = $totalSurface > 0 ? ($filteredSurface / $totalSurface) : 0.0;
-        }
+        // Administración y Generales Campo no tienen CC propio: se atribuyen por su sucursal (branch_id)
+        $branchRatios = $this->getBranchCompanyReasonRatios($season_id, $company_reason_id);
 
         $totals = [];
         
@@ -1947,7 +1937,8 @@ class ComparativeOutflowsDashboardController extends Controller
                 'a.id as administration_id',
                 'a.price',
                 'a.quantity',
-                'a.unit_id'
+                'a.unit_id',
+                'a.branch_id'
             )
             ->where('a.season_id', $season_id)
             ->where('a.team_id', $team_id)
@@ -1967,7 +1958,8 @@ class ComparativeOutflowsDashboardController extends Controller
             $countMonths = count($activeMonths);
             if ($countMonths > 0) {
                 $quantity = ($adm->quantity !== null && ($adm->quantity > 0)) ? ((in_array($adm->unit_id ?? null, [2, 4])) ? ($adm->quantity / 1000) : $adm->quantity) : 0;
-                $amountPerMonth = round($adm->price * $quantity * $surfaceRatio, 2);
+                $ratio = (!$company_reason_id || is_null($adm->branch_id)) ? 1.0 : ($branchRatios[$adm->branch_id] ?? 0.0);
+                $amountPerMonth = round($adm->price * $quantity * $ratio, 2);
                 $monthlyAmounts = array_fill(0, 12, 0.0);
                 foreach ($months as $idx => $month) {
                     if (in_array($month, $activeMonths)) {
@@ -1994,7 +1986,8 @@ class ComparativeOutflowsDashboardController extends Controller
                 'f.id as field_id',
                 'f.price',
                 'f.quantity',
-                'f.unit_id'
+                'f.unit_id',
+                'f.branch_id'
             )
             ->where('f.season_id', $season_id)
             ->where('f.team_id', $team_id)
@@ -2014,7 +2007,8 @@ class ComparativeOutflowsDashboardController extends Controller
             $countMonths = count($activeMonths);
             if ($countMonths > 0) {
                 $quantity = ($fld->quantity !== null && ($fld->quantity > 0)) ? ((in_array($fld->unit_id ?? null, [2, 4])) ? ($fld->quantity / 1000) : $fld->quantity) : 0;
-                $amountPerMonth = round($fld->price * $quantity * $surfaceRatio, 2);
+                $ratio = (!$company_reason_id || is_null($fld->branch_id)) ? 1.0 : ($branchRatios[$fld->branch_id] ?? 0.0);
+                $amountPerMonth = round($fld->price * $quantity * $ratio, 2);
                 $monthlyAmounts = array_fill(0, 12, 0.0);
                 foreach ($months as $idx => $month) {
                     if (in_array($month, $activeMonths)) {
