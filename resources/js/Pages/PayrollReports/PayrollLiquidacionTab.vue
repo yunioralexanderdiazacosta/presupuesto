@@ -69,7 +69,7 @@
                                 {{ row.otros_descuentos > 0 ? '- $ ' + fmt(row.otros_descuentos) : '—' }}
                             </td>
                             <td class="text-end fw-bold text-primary">
-                                $ {{ fmt((row.total_haberes || 0) - (row.anticipos || 0)) }}
+                                $ {{ fmt((row.total_haberes || 0) - (row.anticipos || 0) - (row.otros_descuentos || 0)) }}
                             </td>
                             <td class="text-nowrap">
                                 <span v-if="row.end_date" class="text-danger">{{ row.end_date }}</span>
@@ -153,7 +153,7 @@ const totals = computed(() => ({
     cargas_familiares: props.rows.reduce((s, r) => s + (r.cargas_familiares || 0), 0),
     anticipos:         props.rows.reduce((s, r) => s + (r.anticipos || 0), 0),
     otros_descuentos:  props.rows.reduce((s, r) => s + (r.otros_descuentos || 0), 0),
-    total_liquido:     props.rows.reduce((s, r) => s + ((r.total_haberes || 0) - (r.anticipos || 0)), 0),
+    total_liquido:     props.rows.reduce((s, r) => s + ((r.total_haberes || 0) - (r.anticipos || 0) - (r.otros_descuentos || 0)), 0),
 }));
 
 const excelHeaders = [
@@ -197,7 +197,7 @@ const excelData = computed(() => props.rows.map(r => ({
     cargas_familiares: r.cargas_familiares || 0,
     anticipos:         r.anticipos || 0,
     otros_descuentos:  r.otros_descuentos || 0,
-    total_liquido:     (r.total_haberes || 0) - (r.anticipos || 0),
+    total_liquido:     (r.total_haberes || 0) - (r.anticipos || 0) - (r.otros_descuentos || 0),
     end_date:          r.end_date ?? '',
     causal_termino:    r.causal_termino ?? '',
 })));

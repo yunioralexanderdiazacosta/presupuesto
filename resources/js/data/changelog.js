@@ -7,6 +7,14 @@
 
 export const changelog = [
   {
+    fecha: '2026-08-05',
+    titulo: 'Reportes de Remuneraciones — Corrección del Total Líquido en Resumen Liquidación',
+    items: [
+      'En la pestaña "Resumen Liquidación", la columna "Total Líquido" ahora también descuenta los "Otros Descuentos" de cada trabajador, además de los anticipos.',
+      'El total general de la tabla y la exportación a Excel quedan igualmente corregidos.',
+    ]
+  },
+  {
     fecha: '2026-08-04',
     titulo: 'Dashboard Comparativo — Corrección de montos en Generales Campo y Administración al filtrar por razón social',
     items: [
