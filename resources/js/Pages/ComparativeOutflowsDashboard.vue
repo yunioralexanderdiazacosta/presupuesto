@@ -2142,13 +2142,13 @@ function createCumulativeChart() {
                                     {{ isMonthlyDetailAllExpanded ? 'Colapsar Todo' : 'Expandir Todo' }}
                                 </button>
                             </div>
-                            <div class="row align-items-center g-1 mb-2">
+                            <div class="row align-items-center g-1 mb-1">
                                 <div class="col-auto">
                                     <label class="form-label mb-0 small fw-semibold text-muted">
                                         <i class="fas fa-calendar me-1"></i>Meses
                                     </label>
                                 </div>
-                                <div class="col" style="max-width: 420px;">
+                                <div class="col-auto" style="width: 480px; max-width: 100%; flex: 0 0 auto;">
                                     <Multiselect
                                         v-model="selectedMonthlyDetailMonths"
                                         :options="monthlyDetailMonthOptions"
@@ -2160,8 +2160,8 @@ function createCumulativeChart() {
                                         placeholder="Selecciona meses"
                                         no-options-text="Sin opciones"
                                         no-results-text="Sin resultados"
-                                        class="multiselect-sm multiselect-company-reason"
-                                        :style="{'--ms-min-h': '1.9rem', '--ms-py': '0.25rem', '--ms-font-size': '0.78rem'}"
+                                        class="multiselect-sm multiselect-company-reason multiselect-months-wide"
+                                        :style="{'--ms-min-h': '2.6rem', '--ms-py': '0.4rem', '--ms-font-size': '0.78rem'}"
                                     />
                                 </div>
                                 <div class="col-auto">
@@ -2202,7 +2202,7 @@ function createCumulativeChart() {
                                 Estás viendo el <strong>Consumido</strong> (salidas de bodega). Su clasificación por categoría y su reparto por razón social son distintos a los de Facturado, por lo que algunas categorías pueden variar o aparecer solo en esta vista.
                             </div>
                         </div>
-                        <div class="card-body">
+                        <div class="card-body pt-2">
                             <div v-if="orderedSelectedMonths.length === 0" class="text-center py-4 text-muted">
                                 <i class="fas fa-calendar-times fa-lg"></i>
                                 <p class="mt-2 mb-0">Selecciona al menos un mes para ver el detalle</p>
@@ -2928,5 +2928,15 @@ thead .sticky-col {
 .multiselect-company-reason .multiselect-option {
     font-size: 0.78rem;
     padding: 4px 10px;
+}
+
+/* Multiselect de meses (Detalle Mensual por Categoría) — más ancho para que el
+   listado de meses seleccionados no quede amontonado/truncado */
+.multiselect-months-wide.multiselect-company-reason .multiselect-multiple-label {
+    max-width: 100%;
+}
+.multiselect-months-wide.multiselect-company-reason .multiselect-wrapper {
+    min-height: 38px;
+    height: auto;
 }
 </style>
