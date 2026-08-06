@@ -7,6 +7,15 @@
 
 export const changelog = [
   {
+    fecha: '2026-08-06',
+    titulo: 'Dashboard Comparativo — Selector Facturado/Consumido en Detalle Mensual por Categoría',
+    items: [
+      'En la tabla "Detalle Mensual por Categoría" ahora se puede elegir si la columna "Real" muestra el monto Facturado (como antes) o el Consumido (salidas de bodega).',
+      'Se agregó un aviso e ícono de ayuda que explican que Facturado y Consumido usan criterios de clasificación y de reparto por razón social distintos, por lo que algunas categorías pueden variar entre ambas vistas.',
+      'El consumido se calcula bajo demanda solo al seleccionarlo, para no afectar el tiempo de carga habitual de la página.',
+    ]
+  },
+  {
     fecha: '2026-08-05',
     titulo: 'Reportes de Remuneraciones — Corrección del Total Líquido en Resumen Liquidación',
     items: [

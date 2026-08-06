@@ -785,7 +785,96 @@ const getStatusIcon = (status) => {
 // Tabla "Detalle Mensual por Categoría" (Presupuesto vs Real vs Diferencia)
 // Real = Facturado + Remuneraciones. El filtro de meses se aplica 100% en frontend
 // (los datos de los 12 meses ya vienen calculados en comparisonByLevel1Monthly).
+//
+// Selector "Real: Facturado | Consumido" — Facturado viene precalculado en el
+// payload inicial; Consumido se pide bajo demanda (es una vuelta pesada por
+// todos los outflows de la temporada) y se cachea en el frontend hasta que
+// cambien los filtros (inversiones / razón social aplicada).
 // ────────────────────────────────────────────────────────────────
+
+const realSourceMode = ref('facturado'); // 'facturado' | 'consumido'
+const consumedCategoryRows = ref(null); // null = aún no cargado
+const loadingConsumedByCategory = ref(false);
+const realColumnLabel = computed(() => realSourceMode.value === 'consumido' ? 'Consumido' : 'Real');
+
+// Convierte el objeto {month_id: monto} del backend a un array de 12 posiciones
+// respetando el orden de meses de la temporada (props.months)
+const monthlyByIdToArray = (monthlyById) => (props.months || []).map(m => Number(monthlyById?.[m.id] || 0));
+
+const fetchConsumedByCategory = async () => {
+    loadingConsumedByCategory.value = true;
+    try {
+        const response = await axios.get(route('api.comparative.consumed-by-category'), {
+            params: {
+                include_investments: includeInvestments.value ? 1 : 0,
+                ...(selectedCompanyReasons.value.length > 0 ? { company_reason_ids: selectedCompanyReasons.value } : {})
+            }
+        });
+        consumedCategoryRows.value = response.data.rows || [];
+    } catch (error) {
+        console.error('Error cargando consumido por categoría:', error);
+        consumedCategoryRows.value = [];
+    } finally {
+        loadingConsumedByCategory.value = false;
+    }
+};
+
+// Al activar "Consumido" por primera vez, se carga desde el backend
+watch(realSourceMode, (val) => {
+    if (val === 'consumido' && consumedCategoryRows.value === null) {
+        fetchConsumedByCategory();
+    }
+});
+
+// Si cambian inversiones o la razón social aplicada, invalidar caché de consumido
+watch([includeInvestments, () => props.activeCompanyReasonIds], () => {
+    if (realSourceMode.value === 'consumido') {
+        consumedCategoryRows.value = null;
+        fetchConsumedByCategory();
+    }
+});
+
+// Fuente de datos activa para la tabla: Facturado (prop tal cual) o Consumido
+// (presupuesto de comparisonByLevel1Monthly + consumido fusionado por categoría).
+// El Real de Consumido también suma Remuneraciones (payroll_monthly), igual que
+// el Real de Facturado, para que ambos modos sean comparables contra Presupuesto.
+// Nota: la clasificación de Consumido es la propia del outflow, por lo que puede
+// haber categorías que no existan en Facturado/Presupuesto (se agregan al final).
+const activeMonthlyDetailItems = computed(() => {
+    const budgetItems = props.comparisonByLevel1Monthly || [];
+    if (realSourceMode.value !== 'consumido') return budgetItems;
+
+    const consumedMap = new Map();
+    for (const row of (consumedCategoryRows.value || [])) {
+        const key = row.level1 + '||' + row.level2 + '||' + row.level3;
+        consumedMap.set(key, monthlyByIdToArray(row.monthly));
+    }
+
+    const merged = budgetItems.map(item => {
+        const key = item.level1 + '||' + item.level2 + '||' + item.level3;
+        const consumedArr = consumedMap.get(key) || Array(12).fill(0);
+        consumedMap.delete(key);
+        const real_monthly = consumedArr.map((v, i) => v + (item.payroll_monthly?.[i] || 0));
+        return {
+            ...item,
+            real_monthly,
+            difference_monthly: item.budget_monthly.map((b, i) => b - real_monthly[i]),
+        };
+    });
+
+    // Categorías que solo existen en Consumido (sin presupuesto ni facturado asociado)
+    for (const [key, real_monthly] of consumedMap.entries()) {
+        const [level1, level2, level3] = key.split('||');
+        merged.push({
+            level1, level2, level3,
+            budget_monthly: Array(12).fill(0),
+            real_monthly,
+            difference_monthly: real_monthly.map(v => -v),
+        });
+    }
+
+    return merged;
+});
 
 // Opciones del multiselect: un item por cada mes de la temporada
 const monthlyDetailMonthOptions = computed(() =>
@@ -830,7 +919,7 @@ const sumMonthlyArray = (items, field) => {    const arr = Array(12).fill(0);
 // Árbol Nivel1 → Nivel2 → Nivel3, con totales agregados por mes en cada nivel
 const monthlyDetailTree = computed(() => {
     const l1Map = new Map();
-    for (const item of (props.comparisonByLevel1Monthly || [])) {
+    for (const item of activeMonthlyDetailItems.value) {
         if (!l1Map.has(item.level1)) l1Map.set(item.level1, new Map());
         const l2Map = l1Map.get(item.level1);
         if (!l2Map.has(item.level2)) l2Map.set(item.level2, []);
@@ -908,7 +997,7 @@ const sumSelectedMonths = (arr) => orderedSelectedMonths.value.reduce((acc, i) =
 
 // Total general (fila TOTAL de la tabla), por mes
 const monthlyDetailGrandTotal = computed(() => {
-    const items = props.comparisonByLevel1Monthly || [];
+    const items = activeMonthlyDetailItems.value;
     const budget_monthly = sumMonthlyArray(items, 'budget_monthly');
     const real_monthly = sumMonthlyArray(items, 'real_monthly');
     return { budget_monthly, real_monthly, difference_monthly: budget_monthly.map((b, i) => b - real_monthly[i]) };
@@ -2040,7 +2129,7 @@ function createCumulativeChart() {
                 <div class="col-12">
                     <div class="card">
                         <div class="card-header">
-                            <div class="d-flex align-items-center justify-content-between mb-2">
+                            <div class="d-flex align-items-center justify-content-between mb-2 flex-wrap gap-2">
                                 <h6 class="mb-0">
                                     <i class="fas fa-calendar-alt me-2"></i>Detalle Mensual por Categoría
                                 </h6>
@@ -2053,7 +2142,7 @@ function createCumulativeChart() {
                                     {{ isMonthlyDetailAllExpanded ? 'Colapsar Todo' : 'Expandir Todo' }}
                                 </button>
                             </div>
-                            <div class="row align-items-center g-1">
+                            <div class="row align-items-center g-1 mb-2">
                                 <div class="col-auto">
                                     <label class="form-label mb-0 small fw-semibold text-muted">
                                         <i class="fas fa-calendar me-1"></i>Meses
@@ -2075,6 +2164,42 @@ function createCumulativeChart() {
                                         :style="{'--ms-min-h': '1.9rem', '--ms-py': '0.25rem', '--ms-font-size': '0.78rem'}"
                                     />
                                 </div>
+                                <div class="col-auto">
+                                    <label class="form-label mb-0 small fw-semibold text-muted">
+                                        <i class="fas fa-filter me-1"></i>Real
+                                    </label>
+                                </div>
+                                <div class="col-auto">
+                                    <div class="btn-group btn-group-sm" role="group">
+                                        <button
+                                            type="button"
+                                            class="btn"
+                                            :class="realSourceMode === 'facturado' ? 'btn-primary' : 'btn-outline-primary'"
+                                            @click="realSourceMode = 'facturado'"
+                                        >Facturado</button>
+                                        <button
+                                            type="button"
+                                            class="btn"
+                                            :class="realSourceMode === 'consumido' ? 'btn-primary' : 'btn-outline-primary'"
+                                            @click="realSourceMode = 'consumido'"
+                                        >Consumido</button>
+                                    </div>
+                                </div>
+                                <div class="col-auto">
+                                    <i
+                                        class="fas fa-circle-info text-muted"
+                                        style="cursor: help;"
+                                        v-tooltip="'Facturado: facturas del mes + remuneraciones, clasificado por el producto. Consumido: salidas de bodega (outflows) + remuneraciones, clasificado según la categoría propia del outflow y prorrateado por superficie de centro de costo. Al ser criterios distintos, las categorías mostradas pueden no coincidir exactamente entre ambas vistas.'"
+                                    ></i>
+                                </div>
+                                <div v-if="loadingConsumedByCategory" class="col-auto">
+                                    <i class="fas fa-circle-notch fa-spin text-muted"></i>
+                                    <span class="small text-muted ms-1">Cargando consumido...</span>
+                                </div>
+                            </div>
+                            <div v-if="realSourceMode === 'consumido'" class="alert alert-warning py-1 px-2 mb-0 small">
+                                <i class="fas fa-triangle-exclamation me-1"></i>
+                                Estás viendo el <strong>Consumido</strong> (salidas de bodega). Su clasificación por categoría y su reparto por razón social son distintos a los de Facturado, por lo que algunas categorías pueden variar o aparecer solo en esta vista.
                             </div>
                         </div>
                         <div class="card-body">
@@ -2097,12 +2222,12 @@ function createCumulativeChart() {
                                         <tr>
                                             <template v-for="(mIdx, mi) in orderedSelectedMonths" :key="'sh-' + mIdx">
                                                 <th class="text-end month-divider" style="min-width: 95px;">Presup.</th>
-                                                <th class="text-end" style="min-width: 95px;">Real</th>
+                                                <th class="text-end" style="min-width: 95px;" :title="realSourceMode === 'consumido' ? 'Consumido' : 'Facturado + Remuneraciones'">{{ realColumnLabel }}</th>
                                                 <th class="text-end" style="min-width: 95px;">Dif.</th>
                                             </template>
                                             <template v-if="orderedSelectedMonths.length > 1">
                                                 <th class="text-end total-zone-left" style="min-width: 95px;">Presup.</th>
-                                                <th class="text-end" style="min-width: 95px;">Real</th>
+                                                <th class="text-end" style="min-width: 95px;">{{ realColumnLabel }}</th>
                                                 <th class="text-end total-zone-right" style="min-width: 95px;">Dif.</th>
                                             </template>
                                         </tr>
