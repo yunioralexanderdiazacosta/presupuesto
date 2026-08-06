@@ -68,7 +68,7 @@ class ConsolidatedDocumentsController extends Controller
             });
 
         // Notas de crédito/débito
-        $notes = CreditDebitNote::with(['supplier', 'invoice.companyReason'])
+        $notes = CreditDebitNote::with(['supplier', 'invoice.companyReason', 'items.branch', 'items.invoiceProduct.branch'])
             ->where('team_id', $user->team_id)
             ->where('season_id', $season_id)
             ->get()
@@ -94,7 +94,16 @@ class ConsolidatedDocumentsController extends Controller
 
                 // NC financiera: affects_inventory=0 y tipo crédito → ya descontada del precio
                 $isFinancial = !$note->affects_inventory && $es_credito;
-                
+
+                // Débito: branch_id propio del item. Crédito: branch del invoice_product original referenciado.
+                $sucursal = $note->items
+                    ->map(fn($item) => $item->branch ?? $item->invoiceProduct?->branch ?? null)
+                    ->filter()
+                    ->pluck('name')
+                    ->unique()
+                    ->values()
+                    ->implode(', ') ?: null;
+
                 return [
                     'tipo' => $tipo,
                     'razon_social' => $note->invoice->companyReason->name ?? '',
@@ -107,7 +116,7 @@ class ConsolidatedDocumentsController extends Controller
                     'monto_total' => $monto_total,
                     'iva' => $iva,
                     'is_financial' => $isFinancial,
-                    'sucursal' => null,
+                    'sucursal' => $sucursal,
                 ];
             });
 
