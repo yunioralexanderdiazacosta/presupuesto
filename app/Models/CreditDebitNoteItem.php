@@ -47,4 +47,19 @@ class CreditDebitNoteItem extends Model
     {
         return $this->belongsTo(Unit::class);
     }
+
+    /** Monto de la línea sin signo (cantidad × precio unitario). */
+    public function getAmountAttribute(): float
+    {
+        return (float) $this->quantity * (float) $this->unit_price;
+    }
+
+    /** Monto de la línea con signo, según el tipo de la nota a la que pertenece (crédito resta, débito suma). */
+    public function getSignedAmountAttribute(): float
+    {
+        $type = $this->relationLoaded('creditDebitNote')
+            ? $this->creditDebitNote?->type
+            : $this->creditDebitNote()->value('type');
+        return $type === CreditDebitNote::TYPE_CREDIT ? -$this->amount : $this->amount;
+    }
 }

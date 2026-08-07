@@ -8,6 +8,14 @@
 export const changelog = [
   {
     fecha: '2026-08-06',
+    titulo: 'Notas de Crédito/Débito — El mes contable no se mostraba en el detalle de la nota',
+    items: [
+      'En la vista de detalle de una nota de crédito/débito, el campo "Mes Contable" siempre aparecía vacío.',
+      'Ahora se completa automáticamente según la fecha de la nota (tanto para las notas nuevas como para las ya existentes) y se muestra correctamente en el detalle.',
+    ]
+  },
+  {
+    fecha: '2026-08-06',
     titulo: 'Dashboard Comparativo — Notas de crédito/débito no se descontaban en el Detalle Mensual por Categoría',
     items: [
       'En "Detalle Mensual por Categoría", el monto Real (Facturado) no estaba descontando las notas de crédito ni sumando las de débito, por lo que el total podía salir más alto que el mostrado en el Resumen Mensual de Presupuesto vs Costos.',
