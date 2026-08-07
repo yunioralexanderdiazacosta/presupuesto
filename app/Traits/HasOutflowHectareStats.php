@@ -140,7 +140,7 @@ trait HasOutflowHectareStats
             ->distinct()
             ->orderBy('development_states.name')
             ->get()
-            ->map(fn($item) => ['value' => $item->id, 'label' => $item->name])
+            ->map(fn($item) => ['value' => (int) $item->id, 'label' => $item->name])
             ->toArray();
     }
 }

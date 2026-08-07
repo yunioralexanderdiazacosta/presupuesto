@@ -158,7 +158,8 @@ const colSpanCountHa = computed(() => 2 + activeBranchColumnsHa.value.length + (
 const haFilteredAmountRows = computed(() => {
     let rows = props.consumoPorHectarea;
     if (selectedDevStates.value.length > 0) {
-        rows = rows.filter(r => selectedDevStates.value.includes(r.development_state_id));
+        const selected = selectedDevStates.value.map(String);
+        rows = rows.filter(r => selected.includes(String(r.development_state_id)));
     }
     if (selectedBranchesHa.value.length > 0) {
         rows = rows.filter(r => selectedBranchesHa.value.includes(r.branch_name || 'Sin sucursal'));
@@ -170,7 +171,8 @@ const haFilteredAmountRows = computed(() => {
 const haSurfaceByBranch = computed(() => {
     let rows = props.superficiePorSucursal;
     if (selectedDevStates.value.length > 0) {
-        rows = rows.filter(r => selectedDevStates.value.includes(r.development_state_id));
+        const selected = selectedDevStates.value.map(String);
+        rows = rows.filter(r => selected.includes(String(r.development_state_id)));
     }
     const multi = selectedBranchesHa.value.length > 0;
     if (multi) {
@@ -514,8 +516,8 @@ const collapseAllLevelsHa = () => {
                         <thead class="table-primary">
                             <tr>
                                 <th class="border-0 py-2">Nivel 1 / Nivel 2 / Nivel 3</th>
-                                <th class="border-0 py-2 text-end" v-for="col in activeBranchColumnsHa" :key="'ha-head-' + col">{{ col }}</th>
-                                <th class="border-0 py-2 text-end" v-if="showAggregateTotalHa">Total</th>
+                                <th class="border-0 py-2 text-end" v-for="col in activeBranchColumnsHa" :key="'ha-head-' + col">{{ col === 'Total' ? 'Promedio' : col }}</th>
+                                <th class="border-0 py-2 text-end" v-if="showAggregateTotalHa" v-tooltip="'Promedio ponderado: monto total \u00f7 superficie total de las sucursales seleccionadas'">Promedio</th>
                                 <th class="border-0 py-2 text-end">% Total</th>
                             </tr>
                         </thead>
