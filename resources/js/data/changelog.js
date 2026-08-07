@@ -8,6 +8,14 @@
 export const changelog = [
   {
     fecha: '2026-08-06',
+    titulo: 'Documentos Consolidados — Notas de Crédito/Débito no aparecían al filtrar por sucursal',
+    items: [
+      'En "Documentos Consolidados", al filtrar por una sucursal específica, las notas de crédito y débito desaparecían de las tablas (Resumen, Lista y Mensual) aunque sí correspondían a esa sucursal.',
+      'Ahora el sistema identifica correctamente la sucursal de cada nota: para notas de débito usa la sucursal indicada en la nota, y para notas de crédito usa la sucursal de la factura original a la que hace referencia.',
+    ]
+  },
+  {
+    fecha: '2026-08-06',
     titulo: 'Dashboard Comparativo — Selector Facturado/Consumido en Detalle Mensual por Categoría',
     items: [
       'En la tabla "Detalle Mensual por Categoría" ahora se puede elegir si la columna "Real" muestra el monto Facturado (como antes) o el Consumido (salidas de bodega).',
