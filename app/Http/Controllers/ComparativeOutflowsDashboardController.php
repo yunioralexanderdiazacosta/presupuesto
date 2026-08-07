@@ -1443,6 +1443,8 @@ class ComparativeOutflowsDashboardController extends Controller
         }
 
         // Notas de crédito/débito (solo affects_inventory=1)
+        // Se agrupa por MONTH(cdn.date) y no por cdn.month_id porque este último
+        // nunca se guarda al crear/editar la nota (queda siempre NULL).
         $notesByMonth = DB::table('credit_debit_notes as cdn')
             ->join('credit_debit_note_items as cdni', 'cdn.id', '=', 'cdni.credit_debit_note_id')
             ->join('products as p', 'cdni.product_id', '=', 'p.id')
@@ -1463,11 +1465,11 @@ class ComparativeOutflowsDashboardController extends Controller
                 DB::raw('COALESCE(l1.name, "Sin Clasificar") as level1_name'),
                 DB::raw('COALESCE(l2.name, "Sin Clasificar") as level2_name'),
                 DB::raw('COALESCE(l3.name, "Sin Clasificar") as level3_name'),
-                'cdn.month_id',
+                DB::raw('MONTH(cdn.date) as month_id'),
                 'cdn.type',
                 DB::raw('SUM(cdni.unit_price * cdni.quantity) as total')
             )
-            ->groupBy('level1_name', 'level2_name', 'level3_name', 'cdn.month_id', 'cdn.type')
+            ->groupBy('level1_name', 'level2_name', 'level3_name', DB::raw('MONTH(cdn.date)'), 'cdn.type')
             ->get();
 
         foreach ($notesByMonth as $row) {

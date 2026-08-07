@@ -8,6 +8,14 @@
 export const changelog = [
   {
     fecha: '2026-08-06',
+    titulo: 'Dashboard Comparativo — Notas de crédito/débito no se descontaban en el Detalle Mensual por Categoría',
+    items: [
+      'En "Detalle Mensual por Categoría", el monto Real (Facturado) no estaba descontando las notas de crédito ni sumando las de débito, por lo que el total podía salir más alto que el mostrado en el Resumen Mensual de Presupuesto vs Costos.',
+      'Ahora las notas de crédito/débito se aplican correctamente mes a mes en esa tabla, quedando consistente con el resto del dashboard.',
+    ]
+  },
+  {
+    fecha: '2026-08-06',
     titulo: 'Documentos Consolidados — Notas de Crédito/Débito no aparecían al filtrar por sucursal',
     items: [
       'En "Documentos Consolidados", al filtrar por una sucursal específica, las notas de crédito y débito desaparecían de las tablas (Resumen, Lista y Mensual) aunque sí correspondían a esa sucursal.',
