@@ -10,7 +10,7 @@ import CreateApplicationOrderModal from '@/Components/ApplicationOrders/CreateAp
 import EditApplicationOrderModal from '@/Components/ApplicationOrders/EditApplicationOrderModal.vue';
 const isLocked = useSeasonLock();
 const props = defineProps({
-    applicationOrders: Object,
+    applicationOrders: Array,
     products: Array,
     costCenters: Array,
     branches: Array,
@@ -29,21 +29,62 @@ const links = [
 ];
 
 const term = ref('');
+const statusFilter = ref('');
+const statusOptions = [
+    { value: '', label: 'Todos los estados' },
+    { value: 'pendiente', label: 'Pendiente' },
+    { value: 'en_proceso', label: 'En Proceso' },
+    { value: 'completada', label: 'Completada' },
+    { value: 'cancelada', label: 'Cancelada' },
+];
+
+// Ordenamiento por columna (fecha o número de orden)
+const sortBy = ref('date');
+const sortDir = ref('desc');
+
+function toggleSort(field) {
+    if (sortBy.value === field) {
+        sortDir.value = sortDir.value === 'asc' ? 'desc' : 'asc';
+    } else {
+        sortBy.value = field;
+        sortDir.value = 'asc';
+    }
+}
+
 const filteredRows = computed(() => {
-    if (!props.applicationOrders || !props.applicationOrders.data) return [];
-    if (!term.value) return props.applicationOrders.data;
-    const search = term.value.toLowerCase();
-    return props.applicationOrders.data.filter(item => {
-        const operators = item.operators?.toLowerCase() || '';
-        const status = item.status?.toLowerCase() || '';
-        const productos = item.order_products?.map(op => op.product?.name?.toLowerCase() || '').join(' ') || '';
-        return (
-            operators.includes(search) ||
-            status.includes(search) ||
-            productos.includes(search) ||
-            item.id.toString().includes(search)
-        );
+    if (!props.applicationOrders) return [];
+    let rows = props.applicationOrders;
+
+    if (term.value) {
+        const search = term.value.toLowerCase();
+        rows = rows.filter(item => {
+            const operators = item.operators?.toLowerCase() || '';
+            const status = item.status?.toLowerCase() || '';
+            const productos = item.order_products?.map(op => op.product?.name?.toLowerCase() || '').join(' ') || '';
+            return (
+                operators.includes(search) ||
+                status.includes(search) ||
+                productos.includes(search) ||
+                item.id.toString().includes(search)
+            );
+        });
+    }
+
+    if (statusFilter.value) {
+        rows = rows.filter(item => item.status === statusFilter.value);
+    }
+
+    rows = [...rows].sort((a, b) => {
+        let cmp = 0;
+        if (sortBy.value === 'date') {
+            cmp = new Date(a.date) - new Date(b.date);
+        } else if (sortBy.value === 'id') {
+            cmp = a.id - b.id;
+        }
+        return sortDir.value === 'asc' ? cmp : -cmp;
     });
+
+    return rows;
 });
 
 // Función para generar HTML del tooltip con los centros de costo restantes
@@ -164,9 +205,9 @@ watch(filteredRows, () => {
                 </div>
 
                 <div class="card-body">
-                    <!-- Buscador -->
-                    <div class="row mb-3">
-                        <div class="col-md-6">
+                    <!-- Buscador y filtros -->
+                    <div class="row mb-3 g-2">
+                        <div class="col-12 col-md-6">
                             <div class="input-group">
                                 <span class="input-group-text"><i class="fas fa-search"></i></span>
                                 <input
@@ -177,15 +218,30 @@ watch(filteredRows, () => {
                                 />
                             </div>
                         </div>
+                        <div class="col-12 col-md-3">
+                            <select v-model="statusFilter" class="form-select">
+                                <option v-for="opt in statusOptions" :key="opt.value" :value="opt.value">
+                                    {{ opt.label }}
+                                </option>
+                            </select>
+                        </div>
                     </div>
 
                     <!-- Tabla -->
-                    <div class="table-responsive">
+                    <div class="table-responsive" style="max-height: 65vh; overflow-y: auto;">
                         <table class="table table-hover table-sm">
-                            <thead class="table-light">
+                            <thead class="table-light" style="position: sticky; top: 0; z-index: 1;">
                                 <tr>
-                                    <th style="width: 80px;">#Orden</th>
-                                    <th>Fecha</th>
+                                    <th style="width: 80px; cursor: pointer;" @click="toggleSort('id')">
+                                        #Orden
+                                        <i v-if="sortBy === 'id'" :class="sortDir === 'asc' ? 'fas fa-sort-up' : 'fas fa-sort-down'" class="ms-1"></i>
+                                        <i v-else class="fas fa-sort ms-1 text-muted opacity-50"></i>
+                                    </th>
+                                    <th style="cursor: pointer;" @click="toggleSort('date')">
+                                        Fecha
+                                        <i v-if="sortBy === 'date'" :class="sortDir === 'asc' ? 'fas fa-sort-up' : 'fas fa-sort-down'" class="ms-1"></i>
+                                        <i v-else class="fas fa-sort ms-1 text-muted opacity-50"></i>
+                                    </th>
                                     <th>Estado</th>
                                     <th>Mojamiento (L)</th>
                                     <th>Productos</th>
@@ -203,20 +259,17 @@ watch(filteredRows, () => {
                                         </span>
                                     </td>
                                     <td>{{ Number(order.mojamiento).toLocaleString('es-ES') }}</td>
-                                    <td class="small" style="max-width: 250px;">
+                                    <td style="max-width: 250px;">
                                         <div v-if="order.order_products?.length > 0">
                                             {{ order.order_products.map(op => op.product?.name || 'N/A').join(', ') }}
                                         </div>
                                         <span v-else class="text-muted">Sin productos</span>
                                     </td>
                                     <td style="max-width: 200px;">
-                                        <div v-if="order.order_cost_centers?.length > 0" class="small">
-                                            <!-- Mostrar máximo 3 centros -->
-                                            <div v-for="(occ, index) in order.order_cost_centers.slice(0, 3)" :key="index">
-                                                • {{ occ.cost_center?.name || 'N/A' }}
-                                            </div>
+                                        <div v-if="order.order_cost_centers?.length > 0">
+                                            {{ order.order_cost_centers.slice(0, 3).map(occ => occ.cost_center?.name || 'N/A').join(', ') }}
                                             <!-- Si hay más de 3, mostrar "y X más" con tooltip -->
-                                            <div 
+                                            <span 
                                                 v-if="order.order_cost_centers.length > 3"
                                                 class="text-primary fw-bold"
                                                 style="cursor: pointer;"
@@ -225,11 +278,10 @@ watch(filteredRows, () => {
                                                 data-bs-placement="top"
                                                 data-bs-html="true"
                                             >
-                                                <i class="fas fa-plus-circle me-1"></i>
                                                 y {{ order.order_cost_centers.length - 3 }} más...
-                                            </div>
+                                            </span>
                                         </div>
-                                        <span v-else class="text-muted small">Sin centros</span>
+                                        <span v-else class="text-muted">Sin centros</span>
                                     </td>
                                     <td class="text-center">
                                         <div class="btn-group btn-group-sm">
@@ -264,28 +316,6 @@ watch(filteredRows, () => {
                                 </tr>
                             </tbody>
                         </table>
-                    </div>
-
-                    <!-- Paginación -->
-                    <div v-if="applicationOrders.links" class="d-flex justify-content-center mt-3">
-                        <nav>
-                            <ul class="pagination pagination-sm">
-                                <li
-                                    v-for="(link, index) in applicationOrders.links"
-                                    :key="index"
-                                    class="page-item"
-                                    :class="{ active: link.active, disabled: !link.url }"
-                                >
-                                    <Link
-                                        v-if="link.url"
-                                        :href="link.url"
-                                        class="page-link"
-                                        v-html="link.label"
-                                    />
-                                    <span v-else class="page-link" v-html="link.label" />
-                                </li>
-                            </ul>
-                        </nav>
                     </div>
                 </div>
         </div>

@@ -35,7 +35,7 @@ class ApplicationOrdersController extends Controller
             ->where('team_id', $user->team_id)
             ->where('season_id', $season_id)
             ->latest('date')
-            ->paginate(20);
+            ->get();
 
         // Obtener productos de agroquímicos del equipo
         $products = Product::with('unit:id,name')

@@ -97,14 +97,14 @@ const statusOptions = [
     <AppLayout title="Rendiciones de Gastos">
         <div class="card my-3">
             <div class="card-header">
-                <div class="row flex-between-center">
-                    <div class="col-6 col-sm-auto d-flex align-items-center pe-0">
+                <div class="row flex-between-center g-2">
+                    <div class="col-12 col-sm-auto d-flex align-items-center pe-0">
                         <h5 class="fs-9 mb-0 text-nowrap py-2 py-xl-0">
                             <i class="fas fa-receipt me-2"></i>Rendiciones de Gastos
                         </h5>
                     </div>
-                    <div class="col-6 col-sm-auto ms-auto text-end ps-0">
-                        <div class="d-flex align-items-center gap-2">
+                    <div class="col-12 col-sm-auto ms-sm-auto text-start text-sm-end ps-0">
+                        <div class="d-flex align-items-center flex-wrap gap-2">
                             <a :href="route('expense-reports.export')" class="btn btn-falcon-default btn-sm">
                                 <span class="fas fa-file-excel" data-fa-transform="shrink-3"></span>
                                 <span class="d-none d-sm-inline-block ms-1">Excel</span>
@@ -237,7 +237,7 @@ const statusOptions = [
 
         <!-- Modal Crear Rendición -->
         <div class="modal fade" id="createExpenseReportModal" tabindex="-1" aria-hidden="true">
-            <div class="modal-dialog modal-dialog-centered modal-fullscreen-md-down">
+            <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable">
                 <div class="modal-content">
                     <div class="modal-header py-2 border-bottom">
                         <h6 class="modal-title d-flex align-items-center gap-2 mb-0">

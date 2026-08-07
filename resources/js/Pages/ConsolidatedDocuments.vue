@@ -523,12 +523,12 @@ const getDocTypeBadge = (tipo) => {
               <table class="table table-bordered table-striped table-hover table-sm fs-10 mb-0">
                 <thead class="table-primary" style="position: sticky; top: 0; z-index: 10;">
                   <tr>
-                    <th style="max-width:100px; min-width:100px; width:0px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis" @click="setSort('tipo')" :class="sortClass('tipo')">Tipo</th>
+                    <th style="max-width:120px; min-width:120px; width:120px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis" @click="setSort('tipo')" :class="sortClass('tipo')">Tipo</th>
                     <th style="max-width:100px; min-width:100px; width:100px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis" @click="setSort('razon_social')" :class="sortClass('razon_social')">Razón Social</th>
                     <th style="max-width:100px; min-width:100px; width:100px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis" @click="setSort('mes_contable')" :class="sortClass('mes_contable')">Mes Contable</th>
                     <th style="max-width:100px; min-width:100px; width:100px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis" @click="setSort('fecha')" :class="sortClass('fecha')">Fecha</th>
                     <th style="max-width:100px; min-width:100px; width:100px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis" @click="setSort('n_doc')" :class="sortClass('n_doc')">N° Doc</th>
-                    <th style="max-width:200px; min-width:200px; width:200px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis" @click="setSort('proveedor')" :class="sortClass('proveedor')">Proveedor</th>
+                    <th style="max-width:320px; min-width:260px; width:300px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis" @click="setSort('proveedor')" :class="sortClass('proveedor')">Proveedor</th>
                     <th class="text-end" @click="setSort('neto_afecto')" :class="sortClass('neto_afecto')">Neto Afecto</th>
                     <th class="text-end" @click="setSort('exento')" :class="sortClass('exento')">Exento</th>
                     <th class="text-end" @click="setSort('iva')" :class="sortClass('iva')">IVA</th>
@@ -539,7 +539,7 @@ const getDocTypeBadge = (tipo) => {
                   <template v-for="(docs, tipo) in documentsByType" :key="tipo">
                     <!-- Documentos del tipo -->
                     <tr v-for="(doc, idx) in docs" :key="tipo + '-' + idx" :style="doc.is_financial ? 'opacity: 0.5;' : ''">
-                      <td style="max-width:70px; min-width:50px; width:60px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">
+                      <td style="max-width:120px; min-width:120px; width:120px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">
                         <span :class="'badge ' + getDocTypeBadge(doc.tipo).class">{{ getDocTypeBadge(doc.tipo).text }}</span>
                         <span v-if="doc.is_financial" v-tooltip="'NC financiera: ya descontada del precio unitario de la factura. No suma en totales.'" class="badge bg-soft-warning text-warning ms-1" style="font-size: 0.55rem; cursor: help;"><i class="fas fa-info-circle fa-xs"></i> Aplicada</span>
                       </td>
@@ -547,7 +547,7 @@ const getDocTypeBadge = (tipo) => {
                       <td style="max-width:100px; min-width:100px; width:100px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">{{ doc.mes_contable }}</td>
                       <td style="max-width:100px; min-width:100px; width:100px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">{{ doc.fecha }}</td>
                       <td style="max-width:100px; min-width:100px; width:100px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">{{ doc.n_doc }}</td>
-                      <td style="max-width:200px; min-width:200px; width:200px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">{{ doc.proveedor }}</td>
+                      <td style="max-width:320px; min-width:260px; width:300px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">{{ doc.proveedor }}</td>
                       <td class="text-end" :class="(doc.tipo === 'credito' || doc.tipo === 'Crédito') ? 'text-danger' : ''">
                         {{ (doc.tipo === 'credito' || doc.tipo === 'Crédito') ? '-' + formatNumber(doc.neto_afecto, 0) : formatNumber(doc.neto_afecto, 0) }}
                       </td>
@@ -628,10 +628,10 @@ const getDocTypeBadge = (tipo) => {
               <table class="table table-bordered table-striped table-hover table-sm fs-10 mb-0">
                 <thead class="table-info" style="position: sticky; top: 0; z-index: 10;">
                   <tr>
-                    <th>Tipo</th>
+                    <th style="max-width:120px; min-width:120px; width:120px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">Tipo</th>
                     <th>Fecha</th>
                     <th>N° Doc</th>
-                    <th style="max-width:180px; min-width:120px; width:160px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">Proveedor</th>
+                    <th style="max-width:320px; min-width:260px; width:300px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">Proveedor</th>
                     <th v-for="mes in mesesPivot" :key="mes" class="text-end">{{ mes }}</th>
                   </tr>
                   <tr class="table-warning">
@@ -641,10 +641,10 @@ const getDocTypeBadge = (tipo) => {
                 </thead>
                 <tbody>
                   <tr v-for="(doc, idx) in filteredDocuments" :key="'pivot-' + idx">
-                    <td>{{ doc.tipo }}</td>
+                    <td style="max-width:120px; min-width:120px; width:120px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">{{ doc.tipo }}</td>
                     <td>{{ formatFecha(doc.fecha) }}</td>
                     <td>{{ doc.n_doc }}</td>
-                    <td style="max-width:180px; min-width:120px; width:160px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">{{ doc.proveedor }}</td>
+                    <td style="max-width:320px; min-width:260px; width:300px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">{{ doc.proveedor }}</td>
                     <td v-for="mes in mesesPivot" :key="'pivot-cell-' + mes + '-' + idx" :class="(doc.tipo === 'credito' || doc.tipo === 'Crédito') ? 'text-danger text-end' : 'text-end'">
                       <span v-if="getMes(doc.mes_contable) === mes">
                         {{ (doc.tipo === 'credito' || doc.tipo === 'Crédito') ? '-' + formatNumber(doc.monto_total, 0) : formatNumber(doc.monto_total, 0) }}

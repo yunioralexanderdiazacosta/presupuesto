@@ -1,8 +1,10 @@
 <script setup>
-import { ref, computed } from 'vue';
+import { ref, computed, onMounted } from 'vue';
 import { Link, useForm, router } from '@inertiajs/vue3';
 import AppLayout from '@/Layouts/AppLayout.vue';
+import CreateSupplierModal from '@/Components/Suppliers/CreateSupplierModal.vue';
 import Swal from 'sweetalert2';
+import axios from 'axios';
 
 const props = defineProps({
     report: Object,
@@ -33,17 +35,176 @@ const itemForm = useForm({
 });
 
 const fileInput = ref(null);
+const isCompressing = ref(false);
+const fileSizeInfo = ref('');
+const editingItem = ref(null);
+const isEditingItem = computed(() => !!editingItem.value);
 
 const openAddItemModal = () => {
+    editingItem.value = null;
     itemForm.reset();
+    itemForm.clearErrors();
     itemForm.date = new Date().toISOString().split('T')[0];
     if (fileInput.value) fileInput.value.value = '';
+    fileSizeInfo.value = '';
     $('#addItemModal').modal('show');
 };
 
-const onFileChange = (e) => {
-    itemForm.receipt = e.target.files[0] || null;
+const openEditItemModal = (item) => {
+    editingItem.value = item;
+    itemForm.clearErrors();
+    itemForm.date = item.date;
+    itemForm.supplier_id = item.supplier_id;
+    itemForm.type_document_id = item.type_document_id;
+    itemForm.document_number = item.document_number;
+    itemForm.product_name = item.product_name;
+    itemForm.description = item.description || '';
+    itemForm.amount = item.amount;
+    itemForm.receipt = null;
+    itemForm.notes = item.notes || '';
+    if (fileInput.value) fileInput.value.value = '';
+    fileSizeInfo.value = '';
+    $('#addItemModal').modal('show');
 };
+
+// Evita que el modal se cierre (backdrop, Esc, botones) mientras el documento se está subiendo
+onMounted(() => {
+    const modalEl = document.getElementById('addItemModal');
+    if (modalEl) {
+        modalEl.addEventListener('hide.bs.modal', (e) => {
+            if (isSubmittingItem.value) {
+                e.preventDefault();
+            }
+        });
+    }
+});
+
+// ─── Proveedor rápido (crear al vuelo) ──────
+const supplierOptions = ref([...(props.suppliers || [])]);
+const supplierForm = useForm({
+    name: '',
+    rut: '',
+    contact: '',
+    email: '',
+    phone: '',
+    accounts: [],
+});
+
+const openCreateSupplierModal = () => {
+    supplierForm.reset();
+    supplierForm.clearErrors();
+    $('#createSupplierModal').modal('show');
+};
+
+const storeSupplier = async () => {
+    try {
+        const response = await axios.post(route('api.suppliers.store'), supplierForm.data());
+        const newSupplier = response.data.supplier;
+
+        $('#createSupplierModal').modal('hide');
+
+        supplierOptions.value = [
+            ...supplierOptions.value,
+            { value: newSupplier.id, label: newSupplier.name },
+        ];
+        itemForm.supplier_id = newSupplier.id;
+
+        Swal.fire({
+            icon: 'success',
+            title: 'Proveedor creado',
+            text: 'Se ha seleccionado automáticamente',
+            timer: 2000,
+            showConfirmButton: false,
+        });
+
+        supplierForm.reset();
+    } catch (error) {
+        const errors = error.response?.data?.errors || {};
+        const errorMessages = Object.entries(errors).map(([field, messages]) => {
+            const fieldNames = { name: 'Nombre', rut: 'RUT', email: 'Email', contact: 'Contacto', phone: 'Teléfono' };
+            const fieldName = fieldNames[field] || field;
+            const message = Array.isArray(messages) ? messages[0] : messages;
+            return `${fieldName}: ${message}`;
+        });
+
+        Swal.fire({
+            icon: 'error',
+            title: 'Error al crear proveedor',
+            html: `<div class="text-start">${errorMessages.join('<br>') || 'No se pudo crear el proveedor'}</div>`,
+            confirmButtonColor: '#d33',
+        });
+    }
+};
+
+// ─── Compresión automática de imágenes adjuntas ──────
+// Reduce el tamaño de fotos (celular) antes de subirlas, sin afectar PDFs.
+const compressImage = (file, maxDimension = 1600, quality = 0.7) => {
+    return new Promise((resolve) => {
+        const img = new Image();
+        const reader = new FileReader();
+        reader.onload = (e) => {
+            img.onload = () => {
+                let { width, height } = img;
+                if (width > maxDimension || height > maxDimension) {
+                    if (width > height) {
+                        height = Math.round(height * (maxDimension / width));
+                        width = maxDimension;
+                    } else {
+                        width = Math.round(width * (maxDimension / height));
+                        height = maxDimension;
+                    }
+                }
+                const canvas = document.createElement('canvas');
+                canvas.width = width;
+                canvas.height = height;
+                const ctx = canvas.getContext('2d');
+                ctx.drawImage(img, 0, 0, width, height);
+                canvas.toBlob((blob) => {
+                    if (!blob || blob.size >= file.size) {
+                        resolve(file);
+                        return;
+                    }
+                    const newName = file.name.replace(/\.(png|jpe?g|webp)$/i, '') + '.jpg';
+                    resolve(new File([blob], newName, { type: 'image/jpeg', lastModified: Date.now() }));
+                }, 'image/jpeg', quality);
+            };
+            img.onerror = () => resolve(file);
+            img.src = e.target.result;
+        };
+        reader.onerror = () => resolve(file);
+        reader.readAsDataURL(file);
+    });
+};
+
+const formatKB = (bytes) => (bytes / 1024).toFixed(0) + ' KB';
+
+const onFileChange = async (e) => {
+    const file = e.target.files[0];
+    if (!file) {
+        itemForm.receipt = null;
+        fileSizeInfo.value = '';
+        return;
+    }
+
+    const originalSize = file.size;
+    const isCompressibleImage = file.type.startsWith('image/') && file.type !== 'image/svg+xml';
+
+    if (isCompressibleImage && file.size > 400 * 1024) {
+        isCompressing.value = true;
+        const compressed = await compressImage(file);
+        isCompressing.value = false;
+        itemForm.receipt = compressed;
+        fileSizeInfo.value = compressed.size < originalSize
+            ? `Foto optimizada: ${formatKB(originalSize)} → ${formatKB(compressed.size)}`
+            : `Tamaño: ${formatKB(originalSize)}`;
+    } else {
+        itemForm.receipt = file;
+        fileSizeInfo.value = `Tamaño: ${formatKB(originalSize)}`;
+    }
+};
+
+const isSubmittingItem = ref(false);
+const uploadProgress = ref(0);
 
 const submitItem = () => {
     // Validación de campos obligatorios
@@ -69,13 +230,30 @@ const submitItem = () => {
     if (itemForm.receipt) formData.append('receipt', itemForm.receipt);
     if (itemForm.notes) formData.append('notes', itemForm.notes);
 
-    router.post(route('expense-reports.items.store', props.report.id), formData, {
+    isSubmittingItem.value = true;
+    uploadProgress.value = 0;
+
+    const url = isEditingItem.value
+        ? route('expense-reports.items.update', editingItem.value.id)
+        : route('expense-reports.items.store', props.report.id);
+
+    if (isEditingItem.value) {
+        formData.append('_method', 'put');
+    }
+
+    router.post(url, formData, {
         forceFormData: true,
+        onProgress: (progress) => {
+            if (progress && progress.percentage !== undefined && progress.percentage !== null) {
+                uploadProgress.value = progress.percentage;
+            }
+        },
         onSuccess: () => {
+            isSubmittingItem.value = false;
             $('#addItemModal').modal('hide');
             Swal.fire({
                 icon: 'success',
-                title: 'Documento agregado',
+                title: isEditingItem.value ? 'Documento actualizado' : 'Documento agregado',
                 showConfirmButton: false,
                 timer: 1500,
             });
@@ -83,6 +261,41 @@ const submitItem = () => {
         onError: (errors) => {
             const msg = Object.values(errors).flat().join('<br>');
             Swal.fire('Error', msg, 'error');
+        },
+        onFinish: () => {
+            isSubmittingItem.value = false;
+            uploadProgress.value = 0;
+        },
+    });
+};
+
+// ─── Editar datos de la rendición (solo en borrador) ──
+const editReportForm = useForm({
+    description: props.report.description || '',
+});
+
+const openEditReportModal = () => {
+    editReportForm.reset();
+    editReportForm.description = props.report.description || '';
+    editReportForm.clearErrors();
+    $('#editReportModal').modal('show');
+};
+
+const submitEditReport = () => {
+    editReportForm.put(route('expense-reports.update', props.report.id), {
+        preserveScroll: true,
+        onSuccess: () => {
+            $('#editReportModal').modal('hide');
+            Swal.fire({
+                icon: 'success',
+                title: 'Rendición actualizada',
+                showConfirmButton: false,
+                timer: 1500,
+            });
+        },
+        onError: (errors) => {
+            const msg = Object.values(errors).flat().join('<br>');
+            Swal.fire('Error', msg || 'No se pudo actualizar', 'error');
         },
     });
 };
@@ -231,8 +444,8 @@ const pendingAmount = computed(() => formatCurrency(props.report.pending_amount)
         <!-- Header card -->
         <div class="card my-3" :class="{'mb-5 pb-2': isBorrador || isEnviada || isAprobada || isRechazada}">
             <div class="card-header">
-                <div class="row flex-between-center">
-                    <div class="col-6 col-sm-auto d-flex align-items-center pe-0">
+                <div class="row flex-between-center g-2">
+                    <div class="col-12 col-sm-auto d-flex align-items-center flex-wrap pe-0">
                         <h5 class="fs-9 mb-0 text-nowrap py-2 py-xl-0">
                             <i class="fas fa-receipt me-2"></i>{{ report.number }}
                         </h5>
@@ -240,8 +453,8 @@ const pendingAmount = computed(() => formatCurrency(props.report.pending_amount)
                             {{ report.status_label }}
                         </span>
                     </div>
-                    <div class="col-auto ms-auto text-end ps-0">
-                        <div class="d-flex align-items-center gap-2">
+                    <div class="col-12 col-sm-auto ms-sm-auto text-start text-sm-end ps-0">
+                        <div class="d-flex align-items-center flex-wrap gap-2">
                             <Link :href="route('expense-reports.index')" class="btn btn-falcon-default btn-sm">
                                 <i class="fas fa-arrow-left"></i>
                                 <span class="d-none d-sm-inline-block ms-1">Volver</span>
@@ -274,9 +487,22 @@ const pendingAmount = computed(() => formatCurrency(props.report.pending_amount)
                                 <small class="text-muted d-block">{{ report.approved_at }}</small>
                             </div>
                         </div>
-                        <div v-if="report.description" class="mt-2">
-                            <small class="text-muted d-block">Descripción</small>
-                            <span>{{ report.description }}</span>
+                        <div class="mt-2">
+                            <div class="d-flex align-items-center gap-2">
+                                <small class="text-muted d-block mb-0">Descripción</small>
+                                <button
+                                    v-if="isBorrador"
+                                    type="button"
+                                    class="btn btn-link text-primary p-0"
+                                    @click="openEditReportModal"
+                                    v-tooltip="'Editar rendición'"
+                                    style="font-size: 0.8rem; line-height: 1;"
+                                >
+                                    <i class="fas fa-pen"></i>
+                                </button>
+                            </div>
+                            <span v-if="report.description">{{ report.description }}</span>
+                            <span v-else class="text-muted fst-italic small">Sin descripción</span>
                         </div>
                         <div v-if="report.rejection_notes" class="mt-2">
                             <div class="alert alert-danger py-2 mb-0 small">
@@ -371,6 +597,9 @@ const pendingAmount = computed(() => formatCurrency(props.report.pending_amount)
                                     </span>
                                 </td>
                                 <td class="text-center" v-if="isBorrador">
+                                    <button class="btn btn-sm btn-falcon-default me-1" @click="openEditItemModal(item)" v-tooltip="'Editar'">
+                                        <i class="fas fa-edit"></i>
+                                    </button>
                                     <button class="btn btn-sm btn-falcon-default" @click="deleteItem(item)" v-tooltip="'Eliminar'">
                                         <i class="fas fa-trash-alt text-danger"></i>
                                     </button>
@@ -417,9 +646,14 @@ const pendingAmount = computed(() => formatCurrency(props.report.pending_amount)
                                     </span>
                                     <span v-else class="badge bg-secondary small">Pendiente</span>
                                 </div>
-                                <button v-if="isBorrador" class="btn btn-sm btn-falcon-default" @click="deleteItem(item)">
-                                    <i class="fas fa-trash-alt text-danger"></i>
-                                </button>
+                                <div class="d-flex gap-2">
+                                    <button v-if="isBorrador" class="btn btn-sm btn-falcon-default" @click="openEditItemModal(item)">
+                                        <i class="fas fa-edit"></i>
+                                    </button>
+                                    <button v-if="isBorrador" class="btn btn-sm btn-falcon-default" @click="deleteItem(item)">
+                                        <i class="fas fa-trash-alt text-danger"></i>
+                                    </button>
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -464,13 +698,14 @@ const pendingAmount = computed(() => formatCurrency(props.report.pending_amount)
         <!-- Modal Agregar Item (teleported to body to avoid z-index issues with Falcon layout) -->
         <Teleport to="body">
             <div class="modal fade" id="addItemModal" tabindex="-1" aria-hidden="true">
-                <div class="modal-dialog modal-dialog-scrollable modal-lg" style="max-width: min(800px, 95vw); margin: 5vh auto;">
-                    <div class="modal-content" style="max-height: 88vh;">
+                <div class="modal-dialog modal-dialog-scrollable modal-dialog-centered modal-lg" style="max-width: min(800px, 95vw);">
+                    <div class="modal-content">
                         <div class="modal-header py-2 border-bottom">
                             <h6 class="modal-title d-flex align-items-center gap-2 mb-0">
-                                <i class="fas fa-plus-circle text-primary"></i>Agregar Documento
+                                <i :class="isEditingItem ? 'fas fa-edit text-primary' : 'fas fa-plus-circle text-primary'"></i>
+                                {{ isEditingItem ? 'Editar Documento' : 'Agregar Documento' }}
                             </h6>
-                            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close" :disabled="isSubmittingItem"></button>
                         </div>
                         <div class="modal-body p-2 p-md-3">
                             <form @submit.prevent="submitItem">
@@ -489,15 +724,26 @@ const pendingAmount = computed(() => formatCurrency(props.report.pending_amount)
 
                                     <!-- Proveedor -->
                                     <div class="col-12 col-md-4">
-                                        <label class="form-label small mb-1">Proveedor <span class="text-danger">*</span></label>
+                                        <div class="d-flex justify-content-between align-items-center mb-1">
+                                            <label class="form-label small mb-0">Proveedor <span class="text-danger">*</span></label>
+                                            <button
+                                                type="button"
+                                                class="btn btn-link text-primary p-0"
+                                                @click="openCreateSupplierModal"
+                                                v-tooltip="'Agregar nuevo proveedor'"
+                                                style="font-size: 0.85rem;"
+                                            >
+                                                <i class="fas fa-plus-circle"></i>
+                                            </button>
+                                        </div>
                                         <select v-model="itemForm.supplier_id" class="form-select form-select-sm">
                                             <option value="" disabled selected>Seleccione...</option>
-                                            <option v-for="s in suppliers" :key="s.value" :value="s.value">{{ s.label }}</option>
+                                            <option v-for="s in supplierOptions" :key="s.value" :value="s.value">{{ s.label }}</option>
                                         </select>
                                     </div>
 
                                     <!-- Tipo Documento -->
-                                    <div class="col-6 col-md-4">
+                                    <div class="col-6 col-md-3">
                                         <label class="form-label small mb-1">Tipo Documento <span class="text-danger">*</span></label>
                                         <select v-model="itemForm.type_document_id" class="form-select form-select-sm" required>
                                             <option value="" disabled selected>Seleccione...</option>
@@ -506,19 +752,19 @@ const pendingAmount = computed(() => formatCurrency(props.report.pending_amount)
                                     </div>
 
                                     <!-- Nº Documento -->
-                                    <div class="col-6 col-md-4">
+                                    <div class="col-6 col-md-3">
                                         <label class="form-label small mb-1">Nº Documento <span class="text-danger">*</span></label>
                                         <input type="text" v-model="itemForm.document_number" class="form-control form-control-sm" placeholder="Ej: 001-12345" required>
                                     </div>
 
                                     <!-- Producto -->
-                                    <div class="col-6 col-md-4">
+                                    <div class="col-12 col-md-6">
                                         <label class="form-label small mb-1">Producto / Concepto <span class="text-danger">*</span></label>
                                         <input type="text" v-model="itemForm.product_name" class="form-control form-control-sm" placeholder="Ej: Herbicida, Repuesto..." required>
                                     </div>
 
                                     <!-- Descripción -->
-                                    <div class="col-12 col-md-4">
+                                    <div class="col-12 col-md-6">
                                         <label class="form-label small mb-1">Descripción</label>
                                         <input type="text" v-model="itemForm.description" class="form-control form-control-sm" placeholder="Detalle del gasto...">
                                     </div>
@@ -528,6 +774,11 @@ const pendingAmount = computed(() => formatCurrency(props.report.pending_amount)
                                         <label class="form-label small mb-1">
                                             <i class="fas fa-camera me-1 text-muted"></i>Comprobante (foto o PDF)
                                         </label>
+                                        <div v-if="isEditingItem && editingItem?.receipt_path" class="small mb-1">
+                                            <button type="button" class="btn btn-sm btn-link p-0" @click="viewReceipt(editingItem)">
+                                                <i class="fas fa-paperclip me-1"></i>Ver comprobante actual
+                                            </button>
+                                        </div>
                                         <input 
                                             type="file" 
                                             ref="fileInput"
@@ -536,7 +787,12 @@ const pendingAmount = computed(() => formatCurrency(props.report.pending_amount)
                                             capture="environment"
                                             @change="onFileChange"
                                         >
-                                        <small class="text-muted">Máx 5 MB. JPG, PNG o PDF</small>
+                                        <small v-if="isCompressing" class="text-primary d-block">
+                                            <span class="spinner-border spinner-border-sm me-1" style="width: 0.7rem; height: 0.7rem;"></span>Optimizando foto...
+                                        </small>
+                                        <small v-else-if="fileSizeInfo" class="text-success d-block">{{ fileSizeInfo }}</small>
+                                        <small v-else-if="isEditingItem" class="text-muted">Deja vacío para mantener el comprobante actual.</small>
+                                        <small v-else class="text-muted">Máx 5 MB. JPG, PNG o PDF. Las fotos se optimizan automáticamente.</small>
                                     </div>
 
                                     <!-- Notas -->
@@ -547,23 +803,87 @@ const pendingAmount = computed(() => formatCurrency(props.report.pending_amount)
                                 </div>
                             </form>
                         </div>
-                        <div class="modal-footer py-2 gap-2">
-                            <button type="button" class="btn btn-sm btn-secondary flex-fill flex-md-grow-0" data-bs-dismiss="modal">
+                        <div class="modal-footer py-2 gap-2 flex-wrap">
+                            <div v-if="isSubmittingItem" class="w-100 px-1 mb-1">
+                                <div class="progress" style="height: 6px;">
+                                    <div
+                                        class="progress-bar progress-bar-striped progress-bar-animated"
+                                        role="progressbar"
+                                        :style="{ width: (uploadProgress > 0 ? uploadProgress : 100) + '%' }"
+                                    ></div>
+                                </div>
+                                <small class="text-muted d-block text-center mt-1">
+                                    <i class="fas fa-cloud-upload-alt me-1"></i>
+                                    Subiendo documento{{ uploadProgress > 0 ? ` (${uploadProgress}%)` : '...' }} No cierre esta ventana.
+                                </small>
+                            </div>
+                            <button type="button" class="btn btn-sm btn-secondary flex-fill flex-md-grow-0" data-bs-dismiss="modal" :disabled="isSubmittingItem">
                                 <i class="fas fa-times me-1"></i>Cancelar
                             </button>
                             <button 
                                 type="button" 
                                 class="btn btn-sm btn-primary flex-fill flex-md-grow-0" 
                                 @click="submitItem"
-                                :disabled="itemForm.processing || !itemForm.supplier_id || !itemForm.amount || !itemForm.type_document_id || !itemForm.document_number || !itemForm.product_name"
+                                :disabled="isSubmittingItem || !itemForm.supplier_id || !itemForm.amount || !itemForm.type_document_id || !itemForm.document_number || !itemForm.product_name"
                             >
-                                <i class="fas fa-plus me-1"></i>
-                                {{ itemForm.processing ? 'Guardando...' : 'Agregar Documento' }}
+                                <span v-if="isSubmittingItem">
+                                    <span class="spinner-border spinner-border-sm me-1" role="status"></span>
+                                    {{ isEditingItem ? 'Guardando' : 'Subiendo' }}{{ uploadProgress > 0 ? ` ${uploadProgress}%` : '...' }}
+                                </span>
+                                <span v-else>
+                                    <i :class="isEditingItem ? 'fas fa-save me-1' : 'fas fa-plus me-1'"></i>{{ isEditingItem ? 'Guardar Cambios' : 'Agregar Documento' }}
+                                </span>
                             </button>
                         </div>
                     </div>
                 </div>
             </div>
+        </Teleport>
+
+        <!-- Modal Editar Rendición (descripción) -->
+        <Teleport to="body">
+            <div class="modal fade" id="editReportModal" tabindex="-1" aria-hidden="true">
+                <div class="modal-dialog modal-dialog-centered">
+                    <div class="modal-content">
+                        <div class="modal-header py-2 border-bottom">
+                            <h6 class="modal-title d-flex align-items-center gap-2 mb-0">
+                                <i class="fas fa-edit text-primary"></i>Editar Rendición
+                            </h6>
+                            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                        </div>
+                        <div class="modal-body">
+                            <form @submit.prevent="submitEditReport">
+                                <div class="mb-3">
+                                    <label class="form-label small">Descripción (opcional)</label>
+                                    <textarea
+                                        v-model="editReportForm.description"
+                                        class="form-control form-control-sm"
+                                        rows="3"
+                                        placeholder="Ej: Gastos operación semana 9..."
+                                    ></textarea>
+                                </div>
+                            </form>
+                        </div>
+                        <div class="modal-footer py-2">
+                            <button type="button" class="btn btn-sm btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                            <button
+                                type="button"
+                                class="btn btn-sm btn-primary"
+                                @click="submitEditReport"
+                                :disabled="editReportForm.processing"
+                            >
+                                <i class="fas fa-save me-1"></i>
+                                {{ editReportForm.processing ? 'Guardando...' : 'Guardar Cambios' }}
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </Teleport>
+
+        <!-- Modal Crear Proveedor rápido (teleported para quedar por encima del modal de documento) -->
+        <Teleport to="body">
+            <CreateSupplierModal :form="supplierForm" @store="storeSupplier" />
         </Teleport>
     </AppLayout>
 </template>

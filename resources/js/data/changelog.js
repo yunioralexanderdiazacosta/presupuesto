@@ -7,6 +7,78 @@
 
 export const changelog = [
   {
+    fecha: '2026-08-07',
+    titulo: 'Documentos Consolidados — Columna Proveedor más ancha',
+    items: [
+      'En las tablas "Lista" y "Mensual" se ensanchó la columna Proveedor para leer mejor los nombres largos, y se ajustó el ancho de la columna Tipo.',
+    ]
+  },
+  {
+    fecha: '2026-08-07',
+    titulo: 'Órdenes de Aplicación — Ahora se ven todas las órdenes en una sola lista',
+    items: [
+      'Se quitó la paginación de la tabla: ahora se muestran todas las órdenes de la temporada con scroll, para que el buscador, el filtro por estado y el ordenamiento funcionen sobre el listado completo y no solo sobre una página a la vez.',
+    ]
+  },
+  {
+    fecha: '2026-08-07',
+    titulo: 'Órdenes de Aplicación — Filtro por estado y ordenamiento',
+    items: [
+      'Se agregó un filtro para mostrar rápidamente solo las órdenes con un estado determinado (Pendiente, En Proceso, Completada, Cancelada).',
+      'Ahora se puede ordenar la tabla por número de orden o por fecha, haciendo clic en el encabezado de la columna correspondiente.',
+    ]
+  },
+  {
+    fecha: '2026-08-07',
+    titulo: 'Órdenes de Aplicación — Tabla más prolija',
+    items: [
+      'La columna de Centros de Costo ahora muestra los nombres en una sola línea separados por comas, en vez de uno debajo del otro, evitando que las filas de la tabla se vean con alturas irregulares.',
+    ]
+  },
+  {
+    fecha: '2026-08-07',
+    titulo: 'Sistema — Corrección de espacio sobrante en pantallas de celular',
+    items: [
+      'Se corrigió un problema que hacía que, en celulares, toda la pantalla quedara con un margen vacío no deseado a la derecha.',
+      'La barra superior ahora oculta el precio del dólar y el nombre del equipo en pantallas angostas, dejando esa información visible desde tablet hacia arriba.',
+    ]
+  },
+  {
+    fecha: '2026-08-07',
+    titulo: 'Rendiciones de Gastos — Editar rendición y documentos antes de enviarla',
+    items: [
+      'Ahora se puede editar la descripción de una rendición mientras esté en estado Borrador.',
+      'También se pueden editar los documentos ya agregados (fecha, proveedor, monto, comprobante, etc.) antes de enviar la rendición a aprobación.',
+      'Se agregó un botón "Editar" junto a cada documento, tanto en la tabla de escritorio como en las tarjetas de celular.',
+    ]
+  },
+  {
+    fecha: '2026-08-07',
+    titulo: 'Rendiciones de Gastos — Aviso de carga al subir un documento',
+    items: [
+      'Al agregar un documento con una foto o PDF pesado, ahora se muestra un indicador de "Subiendo..." con el porcentaje de avance.',
+      'Mientras el documento se está subiendo, la ventana no se puede cerrar por error, evitando dudas sobre si el guardado quedó en curso.',
+    ]
+  },
+  {
+    fecha: '2026-08-07',
+    titulo: 'Rendiciones de Gastos — Ajustes de visualización en celulares',
+    items: [
+      'Se corrigió que el título y los botones de la parte superior se sobrepusieran en pantallas de celular.',
+      'Las ventanas para crear una rendición y para agregar un documento ahora se ven prolijas en el celular, con márgenes y bordes redondeados en vez de ocupar el borde completo de la pantalla.',
+    ]
+  },
+  {
+    fecha: '2026-08-07',
+    titulo: 'Rendiciones de Gastos — Mejoras en el formulario para agregar documentos',
+    items: [
+      'Ahora se puede crear un proveedor nuevo directamente desde el formulario de agregar documento, sin salir de la rendición.',
+      'El campo "Producto / Concepto" es más ancho para escribir con más comodidad.',
+      'El formulario se adapta mejor a pantallas de celular, ocupando toda la pantalla para facilitar el ingreso.',
+      'Las fotos de comprobantes se optimizan automáticamente antes de subirlas, reduciendo su peso sin perder legibilidad.',
+    ]
+  },
+  {
     fecha: '2026-08-06',
     titulo: 'Notas de Crédito/Débito — El mes contable no se mostraba en el detalle de la nota',
     items: [

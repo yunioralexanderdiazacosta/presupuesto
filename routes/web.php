@@ -95,9 +95,11 @@ use App\Http\Controllers\Products2\DeleteProduct2Controller;
 // Rutas para Rendiciones de Gastos
     use App\Http\Controllers\ExpenseReports\ExpenseReportController;
     use App\Http\Controllers\ExpenseReports\StoreExpenseReportController;
+    use App\Http\Controllers\ExpenseReports\UpdateExpenseReportController;
     use App\Http\Controllers\ExpenseReports\ShowExpenseReportController;
     use App\Http\Controllers\ExpenseReports\DeleteExpenseReportController;
     use App\Http\Controllers\ExpenseReports\StoreExpenseReportItemController;
+    use App\Http\Controllers\ExpenseReports\UpdateExpenseReportItemController;
     use App\Http\Controllers\ExpenseReports\DeleteExpenseReportItemController;
     use App\Http\Controllers\ExpenseReports\UpdateExpenseReportStatusController;
     use App\Http\Controllers\ExpenseReports\ApproveExpenseReportController;
@@ -993,9 +995,11 @@ Route::middleware([
     Route::get('/expense-reports', [ExpenseReportController::class, 'index'])->name('expense-reports.index');
     Route::post('/expense-reports', StoreExpenseReportController::class)->name('expense-reports.store');
     Route::get('/expense-reports/{expenseReport}', ShowExpenseReportController::class)->name('expense-reports.show');
+    Route::put('/expense-reports/{expenseReport}', UpdateExpenseReportController::class)->name('expense-reports.update');
     Route::delete('/expense-reports/{expenseReport}', DeleteExpenseReportController::class)->name('expense-reports.delete');
     Route::patch('/expense-reports/{expenseReport}/status', UpdateExpenseReportStatusController::class)->name('expense-reports.update-status');
     Route::post('/expense-reports/{expenseReport}/items', StoreExpenseReportItemController::class)->name('expense-reports.items.store');
+    Route::put('/expense-report-items/{item}', UpdateExpenseReportItemController::class)->name('expense-reports.items.update');
     Route::delete('/expense-report-items/{item}', DeleteExpenseReportItemController::class)->name('expense-reports.items.delete');
     Route::get('/expense-reports-export', ExportExpenseReportsController::class)->name('expense-reports.export');
 

@@ -972,13 +972,13 @@ const navigateTo = (routeName) => {
           </li>
         </ul>
         <ul class="navbar-nav navbar-nav-icons ms-auto flex-row align-items-center">
-           <li class="nav-item me-2">
+           <li class="nav-item me-2 d-none d-md-block">
             <span class="d-inline-flex align-items-center bg-white shadow-sm border rounded-pill px-3 py-1 mb-1 text-secondary fw-semibold fs-10 bg-opacity-15">
               <span class="fas fa-dollar-sign me-2"></span>
               Dólar: {{$page.props.price ?? ''}}
             </span>
           </li>
-          <li class="nav-item me-0" v-if="$page.props.auth.user.team">
+          <li class="nav-item me-0 d-none d-md-block" v-if="$page.props.auth.user.team">
             <span class="d-inline-flex align-items-center rounded-pill px-3 py-1 mb-1 fw-semibold fs-10" :style="$page.props.seasonColor ? { background: `linear-gradient(90deg, ${$page.props.seasonColor}cc 0%, ${$page.props.seasonColor} 100%)`, color: '#fff' } : {}" :class="$page.props.seasonColor ? 'shadow-lg' : 'bg-white shadow-sm border text-primary bg-opacity-15'">
               <span class="fas fa-users me-2"></span>
               {{$page.props.auth.user.team.name}}
