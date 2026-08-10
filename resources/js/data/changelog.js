@@ -7,6 +7,38 @@
 
 export const changelog = [
   {
+    fecha: '2026-08-10',
+    titulo: 'Remuneraciones — Razón Social por contrato y Centro de Costo obligatorio en tarjas',
+    items: [
+      'Si un trabajador cambió de contrato con otra razón social durante la temporada, sus rendimientos ahora se asignan a la razón social vigente en cada período, en vez de asignarse todos a la razón social de su contrato más reciente.',
+      'En la tabla "Distribución por Parcela según RS Contratante" se agregó la fila "Sin Parcela" para que ningún monto quede fuera del total cuando falte la asignación de centro de costo.',
+      'Al registrar una tarja (individual o masiva) ahora es obligatorio indicar al menos un Centro de Costo, salvo en ausencias no pagadas.',
+    ]
+  },
+  {
+    fecha: '2026-08-10',
+    titulo: 'Salidas — Desglose de Inversiones y orden de tarjetas en Estado de Desarrollo',
+    items: [
+      'En "Consumos por Estado de Desarrollo", la tarjeta "Sin Inversiones" ahora se muestra primero (izquierda) y "Resumen con Inversiones" a la derecha.',
+      'Al activar "Desglose", la tarjeta "Resumen con Inversiones" ahora muestra además cuánto del total de cada estado corresponde específicamente a inversiones, para entender por qué ese total puede ser mayor al card "Total Inversiones" (que solo suma inversiones de toda la temporada).',
+    ]
+  },
+  {
+    fecha: '2026-08-10',
+    titulo: 'Panel Técnico — Fila de subtotal en tabla Gastos por Hectárea',
+    items: [
+      'Se agregó la fila de subtotal por especie en la tabla "Gastos por Hectáreas", igual que en "Estado de Desarrollo".',
+    ]
+  },
+  {
+    fecha: '2026-08-10',
+    titulo: 'Panel Técnico — Columna de Total en tablas de Estado de Desarrollo y Gastos por Hectárea',
+    items: [
+      'Se agregó/reposicionó la columna "Total" justo después de "Estado de desarrollo" en las tablas "Estado de Desarrollo" y "Gastos por Hectáreas", mostrando la suma de todos los tipos de gasto de cada fila.',
+      'También se incluyó el total en los subtotales por especie y en el Total General de la tabla "Estado de Desarrollo".',
+    ]
+  },
+  {
     fecha: '2026-08-07',
     titulo: 'Detalle de Salidas por Sucursal — Filtro de estado de desarrollo no mostraba datos',
     items: [

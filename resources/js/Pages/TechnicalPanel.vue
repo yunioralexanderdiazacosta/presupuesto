@@ -18,6 +18,46 @@ const formatNumber = (value) => {
   return value.toLocaleString('es-CL', { maximumFractionDigits: 0 });
 };
 
+// Suma de las 6 categorías para una fila (especie + estado de desarrollo) de la tabla Estado de Desarrollo
+function devStateRowTotal(fruitId, devStateId) {
+  return (
+    Number(props.agrochemicalByDevState?.[fruitId]?.[devStateId] ?? 0) +
+    Number(props.fertilizerByDevState?.[fruitId]?.[devStateId] ?? 0) +
+    Number(props.manPowerByDevState?.[String(fruitId)]?.[String(devStateId)] ?? 0) +
+    Number(props.servicesByDevState?.[String(fruitId)]?.[String(devStateId)] ?? 0) +
+    Number(props.suppliesByDevState?.[String(fruitId)]?.[String(devStateId)] ?? 0) +
+    Number(props.harvestsByDevState?.[String(fruitId)]?.[String(devStateId)] ?? 0)
+  );
+}
+
+function devStateFruitTotal(fruitId, devStatesObj) {
+  return Object.keys(devStatesObj).reduce((sum, devStateId) => sum + devStateRowTotal(fruitId, devStateId), 0);
+}
+
+function devStateGrandTotal() {
+  return Object.entries(props.agrochemicalByDevState || {}).reduce((sum, [fruitId, devStatesObj]) => {
+    return sum + Object.keys(devStatesObj).reduce((s, devStateId) => s + devStateRowTotal(fruitId, devStateId), 0);
+  }, 0);
+}
+
+// Suma de las 6 categorías + Gral campo + Administración para una fila de la tabla Gastos por Hectárea
+function hectareRowTotal(fruitId, devStateId) {
+  return (
+    Number(props.agrochemicalExpensePerHectare?.[fruitId]?.[devStateId] ?? 0) +
+    Number(props.fertilizerExpensePerHectare?.[fruitId]?.[devStateId] ?? 0) +
+    Number(props.manPowerExpensePerHectare?.[String(fruitId)]?.[String(devStateId)] ?? 0) +
+    Number(props.servicesExpensePerHectare?.[String(fruitId)]?.[String(devStateId)] ?? 0) +
+    Number(props.suppliesExpensePerHectare?.[String(fruitId)]?.[String(devStateId)] ?? 0) +
+    Number(props.harvestsExpensePerHectare?.[String(fruitId)]?.[String(devStateId)] ?? 0) +
+    (totalFieldsCalc.value / (props.totalSurface || 1)) +
+    (totalAdministrationCalc.value / (props.totalSurface || 1))
+  );
+}
+
+function hectareFruitSubtotal(fruitId, devStatesObj) {
+  return Object.keys(devStatesObj).reduce((sum, devStateId) => sum + hectareRowTotal(fruitId, devStateId), 0);
+}
+
 
 
 const title = 'Panel Tecnico';
@@ -212,6 +252,7 @@ function groupTotalsByLevelAndFruit() {
                     <tr>
                       <th class="text-start text-uppercase text-secondary small fw-bold small">Especie</th>
                       <th class="text-start text-uppercase text-secondary small fw-bold small">Estado de desarrollo</th>
+                      <th class="text-center text-uppercase text-secondary small fw-bold small">Total</th>
                       <th class="text-center text-uppercase text-secondary small fw-bold small">Agroquímicos</th>
                       <th class="text-center text-uppercase text-secondary small fw-bold small">Fertilizantes</th>
                       <th class="text-center text-uppercase text-secondary small fw-bold small">Mano de Obra</th>
@@ -228,6 +269,9 @@ function groupTotalsByLevelAndFruit() {
                           {{ $props.fruitsMap?.[String(fruitId)] || 'Sin especie' }}
                         </td>
                         <td class="small">{{ devStates[devStateId]?.name || 'Sin estado' }}</td>
+                        <td class="text-center text-end fw-bold small text-dark">
+                          {{ formatNumber(dividir && divisor ? (devStateRowTotal(fruitId, devStateId) / divisor) : devStateRowTotal(fruitId, devStateId)) }}
+                        </td>
                         <td class="text-center text-end text-primary fw-bold small">
                           {{ formatNumber(dividir && divisor ? (Number(amount || 0) / divisor) : Number(amount || 0)) }}
                         </td>
@@ -251,6 +295,9 @@ function groupTotalsByLevelAndFruit() {
                       <!-- Subtotal por especie -->
                       <tr class="table-secondary small" style="font-size:0.8em;">
                         <td colspan="2" class="text-end">Subtotal {{ $props.fruitsMap?.[String(fruitId)] || 'Sin especie' }}</td>
+                        <td class="text-center text-end fw-bold">
+                          {{ formatNumber(dividir && divisor ? (devStateFruitTotal(fruitId, devStatesObj) / divisor) : devStateFruitTotal(fruitId, devStatesObj)) }}
+                        </td>
                         <td class="text-center text-end">
                           {{ formatNumber(dividir && divisor ? (Object.values(devStatesObj).reduce((sum, val) => sum + Number(val || 0), 0) / divisor) : Object.values(devStatesObj).reduce((sum, val) => sum + Number(val || 0), 0)) }}
                         </td>
@@ -275,6 +322,9 @@ function groupTotalsByLevelAndFruit() {
                   <tfoot>
                     <tr style="background-color: #555858; font-weight: bold;">
                       <td colspan="2" class="fw-bold text-end small text-white">Total General</td>
+                      <td class="text-center text-end fw-bold small text-white">
+                        {{ formatNumber(dividir && divisor ? (devStateGrandTotal() / divisor) : devStateGrandTotal()) }}
+                      </td>
                       <td class="text-center text-end fw-bold small text-white">
                         {{ formatNumber(dividir && divisor ? (Object.values(agrochemicalByDevState).reduce((sum, devStatesObj) => sum + Object.values(devStatesObj).reduce((s, v) => s + Number(v || 0), 0), 0) / divisor) : Object.values(agrochemicalByDevState).reduce((sum, devStatesObj) => sum + Object.values(devStatesObj).reduce((s, v) => s + Number(v || 0), 0), 0)) }}
                       </td>
@@ -322,6 +372,7 @@ function groupTotalsByLevelAndFruit() {
                     <tr>
                       <th class="text-start text-uppercase text-secondary small fw-bold small">Especie</th>
                       <th class="text-start text-uppercase text-secondary small fw-bold small">Estado de desarrollo</th>
+                      <th class="text-center text-uppercase text-secondary small fw-bold small">Total</th>
                       <th class="text-center text-uppercase text-secondary small fw-bold small">Agroquímicos</th>
                       <th class="text-center text-uppercase text-secondary small fw-bold small">Fertilizantes</th>
                       <th class="text-center text-uppercase text-secondary small fw-bold small">Mano de Obra</th>
@@ -330,7 +381,6 @@ function groupTotalsByLevelAndFruit() {
                       <th class="text-center text-uppercase text-secondary small fw-bold small">Cosecha</th>
                       <th class="text-center text-uppercase text-secondary small fw-bold small">Gral campo</th>
                       <th class="text-center text-uppercase text-secondary small fw-bold small">Administración</th>
-                      <th class="text-center text-uppercase text-secondary small fw-bold small">Total</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -340,6 +390,9 @@ function groupTotalsByLevelAndFruit() {
                           {{ $props.fruitsMap?.[String(fruitId)] || 'Sin especie' }}
                         </td>
                         <td class="text-start fw-semibold small">{{ devStates[devStateId]?.name || 'Sin estado' }}</td>
+                        <td class="text-center text-black fw-bold small">
+                          {{ formatNumber(dividir && divisor ? (hectareRowTotal(fruitId, devStateId) / divisor) : hectareRowTotal(fruitId, devStateId)) }}
+                        </td>
                         <td class="text-center text-small text-warning fw-bold small">{{ formatNumber(dividir && divisor ? (Number(amount || 0) / divisor) : Number(amount || 0)) }}</td>
                        
                         <td class="text-center text-small text-warning fw-bold small">{{ formatNumber(dividir && divisor ? (Number(fertilizerExpensePerHectare?.[String(fruitId)]?.[String(devStateId)] ?? 0) / divisor) : Number(fertilizerExpensePerHectare?.[String(fruitId)]?.[String(devStateId)] ?? 0)) }}</td>
@@ -357,32 +410,37 @@ function groupTotalsByLevelAndFruit() {
                             formatNumber(dividir && divisor ? ((totalAdministrationCalc / (totalSurface || 1)) / divisor) : (totalAdministrationCalc / (totalSurface || 1)))
                           }}
                         </td>
-                        <td class="text-center text-black fw-bold small">
-                          {{
-                            formatNumber(dividir && divisor
-                              ? (
-                                  (Number(amount || 0) +
-                                  Number(fertilizerExpensePerHectare?.[fruitId]?.[devStateId] ?? 0) +
-                                  Number(manPowerExpensePerHectare?.[String(fruitId)]?.[String(devStateId)] ?? 0) +
-                                  Number(servicesExpensePerHectare?.[String(fruitId)]?.[String(devStateId)] ?? 0) +
-                                  Number(suppliesExpensePerHectare?.[String(fruitId)]?.[String(devStateId)] ?? 0) +
-                                  Number(harvestsExpensePerHectare?.[String(fruitId)]?.[String(devStateId)] ?? 0) +
-                                  (totalFieldsCalc / (totalSurface || 1)) +
-                                  (totalAdministrationCalc / (totalSurface || 1))
-                                  ) / divisor
-                                )
-                              : (
-                                  Number(amount || 0) +
-                                  Number(fertilizerExpensePerHectare?.[fruitId]?.[devStateId] ?? 0) +
-                                  Number(manPowerExpensePerHectare?.[String(fruitId)]?.[String(devStateId)] ?? 0) +
-                                  Number(servicesExpensePerHectare?.[String(fruitId)]?.[String(devStateId)] ?? 0) +
-                                  Number(suppliesExpensePerHectare?.[String(fruitId)]?.[String(devStateId)] ?? 0) +
-                                  Number(harvestsExpensePerHectare?.[String(fruitId)]?.[String(devStateId)] ?? 0) +
-                                  (totalFieldsCalc / (totalSurface || 1)) +
-                                  (totalAdministrationCalc / (totalSurface || 1))
-                                )
-                            )
-                          }}</td>
+                      </tr>
+                      <!-- Subtotal por especie -->
+                      <tr class="table-secondary small" style="font-size:0.8em;">
+                        <td colspan="2" class="text-end">Subtotal {{ $props.fruitsMap?.[String(fruitId)] || 'Sin especie' }}</td>
+                        <td class="text-center text-end fw-bold">
+                          {{ formatNumber(dividir && divisor ? (hectareFruitSubtotal(fruitId, devStatesObj) / divisor) : hectareFruitSubtotal(fruitId, devStatesObj)) }}
+                        </td>
+                        <td class="text-center text-end">
+                          {{ formatNumber(dividir && divisor ? (Object.values(devStatesObj).reduce((sum, val) => sum + Number(val || 0), 0) / divisor) : Object.values(devStatesObj).reduce((sum, val) => sum + Number(val || 0), 0)) }}
+                        </td>
+                        <td class="text-center text-end">
+                          {{ formatNumber(dividir && divisor ? (Object.values(fertilizerExpensePerHectare?.[String(fruitId)] || {}).reduce((sum, val) => sum + Number(val || 0), 0) / divisor) : Object.values(fertilizerExpensePerHectare?.[String(fruitId)] || {}).reduce((sum, val) => sum + Number(val || 0), 0)) }}
+                        </td>
+                        <td class="text-center text-end">
+                          {{ formatNumber(dividir && divisor ? (Object.values(manPowerExpensePerHectare?.[String(fruitId)] || {}).reduce((sum, val) => sum + Number(val || 0), 0) / divisor) : Object.values(manPowerExpensePerHectare?.[String(fruitId)] || {}).reduce((sum, val) => sum + Number(val || 0), 0)) }}
+                        </td>
+                        <td class="text-center text-end">
+                          {{ formatNumber(dividir && divisor ? (Object.values(servicesExpensePerHectare?.[String(fruitId)] || {}).reduce((sum, val) => sum + Number(val || 0), 0) / divisor) : Object.values(servicesExpensePerHectare?.[String(fruitId)] || {}).reduce((sum, val) => sum + Number(val || 0), 0)) }}
+                        </td>
+                        <td class="text-center text-end">
+                          {{ formatNumber(dividir && divisor ? (Object.values(suppliesExpensePerHectare?.[String(fruitId)] || {}).reduce((sum, val) => sum + Number(val || 0), 0) / divisor) : Object.values(suppliesExpensePerHectare?.[String(fruitId)] || {}).reduce((sum, val) => sum + Number(val || 0), 0)) }}
+                        </td>
+                        <td class="text-center text-end">
+                          {{ formatNumber(dividir && divisor ? (Object.values(harvestsExpensePerHectare?.[String(fruitId)] || {}).reduce((sum, val) => sum + Number(val || 0), 0) / divisor) : Object.values(harvestsExpensePerHectare?.[String(fruitId)] || {}).reduce((sum, val) => sum + Number(val || 0), 0)) }}
+                        </td>
+                        <td class="text-center text-end">
+                          {{ formatNumber(dividir && divisor ? ((Object.keys(devStatesObj).length * (totalFieldsCalc / (totalSurface || 1))) / divisor) : (Object.keys(devStatesObj).length * (totalFieldsCalc / (totalSurface || 1)))) }}
+                        </td>
+                        <td class="text-center text-end">
+                          {{ formatNumber(dividir && divisor ? ((Object.keys(devStatesObj).length * (totalAdministrationCalc / (totalSurface || 1))) / divisor) : (Object.keys(devStatesObj).length * (totalAdministrationCalc / (totalSurface || 1)))) }}
+                        </td>
                       </tr>
                     </template>
                   </tbody>

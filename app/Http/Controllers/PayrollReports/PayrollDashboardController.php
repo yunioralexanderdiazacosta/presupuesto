@@ -76,6 +76,7 @@ class PayrollDashboardController extends Controller
             ->select(
                 'dy.id',
                 'dy.employee_id',
+                'dy.contract_id',
                 DB::raw('MONTH(dy.date) as month_id'),
                 'dy.payment_type',
                 'dy.amount',
@@ -798,11 +799,19 @@ class PayrollDashboardController extends Controller
             $level3Name     = $record->level3_name ?? 'Sin Clasificar';
             $mid            = $record->month_id ?? null;
             $ccs            = $ccGrouped->get($record->id, collect());
-            // Solo CCs con parcel_id para no perder monto en la proración
             $ccsWithParcel  = $ccs->filter(fn($cc) => !empty($cc->parcel_id));
             $totalSurf      = $ccsWithParcel->sum('surface');
             $nCCs           = count($ccsWithParcel);
-            if ($nCCs === 0) return;
+
+            // Sin CC o sin parcela asociada: no descartar el monto, agruparlo en "Sin Parcela"
+            // para que el total de esta tabla siempre cuadre con Resumen de Sueldos
+            if ($nCCs === 0) {
+                if ($mid && isset($result[$mid])) {
+                    $add($result[$mid], $employerCRId, $employerCRName, 0, 'Sin Parcela', 0, 'Sin RS', $level3Name, $totalAmount, $workdays);
+                }
+                $add($result['all'], $employerCRId, $employerCRName, 0, 'Sin Parcela', 0, 'Sin RS', $level3Name, $totalAmount, $workdays);
+                return;
+            }
 
             foreach ($ccsWithParcel as $cc) {
                 $parcelId    = $cc->parcel_id;
@@ -823,7 +832,8 @@ class PayrollDashboardController extends Controller
         };
 
         foreach ($yields as $y) {
-            $employerCRId = $employeeCRMap[$y->employee_id] ?? 0;
+            // RS por contrato vigente en la tarja; fallback al último contrato del empleado si es un registro antiguo sin contract_id
+            $employerCRId = $contractCRMap[$y->contract_id ?? 0] ?? ($employeeCRMap[$y->employee_id] ?? 0);
             $total = (float)(($y->amount ?? 0) + ($y->bonus_amount ?? 0) + ($y->target_price_bonus ?? 0));
             $wd    = (float) ($y->workdays ?? 0);
             $prorate($y, $yieldCCs, $total, $wd, $employerCRId);

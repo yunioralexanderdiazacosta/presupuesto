@@ -90,6 +90,10 @@ const props = defineProps({
         type: Array,
         default: () => []
     },
+    investmentsByDevState: {
+        type: Object,
+        default: () => ({})
+    },
     costoKiloAcumulado: {
         type: Object,
         default: () => ({
@@ -425,16 +429,17 @@ const mergedDevStates = computed(() => {
 });
 
 // Estados de desarrollo (con inversiones) merged con remuneraciones
+// Incluye "investments" con la porción de cada estado que corresponde a salidas de tipo inversión
 const mergedDevStatesWithInvestments = computed(() => {
     const map = {};
     (props.byDevelopmentState || []).forEach(s => {
-        map[s.id] = { id: s.id, name: s.name, outflows: s.total, payroll: 0 };
+        map[s.id] = { id: s.id, name: s.name, outflows: s.total, payroll: 0, investments: props.investmentsByDevState?.[s.id] ?? 0 };
     });
     (props.payrollByDevState || []).forEach(s => {
         if (map[s.id]) {
             map[s.id].payroll = s.total;
         } else {
-            map[s.id] = { id: s.id, name: s.name, outflows: 0, payroll: s.total };
+            map[s.id] = { id: s.id, name: s.name, outflows: 0, payroll: s.total, investments: props.investmentsByDevState?.[s.id] ?? 0 };
         }
     });
     return Object.values(map).sort((a, b) => (b.outflows + b.payroll) - (a.outflows + a.payroll));
@@ -944,55 +949,7 @@ const totalCompras = computed(() => {
 
                 <!-- Card Totales por Estado de Desarrollo -->
                 <div class="row g-2 mb-3">
-                    <div class="col-md-6">
-                        <div class="card border-start border-info border-3">
-                            <div class="card-header bg-transparent py-2">
-                                <h6 class="mb-0 text-info">
-                                    <i class="fas fa-seedling me-2"></i>
-                                    {{ t.withInvestments }}
-                                </h6>
-                            </div>
-                            <div class="card-body p-0">
-                                <div v-if="mergedDevStatesWithInvestments.length > 0" class="list-group list-group-flush">
-                                    <div
-                                        v-for="state in mergedDevStatesWithInvestments"
-                                        :key="state.id"
-                                        class="list-group-item py-2 px-3"
-                                    >
-                                        <div class="d-flex justify-content-between align-items-center">
-                                            <span class="fw-medium">
-                                                <i class="fas fa-circle text-info me-2" style="font-size: 8px;"></i>
-                                                {{ state.name }}
-                                            </span>
-                                            <div class="d-flex gap-3 align-items-center text-end">
-                                                <!-- Salidas -->
-                                                <div v-if="showDevStateBreakdown">
-                                                    <small class="text-muted d-block" style="font-size: 0.65rem;">Salidas</small>
-                                                    <span class="fs-8">{{ formatNumber(dividir && divisor ? state.outflows / divisor : state.outflows) }}</span>
-                                                </div>
-                                                <!-- Remuneraciones -->
-                                                <div v-if="showDevStateBreakdown && state.payroll > 0">
-                                                    <small class="text-success d-block" style="font-size: 0.65rem;">Remun.</small>
-                                                    <span class="fs-8 text-success">{{ formatNumber(dividir && divisor ? state.payroll / divisor : state.payroll) }}</span>
-                                                </div>
-                                                <!-- Total -->
-                                                <div :class="showDevStateBreakdown ? 'border-start ps-3' : ''">
-                                                    <small class="text-dark d-block fw-semibold" style="font-size: 0.65rem;">Total</small>
-                                                    <span class="fs-8 fw-bold">{{ formatNumber(dividir && divisor ? (state.outflows + state.payroll) / divisor : (state.outflows + state.payroll)) }}</span>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-                                <div v-else class="text-center py-4">
-                                    <i class="fas fa-info-circle fa-2x text-muted mb-2"></i>
-                                    <p class="text-muted mb-0">{{ t.noDevStateData }}</p>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Nuevo Card: Sin Inversiones -->
+                    <!-- Card: Sin Inversiones -->
                     <div class="col-md-6">
                         <div class="card border-start border-warning border-3">
                             <div class="card-header bg-transparent py-2">
@@ -1036,6 +993,60 @@ const totalCompras = computed(() => {
                                 <div v-else class="text-center py-4">
                                     <i class="fas fa-info-circle fa-2x text-muted mb-2"></i>
                                     <p class="text-muted mb-0">{{ t.noData }}</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Card: Con Inversiones -->
+                    <div class="col-md-6">
+                        <div class="card border-start border-info border-3">
+                            <div class="card-header bg-transparent py-2">
+                                <h6 class="mb-0 text-info">
+                                    <i class="fas fa-seedling me-2"></i>
+                                    {{ t.withInvestments }}
+                                </h6>
+                            </div>
+                            <div class="card-body p-0">
+                                <div v-if="mergedDevStatesWithInvestments.length > 0" class="list-group list-group-flush">
+                                    <div
+                                        v-for="state in mergedDevStatesWithInvestments"
+                                        :key="state.id"
+                                        class="list-group-item py-2 px-3"
+                                    >
+                                        <div class="d-flex justify-content-between align-items-center">
+                                            <span class="fw-medium">
+                                                <i class="fas fa-circle text-info me-2" style="font-size: 8px;"></i>
+                                                {{ state.name }}
+                                            </span>
+                                            <div class="d-flex gap-3 align-items-center text-end">
+                                                <!-- Salidas -->
+                                                <div v-if="showDevStateBreakdown">
+                                                    <small class="text-muted d-block" style="font-size: 0.65rem;">Salidas</small>
+                                                    <span class="fs-8">{{ formatNumber(dividir && divisor ? state.outflows / divisor : state.outflows) }}</span>
+                                                </div>
+                                                <!-- Inversiones (dentro de Salidas) -->
+                                                <div v-if="showDevStateBreakdown && state.investments > 0">
+                                                    <small class="text-primary d-block" style="font-size: 0.65rem;">Inversiones</small>
+                                                    <span class="fs-8 text-primary">{{ formatNumber(dividir && divisor ? state.investments / divisor : state.investments) }}</span>
+                                                </div>
+                                                <!-- Remuneraciones -->
+                                                <div v-if="showDevStateBreakdown && state.payroll > 0">
+                                                    <small class="text-success d-block" style="font-size: 0.65rem;">Remun.</small>
+                                                    <span class="fs-8 text-success">{{ formatNumber(dividir && divisor ? state.payroll / divisor : state.payroll) }}</span>
+                                                </div>
+                                                <!-- Total -->
+                                                <div :class="showDevStateBreakdown ? 'border-start ps-3' : ''">
+                                                    <small class="text-dark d-block fw-semibold" style="font-size: 0.65rem;">Total</small>
+                                                    <span class="fs-8 fw-bold">{{ formatNumber(dividir && divisor ? (state.outflows + state.payroll) / divisor : (state.outflows + state.payroll)) }}</span>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div v-else class="text-center py-4">
+                                    <i class="fas fa-info-circle fa-2x text-muted mb-2"></i>
+                                    <p class="text-muted mb-0">{{ t.noDevStateData }}</p>
                                 </div>
                             </div>
                         </div>

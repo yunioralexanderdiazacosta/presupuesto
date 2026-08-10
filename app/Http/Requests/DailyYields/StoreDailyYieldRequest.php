@@ -3,6 +3,7 @@
 namespace App\Http\Requests\DailyYields;
 
 use App\Models\DailyYield;
+use App\Models\LaborType;
 use App\Models\WorkSchedule;
 use Carbon\Carbon;
 use Illuminate\Foundation\Http\FormRequest;
@@ -30,10 +31,22 @@ class StoreDailyYieldRequest extends FormRequest
             'bonus_amount' => 'nullable|integer|min:0',
             'target_price' => 'nullable|integer|min:0',
             'target_price_bonus' => 'nullable|integer|min:0',
-            'cost_center_ids' => 'nullable|array',
+            'cost_center_ids' => ['nullable', 'array', $this->costCenterRequiredRule()],
             'cost_center_ids.*' => 'exists:cost_centers,id',
             'observations' => 'nullable|string|max:500',
         ];
+    }
+
+    // Las ausencias no pagadas no requieren Centro de Costo (no hay lugar físico donde se trabajó)
+    private function costCenterRequiredRule()
+    {
+        return function ($attribute, $value, $fail) {
+            $laborType = LaborType::find($this->input('labor_type_id'));
+            $isUnpaidAbsence = $laborType && $laborType->is_absence && !$laborType->is_paid;
+            if (!$isUnpaidAbsence && empty($value)) {
+                $fail('Debe seleccionar al menos un centro de costo.');
+            }
+        };
     }
 
     public function withValidator($validator)

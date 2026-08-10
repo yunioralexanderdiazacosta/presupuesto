@@ -64,6 +64,7 @@ class OutflowsDashboardController extends Controller
             'byProject'             => $this->getOutflowsByProject($season_id, $team_id, $company_reason_id),
             'byDevelopmentState'    => $this->getTotalsByDevelopmentState($season_id, $team_id, $company_reason_id),
             'byDevelopmentStateWithoutInvestments' => $this->getTotalsByDevelopmentStateWithoutInvestments($season_id, $team_id, $company_reason_id),
+            'investmentsByDevState' => $this->getInvestmentsByDevelopmentState($season_id, $team_id, $company_reason_id),
             'costoKiloAcumulado'    => $this->getCostoKiloAcumulado($season_id, $team_id, $company_reason_id),
             'payrollSummary'        => $this->getPayrollSummary($team_id, $season_id, $company_reason_id),
             'payrollByDevState'     => $this->getPayrollByDevelopmentState($team_id, $season_id, $company_reason_id),
@@ -606,6 +607,63 @@ class OutflowsDashboardController extends Controller
 
         } catch (\Exception $e) {
             Log::error('Error en OutflowsDashboard getTotalsByDevelopmentState: ' . $e->getMessage());
+            return [];
+        }
+    }
+
+    /**
+     * Igual que getTotalsByDevelopmentState pero solo considera las salidas cuya
+     * operación es de tipo "inversión". Se usa para desglosar, dentro del
+     * resumen "con inversiones", cuánto de cada estado de desarrollo corresponde
+     * específicamente a inversiones.
+     */
+    private function getInvestmentsByDevelopmentState($season_id, $team_id, $company_reason_id = null)
+    {
+        try {
+            $surfaceTotalsSubquery = DB::table('outflow_cost_center')
+                ->join('cost_centers', 'outflow_cost_center.cost_center_id', '=', 'cost_centers.id')
+                ->select('outflow_cost_center.outflow_id', DB::raw('SUM(cost_centers.surface) as total_surface'))
+                ->groupBy('outflow_cost_center.outflow_id');
+
+            $query = DB::table('development_states')
+                ->join('cost_centers', 'development_states.id', '=', 'cost_centers.development_state_id')
+                ->join('outflow_cost_center', 'cost_centers.id', '=', 'outflow_cost_center.cost_center_id')
+                ->join('outflows', function($join) use ($season_id, $team_id) {
+                    $join->on('outflow_cost_center.outflow_id', '=', 'outflows.id')
+                         ->where('outflows.season_id', '=', $season_id)
+                         ->where('outflows.team_id', '=', $team_id);
+                })
+                ->join('operations', function($join) {
+                    $join->on('outflows.operation_id', '=', 'operations.id')
+                         ->whereRaw('LOWER(operations.name) LIKE ?', ['%inversion%']);
+                })
+                ->leftJoinSub($surfaceTotalsSubquery, 'surface_totals', function($join) {
+                    $join->on('outflows.id', '=', 'surface_totals.outflow_id');
+                })
+                ->leftJoin('invoice_products', 'outflows.invoice_product_id', '=', 'invoice_products.id')
+                ->leftJoin('credit_debit_note_items', 'outflows.credit_debit_note_item_id', '=', 'credit_debit_note_items.id');
+
+            $query = $this->addCompanyReasonJoin($query, $company_reason_id);
+
+            $results = $query->selectRaw("
+                    development_states.id,
+                    COALESCE(SUM(
+                        CASE 
+                            WHEN cost_centers.surface = 0 THEN 
+                                outflows.quantity * COALESCE(invoice_products.unit_price, credit_debit_note_items.unit_price, 0)
+                            ELSE 
+                                (cost_centers.surface * (outflows.quantity / NULLIF(surface_totals.total_surface, 0))) * 
+                                COALESCE(invoice_products.unit_price, credit_debit_note_items.unit_price, 0)
+                        END
+                    ), 0) as total
+                ")
+                ->groupBy('development_states.id')
+                ->get();
+
+            return $results->mapWithKeys(fn($item) => [$item->id => floatval($item->total ?? 0)])->toArray();
+
+        } catch (\Exception $e) {
+            Log::error('Error en OutflowsDashboard getInvestmentsByDevelopmentState: ' . $e->getMessage());
             return [];
         }
     }

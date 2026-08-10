@@ -5,6 +5,7 @@ namespace App\Http\Controllers\DailyYields;
 use App\Http\Controllers\Controller;
 use App\Models\Contract;
 use App\Models\DailyYield;
+use App\Models\LaborType;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
@@ -17,6 +18,10 @@ class BulkStoreDailyYieldByDatesController extends Controller
     {
         $this->abortIfSeasonLocked();
 
+        // Las ausencias no pagadas no requieren Centro de Costo (no hay lugar físico donde se trabajó)
+        $laborType = LaborType::find($request->labor_type_id);
+        $isUnpaidAbsence = $laborType && $laborType->is_absence && !$laborType->is_paid;
+
         $request->validate([
             'dates'          => 'required|array|min:1',
             'dates.*'        => 'required|date',
@@ -24,12 +29,15 @@ class BulkStoreDailyYieldByDatesController extends Controller
             'workdays'       => 'required|numeric|min:0.1|max:1',
             'bonus_type_id'  => 'nullable|exists:bonus_types,id',
             'bonus_amount'   => 'nullable|integer|min:0',
-            'cost_center_ids'   => 'nullable|array',
+            'cost_center_ids'   => $isUnpaidAbsence ? 'nullable|array' : 'required|array|min:1',
             'cost_center_ids.*' => 'exists:cost_centers,id',
             'observations'   => 'nullable|string|max:500',
             'employees'      => 'required|array|min:1',
             'employees.*.employee_id' => 'required|exists:employees,id',
             'employees.*.rate'        => 'required|integer|min:0',
+        ], [
+            'cost_center_ids.required' => 'Debe seleccionar al menos un centro de costo.',
+            'cost_center_ids.min' => 'Debe seleccionar al menos un centro de costo.',
         ]);
 
         $user     = Auth::user();
