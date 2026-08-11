@@ -17,10 +17,7 @@ class UpdateExpenseReportController extends Controller
             abort(403);
         }
 
-        if ($expenseReport->status !== 'borrador') {
-            return back()->withErrors(['status' => 'Solo se pueden editar rendiciones en borrador.']);
-        }
-
+        // La descripción puede editarse en cualquier estado de la rendición.
         $request->validate([
             'description' => 'nullable|string|max:500',
         ]);

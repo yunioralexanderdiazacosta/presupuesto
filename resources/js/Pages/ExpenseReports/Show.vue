@@ -556,11 +556,10 @@ const pendingAmount = computed(() => formatCurrency(props.report.pending_amount)
                             <div class="d-flex align-items-center gap-2">
                                 <small class="text-muted d-block mb-0">Descripción</small>
                                 <button
-                                    v-if="isBorrador"
                                     type="button"
                                     class="btn btn-link text-primary p-0"
                                     @click="openEditReportModal"
-                                    v-tooltip="'Editar rendición'"
+                                    v-tooltip="'Editar descripción'"
                                     style="font-size: 0.8rem; line-height: 1;"
                                 >
                                     <i class="fas fa-pen"></i>
@@ -922,7 +921,7 @@ const pendingAmount = computed(() => formatCurrency(props.report.pending_amount)
                     <div class="modal-content">
                         <div class="modal-header py-2 border-bottom">
                             <h6 class="modal-title d-flex align-items-center gap-2 mb-0">
-                                <i class="fas fa-edit text-primary"></i>Editar Rendición
+                                <i class="fas fa-edit text-primary"></i>Editar Descripción
                             </h6>
                             <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                         </div>

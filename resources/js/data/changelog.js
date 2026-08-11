@@ -8,6 +8,13 @@
 export const changelog = [
   {
     fecha: '2026-08-11',
+    titulo: 'Rendiciones — Ahora se puede editar la descripción en cualquier momento',
+    items: [
+      'La descripción de una rendición de gastos ya se puede editar sin importar el estado en que se encuentre (borrador, enviada, aprobada, etc.), no solo mientras está en borrador.',
+    ]
+  },
+  {
+    fecha: '2026-08-11',
     titulo: 'Pagos de Facturas — Facturas cubiertas por una rendición no se pagan dos veces',
     items: [
       'Las facturas que ya están vinculadas a una rendición de gastos ahora se muestran automáticamente como "Pagada" en el listado de Pagos de Facturas, con una etiqueta "RENDICIÓN" que enlaza directo a la rendición correspondiente.',
