@@ -15,11 +15,11 @@ export const changelog = [
   },
   {
     fecha: '2026-08-11',
-    titulo: 'Pagos de Facturas — Facturas cubiertas por una rendición no se pagan dos veces',
+    titulo: 'Pagos de Facturas — Facturas cubiertas por una rendición',
     items: [
-      'Las facturas que ya están vinculadas a una rendición de gastos ahora se muestran automáticamente como "Pagada" en el listado de Pagos de Facturas, con una etiqueta "RENDICIÓN" que enlaza directo a la rendición correspondiente.',
-      'Ya no aparece el botón "Registrar Pago" para estas facturas, y tampoco se pueden encontrar en el buscador de facturas al registrar un pago, evitando pagarlas por error una segunda vez.',
-      'Los totales y resúmenes del dashboard de pagos ahora consideran estas facturas como pagadas para que las cifras cuadren correctamente.',
+      'Las facturas vinculadas a una rendición de gastos se muestran como "Pagada" en el listado de Pagos de Facturas, con una etiqueta "RENDICIÓN" que enlaza directo a la rendición correspondiente.',
+      'Ya no aparece el botón "Registrar Pago" para estas facturas, ni se pueden encontrar en el buscador al registrar un pago.',
+      'Los totales y resúmenes del dashboard de pagos consideran estas facturas como pagadas para que las cifras cuadren correctamente.',
     ]
   },
   {
