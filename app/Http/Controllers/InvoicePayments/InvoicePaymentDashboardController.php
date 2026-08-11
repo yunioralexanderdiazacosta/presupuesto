@@ -40,7 +40,8 @@ class InvoicePaymentDashboardController extends Controller
                 $total = $invoice->invoiceProducts->sum(function($ip) {
                     return $ip->unit_price * $ip->amount;
                 });
-                $paid = $invoice->payments->sum('amount');
+                // Las facturas cubiertas por una rendición ya están saldadas por ese proceso
+                $paid = $invoice->expense_report_id ? $total : $invoice->payments->sum('amount');
                 return [
                     'total' => $total,
                     'paid' => $paid,

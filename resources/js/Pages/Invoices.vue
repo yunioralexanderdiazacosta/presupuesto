@@ -414,6 +414,36 @@ const importItem = (item) => {
     router.get(route('invoices.create', { expense_item_id: item.id }));
 };
 
+const linkItem = (item) => {
+    Swal.fire({
+        title: '¿Vincular con factura existente?',
+        html: `El documento de la rendición <strong>${item.expense_report_number}</strong> se vinculará a la factura
+            Nº <strong>${item.duplicate_invoice.number_document}</strong> (${item.duplicate_invoice.date}),
+            sin crear una factura nueva.`,
+        icon: 'question',
+        showCancelButton: true,
+        confirmButtonText: 'Sí, vincular',
+        cancelButtonText: 'Cancelar',
+    }).then((result) => {
+        if (!result.isConfirmed) return;
+
+        axios.post(route('api.expense-items.link'), {
+            expense_report_item_id: item.id,
+            invoice_id: item.duplicate_invoice.id,
+        }).then(() => {
+            pendingItems.value = pendingItems.value.filter(i => i.id !== item.id);
+            Swal.fire({
+                icon: 'success',
+                title: 'Documento vinculado',
+                showConfirmButton: false,
+                timer: 1500,
+            });
+        }).catch(() => {
+            Swal.fire('Error', 'No se pudo vincular el documento.', 'error');
+        });
+    });
+};
+
 const formatCurrency = (value) => {
     return '$ ' + Math.round(value).toLocaleString('es-CL');
 };
@@ -1182,7 +1212,17 @@ invoice, index
                                                 <span v-else class="text-muted">—</span>
                                             </td>
                                             <td class="text-center">
-                                                <button class="btn btn-sm btn-primary py-1 px-3" 
+                                                <template v-if="item.duplicate_invoice">
+                                                    <button class="btn btn-sm btn-warning py-1 px-2"
+                                                        @click="linkItem(item)"
+                                                        v-tooltip="'Ya existe la factura Nº ' + item.duplicate_invoice.number_document + ' (' + item.duplicate_invoice.date + ')'">
+                                                        <i class="fas fa-link me-1"></i>Vincular
+                                                    </button>
+                                                    <div class="text-muted" style="font-size: 0.65rem;">
+                                                        Ya existe Nº {{ item.duplicate_invoice.number_document }}
+                                                    </div>
+                                                </template>
+                                                <button v-else class="btn btn-sm btn-primary py-1 px-3" 
                                                     @click="importItem(item)">
                                                     <i class="fas fa-file-invoice me-1"></i>Crear Factura
                                                 </button>

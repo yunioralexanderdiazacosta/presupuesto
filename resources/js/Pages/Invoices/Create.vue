@@ -1,5 +1,6 @@
 <script setup>
 import Swal from 'sweetalert2';
+import axios from 'axios';
 import { Head, useForm, router } from '@inertiajs/vue3';
 import AppLayout from '@/Layouts/AppLayout.vue';
 import FormInvoice from '@/Components/Invoices/Form.vue';
@@ -55,7 +56,7 @@ const form = useForm({
 		]
 });
 
-const save = () => {
+const save = async () => {
 	// Validación previa: todos los precios deben ser mayores a cero
 	const invalid = form.products.some(p => !p.unit_price || p.unit_price <= 0);
 	if (invalid) {
@@ -67,6 +68,40 @@ const save = () => {
 		});
 		return;
 	}
+
+	// Si no viene ya desde el flujo de "Importar rendición", chequear si el
+	// proveedor + N° de documento coincide con un documento pendiente de rendir.
+	if (!form.expense_item_id && form.supplier_id && form.number_document) {
+		try {
+			const { data } = await axios.get(route('api.expense-items.match'), {
+				params: {
+					supplier_id: form.supplier_id,
+					number_document: form.number_document,
+				},
+			});
+
+			if (data.match) {
+				const amountLabel = '$ ' + Math.round(data.match.amount).toLocaleString('es-CL');
+				const result = await Swal.fire({
+					icon: 'question',
+					title: 'Documento encontrado en una rendición',
+					html: `Esta factura coincide con un documento de la rendición <strong>${data.match.expense_report_number}</strong>
+						(${data.match.date}, ${amountLabel}).<br><br>
+						¿Deseas vincular esta factura a esa rendición?`,
+					showCancelButton: true,
+					confirmButtonText: 'Sí, vincular',
+					cancelButtonText: 'No, es otra factura',
+				});
+
+				if (result.isConfirmed) {
+					form.expense_item_id = data.match.id;
+				}
+			}
+		} catch (error) {
+			// Si el chequeo falla, no bloquear el guardado normal de la factura
+		}
+	}
+
 	form.post(route('invoices.store'), {
 		preserveScroll: true,
 		onSuccess: () => {

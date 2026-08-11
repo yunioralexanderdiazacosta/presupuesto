@@ -19,11 +19,16 @@ class StoreInvoicePaymentController extends Controller
         $season_id = session('season_id');
 
         // Validar que la factura existe y pertenece al equipo
-        $invoice = Invoice::with(['typeDocument', 'invoiceProducts'])
+        $invoice = Invoice::with(['typeDocument', 'invoiceProducts', 'expenseReport:id,number'])
             ->where('id', $request->invoice_id)
             ->where('team_id', $user->team_id)
             ->where('season_id', $season_id)
             ->firstOrFail();
+
+        // Las facturas vinculadas a una rendición ya fueron cubiertas por ese proceso
+        if ($invoice->expense_report_id) {
+            return back()->withErrors(['invoice_id' => 'Esta factura pertenece a la rendición '.($invoice->expenseReport->number ?? '').' y ya fue cubierta por ese proceso. No se puede registrar un pago aquí.']);
+        }
 
         // Calcular total real de la factura (neto + IVA si aplica)
         $totalNeto = $invoice->invoiceProducts->sum(fn($ip) => $ip->unit_price * $ip->amount);

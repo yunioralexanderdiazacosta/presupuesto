@@ -462,6 +462,17 @@ const excelData = computed(() => {
                                             >
                                                 <i class="fas fa-ban fa-xs me-1"></i>ANULADA
                                             </span>
+                                            <template v-else-if="invoice.paid_via_expense_report">
+                                                <Link
+                                                    v-if="invoice.expense_report"
+                                                    :href="route('expense-reports.show', invoice.expense_report.id)"
+                                                    class="badge bg-info text-white text-decoration-none"
+                                                    v-tooltip="'Pagada mediante la rendición ' + invoice.expense_report.number + '. No se registra pago en este módulo.'"
+                                                    @click.stop
+                                                >
+                                                    <i class="fas fa-receipt fa-xs me-1"></i>RENDICIÓN {{ invoice.expense_report.number }}
+                                                </Link>
+                                            </template>
                                             <template v-else-if="invoice.has_notes">
                                                 <span
                                                     v-if="invoice.credit_total > 0"
@@ -528,6 +539,14 @@ const excelData = computed(() => {
                                             style="cursor:help;"
                                         >
                                             <i class="fas fa-ban"></i>
+                                        </span>
+                                        <span
+                                            v-else-if="invoice.paid_via_expense_report"
+                                            class="text-info"
+                                            v-tooltip="'Pagada mediante rendición. No se registra pago en este módulo.'"
+                                            style="cursor:help;"
+                                        >
+                                            <i class="fas fa-receipt"></i>
                                         </span>
                                     </td>
                                 </tr>

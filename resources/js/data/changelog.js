@@ -7,6 +7,24 @@
 
 export const changelog = [
   {
+    fecha: '2026-08-11',
+    titulo: 'Pagos de Facturas — Facturas cubiertas por una rendición no se pagan dos veces',
+    items: [
+      'Las facturas que ya están vinculadas a una rendición de gastos ahora se muestran automáticamente como "Pagada" en el listado de Pagos de Facturas, con una etiqueta "RENDICIÓN" que enlaza directo a la rendición correspondiente.',
+      'Ya no aparece el botón "Registrar Pago" para estas facturas, y tampoco se pueden encontrar en el buscador de facturas al registrar un pago, evitando pagarlas por error una segunda vez.',
+      'Los totales y resúmenes del dashboard de pagos ahora consideran estas facturas como pagadas para que las cifras cuadren correctamente.',
+    ]
+  },
+  {
+    fecha: '2026-08-11',
+    titulo: 'Rendiciones y Facturas — Evitar duplicados cuando la factura ya fue ingresada',
+    items: [
+      'Al crear una factura nueva, si el proveedor y N° de documento coinciden con un documento pendiente de una rendición aprobada, el sistema pregunta si deseas vincularla a esa rendición antes de guardar.',
+      'En el listado "Importar desde Rendición" de Facturas, cuando un documento de la rendición ya tiene una factura similar cargada en el sistema, ahora se muestra un botón "Vincular" en vez de "Crear Factura", para asociarlo sin generar una factura duplicada.',
+      'En el detalle de cada rendición, los documentos pendientes ahora tienen un botón para buscar y vincular manualmente una factura ya existente, evitando que el documento quede pendiente para siempre.',
+    ]
+  },
+  {
     fecha: '2026-08-10',
     titulo: 'Rendiciones de Gastos — Impresión de reporte en PDF',
     items: [

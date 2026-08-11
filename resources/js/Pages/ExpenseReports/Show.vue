@@ -429,6 +429,67 @@ const viewReceipt = (item) => {
     }
 };
 
+// ─── Vincular con factura existente ─────────
+const linkingItem = ref(null);
+const invoiceSearchTerm = ref('');
+const invoiceSearchResults = ref([]);
+const searchingInvoices = ref(false);
+
+const openLinkInvoiceModal = (item) => {
+    linkingItem.value = item;
+    invoiceSearchTerm.value = item.document_number || '';
+    invoiceSearchResults.value = [];
+    $('#linkInvoiceModal').modal('show');
+    searchInvoicesForLink();
+};
+
+const searchInvoicesForLink = async () => {
+    searchingInvoices.value = true;
+    try {
+        const response = await axios.get(route('invoices.search'), {
+            params: {
+                number_document: invoiceSearchTerm.value,
+                supplier_id: linkingItem.value?.supplier_id,
+            },
+        });
+        invoiceSearchResults.value = response.data;
+    } catch (error) {
+        Swal.fire('Error', 'No se pudieron buscar facturas.', 'error');
+    } finally {
+        searchingInvoices.value = false;
+    }
+};
+
+const confirmLinkInvoice = (invoice) => {
+    Swal.fire({
+        title: '¿Vincular este documento?',
+        html: `Se vinculará con la factura Nº <strong>${invoice.number_document}</strong>, sin crear una factura nueva.`,
+        icon: 'question',
+        showCancelButton: true,
+        confirmButtonText: 'Sí, vincular',
+        cancelButtonText: 'Cancelar',
+    }).then((result) => {
+        if (!result.isConfirmed) return;
+
+        axios.post(route('api.expense-items.link'), {
+            expense_report_item_id: linkingItem.value.id,
+            invoice_id: invoice.id,
+        }).then(() => {
+            $('#linkInvoiceModal').modal('hide');
+            Swal.fire({
+                icon: 'success',
+                title: 'Documento vinculado',
+                showConfirmButton: false,
+                timer: 1500,
+            });
+            router.reload({ only: ['report'] });
+        }).catch((error) => {
+            const msg = error.response?.data?.message || 'No se pudo vincular el documento.';
+            Swal.fire('Error', msg, 'error');
+        });
+    });
+};
+
 // ─── Helpers ────────────────────────────────
 const formatCurrency = (value) => {
     return '$ ' + Math.round(value).toLocaleString('es-CL');
@@ -596,9 +657,14 @@ const pendingAmount = computed(() => formatCurrency(props.report.pending_amount)
                                     <span v-if="item.is_contabilized" class="badge bg-success" v-tooltip="'Factura ' + item.invoice_number">
                                         <i class="fas fa-check"></i>
                                     </span>
-                                    <span v-else class="badge bg-secondary">
-                                        <i class="fas fa-clock"></i>
-                                    </span>
+                                    <div v-else class="d-flex align-items-center justify-content-center gap-2">
+                                        <span class="badge bg-secondary">
+                                            <i class="fas fa-clock"></i>
+                                        </span>
+                                        <button class="btn btn-sm btn-link p-0 ms-1" @click="openLinkInvoiceModal(item)" v-tooltip="'Vincular con factura existente'">
+                                            <i class="fas fa-link"></i>
+                                        </button>
+                                    </div>
                                 </td>
                                 <td class="text-center" v-if="isBorrador">
                                     <button class="btn btn-sm btn-falcon-default me-1" @click="openEditItemModal(item)" v-tooltip="'Editar'">
@@ -648,7 +714,12 @@ const pendingAmount = computed(() => formatCurrency(props.report.pending_amount)
                                     <span v-if="item.is_contabilized" class="badge bg-success small">
                                         <i class="fas fa-check me-1"></i>{{ item.invoice_number }}
                                     </span>
-                                    <span v-else class="badge bg-secondary small">Pendiente</span>
+                                    <template v-else>
+                                        <span class="badge bg-secondary small">Pendiente</span>
+                                        <button class="btn btn-sm btn-link p-0 ms-2" @click="openLinkInvoiceModal(item)">
+                                            <i class="fas fa-link"></i>
+                                        </button>
+                                    </template>
                                 </div>
                                 <div class="d-flex gap-2">
                                     <button v-if="isBorrador" class="btn btn-sm btn-falcon-default" @click="openEditItemModal(item)">
@@ -879,6 +950,77 @@ const pendingAmount = computed(() => formatCurrency(props.report.pending_amount)
                                 <i class="fas fa-save me-1"></i>
                                 {{ editReportForm.processing ? 'Guardando...' : 'Guardar Cambios' }}
                             </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </Teleport>
+
+        <!-- Modal Vincular con Factura Existente -->
+        <Teleport to="body">
+            <div class="modal fade" id="linkInvoiceModal" tabindex="-1" aria-hidden="true">
+                <div class="modal-dialog modal-dialog-centered modal-lg">
+                    <div class="modal-content">
+                        <div class="modal-header py-2 border-bottom">
+                            <h6 class="modal-title d-flex align-items-center gap-2 mb-0">
+                                <i class="fas fa-link text-primary"></i>Vincular con Factura Existente
+                            </h6>
+                            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                        </div>
+                        <div class="modal-body">
+                            <p class="text-muted small mb-2">
+                                Busca la factura que ya fue ingresada para este documento y vincúlala a la rendición,
+                                sin crear una factura nueva.
+                            </p>
+                            <div class="input-group input-group-sm mb-3">
+                                <input
+                                    type="text"
+                                    v-model="invoiceSearchTerm"
+                                    class="form-control"
+                                    placeholder="Buscar por N° de documento..."
+                                    @keyup.enter="searchInvoicesForLink"
+                                >
+                                <button class="btn btn-falcon-default" type="button" @click="searchInvoicesForLink">
+                                    <i class="fas fa-search"></i>
+                                </button>
+                            </div>
+
+                            <div v-if="searchingInvoices" class="text-center py-4">
+                                <div class="spinner-border spinner-border-sm text-primary" role="status"></div>
+                                <p class="mt-2 text-muted small mb-0">Buscando facturas...</p>
+                            </div>
+                            <div v-else-if="invoiceSearchResults.length === 0" class="text-center text-muted py-4 small">
+                                No se encontraron facturas para ese proveedor/N° de documento.
+                            </div>
+                            <div v-else class="table-responsive" style="max-height: 320px; overflow-y: auto;">
+                                <table class="table table-sm table-hover fs-10 mb-0">
+                                    <thead class="bg-200">
+                                        <tr>
+                                            <th>N° Doc</th>
+                                            <th>Fecha</th>
+                                            <th>Tipo Doc.</th>
+                                            <th class="text-end">Total</th>
+                                            <th class="text-center">Acción</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <tr v-for="invoice in invoiceSearchResults" :key="invoice.id">
+                                            <td>{{ invoice.number_document }}</td>
+                                            <td>{{ invoice.date }}</td>
+                                            <td>{{ invoice.type_document || '—' }}</td>
+                                            <td class="text-end">{{ formatCurrency(invoice.total_invoice) }}</td>
+                                            <td class="text-center">
+                                                <button class="btn btn-sm btn-primary py-0 px-2" @click="confirmLinkInvoice(invoice)">
+                                                    <i class="fas fa-link me-1"></i>Vincular
+                                                </button>
+                                            </td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                        <div class="modal-footer py-2">
+                            <button type="button" class="btn btn-sm btn-secondary" data-bs-dismiss="modal">Cerrar</button>
                         </div>
                     </div>
                 </div>

@@ -52,6 +52,7 @@ class InvoicePaymentController extends Controller
                 'payments.supplierBankAccount.bank:id,name',
                 'payments.supplierBankAccount.accountType:id,name',
                 'creditDebitNotes.items',
+                'expenseReport:id,number',
             ])
             ->where('invoices.team_id', $user->team_id)
             ->where('invoices.season_id', $season_id)
@@ -68,6 +69,7 @@ class InvoicePaymentController extends Controller
 
         // Resumen por estado (sin filtro de payment_status para mostrar siempre los totales completos)
         $summaryBase = Invoice::select(
+                'invoices.expense_report_id',
                 DB::raw("(SELECT COALESCE(SUM(ip.unit_price * ip.amount), 0) FROM invoice_products ip WHERE ip.invoice_id = invoices.id) * CASE WHEN UPPER(td.name) IN ('FACTURA', 'NOTA CREDITO', 'NOTA DEBITO') THEN 1.19 ELSE 1.0 END as total_invoice"),
                 DB::raw('(SELECT COALESCE(SUM(pay.amount), 0) FROM invoice_payments pay WHERE pay.invoice_id = invoices.id) as total_paid'),
                 DB::raw('(SELECT COUNT(*) FROM credit_debit_notes cdn WHERE cdn.invoice_id = invoices.id AND cdn.is_annulment = 1) as annulment_count'),
@@ -88,15 +90,17 @@ class InvoicePaymentController extends Controller
             ->when($supplierId, fn($q, $id) => $q->where('invoices.supplier_id', $id))
             ->when($paymentType !== '', fn($q) => $q->where('invoices.payment_type', $paymentType));
 
+        // Nota: una factura con expense_report_id ya fue cubierta por una rendición de gastos,
+        // por lo que se contabiliza como pagada aunque no tenga pagos registrados en este módulo.
         $summaryRaw = DB::query()->fromSub($summaryBase, 'sub')->selectRaw("
             COUNT(*) as total_count,
             COALESCE(SUM(total_invoice), 0) as total_amount,
-            SUM(CASE WHEN annulment_count = 0 AND total_paid = 0 AND (total_invoice - inv_credit_adj + debit_adj) > 0 THEN 1 ELSE 0 END) as pending_count,
-            COALESCE(SUM(CASE WHEN annulment_count = 0 AND total_paid = 0 AND (total_invoice - inv_credit_adj + debit_adj) > 0 THEN (total_invoice - inv_credit_adj + debit_adj) ELSE 0 END), 0) as pending_amount,
-            SUM(CASE WHEN annulment_count = 0 AND total_paid > 0 AND total_paid < (total_invoice - inv_credit_adj + debit_adj) THEN 1 ELSE 0 END) as partial_count,
-            COALESCE(SUM(CASE WHEN annulment_count = 0 AND total_paid > 0 AND total_paid < (total_invoice - inv_credit_adj + debit_adj) THEN ((total_invoice - inv_credit_adj + debit_adj) - total_paid) ELSE 0 END), 0) as partial_balance,
-            SUM(CASE WHEN annulment_count = 0 AND (total_invoice - inv_credit_adj + debit_adj) > 0 AND total_paid >= (total_invoice - inv_credit_adj + debit_adj) THEN 1 ELSE 0 END) as paid_count,
-            COALESCE(SUM(CASE WHEN annulment_count = 0 AND (total_invoice - inv_credit_adj + debit_adj) > 0 AND total_paid >= (total_invoice - inv_credit_adj + debit_adj) THEN total_paid ELSE 0 END), 0) as paid_amount,
+            SUM(CASE WHEN annulment_count = 0 AND expense_report_id IS NULL AND total_paid = 0 AND (total_invoice - inv_credit_adj + debit_adj) > 0 THEN 1 ELSE 0 END) as pending_count,
+            COALESCE(SUM(CASE WHEN annulment_count = 0 AND expense_report_id IS NULL AND total_paid = 0 AND (total_invoice - inv_credit_adj + debit_adj) > 0 THEN (total_invoice - inv_credit_adj + debit_adj) ELSE 0 END), 0) as pending_amount,
+            SUM(CASE WHEN annulment_count = 0 AND expense_report_id IS NULL AND total_paid > 0 AND total_paid < (total_invoice - inv_credit_adj + debit_adj) THEN 1 ELSE 0 END) as partial_count,
+            COALESCE(SUM(CASE WHEN annulment_count = 0 AND expense_report_id IS NULL AND total_paid > 0 AND total_paid < (total_invoice - inv_credit_adj + debit_adj) THEN ((total_invoice - inv_credit_adj + debit_adj) - total_paid) ELSE 0 END), 0) as partial_balance,
+            SUM(CASE WHEN annulment_count = 0 AND (total_invoice - inv_credit_adj + debit_adj) > 0 AND (total_paid >= (total_invoice - inv_credit_adj + debit_adj) OR expense_report_id IS NOT NULL) THEN 1 ELSE 0 END) as paid_count,
+            COALESCE(SUM(CASE WHEN annulment_count = 0 AND (total_invoice - inv_credit_adj + debit_adj) > 0 AND (total_paid >= (total_invoice - inv_credit_adj + debit_adj) OR expense_report_id IS NOT NULL) THEN (CASE WHEN expense_report_id IS NOT NULL THEN (total_invoice - inv_credit_adj + debit_adj) ELSE total_paid END) ELSE 0 END), 0) as paid_amount,
             SUM(CASE WHEN annulment_count > 0 THEN 1 ELSE 0 END) as annulled_count,
             COALESCE(SUM(CASE WHEN annulment_count > 0 THEN total_invoice ELSE 0 END), 0) as annulled_amount
         ")->first();
@@ -112,11 +116,11 @@ class InvoicePaymentController extends Controller
         // Filtro por estado de pago usando HAVING (sobre los subqueries).
         // owed = total_invoice - inv_credit_adj + debit_adj (monto real a pagar)
         if ($paymentStatus === 'pending') {
-            $query->havingRaw('annulment_count = 0 AND total_paid = 0 AND (total_invoice - inv_credit_adj + debit_adj) > 0');
+            $query->havingRaw('annulment_count = 0 AND expense_report_id IS NULL AND total_paid = 0 AND (total_invoice - inv_credit_adj + debit_adj) > 0');
         } elseif ($paymentStatus === 'paid') {
-            $query->havingRaw('annulment_count = 0 AND ((total_invoice - inv_credit_adj + debit_adj) <= 0 OR total_paid >= (total_invoice - inv_credit_adj + debit_adj))');
+            $query->havingRaw('annulment_count = 0 AND ((total_invoice - inv_credit_adj + debit_adj) <= 0 OR total_paid >= (total_invoice - inv_credit_adj + debit_adj) OR expense_report_id IS NOT NULL)');
         } elseif ($paymentStatus === 'partial') {
-            $query->havingRaw('annulment_count = 0 AND total_paid > 0 AND total_paid < (total_invoice - inv_credit_adj + debit_adj)');
+            $query->havingRaw('annulment_count = 0 AND expense_report_id IS NULL AND total_paid > 0 AND total_paid < (total_invoice - inv_credit_adj + debit_adj)');
         } elseif ($paymentStatus === 'annulled') {
             $query->havingRaw('annulment_count > 0');
         }
@@ -162,6 +166,9 @@ class InvoicePaymentController extends Controller
                     ->where('is_annulment', false)
                     ->sum('total');
 
+                // Una factura vinculada a una rendición ya fue cubierta por ese proceso
+                $paidViaExpenseReport = !$isAnnulled && $invoice->expense_report_id !== null;
+
                 if ($isAnnulled) {
                     // Una anulación cancela el 100% de la factura: no debe pagarse
                     $status  = 'annulled';
@@ -170,14 +177,21 @@ class InvoicePaymentController extends Controller
                 } else {
                     // Monto real a pagar considerando notas
                     $owed    = max(0, round($totalInvoice - $inventoryCreditTotal + $debitTotal));
-                    $balance = max(0, round($owed - $totalPaid));
 
-                    if ($owed <= 0 || $totalPaid >= $owed) {
-                        $status = 'paid';
-                    } elseif ($totalPaid > 0) {
-                        $status = 'partial';
+                    if ($paidViaExpenseReport) {
+                        $status    = 'paid';
+                        $totalPaid = $owed;
+                        $balance   = 0;
                     } else {
-                        $status = 'pending';
+                        $balance = max(0, round($owed - $totalPaid));
+
+                        if ($owed <= 0 || $totalPaid >= $owed) {
+                            $status = 'paid';
+                        } elseif ($totalPaid > 0) {
+                            $status = 'partial';
+                        } else {
+                            $status = 'pending';
+                        }
                     }
                 }
 
@@ -198,6 +212,10 @@ class InvoicePaymentController extends Controller
                     'balance'         => $balance,
                     'payment_status'  => $status,
                     'is_annulled'     => $isAnnulled,
+                    'paid_via_expense_report' => $paidViaExpenseReport,
+                    'expense_report'  => $invoice->expenseReport
+                        ? ['id' => $invoice->expenseReport->id, 'number' => $invoice->expenseReport->number]
+                        : null,
                     'has_notes'       => $notes->isNotEmpty(),
                     'credit_total'    => $creditTotal,
                     'debit_total'     => $debitTotal,
@@ -261,7 +279,9 @@ class InvoicePaymentController extends Controller
             ->where('team_id', $user->team_id)
             ->where('season_id', $season_id)
             // No permitir pagar facturas anuladas por nota de crédito
-            ->whereDoesntHave('creditDebitNotes', fn($q) => $q->where('is_annulment', 1));
+            ->whereDoesntHave('creditDebitNotes', fn($q) => $q->where('is_annulment', 1))
+            // No permitir pagar facturas ya cubiertas por una rendición de gastos
+            ->whereNull('expense_report_id');
 
         if ($request->number_document) {
             // Buscar facturas que contengan el número buscado
