@@ -29,6 +29,11 @@ const filterPaymentStatus  = ref(props.filters.payment_status || null);
 const filterPaymentType    = ref(props.filters.payment_type ?? '1'); // Default: Crédito
 const showFilters          = ref(false);
 
+// Alto máximo de la tabla: la mantiene dentro de la pantalla (con scroll interno)
+// en vez de que la página entera se desborde hacia abajo. Descuenta más espacio
+// cuando el panel de filtros avanzados está abierto, ya que ocupa una fila adicional.
+const tableMaxHeight = computed(() => showFilters.value ? 'calc(100vh - 640px)' : 'calc(100vh - 520px)');
+
 // Filas expandidas (para ver pagos de una factura)
 const expandedRows = ref({});
 function toggleRow(id) {
@@ -417,7 +422,7 @@ const excelData = computed(() => {
             </div>
 
             <div class="card-body bg-body-tertiary">
-                <div class="table-responsive">
+                <div class="table-responsive" :style="{ maxHeight: tableMaxHeight, minHeight: '200px', overflowY: 'auto' }">
                     <table id="invoice-payments-table" class="table table-sm table-hover fs-10">
                         <thead class="bg-200 text-900">
                             <tr>

@@ -36,6 +36,12 @@ const filterDocType = ref('');
 const filterBranch = ref('');
 const filterExpenseReport = ref(''); // '' = todos, 'con' = con rendición, 'sin' = sin rendición
 
+// Alto máximo de la tabla: deja siempre la tabla dentro de la pantalla (con scroll interno)
+// en vez de que la página entera se desborde hacia abajo. Descuenta más espacio cuando
+// el panel de filtros avanzados está abierto, ya que ocupa una fila adicional.
+const resumenTableMaxHeight = computed(() => showAdvancedFilters.value ? 'calc(100vh - 560px)' : 'calc(100vh - 460px)');
+const detallesTableMaxHeight = computed(() => showAdvancedFilters.value ? 'calc(100vh - 640px)' : 'calc(100vh - 540px)');
+
 // Opciones dinámicas generadas a partir de los datos cargados
 const availableMonths = computed(() => {
     if (!props.invoices?.data) return [];
@@ -697,7 +703,7 @@ const formatCurrency = (value) => {
                             </div>
                         </div>
 
-                        <div class="table-responsive" style="max-height: calc(100vh - 350px); overflow-y: auto;">
+                        <div class="table-responsive" :style="{ maxHeight: resumenTableMaxHeight, minHeight: '200px', overflowY: 'auto' }">
                         <Table :id="'invoices'" :total="filteredInvoices.length" :links="invoices.links" class="min-w-full">
                             <!--begin::Table head-->
                             <template #header>
@@ -977,7 +983,7 @@ invoice, index
                             </div>
                         </div>
 
-                        <div class="table-responsive" style="max-height: calc(100vh - 350px); overflow-y: auto;">
+                        <div class="table-responsive" :style="{ maxHeight: detallesTableMaxHeight, minHeight: '200px', overflowY: 'auto' }">
                             <Table :id="'invoices-detalles'" :total="filteredExpandedInvoices.length" :links="[]" class="min-w-full">
                                 <template #header>
                                     <th class="text-center" style="white-space:nowrap;">Acc.</th>
