@@ -1188,7 +1188,7 @@ invoice, index
                                             <th style="min-width: 180px;">Descripción</th>
                                             <th class="text-end" style="min-width: 110px;">Monto</th>
                                             <th class="text-center" style="min-width: 50px;">Doc.</th>
-                                            <th class="text-center" style="min-width: 130px;">Acción</th>
+                                            <th class="text-center" style="min-width: 150px;">Acción</th>
                                         </tr>
                                     </thead>
                                     <tbody>
@@ -1219,7 +1219,8 @@ invoice, index
                                             </td>
                                             <td class="text-center">
                                                 <template v-if="item.duplicate_invoice">
-                                                    <button class="btn btn-sm btn-warning py-1 px-2"
+                                                    <button class="btn btn-sm btn-warning py-1 px-2 text-nowrap"
+                                                        style="font-size: 0.7rem;"
                                                         @click="linkItem(item)"
                                                         v-tooltip="'Ya existe la factura Nº ' + item.duplicate_invoice.number_document + ' (' + item.duplicate_invoice.date + ')'">
                                                         <i class="fas fa-link me-1"></i>Vincular
@@ -1228,7 +1229,8 @@ invoice, index
                                                         Ya existe Nº {{ item.duplicate_invoice.number_document }}
                                                     </div>
                                                 </template>
-                                                <button v-else class="btn btn-sm btn-primary py-1 px-3" 
+                                                <button v-else class="btn btn-sm btn-primary py-1 px-3 text-nowrap"
+                                                    style="font-size: 0.7rem;"
                                                     @click="importItem(item)">
                                                     <i class="fas fa-file-invoice me-1"></i>Crear Factura
                                                 </button>
