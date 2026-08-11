@@ -19,10 +19,10 @@ const isAdminUser = computed(() => {
   const roles = $page.props.gates?.roles || [];
   return roles.includes('Admin') || roles.includes('Super Admin');
 });
-// Usuario cuyo único rol funcional es "Rendidor": solo ve el módulo de Rendiciones de Gastos
+// Usuario cuyo único rol asignado es "Rendidor" (nada más marcado): solo ve el módulo de Rendiciones de Gastos
 const isRendidorOnly = computed(() => {
   const roles = $page.props.gates?.roles || [];
-  return roles.includes('Rendidor') && !roles.includes('Admin') && !roles.includes('Super Admin');
+  return roles.length === 1 && roles.includes('Rendidor');
 });
 const seasonLinkComponent = computed(() => isAdminUser.value ? Link : 'span');
 

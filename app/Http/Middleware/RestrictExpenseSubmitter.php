@@ -8,9 +8,10 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Str;
 
 /**
- * Limita a los usuarios cuyo único rol funcional es "Rendidor"
+ * Limita a los usuarios cuyo ÚNICO rol asignado es "Rendidor" (nada más marcado)
  * a las rutas del módulo de Rendiciones de Gastos y a un puñado de rutas
  * básicas de la aplicación (sesión, perfil, selección de temporada, etc).
+ * Si el usuario tiene cualquier otro rol además de Rendidor, no se restringe.
  */
 class RestrictExpenseSubmitter
 {
@@ -34,7 +35,7 @@ class RestrictExpenseSubmitter
     {
         $user = Auth::user();
 
-        if ($user && $user->hasRole('Rendidor') && !$user->hasAnyRole(['Admin', 'Super Admin'])) {
+        if ($user && $user->hasRole('Rendidor') && $user->getRoleNames()->count() === 1) {
             $routeName = $request->route()?->getName();
 
             $allowed = $routeName && (
