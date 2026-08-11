@@ -8,6 +8,14 @@
 export const changelog = [
   {
     fecha: '2026-08-10',
+    titulo: 'Rendiciones de Gastos — Impresión de reporte en PDF',
+    items: [
+      'Se agregó un botón para imprimir cada rendición en PDF, disponible tanto en el listado (columna Acciones) como dentro del detalle de la rendición.',
+      'El reporte incluye los datos generales (número, rendidor, estado, aprobador, descripción), el detalle completo de documentos rendidos y los totales de la rendición (total, contabilizado y pendiente).',
+    ]
+  },
+  {
+    fecha: '2026-08-10',
     titulo: 'Remuneraciones — Razón Social por contrato y Centro de Costo obligatorio en tarjas',
     items: [
       'Si un trabajador cambió de contrato con otra razón social durante la temporada, sus rendimientos ahora se asignan a la razón social vigente en cada período, en vez de asignarse todos a la razón social de su contrato más reciente.',

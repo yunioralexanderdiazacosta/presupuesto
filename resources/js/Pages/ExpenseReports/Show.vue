@@ -459,6 +459,10 @@ const pendingAmount = computed(() => formatCurrency(props.report.pending_amount)
                                 <i class="fas fa-arrow-left"></i>
                                 <span class="d-none d-sm-inline-block ms-1">Volver</span>
                             </Link>
+                            <a :href="route('expense-reports.pdf', report.id)" target="_blank" class="btn btn-falcon-default btn-sm">
+                                <i class="fas fa-print"></i>
+                                <span class="d-none d-sm-inline-block ms-1">Imprimir PDF</span>
+                            </a>
                             <button v-if="isBorrador" class="btn btn-falcon-default btn-sm" @click="openAddItemModal">
                                 <i class="fas fa-plus"></i>
                                 <span class="d-none d-sm-inline-block ms-1">Agregar Doc</span>

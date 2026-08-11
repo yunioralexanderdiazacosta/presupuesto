@@ -105,6 +105,7 @@ use App\Http\Controllers\Products2\DeleteProduct2Controller;
     use App\Http\Controllers\ExpenseReports\ApproveExpenseReportController;
     use App\Http\Controllers\ExpenseReports\RejectExpenseReportController;
     use App\Http\Controllers\ExpenseReports\ExportExpenseReportsController;
+    use App\Http\Controllers\ExpenseReports\PdfExpenseReportController;
 
 // Rutas para Purchase Orders
     use App\Http\Controllers\PurchaseOrders\PurchaseOrderController;
@@ -544,6 +545,7 @@ Route::middleware([
     'auth:sanctum',
     config('jetstream.auth_session'),
     'verified',
+    \App\Http\Middleware\RestrictExpenseSubmitter::class,
 ])->group(function () {
 
 
@@ -590,12 +592,12 @@ Route::middleware([
     Route::post('/sidebar/has-level3-for-level2', [SidebarController::class, 'hasLevel3ForLevel2'])->name('sidebar.hasLevel3ForLevel2');
 
 
-    Route::get('/teams', TeamsController::class)->name('teams.index');
+    Route::get('/teams', TeamsController::class)->name('teams.index')->middleware('role:Super Admin');
     Route::get('/login-logs', LoginLogController::class)->name('login-logs.index');
 
     // Rutas para Configuración del Sistema (Super Admin)
-    Route::get('/system-settings', SystemSettingsController::class)->name('system-settings.index');
-    Route::post('/system-settings/toggle-permission', TogglePermissionController::class)->name('system-settings.toggle');
+    Route::get('/system-settings', SystemSettingsController::class)->name('system-settings.index')->middleware('role:Super Admin');
+    Route::post('/system-settings/toggle-permission', TogglePermissionController::class)->name('system-settings.toggle')->middleware('role:Super Admin');
     Route::get('/budgets', BudgetsController::class)->name('budgets.index');
     Route::get('/suppliers', SuppliersController::class)->name('suppliers.index');
     Route::get('/products', ProductsController::class)->name('products.index');
@@ -607,21 +609,21 @@ Route::middleware([
     })->name('products.show');
     Route::get('/company-reasons', CompanyReasonsController::class)->name('company.reasons.index');
     Route::get('/seasons', SeasonsController::class)->name('seasons.index');
-    Route::get('/users', UsersController::class)->name('users.index');
+    Route::get('/users', UsersController::class)->name('users.index')->middleware('role:Admin|Super Admin');
     Route::get('/machineries', MachineriesController::class)->name('machineries.index');
     Route::get('/type-machineries', TypeMachineriesController::class)->name('type.machineries.index');
 
-    Route::post('/teams/store', StoreTeamController::class)->name('teams.store');
-    Route::post('teams/{user}/update', UpdateTeamController::class)->name('teams.update');
-    Route::delete('/teams/{user}/delete', DeleteTeamController::class)->name('teams.delete');
-    Route::post('/teams/{user}/activate/inactivate', ActivateInactivateTeamController::class)->name('teams.activate.inactivate');
+    Route::post('/teams/store', StoreTeamController::class)->name('teams.store')->middleware('role:Super Admin');
+    Route::post('teams/{user}/update', UpdateTeamController::class)->name('teams.update')->middleware('role:Super Admin');
+    Route::delete('/teams/{user}/delete', DeleteTeamController::class)->name('teams.delete')->middleware('role:Super Admin');
+    Route::post('/teams/{user}/activate/inactivate', ActivateInactivateTeamController::class)->name('teams.activate.inactivate')->middleware('role:Super Admin');
 
-    Route::get('/users/pdf', UsersPdfController::class)->name('users.pdf');
-    Route::get('/users/excel', UsersExcelController::class)->name('users.excel');
-    Route::post('/users/store', StoreUserController::class)->name('users.store');
-    Route::post('users/{user}/update', UpdateUserController::class)->name('users.update');
-    Route::delete('/users/{user}/delete', DeleteUserController::class)->name('users.delete');
-    Route::post('/users/{user}/activate/inactivate', ActiveInactiveUserController::class)->name('users.activate.inactivate');
+    Route::get('/users/pdf', UsersPdfController::class)->name('users.pdf')->middleware('role:Admin|Super Admin');
+    Route::get('/users/excel', UsersExcelController::class)->name('users.excel')->middleware('role:Admin|Super Admin');
+    Route::post('/users/store', StoreUserController::class)->name('users.store')->middleware('role:Admin|Super Admin');
+    Route::post('users/{user}/update', UpdateUserController::class)->name('users.update')->middleware('role:Admin|Super Admin');
+    Route::delete('/users/{user}/delete', DeleteUserController::class)->name('users.delete')->middleware('role:Admin|Super Admin');
+    Route::post('/users/{user}/activate/inactivate', ActiveInactiveUserController::class)->name('users.activate.inactivate')->middleware('role:Admin|Super Admin');
 
     Route::get('/budgets/pdf', BudgetsPdfController::class)->name('budgets.pdf');
     Route::get('/budgets/excel', BudgetsExcelController::class)->name('budgets.excel');
@@ -1002,6 +1004,7 @@ Route::middleware([
     Route::put('/expense-report-items/{item}', UpdateExpenseReportItemController::class)->name('expense-reports.items.update');
     Route::delete('/expense-report-items/{item}', DeleteExpenseReportItemController::class)->name('expense-reports.items.delete');
     Route::get('/expense-reports-export', ExportExpenseReportsController::class)->name('expense-reports.export');
+    Route::get('/expense-reports/{expenseReport}/pdf', PdfExpenseReportController::class)->name('expense-reports.pdf');
 
     // Purchase Orders
     Route::get('/purchase-orders', [PurchaseOrderController::class, 'index'])->name('purchase-orders.index');

@@ -22,6 +22,7 @@ class RoleSeeder extends Seeder
         $roleAdmin      = Role::firstOrCreate(['name' => 'Admin']);
         $roleNormal     = Role::firstOrCreate(['name' => 'Normal']);
         $roleAprobador  = Role::firstOrCreate(['name' => 'Aprobador Compras']);
+        $roleRendidor   = Role::firstOrCreate(['name' => 'Rendidor']);
 
         // Solo crear usuario admin si no existe
         $user = User::firstOrCreate(

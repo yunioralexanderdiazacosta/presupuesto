@@ -2,6 +2,7 @@
 
 namespace App\Http\Requests\Users;
 
+use Illuminate\Contracts\Validation\Validator;
 use Illuminate\Foundation\Http\FormRequest;
 
 class StoreUserRequest extends FormRequest
@@ -12,6 +13,18 @@ class StoreUserRequest extends FormRequest
     public function authorize(): bool
     {
         return true;
+    }
+
+    /**
+     * Solo un Super Admin puede otorgar el rol Super Admin a otro usuario.
+     */
+    public function withValidator(Validator $validator): void
+    {
+        $validator->after(function ($validator) {
+            if (in_array('Super Admin', (array) $this->input('roles', []), true) && !$this->user()?->hasRole('Super Admin')) {
+                $validator->errors()->add('roles', 'No tienes permisos para asignar el rol Super Admin.');
+            }
+        });
     }
 
     /**

@@ -19,6 +19,11 @@ const isAdminUser = computed(() => {
   const roles = $page.props.gates?.roles || [];
   return roles.includes('Admin') || roles.includes('Super Admin');
 });
+// Usuario cuyo único rol funcional es "Rendidor": solo ve el módulo de Rendiciones de Gastos
+const isRendidorOnly = computed(() => {
+  const roles = $page.props.gates?.roles || [];
+  return roles.includes('Rendidor') && !roles.includes('Admin') && !roles.includes('Super Admin');
+});
 const seasonLinkComponent = computed(() => isAdminUser.value ? Link : 'span');
 
  let timeoutId;
@@ -142,7 +147,10 @@ const normalize = (str) => str.normalize('NFD').replace(/[\u0300-\u036f]/g, '').
 const filteredMenuItems = computed(() => {
     if (!menuSearch.value.trim()) return [];
     const q = normalize(menuSearch.value.trim());
-    return menuItems.filter(item =>
+    const base = isRendidorOnly.value
+        ? menuItems.filter(item => item.route.startsWith('expense-reports.'))
+        : menuItems;
+    return base.filter(item =>
         normalize(item.label).includes(q) ||
         (item.section && normalize(item.section).includes(q))
     );
@@ -238,6 +246,18 @@ const navigateTo = (routeName) => {
             <span class="nav-link-text ps-1">Guía del Sistema</span>
           </div>
         </a>
+      </li>
+
+      <!-- Menú exclusivo para el rol Rendidor (sin acceso a Admin/Super Admin) -->
+      <li class="nav-item" v-if="isRendidorOnly">
+        <Link class="nav-link" :href="route('expense-reports.index')" role="button">
+          <div class="d-flex align-items-center">
+            <span class="nav-link-icon">
+              <span class="fas fa-receipt"></span>
+            </span>
+            <span class="nav-link-text ps-1">Rendiciones de Gastos</span>
+          </div>
+        </Link>
       </li>
 
       <li class="nav-item" v-role="'Super Admin'">

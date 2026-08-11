@@ -177,6 +177,9 @@ const statusOptions = [
                                     <Link :href="route('expense-reports.show', report.id)" class="btn btn-sm btn-falcon-default me-1" v-tooltip="'Ver detalle'">
                                         <i class="fas fa-eye"></i>
                                     </Link>
+                                    <a :href="route('expense-reports.pdf', report.id)" target="_blank" class="btn btn-sm btn-falcon-default me-1" v-tooltip="'Imprimir PDF'">
+                                        <i class="fas fa-print"></i>
+                                    </a>
                                     <button 
                                         class="btn btn-sm btn-falcon-default" 
                                         @click="deleteReport(report)"
@@ -219,6 +222,9 @@ const statusOptions = [
                                 <Link :href="route('expense-reports.show', report.id)" class="btn btn-sm btn-falcon-default flex-fill">
                                     <i class="fas fa-eye me-1"></i>Ver
                                 </Link>
+                                <a :href="route('expense-reports.pdf', report.id)" target="_blank" class="btn btn-sm btn-falcon-default">
+                                    <i class="fas fa-print"></i>
+                                </a>
                                 <button 
                                     class="btn btn-sm btn-falcon-default" 
                                     @click="deleteReport(report)"
