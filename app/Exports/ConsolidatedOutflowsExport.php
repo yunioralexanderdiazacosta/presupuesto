@@ -12,12 +12,20 @@ use Maatwebsite\Excel\Concerns\ShouldAutoSize;
 class ConsolidatedOutflowsExport implements FromCollection, WithHeadings, WithMapping, ShouldAutoSize
 {
     protected $term;
+    protected $month;
+    protected $supplierId;
+    protected $level2Id;
+    protected $level3Id;
     protected $teamId;
     protected $seasonId;
 
-    public function __construct($term = '')
+    public function __construct($term = '', $month = '', $supplierId = '', $level2Id = '', $level3Id = '')
     {
         $this->term = $term;
+        $this->month = $month;
+        $this->supplierId = $supplierId;
+        $this->level2Id = $level2Id;
+        $this->level3Id = $level3Id;
         $this->teamId = Auth::user()->team_id;
         $this->seasonId = session('season_id');
     }
@@ -51,6 +59,32 @@ class ConsolidatedOutflowsExport implements FromCollection, WithHeadings, WithMa
                    'team_id', 'season_id', 'level3_id'])
         ->where('team_id', $this->teamId)
         ->where('season_id', $this->seasonId);
+
+        if ($this->month) {
+            $query->whereRaw("DATE_FORMAT(date, '%Y-%m') = ?", [$this->month]);
+        }
+
+        if ($this->supplierId) {
+            $query->where(function($q) {
+                $q->whereHas('invoiceProduct.invoice.supplier', function($subQ) {
+                    $subQ->where('suppliers.id', $this->supplierId);
+                })->orWhereHas('creditDebitNoteItem.creditDebitNote.supplier', function($subQ) {
+                    $subQ->where('suppliers.id', $this->supplierId);
+                });
+            });
+        }
+
+        if ($this->level2Id) {
+            $query->whereHas('level3.level2', function($subQ) {
+                $subQ->where('level2s.id', $this->level2Id);
+            });
+        }
+
+        if ($this->level3Id) {
+            $query->whereHas('level3', function($subQ) {
+                $subQ->where('level3s.id', $this->level3Id);
+            });
+        }
 
         if ($this->term) {
             $term = $this->term;

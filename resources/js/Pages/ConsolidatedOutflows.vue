@@ -9,6 +9,7 @@ import Breadcrumb from '@/Components/Breadcrumb.vue';
 const props = defineProps({
     outflows: Object,
     filters: Object,
+    filterOptions: Object,
     totals: Object,
 });
 
@@ -21,10 +22,33 @@ const links = [
 
 // Estado reactivo inicializado desde filtros del servidor
 const term = ref(props.filters?.term || '');
+const monthFilter = ref(props.filters?.month || '');
+const supplierFilter = ref(props.filters?.supplier_id || '');
+const level2Filter = ref(props.filters?.level2_id || '');
+const level3Filter = ref(props.filters?.level3_id || '');
 const sortBy = ref(props.filters?.sort_by || 'outflow_id');
 const sortDesc = ref(props.filters?.sort_desc ?? true);
 const perPage = ref(props.filters?.per_page || 50);
 const isLoading = ref(false);
+
+const monthOptions = computed(() => props.filterOptions?.months || []);
+const supplierOptions = computed(() => props.filterOptions?.suppliers || []);
+const level2Options = computed(() => props.filterOptions?.levels2 || []);
+const level3Options = computed(() => props.filterOptions?.levels3 || []);
+
+watch(level2Filter, () => {
+    if (level2Filter.value !== '') {
+        level3Filter.value = '';
+    }
+});
+
+function clearFilters() {
+    monthFilter.value = '';
+    supplierFilter.value = '';
+    level2Filter.value = '';
+    level3Filter.value = '';
+    fetchData({ page: 1 });
+}
 
 // Debounce timer
 let searchTimeout = null;
@@ -34,6 +58,10 @@ function fetchData(extraParams = {}) {
     isLoading.value = true;
     router.get(route('consolidated-outflows.index'), {
         term: term.value,
+        month: monthFilter.value,
+        supplier_id: supplierFilter.value,
+        level2_id: level2Filter.value,
+        level3_id: level3Filter.value,
         sort_by: sortBy.value,
         sort_desc: sortDesc.value ? 'true' : 'false',
         per_page: perPage.value,
@@ -121,20 +149,59 @@ const excelData = computed(() => {
             <CardHeader :title="title" />
             <div class="card-body bg-body-tertiary">
                 <!-- Filtros y búsqueda -->
-                <div class="row mb-3">
-                    <div class="col-md-4 col-12">
+                <div class="row mb-3 g-2 align-items-end">
+                    <div class="col-md-3 col-12">
+                        <label class="form-label small mb-1">Búsqueda</label>
                         <input
                             :value="term"
                             @input="onSearch($event.target.value)"
-                            placeholder="Buscar por producto, proveedor, proyecto, centro de costo..."
-                            class="form-control form-control-sm mb-2"
-                            style="max-width: 400px;"
+                            placeholder="Producto, proveedor, proyecto..."
+                            class="form-control form-control-sm"
                         />
                         <small class="text-muted" v-if="isLoading">
                             <i class="fas fa-spinner fa-spin me-1"></i>Buscando...
                         </small>
                     </div>
-                    <div class="col-md-8 col-12 text-end d-flex flex-wrap justify-content-end gap-2">
+                    <div class="col-md-2 col-12">
+                        <label class="form-label small mb-1">Mes</label>
+                        <select v-model="monthFilter" @change="fetchData({ page: 1 })" class="form-select form-select-sm">
+                            <option value="">Todos</option>
+                            <option v-for="option in monthOptions" :key="option.value" :value="option.value">
+                                {{ option.label }}
+                            </option>
+                        </select>
+                    </div>
+                    <div class="col-md-3 col-12">
+                        <label class="form-label small mb-1">Proveedor</label>
+                        <select v-model="supplierFilter" @change="fetchData({ page: 1 })" class="form-select form-select-sm">
+                            <option value="">Todos</option>
+                            <option v-for="option in supplierOptions" :key="option.value" :value="option.value">
+                                {{ option.label }}
+                            </option>
+                        </select>
+                    </div>
+                    <div class="col-md-2 col-12">
+                        <label class="form-label small mb-1">Nivel 2</label>
+                        <select v-model="level2Filter" @change="fetchData({ page: 1 })" class="form-select form-select-sm">
+                            <option value="">Todos</option>
+                            <option v-for="option in level2Options" :key="option.value" :value="option.value">
+                                {{ option.label }}
+                            </option>
+                        </select>
+                    </div>
+                    <div class="col-md-2 col-12">
+                        <label class="form-label small mb-1">Nivel 3</label>
+                        <select v-model="level3Filter" @change="fetchData({ page: 1 })" class="form-select form-select-sm">
+                            <option value="">Todos</option>
+                            <option v-for="option in level3Options" :key="option.value" :value="option.value">
+                                {{ option.label }}
+                            </option>
+                        </select>
+                    </div>
+                    <div class="col-12 text-end d-flex flex-wrap justify-content-end gap-2 mt-2">
+                        <button v-if="monthFilter || supplierFilter || level2Filter || level3Filter" type="button" class="btn btn-falcon-default btn-sm" @click="clearFilters">
+                            <i class="fas fa-times me-1"></i>Limpiar filtros
+                        </button>
                         <ExportExcelButton 
                             :data="excelData" 
                             :headers="[
@@ -162,43 +229,19 @@ const excelData = computed(() => {
                                 { label: 'Notas', key: 'notas' },
                             ]" 
                             filename="consolidado_salidas.xlsx"
-                            class="btn btn-light-primary"
+                            class="btn btn-falcon-default btn-sm export-btn-fix"
                         >
-                            <span class="svg-icon svg-icon-2"></span>
-                            Exportar Página
+                            <span class="fas fa-file-excel" data-fa-transform="shrink-3 down-2"></span>
+                            <span class="d-none d-sm-inline-block ms-1">Exportar Página</span>
                         </ExportExcelButton>
-                        <a :href="'/consolidated-outflows/export' + (term ? '?term=' + encodeURIComponent(term) : '')" class="btn btn-falcon-default btn-sm" target="_blank">
+                        <a
+                            :href="`/consolidated-outflows/export?term=${encodeURIComponent(term)}&month=${encodeURIComponent(monthFilter)}&supplier_id=${encodeURIComponent(supplierFilter)}&level2_id=${encodeURIComponent(level2Filter)}&level3_id=${encodeURIComponent(level3Filter)}`"
+                            class="btn btn-falcon-default btn-sm"
+                            target="_blank"
+                        >
                             <span class="fas fa-file-excel" data-fa-transform="shrink-3 down-2"></span>
                             <span class="d-none d-sm-inline-block ms-1">Exportar Todo ({{ totals.total_count }})</span>
                         </a>
-                    </div>
-                </div>
-
-                <!-- KPI Cards -->
-                <div class="row mb-3">
-                    <div class="col-md-6 col-12 mb-2">
-                        <div class="card h-100 p-1 small-card">
-                            <div class="card-header pb-0 pt-1 px-2">
-                                <h6 class="mb-0 mt-1 fs-10 d-flex align-items-center small-card-title">Total Salidas</h6>
-                            </div>
-                            <div class="card-body d-flex flex-column justify-content-end py-1 px-2">
-                                <p class="font-sans-serif lh-1 mb-1 fs-10 small-card-number">
-                                    {{ totals?.total_count ?? 0 }}
-                                </p>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="col-md-6 col-12 mb-2">
-                        <div class="card h-100 p-1 small-card">
-                            <div class="card-header pb-0 pt-1 px-2">
-                                <h6 class="mb-0 mt-1 fs-10 d-flex align-items-center small-card-title">Total General</h6>
-                            </div>
-                            <div class="card-body d-flex flex-column justify-content-end py-1 px-2">
-                                <p class="font-sans-serif lh-1 mb-1 fs-10 small-card-number">
-                                    {{ formatNumber(totals?.total_general ?? 0, 0) }}
-                                </p>
-                            </div>
-                        </div>
                     </div>
                 </div>
 
@@ -206,7 +249,7 @@ const excelData = computed(() => {
                 <div class="d-flex justify-content-between align-items-center mb-2" v-if="outflows?.total">
                     <small class="text-muted">
                         Mostrando {{ outflows.from ?? 0 }}-{{ outflows.to ?? 0 }} de {{ outflows.total }} registros
-                        <span v-if="filters?.term"> (filtrados por: "{{ filters.term }}")</span>
+                        <span v-if="filters?.term || filters?.month || filters?.supplier_id || filters?.level2_id || filters?.level3_id"> (filtrado activo)</span>
                     </small>
                     <div class="d-flex align-items-center gap-2">
                         <small class="text-muted">Por página:</small>
@@ -224,7 +267,7 @@ const excelData = computed(() => {
                     <table class="table table-bordered table-striped table-hover table-sm fs-10 mb-0">
                         <thead class="table-primary" style="position: sticky; top: 0; z-index: 10;">
                             <tr>
-                                <th @click="setSort('outflow_id')" :class="sortClass('outflow_id')">ID</th>
+                                <th @click="setSort('outflow_id')" :class="sortClass('outflow_id')">ID ({{ totals?.total_count ?? 0 }})</th>
                                 <th @click="setSort('date')" :class="sortClass('date')">Fecha</th>
                                 <th @click="setSort('supplier')" :class="sortClass('supplier')">Proveedor</th>
                                 <th @click="setSort('number_document')" :class="sortClass('number_document')">N° Doc</th>
@@ -252,7 +295,7 @@ const excelData = computed(() => {
                             <tr v-for="(item, idx) in outflows.data" :key="idx">
                                 <td>{{ item.outflow_id }}</td>
                                 <td style="white-space:nowrap;">{{ item.date }}</td>
-                                <td style="max-width:150px; overflow:hidden; text-overflow:ellipsis;">{{ item.supplier }}</td>
+                                <td style="max-width:150px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;" :title="item.supplier">{{ item.supplier }}</td>
                                 <td>{{ item.number_document }}</td>
                                 <td style="max-width:180px; overflow:hidden; text-overflow:ellipsis;">{{ item.product_name }}</td>
                                 <td style="max-width:130px; overflow:hidden; text-overflow:ellipsis;">{{ item.level1_name || '-' }}</td>
@@ -268,6 +311,12 @@ const excelData = computed(() => {
                                 <td class="text-end">{{ formatNumber(item.total, 0) }}</td>
                             </tr>
                         </tbody>
+                        <tfoot v-if="outflows?.data?.length">
+                            <tr class="table-primary fw-bold">
+                                <td colspan="15" class="text-end">Total General</td>
+                                <td class="text-end">{{ formatNumber(totals?.total_general ?? 0, 0) }}</td>
+                            </tr>
+                        </tfoot>
                     </table>
                 </div>
 
@@ -301,6 +350,11 @@ const excelData = computed(() => {
 <style scoped>
 .table, .table th, .table td {
     font-size: 0.68rem !important;
+}
+
+:deep(.export-btn-fix) {
+    padding: 0.25rem 0.5rem !important;
+    margin-bottom: 0 !important;
 }
 
 .sortable {

@@ -7,6 +7,14 @@
 
 export const changelog = [
   {
+    fecha: '2026-08-13',
+    titulo: 'Consolidado de Salidas — Filtros por mes, proveedor y niveles',
+    items: [
+      'El consolidado de salidas ahora incluye filtros por mes, proveedor, nivel 2 y nivel 3 para buscar dentro del total del período, no solo en la página visible.',
+      'Los filtros se aplican sobre todo el conjunto de datos de la temporada y equipo activos, y el archivo Excel exportado respeta exactamente ese mismo alcance.',
+    ]
+  },
+  {
     fecha: '2026-08-11',
     titulo: 'Rendiciones — Ahora se puede editar la descripción en cualquier momento',
     items: [

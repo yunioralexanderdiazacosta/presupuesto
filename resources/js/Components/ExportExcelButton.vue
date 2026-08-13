@@ -1,6 +1,6 @@
 <template>
-  <button @click="exportExcel" class="btn btn-success btn-sm d-inline-block px-2 py-1 mb-1" style="font-size:0.75rem;">
-   Excel
+  <button @click="exportExcel" class="btn btn-success btn-sm d-inline-block px-2 py-1 mb-1">
+   <slot>Excel</slot>
   </button>
 </template>
 

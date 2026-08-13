@@ -25,6 +25,10 @@ class ConsolidatedOutflowsController extends Controller
         $user = Auth::user();
         $season_id = session('season_id');
         $term = $request->term ?? '';
+        $month = $request->month ?? '';
+        $supplierId = $request->supplier_id ?? '';
+        $level2Id = $request->level2_id ?? '';
+        $level3Id = $request->level3_id ?? '';
         $sortBy = $request->sort_by ?? 'outflow_id';
         $sortDesc = filter_var($request->sort_desc ?? 'true', FILTER_VALIDATE_BOOLEAN);
         $perPage = (int) ($request->per_page ?? 50);
@@ -58,6 +62,32 @@ class ConsolidatedOutflowsController extends Controller
         ->where('team_id', $user->team_id)
         ->where('season_id', $season_id);
 
+        if ($month) {
+            $query->whereRaw("DATE_FORMAT(date, '%Y-%m') = ?", [$month]);
+        }
+
+        if ($supplierId) {
+            $query->where(function($q) use ($supplierId) {
+                $q->whereHas('invoiceProduct.invoice.supplier', function($subQ) use ($supplierId) {
+                    $subQ->where('suppliers.id', $supplierId);
+                })->orWhereHas('creditDebitNoteItem.creditDebitNote.supplier', function($subQ) use ($supplierId) {
+                    $subQ->where('suppliers.id', $supplierId);
+                });
+            });
+        }
+
+        if ($level2Id) {
+            $query->whereHas('level3.level2', function($subQ) use ($level2Id) {
+                $subQ->where('level2s.id', $level2Id);
+            });
+        }
+
+        if ($level3Id) {
+            $query->whereHas('level3', function($subQ) use ($level3Id) {
+                $subQ->where('level3s.id', $level3Id);
+            });
+        }
+
         // Búsqueda server-side: busca en TODOS los registros de la BD
         if ($term) {
             $query->where(function($q) use ($term) {
@@ -90,6 +120,66 @@ class ConsolidatedOutflowsController extends Controller
                 });
             });
         }
+
+        $baseOutflows = Outflow::select(['id', 'date', 'invoice_product_id', 'credit_debit_note_item_id', 'level3_id'])
+            ->where('team_id', $user->team_id)
+            ->where('season_id', $season_id)
+            ->with([
+                'invoiceProduct.invoice.supplier:id,name',
+                'creditDebitNoteItem.creditDebitNote.supplier:id,name',
+                'level3.level2:id,name',
+            ])
+            ->get();
+
+        $monthOptions = $baseOutflows
+            ->filter(fn($outflow) => !empty($outflow->date))
+            ->map(fn($outflow) => \Carbon\Carbon::parse($outflow->date)->format('Y-m'))
+            ->unique()
+            ->sortDesc()
+            ->values()
+            ->map(fn($value) => ['value' => $value, 'label' => \Carbon\Carbon::createFromFormat('Y-m', $value)->locale('es')->translatedFormat('Y-m')]);
+
+        // Nota: las opciones usan el ID real de la relación ya cargada (no se re-busca por
+        // nombre), porque nombres iguales pueden repetirse entre equipos distintos y eso
+        // traía el ID de otro equipo, dejando el filtro sin resultados.
+        $supplierOptions = $baseOutflows
+            ->map(function($outflow) {
+                $supplier = $outflow->invoice_product_id
+                    ? $outflow->invoiceProduct?->invoice?->supplier
+                    : $outflow->creditDebitNoteItem?->creditDebitNote?->supplier;
+
+                return $supplier ? ['value' => $supplier->id, 'label' => $supplier->name] : null;
+            })
+            ->filter()
+            ->unique('value')
+            ->sortBy('label')
+            ->values();
+
+        $level2Options = $baseOutflows
+            ->map(function($outflow) {
+                $level2 = $outflow->level3?->level2;
+                return $level2 ? ['value' => $level2->id, 'label' => $level2->name] : null;
+            })
+            ->filter()
+            ->unique('value')
+            ->sortBy('label')
+            ->values();
+
+        if ($level2Id) {
+            $baseOutflows = $baseOutflows->filter(function($outflow) use ($level2Id) {
+                return (int) optional($outflow->level3?->level2)->id === (int) $level2Id;
+            });
+        }
+
+        $level3Options = $baseOutflows
+            ->map(function($outflow) {
+                $level3 = $outflow->level3;
+                return $level3 ? ['value' => $level3->id, 'label' => $level3->name] : null;
+            })
+            ->filter()
+            ->unique('value')
+            ->sortBy('label')
+            ->values();
 
         $outflows = $query->orderBy('id', 'desc')->get();
 
@@ -215,9 +305,19 @@ class ConsolidatedOutflowsController extends Controller
             'outflows' => $paginator,
             'filters' => [
                 'term' => $term,
+                'month' => $month,
+                'supplier_id' => $supplierId,
+                'level2_id' => $level2Id,
+                'level3_id' => $level3Id,
                 'sort_by' => $sortBy,
                 'sort_desc' => $sortDesc,
                 'per_page' => $perPage,
+            ],
+            'filterOptions' => [
+                'months' => $monthOptions,
+                'suppliers' => $supplierOptions,
+                'levels2' => $level2Options,
+                'levels3' => $level3Options,
             ],
             'totals' => [
                 'total_general' => round($totalGeneral, 0),
@@ -229,6 +329,14 @@ class ConsolidatedOutflowsController extends Controller
     public function export(Request $request)
     {
         $term = $request->term ?? '';
-        return Excel::download(new ConsolidatedOutflowsExport($term), 'consolidado_salidas.xlsx');
+        $month = $request->month ?? '';
+        $supplierId = $request->supplier_id ?? '';
+        $level2Id = $request->level2_id ?? '';
+        $level3Id = $request->level3_id ?? '';
+
+        return Excel::download(
+            new ConsolidatedOutflowsExport($term, $month, $supplierId, $level2Id, $level3Id),
+            'consolidado_salidas.xlsx'
+        );
     }
 }
