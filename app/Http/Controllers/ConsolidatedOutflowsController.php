@@ -192,6 +192,7 @@ class ConsolidatedOutflowsController extends Controller
             $commonData = [
                 'outflow_id' => $outflow->id,
                 'date' => $outflow->date ? \Carbon\Carbon::parse($outflow->date)->format('d-m-Y') : null,
+                'month' => $outflow->date ? \Carbon\Carbon::parse($outflow->date)->locale('es')->translatedFormat('F') : null,
                 'supplier' => $isInvoice
                     ? ($outflow->invoiceProduct->invoice->supplier->name ?? '-')
                     : ($outflow->creditDebitNoteItem->creditDebitNote->supplier->name ?? '-'),

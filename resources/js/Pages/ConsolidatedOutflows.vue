@@ -116,6 +116,7 @@ const excelData = computed(() => {
     return props.outflows.data.map(item => ({
         id_salida: item.outflow_id,
         fecha: item.date,
+        mes: item.month,
         proveedor: item.supplier,
         numero_documento: item.number_document,
         tipo_documento: item.tipo_documento,
@@ -207,6 +208,7 @@ const excelData = computed(() => {
                             :headers="[
                                 { label: 'ID Salida', key: 'id_salida' },
                                 { label: 'Fecha', key: 'fecha' },
+                                { label: 'Mes', key: 'mes' },
                                 { label: 'Proveedor', key: 'proveedor' },
                                 { label: 'N° Documento', key: 'numero_documento' },
                                 { label: 'Tipo Documento', key: 'tipo_documento' },

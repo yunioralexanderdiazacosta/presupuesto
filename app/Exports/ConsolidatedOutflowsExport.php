@@ -112,6 +112,7 @@ class ConsolidatedOutflowsExport implements FromCollection, WithHeadings, WithMa
             $common = [
                 'outflow_id' => $outflow->id,
                 'date' => $outflow->date ? \Carbon\Carbon::parse($outflow->date)->format('d-m-Y') : '',
+                'month' => $outflow->date ? \Carbon\Carbon::parse($outflow->date)->locale('es')->translatedFormat('F') : '',
                 'supplier' => $isInvoice
                     ? ($outflow->invoiceProduct->invoice->supplier->name ?? '-')
                     : ($outflow->creditDebitNoteItem->creditDebitNote->supplier->name ?? '-'),
@@ -177,7 +178,7 @@ class ConsolidatedOutflowsExport implements FromCollection, WithHeadings, WithMa
     public function headings(): array
     {
         return [
-            'ID Salida', 'Fecha', 'Proveedor', 'N° Documento', 'Tipo Documento',
+            'ID Salida', 'Fecha', 'Mes', 'Proveedor', 'N° Documento', 'Tipo Documento',
             'Producto', 'Unidad', 'Nivel 1', 'Nivel 2', 'Nivel 3',
             'Cantidad Total', 'Precio Unitario', 'Proyecto', 'Operación', 'Maquinaria',
             'Centro de Costo', 'Superficie CC (ha)', 'Cantidad Asignada',
@@ -190,6 +191,7 @@ class ConsolidatedOutflowsExport implements FromCollection, WithHeadings, WithMa
         return [
             $row['outflow_id'],
             $row['date'],
+            $row['month'],
             $row['supplier'],
             $row['number_document'],
             $row['tipo_documento'],
