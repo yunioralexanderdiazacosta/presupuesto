@@ -115,9 +115,12 @@ const excelData = computed(() => {
     if (!props.outflows || !props.outflows.data) return [];
     return props.outflows.data.map(item => ({
         id_salida: item.outflow_id,
+        tipo_gasto: item.tipo_gasto,
         fecha: item.date,
         mes: item.month,
         proveedor: item.supplier,
+        sucursal_factura: item.branch_factura,
+        razon_social_factura: item.company_reason_factura,
         numero_documento: item.number_document,
         tipo_documento: item.tipo_documento,
         producto: item.product_name,
@@ -131,6 +134,8 @@ const excelData = computed(() => {
         operacion: item.operation || '-',
         maquinaria: item.machinery || '-',
         centro_costo: item.cost_center_name,
+        sucursal_cc: item.branch_cc,
+        razon_social_cc: item.company_reason_cc,
         superficie_cc: item.surface,
         cantidad_asignada: item.cantidad_asignada,
         estado_desarrollo: item.development_state || '-',
@@ -207,9 +212,12 @@ const excelData = computed(() => {
                             :data="excelData" 
                             :headers="[
                                 { label: 'ID Salida', key: 'id_salida' },
+                                { label: 'Tipo de Gasto', key: 'tipo_gasto' },
                                 { label: 'Fecha', key: 'fecha' },
                                 { label: 'Mes', key: 'mes' },
                                 { label: 'Proveedor', key: 'proveedor' },
+                                { label: 'Sucursal Factura', key: 'sucursal_factura' },
+                                { label: 'Razón Social Factura', key: 'razon_social_factura' },
                                 { label: 'N° Documento', key: 'numero_documento' },
                                 { label: 'Tipo Documento', key: 'tipo_documento' },
                                 { label: 'Producto', key: 'producto' },
@@ -223,6 +231,8 @@ const excelData = computed(() => {
                                 { label: 'Operación', key: 'operacion' },
                                 { label: 'Maquinaria', key: 'maquinaria' },
                                 { label: 'Centro de Costo', key: 'centro_costo' },
+                                { label: 'Sucursal CC', key: 'sucursal_cc' },
+                                { label: 'Razón Social CC', key: 'razon_social_cc' },
                                 { label: 'Superficie CC (ha)', key: 'superficie_cc', type: 'number' },
                                 { label: 'Cantidad Asignada', key: 'cantidad_asignada', type: 'number' },
                                 { label: 'Estado Desarrollo', key: 'estado_desarrollo' },
@@ -270,8 +280,11 @@ const excelData = computed(() => {
                         <thead class="table-primary" style="position: sticky; top: 0; z-index: 10;">
                             <tr>
                                 <th @click="setSort('outflow_id')" :class="sortClass('outflow_id')">ID ({{ totals?.total_count ?? 0 }})</th>
+                                <th @click="setSort('tipo_gasto')" :class="sortClass('tipo_gasto')">Tipo de Gasto</th>
                                 <th @click="setSort('date')" :class="sortClass('date')">Fecha</th>
                                 <th @click="setSort('supplier')" :class="sortClass('supplier')">Proveedor</th>
+                                <th @click="setSort('branch_factura')" :class="sortClass('branch_factura')">Sucursal Fact.</th>
+                                <th @click="setSort('company_reason_factura')" :class="sortClass('company_reason_factura')">RS Fact.</th>
                                 <th @click="setSort('number_document')" :class="sortClass('number_document')">N° Doc</th>
                                 <th @click="setSort('product_name')" :class="sortClass('product_name')">Producto</th>
                                 <th @click="setSort('level1_name')" :class="sortClass('level1_name')">Nivel 1</th>
@@ -281,6 +294,8 @@ const excelData = computed(() => {
                                 <th @click="setSort('unit_price')" :class="sortClass('unit_price')" class="text-end">Precio Unit.</th>
                                 <th @click="setSort('project')" :class="sortClass('project')">Proyecto</th>
                                 <th @click="setSort('cost_center_name')" :class="sortClass('cost_center_name')">Centro de Costo</th>
+                                <th @click="setSort('branch_cc')" :class="sortClass('branch_cc')">Sucursal CC</th>
+                                <th @click="setSort('company_reason_cc')" :class="sortClass('company_reason_cc')">RS CC</th>
                                 <th @click="setSort('surface')" :class="sortClass('surface')" class="text-end">Superficie</th>
                                 <th @click="setSort('cantidad_asignada')" :class="sortClass('cantidad_asignada')" class="text-end">Cant. Asignada</th>
                                 <th @click="setSort('development_state')" :class="sortClass('development_state')">Estado Desarrollo</th>
@@ -289,15 +304,18 @@ const excelData = computed(() => {
                         </thead>
                         <tbody>
                             <tr v-if="!outflows?.data?.length">
-                                <td colspan="16" class="text-center py-4">
+                                <td colspan="21" class="text-center py-4">
                                     <span v-if="isLoading"><i class="fas fa-spinner fa-spin me-2"></i>Cargando...</span>
                                     <span v-else>No hay registros para mostrar</span>
                                 </td>
                             </tr>
                             <tr v-for="(item, idx) in outflows.data" :key="idx">
                                 <td>{{ item.outflow_id }}</td>
+                                <td><span class="badge bg-soft-primary text-primary">{{ item.tipo_gasto }}</span></td>
                                 <td style="white-space:nowrap;">{{ item.date }}</td>
                                 <td style="max-width:150px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;" :title="item.supplier">{{ item.supplier }}</td>
+                                <td style="max-width:130px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;" :title="item.branch_factura">{{ item.branch_factura || '-' }}</td>
+                                <td style="max-width:150px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;" :title="item.company_reason_factura">{{ item.company_reason_factura || '-' }}</td>
                                 <td>{{ item.number_document }}</td>
                                 <td style="max-width:180px; overflow:hidden; text-overflow:ellipsis;">{{ item.product_name }}</td>
                                 <td style="max-width:130px; overflow:hidden; text-overflow:ellipsis;">{{ item.level1_name || '-' }}</td>
@@ -307,6 +325,8 @@ const excelData = computed(() => {
                                 <td class="text-end">{{ formatNumber(item.unit_price, 2) }}</td>
                                 <td style="max-width:120px; overflow:hidden; text-overflow:ellipsis;">{{ item.project || '-' }}</td>
                                 <td style="max-width:150px; overflow:hidden; text-overflow:ellipsis;">{{ item.cost_center_name }}</td>
+                                <td style="max-width:130px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;" :title="item.branch_cc">{{ item.branch_cc || '-' }}</td>
+                                <td style="max-width:150px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;" :title="item.company_reason_cc">{{ item.company_reason_cc || '-' }}</td>
                                 <td class="text-end">{{ formatNumber(item.surface, 2) }}</td>
                                 <td class="text-end">{{ formatNumber(item.cantidad_asignada, 2) }}</td>
                                 <td>{{ item.development_state || '-' }}</td>
@@ -315,7 +335,7 @@ const excelData = computed(() => {
                         </tbody>
                         <tfoot v-if="outflows?.data?.length">
                             <tr class="table-primary fw-bold">
-                                <td colspan="15" class="text-end">Total General</td>
+                                <td colspan="20" class="text-end">Total General</td>
                                 <td class="text-end">{{ formatNumber(totals?.total_general ?? 0, 0) }}</td>
                             </tr>
                         </tfoot>

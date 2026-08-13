@@ -33,23 +33,30 @@ class ConsolidatedOutflowsExport implements FromCollection, WithHeadings, WithMa
     public function collection()
     {
         $query = Outflow::with([
-            'invoiceProduct:id,invoice_id,product_id,unit_price',
+            'invoiceProduct:id,invoice_id,product_id,unit_price,branch_id',
             'invoiceProduct.product:id,name,unit_id',
             'invoiceProduct.product.unit:id,name',
-            'invoiceProduct.invoice:id,supplier_id,number_document,type_document_id',
+            'invoiceProduct.branch:id,name',
+            'invoiceProduct.invoice:id,supplier_id,number_document,type_document_id,company_reason_id',
             'invoiceProduct.invoice.supplier:id,name',
             'invoiceProduct.invoice.typeDocument:id,name',
-            'creditDebitNoteItem:id,credit_debit_note_id,product_id,unit_price',
+            'invoiceProduct.invoice.companyReason:id,name',
+            'creditDebitNoteItem:id,credit_debit_note_id,product_id,unit_price,branch_id',
             'creditDebitNoteItem.product:id,name,unit_id',
             'creditDebitNoteItem.product.unit:id,name',
-            'creditDebitNoteItem.creditDebitNote:id,supplier_id,number',
+            'creditDebitNoteItem.branch:id,name',
+            'creditDebitNoteItem.creditDebitNote:id,supplier_id,number,invoice_id',
             'creditDebitNoteItem.creditDebitNote.supplier:id,name',
+            'creditDebitNoteItem.creditDebitNote.invoice:id,company_reason_id',
+            'creditDebitNoteItem.creditDebitNote.invoice.companyReason:id,name',
             'project:id,name',
             'operation:id,name',
             'machinery:id,cod_machinery,brand',
             'costCenters:id,outflow_id,cost_center_id,observations',
-            'costCenters.costCenter:id,name,surface,development_state_id',
+            'costCenters.costCenter:id,name,surface,development_state_id,branch_id,company_reason_id',
             'costCenters.costCenter.developmentState:id,name',
+            'costCenters.costCenter.branch:id,name',
+            'costCenters.costCenter.companyReason:id,name',
             'level3:id,name,level2_id',
             'level3.level2:id,name,level1_id',
             'level3.level2.level1:id,name',
@@ -111,6 +118,7 @@ class ConsolidatedOutflowsExport implements FromCollection, WithHeadings, WithMa
 
             $common = [
                 'outflow_id' => $outflow->id,
+                'tipo_gasto' => 'Gestión',
                 'date' => $outflow->date ? \Carbon\Carbon::parse($outflow->date)->format('d-m-Y') : '',
                 'month' => $outflow->date ? \Carbon\Carbon::parse($outflow->date)->locale('es')->translatedFormat('F') : '',
                 'supplier' => $isInvoice
@@ -139,6 +147,12 @@ class ConsolidatedOutflowsExport implements FromCollection, WithHeadings, WithMa
                 'level1_name' => $outflow->level3->level2->level1->name ?? '',
                 'level2_name' => $outflow->level3->level2->name ?? '',
                 'level3_name' => $outflow->level3->name ?? '',
+                'branch_factura' => $isInvoice
+                    ? ($outflow->invoiceProduct->branch->name ?? '-')
+                    : ($outflow->creditDebitNoteItem->branch->name ?? '-'),
+                'company_reason_factura' => $isInvoice
+                    ? ($outflow->invoiceProduct->invoice->companyReason->name ?? '-')
+                    : ($outflow->creditDebitNoteItem->creditDebitNote->invoice->companyReason->name ?? '-'),
             ];
 
             $totalSuperficie = $outflow->costCenters->sum(fn($occ) => $occ->costCenter->surface ?? 0);
@@ -147,6 +161,8 @@ class ConsolidatedOutflowsExport implements FromCollection, WithHeadings, WithMa
             if ($outflow->costCenters->isEmpty()) {
                 $rows->push(array_merge($common, [
                     'cost_center_name' => '-',
+                    'branch_cc' => '-',
+                    'company_reason_cc' => '-',
                     'surface' => 0,
                     'cantidad_asignada' => $outflow->quantity,
                     'development_state' => '',
@@ -163,6 +179,8 @@ class ConsolidatedOutflowsExport implements FromCollection, WithHeadings, WithMa
 
                 $rows->push(array_merge($common, [
                     'cost_center_name' => $occ->costCenter->name ?? '-',
+                    'branch_cc' => $occ->costCenter->branch->name ?? '-',
+                    'company_reason_cc' => $occ->costCenter->companyReason->name ?? '-',
                     'surface' => $superficie,
                     'cantidad_asignada' => round($cantidadAsignada, 2),
                     'development_state' => $occ->costCenter->developmentState->name ?? '',
@@ -178,10 +196,11 @@ class ConsolidatedOutflowsExport implements FromCollection, WithHeadings, WithMa
     public function headings(): array
     {
         return [
-            'ID Salida', 'Fecha', 'Mes', 'Proveedor', 'N° Documento', 'Tipo Documento',
+            'ID Salida', 'Tipo de Gasto', 'Fecha', 'Mes', 'Proveedor', 'Sucursal Factura', 'Razón Social Factura',
+            'N° Documento', 'Tipo Documento',
             'Producto', 'Unidad', 'Nivel 1', 'Nivel 2', 'Nivel 3',
             'Cantidad Total', 'Precio Unitario', 'Proyecto', 'Operación', 'Maquinaria',
-            'Centro de Costo', 'Superficie CC (ha)', 'Cantidad Asignada',
+            'Centro de Costo', 'Sucursal CC', 'Razón Social CC', 'Superficie CC (ha)', 'Cantidad Asignada',
             'Estado Desarrollo', 'Cantidad/Ha', 'Total', 'Notas',
         ];
     }
@@ -190,9 +209,12 @@ class ConsolidatedOutflowsExport implements FromCollection, WithHeadings, WithMa
     {
         return [
             $row['outflow_id'],
+            $row['tipo_gasto'],
             $row['date'],
             $row['month'],
             $row['supplier'],
+            $row['branch_factura'],
+            $row['company_reason_factura'],
             $row['number_document'],
             $row['tipo_documento'],
             $row['product_name'],
@@ -206,6 +228,8 @@ class ConsolidatedOutflowsExport implements FromCollection, WithHeadings, WithMa
             $row['operation'],
             $row['machinery'],
             $row['cost_center_name'],
+            $row['branch_cc'],
+            $row['company_reason_cc'],
             $row['surface'],
             $row['cantidad_asignada'],
             $row['development_state'],
