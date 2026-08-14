@@ -21,7 +21,7 @@ class FormFuelOutflowRequest extends FormRequest
             'liters' => 'required|numeric|min:0.01',
             'horometer' => 'nullable|numeric|min:0',
             'odometer' => 'nullable|numeric|min:0',
-            'date' => 'required|date',
+            'date' => 'required|date|after:2000-01-01|before:2100-01-01',
             'observations' => 'nullable|string',
         ];
     }
