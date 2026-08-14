@@ -7,6 +7,18 @@
 
 export const changelog = [
   {
+    fecha: '2026-08-15',
+    titulo: 'Consolidado de Salidas — Ahora también muestra Remuneraciones',
+    items: [
+      'Se agregó un filtro "Tipo de Gasto" para elegir entre ver solo Gestión (compras), solo Remuneraciones (jornadas, bonos y horas extra del personal) o ambos juntos en la misma tabla.',
+      'Cuando se incluyen Remuneraciones, cada registro se muestra distribuido por centro de costo, igual que las salidas de gestión, para poder compararlos y sumarlos en un solo reporte.',
+      'Se agregó la columna "Mes" visible directamente en la tabla (antes solo aparecía en el Excel exportado).',
+      'El filtro de Tipo de Gasto y la nueva columna Mes también están disponibles al exportar a Excel, tanto en "Exportar Página" como en "Exportar Todo".',
+      'La tabla ahora carga por defecto solo los datos de Gestión, para que la vista se abra más rápido; el usuario puede cambiar a Remuneraciones o Todos cuando lo necesite.',
+      'Se simplificó el diseño de la tabla: los botones de exportar y limpiar filtros ahora están en la misma fila que los filtros, ocupando menos espacio.',
+    ]
+  },
+  {
     fecha: '2026-08-13',
     titulo: 'Consolidado de Salidas — Filtros por mes, proveedor y niveles',
     items: [

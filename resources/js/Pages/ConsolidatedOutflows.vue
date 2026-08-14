@@ -26,6 +26,7 @@ const monthFilter = ref(props.filters?.month || '');
 const supplierFilter = ref(props.filters?.supplier_id || '');
 const level2Filter = ref(props.filters?.level2_id || '');
 const level3Filter = ref(props.filters?.level3_id || '');
+const tipoGastoFilter = ref(props.filters?.tipo_gasto || 'gestion');
 const sortBy = ref(props.filters?.sort_by || 'outflow_id');
 const sortDesc = ref(props.filters?.sort_desc ?? true);
 const perPage = ref(props.filters?.per_page || 50);
@@ -47,6 +48,7 @@ function clearFilters() {
     supplierFilter.value = '';
     level2Filter.value = '';
     level3Filter.value = '';
+    tipoGastoFilter.value = 'gestion';
     fetchData({ page: 1 });
 }
 
@@ -62,6 +64,7 @@ function fetchData(extraParams = {}) {
         supplier_id: supplierFilter.value,
         level2_id: level2Filter.value,
         level3_id: level3Filter.value,
+        tipo_gasto: tipoGastoFilter.value,
         sort_by: sortBy.value,
         sort_desc: sortDesc.value ? 'true' : 'false',
         per_page: perPage.value,
@@ -169,6 +172,14 @@ const excelData = computed(() => {
                         </small>
                     </div>
                     <div class="col-md-2 col-12">
+                        <label class="form-label small mb-1">Tipo de Gasto</label>
+                        <select v-model="tipoGastoFilter" @change="fetchData({ page: 1 })" class="form-select form-select-sm">
+                            <option value="">Todos</option>
+                            <option value="gestion">Gestión</option>
+                            <option value="remuneraciones">Remuneraciones</option>
+                        </select>
+                    </div>
+                    <div class="col-md-2 col-12">
                         <label class="form-label small mb-1">Mes</label>
                         <select v-model="monthFilter" @change="fetchData({ page: 1 })" class="form-select form-select-sm">
                             <option value="">Todos</option>
@@ -204,8 +215,8 @@ const excelData = computed(() => {
                             </option>
                         </select>
                     </div>
-                    <div class="col-12 text-end d-flex flex-wrap justify-content-end gap-2 mt-2">
-                        <button v-if="monthFilter || supplierFilter || level2Filter || level3Filter" type="button" class="btn btn-falcon-default btn-sm" @click="clearFilters">
+                    <div class="col-12 col-md d-flex flex-wrap justify-content-end gap-2 align-self-end">
+                        <button v-if="monthFilter || supplierFilter || level2Filter || level3Filter || tipoGastoFilter !== 'gestion'" type="button" class="btn btn-falcon-default btn-sm" @click="clearFilters">
                             <i class="fas fa-times me-1"></i>Limpiar filtros
                         </button>
                         <ExportExcelButton 
@@ -247,7 +258,7 @@ const excelData = computed(() => {
                             <span class="d-none d-sm-inline-block ms-1">Exportar Página</span>
                         </ExportExcelButton>
                         <a
-                            :href="`/consolidated-outflows/export?term=${encodeURIComponent(term)}&month=${encodeURIComponent(monthFilter)}&supplier_id=${encodeURIComponent(supplierFilter)}&level2_id=${encodeURIComponent(level2Filter)}&level3_id=${encodeURIComponent(level3Filter)}`"
+                            :href="`/consolidated-outflows/export?term=${encodeURIComponent(term)}&month=${encodeURIComponent(monthFilter)}&supplier_id=${encodeURIComponent(supplierFilter)}&level2_id=${encodeURIComponent(level2Filter)}&level3_id=${encodeURIComponent(level3Filter)}&tipo_gasto=${encodeURIComponent(tipoGastoFilter)}`"
                             class="btn btn-falcon-default btn-sm"
                             target="_blank"
                         >
@@ -261,7 +272,7 @@ const excelData = computed(() => {
                 <div class="d-flex justify-content-between align-items-center mb-2" v-if="outflows?.total">
                     <small class="text-muted">
                         Mostrando {{ outflows.from ?? 0 }}-{{ outflows.to ?? 0 }} de {{ outflows.total }} registros
-                        <span v-if="filters?.term || filters?.month || filters?.supplier_id || filters?.level2_id || filters?.level3_id"> (filtrado activo)</span>
+                        <span v-if="filters?.term || filters?.month || filters?.supplier_id || filters?.level2_id || filters?.level3_id || (filters?.tipo_gasto && filters.tipo_gasto !== 'gestion')"> (filtrado activo)</span>
                     </small>
                     <div class="d-flex align-items-center gap-2">
                         <small class="text-muted">Por página:</small>
@@ -282,6 +293,7 @@ const excelData = computed(() => {
                                 <th @click="setSort('outflow_id')" :class="sortClass('outflow_id')">ID ({{ totals?.total_count ?? 0 }})</th>
                                 <th @click="setSort('tipo_gasto')" :class="sortClass('tipo_gasto')">Tipo de Gasto</th>
                                 <th @click="setSort('date')" :class="sortClass('date')">Fecha</th>
+                                <th @click="setSort('month')" :class="sortClass('month')">Mes</th>
                                 <th @click="setSort('supplier')" :class="sortClass('supplier')">Proveedor</th>
                                 <th @click="setSort('branch_factura')" :class="sortClass('branch_factura')">Sucursal Fact.</th>
                                 <th @click="setSort('company_reason_factura')" :class="sortClass('company_reason_factura')">RS Fact.</th>
@@ -304,15 +316,16 @@ const excelData = computed(() => {
                         </thead>
                         <tbody>
                             <tr v-if="!outflows?.data?.length">
-                                <td colspan="21" class="text-center py-4">
+                                <td colspan="22" class="text-center py-4">
                                     <span v-if="isLoading"><i class="fas fa-spinner fa-spin me-2"></i>Cargando...</span>
                                     <span v-else>No hay registros para mostrar</span>
                                 </td>
                             </tr>
                             <tr v-for="(item, idx) in outflows.data" :key="idx">
                                 <td>{{ item.outflow_id }}</td>
-                                <td><span class="badge bg-soft-primary text-primary">{{ item.tipo_gasto }}</span></td>
+                                <td>{{ item.tipo_gasto }}</td>
                                 <td style="white-space:nowrap;">{{ item.date }}</td>
+                                <td style="white-space:nowrap;">{{ item.month || '-' }}</td>
                                 <td style="max-width:150px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;" :title="item.supplier">{{ item.supplier }}</td>
                                 <td style="max-width:130px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;" :title="item.branch_factura">{{ item.branch_factura || '-' }}</td>
                                 <td style="max-width:150px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;" :title="item.company_reason_factura">{{ item.company_reason_factura || '-' }}</td>
@@ -335,7 +348,7 @@ const excelData = computed(() => {
                         </tbody>
                         <tfoot v-if="outflows?.data?.length">
                             <tr class="table-primary fw-bold">
-                                <td colspan="20" class="text-end">Total General</td>
+                                <td colspan="21" class="text-end">Total General</td>
                                 <td class="text-end">{{ formatNumber(totals?.total_general ?? 0, 0) }}</td>
                             </tr>
                         </tfoot>
