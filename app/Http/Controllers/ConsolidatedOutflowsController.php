@@ -426,9 +426,11 @@ class ConsolidatedOutflowsController extends Controller
             ->join('cost_centers as cc', 'dycc.cost_center_id', '=', 'cc.id')
             ->leftJoin('branches as br', 'cc.branch_id', '=', 'br.id')
             ->leftJoin('company_reasons as cr', 'cc.company_reason_id', '=', 'cr.id')
+            ->leftJoin('development_states as ds', 'cc.development_state_id', '=', 'ds.id')
             ->whereIn('dycc.daily_yield_id', $yieldIds)
             ->select('dycc.daily_yield_id', 'cc.id as cost_center_id', 'cc.name as cc_name', 'cc.surface',
-                DB::raw("COALESCE(br.name, '-') as branch_name"), DB::raw("COALESCE(cr.name, '-') as company_reason_name"))
+                DB::raw("COALESCE(br.name, '-') as branch_name"), DB::raw("COALESCE(cr.name, '-') as company_reason_name"),
+                'ds.name as development_state_name')
             ->get()
             ->groupBy('daily_yield_id');
 
@@ -453,9 +455,11 @@ class ConsolidatedOutflowsController extends Controller
             ->join('cost_centers as cc', 'mbcc.cost_center_id', '=', 'cc.id')
             ->leftJoin('branches as br', 'cc.branch_id', '=', 'br.id')
             ->leftJoin('company_reasons as cr', 'cc.company_reason_id', '=', 'cr.id')
+            ->leftJoin('development_states as ds', 'cc.development_state_id', '=', 'ds.id')
             ->whereIn('mbcc.monthly_bonus_id', $bonusIds)
             ->select('mbcc.monthly_bonus_id', 'cc.id as cost_center_id', 'cc.name as cc_name', 'cc.surface',
-                DB::raw("COALESCE(br.name, '-') as branch_name"), DB::raw("COALESCE(cr.name, '-') as company_reason_name"))
+                DB::raw("COALESCE(br.name, '-') as branch_name"), DB::raw("COALESCE(cr.name, '-') as company_reason_name"),
+                'ds.name as development_state_name')
             ->get()
             ->groupBy('monthly_bonus_id');
 
@@ -481,9 +485,11 @@ class ConsolidatedOutflowsController extends Controller
             ->join('cost_centers as cc', 'ohcc.cost_center_id', '=', 'cc.id')
             ->leftJoin('branches as br', 'cc.branch_id', '=', 'br.id')
             ->leftJoin('company_reasons as cr', 'cc.company_reason_id', '=', 'cr.id')
+            ->leftJoin('development_states as ds', 'cc.development_state_id', '=', 'ds.id')
             ->whereIn('ohcc.overtime_hour_id', $overtimeIds)
             ->select('ohcc.overtime_hour_id', 'cc.id as cost_center_id', 'cc.name as cc_name', 'cc.surface',
-                DB::raw("COALESCE(br.name, '-') as branch_name"), DB::raw("COALESCE(cr.name, '-') as company_reason_name"))
+                DB::raw("COALESCE(br.name, '-') as branch_name"), DB::raw("COALESCE(cr.name, '-') as company_reason_name"),
+                'ds.name as development_state_name')
             ->get()
             ->groupBy('overtime_hour_id');
 
@@ -492,7 +498,7 @@ class ConsolidatedOutflowsController extends Controller
         // decenas de miles de filas y agotaba la memoria disponible.
         $bucket = [];
 
-        $addToBucket = function ($monthId, $ccId, $ccName, $branchName, $crName, $surface, $level1, $level2Name, $level2Id, $level3Name, $level3Id, $workdays, $amount) use (&$bucket) {
+        $addToBucket = function ($monthId, $ccId, $ccName, $branchName, $crName, $devState, $surface, $level1, $level2Name, $level2Id, $level3Name, $level3Id, $workdays, $amount) use (&$bucket) {
             $key = $monthId . '|' . ($ccId ?: 0) . '|' . ($level3Id ?: 0);
             if (!isset($bucket[$key])) {
                 $bucket[$key] = [
@@ -501,6 +507,7 @@ class ConsolidatedOutflowsController extends Controller
                     'cost_center_name' => $ccName,
                     'branch_cc' => $branchName,
                     'company_reason_cc' => $crName,
+                    'development_state' => $devState,
                     'surface' => $surface,
                     'level1_name' => $level1,
                     'level2_name' => $level2Name,
@@ -532,14 +539,14 @@ class ConsolidatedOutflowsController extends Controller
             $nCCs = count($ccs);
 
             if ($nCCs === 0) {
-                $addToBucket($monthId, 0, '-', '-', '-', 0, $level1, $level2Name, $level2Id, $level3Name, $level3Id, $workdays, $amount);
+                $addToBucket($monthId, 0, '-', '-', '-', null, 0, $level1, $level2Name, $level2Id, $level3Name, $level3Id, $workdays, $amount);
                 return;
             }
 
             foreach ($ccs as $cc) {
                 $surf = (float) ($cc->surface ?? 0);
                 $prop = $totalSurf > 0 ? $surf / $totalSurf : 1 / $nCCs;
-                $addToBucket($monthId, $cc->cost_center_id, $cc->cc_name ?? '-', $cc->branch_name ?? '-', $cc->company_reason_name ?? '-', $surf, $level1, $level2Name, $level2Id, $level3Name, $level3Id, $workdays * $prop, $amount * $prop);
+                $addToBucket($monthId, $cc->cost_center_id, $cc->cc_name ?? '-', $cc->branch_name ?? '-', $cc->company_reason_name ?? '-', $cc->development_state_name ?? null, $surf, $level1, $level2Name, $level2Id, $level3Name, $level3Id, $workdays * $prop, $amount * $prop);
             }
         };
 
@@ -562,7 +569,7 @@ class ConsolidatedOutflowsController extends Controller
                 'product_name' => $b['level3_name'] ?? 'Sin Labor',
                 'unit_name' => 'Jornadas',
                 'quantity_total' => round($b['workdays'], 2),
-                'unit_price' => 0,
+                'unit_price' => $b['workdays'] > 0 ? round($b['amount'] / $b['workdays'], 2) : 0,
                 'project' => null,
                 'operation' => null,
                 'machinery' => null,
@@ -580,7 +587,7 @@ class ConsolidatedOutflowsController extends Controller
                 'company_reason_cc' => $b['company_reason_cc'],
                 'surface' => $b['surface'],
                 'cantidad_asignada' => round($b['workdays'], 2),
-                'development_state' => null,
+                'development_state' => $b['development_state'],
                 'total_superficie' => $b['surface'],
                 'cantidad_por_ha' => 0,
                 'total' => round($b['amount'], 2),

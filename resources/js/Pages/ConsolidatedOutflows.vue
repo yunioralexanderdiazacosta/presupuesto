@@ -331,9 +331,9 @@ const excelData = computed(() => {
                                 <td style="max-width:150px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;" :title="item.company_reason_factura">{{ item.company_reason_factura || '-' }}</td>
                                 <td>{{ item.number_document }}</td>
                                 <td style="max-width:180px; overflow:hidden; text-overflow:ellipsis;">{{ item.product_name }}</td>
-                                <td style="max-width:130px; overflow:hidden; text-overflow:ellipsis;">{{ item.level1_name || '-' }}</td>
-                                <td style="max-width:150px; overflow:hidden; text-overflow:ellipsis;">{{ item.level2_name || '-' }}</td>
-                                <td style="max-width:150px; overflow:hidden; text-overflow:ellipsis;">{{ item.level3_name || '-' }}</td>
+                                <td style="max-width:130px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;" :title="item.level1_name">{{ item.level1_name || '-' }}</td>
+                                <td style="max-width:150px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;" :title="item.level2_name">{{ item.level2_name || '-' }}</td>
+                                <td style="max-width:150px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;" :title="item.level3_name">{{ item.level3_name || '-' }}</td>
                                 <td class="text-end">{{ formatNumber(item.quantity_total, 2) }}</td>
                                 <td class="text-end">{{ formatNumber(item.unit_price, 2) }}</td>
                                 <td style="max-width:120px; overflow:hidden; text-overflow:ellipsis;">{{ item.project || '-' }}</td>
