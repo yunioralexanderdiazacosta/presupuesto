@@ -41,6 +41,10 @@ class FruitClassificationController extends Controller
 
     public function destroy(FruitClassificationType $fruitClassificationType)
     {
+        if ($fruitClassificationType->team_id !== Auth::user()->team_id) {
+            abort(403);
+        }
+
         $fruitClassificationType->delete();
 
         return response()->json(['message' => 'Eliminado correctamente.']);

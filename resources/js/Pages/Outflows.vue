@@ -368,6 +368,19 @@ const formatPrice = (price) => {
     : num.toLocaleString('es-ES', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 };
 
+// Monto de la línea disponible (precio unitario x stock disponible), para la lista "Disponible para Salida"
+const formatLineAmount = (outflow) => {
+  const precio = Number(outflow.unit_price) || 0;
+  const stock = Number(outflow.stock) || 0;
+  const total = precio * stock;
+  if (isNaN(total)) return '-';
+
+  const sinDecimales = total % 1 === 0;
+  return sinDecimales
+    ? total.toLocaleString('es-ES')
+    : total.toLocaleString('es-ES', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+};
+
 const onFilter = () => {
   router.get(route('outflows.index', {term: appliedTerm.value}), { preserveState: true });  
 }
@@ -436,6 +449,7 @@ async function openCard(outflow) {
     machinery_id: '',
     product_name: outflow.product,
     unit_name: outflow.unit,
+    branch_name: outflow.branch_name || '-', // Sucursal de la línea (solo lectura)
     quantity: outflow.stock, // Inicializa cantidad con el stock
     stock_original: outflow.stock, // Guardar stock original para validaciones
     unit_price: outflow.unit_price || 0, // Precio unitario de la factura
@@ -1413,6 +1427,7 @@ function copyToAllCards(sourceCardId) {
                             <th>Cantidad</th>
                             <th>Stock</th>
                             <th>Unidad</th>
+                            <th>Monto</th>
                             <th class="text-center">Acciones</th>
                           </template>
                           <template #body>
@@ -1441,6 +1456,7 @@ function copyToAllCards(sourceCardId) {
                                 <td>{{ (+outflow.quantity).toFixed(2) }}</td>
                                 <td>{{ outflow.stock }}</td>
                                 <td>{{ outflow.unit }}</td>
+                                <td>{{ formatLineAmount(outflow) }}</td>
                                 <td class="text-center">
                                   <button 
                                     @click.stop="openCard(outflow)"
@@ -1457,11 +1473,11 @@ function copyToAllCards(sourceCardId) {
 
                             </tr>
                             <tr v-if="filteredOutflows.length === 0">
-                                <td colspan="10"><Empty /></td>
+                                <td colspan="11"><Empty /></td>
                             </tr>
                             <!-- Ver más -->
                             <tr v-if="hasMoreOutflows">
-                                <td colspan="10" class="text-center py-2">
+                                <td colspan="11" class="text-center py-2">
                                     <button type="button" class="btn btn-sm btn-falcon-default" @click="visibleCountSalidas += SALIDAS_PAGE_SIZE">
                                         <i class="fas fa-chevron-down me-1"></i>
                                         Ver más ({{ filteredOutflows.length - visibleCountSalidas }} restantes)
@@ -1476,8 +1492,8 @@ function copyToAllCards(sourceCardId) {
                       <h6 class="mb-2">Registrar salida</h6>
                       <div class="card mb-2 p-3 shadow-sm">
                         <div class="row g-2 align-items-center">
-                          <!-- FILA 1: Producto, Unidad, Cantidad, Precio Unit., Total -->
-                          <div class="col-12 col-md-3">
+                          <!-- FILA 1: Producto, Unidad, Sucursal, Cantidad, Fecha, Precio Unit., Total -->
+                          <div class="col-12 col-md-2">
                             <label class="form-label">Producto</label>
                             <input v-model="selected.product_name" class="form-control form-control-sm w-100" disabled />
                           </div>
@@ -1486,12 +1502,16 @@ function copyToAllCards(sourceCardId) {
                             <input v-model="selected.unit_name" class="form-control form-control-sm w-100" disabled />
                           </div>
                           <div class="col-6 col-md-2">
+                            <label class="form-label">Sucursal</label>
+                            <input v-model="selected.branch_name" class="form-control form-control-sm w-100" disabled />
+                          </div>
+                          <div class="col-6 col-md-2">
                             <label class="form-label">Cantidad</label>
                             <input
                               v-model="selected.quantity"
                               class="form-control form-control-sm w-100"
                               type="number"
-                              min="1"
+                              min="0.01"
                               :max="selected.stock_original"
                               step="0.01"
                               @input="

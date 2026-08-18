@@ -20,4 +20,9 @@ class Team extends Model
     {
         return $this->hasMany(Season::class);
     }
+
+    public function disabledModules()
+    {
+        return $this->hasMany(TeamDisabledModule::class);
+    }
 }

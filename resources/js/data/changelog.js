@@ -7,6 +7,36 @@
 
 export const changelog = [
   {
+    fecha: '2026-08-17',
+    titulo: 'Empresas — Control de módulos por empresa',
+    superAdminOnly: true,
+    items: [
+      'El Super Admin ahora puede elegir, empresa por empresa, qué módulos del sistema puede ver y usar cada una (por ejemplo, deshabilitar "Remuneraciones" o "Producción" para empresas que no lo necesiten).',
+      'Se agregó un nuevo botón en la pantalla de Empresas para abrir el listado de módulos y marcar/desmarcar los que cada empresa tiene permitido usar.',
+      'Si un módulo está deshabilitado para una empresa, sus usuarios ya no pueden entrar a esa sección aunque escriban la dirección directamente.',
+    ]
+  },
+  {
+    fecha: '2026-08-17',
+    titulo: 'Nuevo módulo — Solicitudes de Pago',
+    items: [
+      'Se agregó un nuevo módulo "Solicitudes de Pago" para pedir que se ejecute el pago de una factura o documento a los usuarios encargados.',
+      'Al crear una solicitud se puede adjuntar la factura o imagen del comprobante, indicar la fecha, el nivel de urgencia (Normal, Importante o Urgente), un concepto/observaciones, el o los Centros de Costo relacionados, y elegir a qué usuarios se les enviará.',
+      'Ahora se pueden adjuntar varios archivos (facturas o comprobantes) a una misma solicitud, no solo uno.',
+      'Los usuarios seleccionados reciben un correo con los datos de la solicitud, un PDF de respaldo y un botón para marcarla como gestionada una vez realizado el pago; el primero que la gestione la cierra para todos.',
+      'El listado permite filtrar entre "Todas", "Creadas por mí" y "Pendientes para mí", además de ver el estado y quién gestionó cada solicitud.',
+      'Se agregó una vista de detalle para cada solicitud (haciendo clic en el folio o en el botón "Ver") y un botón para imprimir/descargar el PDF con los datos de la solicitud.',
+    ]
+  },
+  {
+    fecha: '2026-08-17',
+    titulo: 'Salidas — Sucursal en el formulario y monto disponible en la lista',
+    items: [
+      'En la pestaña "Disponible para Salida", el formulario para registrar una salida ahora muestra también la Sucursal de la línea (solo de referencia, no se puede editar).',
+      'Se agregó la columna "Monto" en la lista de líneas disponibles, mostrando el valor total del stock disponible de esa línea (precio unitario multiplicado por el stock).',
+    ]
+  },
+  {
     fecha: '2026-08-15',
     titulo: 'Consolidado de Salidas — Ahora también muestra Remuneraciones',
     items: [

@@ -1,5 +1,6 @@
 <script setup>
-import { Head } from '@inertiajs/vue3';
+import { computed } from 'vue';
+import { Head, usePage } from '@inertiajs/vue3';
 import AppLayout from '@/Layouts/AppLayout.vue';
 import Breadcrumb from '@/Components/Breadcrumb.vue';
 import { changelog } from '@/data/changelog.js';
@@ -9,6 +10,10 @@ const props = defineProps({
 });
 
 const title = 'Inicio';
+
+// Oculta entradas marcadas como superAdminOnly para quienes no tengan ese rol
+const isSuperAdmin = computed(() => (usePage().props.gates?.roles || []).includes('Super Admin'));
+const visibleChangelog = computed(() => changelog.filter(entry => !entry.superAdminOnly || isSuperAdmin.value));
 
 const links = [
     { title: 'Inicio', active: true }
@@ -49,7 +54,7 @@ const links = [
 
                                 <!-- Entradas dinámicas del changelog -->
                                 <div style="max-height: 320px; overflow-y: auto; padding-right: 4px;">
-                                    <div v-for="(entry, i) in changelog" :key="i" :class="{ 'mt-3': i > 0 }">
+                                    <div v-for="(entry, i) in visibleChangelog" :key="i" :class="{ 'mt-3': i > 0 }">
                                         <p class="mb-1">
                                             <strong class="text-primary">{{ entry.fecha.split('-').reverse().join('/') }}:</strong>
                                             <span class="ms-1 fw-semibold">{{ entry.titulo }}</span>

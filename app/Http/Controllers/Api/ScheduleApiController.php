@@ -34,6 +34,10 @@ class ScheduleApiController extends Controller
 
     public function destroy(Schedule $schedule)
     {
+        if ($schedule->team_id !== Auth::user()->team_id) {
+            abort(403);
+        }
+
         $schedule->delete();
         return response()->json(['success' => true]);
     }

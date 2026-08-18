@@ -9,6 +9,7 @@ import Empty from '@/Components/Empty.vue';
 import Breadcrumb from '@/Components/Breadcrumb.vue';
 import CreateTeamModal from '@/Components/Teams/CreateTeamModal.vue';
 import EditTeamModal from '@/Components/Teams/EditTeamModal.vue';
+import TeamModulesModal from '@/Components/Teams/TeamModulesModal.vue';
 
 const props = defineProps({
     teams: Object,
@@ -30,6 +31,14 @@ const title = 'Empresas';
 const links = [{ title: 'Tablero', link: 'dashboard' }, { title: title, active: true }];
 
 const term  = ref(props.term);
+
+const modulesModalRef = ref(null);
+
+const openModules = (user) => {
+    $('#teamModulesModal').modal('show');
+    modulesModalRef.value?.load({ id: user.team.id, name: user.team.name });
+}
+
 
 const openAdd = () => {
     form.reset();
@@ -196,6 +205,11 @@ const onFilter = () => {
                                         </span>
                                     </button>
                                     <!--end::Update-->
+                                    <!--begin::Modules-->
+                                    <button type="button" v-tooltip="'Gestionar módulos'" class="btn btn-icon btn-active-light-primary w-30px h-30px" @click="openModules(user)">
+                                        <i class="fas fa-th-large"></i>
+                                    </button>
+                                    <!--end::Modules-->
                                     <!--begin::Inactivate-->
                                     <button type="button" v-tooltip="'Suspender'"  @click="onAction(user.id, 0)" v-if="user.status == 1" class="btn btn-icon btn-active-light-primary w-30px h-30px">
                                         <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -235,5 +249,6 @@ const onFilter = () => {
      
         <CreateTeamModal @store="storeTeam" :form="form" />
         <EditTeamModal @update="updateTeam" :form="form" />
+        <TeamModulesModal ref="modulesModalRef" />
     </AppLayout>
 </template>

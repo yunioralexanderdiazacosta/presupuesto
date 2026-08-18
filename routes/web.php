@@ -119,6 +119,14 @@ use App\Http\Controllers\Products2\DeleteProduct2Controller;
     use App\Http\Controllers\PurchaseOrders\ApprovePurchaseOrderController;
     use App\Http\Controllers\PurchaseOrders\RejectPurchaseOrderController;
 
+// Rutas para Solicitudes de Pago
+    use App\Http\Controllers\PaymentRequests\PaymentRequestController;
+    use App\Http\Controllers\PaymentRequests\StorePaymentRequestController;
+    use App\Http\Controllers\PaymentRequests\DeletePaymentRequestController;
+    use App\Http\Controllers\PaymentRequests\ResolvePaymentRequestController;
+    use App\Http\Controllers\PaymentRequests\ShowPaymentRequestController;
+    use App\Http\Controllers\PaymentRequests\PdfPaymentRequestController;
+
 use Illuminate\Foundation\Application;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\HomeController;
@@ -153,6 +161,8 @@ use App\Http\Controllers\Teams\StoreTeamController;
 use App\Http\Controllers\Teams\UpdateTeamController;
 use App\Http\Controllers\Teams\DeleteTeamController;
 use App\Http\Controllers\Teams\ActivateInactivateTeamController;
+use App\Http\Controllers\Teams\TeamModulesController;
+use App\Http\Controllers\Teams\UpdateTeamModulesController;
 use App\Http\Controllers\Users\StoreUserController;
 use App\Http\Controllers\Users\UpdateUserController;
 use App\Http\Controllers\Users\DeleteUserController;
@@ -548,6 +558,7 @@ Route::middleware([
     config('jetstream.auth_session'),
     'verified',
     \App\Http\Middleware\RestrictExpenseSubmitter::class,
+    \App\Http\Middleware\CheckTeamModuleAccess::class,
 ])->group(function () {
 
 
@@ -621,6 +632,8 @@ Route::middleware([
     Route::post('teams/{user}/update', UpdateTeamController::class)->name('teams.update')->middleware('role:Super Admin');
     Route::delete('/teams/{user}/delete', DeleteTeamController::class)->name('teams.delete')->middleware('role:Super Admin');
     Route::post('/teams/{user}/activate/inactivate', ActivateInactivateTeamController::class)->name('teams.activate.inactivate')->middleware('role:Super Admin');
+    Route::get('/teams/{team}/modules', TeamModulesController::class)->name('teams.modules')->middleware('role:Super Admin');
+    Route::post('/teams/{team}/modules/update', UpdateTeamModulesController::class)->name('teams.modules.update')->middleware('role:Super Admin');
 
     Route::get('/users/pdf', UsersPdfController::class)->name('users.pdf')->middleware('role:Admin|Super Admin');
     Route::get('/users/excel', UsersExcelController::class)->name('users.excel')->middleware('role:Admin|Super Admin');
@@ -1018,6 +1031,13 @@ Route::middleware([
     Route::delete('/purchase-orders/{purchaseOrder}', DeletePurchaseOrderController::class)->name('purchase-orders.delete');
     Route::patch('/purchase-orders/{purchaseOrder}/status', UpdatePurchaseOrderStatusController::class)->name('purchase-orders.update-status');
 
+    // Solicitudes de Pago
+    Route::get('/payment-requests', [PaymentRequestController::class, 'index'])->name('payment-requests.index');
+    Route::post('/payment-requests', StorePaymentRequestController::class)->name('payment-requests.store');
+    Route::get('/payment-requests/{paymentRequest}/pdf', PdfPaymentRequestController::class)->name('payment-requests.pdf');
+    Route::get('/payment-requests/{paymentRequest}', ShowPaymentRequestController::class)->name('payment-requests.show');
+    Route::delete('/payment-requests/{paymentRequest}', DeletePaymentRequestController::class)->name('payment-requests.delete');
+
     // Consolidated Documents
     Route::get('/consolidated-documents', [ConsolidatedDocumentsController::class, 'index'])->name('consolidated-documents.index');
 
@@ -1255,6 +1275,11 @@ Route::get('/purchase-orders/{purchaseOrder}/approve', ApprovePurchaseOrderContr
 Route::match(['get', 'post'], '/purchase-orders/{purchaseOrder}/reject', RejectPurchaseOrderController::class)
     ->middleware('signed')
     ->name('purchase-orders.reject');
+
+// Ruta firmada para marcar una Solicitud de Pago como gestionada (enlace único por destinatario)
+Route::get('/payment-requests/{paymentRequest}/resolve/{user}', ResolvePaymentRequestController::class)
+    ->middleware('signed')
+    ->name('payment-requests.resolve');
 
 // Ruta de prueba para emails (SOLO DESARROLLO - eliminar en producción)
 Route::get('/test-email/{purchaseOrder}', function(\App\Models\PurchaseOrder $purchaseOrder) {

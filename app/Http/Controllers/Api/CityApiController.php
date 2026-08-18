@@ -27,6 +27,11 @@ class CityApiController extends Controller
 
     public function destroy(City $city)
     {
+        // Es un catálogo global: evitar que se borre si algún equipo la tiene en uso.
+        if (\App\Models\Contract::where('city_id', $city->id)->exists()) {
+            return response()->json(['message' => 'No se puede eliminar: la ciudad está en uso en uno o más contratos.'], 422);
+        }
+
         $city->delete();
         return response()->json(['success' => true]);
     }
