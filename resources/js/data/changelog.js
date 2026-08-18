@@ -7,6 +7,13 @@
 
 export const changelog = [
   {
+    fecha: '2026-08-18',
+    titulo: 'Maquinarias — Corrección de sucursales duplicadas',
+    items: [
+      'Se corrigió el listado de sucursales del formulario de Maquinaria, que mostraba la misma sucursal repetida cuando existía en más de una temporada.',
+    ]
+  },
+  {
     fecha: '2026-08-17',
     titulo: 'Empresas — Control de módulos por empresa',
     superAdminOnly: true,

@@ -45,6 +45,7 @@ class MachineriesController extends Controller
             ->get();
 
         $branches = Branch::where('team_id', $user->team_id)
+            ->where('season_id', session('season_id'))
             ->orderBy('name')
             ->get(['id', 'name'])
             ->map(fn($b) => ['label' => $b->name, 'value' => $b->id]);
