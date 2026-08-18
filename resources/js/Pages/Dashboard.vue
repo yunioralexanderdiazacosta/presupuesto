@@ -149,6 +149,33 @@ const defaultStatusByFruit = computed(() => {
   return map;
 });
 
+const devStateOptionsByFruit = computed(() => {
+  const map = {};
+  (props.fruitDevStateSummary || []).forEach(row => {
+    const fruitId = String(row.fruit_id);
+    const stateId = String(row.development_state_id);
+    if (!map[fruitId]) map[fruitId] = [];
+    if (!map[fruitId].some(option => String(option.id) === stateId)) {
+      map[fruitId].push({
+        id: row.development_state_id,
+        name: row.development_state_name || 'Estado ' + row.development_state_id,
+      });
+    }
+  });
+
+  Object.keys(map).forEach(fruitId => {
+    map[fruitId].sort((a, b) => {
+      const left = String(a.name || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
+      const right = String(b.name || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
+      return left.localeCompare(right, 'es');
+    });
+  });
+
+  return map;
+});
+
+const selectedDevStateByFruit = ref({});
+
 // Selección de estimación por frutal (cada card maneja la suya)
 const selectedStatusByFruit = ref({});
 watchEffect(() => {
@@ -182,6 +209,71 @@ const activeKilosByFruit = computed(() => {
   return result;
 });
 
+watchEffect(() => {
+  Object.keys(activeKilosByFruit.value || {}).forEach(fruitId => {
+    const options = devStateOptionsByFruit.value[String(fruitId)] || [];
+    if (!options.length) return;
+
+    if (!selectedDevStateByFruit.value[fruitId]) {
+      selectedDevStateByFruit.value[fruitId] = {};
+    }
+
+    options.forEach(option => {
+      const key = String(option.id);
+      const stateName = String(option.name || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
+      const shouldBeSelected = stateName.includes('produccion')
+        || stateName.includes('ano 3')
+        || stateName.includes('año 3')
+        || stateName.includes('ano 4')
+        || stateName.includes('año 4');
+
+      if (selectedDevStateByFruit.value[fruitId][key] === undefined) {
+        selectedDevStateByFruit.value[fruitId][key] = shouldBeSelected || options.length === 1;
+      }
+    });
+  });
+});
+
+const selectedFruitStateTotal = computed(() => {
+  const totalByFruitMap = {};
+  (props.fruitDevStateSummary || []).forEach(row => {
+    const fruitId = String(row.fruit_id);
+    const stateId = String(row.development_state_id);
+    const isSelected = !!(selectedDevStateByFruit.value[fruitId] && selectedDevStateByFruit.value[fruitId][stateId]);
+
+    if (!isSelected) return;
+    if (!totalByFruitMap[fruitId]) totalByFruitMap[fruitId] = 0;
+    totalByFruitMap[fruitId] += Number(row.total_cost || 0);
+  });
+
+  return totalByFruitMap;
+});
+
+// Kilos estimados filtrados por los mismos estados de desarrollo marcados en el card
+const selectedFruitStateKilos = computed(() => {
+  const map = {};
+  Object.keys(activeKilosByFruit.value || {}).forEach(fruitId => {
+    const statusId = selectedStatusByFruit.value[fruitId] ?? defaultStatusByFruit.value[fruitId];
+    const matrix = (statusId != null) ? props.kilosByEstimateFruitDevState?.[statusId]?.[fruitId] : null;
+    const stateOptions = devStateOptionsByFruit.value[String(fruitId)] || [];
+
+    if (matrix && stateOptions.length) {
+      const selection = selectedDevStateByFruit.value[fruitId] || {};
+      let sum = 0;
+      stateOptions.forEach(option => {
+        if (selection[String(option.id)]) {
+          sum += Number(matrix[String(option.id)] || 0);
+        }
+      });
+      map[fruitId] = sum;
+    } else {
+      // Sin desglose por estado disponible: usar el total plano de la estimación
+      map[fruitId] = Number(activeKilosByFruit.value[fruitId] || 0);
+    }
+  });
+  return map;
+});
+
 // Calcular el total por fruta usando totalsByLevel12 (sin dividir aquí, solo suma cruda)
 const totalByFruit = computed(() => {
   const map = {};
@@ -208,7 +300,7 @@ const fruitNameByFruit = computed(() => {
 const fruitKpiCards = computed(() => {
   const d = (dividir.value && divisor.value) ? Number(divisor.value) : 1;
   return Object.keys(activeKilosByFruit.value).map(fruitId => {
-    const kilos = Number(activeKilosByFruit.value[fruitId] || 0);
+    const kilos = Number(selectedFruitStateKilos.value[fruitId] || 0);
 
     // Costo kilo cosecha (sin admin ni gral campo)
     const harvest = props.totalHarvestByFruit && props.totalHarvestByFruit[fruitId] != null
@@ -216,13 +308,16 @@ const fruitKpiCards = computed(() => {
       : null;
     const costHarvest = (harvest !== null && kilos > 0) ? harvest / kilos : null;
 
-    // Costo kilo total (incluye admin + gral campo)
-    let total = totalByFruit.value[fruitId] !== undefined ? Number(totalByFruit.value[fruitId]) : 0;
-    if (props.adminFieldsByFruit && props.adminFieldsByFruit[fruitId]?.admin_fields_total !== undefined) {
-      total += Number(props.adminFieldsByFruit[fruitId].admin_fields_total);
+    const stateOptions = devStateOptionsByFruit.value[String(fruitId)] || [];
+    const selectedStateCost = Number(selectedFruitStateTotal.value[fruitId] || 0) / d;
+    let total = selectedStateCost;
+    const hasAnySelectedState = stateOptions.some(option => !!selectedDevStateByFruit.value[fruitId]?.[String(option.id)]);
+
+    if (showProrrateo[fruitId] && props.adminFieldsByFruit && props.adminFieldsByFruit[fruitId]?.admin_fields_total !== undefined) {
+      total += Number(props.adminFieldsByFruit[fruitId].admin_fields_total) / d;
     }
-    total = total / d;
-    const costTotal = kilos > 0 ? total / kilos : null;
+
+    const costTotal = (kilos > 0 && hasAnySelectedState) ? total / kilos : null;
 
     return {
       fruitId,
@@ -230,7 +325,10 @@ const fruitKpiCards = computed(() => {
       kilos,
       costHarvest,
       costTotal,
+      montoTotal: hasAnySelectedState ? total : null,
       options: estimateOptionsByFruit.value[String(fruitId)] || [],
+      stateOptions,
+      selectedDevStateByFruit: selectedDevStateByFruit.value[fruitId] || {},
     };
   }).sort((a, b) => String(a.fruitName).localeCompare(String(b.fruitName), 'es'));
 });
@@ -1154,7 +1252,7 @@ onMounted(() => {
       </div>
 
       <!-- Fila: estimación y costo por kilo, un card por frutal -->
-      <div class="row g-2 mb-2">
+      <div class="row g-2 mb-2 mt-3">
         <div class="col-12">
           <div class="d-flex align-items-center justify-content-between mb-1">
             <h6 class="mb-0 d-flex align-items-center fs-10"><i class="fas fa-seedling me-2 text-secondary"></i>Estimación y costo por kilo</h6>
@@ -1180,16 +1278,39 @@ onMounted(() => {
               </div>
             </div>
             <div class="card-body py-2">
+              <div v-if="card.stateOptions.length" class="mb-2">
+                <div class="small text-muted mb-1">Costo base por estado</div>
+                <div class="d-flex flex-wrap gap-1">
+                  <label
+                    v-for="state in card.stateOptions"
+                    :key="'fruit-state-' + card.fruitId + '-' + state.id"
+                    class="d-flex align-items-center gap-1 small text-muted border rounded px-2 py-0"
+                    style="cursor:pointer;background:#f8f9fa;"
+                  >
+                    <input
+                      class="form-check-input m-0"
+                      type="checkbox"
+                      v-model="selectedDevStateByFruit[card.fruitId][state.id]"
+                      style="cursor:pointer;"
+                    >
+                    <span>{{ state.name }}</span>
+                  </label>
+                </div>
+              </div>
               <div class="d-flex justify-content-between align-items-center py-1">
-                <small class="text-muted">Estimación</small>
+                <small class="text-muted">Estimación <span class="text-secondary">(según estados marcados)</span></small>
                 <strong class="text-primary">{{ Number(card.kilos).toLocaleString('es-CL', { maximumFractionDigits: 0 }) }} <small class="text-secondary fw-normal">Kg</small></strong>
+              </div>
+              <div class="d-flex justify-content-between align-items-center py-1 border-top">
+                <small class="text-muted">Monto total <span class="text-secondary">(según estados marcados)</span></small>
+                <strong class="text-dark">{{ card.montoTotal !== null ? Number(card.montoTotal).toLocaleString('es-CL', { maximumFractionDigits: 0 }) : 'No data' }} <small class="text-secondary fw-normal">{{ dividir ? 'USD' : 'CLP' }}</small></strong>
               </div>
               <div class="d-flex justify-content-between align-items-center py-1 border-top">
                 <small class="text-muted">Costo kilo cosecha <span class="text-secondary">(sin admin/campo)</span></small>
                 <strong class="text-primary">{{ card.costHarvest !== null ? card.costHarvest.toLocaleString('es-CL', { maximumFractionDigits: 2 }) : 'No data' }}</strong>
               </div>
               <div class="d-flex justify-content-between align-items-center py-1 border-top">
-                <small class="text-muted">Costo kilo total <span class="text-secondary">(con admin/campo)</span></small>
+                <small class="text-muted">Costo kilo total <span class="text-secondary">(según estados marcados)</span></small>
                 <strong class="text-success">{{ card.costTotal !== null ? card.costTotal.toLocaleString('es-CL', { maximumFractionDigits: 2 }) : 'No data' }}</strong>
               </div>
             </div>
