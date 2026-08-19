@@ -14,7 +14,7 @@
 
         body {
             font-family: Arial, sans-serif;
-            font-size: 8px;
+            font-size: 10px;
             line-height: 1.3;
             color: #333;
             padding: 10px;
@@ -28,13 +28,13 @@
         }
 
         .header h1 {
-            font-size: 15px;
+            font-size: 17px;
             color: #2c7be5;
             margin-bottom: 3px;
         }
 
         .header p {
-            font-size: 8px;
+            font-size: 10px;
             color: #666;
         }
 
@@ -64,14 +64,14 @@
         .info-label {
             font-weight: bold;
             color: #666;
-            font-size: 6px;
+            font-size: 8px;
             text-transform: uppercase;
             display: block;
         }
 
         .info-value {
             color: #333;
-            font-size: 8px;
+            font-size: 10px;
             margin-top: 1px;
         }
 
@@ -80,7 +80,7 @@
             padding: 2px 8px;
             border-radius: 3px;
             font-weight: bold;
-            font-size: 7px;
+            font-size: 9px;
             color: #fff;
         }
 
@@ -95,7 +95,7 @@
             padding: 6px 8px;
             background-color: #fdecee;
             border-left: 3px solid #e63757;
-            font-size: 7px;
+            font-size: 9px;
             color: #7a1f2b;
         }
 
@@ -109,7 +109,7 @@
         table.items th {
             background-color: #2c7be5;
             color: white;
-            font-size: 6px;
+            font-size: 8px;
             text-transform: uppercase;
             padding: 5px 4px;
             text-align: left;
@@ -118,7 +118,7 @@
         table.items td {
             padding: 4px;
             border-bottom: 1px solid #e3e6ea;
-            font-size: 7px;
+            font-size: 9px;
             vertical-align: top;
         }
 
@@ -141,7 +141,7 @@
             display: inline-block;
             padding: 1px 5px;
             border-radius: 2px;
-            font-size: 6px;
+            font-size: 8px;
             color: #fff;
         }
 
@@ -156,7 +156,7 @@
 
         .totals td {
             padding: 4px 6px;
-            font-size: 8px;
+            font-size: 10px;
         }
 
         .totals .label {
@@ -170,13 +170,13 @@
 
         .totals tr.total-row td {
             border-top: 2px solid #2c7be5;
-            font-size: 10px;
+            font-size: 12px;
             color: #2c7be5;
         }
 
         .footer-note {
             margin-top: 10px;
-            font-size: 6px;
+            font-size: 8px;
             color: #999;
             text-align: right;
         }
