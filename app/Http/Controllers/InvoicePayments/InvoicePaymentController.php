@@ -5,7 +5,6 @@ namespace App\Http\Controllers\InvoicePayments;
 use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Facades\DB;
 use App\Models\InvoicePayment;
 use App\Models\Invoice;
 use App\Models\Bank;
@@ -67,16 +66,10 @@ class InvoicePaymentController extends Controller
             ->when($supplierId, fn($q, $id) => $q->where('invoices.supplier_id', $id))
             ->when($paymentType !== '', fn($q) => $q->where('invoices.payment_type', $paymentType));
 
-        // Resumen por estado (sin filtro de payment_status para mostrar siempre los totales completos)
-        $summaryBase = Invoice::select(
-                'invoices.expense_report_id',
-                DB::raw("(SELECT COALESCE(SUM(ip.unit_price * ip.amount), 0) FROM invoice_products ip WHERE ip.invoice_id = invoices.id) * CASE WHEN UPPER(td.name) IN ('FACTURA', 'NOTA CREDITO', 'NOTA DEBITO') THEN 1.19 ELSE 1.0 END as total_invoice"),
-                DB::raw('(SELECT COALESCE(SUM(pay.amount), 0) FROM invoice_payments pay WHERE pay.invoice_id = invoices.id) as total_paid'),
-                DB::raw('(SELECT COUNT(*) FROM credit_debit_notes cdn WHERE cdn.invoice_id = invoices.id AND cdn.is_annulment = 1) as annulment_count'),
-                DB::raw("COALESCE((SELECT SUM(cdni.quantity * cdni.unit_price) FROM credit_debit_notes cdn JOIN credit_debit_note_items cdni ON cdni.credit_debit_note_id = cdn.id WHERE cdn.invoice_id = invoices.id AND cdn.type = 'credito' AND cdn.affects_inventory = 1 AND cdn.is_annulment = 0), 0) * 1.19 as inv_credit_adj"),
-                DB::raw("COALESCE((SELECT SUM(cdni.quantity * cdni.unit_price) FROM credit_debit_notes cdn JOIN credit_debit_note_items cdni ON cdni.credit_debit_note_id = cdn.id WHERE cdn.invoice_id = invoices.id AND cdn.type = 'debito' AND cdn.is_annulment = 0), 0) * 1.19 as debit_adj")
-            )
-            ->leftJoin('type_documents as td', 'td.id', '=', 'invoices.type_document_id')
+        // Resumen por estado (sin filtro de payment_status para mostrar siempre los totales completos).
+        // Se calcula con el mismo helper calculateDebt() que usa la tabla, para evitar diferencias de
+        // centavos por redondeo entre el resumen (antes SQL crudo sin redondear) y el detalle por factura.
+        $summaryInvoices = Invoice::with(['invoiceProducts', 'payments', 'typeDocument', 'creditDebitNotes.items'])
             ->where('invoices.team_id', $user->team_id)
             ->where('invoices.season_id', $season_id)
             ->when($term, function ($q, $search) {
@@ -88,30 +81,38 @@ class InvoicePaymentController extends Controller
             ->when($dateFrom, fn($q, $date) => $q->whereDate('invoices.date', '>=', $date))
             ->when($dateTo,   fn($q, $date) => $q->whereDate('invoices.date', '<=', $date))
             ->when($supplierId, fn($q, $id) => $q->where('invoices.supplier_id', $id))
-            ->when($paymentType !== '', fn($q) => $q->where('invoices.payment_type', $paymentType));
-
-        // Nota: una factura con expense_report_id ya fue cubierta por una rendición de gastos,
-        // por lo que se contabiliza como pagada aunque no tenga pagos registrados en este módulo.
-        $summaryRaw = DB::query()->fromSub($summaryBase, 'sub')->selectRaw("
-            COUNT(*) as total_count,
-            COALESCE(SUM(total_invoice), 0) as total_amount,
-            SUM(CASE WHEN annulment_count = 0 AND expense_report_id IS NULL AND total_paid = 0 AND (total_invoice - inv_credit_adj + debit_adj) > 0 THEN 1 ELSE 0 END) as pending_count,
-            COALESCE(SUM(CASE WHEN annulment_count = 0 AND expense_report_id IS NULL AND total_paid = 0 AND (total_invoice - inv_credit_adj + debit_adj) > 0 THEN (total_invoice - inv_credit_adj + debit_adj) ELSE 0 END), 0) as pending_amount,
-            SUM(CASE WHEN annulment_count = 0 AND expense_report_id IS NULL AND total_paid > 0 AND total_paid < (total_invoice - inv_credit_adj + debit_adj) THEN 1 ELSE 0 END) as partial_count,
-            COALESCE(SUM(CASE WHEN annulment_count = 0 AND expense_report_id IS NULL AND total_paid > 0 AND total_paid < (total_invoice - inv_credit_adj + debit_adj) THEN ((total_invoice - inv_credit_adj + debit_adj) - total_paid) ELSE 0 END), 0) as partial_balance,
-            SUM(CASE WHEN annulment_count = 0 AND (total_invoice - inv_credit_adj + debit_adj) > 0 AND (total_paid >= (total_invoice - inv_credit_adj + debit_adj) OR expense_report_id IS NOT NULL) THEN 1 ELSE 0 END) as paid_count,
-            COALESCE(SUM(CASE WHEN annulment_count = 0 AND (total_invoice - inv_credit_adj + debit_adj) > 0 AND (total_paid >= (total_invoice - inv_credit_adj + debit_adj) OR expense_report_id IS NOT NULL) THEN (CASE WHEN expense_report_id IS NOT NULL THEN (total_invoice - inv_credit_adj + debit_adj) ELSE total_paid END) ELSE 0 END), 0) as paid_amount,
-            SUM(CASE WHEN annulment_count > 0 THEN 1 ELSE 0 END) as annulled_count,
-            COALESCE(SUM(CASE WHEN annulment_count > 0 THEN total_invoice ELSE 0 END), 0) as annulled_amount
-        ")->first();
+            ->when($paymentType !== '', fn($q) => $q->where('invoices.payment_type', $paymentType))
+            ->get();
 
         $summary = [
-            'total'    => ['count' => (int) $summaryRaw->total_count,    'amount'  => (float) $summaryRaw->total_amount],
-            'pending'  => ['count' => (int) $summaryRaw->pending_count,  'amount'  => (float) $summaryRaw->pending_amount],
-            'partial'  => ['count' => (int) $summaryRaw->partial_count,  'balance' => (float) $summaryRaw->partial_balance],
-            'paid'     => ['count' => (int) $summaryRaw->paid_count,     'amount'  => (float) $summaryRaw->paid_amount],
-            'annulled' => ['count' => (int) $summaryRaw->annulled_count, 'amount'  => (float) $summaryRaw->annulled_amount],
+            'total'    => ['count' => 0, 'amount'  => 0],
+            'pending'  => ['count' => 0, 'amount'  => 0],
+            'partial'  => ['count' => 0, 'balance' => 0],
+            'paid'     => ['count' => 0, 'amount'  => 0],
+            'annulled' => ['count' => 0, 'amount'  => 0],
         ];
+
+        foreach ($summaryInvoices as $invoice) {
+            $debt = $invoice->calculateDebt();
+
+            $summary['total']['count']++;
+            $summary['total']['amount'] += $debt['total_invoice'];
+
+            if ($debt['is_annulled']) {
+                $summary['annulled']['count']++;
+                $summary['annulled']['amount'] += $debt['total_invoice'];
+            } elseif ($debt['status'] === 'pending') {
+                $summary['pending']['count']++;
+                $summary['pending']['amount'] += $debt['owed'];
+            } elseif ($debt['status'] === 'partial') {
+                $summary['partial']['count']++;
+                $summary['partial']['balance'] += $debt['balance'];
+            } else { // paid
+                $summary['paid']['count']++;
+                $summary['paid']['amount'] += $debt['paid_via_expense_report'] ? $debt['owed'] : $debt['total_paid'];
+            }
+        }
+
 
         // Filtro por estado de pago usando HAVING (sobre los subqueries).
         // owed = total_invoice - inv_credit_adj + debit_adj (monto real a pagar)
@@ -128,72 +129,19 @@ class InvoicePaymentController extends Controller
         $invoices = $query->orderByDesc('invoices.date')
             ->paginate(50)
             ->through(function ($invoice) {
-                $totalNeto    = (float) $invoice->total_neto;
-                $totalPaid    = (float) $invoice->total_paid;
+                $debt = $invoice->calculateDebt((float) $invoice->total_neto, (float) $invoice->total_paid);
 
-                // Calcular IVA en PHP con el typeDocument ya cargado (más fiable que el CASE SQL)
-                $tipoDoc      = strtoupper($invoice->typeDocument?->name ?? '');
-                $hasIva       = in_array($tipoDoc, ['FACTURA', 'NOTA CREDITO', 'NOTA DEBITO']);
-                $iva          = $hasIva ? round($totalNeto * 0.19) : 0;
-                $totalInvoice = round($totalNeto + $iva);
-                $balance      = round($totalInvoice - $totalPaid);
-
-                // Notas de crédito/débito asociadas a la factura
-                $notes = $invoice->creditDebitNotes->map(function ($note) {
-                    $netoNota  = $note->items->sum(fn($it) => $it->quantity * $it->unit_price);
-                    $totalNota = round($netoNota * 1.19); // Las notas llevan IVA igual que la factura
-                    return [
-                        'id'                => $note->id,
-                        'type'              => $note->type,
-                        'number'            => $note->number,
-                        'is_annulment'      => (bool) $note->is_annulment,
-                        'affects_inventory' => (bool) $note->affects_inventory,
-                        'total'             => $totalNota,
-                    ];
-                })->values();
-
-                $isAnnulled  = $invoice->creditDebitNotes->contains(fn($n) => (bool) $n->is_annulment);
-                $creditTotal = $notes->where('type', 'credito')->sum('total');
-                $debitTotal  = $notes->where('type', 'debito')->sum('total');
-
-                // Ajuste del saldo por notas NO aplicadas al precio de la factura:
-                // - NC financiera (affects_inventory=false): ya está descontada en el precio → NO se resta otra vez.
-                // - NC de inventario (affects_inventory=true): sí reduce lo que se paga → se resta.
-                // - Nota de débito: aumenta lo que se paga → se suma.
-                $inventoryCreditTotal = $notes
-                    ->where('type', 'credito')
-                    ->where('affects_inventory', true)
-                    ->where('is_annulment', false)
-                    ->sum('total');
-
-                // Una factura vinculada a una rendición ya fue cubierta por ese proceso
-                $paidViaExpenseReport = !$isAnnulled && $invoice->expense_report_id !== null;
-
-                if ($isAnnulled) {
-                    // Una anulación cancela el 100% de la factura: no debe pagarse
-                    $status  = 'annulled';
-                    $owed    = 0;
-                    $balance = 0;
-                } else {
-                    // Monto real a pagar considerando notas
-                    $owed    = max(0, round($totalInvoice - $inventoryCreditTotal + $debitTotal));
-
-                    if ($paidViaExpenseReport) {
-                        $status    = 'paid';
-                        $totalPaid = $owed;
-                        $balance   = 0;
-                    } else {
-                        $balance = max(0, round($owed - $totalPaid));
-
-                        if ($owed <= 0 || $totalPaid >= $owed) {
-                            $status = 'paid';
-                        } elseif ($totalPaid > 0) {
-                            $status = 'partial';
-                        } else {
-                            $status = 'pending';
-                        }
-                    }
-                }
+                $totalNeto    = $debt['total_neto'];
+                $iva          = $debt['iva'];
+                $totalInvoice = $debt['total_invoice'];
+                $totalPaid    = $debt['total_paid'];
+                $balance      = $debt['balance'];
+                $status       = $debt['status'];
+                $isAnnulled   = $debt['is_annulled'];
+                $paidViaExpenseReport = $debt['paid_via_expense_report'];
+                $creditTotal  = $debt['credit_total'];
+                $debitTotal   = $debt['debit_total'];
+                $notes        = $debt['notes'];
 
                 return [
                     'id'              => $invoice->id,

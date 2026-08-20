@@ -90,6 +90,7 @@ use App\Http\Controllers\Products2\DeleteProduct2Controller;
 // Rutas para Invoice Payments
     use App\Http\Controllers\InvoicePayments\InvoicePaymentController;
     use App\Http\Controllers\InvoicePayments\InvoicePaymentDashboardController;
+    use App\Http\Controllers\InvoicePayments\InvoiceDebtReportController;
     use App\Http\Controllers\InvoicePayments\StoreInvoicePaymentController;
     use App\Http\Controllers\InvoicePayments\UpdateInvoicePaymentController;
     use App\Http\Controllers\InvoicePayments\DeleteInvoicePaymentController;
@@ -1004,6 +1005,7 @@ Route::middleware([
     // Invoice Payments
     Route::get('/invoice-payments', [InvoicePaymentController::class, 'index'])->name('invoice-payments.index');
     Route::get('/invoice-payments/dashboard', [InvoicePaymentDashboardController::class, 'index'])->name('invoice-payments.dashboard');
+    Route::get('/invoice-payments/debt-report', InvoiceDebtReportController::class)->name('invoice-payments.debt-report');
     Route::get('/invoice-payments/excel', InvoicePaymentsExcelController::class)->name('invoice-payments.excel');
     Route::get('/api/invoices/search', [InvoicePaymentController::class, 'searchInvoices'])->name('invoices.search');
     Route::post('/invoice-payments', StoreInvoicePaymentController::class)->name('invoice-payments.store');

@@ -7,6 +7,51 @@
 
 export const changelog = [
   {
+    fecha: '2026-08-20',
+    titulo: 'Pago de Facturas — Ajuste en el informe de deuda',
+    items: [
+      'El informe de deuda por razón social ahora respeta los mismos filtros activos en la tabla principal (tipo de pago, proveedor, fechas, búsqueda), evitando que muestre un total distinto al de las tarjetas de resumen.',
+    ]
+  },
+  {
+    fecha: '2026-08-20',
+    titulo: 'Pago de Facturas — Corrección en tarjetas de resumen',
+    items: [
+      'Se corrigió la tarjeta "Parciales", que por diferencias de centavos en el cálculo del IVA mostraba montos casi en cero para facturas que en realidad ya estaban pagadas por completo.',
+      'Esas facturas ahora se reflejan correctamente como "Pagadas" y los totales de las tarjetas coinciden con el saldo real de cada factura en la tabla.',
+    ]
+  },
+  {
+    fecha: '2026-08-20',
+    titulo: 'Pago de Facturas — Nuevo informe de deuda por razón social',
+    items: [
+      'Se agregó el botón "Informe de Deuda" en la vista principal de Pago de Facturas, que abre una tabla resumen con el saldo pendiente de pago agrupado por razón social y mes.',
+      'La tabla se puede filtrar por razón social, mes y proveedor para revisar la deuda de forma más específica.',
+      'Se incluyen totales por columna y por fila para ver rápidamente el monto adeudado total.',
+    ]
+  },
+  {
+    fecha: '2026-08-20',
+    titulo: 'Salidas — Columna Observaciones en pestaña Edición',
+    items: [
+      'La columna "Notas" de la tabla principal de salidas (pestaña Edición) ahora se llama "Observaciones", igual que en la Matriz de Consumo, incluyendo su exportación a Excel.',
+    ]
+  },
+  {
+    fecha: '2026-08-20',
+    titulo: 'Salidas — Campo Observaciones más ancho al registrar',
+    items: [
+      'En el formulario de "Registrar salida de producto", el campo Observaciones ahora ocupa todo el ancho de la fila, permitiendo escribir textos más largos con mayor comodidad.',
+    ]
+  },
+  {
+    fecha: '2026-08-20',
+    titulo: 'Salidas — Columna Observaciones en Matriz de Consumo',
+    items: [
+      'Se agregó la columna "Observaciones" en la tabla "Matriz de Consumo", justo después de Sucursal, y también en su exportación a Excel.',
+    ]
+  },
+  {
     fecha: '2026-08-18',
     titulo: 'Maquinarias — Corrección de sucursales duplicadas',
     items: [

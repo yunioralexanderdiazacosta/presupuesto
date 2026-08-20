@@ -780,6 +780,7 @@ const matrizExcelData = computed(() => {
       cantidad: Number(outflow.quantity || 0),
       total: Math.round(Number(outflow.unit_price || 0) * Number(outflow.quantity || 0)),
       sucursal: outflow.branch_name || '',
+      observaciones: outflow.notes || '',
     };
     // columnas dinámicas por CC
     (props.cost_centers || []).forEach(cc => {
@@ -811,6 +812,7 @@ const matrizExcelHeaders = computed(() => {
     { label: 'Cantidad', key: 'cantidad', type: 'number' },
     { label: 'Total', key: 'total', type: 'number' },
     { label: 'Sucursal', key: 'sucursal' },
+    { label: 'Observaciones', key: 'observaciones' },
   ];
   const ccHeaders = (props.cost_centers || []).map(cc => ({
     label: cc.label,
@@ -1231,7 +1233,7 @@ function copyToAllCards(sourceCardId) {
                             { label: 'Maquinaria', key: 'machinery' },
                             { label: 'Cantidad', key: 'quantity', type: 'number' },
                             { label: 'Total', key: 'total' },
-                            { label: 'Notas', key: 'notes' },
+                            { label: 'Observaciones', key: 'notes' },
                             { label: 'Centros de Costo', key: 'centros_costo' },
                             { label: 'Sucursal', key: 'branch_name' },
                             { label: 'Usuario', key: 'user' }
@@ -1276,7 +1278,7 @@ function copyToAllCards(sourceCardId) {
                             <th @click="setSort('machinery')" :class="sortClass('machinery')">Maquinaria</th>
                             <th @click="setSort('quantity')" :class="sortClass('quantity')">Cantidad</th>
                             <th @click="setSort('total')" :class="sortClass('total')">Total</th>
-                            <th @click="setSort('notes')" :class="sortClass('notes')">Notas</th>
+                            <th @click="setSort('notes')" :class="sortClass('notes')">Observaciones</th>
                             <th @click="setSort('centros_costo')" :class="sortClass('centros_costo')">Centros de Costo</th>
                             <th @click="setSort('user')" :class="sortClass('user')">Usuario</th>
                             <th class="text-center">Acciones</th>
@@ -1336,7 +1338,7 @@ function copyToAllCards(sourceCardId) {
                               </span>
                               <span v-else>-</span>
                             </td>
-                            <td>{{ outflow.notes }}</td>
+                            <td :title="outflow.notes || ''">{{ outflow.notes || '-' }}</td>
                             <td>
                               <ul class="mb-0 ps-3">
                                 <!-- Mostrar hasta 2 centros por defecto -->
@@ -1836,6 +1838,7 @@ function copyToAllCards(sourceCardId) {
                             <th class="text-end" style="white-space:nowrap;">Cantidad</th>
                             <th class="text-end" style="white-space:nowrap;">Total</th>
                             <th style="white-space:nowrap;">Sucursal</th>
+                            <th style="white-space:nowrap;">Observaciones</th>
                             <!-- Columnas dinámicas por CC -->
                             <th
                               v-for="cc in ccColumns"
@@ -1847,7 +1850,7 @@ function copyToAllCards(sourceCardId) {
                         </thead>
                         <tbody>
                           <tr v-if="!sortedOutflowDetails.length">
-                            <td :colspan="18 + ccColumns.length" class="text-center py-3 text-muted">No hay salidas registradas.</td>
+                            <td :colspan="19 + ccColumns.length" class="text-center py-3 text-muted">No hay salidas registradas.</td>
                           </tr>
                           <tr v-for="outflow in pagedOutflowDetails" :key="outflow.id"
                             @click="toggleMatrizRow(outflow.id)"
@@ -1872,6 +1875,7 @@ function copyToAllCards(sourceCardId) {
                             <td class="text-end" style="white-space:nowrap;">{{ Number(outflow.quantity || 0).toLocaleString('es-ES') }}</td>
                             <td class="text-end" style="white-space:nowrap;">${{ (Number(outflow.unit_price || 0) * Number(outflow.quantity || 0)).toLocaleString('es-ES', {maximumFractionDigits:0}) }}</td>
                             <td style="white-space:nowrap;">{{ outflow.branch_name || '—' }}</td>
+                            <td style="max-width:150px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;" :title="outflow.notes">{{ outflow.notes || '—' }}</td>
                             <!-- Celdas dinámicas por CC -->
                             <td
                               v-for="cc in ccColumns"
@@ -1888,7 +1892,7 @@ function copyToAllCards(sourceCardId) {
                             </td>
                           </tr>
                           <tr v-if="hasMoreEdicion">
-                            <td :colspan="18 + ccColumns.length" class="text-center py-2">
+                            <td :colspan="19 + ccColumns.length" class="text-center py-2">
                               <button type="button" class="btn btn-sm btn-falcon-default" @click="visibleCountEdicion += EDICION_PAGE_SIZE">
                                 <i class="fas fa-chevron-down me-1"></i>
                                 Ver más ({{ sortedOutflowDetails.length - visibleCountEdicion }} restantes)
@@ -1903,6 +1907,7 @@ function copyToAllCards(sourceCardId) {
                             <td class="text-end" style="white-space:nowrap;">
                               ${{ sortedOutflowDetails.reduce((s, o) => s + Number(o.unit_price||0)*Number(o.quantity||0), 0).toLocaleString('es-ES', {maximumFractionDigits:0}) }}
                             </td>
+                            <td></td>
                             <td></td>
                             <td
                               v-for="cc in ccColumns"

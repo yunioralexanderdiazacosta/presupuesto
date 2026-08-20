@@ -7,6 +7,7 @@ import AppLayout from '@/Layouts/AppLayout.vue';
 import CreateInvoicePaymentModal from '@/Components/InvoicePayments/CreateInvoicePaymentModal.vue';
 import EditInvoicePaymentModal from '@/Components/InvoicePayments/EditInvoicePaymentModal.vue';
 import PaymentStatusBadge from '@/Components/InvoicePayments/PaymentStatusBadge.vue';
+import InvoiceDebtReportModal from '@/Components/InvoicePayments/InvoiceDebtReportModal.vue';
 import ExportExcelButton from '@/Components/ExportExcelButton.vue';
 
 const isLocked = useSeasonLock();
@@ -46,6 +47,7 @@ const showEditModal   = ref(false);
 const editingPayment  = ref(null);
 const editingSupplierAccounts = ref([]);
 const preselectedInvoice = ref(null);
+const showDebtReportModal = ref(false);
 
 function openCreateModal(invoice = null) {
     preselectedInvoice.value = invoice;
@@ -250,6 +252,10 @@ const excelData = computed(() => {
                                 <span class="fas fa-chart-line" data-fa-transform="shrink-3 down-2"></span>
                                 <span class="d-none d-sm-inline-block ms-1">Dashboard</span>
                             </Link>
+                            <button type="button" class="btn btn-falcon-default btn-sm" @click="showDebtReportModal = true">
+                                <span class="fas fa-table" data-fa-transform="shrink-3 down-2"></span>
+                                <span class="d-none d-sm-inline-block ms-1">Informe de Deuda</span>
+                            </button>
                             <ExportExcelButton :data="excelData" :headers="excelHeaders" filename="facturas.xlsx" class="btn btn-falcon-default btn-sm" />
                             <button @click="openCreateModal()" class="btn btn-falcon-default btn-sm" :disabled="isLocked">
                                 <span class="fas fa-plus" data-fa-transform="shrink-3 down-2"></span>
@@ -648,6 +654,11 @@ const excelData = computed(() => {
             :banks="banks"
             :supplier-accounts="editingSupplierAccounts"
             @close="closeEditModal"
+        />
+        <InvoiceDebtReportModal
+            :show="showDebtReportModal"
+            :filters="{ term, date_from: filterDateFrom, date_to: filterDateTo, supplier_id: filterSupplierId, payment_type: filterPaymentType }"
+            @close="showDebtReportModal = false"
         />
     </AppLayout>
 </template>

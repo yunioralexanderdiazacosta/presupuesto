@@ -57,12 +57,12 @@ watch(
                     <th style="width:120px; min-width:100px; max-width:150px;">Unidad</th>
                     <th style="width:100px; min-width:80px; max-width:120px;">Cantidad</th>
                     <th>Centro de Costo</th>
-                    <th style="width:160px; min-width:120px; max-width:200px;">Observaciones</th>
                     <th class="text-end" style="width:40px; min-width:40px; max-width:50px;"></th>
                 </tr>
             </thead>
             <tbody>
-                <tr v-for="(outflow, index) in form.outflows" :key="index">
+                <template v-for="(outflow, index) in form.outflows" :key="index">
+                <tr>
                     <!-- Producto: si ya tiene nombre asignado, mostrar campo estático -->
                     <td v-if="outflow.product_name" style="width:150px; min-width:150px; max-width:150px;">
                         <input type="hidden" v-model="outflow.product_id" />
@@ -100,9 +100,6 @@ watch(
                             class="multiselect-blue form-control"
                         />
                     </td>
-                    <td style="width:160px; min-width:120px; max-width:200px;">
-                        <input type="text" class="form-control form-control-solid" style="width:100%; min-width:120px; max-width:200px; font-size:0.93em;" v-model="outflow.observations" placeholder="Observaciones..." />
-                    </td>
                     <td class="text-end">
                         <button type="button" @click="onDeleted(index)" class="btn btn-sm btn-icon btn-active-color-primary m-0 p-0">
                             <span class="svg-icon svg-icon-3">
@@ -115,6 +112,12 @@ watch(
                         </button>
                     </td>
                 </tr>
+                <tr class="border-bottom">
+                    <td colspan="5" class="pt-0">
+                        <input type="text" class="form-control form-control-solid w-100" v-model="outflow.observations" placeholder="Observaciones..." />
+                    </td>
+                </tr>
+                </template>
             </tbody>
             <tfoot>
                 <tr>
@@ -123,7 +126,7 @@ watch(
                             <i class="fa fa-plus"></i>
                         </button>
                     </th>
-                    <th colspan="5"></th>
+                    <th colspan="4"></th>
                 </tr>
             </tfoot>
         </table>
