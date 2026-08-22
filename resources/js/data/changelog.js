@@ -7,6 +7,33 @@
 
 export const changelog = [
   {
+    fecha: '2026-08-22',
+    titulo: 'Pago de Facturas — Acceso directo desde el menú',
+    items: [
+      'Se agregó un acceso directo a "Pago de Facturas" en el menú lateral, dentro de la sección "Registro de Gastos".',
+      'Se corrigió la alineación e ícono del botón de exportar a Excel en la vista de Pago de Facturas.',
+    ]
+  },
+  {
+    fecha: '2026-08-22',
+    titulo: 'Pago de Facturas — Corrección del filtro "Parciales"',
+    items: [
+      'Se corrigió un error donde al filtrar por facturas "Parciales" aparecían facturas que en la tabla se mostraban como "Pagadas" (por una diferencia de centavos al calcular el IVA). Ahora el filtro y el estado mostrado siempre coinciden.',
+    ]
+  },
+  {
+    fecha: '2026-08-22',
+    titulo: 'Pago de Facturas — Informe de deuda por razón social mejorado',
+    items: [
+      'Se quitó el botón "Dashboard" de la vista de Pago de Facturas (no llevaba a ningún lado).',
+      'El informe de deuda ahora muestra tarjetas de resumen: total adeudado, cantidad de facturas pendientes, la factura vencida más antigua y el proveedor con mayor deuda.',
+      'Se agregó la opción de ver la deuda agrupada por antigüedad de vencimiento (al día, 1-30, 31-60, 61-90 y +90 días), con colores que indican el nivel de riesgo.',
+      'Se puede alternar entre agrupar el informe por Razón Social o por Proveedor.',
+      'Al hacer clic en una fila se despliega el detalle de las facturas individuales que componen ese monto (número, fecha, vencimiento y saldo).',
+      'Se agregó un botón para exportar el informe a Excel.',
+    ]
+  },
+  {
     fecha: '2026-08-20',
     titulo: 'Pago de Facturas — Ajuste en el informe de deuda',
     items: [

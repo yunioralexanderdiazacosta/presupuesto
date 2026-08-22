@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use App\Models\Invoice;
+use Carbon\Carbon;
 
 class InvoiceDebtReportController extends Controller
 {
@@ -56,7 +57,23 @@ class InvoiceDebtReportController extends Controller
                 if ($debt['is_annulled'] || $debt['balance'] <= 0) {
                     return null;
                 }
+
+                // Días de atraso: positivo = vencida hace N días, 0 o negativo = aún no vence.
+                $dueDate = Carbon::parse($invoice->due_date)->startOfDay();
+                $daysOverdue = intdiv(now()->startOfDay()->timestamp - $dueDate->timestamp, 86400);
+                $agingBucket = match (true) {
+                    $daysOverdue <= 0  => 'current',
+                    $daysOverdue <= 30 => '1-30',
+                    $daysOverdue <= 60 => '31-60',
+                    $daysOverdue <= 90 => '61-90',
+                    default            => '90+',
+                };
+
                 return [
+                    'id'                  => $invoice->id,
+                    'number_document'     => $invoice->number_document ?: $invoice->number,
+                    'date'                => $invoice->date ? Carbon::parse($invoice->date)->format('Y-m-d') : null,
+                    'due_date'            => $dueDate->format('Y-m-d'),
                     'company_reason_id'   => $invoice->company_reason_id,
                     'company_reason_name' => $invoice->companyReason?->name ?? 'Sin razón social',
                     'month_id'            => $invoice->month_id,
@@ -64,6 +81,8 @@ class InvoiceDebtReportController extends Controller
                     'supplier_id'         => $invoice->supplier_id,
                     'supplier_name'       => $invoice->supplier?->name ?? 'Sin proveedor',
                     'balance'             => $debt['balance'],
+                    'days_overdue'        => $daysOverdue,
+                    'aging_bucket'        => $agingBucket,
                 ];
             })
             ->filter()

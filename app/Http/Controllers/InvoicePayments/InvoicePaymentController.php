@@ -31,14 +31,40 @@ class InvoicePaymentController extends Controller
 
         // Query base: Facturas del equipo/temporada con totales calculados via subquery
         // total_neto: suma pura de productos (sin IVA)
-        // total_invoice: neto × 1.19 para FACTURA/NOTA CREDITO/NOTA DEBITO, neto para el resto
+        // total_invoice: neto × 1.19 (redondeado igual que Invoice::calculateDebt(), IVA redondeado antes de sumar)
+        // para FACTURA/NOTA CREDITO/NOTA DEBITO, neto redondeado para el resto.
+        // inv_credit_adj/debit_adj: cada nota se redondea individualmente antes de sumar (igual que calculateDebt()).
+        // Redondear aquí igual que en PHP evita que una factura aparezca "Parcial" en el filtro pero "Pagada"
+        // en la tabla (o viceversa) por diferencias de centavos entre el cálculo SQL sin redondear y el de PHP.
         $query = Invoice::select('invoices.*')
             ->selectRaw('(SELECT COALESCE(SUM(ip.unit_price * ip.amount), 0) FROM invoice_products ip WHERE ip.invoice_id = invoices.id) as total_neto')
-            ->selectRaw("(SELECT COALESCE(SUM(ip.unit_price * ip.amount), 0) FROM invoice_products ip WHERE ip.invoice_id = invoices.id) * CASE WHEN UPPER(td.name) IN ('FACTURA', 'NOTA CREDITO', 'NOTA DEBITO') THEN 1.19 ELSE 1.0 END as total_invoice")
+            ->selectRaw("
+                CASE WHEN UPPER(td.name) IN ('FACTURA', 'NOTA CREDITO', 'NOTA DEBITO')
+                    THEN ROUND(
+                        (SELECT COALESCE(SUM(ip.unit_price * ip.amount), 0) FROM invoice_products ip WHERE ip.invoice_id = invoices.id)
+                        + ROUND((SELECT COALESCE(SUM(ip.unit_price * ip.amount), 0) FROM invoice_products ip WHERE ip.invoice_id = invoices.id) * 0.19)
+                    )
+                    ELSE ROUND((SELECT COALESCE(SUM(ip.unit_price * ip.amount), 0) FROM invoice_products ip WHERE ip.invoice_id = invoices.id))
+                END as total_invoice
+            ")
             ->selectRaw('(SELECT COALESCE(SUM(pay.amount), 0) FROM invoice_payments pay WHERE pay.invoice_id = invoices.id) as total_paid')
             ->selectRaw('(SELECT COUNT(*) FROM credit_debit_notes cdn WHERE cdn.invoice_id = invoices.id AND cdn.is_annulment = 1) as annulment_count')
-            ->selectRaw("COALESCE((SELECT SUM(cdni.quantity * cdni.unit_price) FROM credit_debit_notes cdn JOIN credit_debit_note_items cdni ON cdni.credit_debit_note_id = cdn.id WHERE cdn.invoice_id = invoices.id AND cdn.type = 'credito' AND cdn.affects_inventory = 1 AND cdn.is_annulment = 0), 0) * 1.19 as inv_credit_adj")
-            ->selectRaw("COALESCE((SELECT SUM(cdni.quantity * cdni.unit_price) FROM credit_debit_notes cdn JOIN credit_debit_note_items cdni ON cdni.credit_debit_note_id = cdn.id WHERE cdn.invoice_id = invoices.id AND cdn.type = 'debito' AND cdn.is_annulment = 0), 0) * 1.19 as debit_adj")
+            ->selectRaw("
+                ROUND(COALESCE((
+                    SELECT SUM(cdni.quantity * cdni.unit_price)
+                    FROM credit_debit_notes cdn
+                    JOIN credit_debit_note_items cdni ON cdni.credit_debit_note_id = cdn.id
+                    WHERE cdn.invoice_id = invoices.id AND cdn.type = 'credito' AND cdn.affects_inventory = 1 AND cdn.is_annulment = 0
+                ), 0) * 1.19) as inv_credit_adj
+            ")
+            ->selectRaw("
+                ROUND(COALESCE((
+                    SELECT SUM(cdni.quantity * cdni.unit_price)
+                    FROM credit_debit_notes cdn
+                    JOIN credit_debit_note_items cdni ON cdni.credit_debit_note_id = cdn.id
+                    WHERE cdn.invoice_id = invoices.id AND cdn.type = 'debito' AND cdn.is_annulment = 0
+                ), 0) * 1.19) as debit_adj
+            ")
             ->leftJoin('type_documents as td', 'td.id', '=', 'invoices.type_document_id')
             ->with([
                 'supplier',
@@ -115,13 +141,14 @@ class InvoicePaymentController extends Controller
 
 
         // Filtro por estado de pago usando HAVING (sobre los subqueries).
-        // owed = total_invoice - inv_credit_adj + debit_adj (monto real a pagar)
+        // owed = total_invoice - inv_credit_adj + debit_adj (monto real a pagar), redondeado igual que
+        // Invoice::calculateDebt() para que el estado coincida con el que se muestra en la tabla.
         if ($paymentStatus === 'pending') {
-            $query->havingRaw('annulment_count = 0 AND expense_report_id IS NULL AND total_paid = 0 AND (total_invoice - inv_credit_adj + debit_adj) > 0');
+            $query->havingRaw('annulment_count = 0 AND expense_report_id IS NULL AND total_paid = 0 AND ROUND(total_invoice - inv_credit_adj + debit_adj) > 0');
         } elseif ($paymentStatus === 'paid') {
-            $query->havingRaw('annulment_count = 0 AND ((total_invoice - inv_credit_adj + debit_adj) <= 0 OR total_paid >= (total_invoice - inv_credit_adj + debit_adj) OR expense_report_id IS NOT NULL)');
+            $query->havingRaw('annulment_count = 0 AND (ROUND(total_invoice - inv_credit_adj + debit_adj) <= 0 OR total_paid >= ROUND(total_invoice - inv_credit_adj + debit_adj) OR expense_report_id IS NOT NULL)');
         } elseif ($paymentStatus === 'partial') {
-            $query->havingRaw('annulment_count = 0 AND expense_report_id IS NULL AND total_paid > 0 AND total_paid < (total_invoice - inv_credit_adj + debit_adj)');
+            $query->havingRaw('annulment_count = 0 AND expense_report_id IS NULL AND total_paid > 0 AND total_paid < ROUND(total_invoice - inv_credit_adj + debit_adj)');
         } elseif ($paymentStatus === 'annulled') {
             $query->havingRaw('annulment_count > 0');
         }

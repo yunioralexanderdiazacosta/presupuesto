@@ -94,6 +94,7 @@ const menuItems = [
     { label: 'Rendiciones de Gastos', route: 'expense-reports.index', icon: 'fas fa-receipt', section: 'Registro de Gastos' },
     { label: 'Órdenes de Compra', route: 'purchase-orders.index', icon: 'fas fa-shopping-cart', section: 'Registro de Gastos' },
     { label: 'Solicitudes de Pago', route: 'payment-requests.index', icon: 'fas fa-money-check-alt', section: 'Registro de Gastos' },
+    { label: 'Pago de Facturas', route: 'invoice-payments.index', icon: 'fas fa-file-invoice-dollar', section: 'Registro de Gastos' },
     { label: 'Inversiones', route: 'investments.index', icon: 'fas fa-chart-pie', section: 'Gestión' },
     { label: 'Proyectos', route: 'projects.index', icon: 'fas fa-folder-open', section: 'Gestión' },
     { label: 'Consolidado de Salidas', route: 'consolidated-outflows.index', icon: 'fas fa-sign-out-alt', section: 'Salidas' },
@@ -430,6 +431,11 @@ const navigateTo = (routeName) => {
                     <li class="nav-item">
                       <Link class="nav-link" :href="route('invoices.index')">
                         <div class="d-flex align-items-center"><span class="nav-link-text ps-4">Facturas y otros</span></div>
+                      </Link>
+                    </li>
+                    <li class="nav-item">
+                      <Link class="nav-link" :href="route('invoice-payments.index')">
+                        <div class="d-flex align-items-center"><span class="nav-link-text ps-4">Pago de Facturas</span></div>
                       </Link>
                     </li>
                     <li class="nav-item">

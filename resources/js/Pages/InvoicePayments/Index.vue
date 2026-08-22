@@ -248,15 +248,14 @@ const excelData = computed(() => {
                                 <span class="fas fa-arrow-left" data-fa-transform="shrink-3 down-2"></span>
                                 <span class="d-none d-sm-inline-block ms-1">Volver</span>
                             </Link>
-                            <Link :href="route('invoice-payments.dashboard')" class="btn btn-falcon-default btn-sm">
-                                <span class="fas fa-chart-line" data-fa-transform="shrink-3 down-2"></span>
-                                <span class="d-none d-sm-inline-block ms-1">Dashboard</span>
-                            </Link>
                             <button type="button" class="btn btn-falcon-default btn-sm" @click="showDebtReportModal = true">
                                 <span class="fas fa-table" data-fa-transform="shrink-3 down-2"></span>
                                 <span class="d-none d-sm-inline-block ms-1">Informe de Deuda</span>
                             </button>
-                            <ExportExcelButton :data="excelData" :headers="excelHeaders" filename="facturas.xlsx" class="btn btn-falcon-default btn-sm" />
+                            <ExportExcelButton :data="excelData" :headers="excelHeaders" filename="facturas.xlsx" class="btn btn-falcon-default btn-sm excel-toolbar-btn">
+                                <span class="fas fa-file-excel" data-fa-transform="shrink-3 down-2"></span>
+                                <span class="d-none d-sm-inline-block ms-1">Excel</span>
+                            </ExportExcelButton>
                             <button @click="openCreateModal()" class="btn btn-falcon-default btn-sm" :disabled="isLocked">
                                 <span class="fas fa-plus" data-fa-transform="shrink-3 down-2"></span>
                                 <span class="d-none d-sm-inline-block ms-1">Registrar Pago</span>
@@ -662,3 +661,9 @@ const excelData = computed(() => {
         />
     </AppLayout>
 </template>
+
+<style scoped>
+:deep(.excel-toolbar-btn) {
+    margin-bottom: 0 !important;
+}
+</style>

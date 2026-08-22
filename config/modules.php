@@ -28,6 +28,7 @@ return [
     ['key' => 'expense-reports.index', 'label' => 'Rendiciones de Gastos', 'section' => 'Registro de Gastos'],
     ['key' => 'purchase-orders.index', 'label' => 'Órdenes de Compra', 'section' => 'Registro de Gastos'],
     ['key' => 'payment-requests.index', 'label' => 'Solicitudes de Pago', 'section' => 'Registro de Gastos'],
+    ['key' => 'invoice-payments.index', 'label' => 'Pago de Facturas', 'section' => 'Registro de Gastos'],
     ['key' => 'investments.index', 'label' => 'Inversiones', 'section' => 'Gestión'],
     ['key' => 'projects.index', 'label' => 'Proyectos', 'section' => 'Gestión'],
     ['key' => 'consolidated-outflows.index', 'label' => 'Consolidado de Salidas', 'section' => 'Salidas'],
