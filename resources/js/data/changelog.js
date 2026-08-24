@@ -7,6 +7,13 @@
 
 export const changelog = [
   {
+    fecha: '2026-08-24',
+    titulo: 'Sistema — Se retiró el asistente de consultas por chat',
+    items: [
+      'Se quitó el botón flotante de asistente de chat que permitía hacer preguntas sobre los datos del sistema, por motivos de seguridad.',
+    ]
+  },
+  {
     fecha: '2026-08-22',
     titulo: 'Pago de Facturas — Acceso directo desde el menú',
     items: [

@@ -53,9 +53,6 @@ use App\Http\Controllers\Products2\DeleteProduct2Controller;
     use App\Http\Controllers\FuelTanks\UpdateFuelTankController;
     use App\Http\Controllers\FuelTanks\DeleteFuelTankController;
 
-// Rutas AI Chat
-    use App\Http\Controllers\AiChat\AiDatabaseChatController;
-
 // Rutas para Irrigation Pumps
     use App\Http\Controllers\IrrigationPumpsController;
     use App\Http\Controllers\IrrigationPumps\StoreIrrigationPumpController;
@@ -588,9 +585,6 @@ Route::middleware([
     Route::post('/fuel-tanks', StoreFuelTankController::class)->name('fuel-tanks.store');
     Route::put('/fuel-tanks/{fuelTank}', UpdateFuelTankController::class)->name('fuel-tanks.update');
     Route::delete('/fuel-tanks/{fuelTank}', DeleteFuelTankController::class)->name('fuel-tanks.delete');
-
-    // AI Chat - consultas en lenguaje natural sobre la base de datos
-    Route::post('/api/ai-chat', AiDatabaseChatController::class)->name('api.ai-chat');
 
     // Products2 estilo teams: vista única y controladores separados para acciones
 

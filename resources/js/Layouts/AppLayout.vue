@@ -3,7 +3,6 @@ import { computed, ref } from 'vue';
 import { router, Link, usePage } from '@inertiajs/vue3';
 import JetDropdownLink from '@/Components/DropdownLink.vue';
 import { onMounted, onUnmounted } from 'vue';
-import DatabaseChat from '@/Components/AiChat/DatabaseChat.vue';
 
 // Flags compartidos via Inertia
 const { hasCostCenter, hasVariety, hasFruit, hasCompanyReason, hasSeason, hasParcel, hasLevel3 } = usePage().props;
@@ -1046,9 +1045,6 @@ const navigateTo = (routeName) => {
         </nav>
 
        <slot></slot>
-
-        <!-- Asistente IA flotante -->
-        <DatabaseChat />
     </div>
   </div>
 </template>
