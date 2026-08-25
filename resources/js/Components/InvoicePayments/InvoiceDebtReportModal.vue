@@ -20,7 +20,7 @@ const filterSupplier = ref(null);
 
 const groupBy = ref('reason'); // 'reason' | 'supplier'
 const columnMode = ref('month'); // 'month' | 'aging'
-const showAllMonths = ref(false); // en modo 'month': mostrar los 12 meses o solo los que tienen datos
+const showAllMonths = ref(false); // en modo 'month': mostrar los 12 meses de vencimiento o solo los que tienen deuda
 const expandedRows = ref(new Set());
 
 const AGING_BUCKETS = [
@@ -301,7 +301,7 @@ function closeModal() {
                                 </select>
                             </div>
                             <div style="min-width:150px; flex:1 1 180px;">
-                                <label class="form-label small mb-1">Mes</label>
+                                <label class="form-label small mb-1" title="Mes de la fecha de vencimiento">Mes Vencimiento</label>
                                 <select v-model="filterMonth" class="form-select form-select-sm">
                                     <option :value="null">Todos</option>
                                     <option v-for="o in reportData?.months ?? []" :key="o.value" :value="o.value">{{ o.label }}</option>
@@ -339,8 +339,8 @@ function closeModal() {
                             <div>
                                 <small class="text-muted text-uppercase d-block mb-1">Columnas</small>
                                 <div class="segmented-control">
-                                    <button type="button" class="segmented-option" :class="{ active: columnMode === 'month' }" @click="columnMode = 'month'">
-                                        <i class="fas fa-calendar-days me-1"></i>Mes
+                                    <button type="button" class="segmented-option" :class="{ active: columnMode === 'month' }" @click="columnMode = 'month'" title="Mes de la fecha de vencimiento">
+                                        <i class="fas fa-calendar-days me-1"></i>Mes Vencimiento
                                     </button>
                                     <button type="button" class="segmented-option" :class="{ active: columnMode === 'aging' }" @click="columnMode = 'aging'">
                                         <i class="fas fa-hourglass-half me-1"></i>Antigüedad

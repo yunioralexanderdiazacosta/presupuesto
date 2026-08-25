@@ -10,6 +10,7 @@ use App\Models\Invoice;
 use App\Models\Bank;
 use App\Models\Supplier;
 use Inertia\Inertia;
+use Carbon\Carbon;
 
 class InvoicePaymentController extends Controller
 {
@@ -25,6 +26,8 @@ class InvoicePaymentController extends Controller
         $term          = $request->term ?? '';
         $dateFrom      = $request->date_from ?? '';
         $dateTo        = $request->date_to ?? '';
+        $dueDateFrom   = $request->due_date_from ?? '';
+        $dueDateTo     = $request->due_date_to ?? '';
         $supplierId    = $request->supplier_id ?? '';
         $paymentStatus = $request->payment_status ?? '';
         $paymentType   = $request->has('payment_type') ? $request->payment_type : '1'; // Default: Crédito
@@ -89,6 +92,8 @@ class InvoicePaymentController extends Controller
             })
             ->when($dateFrom, fn($q, $date) => $q->whereDate('invoices.date', '>=', $date))
             ->when($dateTo,   fn($q, $date) => $q->whereDate('invoices.date', '<=', $date))
+            ->when($dueDateFrom, fn($q, $date) => $q->whereDate('invoices.due_date', '>=', $date))
+            ->when($dueDateTo,   fn($q, $date) => $q->whereDate('invoices.due_date', '<=', $date))
             ->when($supplierId, fn($q, $id) => $q->where('invoices.supplier_id', $id))
             ->when($paymentType !== '', fn($q) => $q->where('invoices.payment_type', $paymentType));
 
@@ -106,6 +111,8 @@ class InvoicePaymentController extends Controller
             })
             ->when($dateFrom, fn($q, $date) => $q->whereDate('invoices.date', '>=', $date))
             ->when($dateTo,   fn($q, $date) => $q->whereDate('invoices.date', '<=', $date))
+            ->when($dueDateFrom, fn($q, $date) => $q->whereDate('invoices.due_date', '>=', $date))
+            ->when($dueDateTo,   fn($q, $date) => $q->whereDate('invoices.due_date', '<=', $date))
             ->when($supplierId, fn($q, $id) => $q->where('invoices.supplier_id', $id))
             ->when($paymentType !== '', fn($q) => $q->where('invoices.payment_type', $paymentType))
             ->get();
@@ -116,7 +123,10 @@ class InvoicePaymentController extends Controller
             'partial'  => ['count' => 0, 'balance' => 0],
             'paid'     => ['count' => 0, 'amount'  => 0],
             'annulled' => ['count' => 0, 'amount'  => 0],
+            'overdue'  => ['count' => 0, 'amount'  => 0],
         ];
+
+        $today = now()->startOfDay();
 
         foreach ($summaryInvoices as $invoice) {
             $debt = $invoice->calculateDebt();
@@ -137,6 +147,12 @@ class InvoicePaymentController extends Controller
                 $summary['paid']['count']++;
                 $summary['paid']['amount'] += $debt['paid_via_expense_report'] ? $debt['owed'] : $debt['total_paid'];
             }
+
+            // Vencida: no pagada/anulada y con fecha de vencimiento ya pasada.
+            if (!$debt['is_annulled'] && $debt['status'] !== 'paid' && $invoice->due_date && Carbon::parse($invoice->due_date)->startOfDay()->lt($today)) {
+                $summary['overdue']['count']++;
+                $summary['overdue']['amount'] += $debt['balance'];
+            }
         }
 
 
@@ -151,9 +167,23 @@ class InvoicePaymentController extends Controller
             $query->havingRaw('annulment_count = 0 AND expense_report_id IS NULL AND total_paid > 0 AND total_paid < ROUND(total_invoice - inv_credit_adj + debit_adj)');
         } elseif ($paymentStatus === 'annulled') {
             $query->havingRaw('annulment_count > 0');
+        } elseif ($paymentStatus === 'overdue') {
+            $query->whereDate('invoices.due_date', '<', now())
+                ->havingRaw('annulment_count = 0 AND expense_report_id IS NULL AND total_paid < ROUND(total_invoice - inv_credit_adj + debit_adj)');
         }
 
-        $invoices = $query->orderByDesc('invoices.date')
+        // Orden por defecto: lo no resuelto (pendiente/parcial) primero, ordenado por vencimiento
+        // más próximo/atrasado primero; lo ya resuelto (pagado/anulado) al final.
+        $invoices = $query
+            ->orderByRaw('
+                CASE
+                    WHEN annulment_count > 0 THEN 1
+                    WHEN expense_report_id IS NOT NULL THEN 1
+                    WHEN total_paid >= ROUND(total_invoice - inv_credit_adj + debit_adj) THEN 1
+                    ELSE 0
+                END ASC
+            ')
+            ->orderBy('invoices.due_date', 'asc')
             ->paginate(50)
             ->through(function ($invoice) {
                 $debt = $invoice->calculateDebt((float) $invoice->total_neto, (float) $invoice->total_paid);
@@ -237,6 +267,8 @@ class InvoicePaymentController extends Controller
                 'term'           => $term,
                 'date_from'      => $dateFrom,
                 'date_to'        => $dateTo,
+                'due_date_from'  => $dueDateFrom,
+                'due_date_to'    => $dueDateTo,
                 'supplier_id'    => $supplierId,
                 'payment_status' => $paymentStatus,
                 'payment_type'   => $paymentType,

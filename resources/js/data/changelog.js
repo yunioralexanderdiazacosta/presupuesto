@@ -8,6 +8,23 @@
 export const changelog = [
   {
     fecha: '2026-08-25',
+    titulo: 'Pago de Facturas — Prioriza facturas vencidas en la vista principal',
+    items: [
+      'La tabla de Pago de Facturas ahora ordena por defecto según la fecha de vencimiento (las más atrasadas o próximas a vencer primero), en vez de por fecha de carga. Las facturas ya pagadas o anuladas quedan al final.',
+      'Se agregó la tarjeta "Vencido" que muestra el monto total actualmente atrasado por pagar, y el botón rápido "Vencidas" para filtrar solo esas facturas.',
+      'Se agregaron los campos "Vencimiento Desde" y "Vencimiento Hasta" en Filtros Avanzados, para buscar facturas por rango de fecha de vencimiento (antes solo se podía filtrar por fecha de la factura).',
+    ]
+  },
+  {
+    fecha: '2026-08-25',
+    titulo: 'Pago de Facturas — El informe de deuda ahora se agrupa por fecha de vencimiento',
+    items: [
+      'La columna "Mes" del informe de deuda por razón social (y el filtro "Mes") ahora se calculan según el mes de vencimiento de cada factura, en vez del "mes contable" con el que se cargó.',
+      'Esto permite ver de forma correcta cuánta deuda vence en los próximos meses, en lugar de que toda aparezca concentrada solo en el mes en que se registró la factura.',
+    ]
+  },
+  {
+    fecha: '2026-08-25',
     titulo: 'Pago de Facturas — Ver todos los meses en el informe de deuda',
     items: [
       'En el informe de deuda por razón social, al ver las columnas por "Mes" ahora se puede activar el botón "Ver todos los meses" para mostrar los 12 meses del año (incluso los que no tienen deuda).',

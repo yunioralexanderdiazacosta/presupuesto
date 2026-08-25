@@ -25,6 +25,8 @@ const title = 'Facturas';
 const term                 = ref(props.filters.term || '');
 const filterDateFrom       = ref(props.filters.date_from || '');
 const filterDateTo         = ref(props.filters.date_to || '');
+const filterDueDateFrom    = ref(props.filters.due_date_from || '');
+const filterDueDateTo      = ref(props.filters.due_date_to || '');
 const filterSupplierId     = ref(props.filters.supplier_id || null);
 const filterPaymentStatus  = ref(props.filters.payment_status || null);
 const filterPaymentType    = ref(props.filters.payment_type ?? '1'); // Default: Crédito
@@ -32,8 +34,8 @@ const showFilters          = ref(false);
 
 // Alto máximo de la tabla: la mantiene dentro de la pantalla (con scroll interno)
 // en vez de que la página entera se desborde hacia abajo. Descuenta más espacio
-// cuando el panel de filtros avanzados está abierto, ya que ocupa una fila adicional.
-const tableMaxHeight = computed(() => showFilters.value ? 'calc(100vh - 640px)' : 'calc(100vh - 520px)');
+// cuando el panel de filtros avanzados está abierto, ya que ahora ocupa dos filas.
+const tableMaxHeight = computed(() => showFilters.value ? 'calc(100vh - 720px)' : 'calc(100vh - 520px)');
 
 // Filas expandidas (para ver pagos de una factura)
 const expandedRows = ref({});
@@ -73,6 +75,8 @@ function search() {
         term:           term.value,
         date_from:      filterDateFrom.value,
         date_to:        filterDateTo.value,
+        due_date_from:  filterDueDateFrom.value,
+        due_date_to:    filterDueDateTo.value,
         supplier_id:    filterSupplierId.value,
         payment_status: filterPaymentStatus.value,
         payment_type:   filterPaymentType.value,
@@ -83,6 +87,8 @@ function clearFilters() {
     term.value                = '';
     filterDateFrom.value      = '';
     filterDateTo.value        = '';
+    filterDueDateFrom.value   = '';
+    filterDueDateTo.value     = '';
     filterSupplierId.value    = null;
     filterPaymentStatus.value = null;
     filterPaymentType.value   = '1'; // Volver a Crédito por defecto
@@ -379,12 +385,29 @@ const excelData = computed(() => {
                             </div>
                         </div>
                     </div>
+                    <div class="col-6 col-md">
+                        <div
+                            class="card border-0 shadow-sm h-100"
+                            style="cursor:pointer; border-left: 3px solid #842029 !important;"
+                            :class="filterPaymentStatus === 'overdue' ? 'bg-soft-danger' : ''"
+                            @click="filterPaymentStatus = 'overdue'; search()"
+                        >
+                            <div class="card-body py-2 px-3">
+                                <div class="d-flex justify-content-between align-items-center mb-1">
+                                    <small class="fw-semibold" style="color:#842029;">Vencido</small>
+                                    <span class="badge rounded-pill" style="background:#842029;">{{ summary.overdue?.count ?? 0 }}</span>
+                                </div>
+                                <div class="fw-bold fs-9" style="color:#842029;">$ {{ formatCurrency(summary.overdue?.amount ?? 0) }}</div>
+                                <small class="text-muted" style="font-size:0.7rem;">atrasado por pagar</small>
+                            </div>
+                        </div>
+                    </div>
                 </div>
 
                 <!-- Filtros rápidos de estado -->
                 <div class="d-flex gap-2 mb-3 flex-wrap">
                     <button
-                        v-for="(label, key) in { '': 'Todos', pending: 'Pendientes', partial: 'Parciales', paid: 'Pagadas', annulled: 'Anuladas' }"
+                        v-for="(label, key) in { '': 'Todos', pending: 'Pendientes', partial: 'Parciales', paid: 'Pagadas', annulled: 'Anuladas', overdue: 'Vencidas' }"
                         :key="key"
                         @click="filterPaymentStatus = key || null; search()"
                         class="btn btn-sm"
@@ -399,21 +422,31 @@ const excelData = computed(() => {
                     <div class="card-body">
                         <div class="row g-3">
                             <div class="col-md-3">
-                                <label class="form-label small">Fecha Desde</label>
+                                <label class="form-label small">Fecha Factura Desde</label>
                                 <input v-model="filterDateFrom" type="date" class="form-control form-control-sm">
                             </div>
                             <div class="col-md-3">
-                                <label class="form-label small">Fecha Hasta</label>
+                                <label class="form-label small">Fecha Factura Hasta</label>
                                 <input v-model="filterDateTo" type="date" class="form-control form-control-sm">
                             </div>
                             <div class="col-md-3">
+                                <label class="form-label small">Vencimiento Desde</label>
+                                <input v-model="filterDueDateFrom" type="date" class="form-control form-control-sm">
+                            </div>
+                            <div class="col-md-3">
+                                <label class="form-label small">Vencimiento Hasta</label>
+                                <input v-model="filterDueDateTo" type="date" class="form-control form-control-sm">
+                            </div>
+                        </div>
+                        <div class="row g-3 mt-0">
+                            <div class="col-md-4">
                                 <label class="form-label small">Proveedor</label>
                                 <select v-model="filterSupplierId" class="form-select form-select-sm">
                                     <option :value="null">Todos</option>
                                     <option v-for="s in suppliers" :key="s.id" :value="s.id">{{ s.name }}</option>
                                 </select>
                             </div>
-                            <div class="col-md-3 d-flex align-items-end justify-content-end gap-2">
+                            <div class="col-md-8 d-flex align-items-end justify-content-end gap-2">
                                 <button @click="search" class="btn btn-primary btn-sm">
                                     <i class="fas fa-search me-1"></i> Aplicar
                                 </button>
@@ -424,6 +457,7 @@ const excelData = computed(() => {
                         </div>
                     </div>
                 </div>
+
             </div>
 
             <div class="card-body bg-body-tertiary">

@@ -15,6 +15,8 @@ class InvoiceDebtReportController extends Controller
      * Detalle de deuda (saldo pendiente + parcial) por factura, para el informe
      * "Deuda por Razón Social" (modal en InvoicePayments/Index.vue).
      * Aplica los mismos filtros que el listado principal para que los montos coincidan.
+     * El "mes" se calcula a partir de la fecha de vencimiento (due_date), no del "mes contable"
+     * de la factura, para reflejar cuándo debe pagarse realmente la deuda.
      */
     public function __invoke(Request $request)
     {
@@ -31,13 +33,15 @@ class InvoiceDebtReportController extends Controller
         $supplierId  = $request->supplier_id ?? '';
         $paymentType = $request->has('payment_type') ? $request->payment_type : '1'; // Default: Crédito
 
+        // Nombres de mes (1-12) usados para agrupar por mes de VENCIMIENTO (no el "mes contable" de la factura).
+        $monthNames = Month::orderBy('id')->pluck('name', 'id');
+
         $invoices = Invoice::with([
                 'invoiceProducts',
                 'payments',
                 'typeDocument',
                 'companyReason',
                 'supplier:id,name',
-                'month:id,name',
                 'creditDebitNotes.items',
             ])
             ->where('team_id', $user->team_id)
@@ -53,7 +57,7 @@ class InvoiceDebtReportController extends Controller
             ->when($supplierId, fn($q, $id) => $q->where('supplier_id', $id))
             ->when($paymentType !== '', fn($q) => $q->where('payment_type', $paymentType))
             ->get()
-            ->map(function ($invoice) {
+            ->map(function ($invoice) use ($monthNames) {
                 $debt = $invoice->calculateDebt();
                 if ($debt['is_annulled'] || $debt['balance'] <= 0) {
                     return null;
@@ -70,6 +74,9 @@ class InvoiceDebtReportController extends Controller
                     default            => '90+',
                 };
 
+                // Mes de vencimiento (no el "mes contable" del formulario): refleja cuándo hay que pagar.
+                $dueMonthId = (int) $dueDate->format('n');
+
                 return [
                     'id'                  => $invoice->id,
                     'number_document'     => $invoice->number_document ?: $invoice->number,
@@ -77,8 +84,8 @@ class InvoiceDebtReportController extends Controller
                     'due_date'            => $dueDate->format('Y-m-d'),
                     'company_reason_id'   => $invoice->company_reason_id,
                     'company_reason_name' => $invoice->companyReason?->name ?? 'Sin razón social',
-                    'month_id'            => $invoice->month_id,
-                    'month_name'          => $invoice->month?->name ?? 'Sin mes',
+                    'month_id'            => $dueMonthId,
+                    'month_name'          => $monthNames[$dueMonthId] ?? 'Sin mes',
                     'supplier_id'         => $invoice->supplier_id,
                     'supplier_name'       => $invoice->supplier?->name ?? 'Sin proveedor',
                     'balance'             => $debt['balance'],
@@ -108,8 +115,7 @@ class InvoiceDebtReportController extends Controller
             ->values();
 
         // Listado completo de meses (1-12), para la opción "Ver todos los meses" en el informe.
-        $allMonths = Month::orderBy('id')->get(['id', 'name'])
-            ->map(fn($m) => ['id' => $m->id, 'name' => $m->name]);
+        $allMonths = $monthNames->map(fn($name, $id) => ['id' => $id, 'name' => $name])->values();
 
         return response()->json([
             'invoices'        => $invoices,
