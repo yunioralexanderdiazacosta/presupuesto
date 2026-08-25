@@ -8,6 +8,14 @@
 export const changelog = [
   {
     fecha: '2026-08-25',
+    titulo: 'Pago de Facturas — Detalle del informe de deuda más ordenado',
+    items: [
+      'Al desplegar el detalle de facturas dentro del informe de deuda por razón social, ahora se agrupan por mes de vencimiento (o por antigüedad, según la vista elegida), con un subtotal por grupo, en vez de mostrarse todas mezcladas en una sola lista.',
+      'Dentro de cada grupo, las facturas quedan ordenadas por fecha de vencimiento.',
+    ]
+  },
+  {
+    fecha: '2026-08-25',
     titulo: 'Pago de Facturas — Prioriza facturas vencidas en la vista principal',
     items: [
       'La tabla de Pago de Facturas ahora ordena por defecto según la fecha de vencimiento (las más atrasadas o próximas a vencer primero), en vez de por fecha de carga. Las facturas ya pagadas o anuladas quedan al final.',

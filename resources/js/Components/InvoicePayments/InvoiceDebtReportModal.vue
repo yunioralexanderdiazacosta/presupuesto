@@ -185,6 +185,30 @@ function toggleExpand(id) {
     expandedRows.value = s;
 }
 
+// Agrupa las facturas del detalle expandido por la misma dimensión de columna activa
+// (mes de vencimiento o antigüedad), ordenadas como las columnas del pivote, y cada
+// grupo ordenado por vencimiento. Evita una lista plana desordenada.
+function detailGroups(row) {
+    const buckets = new Map();
+    row.invoices.forEach(inv => {
+        const key = columnMode.value === 'aging' ? inv.aging_bucket : inv.month_id;
+        if (!buckets.has(key)) buckets.set(key, []);
+        buckets.get(key).push(inv);
+    });
+
+    return pivot.value.columns
+        .filter(c => buckets.has(c.id))
+        .map(c => {
+            const invoices = [...buckets.get(c.id)].sort((a, b) => new Date(a.due_date) - new Date(b.due_date));
+            return {
+                id: c.id,
+                name: c.name,
+                invoices,
+                total: invoices.reduce((s, i) => s + Number(i.balance), 0),
+            };
+        });
+}
+
 function clearFilters() {
     filterCompanyReason.value = null;
     filterMonth.value = null;
@@ -407,22 +431,30 @@ function closeModal() {
                                                             <th>Fecha</th>
                                                             <th>Vencimiento</th>
                                                             <th>Antigüedad</th>
-                                                            <th>Mes</th>
                                                             <th class="text-end">Saldo</th>
                                                         </tr>
                                                     </thead>
                                                     <tbody>
-                                                        <tr v-for="inv in row.invoices" :key="inv.id">
-                                                            <td>{{ inv.number_document }}</td>
-                                                            <td>{{ groupBy === 'supplier' ? inv.company_reason_name : inv.supplier_name }}</td>
-                                                            <td>{{ fmtDate(inv.date) }}</td>
-                                                            <td>{{ fmtDate(inv.due_date) }}</td>
-                                                            <td :class="agingClass(inv.aging_bucket)">
-                                                                {{ inv.days_overdue > 0 ? inv.days_overdue + ' días' : 'Al día' }}
-                                                            </td>
-                                                            <td>{{ inv.month_name }}</td>
-                                                            <td class="text-end">{{ fmt(inv.balance) }}</td>
-                                                        </tr>
+                                                        <template v-for="group in detailGroups(row)" :key="group.id">
+                                                            <tr class="table-light">
+                                                                <td colspan="5" class="fw-semibold">
+                                                                    <i class="fas me-1 text-muted" :class="columnMode === 'aging' ? 'fa-hourglass-half' : 'fa-calendar-days'" style="font-size:0.65rem;"></i>
+                                                                    {{ group.name }}
+                                                                    <span class="text-muted fw-normal">({{ group.invoices.length }})</span>
+                                                                </td>
+                                                                <td class="text-end fw-semibold">{{ fmt(group.total) }}</td>
+                                                            </tr>
+                                                            <tr v-for="inv in group.invoices" :key="inv.id">
+                                                                <td>{{ inv.number_document }}</td>
+                                                                <td>{{ groupBy === 'supplier' ? inv.company_reason_name : inv.supplier_name }}</td>
+                                                                <td>{{ fmtDate(inv.date) }}</td>
+                                                                <td>{{ fmtDate(inv.due_date) }}</td>
+                                                                <td :class="agingClass(inv.aging_bucket)">
+                                                                    {{ inv.days_overdue > 0 ? inv.days_overdue + ' días' : 'Al día' }}
+                                                                </td>
+                                                                <td class="text-end">{{ fmt(inv.balance) }}</td>
+                                                            </tr>
+                                                        </template>
                                                     </tbody>
                                                 </table>
                                             </td>
