@@ -20,6 +20,7 @@ const filterSupplier = ref(null);
 
 const groupBy = ref('reason'); // 'reason' | 'supplier'
 const columnMode = ref('month'); // 'month' | 'aging'
+const showAllMonths = ref(false); // en modo 'month': mostrar los 12 meses o solo los que tienen datos
 const expandedRows = ref(new Set());
 
 const AGING_BUCKETS = [
@@ -36,6 +37,7 @@ watch(() => props.show, async (isOpen) => {
         filterMonth.value = null;
         filterSupplier.value = null;
         expandedRows.value = new Set();
+        showAllMonths.value = false;
         await loadReport();
     }
 });
@@ -95,7 +97,9 @@ const pivot = computed(() => {
 
     const columns = columnMode.value === 'aging'
         ? AGING_BUCKETS
-        : [...monthsMap.entries()].map(([id, name]) => ({ id, name })).sort((a, b) => (a.id ?? 0) - (b.id ?? 0));
+        : showAllMonths.value
+            ? (reportData.value?.all_months ?? []).map(m => ({ id: m.id, name: m.name }))
+            : [...monthsMap.entries()].map(([id, name]) => ({ id, name })).sort((a, b) => (a.id ?? 0) - (b.id ?? 0));
 
     const rows = [...rowsMap.values()]
         .sort((a, b) => a.name.localeCompare(b.name))
@@ -342,6 +346,18 @@ function closeModal() {
                                         <i class="fas fa-hourglass-half me-1"></i>Antigüedad
                                     </button>
                                 </div>
+                            </div>
+                            <div v-if="columnMode === 'month'">
+                                <small class="text-muted text-uppercase d-block mb-1">&nbsp;</small>
+                                <button
+                                    type="button"
+                                    class="btn btn-sm"
+                                    :class="showAllMonths ? 'btn-falcon-primary' : 'btn-falcon-default'"
+                                    title="Mostrar los 12 meses del año, incluso sin deuda"
+                                    @click="showAllMonths = !showAllMonths"
+                                >
+                                    <i class="fas fa-calendar-week me-1"></i>Ver todos los meses
+                                </button>
                             </div>
                             <div class="ms-auto">
                                 <ExportExcelButton :data="excelData" :headers="excelHeaders" filename="informe-deuda.xlsx" class="btn btn-falcon-default btn-sm">

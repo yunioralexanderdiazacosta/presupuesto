@@ -7,6 +7,14 @@
 
 export const changelog = [
   {
+    fecha: '2026-08-25',
+    titulo: 'Pago de Facturas — Ver todos los meses en el informe de deuda',
+    items: [
+      'En el informe de deuda por razón social, al ver las columnas por "Mes" ahora se puede activar el botón "Ver todos los meses" para mostrar los 12 meses del año (incluso los que no tienen deuda).',
+      'Por defecto se mantiene la vista anterior, que solo muestra los meses con deuda registrada.',
+    ]
+  },
+  {
     fecha: '2026-08-24',
     titulo: 'Sistema — Se retiró el asistente de consultas por chat',
     items: [

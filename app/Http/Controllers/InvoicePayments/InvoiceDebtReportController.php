@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use App\Models\Invoice;
+use App\Models\Month;
 use Carbon\Carbon;
 
 class InvoiceDebtReportController extends Controller
@@ -106,11 +107,16 @@ class InvoiceDebtReportController extends Controller
             ->sortBy('label')
             ->values();
 
+        // Listado completo de meses (1-12), para la opción "Ver todos los meses" en el informe.
+        $allMonths = Month::orderBy('id')->get(['id', 'name'])
+            ->map(fn($m) => ['id' => $m->id, 'name' => $m->name]);
+
         return response()->json([
             'invoices'        => $invoices,
             'company_reasons' => $companyReasons,
             'months'          => $months,
             'suppliers'       => $suppliers,
+            'all_months'      => $allMonths,
         ]);
     }
 }
