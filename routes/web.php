@@ -116,6 +116,7 @@ use App\Http\Controllers\Products2\DeleteProduct2Controller;
     use App\Http\Controllers\PurchaseOrders\UpdatePurchaseOrderStatusController;
     use App\Http\Controllers\PurchaseOrders\ApprovePurchaseOrderController;
     use App\Http\Controllers\PurchaseOrders\RejectPurchaseOrderController;
+    use App\Http\Controllers\PurchaseOrders\PdfPurchaseOrderController;
 
 // Rutas para Solicitudes de Pago
     use App\Http\Controllers\PaymentRequests\PaymentRequestController;
@@ -1026,6 +1027,7 @@ Route::middleware([
     Route::put('/purchase-orders/{purchaseOrder}', UpdatePurchaseOrderController::class)->name('purchase-orders.update');
     Route::delete('/purchase-orders/{purchaseOrder}', DeletePurchaseOrderController::class)->name('purchase-orders.delete');
     Route::patch('/purchase-orders/{purchaseOrder}/status', UpdatePurchaseOrderStatusController::class)->name('purchase-orders.update-status');
+    Route::get('/purchase-orders/{purchaseOrder}/pdf', PdfPurchaseOrderController::class)->name('purchase-orders.pdf');
 
     // Solicitudes de Pago
     Route::get('/payment-requests', [PaymentRequestController::class, 'index'])->name('payment-requests.index');

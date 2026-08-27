@@ -359,9 +359,13 @@ const collapseAllLevelsHa = () => {
                         />
                     </div>
 
-                    <div class="btn-group btn-group-sm ms-2" role="group">
-                        <button type="button" class="btn" :class="tableMode === 'consumo' ? 'btn-primary' : 'btn-outline-primary'" @click="tableMode = 'consumo'">Consumo</button>
-                        <button type="button" class="btn" :class="tableMode === 'stock' ? 'btn-primary' : 'btn-outline-primary'" @click="tableMode = 'stock'">Stock Valorizado</button>
+                    <div class="segmented-control ms-2">
+                        <button type="button" class="segmented-option" :class="{ active: tableMode === 'consumo' }" @click="tableMode = 'consumo'">
+                            <i class="fas fa-arrow-circle-down me-1"></i>Consumo
+                        </button>
+                        <button type="button" class="segmented-option" :class="{ active: tableMode === 'stock' }" @click="tableMode = 'stock'">
+                            <i class="fas fa-boxes-stacked me-1"></i>Stock Valorizado
+                        </button>
                     </div>
 
                     <div class="btn-group btn-group-sm ms-auto" role="group">
@@ -579,3 +583,38 @@ const collapseAllLevelsHa = () => {
         </div>
     </AppLayout>
 </template>
+
+<style scoped>
+.segmented-control {
+    display: inline-flex;
+    background: var(--bs-tertiary-bg, #edf2f9);
+    border: 1px solid var(--bs-border-color, #e3e6ed);
+    border-radius: 0.5rem;
+    padding: 3px;
+    gap: 2px;
+}
+.segmented-option {
+    display: inline-flex;
+    align-items: center;
+    border: none;
+    background: transparent;
+    padding: 0.3rem 0.7rem;
+    font-size: 0.78rem;
+    font-weight: 500;
+    line-height: 1;
+    color: var(--bs-secondary-color, #6c757d);
+    border-radius: 0.4rem;
+    white-space: nowrap;
+    transition: background-color 0.15s ease, color 0.15s ease, box-shadow 0.15s ease;
+}
+.segmented-option:hover:not(.active) {
+    color: var(--bs-emphasis-color, #212529);
+    background: rgba(0, 0, 0, 0.06);
+}
+.segmented-option.active {
+    background: var(--bs-body-bg, #fff);
+    color: var(--bs-primary, #2c7be5);
+    font-weight: 600;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.15);
+}
+</style>

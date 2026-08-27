@@ -61,15 +61,17 @@ class KardexController extends Controller
             ]);
 
         // Movimientos de notas de crédito (salidas)
+        // La sucursal de una NC nunca vive en el item: se resuelve vía invoice_product_id -> invoice_products.branch_id
         $notasCredito = DB::table('credit_debit_note_items')
             ->join('credit_debit_notes', 'credit_debit_note_items.credit_debit_note_id', '=', 'credit_debit_notes.id')
             ->join('suppliers', 'credit_debit_notes.supplier_id', '=', 'suppliers.id')
+            ->leftJoin('invoice_products', 'credit_debit_note_items.invoice_product_id', '=', 'invoice_products.id')
             ->where('credit_debit_note_items.product_id', $product_id)
             ->where('credit_debit_notes.team_id', $user->team_id)
             ->where('credit_debit_notes.season_id', $season_id)
             ->where('credit_debit_notes.type', 'credito')
             ->where('credit_debit_notes.affects_inventory', 1) // Solo los que afectan inventario
-            ->when($branch_id, fn($q) => $q->where('credit_debit_note_items.branch_id', $branch_id))
+            ->when($branch_id, fn($q) => $q->where('invoice_products.branch_id', $branch_id))
             ->select([
                 'credit_debit_notes.date as fecha',
                 DB::raw("'Nota Crédito' as tipo"),

@@ -48,6 +48,8 @@ class StoreCreditDebitNoteController extends Controller
                     'quantity'           => $item['quantity'],
                     'unit_price'         => $item['unit_price'],
                     'invoice_product_id' => $item['invoice_product_id'] ?? null,
+                    // NC (crédito): la sucursal se resuelve vía invoice_product_id → invoice_products.branch_id,
+                    // nunca se guarda en el item (ver CONTEXT.md). ND (débito): se guarda la elegida en el form.
                     'branch_id'          => strtolower($request->type) === 'debito' ? ($item['branch_id'] ?? null) : null,
                 ]);
 

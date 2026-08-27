@@ -824,11 +824,15 @@ class ComparativeOutflowsDashboardController extends Controller
         $result = array_fill(1, 12, 0.0);
 
         try {
-            // Query 1: Todas las facturas agrupadas por mes (filtro razón social)
+            // Query 1: Todas las facturas agrupadas por MES CONTABLE (i.month_id), no por fecha.
+            // Debe coincidir con el criterio usado en getInvoicedMonthlyByLevel123() (Detalle Mensual
+            // por Categoría); de lo contrario una factura cuyo "mes contable" difiere de la fecha del
+            // documento queda en un mes distinto en cada tabla.
             $invoicesByMonth = DB::table('invoices as i')
                 ->join('invoice_products as ip', 'i.id', '=', 'ip.invoice_id')
                 ->where('i.team_id', $team_id)
                 ->where('i.season_id', $season_id)
+                ->whereNotNull('i.month_id')
                 ->when($company_reason_id, function ($q) use ($company_reason_id) {
                     $q->where(function ($w) use ($company_reason_id) {
                         $w->where('i.company_reason_id', $company_reason_id)
@@ -836,10 +840,10 @@ class ComparativeOutflowsDashboardController extends Controller
                     });
                 })
                 ->select(
-                    DB::raw('MONTH(i.date) as month_id'),
+                    'i.month_id',
                     DB::raw('SUM(ip.unit_price * ip.amount) as total')
                 )
-                ->groupBy(DB::raw('MONTH(i.date)'))
+                ->groupBy('i.month_id')
                 ->pluck('total', 'month_id');
 
             foreach ($invoicesByMonth as $monthId => $total) {

@@ -7,6 +7,50 @@
 
 export const changelog = [
   {
+    fecha: '2026-08-26',
+    titulo: 'Órdenes de Compra — El botón Imprimir ahora genera un PDF real',
+    items: [
+      'Antes el botón "Imprimir" solo abría el diálogo de impresión del navegador. Ahora genera un documento PDF con el detalle completo de la orden (proveedor, productos, totales, centros de costo y observaciones), igual que en Rendiciones de Gastos y Solicitudes de Pago.',
+    ]
+  },
+  {
+    fecha: '2026-08-26',
+    titulo: 'Inventario — Corrección de sucursal en productos ajustados por nota de crédito',
+    items: [
+      'Se corrigió un error en el cálculo de inventario: cuando un producto era devuelto o descontado mediante una nota de crédito, el sistema no lograba reconocer a qué sucursal pertenecía, mostrando una fila extra sin sucursal con cantidad incorrecta.',
+      'Ahora la sucursal se toma correctamente desde la factura original relacionada con la nota de crédito, dejando los totales de cada sucursal correctos en la vista de Inventario.',
+    ]
+  },
+  {
+    fecha: '2026-08-26',
+    titulo: 'Órdenes de Aplicación — Nuevo diseño del selector Tipo de Dosis',
+    items: [
+      'En el formulario de productos (crear/editar orden de aplicación), el selector "Tipo de Dosis" (Por Hectárea / Por 100L) ahora usa el mismo diseño de botones deslizantes que el resto de los selectores del sistema.',
+    ]
+  },
+  {
+    fecha: '2026-08-26',
+    titulo: 'Detalle de Salidas por Sucursal — Nuevo diseño del selector Consumo/Stock Valorizado',
+    items: [
+      'El selector "Consumo / Stock Valorizado" ahora usa el mismo diseño de botones deslizantes que el resto de los selectores del sistema.',
+    ]
+  },
+  {
+    fecha: '2026-08-26',
+    titulo: 'Dashboard Comparativo — Nuevo diseño del selector Facturado/Consumido',
+    items: [
+      'El selector "Real: Facturado / Consumido" de la tabla "Detalle Mensual por Categoría" ahora usa el mismo diseño de botones deslizantes (con ícono y fondo resaltado en la opción activa) que ya se usa en el Informe de Deuda de Pago de Facturas.',
+    ]
+  },
+  {
+    fecha: '2026-08-26',
+    titulo: 'Dashboard Comparativo — El Facturado de "Resumen Mensual" no coincidía con "Detalle Mensual por Categoría"',
+    items: [
+      'Cuando una factura se cargaba con un "mes contable" distinto al mes de su fecha (por ejemplo, una factura fechada a fin de mes pero contabilizada en el mes siguiente), la tabla "Resumen Mensual: Presupuesto vs Costos" y los gráficos la ubicaban en el mes de la fecha, mientras que "Detalle Mensual por Categoría" la ubicaba correctamente en su mes contable.',
+      'Ahora ambas vistas (y el detalle que aparece al hacer clic en una barra del gráfico) usan siempre el mes contable de la factura, quedando los montos totalmente consistentes entre sí.',
+    ]
+  },
+  {
     fecha: '2026-08-25',
     titulo: 'Pago de Facturas — Detalle del informe de deuda más ordenado',
     items: [

@@ -29,7 +29,9 @@ class GetComparativeMonthlyDetailController extends Controller
         }
 
         // -------------------------------------------------------
-        // 1. FACTURADO del mes: invoice_products por fecha de factura
+        // 1. FACTURADO del mes: invoice_products por MES CONTABLE (i.month_id)
+        //    Mismo criterio que getInvoicedMonthlyByLevel123() y getAllInvoicedByMonth(),
+        //    para que el detalle coincida con el resto del dashboard comparativo.
         // -------------------------------------------------------
         $invoicedRows = DB::table('invoice_products as ip')
             ->join('invoices as i', 'ip.invoice_id', '=', 'i.id')
@@ -39,7 +41,7 @@ class GetComparativeMonthlyDetailController extends Controller
             ->leftJoin('level1s as l1', 'l2.level1_id', '=', 'l1.id')
             ->where('i.team_id', $team_id)
             ->where('i.season_id', $season_id)
-            ->whereMonth('i.date', $month_id)
+            ->where('i.month_id', $month_id)
             ->when($companyReasonId, function ($q) use ($companyReasonId) {
                 $q->where(function ($w) use ($companyReasonId) {
                     $w->where('i.company_reason_id', $companyReasonId)

@@ -802,24 +802,19 @@ function getSimplifiedQuantity(product) {
 
                     <div class="col-md-6">
                         <label class="form-label small mb-1">Tipo de Dosis</label>
-                        <div class="btn-group btn-group-sm w-100" role="group">
-                            <input
-                                type="radio"
-                                class="btn-check"
-                                id="tipo_hectarea"
-                                v-model="newProduct.tipo_dosis"
-                                value="por_hectarea"
-                            />
-                            <label class="btn btn-outline-primary" for="tipo_hectarea">Por Hectárea</label>
-
-                            <input
-                                type="radio"
-                                class="btn-check"
-                                id="tipo_100_litros"
-                                v-model="newProduct.tipo_dosis"
-                                value="por_100_litros"
-                            />
-                            <label class="btn btn-outline-primary" for="tipo_100_litros">Por 100L</label>
+                        <div class="segmented-control w-100">
+                            <button
+                                type="button"
+                                class="segmented-option flex-fill"
+                                :class="{ active: newProduct.tipo_dosis === 'por_hectarea' }"
+                                @click="newProduct.tipo_dosis = 'por_hectarea'"
+                            >Por Hectárea</button>
+                            <button
+                                type="button"
+                                class="segmented-option flex-fill"
+                                :class="{ active: newProduct.tipo_dosis === 'por_100_litros' }"
+                                @click="newProduct.tipo_dosis = 'por_100_litros'"
+                            >Por 100L</button>
                         </div>
                     </div>
                 </div>
@@ -1041,5 +1036,41 @@ function getSimplifiedQuantity(product) {
 
 .multiselect-blue.multiselect-tags-expanded {
     max-height: 210px !important;
+}
+</style>
+
+<style scoped>
+.segmented-control {
+    display: inline-flex;
+    background: var(--bs-tertiary-bg, #edf2f9);
+    border: 1px solid var(--bs-border-color, #e3e6ed);
+    border-radius: 0.5rem;
+    padding: 3px;
+    gap: 2px;
+}
+.segmented-option {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border: none;
+    background: transparent;
+    padding: 0.3rem 0.7rem;
+    font-size: 0.78rem;
+    font-weight: 500;
+    line-height: 1;
+    color: var(--bs-secondary-color, #6c757d);
+    border-radius: 0.4rem;
+    white-space: nowrap;
+    transition: background-color 0.15s ease, color 0.15s ease, box-shadow 0.15s ease;
+}
+.segmented-option:hover:not(.active) {
+    color: var(--bs-emphasis-color, #212529);
+    background: rgba(0, 0, 0, 0.06);
+}
+.segmented-option.active {
+    background: var(--bs-body-bg, #fff);
+    color: var(--bs-primary, #2c7be5);
+    font-weight: 600;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.15);
 }
 </style>

@@ -35,10 +35,6 @@ function getStatusBadgeClass(status) {
     };
     return classes[status] || 'bg-secondary text-white';
 }
-
-function printOrder() {
-    window.print();
-}
 </script>
 
 <template>
@@ -78,10 +74,10 @@ function printOrder() {
                             <span class="fas fa-arrow-left" data-fa-transform="shrink-3 down-2"></span>
                             <span class="d-none d-sm-inline-block ms-1">Volver</span>
                         </Link>
-                        <button @click="printOrder" class="btn btn-falcon-default btn-sm">
+                        <a :href="route('purchase-orders.pdf', purchaseOrder.id)" target="_blank" class="btn btn-falcon-default btn-sm">
                             <span class="fas fa-print" data-fa-transform="shrink-3 down-2"></span>
                             <span class="d-none d-sm-inline-block ms-1">Imprimir</span>
-                        </button>
+                        </a>
                     </div>
                 </div>
             </div>

@@ -2170,27 +2170,20 @@ function createCumulativeChart() {
                                     </label>
                                 </div>
                                 <div class="col-auto">
-                                    <div class="btn-group btn-group-sm" role="group">
+                                    <div class="segmented-control">
                                         <button
                                             type="button"
-                                            class="btn"
-                                            :class="realSourceMode === 'facturado' ? 'btn-primary' : 'btn-outline-primary'"
+                                            class="segmented-option"
+                                            :class="{ active: realSourceMode === 'facturado' }"
                                             @click="realSourceMode = 'facturado'"
-                                        >Facturado</button>
+                                        ><i class="fas fa-file-invoice-dollar me-1"></i>Facturado</button>
                                         <button
                                             type="button"
-                                            class="btn"
-                                            :class="realSourceMode === 'consumido' ? 'btn-primary' : 'btn-outline-primary'"
+                                            class="segmented-option"
+                                            :class="{ active: realSourceMode === 'consumido' }"
                                             @click="realSourceMode = 'consumido'"
-                                        >Consumido</button>
+                                        ><i class="fas fa-arrow-circle-down me-1"></i>Consumido</button>
                                     </div>
-                                </div>
-                                <div class="col-auto">
-                                    <i
-                                        class="fas fa-circle-info text-muted"
-                                        style="cursor: help;"
-                                        v-tooltip="'Facturado: facturas del mes + remuneraciones, clasificado por el producto. Consumido: salidas de bodega (outflows) + remuneraciones, clasificado según la categoría propia del outflow y prorrateado por superficie de centro de costo. Al ser criterios distintos, las categorías mostradas pueden no coincidir exactamente entre ambas vistas.'"
-                                    ></i>
                                 </div>
                                 <div v-if="loadingConsumedByCategory" class="col-auto">
                                     <i class="fas fa-circle-notch fa-spin text-muted"></i>
@@ -2820,6 +2813,39 @@ function createCumulativeChart() {
 </template>
 
 <style scoped>
+.segmented-control {
+    display: inline-flex;
+    background: var(--bs-tertiary-bg, #edf2f9);
+    border: 1px solid var(--bs-border-color, #e3e6ed);
+    border-radius: 0.5rem;
+    padding: 3px;
+    gap: 2px;
+}
+.segmented-option {
+    display: inline-flex;
+    align-items: center;
+    border: none;
+    background: transparent;
+    padding: 0.3rem 0.7rem;
+    font-size: 0.78rem;
+    font-weight: 500;
+    line-height: 1;
+    color: var(--bs-secondary-color, #6c757d);
+    border-radius: 0.4rem;
+    white-space: nowrap;
+    transition: background-color 0.15s ease, color 0.15s ease, box-shadow 0.15s ease;
+}
+.segmented-option:hover:not(.active) {
+    color: var(--bs-emphasis-color, #212529);
+    background: rgba(0, 0, 0, 0.06);
+}
+.segmented-option.active {
+    background: var(--bs-body-bg, #fff);
+    color: var(--bs-primary, #2c7be5);
+    font-weight: 600;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.15);
+}
+
 .card {
     box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
 }
