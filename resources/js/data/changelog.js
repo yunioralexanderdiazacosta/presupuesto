@@ -7,6 +7,13 @@
 
 export const changelog = [
   {
+    fecha: '2026-08-27',
+    titulo: 'Órdenes de Compra — RUT de la empresa en el PDF',
+    items: [
+      'El PDF de la orden de compra ahora muestra también el RUT de la empresa pagadora (razón social), no solo su nombre.',
+    ]
+  },
+  {
     fecha: '2026-08-26',
     titulo: 'Órdenes de Compra — El botón Imprimir ahora genera un PDF real',
     items: [

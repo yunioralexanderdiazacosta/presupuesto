@@ -74,6 +74,12 @@
                         <span class="info-label">Razón Social (empresa pagadora)</span>
                         <span class="info-value">{{ $purchaseOrder->companyReason->name ?? 'No asignada' }}</span>
                     </div>
+                    @if($purchaseOrder->companyReason && $purchaseOrder->companyReason->rut)
+                    <div class="info-row">
+                        <span class="info-label">RUT Empresa</span>
+                        <span class="info-value">{{ $purchaseOrder->companyReason->rut }}</span>
+                    </div>
+                    @endif
                     <div class="info-row">
                         <span class="info-label">Fecha Orden</span>
                         <span class="info-value">{{ $purchaseOrder->order_date ? $purchaseOrder->order_date->format('d/m/Y') : '-' }}</span>
