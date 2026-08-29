@@ -20,6 +20,7 @@ class UpdateServiceController extends Controller
         $service->unit_id_price= $request->unit_id_price;
         $service->observations = $request->observations;
         $service->subfamily_id = $request->subfamily_id;
+        $service->operation_id = $request->operation_id;
         $service->unit_id      = $request->unit_id;
         $service->quantity     = $request->quantity;
         $service->team_id = \App\Models\User::find(auth()->id())->team_id;

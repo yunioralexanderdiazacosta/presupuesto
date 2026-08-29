@@ -86,7 +86,7 @@ const removeItem = (index) => props.form.products.splice(index, 1);
                 class="multiselect-sm"
             />
         </div>
-        <div class="col-sm-6">
+        <div class="col-sm-4">
             <label class="form-label small mb-1">
                 Centros de Costo <span class="text-danger">*</span>
                 <span v-if="props.form.cc?.length" class="badge bg-primary ms-1">{{ props.form.cc.length }} sel.</span>
@@ -103,9 +103,20 @@ const removeItem = (index) => props.form.products.splice(index, 1);
             />
             <InputError :message="props.form.errors.cc" />
         </div>
+        <div class="col-sm-2">
+            <label class="form-label small mb-1">Operación <span class="text-danger">*</span></label>
+            <Multiselect
+                v-model="props.form.operation_id"
+                :options="$page.props.operations"
+                placeholder="Seleccione operación"
+                :searchable="true"
+                :close-on-select="true"
+                :class="{ 'is-invalid': props.form.errors.operation_id }"
+                class="multiselect-sm"
+            />
+            <InputError :message="props.form.errors.operation_id" />
+        </div>
     </div>
-
-    <!-- Tabla de productos -->
     <div class="border rounded" style="overflow:hidden;">
         <table class="table table-sm table-bordered align-middle mb-0 w-100" style="font-size:0.78rem;">
             <colgroup>

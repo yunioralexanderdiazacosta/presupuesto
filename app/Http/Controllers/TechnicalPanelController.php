@@ -200,6 +200,25 @@ class TechnicalPanelController extends Controller
         });
         $costCentersId = $costCenters->pluck('value');
 
+        // Operaciones: selector Gasto/Inversión (selección múltiple) que controla todas las tablas de esta vista
+        $gastoOperationId = \App\Models\Operation::whereRaw('LOWER(name) LIKE ?', ['%gasto%'])->value('id');
+        $inversionOperationId = \App\Models\Operation::whereRaw('LOWER(name) LIKE ?', ['%inversion%'])->value('id');
+        $requestedOperations = $request->input('operation');
+        $selectedOperations = collect(is_array($requestedOperations) ? $requestedOperations : explode(',', (string) $requestedOperations))
+            ->map(fn($op) => trim($op))
+            ->filter(fn($op) => in_array($op, ['gasto', 'inversion']))
+            ->unique()
+            ->values();
+        if ($selectedOperations->isEmpty()) {
+            $selectedOperations = collect(['gasto']);
+        }
+        // ids de operación a filtrar (whereIn); si se seleccionan ambas, incluye ambos ids
+        $operationIds = $selectedOperations->map(fn($op) => $op === 'inversion' ? $inversionOperationId : $gastoOperationId)
+            ->filter()
+            ->unique()
+            ->values()
+            ->all();
+
         // Cache months array (used by all product methods)
         $this->cachedMonths = [];
         for ($x = $currentMonth; $x < $currentMonth + 12; $x++) {
@@ -228,12 +247,12 @@ class TechnicalPanelController extends Controller
             ->toArray();
 
         // Get products and save itemIndex for ByDevState reuse
-        $agrochemicalProducts = $this->getAgrochemicalProducts($costCentersId);
-        $fertilizerProducts = $this->getFertilizerProducts($costCentersId);
-        $manPowerProducts = $this->getManPowerProducts($costCentersId);
-        $serviceProducts = $this->getServicesProducts($costCentersId);
-        $supplyProducts = $this->getSuppliesProducts($costCentersId);
-        $harvestProducts = $this->getHarvestsProducts($costCentersId);
+        $agrochemicalProducts = $this->getAgrochemicalProducts($costCentersId, $operationIds);
+        $fertilizerProducts = $this->getFertilizerProducts($costCentersId, $operationIds);
+        $manPowerProducts = $this->getManPowerProducts($costCentersId, $operationIds);
+        $serviceProducts = $this->getServicesProducts($costCentersId, $operationIds);
+        $supplyProducts = $this->getSuppliesProducts($costCentersId, $operationIds);
+        $harvestProducts = $this->getHarvestsProducts($costCentersId, $operationIds);
         $pieLabels = ['Agroquimicos', 'Fertilizantes', 'Mano de obra', 'Servicios', 'Insumos', 'Cosecha'];
         $pieDatasets = [
             [
@@ -243,9 +262,9 @@ class TechnicalPanelController extends Controller
                 "cutout" => 0
             ]
         ];
-        // Calcular totales de administración y fields (filtrados por sucursal si corresponde)
-        $administrationTotalsByLevel12 = $this->getAdministrationTotalsByLevel12($user->team_id, $selectedBranchId);
-        $fieldTotalsByLevel12 = $this->getFieldTotalsByLevel12($user->team_id, $selectedBranchId);
+        // Calcular totales de administración y fields (filtrados por sucursal y operación)
+        $administrationTotalsByLevel12 = $this->getAdministrationTotalsByLevel12($user->team_id, $selectedBranchId, $operationIds);
+        $fieldTotalsByLevel12 = $this->getFieldTotalsByLevel12($user->team_id, $selectedBranchId, $operationIds);
         $totalAdministration = $administrationTotalsByLevel12->sum('total_amount');
         $totalFields = $fieldTotalsByLevel12->sum('total_amount');
         $totalSeason = number_format(($this->totalAgrochemical + $this->totalFertilizer + $this->totalManPower + $this->totalServices + $this->totalSupplies + $totalAdministration + $totalFields), 0, ',', '.');
@@ -257,23 +276,9 @@ class TechnicalPanelController extends Controller
         $totalSupplies = $this->totalSupplies;
         $totalHarvests = $this->totalHarvests;
 
-        // NUEVO: Calcular y formatear los meses de administración y fields (filtrados por sucursal si corresponde)
-        $monthsAdministrationRaw = $this->getMonthsAdministration($user->team_id, $selectedBranchId);
-        $monthsFieldsRaw = $this->getMonthsFields($user->team_id, $selectedBranchId);
-        // Inversiones: obtener totales mensuales y total general (filtradas por sucursal si corresponde)
-        $monthsInvestmentsRaw = $this->getInvestmentsTotalByMonth($season_id, $user->team_id, $selectedBranchId);
-        $monthsInvestments = [];
-        foreach($monthsInvestmentsRaw as $key => $value){
-            $monthsInvestments[$key] = (float)$value;
-        }
-        // Normalizar a 12 meses (1-12)
-        $allMonthsInvestments = [];
-        for ($i = 1; $i <= 12; $i++) {
-            $key = (string)$i;
-            $allMonthsInvestments[$key] = isset($monthsInvestments[$key]) ? $monthsInvestments[$key] : 0;
-        }
-        $monthsInvestments = $allMonthsInvestments;
-        $totalInvestments = array_sum($monthsInvestments);
+        // NUEVO: Calcular y formatear los meses de administración y fields (filtrados por sucursal y operación)
+        $monthsAdministrationRaw = $this->getMonthsAdministration($user->team_id, $selectedBranchId, $operationIds);
+        $monthsFieldsRaw = $this->getMonthsFields($user->team_id, $selectedBranchId, $operationIds);
         $monthsAdministration = [];
         foreach($monthsAdministrationRaw as $key => $value){
             $monthsAdministration[$key] = (float)$value;
@@ -385,11 +390,29 @@ class TechnicalPanelController extends Controller
         $suppliesByDevState = $this->aggregateByDevState($supplyProducts, 'getSupplyResultByDevelopmentState', $costCentersId);
         $suppliesExpensePerHectare = $this->calculateExpensePerHectare($suppliesByDevState);
 
+        // Administración y Generales Campo no tienen fruit_id/development_state_id propio (son gastos
+        // generales de la temporada): se prorratean por superficie para poder sumarlos en "Estado de Desarrollo".
+        // Se omiten combinaciones con superficie 0 (ej. centros de costo "no aplica") para no generar filas
+        // fantasma en la tabla: su aporte prorrateado siempre sería 0 de todas formas.
+        $totalSurfaceForProration = $this->cachedCostCenters->sum('surface');
+        $administrationByDevState = [];
+        $fieldsByDevState = [];
+        foreach ($this->cachedSurfaceData as $fruitId => $devStatesSurface) {
+            foreach ($devStatesSurface as $devStateId => $surface) {
+                if ($surface <= 0) {
+                    continue;
+                }
+                $proportion = $totalSurfaceForProration > 0 ? ($surface / $totalSurfaceForProration) : 0;
+                $administrationByDevState[$fruitId][$devStateId] = $totalAdministration * $proportion;
+                $fieldsByDevState[$fruitId][$devStateId] = $totalFields * $proportion;
+            }
+        }
+
         // Obtener nombres de estados de desarrollo
         $devStates = \App\Models\DevelopmentState::all(['id', 'name'])->keyBy('id')->toArray();
 
-        // administrationTotalsByLevel12 y fieldTotalsByLevel12 ya se calcularon arriba (filtrados por sucursal)
-        $totalsByLevel12 = $this->getTotalsByLevel12($user->team_id);
+        // administrationTotalsByLevel12 y fieldTotalsByLevel12 ya se calcularon arriba (filtrados por sucursal y operación)
+        $totalsByLevel12 = $this->getTotalsByLevel12($user->team_id, $operationIds);
 
         // Calcular el total de superficie usando datos cacheados
         $totalSurface = $this->cachedCostCenters->sum('surface');
@@ -415,6 +438,53 @@ class TechnicalPanelController extends Controller
             array_keys($mainTotalsRaw),
             array_values($mainTotalsRaw)
         );
+
+        // "Inversiones": fila comparativa SIEMPRE calculada en base a operation_id = Inversión
+        // (independiente del selector), sumando los 8 módulos de presupuesto.
+        $isInversionOnly = $selectedOperations->count() === 1 && $selectedOperations->contains('inversion');
+        if ($isInversionOnly) {
+            // Ya estamos viendo Inversión: reutilizamos los totales ya calculados arriba.
+            $totalInvestments = $totalAgrochemical + $totalFertilizer + $totalManPower + $totalServices + $totalSupplies + $totalHarvests + $totalAdministration + $totalFields;
+            $monthsInvestments = [];
+            for ($i = 1; $i <= 12; $i++) {
+                $key = (string) $i;
+                $monthsInvestments[$key] = ($monthsAgrochemical[$key] ?? 0) + ($monthsFertilizer[$key] ?? 0) + ($monthsManPower[$key] ?? 0)
+                    + ($monthsServices[$key] ?? 0) + ($monthsSupplies[$key] ?? 0) + ($monthsHarvests[$key] ?? 0)
+                    + ($monthsAdministration[$key] ?? 0) + ($monthsFields[$key] ?? 0);
+            }
+        } else {
+            // Recalcular en modo Inversión; resetear acumuladores para no mezclarlos con el pase de Gasto ya leído.
+            $this->totalAgrochemical = 0; $this->monthsAgrochemical = [];
+            $this->totalFertilizer = 0; $this->monthsFertilizer = [];
+            $this->totalManPower = 0; $this->monthsManPower = [];
+            $this->totalServices = 0; $this->monthsServices = [];
+            $this->totalSupplies = 0; $this->monthsSupplies = [];
+            $this->totalHarvests = 0; $this->monthsHarvests = [];
+
+            $this->getAgrochemicalProducts($costCentersId, $inversionOperationId);
+            $this->getFertilizerProducts($costCentersId, $inversionOperationId);
+            $this->getManPowerProducts($costCentersId, $inversionOperationId);
+            $this->getServicesProducts($costCentersId, $inversionOperationId);
+            $this->getSuppliesProducts($costCentersId, $inversionOperationId);
+            $this->getHarvestsProducts($costCentersId, $inversionOperationId);
+
+            $administrationInvTotals = $this->getAdministrationTotalsByLevel12($user->team_id, $selectedBranchId, $inversionOperationId);
+            $fieldInvTotals = $this->getFieldTotalsByLevel12($user->team_id, $selectedBranchId, $inversionOperationId);
+            $monthsAdministrationInvRaw = $this->getMonthsAdministration($user->team_id, $selectedBranchId, $inversionOperationId);
+            $monthsFieldsInvRaw = $this->getMonthsFields($user->team_id, $selectedBranchId, $inversionOperationId);
+
+            $totalInvestments = $this->totalAgrochemical + $this->totalFertilizer + $this->totalManPower + $this->totalServices + $this->totalSupplies + $this->totalHarvests
+                + $administrationInvTotals->sum('total_amount') + $fieldInvTotals->sum('total_amount');
+
+            $monthsInvestments = [];
+            for ($i = 1; $i <= 12; $i++) {
+                $key = (string) $i;
+                $monthsInvestments[$key] = ($this->monthsAgrochemical[$i] ?? 0) + ($this->monthsFertilizer[$i] ?? 0) + ($this->monthsManPower[$i] ?? 0)
+                    + ($this->monthsServices[$i] ?? 0) + ($this->monthsSupplies[$i] ?? 0) + ($this->monthsHarvests[$i] ?? 0)
+                    + ($monthsAdministrationInvRaw[$i] ?? 0) + ($monthsFieldsInvRaw[$i] ?? 0);
+            }
+        }
+
         // Construir fruitsMap y pasarlo al frontend
         $fruitsMap = $this->getFruitsMap($user->team_id);
         return Inertia::render('TechnicalPanel', compact(
@@ -434,6 +504,8 @@ class TechnicalPanelController extends Controller
             'servicesByDevState',
             'harvestsByDevState',
             'suppliesByDevState',
+            'administrationByDevState',
+            'fieldsByDevState',
             'agrochemicalExpensePerHectare',
             'fertilizerExpensePerHectare',
             'manPowerExpensePerHectare',
@@ -449,7 +521,8 @@ class TechnicalPanelController extends Controller
             'mainTotalsAndPercents', // <-- nuevo prop para los gauges
             'fruitsMap',
             'branches',
-            'selectedBranchId'
+            'selectedBranchId',
+            'selectedOperations'
         ));
 
 
@@ -510,7 +583,7 @@ class TechnicalPanelController extends Controller
      * Actualiza las propiedades $this->totalAgrochemical y $this->monthsAgrochemical.
      * No retorna datos útiles, solo realiza side-effects.
      */
-    private function getAgrochemicalProducts($costCentersId)
+    private function getAgrochemicalProducts($costCentersId, $operationId = null)
     {
         $currentMonth = $this->month_id;
         $months = [];
@@ -531,6 +604,7 @@ class TechnicalPanelController extends Controller
             ->leftJoin('units as u', 'a.unit_id_price', 'u.id')
             ->select('a.id', 'a.price', 'a.dose_type_id', 'a.dose', 'a.unit_id', 'a.unit_id_price', 'a.mojamiento')
             ->whereIn('a.id', $items->pluck('agrochemical_id')->unique())
+            ->when(!empty($operationId), fn($q) => $q->whereIn('a.operation_id', (array) $operationId))
             ->get();
 
         // Usar superficies cacheadas
@@ -586,7 +660,7 @@ class TechnicalPanelController extends Controller
      * Obtiene y acumula los totales de fertilizantes por cost center y por mes.
      * Actualiza las propiedades $this->totalFertilizer y $this->monthsFertilizer.
      */
-    private function getFertilizerProducts($costCentersId)
+    private function getFertilizerProducts($costCentersId, $operationId = null)
     {
         $currentMonth = $this->month_id;
         $months = [];
@@ -607,6 +681,7 @@ class TechnicalPanelController extends Controller
             ->leftJoin('units as u', 'f.unit_id_price', 'u.id')
             ->select('f.id', 'f.price', 'f.dose', 'f.unit_id', 'f.unit_id_price')
             ->whereIn('f.id', $items->pluck('fertilizer_id')->unique())
+            ->when(!empty($operationId), fn($q) => $q->whereIn('f.operation_id', (array) $operationId))
             ->get();
 
         // Usar superficies cacheadas
@@ -656,7 +731,7 @@ class TechnicalPanelController extends Controller
      * Obtiene y acumula los totales de mano de obra por cost center y por mes.
      * Actualiza las propiedades $this->totalManPower y $this->monthsManPower.
      */
-    private function getManPowerProducts($costCentersId)
+    private function getManPowerProducts($costCentersId, $operationId = null)
     {
         $currentMonth = $this->month_id;
         $months = [];
@@ -677,6 +752,7 @@ class TechnicalPanelController extends Controller
             ->leftJoin('units as u', 'mp.unit_id', 'u.id')
             ->select('mp.id', 'mp.price', 'mp.workday')
             ->whereIn('mp.id', $items->pluck('man_power_id')->unique())
+            ->when(!empty($operationId), fn($q) => $q->whereIn('mp.operation_id', (array) $operationId))
             ->get();
 
         // Usar superficies cacheadas
@@ -726,7 +802,7 @@ class TechnicalPanelController extends Controller
      * Obtiene y acumula los totales de servicios por cost center y por mes.
      * Actualiza las propiedades $this->totalServices y $this->monthsServices.
      */
-    private function getServicesProducts($costCentersId)
+    private function getServicesProducts($costCentersId, $operationId = null)
     {
         $currentMonth = $this->month_id;
         $months = [];
@@ -747,6 +823,7 @@ class TechnicalPanelController extends Controller
             ->leftJoin('units as u', 's.unit_id_price', 'u.id')
             ->select('s.id', 's.product_name', 's.price', 's.quantity', 's.unit_id', 's.unit_id_price',  'u.name')
             ->whereIn('s.id', $items->pluck('service_id')->unique())
+            ->when(!empty($operationId), fn($q) => $q->whereIn('s.operation_id', (array) $operationId))
             ->get();
 
         // Usar superficies cacheadas
@@ -792,7 +869,7 @@ class TechnicalPanelController extends Controller
         $this->totalServices += $totalAmount;
     }
 
-    private function getHarvestsProducts($costCentersId)
+    private function getHarvestsProducts($costCentersId, $operationId = null)
     {
         $currentMonth = $this->month_id;
         $months = [];
@@ -813,6 +890,7 @@ class TechnicalPanelController extends Controller
             ->leftJoin('units as u', 'h.unit_id_price', 'u.id')
             ->select('h.id', 'h.product_name', 'h.price', 'h.quantity', 'h.unit_id', 'h.unit_id_price',  'u.name')
             ->whereIn('h.id', $items->pluck('harvest_id')->unique())
+            ->when(!empty($operationId), fn($q) => $q->whereIn('h.operation_id', (array) $operationId))
             ->get();
 
      
@@ -865,7 +943,7 @@ class TechnicalPanelController extends Controller
      * Obtiene y acumula los totales de insumos por cost center y por mes.
      * Actualiza las propiedades $this->totalSupplies y $this->monthsSupplies.
      */
-    private function getSuppliesProducts($costCentersId)
+    private function getSuppliesProducts($costCentersId, $operationId = null)
     {
         $currentMonth = $this->month_id;
         $months = [];
@@ -886,6 +964,7 @@ class TechnicalPanelController extends Controller
             ->leftJoin('units as u', 's.unit_id_price', 'u.id')
             ->select('s.id', 's.product_name', 's.price', 's.quantity', 's.unit_id', 's.unit_id_price',  'u.name')
             ->whereIn('s.id', $items->pluck('supply_id')->unique())
+            ->when(!empty($operationId), fn($q) => $q->whereIn('s.operation_id', (array) $operationId))
             ->get();
 
         // Usar superficies cacheadas
@@ -1133,7 +1212,7 @@ class TechnicalPanelController extends Controller
      * Obtiene los totales de administración agrupados por Level 1 y Level 2.
      * Devuelve una colección con: [level1_id, level1_name, level2_id, level2_name, total_amount]
      */
-    private function getAdministrationTotalsByLevel12($team_id = null, $branchId = null)
+    private function getAdministrationTotalsByLevel12($team_id = null, $branchId = null, $operationId = null)
     {
         $season_id = session('season_id');
         $season = \App\Models\Season::select('month_id')->where('id', $season_id)->first();
@@ -1159,6 +1238,9 @@ class TechnicalPanelController extends Controller
         }
         if ($branchId) {
             $administrations->where('a.branch_id', $branchId);
+        }
+        if (!empty($operationId)) {
+            $administrations->whereIn('a.operation_id', (array) $operationId);
         }
         $administrations = $administrations->get();
 
@@ -1198,7 +1280,7 @@ class TechnicalPanelController extends Controller
         return collect(array_values($totals));
     }
 
-    private function getFieldTotalsByLevel12($team_id = null, $branchId = null)
+    private function getFieldTotalsByLevel12($team_id = null, $branchId = null, $operationId = null)
     {
         $season_id = session('season_id');
         $season = \App\Models\Season::select('month_id')->where('id', $season_id)->first();
@@ -1224,6 +1306,9 @@ class TechnicalPanelController extends Controller
         }
         if ($branchId) {
             $fields->where('a.branch_id', $branchId);
+        }
+        if (!empty($operationId)) {
+            $fields->whereIn('a.operation_id', (array) $operationId);
         }
         $fields = $fields->get();
 
@@ -1266,7 +1351,7 @@ class TechnicalPanelController extends Controller
      * Obtiene los totales generales agrupados por Level 1, Level 2 y fruit.
      * OPTIMIZADO: usa datos cacheados + batch items queries (elimina N+1).
      */
-    private function getTotalsByLevel12($team_id = null)
+    private function getTotalsByLevel12($team_id = null, $operationId = null)
     {
         $season_id = session('season_id');
         $months = $this->cachedMonths;
@@ -1299,6 +1384,7 @@ class TechnicalPanelController extends Controller
             ->join('level1s as l1', 'l2.level1_id', 'l1.id')
             ->select('a.*', 'l1.id as level1_id', 'l1.name as level1_name', 'l2.id as level2_id', 'l2.name as level2_name', 'ai.cost_center_id')
             ->whereIn('ai.cost_center_id', $costCentersIds)
+            ->when(!empty($operationId), fn($q) => $q->whereIn('a.operation_id', (array) $operationId))
             ->groupBy('a.id', 'l1.id', 'l1.name', 'l2.id', 'l2.name', 'ai.cost_center_id')
             ->get();
         $agroItemIndex = $this->buildItemIndex('agrochemical_items', 'agrochemical_id', $agrochemicals->pluck('id')->unique(), $costCentersIds, $months);
@@ -1327,6 +1413,7 @@ class TechnicalPanelController extends Controller
             ->join('level1s as l1', 'l2.level1_id', 'l1.id')
             ->select('f.*', 'l1.id as level1_id', 'l1.name as level1_name', 'l2.id as level2_id', 'l2.name as level2_name', 'fi.cost_center_id')
             ->whereIn('fi.cost_center_id', $costCentersIds)
+            ->when(!empty($operationId), fn($q) => $q->whereIn('f.operation_id', (array) $operationId))
             ->groupBy('f.id', 'l1.id', 'l1.name', 'l2.id', 'l2.name', 'fi.cost_center_id')
             ->get();
         $fertItemIndex = $this->buildItemIndex('fertilizer_items', 'fertilizer_id', $fertilizers->pluck('id')->unique(), $costCentersIds, $months);
@@ -1349,6 +1436,7 @@ class TechnicalPanelController extends Controller
             ->join('level1s as l1', 'l2.level1_id', 'l1.id')
             ->select('mp.*', 'l1.id as level1_id', 'l1.name as level1_name', 'l2.id as level2_id', 'l2.name as level2_name', 'mpi.cost_center_id')
             ->whereIn('mpi.cost_center_id', $costCentersIds)
+            ->when(!empty($operationId), fn($q) => $q->whereIn('mp.operation_id', (array) $operationId))
             ->groupBy('mp.id', 'l1.id', 'l1.name', 'l2.id', 'l2.name', 'mpi.cost_center_id')
             ->get();
         $mpItemIndex = $this->buildItemIndex('manpower_items', 'man_power_id', $manpowers->pluck('id')->unique(), $costCentersIds, $months);
@@ -1370,6 +1458,7 @@ class TechnicalPanelController extends Controller
             ->join('level1s as l1', 'l2.level1_id', 'l1.id')
             ->select('s.*', 'l1.id as level1_id', 'l1.name as level1_name', 'l2.id as level2_id', 'l2.name as level2_name', 'si.cost_center_id')
             ->whereIn('si.cost_center_id', $costCentersIds)
+            ->when(!empty($operationId), fn($q) => $q->whereIn('s.operation_id', (array) $operationId))
             ->groupBy('s.id', 'l1.id', 'l1.name', 'l2.id', 'l2.name', 'si.cost_center_id')
             ->get();
         $svcItemIndex = $this->buildItemIndex('service_items', 'service_id', $services->pluck('id')->unique(), $costCentersIds, $months);
@@ -1392,6 +1481,7 @@ class TechnicalPanelController extends Controller
             ->join('level1s as l1', 'l2.level1_id', 'l1.id')
             ->select('s.*', 'l1.id as level1_id', 'l1.name as level1_name', 'l2.id as level2_id', 'l2.name as level2_name', 'si.cost_center_id')
             ->whereIn('si.cost_center_id', $costCentersIds)
+            ->when(!empty($operationId), fn($q) => $q->whereIn('s.operation_id', (array) $operationId))
             ->groupBy('s.id', 'l1.id', 'l1.name', 'l2.id', 'l2.name', 'si.cost_center_id')
             ->get();
         $harvItemIndex = $this->buildItemIndex('harvest_items', 'harvest_id', $harvests->pluck('id')->unique(), $costCentersIds, $months);
@@ -1414,6 +1504,7 @@ class TechnicalPanelController extends Controller
             ->join('level1s as l1', 'l2.level1_id', 'l1.id')
             ->select('s.*', 'l1.id as level1_id', 'l1.name as level1_name', 'l2.id as level2_id', 'l2.name as level2_name', 'si.cost_center_id')
             ->whereIn('si.cost_center_id', $costCentersIds)
+            ->when(!empty($operationId), fn($q) => $q->whereIn('s.operation_id', (array) $operationId))
             ->groupBy('s.id', 'l1.id', 'l1.name', 'l2.id', 'l2.name', 'si.cost_center_id')
             ->get();
         $supItemIndex = $this->buildItemIndex('supply_items', 'supply_id', $supplies->pluck('id')->unique(), $costCentersIds, $months);
@@ -1456,7 +1547,7 @@ class TechnicalPanelController extends Controller
      * Totales mensuales de administración.
      * OPTIMIZADO: 1 batch query para items en lugar de N queries individuales.
      */
-    private function getMonthsAdministration($team_id = null, $branchId = null)
+    private function getMonthsAdministration($team_id = null, $branchId = null, $operationId = null)
     {
         $season_id = session('season_id');
         $months = $this->cachedMonths;
@@ -1470,6 +1561,9 @@ class TechnicalPanelController extends Controller
         }
         if ($branchId) {
             $administrations->where('a.branch_id', $branchId);
+        }
+        if (!empty($operationId)) {
+            $administrations->whereIn('a.operation_id', (array) $operationId);
         }
         $administrations = $administrations->get();
 
@@ -1505,7 +1599,7 @@ class TechnicalPanelController extends Controller
      * Totales mensuales de fields.
      * OPTIMIZADO: 1 batch query para items en lugar de N queries individuales.
      */
-    private function getMonthsFields($team_id = null, $branchId = null)
+    private function getMonthsFields($team_id = null, $branchId = null, $operationId = null)
     {
         $season_id = session('season_id');
         $months = $this->cachedMonths;
@@ -1519,6 +1613,9 @@ class TechnicalPanelController extends Controller
         }
         if ($branchId) {
             $fields->where('a.branch_id', $branchId);
+        }
+        if (!empty($operationId)) {
+            $fields->whereIn('a.operation_id', (array) $operationId);
         }
         $fields = $fields->get();
 

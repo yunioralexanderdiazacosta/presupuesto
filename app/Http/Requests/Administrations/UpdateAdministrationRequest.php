@@ -25,6 +25,7 @@ class UpdateAdministrationRequest extends FormRequest
             'product_name' => 'required',
             'price' => 'required',
             'subfamily_id' => 'required',
+            'operation_id' => 'required|exists:operations,id',
             'unit_id' => 'required'
         ];
     }

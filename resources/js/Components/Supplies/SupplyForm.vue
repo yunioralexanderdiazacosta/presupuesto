@@ -58,7 +58,7 @@ const monthAbbr = (label) => label ? label.substring(0, 3) : '';
                 class="multiselect-sm"
             />
         </div>
-        <div class="col-sm-6">
+        <div class="col-sm-4">
             <label class="form-label small mb-1">
                 Centros de Costo <span class="text-danger">*</span>
                 <span v-if="form.cc?.length" class="badge bg-primary ms-1">{{ form.cc.length }} sel.</span>
@@ -74,6 +74,19 @@ const monthAbbr = (label) => label ? label.substring(0, 3) : '';
                 class="multiselect-sm"
             />
             <InputError :message="form.errors.cc" />
+        </div>
+        <div class="col-sm-2">
+            <label class="form-label small mb-1">Operación <span class="text-danger">*</span></label>
+            <Multiselect
+                v-model="form.operation_id"
+                :options="$page.props.operations"
+                placeholder="Seleccione operación"
+                :searchable="true"
+                :close-on-select="true"
+                :class="{ 'is-invalid': form.errors.operation_id }"
+                class="multiselect-sm"
+            />
+            <InputError :message="form.errors.operation_id" />
         </div>
     </div>
 

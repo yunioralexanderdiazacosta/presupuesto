@@ -32,7 +32,7 @@ const { appContext } = getCurrentInstance();
 <template>
     <div class="row">
         
-        <div class="col-lg-4">
+        <div class="col-lg-3">
             <label for="families" class="col-form-label">Familia</label>
             <Multiselect
                 :placeholder="'Seleccione familia'"
@@ -47,7 +47,7 @@ const { appContext } = getCurrentInstance();
             <InputError class="mt-2" :message="form.errors.subfamily_id" />
         </div>
 
-  <div class="col-lg-8">
+  <div class="col-lg-6">
             <div class="d-flex align-items-center justify-content-between">
                 <label for="cc" class="col-form-label mb-0">CC</label>
                 <div class="d-flex align-items-center gap-1">
@@ -78,6 +78,21 @@ const { appContext } = getCurrentInstance();
                 :hide-selected="false"
             />
             <InputError class="mt-2" :message="form.errors.cc" />
+        </div>
+
+        <div class="col-lg-3">
+            <label for="operation_id" class="col-form-label">Operación</label>
+            <Multiselect
+                :placeholder="'Seleccione operación'"
+                v-model="form.operation_id"
+                :close-on-select="true"
+                :options="$page.props.operations"
+                class="multiselect-blue form-control"
+                :class="{'is-invalid': form.errors.operation_id}"
+                :searchable="true"
+                :hide-selected="false"
+            />
+            <InputError class="mt-2" :message="form.errors.operation_id" />
         </div>
 
 

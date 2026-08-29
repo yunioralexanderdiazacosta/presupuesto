@@ -19,6 +19,7 @@ use App\Models\DoseType;
 use Inertia\Inertia;
 use App\Models\Harvest;
 use App\Models\CompanyReason;
+use App\Models\Operation;
 use App\Http\Controllers\Traits\BudgetTotalsTrait;
 
 
@@ -206,7 +207,14 @@ class HarvestsController extends Controller
             ->map(fn($b) => ['value' => $b->id, 'label' => $b->name])
             ->values();
 
-        $harvestsCollection = Harvest::with('subfamily:id,name', 'unit:id,name', 'unit2:id,name', 'items:id', 'user:id,name')->whereHas('items', function($query) use ($costCenters){
+        $operations = Operation::orderBy('name')->get(['id', 'name'])->map(fn($o) => [
+            'label' => $o->name,
+            'value' => $o->id,
+        ]);
+        // Operación pre-cargada por defecto en el formulario de creación
+        $defaultOperationId = Operation::whereRaw('LOWER(name) LIKE ?', ['%gasto%'])->value('id');
+
+        $harvestsCollection = Harvest::with('subfamily:id,name', 'unit:id,name', 'unit2:id,name', 'items:id', 'user:id,name', 'operation:id,name')->whereHas('items', function($query) use ($costCenters){
             $query->whereIn('cost_center_id', $costCenters->pluck('value'));
         })->orderBy('id')->get()->map(function($harvest){
             $items = $harvest->items->pluck('pivot');
@@ -217,10 +225,12 @@ class HarvestsController extends Controller
                 'product_name'  => $harvest->product_name,
                 'quantity'      => $harvest->quantity,
                 'subfamily_id'  => $harvest->subfamily_id,
+                'operation_id'  => $harvest->operation_id,
                 'unit_id'       => $harvest->unit_id,
                 'unit_id_price' => $harvest->unit_id_price,
                 'observations'  => $harvest->observations,
                 'subfamily'     => $harvest->subfamily,
+                'operation'     => $harvest->operation,
                 'unit'          => $harvest->unit,
                 'unit2'         => $harvest->unit2,
                 'price'         => $harvest->price,
@@ -458,7 +468,7 @@ class HarvestsController extends Controller
 
         $data4 = $this->buildData4($costCentersId, $season_id, $user->team_id);
 
-        return Inertia::render('Harvests', compact('units', 'subfamilies', 'months', 'costCenters', 'companyReasons', 'branches', 'groupings', 'harvests', 'data', 'data2', 'data3', 'data4', 'season', 'totalData1', 'totalData2', 'percentage', 'varieties', 'fruits', 'level2s'));
+        return Inertia::render('Harvests', compact('units', 'subfamilies', 'months', 'costCenters', 'companyReasons', 'branches', 'groupings', 'harvests', 'data', 'data2', 'data3', 'data4', 'season', 'totalData1', 'totalData2', 'percentage', 'varieties', 'fruits', 'level2s', 'operations', 'defaultOperationId'));
     }
 
     private function getSubfamilies($costCenterId, $surface = null, $bills = false)

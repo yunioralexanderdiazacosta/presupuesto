@@ -355,13 +355,16 @@ trait BudgetTotalsTrait
      * @param int $team_id
      * @return float
      */
-    public function getTotalEstimatedKilos($season_id, $team_id, $company_reason_id = null)
+    public function getTotalEstimatedKilos($season_id, $team_id, $company_reason_id = null, $branch_id = null)
     {
         $estimates = \App\Models\Estimate::where('season_id', $season_id)
             ->where('team_id', $team_id)
             ->when($company_reason_id, function($q) use ($company_reason_id) {
                 $ids = is_array($company_reason_id) ? $company_reason_id : [$company_reason_id];
                 $q->whereHas('costCenterVariety.costCenter', fn($cc) => $cc->whereIn('company_reason_id', $ids));
+            })
+            ->when($branch_id, function($q) use ($branch_id) {
+                $q->whereHas('costCenterVariety.costCenter', fn($cc) => $cc->where('branch_id', $branch_id));
             })
             ->with(['estimateStatus', 'costCenterVariety'])
             ->get();

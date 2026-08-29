@@ -19,6 +19,7 @@ use App\Models\Service;
 
 use App\Models\Level1;
 use App\Models\CostCenter;
+use App\Models\Operation;
 
 
 use App\Http\Controllers\Traits\BudgetTotalsTrait;
@@ -142,7 +143,14 @@ class AdministrationsController extends Controller
         }
 
         // Nueva consulta para administrations, sin relación a cost centers
-        $administrationsCollection = Administration::with(['subfamily:id,name', 'unit:id,name', 'items', 'user:id,name'])
+        $operations = Operation::orderBy('name')->get(['id', 'name'])->map(fn($o) => [
+            'label' => $o->name,
+            'value' => $o->id,
+        ]);
+        // Operación pre-cargada por defecto en el formulario de creación
+        $defaultOperationId = Operation::whereRaw('LOWER(name) LIKE ?', ['%gasto%'])->value('id');
+
+        $administrationsCollection = Administration::with(['subfamily:id,name', 'unit:id,name', 'items', 'user:id,name', 'operation:id,name'])
             ->where('team_id', $team_id)
             ->where('season_id', $season_id)
             ->when($branchId, fn($q) => $q->where('branch_id', $branchId))
@@ -153,11 +161,13 @@ class AdministrationsController extends Controller
                     'product_name'  => $admin->product_name,
                     'quantity'      => $admin->quantity,
                     'subfamily_id'  => $admin->subfamily_id,
+                    'operation_id'  => $admin->operation_id,
                     'unit_id'       => $admin->unit_id,
                     'price'         => $admin->price,
                     'observations'  => $admin->observations,
                     'branch_id'     => $admin->branch_id,
                     'subfamily'     => $admin->subfamily,
+                    'operation'     => $admin->operation,
                     'unit'          => $admin->unit,
                     'user'          => $admin->user ? ['name' => $admin->user->name] : null,
                     'months'        => $admin->items->pluck('month_id')->map(fn($m) => (string)$m)->unique()->values()->toArray(),
@@ -323,7 +333,9 @@ class AdministrationsController extends Controller
             'team_id',
             'season_id',
             'percentageAdministration',
-            'branches'
+            'branches',
+            'operations',
+            'defaultOperationId'
         ) + ['selectedBranchId' => $branchId]);
     }
 

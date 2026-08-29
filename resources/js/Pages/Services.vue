@@ -31,11 +31,13 @@ const filteredServices = computed(() => {
   return props.services.data.filter(item => {
     const name = item.product_name ? item.product_name.toLowerCase() : '';
     const subfamily = item.subfamily && item.subfamily.name ? item.subfamily.name.toLowerCase() : '';
+    const operation = item.operation && item.operation.name ? item.operation.name.toLowerCase() : '';
     const unit = item.unit && item.unit.name ? item.unit.name.toLowerCase() : '';
     const unit2 = item.unit2 && item.unit2.name ? item.unit2.name.toLowerCase() : '';
     return (
       name.includes(term) ||
       subfamily.includes(term) ||
+      operation.includes(term) ||
       unit.includes(term) ||
       unit2.includes(term)
     );
@@ -71,7 +73,9 @@ const props = defineProps({
     fruits: {
       type: Array,
       default: () => []
-    }
+    },
+    operations: { type: Array, default: () => [] },
+    defaultOperationId: { type: [Number, String, null], default: null }
 });
 
 // Filtro por especie (fruta) y variedad
@@ -351,6 +355,7 @@ var acum = ref(0);
 
 const formMultiple = useForm({
     subfamily_id: '',
+    operation_id: props.defaultOperationId,
     cc: [],
     products: [
         {
@@ -370,6 +375,7 @@ const form = useForm({
     quantity: '',
     price: '',
     subfamily_id: '',
+    operation_id: props.defaultOperationId,
     unit_id: '',
     unit_id_price: '',
     observations: '',
@@ -393,6 +399,7 @@ const openEdit = (service) => {
     form.price = service.price;
     form.quantity = service.quantity;
     form.subfamily_id = service.subfamily_id;
+    form.operation_id = service.operation_id;
     form.unit_id = service.unit_id;
     form.unit_id_price = service.unit_id_price;
     form.observations = service.observations;
@@ -530,7 +537,8 @@ const excelDataResumen = computed(() => {
                             { label: 'Cantidad', key: 'quantity' },
                             { label: 'Unidad', key: 'unit.name' },
                             { label: 'Precio', key: 'price' },
-                            { label: 'Unidad de $', key: 'unit2.name' }
+                            { label: 'Unidad de $', key: 'unit2.name' },
+                            { label: 'Operación', key: 'operation.name' }
                           ]"
                           class="btn btn-success btn-md d-flex align-items-center p-0"
                           filename="Servicios.xlsx"
@@ -543,7 +551,8 @@ const excelDataResumen = computed(() => {
                             { label: 'Cantidad', key: 'quantity' },
                             { label: 'Unidad', key: 'unit.name' },
                             { label: 'Precio', key: 'price' },
-                            { label: 'Unidad de $', key: 'unit2.name' }
+                            { label: 'Unidad de $', key: 'unit2.name' },
+                            { label: 'Operación', key: 'operation.name' }
                           ]"
                           class="btn btn-danger btn-md d-flex align-items-center p-0"
                           filename="Servicios.pdf"
@@ -563,6 +572,7 @@ const excelDataResumen = computed(() => {
                             <th width="min-w-100px">Unidad</th>
                             <th width="min-w-100px">Precio</th>
                             <th width="min-w-100px">Unidad de $</th>
+                            <th width="min-w-100px">Operación</th>
                             <th width="min-w-150px" style="white-space:nowrap">
                                 Meses
                                 <span @click="expandAllMonths = !expandAllMonths" class="badge ms-1" :class="expandAllMonths ? 'bg-primary' : 'bg-secondary'" style="cursor:pointer;font-size:0.65rem;" v-tooltip="expandAllMonths ? 'Colapsar meses' : 'Expandir meses'">
@@ -583,7 +593,7 @@ const excelDataResumen = computed(() => {
                         <!--begin::Table body-->
                         <template #body>
                             <template v-if="filteredServices.length === 0">
-                                <Empty colspan="11" />
+                                <Empty colspan="12" />
                             </template>
                             <template v-else>
                                 <tr v-for="(service, index) in filteredServices" :key="index">
@@ -596,6 +606,7 @@ const excelDataResumen = computed(() => {
                                     <td>{{service.unit.name}}</td>
                                     <td class="text-center">{{ Number(service.price).toLocaleString('es-CL') }}</td>
                                     <td>{{service.unit2.name}}</td>
+                                    <td>{{ service.operation ? service.operation.name : '—' }}</td>
                                     <td>
                                         <template v-if="service.months && service.months.length">
                                             {{ (expandAllMonths ? service.months : service.months.slice(0, MONTH_PREVIEW))

@@ -9,7 +9,7 @@ class Field extends Model
 {
     use HasFactory;
 
-    protected $fillable = ['product_name', 'price', 'quantity', 'subfamily_id', 'level2_id', 'unit_id', 'observations', 'team_id', 'season_id', 'user_id', 'branch_id'];
+    protected $fillable = ['product_name', 'price', 'quantity', 'subfamily_id', 'level2_id', 'unit_id', 'observations', 'team_id', 'season_id', 'user_id', 'branch_id', 'operation_id'];
 
       public function items()
     {
@@ -24,6 +24,11 @@ class Field extends Model
     public function unit()
     {
         return $this->belongsTo(Unit::class);
+    }
+
+    public function operation()
+    {
+        return $this->belongsTo(Operation::class);
     }
 
     public function level2()

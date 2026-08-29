@@ -29,6 +29,7 @@ class StoreAdministrationController extends Controller
                 'user_id'       => $user->id,
                 'season_id'     => $season_id,
                 'subfamily_id'  => $request->subfamily_id,
+                'operation_id'  => $request->operation_id,
                 'branch_id'     => $request->branch_id ?: null,
             ]);
 

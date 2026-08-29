@@ -7,6 +7,174 @@
 
 export const changelog = [
   {
+    fecha: '2026-08-28',
+    titulo: 'Dashboard — Kilos Estimados ahora respeta la sucursal seleccionada',
+    items: [
+      'Se corrigió que "Kilos Est." (y por lo tanto "Costo/Kg") en las tarjetas de "KPI por Frutal / Estado de Desarrollo" mostrara siempre el total de todas las sucursales, sin importar la sucursal elegida en el filtro de arriba.',
+      'Ahora los kilos estimados se filtran correctamente por la sucursal seleccionada, igual que la superficie y los costos.',
+    ]
+  },
+  {
+    fecha: '2026-08-28',
+    titulo: 'Dashboard — Corrección de Kilos Est. y Costo/Kg en cero en tarjetas por Frutal/Estado',
+    items: [
+      'Se corrigió que las tarjetas de "KPI por Frutal / Estado de Desarrollo" mostraran "-" en Kilos Est. y Costo/Kg para algunas especies, aunque sí tuvieran una estimación de kilos cargada.',
+      'Cada especie ahora usa su propia estimación más reciente, en vez de compartir una sola estimación general que a veces correspondía a otra especie.',
+    ]
+  },
+  {
+    fecha: '2026-08-28',
+    titulo: 'Panel Técnico — Fila "Inversiones" simplificada en Totales Mensuales',
+    items: [
+      'La fila de referencia "Inversiones" en la tabla "Totales Mensuales" ahora solo se muestra cuando el filtro Operación tiene seleccionadas Gasto e Inversión a la vez.',
+      'Si el filtro es solo Gasto o solo Inversión, esa fila ya no aparece, para evitar confusión.',
+    ]
+  },
+  {
+    fecha: '2026-08-28',
+    titulo: 'Panel Técnico — Eliminada fila fantasma "no aplica" en Estado de Desarrollo',
+    items: [
+      'Se corrigió que apareciera una fila "no aplica" con todos los valores en cero en la tabla "Estado de Desarrollo", producto de un centro de costo sin superficie asignada usado solo para administración.',
+    ]
+  },
+  {
+    fecha: '2026-08-28',
+    titulo: 'Panel Técnico — Corrección de descuadre en "Total General" de Totales Mensuales',
+    items: [
+      'Se corrigió que el "Total General" de la tabla "Totales Mensuales" mostrara un monto distinto al de las tablas "Estado de Desarrollo" y "Totales unificados".',
+      'La fila "Inversiones" ahora se marca claramente como referencial y ya no se suma al Total General, para que los tres totales siempre coincidan.',
+    ]
+  },
+  {
+    fecha: '2026-08-28',
+    titulo: 'Panel Técnico — Administración y Generales Campo en tabla Estado de Desarrollo',
+    items: [
+      'La tabla "Estado de Desarrollo" del Panel Técnico ahora incluye las columnas Administración y Generales Campo, distribuidas entre especies y estados de desarrollo según la superficie de cada uno.',
+      'El Total General de esta tabla ahora coincide siempre con el de las tablas "Totales unificados" y "Totales Mensuales", incluso cuando existen montos de Administración o Generales Campo.',
+    ]
+  },
+  {
+    fecha: '2026-08-28',
+    titulo: 'Panel Técnico — Selección múltiple en el filtro de Operación',
+    items: [
+      'El selector "Operación" (Gasto / Inversión) del Panel Técnico ahora permite elegir ambas opciones a la vez, mostrando en las tablas la suma de Gasto e Inversión.',
+      'Se puede volver a ver solo Gasto o solo Inversión desactivando la otra opción; siempre debe quedar al menos una seleccionada.',
+    ]
+  },
+  {
+    fecha: '2026-08-28',
+    titulo: 'Panel Técnico — Corrección de descuadre en tablas al filtrar por Inversión',
+    items: [
+      'Se corrigió un error donde, al filtrar por Inversión, las tablas "Estado de Desarrollo" y "Gastos por Hectárea" podían mostrar un Total General distinto al de las otras tablas del Panel Técnico.',
+      'Esto ocurría cuando un estado de desarrollo tenía montos de Inversión en un módulo (por ejemplo Fertilizantes) pero no en Agroquímicos: la fila no se mostraba, aunque su monto sí se sumaba en el total.',
+      'Ahora todas las filas necesarias se muestran correctamente y los totales coinciden en todas las tablas del Panel Técnico.',
+    ]
+  },
+  {
+    fecha: '2026-08-28',
+    titulo: 'Panel Técnico — Nuevo selector de Gasto/Inversión en todas las tablas',
+    items: [
+      'Se agregó un selector "Operación" (Gasto / Inversión) junto al selector de Sucursal, en la parte superior del Panel Técnico.',
+      'Todas las tablas (Estado de Desarrollo, Gastos por Hectárea, Totales por Nivel 1 y Nivel 2, Totales Mensuales) ahora muestran solo los montos de la operación elegida, en vez de mezclar Gasto e Inversión.',
+      'La fila "Inversiones" de la tabla de Totales Mensuales ahora se calcula sumando los registros marcados como Inversión en todos los módulos de presupuesto, igual que en el Dashboard.',
+    ]
+  },
+  {
+    fecha: '2026-08-28',
+    titulo: 'Dashboard — Los cards de Presupuesto e Inversiones ahora se calculan por Operación',
+    items: [
+      'El card "Total Presupuesto" ahora suma únicamente los registros marcados con la operación "Gasto" en todos los módulos (Agroquímicos, Fertilizantes, Mano de Obra, Servicios, Insumos, Cosecha, Administración y Generales Campo).',
+      'El card "Total Inversiones" ahora suma los registros marcados con la operación "Inversión" en esos mismos módulos, en lugar de depender únicamente del módulo de Inversiones.',
+      'El gráfico de torta, el desglose por estado de desarrollo, el gasto por hectárea y los totales mensuales del Dashboard ahora reflejan solo los montos de "Gasto", quedando consistentes con el card de Total Presupuesto.',
+    ]
+  },
+  {
+    fecha: '2026-08-28',
+    titulo: 'Generales Campo — Nuevo campo "Operación" y formulario rediseñado',
+    items: [
+      'Se agregó el campo "Operación" para clasificar cada registro de Generales Campo, igual que en los demás módulos de presupuesto.',
+      'Se rediseñó por completo la ventana de agregar/editar Generales Campo para que sea más clara y ordenada, con los productos en una tabla compacta y selección de meses mediante botones.',
+      'Los campos de Sucursal, Nivel 2, Nivel 3 y Operación quedaron agrupados en la parte superior del formulario.',
+    ]
+  },
+  {
+    fecha: '2026-08-28',
+    titulo: 'Administración — Formulario rediseñado',
+    items: [
+      'Se rediseñó por completo la ventana de agregar/editar costos de administración para que sea más clara y ordenada, en línea con el resto de los módulos del sistema.',
+      'Los productos ahora se cargan en una tabla compacta más fácil de leer, con selección de meses mediante botones en vez de casilleros.',
+      'Los campos de Sucursal, Nivel 2, Nivel 3 y Operación quedaron agrupados en la parte superior del formulario.',
+    ]
+  },
+  {
+    fecha: '2026-08-28',
+    titulo: 'Administración — Nuevo campo "Operación"',
+    items: [
+      'Al agregar o editar un costo de administración ahora se debe indicar la operación asociada (por ejemplo "Gasto"), seleccionándola en un nuevo campo del formulario.',
+      'El campo viene precargado por defecto con la operación "Gasto" para agilizar la carga.',
+      'La tabla de administración y sus exportaciones a Excel/PDF ahora muestran la columna "Operación".',
+      'El buscador de la pestaña de edición ahora también encuentra registros por el nombre de su operación.',
+    ]
+  },
+  {
+    fecha: '2026-08-28',
+    titulo: 'Cosecha — Nuevo campo "Operación"',
+    items: [
+      'Al agregar o editar un registro de cosecha ahora se debe indicar la operación asociada (por ejemplo "Gasto"), seleccionándola en un nuevo campo del formulario.',
+      'El campo viene precargado por defecto con la operación "Gasto" para agilizar la carga.',
+      'La tabla de cosecha y sus exportaciones a Excel/PDF ahora muestran la columna "Operación".',
+      'El buscador de la pestaña de edición ahora también encuentra registros de cosecha por el nombre de su operación.',
+    ]
+  },
+  {
+    fecha: '2026-08-28',
+    titulo: 'Insumos — Nuevo campo "Operación"',
+    items: [
+      'Al agregar o editar un insumo ahora se debe indicar la operación asociada (por ejemplo "Gasto"), seleccionándola en un nuevo campo ubicado junto a Centros de Costo.',
+      'El campo viene precargado por defecto con la operación "Gasto" para agilizar la carga.',
+      'La tabla de insumos y sus exportaciones a Excel/PDF ahora muestran la columna "Operación".',
+      'El buscador de la pestaña de edición ahora también encuentra insumos por el nombre de su operación.',
+    ]
+  },
+  {
+    fecha: '2026-08-28',
+    titulo: 'Mano de Obra — Nuevo campo "Operación"',
+    items: [
+      'Al agregar o editar un registro de mano de obra ahora se debe indicar la operación asociada (por ejemplo "Gasto"), seleccionándola en un nuevo campo ubicado junto a Centros de Costo.',
+      'El campo viene precargado por defecto con la operación "Gasto" para agilizar la carga.',
+      'La tabla de mano de obra y sus exportaciones a Excel/PDF ahora muestran la columna "Operación".',
+      'El buscador de la pestaña de edición ahora también encuentra registros por el nombre de su operación.',
+    ]
+  },
+  {
+    fecha: '2026-08-28',
+    titulo: 'Servicios — Nuevo campo "Operación"',
+    items: [
+      'Al agregar o editar un servicio ahora se debe indicar la operación asociada (por ejemplo "Gasto"), seleccionándola en un nuevo campo ubicado junto a Centros de Costo.',
+      'El campo viene precargado por defecto con la operación "Gasto" para agilizar la carga.',
+      'La tabla de servicios y sus exportaciones a Excel/PDF ahora muestran la columna "Operación".',
+      'El buscador de la pestaña de edición ahora también encuentra servicios por el nombre de su operación.',
+    ]
+  },
+  {
+    fecha: '2026-08-28',
+    titulo: 'Fertilizantes — Nuevo campo "Operación"',
+    items: [
+      'Al agregar o editar un fertilizante ahora se debe indicar la operación asociada (por ejemplo "Gasto"), seleccionándola en un nuevo campo ubicado junto a Centros de Costo.',
+      'El campo viene precargado por defecto con la operación "Gasto" para agilizar la carga.',
+      'La tabla de fertilizantes y sus exportaciones a Excel/PDF ahora muestran la columna "Operación".',
+    ]
+  },
+  {
+    fecha: '2026-08-28',
+    titulo: 'Agroquímicos — Nuevo campo "Operación"',
+    items: [
+      'Al agregar o editar un agroquímico ahora se debe indicar la operación asociada (por ejemplo "Gasto"), seleccionándola en un nuevo campo ubicado junto a Centros de Costo.',
+      'El campo viene precargado por defecto con la operación "Gasto" para agilizar la carga.',
+      'La tabla de agroquímicos y sus exportaciones a Excel/PDF ahora muestran la columna "Operación".',
+    ]
+  },
+  {
     fecha: '2026-08-27',
     titulo: 'Órdenes de Compra — RUT de la empresa en el PDF',
     items: [

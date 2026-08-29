@@ -9,7 +9,7 @@ const props = defineProps({
 defineEmits(['update']);
 </script>
 <template>
-    <Modal :maxWidth="'xl'" :id="'editFieldModal'">
+    <Modal :maxWidth="'xl'" :dialogStyle="'max-width: 88vw; width: 88vw;'" :id="'editFieldModal'">
         <template #header>
             <div class="d-flex align-items-center gap-2 mb-3 text-start">
                 <span class="bg-secondary text-white rounded-circle d-flex align-items-center justify-content-center" style="width: 38px; height: 38px; font-size: 1.4rem;">

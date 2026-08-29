@@ -19,6 +19,7 @@ class UpdateManPowerController extends Controller
         $manPower->price        = $request->price;
         $manPower->observations = $request->observations;
         $manPower->subfamily_id = $request->subfamily_id;
+        $manPower->operation_id = $request->operation_id;
         $manPower->team_id = \App\Models\User::find(auth()->id())->team_id;
         $manPower->user_id = auth()->user()->id; // Asignar el ID del usuario autenticado
         // Obtener el season_id desde la sesión (o del request si lo prefieres)

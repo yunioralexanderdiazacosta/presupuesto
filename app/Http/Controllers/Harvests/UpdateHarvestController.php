@@ -20,6 +20,7 @@ class UpdateHarvestController extends Controller
         $harvest->unit_id_price= $request->unit_id_price;
         $harvest->observations = $request->observations;
         $harvest->subfamily_id = $request->subfamily_id;
+        $harvest->operation_id = $request->operation_id;
         $harvest->unit_id      = $request->unit_id;
         $harvest->quantity     = $request->quantity;
         $harvest->team_id = \App\Models\User::find(auth()->id())->team_id;

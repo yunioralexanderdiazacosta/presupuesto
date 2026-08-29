@@ -11,6 +11,7 @@ use App\Models\Level2;
 use App\Models\Level3;
 use App\Models\Unit;
 use App\Models\CostCenter;
+use App\Models\Operation;
 use Inertia\Inertia;
 use Illuminate\Support\Facades\Log;
 
@@ -243,6 +244,9 @@ class FieldsController extends Controller
             ];
         });
 
+        $operations = Operation::get()->map(fn($o) => ['label' => $o->name, 'value' => $o->id]);
+        $defaultOperationId = Operation::whereRaw('LOWER(name) LIKE ?', ['%gasto%'])->value('id');
+
 
         $months = array();
         $currentMonth = $this->month_id;
@@ -259,7 +263,7 @@ class FieldsController extends Controller
 
 
 
-        $fieldsCollection = Field::with(['subfamily:id,name', 'unit:id,name', 'items', 'user:id,name'])
+        $fieldsCollection = Field::with(['subfamily:id,name', 'unit:id,name', 'operation:id,name', 'items', 'user:id,name'])
             ->where('team_id', $team_id)
             ->where('season_id', $season_id)
             ->when($branchId, fn($q) => $q->where('branch_id', $branchId))
@@ -274,8 +278,10 @@ class FieldsController extends Controller
                     'price'         => $field->price,
                     'observations'  => $field->observations,
                     'branch_id'     => $field->branch_id,
+                    'operation_id'  => $field->operation_id,
                     'subfamily'     => $field->subfamily,
                     'unit'          => $field->unit,
+                    'operation'     => $field->operation,
                     'user'          => $field->user ? ['name' => $field->user->name] : null,
                     'months'        => $field->items->pluck('month_id')->map(fn($m) => (string)$m)->unique()->values()->toArray(),
                 ];
@@ -344,7 +350,9 @@ class FieldsController extends Controller
             'team_id',
             'season_id',
             'percentageField',
-            'branches'
+            'branches',
+            'operations',
+            'defaultOperationId'
         ) + ['selectedBranchId' => $branchId]);
     }
 

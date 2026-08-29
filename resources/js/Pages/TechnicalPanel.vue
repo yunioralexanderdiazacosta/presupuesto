@@ -18,7 +18,8 @@ const formatNumber = (value) => {
   return value.toLocaleString('es-CL', { maximumFractionDigits: 0 });
 };
 
-// Suma de las 6 categorías para una fila (especie + estado de desarrollo) de la tabla Estado de Desarrollo
+// Suma de las 6 categorías + Administración + Generales Campo (prorrateados por superficie) para
+// una fila (especie + estado de desarrollo) de la tabla Estado de Desarrollo
 function devStateRowTotal(fruitId, devStateId) {
   return (
     Number(props.agrochemicalByDevState?.[fruitId]?.[devStateId] ?? 0) +
@@ -26,17 +27,36 @@ function devStateRowTotal(fruitId, devStateId) {
     Number(props.manPowerByDevState?.[String(fruitId)]?.[String(devStateId)] ?? 0) +
     Number(props.servicesByDevState?.[String(fruitId)]?.[String(devStateId)] ?? 0) +
     Number(props.suppliesByDevState?.[String(fruitId)]?.[String(devStateId)] ?? 0) +
-    Number(props.harvestsByDevState?.[String(fruitId)]?.[String(devStateId)] ?? 0)
+    Number(props.harvestsByDevState?.[String(fruitId)]?.[String(devStateId)] ?? 0) +
+    Number(props.administrationByDevState?.[fruitId]?.[devStateId] ?? 0) +
+    Number(props.fieldsByDevState?.[fruitId]?.[devStateId] ?? 0)
   );
 }
 
-function devStateFruitTotal(fruitId, devStatesObj) {
-  return Object.keys(devStatesObj).reduce((sum, devStateId) => sum + devStateRowTotal(fruitId, devStateId), 0);
+// Une las claves fruitId/devStateId presentes en CUALQUIERA de los 6 módulos.
+// Necesario porque cada módulo puede tener estados de desarrollo distintos (p.ej. al filtrar por
+// Inversión los datos quedan más dispersos), y anclar las filas a un solo módulo dejaba montos
+// de otros módulos fuera de las filas visibles, aunque sí se sumaran en los subtotales de columna.
+function buildDevStateUnion(...sources) {
+  const map = {};
+  sources.forEach(src => {
+    Object.entries(src || {}).forEach(([fruitId, devStatesObj]) => {
+      if (!map[fruitId]) map[fruitId] = new Set();
+      Object.keys(devStatesObj || {}).forEach(devStateId => map[fruitId].add(devStateId));
+    });
+  });
+  const result = {};
+  Object.keys(map).forEach(fruitId => { result[fruitId] = Array.from(map[fruitId]); });
+  return result;
+}
+
+function devStateFruitTotal(fruitId, devStateIds) {
+  return devStateIds.reduce((sum, devStateId) => sum + devStateRowTotal(fruitId, devStateId), 0);
 }
 
 function devStateGrandTotal() {
-  return Object.entries(props.agrochemicalByDevState || {}).reduce((sum, [fruitId, devStatesObj]) => {
-    return sum + Object.keys(devStatesObj).reduce((s, devStateId) => s + devStateRowTotal(fruitId, devStateId), 0);
+  return Object.entries(devStateUnion.value).reduce((sum, [fruitId, devStateIds]) => {
+    return sum + devStateIds.reduce((s, devStateId) => s + devStateRowTotal(fruitId, devStateId), 0);
   }, 0);
 }
 
@@ -54,8 +74,8 @@ function hectareRowTotal(fruitId, devStateId) {
   );
 }
 
-function hectareFruitSubtotal(fruitId, devStatesObj) {
-  return Object.keys(devStatesObj).reduce((sum, devStateId) => sum + hectareRowTotal(fruitId, devStateId), 0);
+function hectareFruitSubtotal(fruitId, devStateIds) {
+  return devStateIds.reduce((sum, devStateId) => sum + hectareRowTotal(fruitId, devStateId), 0);
 }
 
 
@@ -92,6 +112,8 @@ const props = defineProps({
   servicesByDevState: Object, // <-- agregar
   harvestsByDevState: Object, // <-- agregar
   suppliesByDevState: Object, // <-- agregar
+  administrationByDevState: Object,
+  fieldsByDevState: Object,
   agrochemicalExpensePerHectare: Object,
   fertilizerExpensePerHectare: Object,
   manPowerExpensePerHectare: Object, // <-- agregar
@@ -111,13 +133,47 @@ const props = defineProps({
   totalInvestments: Number, // <-- total inversiones
   branches: { type: Array, default: () => [] },
   selectedBranchId: { type: Number, default: null },
+  selectedOperations: { type: Array, default: () => ['gasto'] },
 });
 
 const selectedBranch = ref(props.selectedBranchId ?? '');
+const selectedOperations = ref(Array.isArray(props.selectedOperations) && props.selectedOperations.length ? [...props.selectedOperations] : ['gasto']);
 
-watch(selectedBranch, (val) => {
-  router.get('/technicalpanel', { branch_id: val || '' }, { preserveState: false, replace: true });
-});
+// Solo se ve pura Inversión cuando es la única operación seleccionada (afecta fila "Inversiones" comparativa)
+const isInversionOnly = computed(() => selectedOperations.value.length === 1 && selectedOperations.value[0] === 'inversion');
+
+// La fila "Inversiones (referencial)" solo aporta información cuando se están viendo AMBAS operaciones
+// combinadas (muestra qué porción del total combinado es Inversión). Si el filtro es solo Gasto o solo
+// Inversión, esa fila es redundante y solo genera confusión, así que se oculta.
+const showInvestmentReference = computed(() => selectedOperations.value.length > 1);
+
+function toggleOperation(op) {
+  const idx = selectedOperations.value.indexOf(op);
+  if (idx === -1) {
+    selectedOperations.value = [...selectedOperations.value, op];
+  } else if (selectedOperations.value.length > 1) {
+    selectedOperations.value = selectedOperations.value.filter(o => o !== op);
+  }
+}
+
+// Unión de fruitId/devStateId de los 6 módulos, para no perder filas cuyo único dato
+// esté en un módulo distinto de Agroquímicos (ver buildDevStateUnion).
+const devStateUnion = computed(() => buildDevStateUnion(
+  props.agrochemicalByDevState, props.fertilizerByDevState, props.manPowerByDevState,
+  props.servicesByDevState, props.suppliesByDevState, props.harvestsByDevState,
+  props.administrationByDevState, props.fieldsByDevState
+));
+const hectareUnion = computed(() => buildDevStateUnion(
+  props.agrochemicalExpensePerHectare, props.fertilizerExpensePerHectare, props.manPowerExpensePerHectare,
+  props.servicesExpensePerHectare, props.suppliesExpensePerHectare, props.harvestsExpensePerHectare
+));
+
+function applyFilters() {
+  router.get('/technicalpanel', { branch_id: selectedBranch.value || '', operation: selectedOperations.value.join(',') }, { preserveState: false, replace: true });
+}
+
+watch(selectedBranch, applyFilters);
+watch(selectedOperations, applyFilters);
 
 
 
@@ -208,20 +264,31 @@ function groupTotalsByLevelAndFruit() {
       <!-- Switch para activar/desactivar la división y divisor slider/input -->
 <div class="row mb-2">
   <div class="col-12">
-    <div class="d-flex flex-wrap align-items-center gap-3">
-      <div class="d-flex align-items-center gap-2">
-        <label class="form-label mb-0 small fw-semibold" style="white-space:nowrap;">Sucursal:</label>
+    <div class="d-flex flex-wrap align-items-end gap-3">
+      <div>
+        <small class="text-muted text-uppercase d-block mb-1">Sucursal</small>
         <select v-model="selectedBranch" class="form-select form-select-sm" style="min-width:260px;max-width:340px;">
           <option value="">Todas</option>
           <option v-for="branch in branches" :key="branch.value" :value="branch.value">{{ branch.label }}</option>
         </select>
       </div>
-      <div class="form-check form-switch d-flex align-items-center mb-0 me-4">
+      <div>
+        <small class="text-muted text-uppercase d-block mb-1">Operación</small>
+        <div class="segmented-control">
+          <button type="button" class="segmented-option" :class="{ active: selectedOperations.includes('gasto') }" @click="toggleOperation('gasto')">
+            <i class="fas fa-money-bill-wave me-1"></i>Gasto
+          </button>
+          <button type="button" class="segmented-option" :class="{ active: selectedOperations.includes('inversion') }" @click="toggleOperation('inversion')">
+            <i class="fas fa-chart-line me-1"></i>Inversión
+          </button>
+        </div>
+      </div>
+      <div class="form-check form-switch d-flex align-items-center mb-1 me-4">
         <input class="form-check-input" type="checkbox" id="dividir-switch" v-model="dividir">
         <label class="form-check-label ms-2 mb-0" for="dividir-switch">ver en Usd</label>
       </div>
       <template v-if="dividir">
-        <div class="d-flex align-items-center flex-grow-1 ms-4" style="min-width:220px;">
+        <div class="d-flex align-items-center flex-grow-1 ms-4 mb-1" style="min-width:220px;">
           <label for="divisor-slider" class="form-label mb-0 me-2">Divisor:</label>
           <input id="divisor-slider" type="range" class="form-range flex-grow-1" v-model.number="divisor" :min="divisorMin" :max="divisorMax" :step="1" style="max-width:250px;" />
           <span class="text-muted small ms-2"><b>{{ divisor }} CLP</b> ({{divisorMin}}-{{divisorMax}}) </span>
@@ -259,13 +326,15 @@ function groupTotalsByLevelAndFruit() {
                       <th class="text-center text-uppercase text-secondary small fw-bold small">Servicios</th>
                       <th class="text-center text-uppercase text-secondary small fw-bold small">Insumos</th>
                        <th class="text-center text-uppercase text-secondary small fw-bold small">Cosecha</th>
+                       <th class="text-center text-uppercase text-secondary small fw-bold small">Administración</th>
+                       <th class="text-center text-uppercase text-secondary small fw-bold small">Generales Campo</th>
                       <!-- Puedes agregar más columnas aquí si lo deseas -->
                     </tr>
                   </thead>
                   <tbody>
-                    <template v-for="(devStatesObj, fruitId) in agrochemicalByDevState" :key="fruitId">
-                      <tr v-for="(amount, devStateId, idx) in devStatesObj" :key="fruitId + '-' + devStateId">
-                        <td v-if="idx === 0" :rowspan="Object.keys(devStatesObj).length" class="align-top small">
+                    <template v-for="(devStateIds, fruitId) in devStateUnion" :key="fruitId">
+                      <tr v-for="(devStateId, idx) in devStateIds" :key="fruitId + '-' + devStateId">
+                        <td v-if="idx === 0" :rowspan="devStateIds.length" class="align-top small">
                           {{ $props.fruitsMap?.[String(fruitId)] || 'Sin especie' }}
                         </td>
                         <td class="small">{{ devStates[devStateId]?.name || 'Sin estado' }}</td>
@@ -273,7 +342,7 @@ function groupTotalsByLevelAndFruit() {
                           {{ formatNumber(dividir && divisor ? (devStateRowTotal(fruitId, devStateId) / divisor) : devStateRowTotal(fruitId, devStateId)) }}
                         </td>
                         <td class="text-center text-end text-primary fw-bold small">
-                          {{ formatNumber(dividir && divisor ? (Number(amount || 0) / divisor) : Number(amount || 0)) }}
+                          {{ formatNumber(dividir && divisor ? (Number(agrochemicalByDevState?.[fruitId]?.[devStateId] ?? 0) / divisor) : Number(agrochemicalByDevState?.[fruitId]?.[devStateId] ?? 0)) }}
                         </td>
                         <td class="text-center text-end text-primary fw-bold small">
                           {{ formatNumber(dividir && divisor ? (Number(fertilizerByDevState?.[fruitId]?.[devStateId] ?? 0) / divisor) : Number(fertilizerByDevState?.[fruitId]?.[devStateId] ?? 0)) }}
@@ -290,16 +359,22 @@ function groupTotalsByLevelAndFruit() {
                         <td class="text-center text-end text-primary fw-bold small">
                           {{ formatNumber(dividir && divisor ? (Number(harvestsByDevState?.[String(fruitId)]?.[String(devStateId)] ?? 0) / divisor) : Number(harvestsByDevState?.[String(fruitId)]?.[String(devStateId)] ?? 0)) }}
                         </td>
+                        <td class="text-center text-end text-primary fw-bold small">
+                          {{ formatNumber(dividir && divisor ? (Number(administrationByDevState?.[fruitId]?.[devStateId] ?? 0) / divisor) : Number(administrationByDevState?.[fruitId]?.[devStateId] ?? 0)) }}
+                        </td>
+                        <td class="text-center text-end text-primary fw-bold small">
+                          {{ formatNumber(dividir && divisor ? (Number(fieldsByDevState?.[fruitId]?.[devStateId] ?? 0) / divisor) : Number(fieldsByDevState?.[fruitId]?.[devStateId] ?? 0)) }}
+                        </td>
                         <!-- Puedes agregar más columnas aquí si lo deseas -->
                       </tr>
                       <!-- Subtotal por especie -->
                       <tr class="table-secondary small" style="font-size:0.8em;">
                         <td colspan="2" class="text-end">Subtotal {{ $props.fruitsMap?.[String(fruitId)] || 'Sin especie' }}</td>
                         <td class="text-center text-end fw-bold">
-                          {{ formatNumber(dividir && divisor ? (devStateFruitTotal(fruitId, devStatesObj) / divisor) : devStateFruitTotal(fruitId, devStatesObj)) }}
+                          {{ formatNumber(dividir && divisor ? (devStateFruitTotal(fruitId, devStateIds) / divisor) : devStateFruitTotal(fruitId, devStateIds)) }}
                         </td>
                         <td class="text-center text-end">
-                          {{ formatNumber(dividir && divisor ? (Object.values(devStatesObj).reduce((sum, val) => sum + Number(val || 0), 0) / divisor) : Object.values(devStatesObj).reduce((sum, val) => sum + Number(val || 0), 0)) }}
+                          {{ formatNumber(dividir && divisor ? (Object.values(agrochemicalByDevState?.[fruitId] || {}).reduce((sum, val) => sum + Number(val || 0), 0) / divisor) : Object.values(agrochemicalByDevState?.[fruitId] || {}).reduce((sum, val) => sum + Number(val || 0), 0)) }}
                         </td>
                         <td class="text-center text-end">
                           {{ formatNumber(dividir && divisor ? (Object.values(fertilizerByDevState?.[fruitId] || {}).reduce((sum, val) => sum + Number(val || 0), 0) / divisor) : Object.values(fertilizerByDevState?.[fruitId] || {}).reduce((sum, val) => sum + Number(val || 0), 0)) }}
@@ -315,6 +390,12 @@ function groupTotalsByLevelAndFruit() {
                         </td>
                         <td class="text-center text-end">
                           {{ formatNumber(dividir && divisor ? (Object.values(harvestsByDevState?.[String(fruitId)] || {}).reduce((sum, val) => sum + Number(val || 0), 0) / divisor) : Object.values(harvestsByDevState?.[String(fruitId)] || {}).reduce((sum, val) => sum + Number(val || 0), 0)) }}
+                        </td>
+                        <td class="text-center text-end">
+                          {{ formatNumber(dividir && divisor ? (Object.values(administrationByDevState?.[fruitId] || {}).reduce((sum, val) => sum + Number(val || 0), 0) / divisor) : Object.values(administrationByDevState?.[fruitId] || {}).reduce((sum, val) => sum + Number(val || 0), 0)) }}
+                        </td>
+                        <td class="text-center text-end">
+                          {{ formatNumber(dividir && divisor ? (Object.values(fieldsByDevState?.[fruitId] || {}).reduce((sum, val) => sum + Number(val || 0), 0) / divisor) : Object.values(fieldsByDevState?.[fruitId] || {}).reduce((sum, val) => sum + Number(val || 0), 0)) }}
                         </td>
                       </tr>
                     </template>
@@ -342,6 +423,12 @@ function groupTotalsByLevelAndFruit() {
                       </td>
                       <td class="text-center text-end fw-bold small text-white">
                         {{ formatNumber(dividir && divisor ? (Object.values(harvestsByDevState).reduce((sum, devStatesObj) => sum + Object.values(devStatesObj).reduce((s, v) => s + Number(v || 0), 0), 0) / divisor) : Object.values(harvestsByDevState).reduce((sum, devStatesObj) => sum + Object.values(devStatesObj).reduce((s, v) => s + Number(v || 0), 0), 0)) }}
+                      </td>
+                      <td class="text-center text-end fw-bold small text-white">
+                        {{ formatNumber(dividir && divisor ? (Object.values(administrationByDevState || {}).reduce((sum, devStatesObj) => sum + Object.values(devStatesObj).reduce((s, v) => s + Number(v || 0), 0), 0) / divisor) : Object.values(administrationByDevState || {}).reduce((sum, devStatesObj) => sum + Object.values(devStatesObj).reduce((s, v) => s + Number(v || 0), 0), 0)) }}
+                      </td>
+                      <td class="text-center text-end fw-bold small text-white">
+                        {{ formatNumber(dividir && divisor ? (Object.values(fieldsByDevState || {}).reduce((sum, devStatesObj) => sum + Object.values(devStatesObj).reduce((s, v) => s + Number(v || 0), 0), 0) / divisor) : Object.values(fieldsByDevState || {}).reduce((sum, devStatesObj) => sum + Object.values(devStatesObj).reduce((s, v) => s + Number(v || 0), 0), 0)) }}
                       </td>
                     </tr>
                   </tfoot>
@@ -384,16 +471,16 @@ function groupTotalsByLevelAndFruit() {
                     </tr>
                   </thead>
                   <tbody>
-                    <template v-for="(devStatesObj, fruitId) in agrochemicalExpensePerHectare" :key="'hect-fruit-' + fruitId">
-                      <tr v-for="(amount, devStateId, idx) in devStatesObj" :key="'hect-' + fruitId + '-' + devStateId" class="border-bottom">
-                        <td v-if="idx === 0" :rowspan="Object.keys(devStatesObj).length" class="align-top small">
+                    <template v-for="(devStateIds, fruitId) in hectareUnion" :key="'hect-fruit-' + fruitId">
+                      <tr v-for="(devStateId, idx) in devStateIds" :key="'hect-' + fruitId + '-' + devStateId" class="border-bottom">
+                        <td v-if="idx === 0" :rowspan="devStateIds.length" class="align-top small">
                           {{ $props.fruitsMap?.[String(fruitId)] || 'Sin especie' }}
                         </td>
                         <td class="text-start fw-semibold small">{{ devStates[devStateId]?.name || 'Sin estado' }}</td>
                         <td class="text-center text-black fw-bold small">
                           {{ formatNumber(dividir && divisor ? (hectareRowTotal(fruitId, devStateId) / divisor) : hectareRowTotal(fruitId, devStateId)) }}
                         </td>
-                        <td class="text-center text-small text-warning fw-bold small">{{ formatNumber(dividir && divisor ? (Number(amount || 0) / divisor) : Number(amount || 0)) }}</td>
+                        <td class="text-center text-small text-warning fw-bold small">{{ formatNumber(dividir && divisor ? (Number(agrochemicalExpensePerHectare?.[fruitId]?.[devStateId] ?? 0) / divisor) : Number(agrochemicalExpensePerHectare?.[fruitId]?.[devStateId] ?? 0)) }}</td>
                        
                         <td class="text-center text-small text-warning fw-bold small">{{ formatNumber(dividir && divisor ? (Number(fertilizerExpensePerHectare?.[String(fruitId)]?.[String(devStateId)] ?? 0) / divisor) : Number(fertilizerExpensePerHectare?.[String(fruitId)]?.[String(devStateId)] ?? 0)) }}</td>
                         <td class="text-center text-small text-warning fw-bold small">{{ formatNumber(dividir && divisor ? (Number(manPowerExpensePerHectare?.[String(fruitId)]?.[String(devStateId)] ?? 0) / divisor) : Number(manPowerExpensePerHectare?.[String(fruitId)]?.[String(devStateId)] ?? 0)) }}</td>
@@ -415,10 +502,10 @@ function groupTotalsByLevelAndFruit() {
                       <tr class="table-secondary small" style="font-size:0.8em;">
                         <td colspan="2" class="text-end">Subtotal {{ $props.fruitsMap?.[String(fruitId)] || 'Sin especie' }}</td>
                         <td class="text-center text-end fw-bold">
-                          {{ formatNumber(dividir && divisor ? (hectareFruitSubtotal(fruitId, devStatesObj) / divisor) : hectareFruitSubtotal(fruitId, devStatesObj)) }}
+                          {{ formatNumber(dividir && divisor ? (hectareFruitSubtotal(fruitId, devStateIds) / divisor) : hectareFruitSubtotal(fruitId, devStateIds)) }}
                         </td>
                         <td class="text-center text-end">
-                          {{ formatNumber(dividir && divisor ? (Object.values(devStatesObj).reduce((sum, val) => sum + Number(val || 0), 0) / divisor) : Object.values(devStatesObj).reduce((sum, val) => sum + Number(val || 0), 0)) }}
+                          {{ formatNumber(dividir && divisor ? (Object.values(agrochemicalExpensePerHectare?.[fruitId] || {}).reduce((sum, val) => sum + Number(val || 0), 0) / divisor) : Object.values(agrochemicalExpensePerHectare?.[fruitId] || {}).reduce((sum, val) => sum + Number(val || 0), 0)) }}
                         </td>
                         <td class="text-center text-end">
                           {{ formatNumber(dividir && divisor ? (Object.values(fertilizerExpensePerHectare?.[String(fruitId)] || {}).reduce((sum, val) => sum + Number(val || 0), 0) / divisor) : Object.values(fertilizerExpensePerHectare?.[String(fruitId)] || {}).reduce((sum, val) => sum + Number(val || 0), 0)) }}
@@ -436,10 +523,10 @@ function groupTotalsByLevelAndFruit() {
                           {{ formatNumber(dividir && divisor ? (Object.values(harvestsExpensePerHectare?.[String(fruitId)] || {}).reduce((sum, val) => sum + Number(val || 0), 0) / divisor) : Object.values(harvestsExpensePerHectare?.[String(fruitId)] || {}).reduce((sum, val) => sum + Number(val || 0), 0)) }}
                         </td>
                         <td class="text-center text-end">
-                          {{ formatNumber(dividir && divisor ? ((Object.keys(devStatesObj).length * (totalFieldsCalc / (totalSurface || 1))) / divisor) : (Object.keys(devStatesObj).length * (totalFieldsCalc / (totalSurface || 1)))) }}
+                          {{ formatNumber(dividir && divisor ? ((devStateIds.length * (totalFieldsCalc / (totalSurface || 1))) / divisor) : (devStateIds.length * (totalFieldsCalc / (totalSurface || 1)))) }}
                         </td>
                         <td class="text-center text-end">
-                          {{ formatNumber(dividir && divisor ? ((Object.keys(devStatesObj).length * (totalAdministrationCalc / (totalSurface || 1))) / divisor) : (Object.keys(devStatesObj).length * (totalAdministrationCalc / (totalSurface || 1)))) }}
+                          {{ formatNumber(dividir && divisor ? ((devStateIds.length * (totalAdministrationCalc / (totalSurface || 1))) / divisor) : (devStateIds.length * (totalAdministrationCalc / (totalSurface || 1)))) }}
                         </td>
                       </tr>
                     </template>
@@ -622,7 +709,7 @@ function groupTotalsByLevelAndFruit() {
                     </tr>
 
                       <tr class="table-warning">
-                      <td class="fw-bold text-end small">Subtotal Presupuesto</td>
+                      <td class="fw-bold text-end small">{{ isInversionOnly ? 'Subtotal Inversión' : 'Subtotal Presupuesto' }}</td>
                       <td class="fw-bold text-end small text-primary">
                         {{ formatNumber(
                           dividir && divisor
@@ -643,8 +730,9 @@ function groupTotalsByLevelAndFruit() {
                       </td>
                     </tr>
 
+                     <template v-if="showInvestmentReference">
                      <tr>
-                      <td class="fw-semibold small">Inversiones</td>
+                      <td class="fw-semibold small">Inversiones <span class="text-muted fw-normal">(referencial)</span></td>
                       <td class="text-end text-primary fw-bold small">
                         {{ formatNumber(dividir && divisor ? Object.values(monthsInvestments || {}).reduce((sum, v) => sum + (v || 0), 0) / divisor : Object.values(monthsInvestments || {}).reduce((sum, v) => sum + (v || 0), 0)) }}
                       </td>
@@ -653,9 +741,9 @@ function groupTotalsByLevelAndFruit() {
                       </td>
                     </tr>
 
-                    <!-- Subtotal inversiones -->
+                    <!-- Subtotal inversiones: solo referencia, no se incluye en el Total General -->
                     <tr class="table-warning">
-                      <td class="fw-bold text-end small">Subtotal Inversiones</td>
+                      <td class="fw-bold text-end small">Subtotal Inversiones <span class="fw-normal">(referencial, no incluido en el Total General)</span></td>
                       <td class="fw-bold text-end small text-primary">
                         {{ formatNumber(dividir && divisor ? Object.values(monthsInvestments || {}).reduce((sum, v) => sum + (v || 0), 0) / divisor : Object.values(monthsInvestments || {}).reduce((sum, v) => sum + (v || 0), 0)) }}
                       </td>
@@ -667,29 +755,30 @@ function groupTotalsByLevelAndFruit() {
 
                       
 
-                    <!-- Subtotal resto (ya existe, solo renombrar si se desea) -->
-                    <!-- Gran total (inversiones + resto) -->
+                    <!-- Total General: solo se muestra junto con la referencia de Inversión (ambas operaciones
+                         seleccionadas); si no, "Subtotal Presupuesto"/"Subtotal Inversión" ya es el total final. -->
                     <tr class="table-success">
                       <td class="fw-bold text-end small">Total General</td>
                       <td class="fw-bold text-end small text-primary">
                         {{ formatNumber(
                           dividir && divisor
-                            ? ([monthsAdministration, monthsFields, monthsAgrochemical, monthsFertilizer, monthsManPower, monthsSupplies, monthsServices, monthsHarvests, monthsInvestments]
+                            ? ([monthsAdministration, monthsFields, monthsAgrochemical, monthsFertilizer, monthsManPower, monthsSupplies, monthsServices, monthsHarvests]
                                 .reduce((sum, obj) => sum + Object.values(obj || {}).reduce((s, v) => s + (v || 0), 0), 0) / divisor)
-                            : ([monthsAdministration, monthsFields, monthsAgrochemical, monthsFertilizer, monthsManPower, monthsSupplies, monthsServices, monthsHarvests, monthsInvestments]
+                            : ([monthsAdministration, monthsFields, monthsAgrochemical, monthsFertilizer, monthsManPower, monthsSupplies, monthsServices, monthsHarvests]
                                 .reduce((sum, obj) => sum + Object.values(obj || {}).reduce((s, v) => s + (v || 0), 0), 0))
                         ) }}
                       </td>
                       <td class="fw-bold text-end small" v-for="value in months">
                         {{ formatNumber(
                           dividir && divisor
-                            ? ([monthsAdministration, monthsFields, monthsAgrochemical, monthsFertilizer, monthsManPower, monthsSupplies, monthsServices, monthsHarvests, monthsInvestments]
+                            ? ([monthsAdministration, monthsFields, monthsAgrochemical, monthsFertilizer, monthsManPower, monthsSupplies, monthsServices, monthsHarvests]
                                 .reduce((sum, obj) => sum + (obj && obj[value.value] ? obj[value.value] : 0), 0) / divisor)
-                            : ([monthsAdministration, monthsFields, monthsAgrochemical, monthsFertilizer, monthsManPower, monthsSupplies, monthsServices, monthsHarvests, monthsInvestments]
+                            : ([monthsAdministration, monthsFields, monthsAgrochemical, monthsFertilizer, monthsManPower, monthsSupplies, monthsServices, monthsHarvests]
                                 .reduce((sum, obj) => sum + (obj && obj[value.value] ? obj[value.value] : 0), 0))
                         ) }}
                       </td>
                     </tr>
+                    </template>
 
                     <!-- ...existing code... -->
                   </tbody>
@@ -710,5 +799,37 @@ function groupTotalsByLevelAndFruit() {
 <style scoped>
 :deep(.table) {
   font-size: 0.9rem;
+}
+.segmented-control {
+    display: inline-flex;
+    background: var(--bs-tertiary-bg, #edf2f9);
+    border: 1px solid var(--bs-border-color, #e3e6ed);
+    border-radius: 0.5rem;
+    padding: 3px;
+    gap: 2px;
+}
+.segmented-option {
+    display: inline-flex;
+    align-items: center;
+    border: none;
+    background: transparent;
+    padding: 0.3rem 0.7rem;
+    font-size: 0.78rem;
+    font-weight: 500;
+    line-height: 1;
+    color: var(--bs-secondary-color, #6c757d);
+    border-radius: 0.4rem;
+    white-space: nowrap;
+    transition: background-color 0.15s ease, color 0.15s ease, box-shadow 0.15s ease;
+}
+.segmented-option:hover:not(.active) {
+    color: var(--bs-emphasis-color, #212529);
+    background: rgba(0, 0, 0, 0.06);
+}
+.segmented-option.active {
+    background: var(--bs-body-bg, #fff);
+    color: var(--bs-primary, #2c7be5);
+    font-weight: 600;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.15);
 }
 </style>

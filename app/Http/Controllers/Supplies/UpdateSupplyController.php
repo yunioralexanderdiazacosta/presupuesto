@@ -19,6 +19,7 @@ class UpdateSupplyController extends Controller
         $supply->unit_id_price= $request->unit_id_price;
         $supply->observations = $request->observations;
         $supply->subfamily_id = $request->subfamily_id;
+        $supply->operation_id = $request->operation_id;
         $supply->unit_id      = $request->unit_id;
         $supply->quantity     = $request->quantity;
         $supply->team_id = \App\Models\User::find(auth()->id())->team_id;

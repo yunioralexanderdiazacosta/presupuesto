@@ -9,7 +9,7 @@ class Agrochemical extends Model
 {
     use HasFactory;
 
-    protected $fillable = ['product_name', 'price', 'dose', 'observations', 'mojamiento', 'unit_id', 'unit_id_price', 'subfamily_id', 'dose_type_id', 'team_id','season_id', 'user_id'];
+    protected $fillable = ['product_name', 'price', 'dose', 'observations', 'mojamiento', 'unit_id', 'unit_id_price', 'subfamily_id', 'operation_id', 'dose_type_id', 'team_id','season_id', 'user_id'];
 
     public function items()
     {
@@ -19,6 +19,11 @@ class Agrochemical extends Model
     public function subfamily()
     {
         return $this->belongsTo(Level3::class, 'subfamily_id');
+    }
+
+    public function operation()
+    {
+        return $this->belongsTo(Operation::class);
     }
 
     public function unit()

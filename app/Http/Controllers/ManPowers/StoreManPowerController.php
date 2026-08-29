@@ -30,6 +30,7 @@ class StoreManPowerController extends Controller
                 'price'         => $product['price'],
                 'observations'  => $product['observations'],
                 'subfamily_id'  => $request->subfamily_id,
+                'operation_id'  => $request->operation_id,
                 'team_id'       => $user->team_id,
                  'season_id' => $season_id, // la temporada activa o seleccionada
                 'unit_id'       => $unit->id,

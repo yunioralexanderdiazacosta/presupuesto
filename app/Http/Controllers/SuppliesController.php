@@ -18,6 +18,7 @@ use App\Models\ManPower;
 use App\Models\Agrochemical;
 use App\Models\DoseType;
 use App\Models\CompanyReason;
+use App\Models\Operation;
 use Inertia\Inertia;
 use App\Http\Controllers\Traits\BudgetTotalsTrait;
 
@@ -181,7 +182,14 @@ class SuppliesController extends Controller
             ->map(fn($b) => ['value' => $b->id, 'label' => $b->name])
             ->values();
 
-        $suppliesCollection = Supply::with('subfamily:id,name', 'unit:id,name', 'unit2:id,name', 'items:id', 'user:id,name')
+        $operations = Operation::orderBy('name')->get(['id', 'name'])->map(fn($o) => [
+            'label' => $o->name,
+            'value' => $o->id,
+        ]);
+        // Operación pre-cargada por defecto en el formulario de creación
+        $defaultOperationId = Operation::whereRaw('LOWER(name) LIKE ?', ['%gasto%'])->value('id');
+
+        $suppliesCollection = Supply::with('subfamily:id,name', 'unit:id,name', 'unit2:id,name', 'items:id', 'user:id,name', 'operation:id,name')
             ->whereHas('items', function($query) use ($costCenters){
                 $query->whereIn('cost_center_id', $costCenters->pluck('value'));
             })
@@ -196,10 +204,12 @@ class SuppliesController extends Controller
                     'product_name'  => $supply->product_name,
                     'quantity'      => $supply->quantity,
                     'subfamily_id'  => $supply->subfamily_id,
+                    'operation_id'  => $supply->operation_id,
                     'unit_id'       => $supply->unit_id,
                     'unit_id_price' => $supply->unit_id_price,
                     'observations'  => $supply->observations,
                     'subfamily'     => $supply->subfamily,
+                    'operation'     => $supply->operation,
                     'unit'          => $supply->unit,
                     'unit2'         => $supply->unit2,
                     'price'         => $supply->price,
@@ -339,6 +349,8 @@ class SuppliesController extends Controller
             'varieties' => $varieties,
             'fruits' => $fruits,
             'groupings' => $groupings,
+            'operations' => $operations,
+            'defaultOperationId' => $defaultOperationId,
         ]);
     }
 

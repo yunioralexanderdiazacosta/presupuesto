@@ -21,6 +21,7 @@ class UpdateAgrochemicalController extends Controller
         $agrochemical->mojamiento   = $request->mojamiento;
         $agrochemical->observations = $request->observations;
         $agrochemical->subfamily_id = $request->subfamily_id;
+        $agrochemical->operation_id = $request->operation_id;
         $agrochemical->unit_id      = $request->unit_id;
         $agrochemical->dose_type_id = $request->dose_type_id;
         $agrochemical->team_id = \App\Models\User::find(auth()->id())->team_id;

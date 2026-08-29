@@ -25,6 +25,7 @@ class StoreManPowerRequest extends FormRequest
             //
             'cc' => 'required',
             'subfamily_id' => 'required',
+            'operation_id' => 'required|exists:operations,id',
             'products.*.product_name' => 'required',
             'products.*.workday' => 'required',
             'products.*.price' => 'required'

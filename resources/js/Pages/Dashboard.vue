@@ -108,9 +108,6 @@ watch(selectedBranch, (val) => {
   router.get('/dashboard', { branch_id: val || '' }, { preserveState: false, replace: true });
 });
 
-// Select de estimación (global, aún usado por el KPI por Frutal/Estado)
-const selectedEstimateStatusId = ref(props.defaultEstimateStatusId);
-
 // Reorganiza kilosByEstimate ({statusId: {fruitId: kilos}}) a {fruitId: {statusId: kilos}}
 // Cada estado de estimación pertenece a una sola fruta, por eso hay que agrupar por fruta
 // para poder mostrar TODAS las frutas con datos al mismo tiempo.
@@ -528,8 +525,8 @@ const summaryGrandTotal = computed(() => {
   return summaryByLevel12.value.reduce((sum, g) => sum + g.total, 0);
 });
 
-// Control expand/collapse para tabla resumen
-const expandedBudgetGroups = ref(new Set(summaryByLevel12.value.map((_, i) => 'bg-' + i)));
+// Control expand/collapse para tabla resumen (colapsada por defecto)
+const expandedBudgetGroups = ref(new Set());
 
 const toggleBudgetGroup = (key) => {
   if (expandedBudgetGroups.value.has(key)) {
@@ -599,8 +596,8 @@ const summaryByCategory = computed(() => {
     }));
 });
 
-// Control expand/collapse para tabla por categoría
-const expandedCategoryGroups = ref(new Set(summaryByCategory.value.map((_, i) => 'cat-' + i)));
+// Control expand/collapse para tabla por categoría (colapsada por defecto)
+const expandedCategoryGroups = ref(new Set());
 
 const toggleCategoryGroup = (key) => {
   if (expandedCategoryGroups.value.has(key)) {
@@ -626,14 +623,18 @@ const normalizeLabel = (value) => String(value || '')
   .trim();
 
 const summaryByFruitDevState = computed(() => {
-  const activeKilosMatrix = selectedEstimateStatusId.value && props.kilosByEstimateFruitDevState?.[selectedEstimateStatusId.value]
-    ? props.kilosByEstimateFruitDevState[selectedEstimateStatusId.value]
-    : {};
   const d = (dividir.value && divisor.value) ? divisor.value : 1;
 
   return (props.fruitDevStateSummary || []).map(row => {
     const fruitId = String(row.fruit_id);
     const devStateId = String(row.development_state_id);
+    // Cada frutal tiene su propia estimación más reciente (los estimate_status_id son por frutal,
+    // no un correlativo global): usar un solo status global aquí dejaba en 0 los frutales cuyo
+    // último status tuviera un id menor al de otro frutal.
+    const statusId = defaultStatusByFruit.value[fruitId];
+    const activeKilosMatrix = statusId && props.kilosByEstimateFruitDevState?.[statusId]
+      ? props.kilosByEstimateFruitDevState[statusId]
+      : {};
     const kilos = Number(activeKilosMatrix?.[fruitId]?.[devStateId] || 0);
     const directCostTotal = Number(row.direct_cost_total || 0) / d;
     const adminFieldsTotal = Number(row.admin_fields_total || 0) / d;
@@ -828,7 +829,7 @@ onMounted(() => {
           <div class="card ecommerce-card-min-width mb-2">
             <div class="card-header pb-2 bg-info bg-opacity-10 d-flex align-items-center justify-content-between">
               <h6 class="mb-0 mt-1 d-flex align-items-center fs-10">
-                Total Presupuestos
+                Total Presupuesto Operacional
                 <span class="ms-1 text-300" data-bs-toggle="tooltip" data-bs-placement="top" title="Calculated according to last week's sales">
                   <span class="far fa-question-circle" data-fa-transform="shrink-1"></span>
                 </span>

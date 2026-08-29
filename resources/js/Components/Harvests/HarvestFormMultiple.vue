@@ -94,7 +94,7 @@ const selectAllMonths = (index, months) => {
 <script setup></script>
 <template>
     <div class="row">
-        <div class="col-lg-4">
+        <div class="col-lg-3">
             <label for="level2" class="col-form-label">Nivel 2</label>
             <div class="input-group">
                 <span class="input-group-text"><i class="fas fa-layer-group"></i></span>
@@ -112,7 +112,7 @@ const selectAllMonths = (index, months) => {
             </div>
             <InputError class="mt-2" :message="form.errors.level2_id" />
         </div>
-        <div class="col-lg-4">
+        <div class="col-lg-3">
             <label for="families" class="col-form-label">Nivel 3</label>
             <div class="input-group">
                 <span class="input-group-text"><i class="fas fa-layer-group"></i></span>
@@ -163,6 +163,21 @@ const selectAllMonths = (index, months) => {
                 />
             </div>
             <InputError class="mt-2" :message="form.errors.cc" />
+        </div>
+
+        <div class="col-lg-2">
+            <label for="operation_id" class="col-form-label">Operación</label>
+            <Multiselect
+                :placeholder="'Seleccione operación'"
+                v-model="form.operation_id"
+                :close-on-select="true"
+                :options="$page.props.operations"
+                class="multiselect-blue form-control"
+                :class="{ 'is-invalid': form.errors.operation_id }"
+                :searchable="true"
+                :hide-selected="false"
+            />
+            <InputError class="mt-2" :message="form.errors.operation_id" />
         </div>
 
           <!-- Selector de agrupación con Multiselect -->

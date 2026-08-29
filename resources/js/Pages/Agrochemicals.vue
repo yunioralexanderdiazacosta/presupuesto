@@ -30,13 +30,16 @@ const props = defineProps({
     companyReasons: { type: Array, default: () => [] },
     branches: { type: Array, default: () => [] },
     varieties: {type: Array, default: () => [] },
-    fruits: { type: Array, default: () => []}
+    fruits: { type: Array, default: () => []},
+    operations: { type: Array, default: () => [] },
+    defaultOperationId: { type: [Number, String, null], default: null }
 });
 
 var acum = ref(0);
 
 const formMultiple = useForm({
     subfamily_id: '',
+    operation_id: props.defaultOperationId,
     cc: [],
     products: [
         {
@@ -59,6 +62,7 @@ const form = useForm({
     price: '',
     mojamiento: '',
     subfamily_id: '',
+    operation_id: props.defaultOperationId,
     unit_id: '',
     unit_id_price: '',
     dose_type_id: '',
@@ -88,11 +92,13 @@ const filteredAgrochemicals = computed(() => {
     // Protege contra campos nulos
     const name = item.product_name ? item.product_name.toLowerCase() : '';
     const subfamily = item.subfamily && item.subfamily.name ? item.subfamily.name.toLowerCase() : '';
+    const operation = item.operation && item.operation.name ? item.operation.name.toLowerCase() : '';
     const unit = item.unit && item.unit.name ? item.unit.name.toLowerCase() : '';
     const dosetype = item.dosetype && item.dosetype.name ? item.dosetype.name.toLowerCase() : '';
     return (
       name.includes(term) ||
       subfamily.includes(term) ||
+      operation.includes(term) ||
       unit.includes(term) ||
       dosetype.includes(term)
     );
@@ -134,6 +140,7 @@ const openEdit = (agrochemical) => {
     form.price = agrochemical.price;
     form.mojamiento = agrochemical.mojamiento;
     form.subfamily_id = agrochemical.subfamily_id;
+    form.operation_id = agrochemical.operation_id;
     form.unit_id = agrochemical.unit_id;
     form.unit_id_price = agrochemical.unit_id_price;
     form.dose_type_id = agrochemical.dose_type_id;
@@ -573,7 +580,8 @@ const onFilter = () => {
                                 { label: 'Unidad', key: 'unit.name' },
                                 { label: 'Tipo Dosis', key: 'dosetype.name' },
                                 { label: 'Mojamiento', key: 'mojamiento' },
-                                { label: 'Precio', key: 'price', type: 'number' }
+                                { label: 'Precio', key: 'price', type: 'number' },
+                                { label: 'Operación', key: 'operation.name' }
                               ]"
                               class="btn btn-success btn-md d-flex align-items-center p-0"
                               filename="Agroquimicos.xlsx"
@@ -587,7 +595,8 @@ const onFilter = () => {
                                 { label: 'Unidad', key: 'unit.name' },
                                 { label: 'Tipo Dosis', key: 'dosetype.name' },
                                 { label: 'Mojamiento', key: 'mojamiento' },
-                                { label: 'Precio', key: 'price', type: 'number' }
+                                { label: 'Precio', key: 'price', type: 'number' },
+                                { label: 'Operación', key: 'operation.name' }
                               ]"
                               class="btn btn-danger btn-md d-flex align-items-center p-0"
                               filename="Agroquimicos.pdf"
@@ -602,6 +611,7 @@ const onFilter = () => {
                                 <th scope="col" width="min-w-50px">#</th>
                                 <th scope="col" width="min-w-100px">Nombre</th>
                                 <th scope="col" width="min-w-100px">Nivel 3</th>
+                                <th scope="col" width="min-w-100px">Operación</th>
                                 <th scope="col" width="min-w-100px">Dosis</th>
                                 <th scope="col" width="min-w-100px">Unidad</th>
                                 <th scope="col" width="min-w-100px">Tipo Dosis</th>
@@ -627,7 +637,7 @@ const onFilter = () => {
                             <!--begin::Table body-->
                             <template #body>
                                 <template v-if="filteredAgrochemicals.length == 0">
-                                    <Empty colspan="12" />
+                                    <Empty colspan="13" />
                                 </template>
                                 <template v-else>
                                     <tr v-for="(agrochemical, index) in filteredAgrochemicals" :key="index">
@@ -636,6 +646,7 @@ const onFilter = () => {
                                             <span class="text-dark  fw-bold mb-1">{{agrochemical.product_name}}</span>
                                         </td>
                                         <td>{{agrochemical.subfamily.name}}</td>
+                                        <td>{{ agrochemical.operation ? agrochemical.operation.name : '—' }}</td>
                                         <td>{{agrochemical.dose}}</td>
                                         <td>{{agrochemical.unit.name}}</td>
                                         <td>{{agrochemical.dosetype.name}}</td>

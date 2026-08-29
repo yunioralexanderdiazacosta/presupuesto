@@ -35,7 +35,9 @@ const props = defineProps({
     fruits: {
       type: Array,
       default: () => []
-    }
+    },
+    operations: { type: Array, default: () => [] },
+    defaultOperationId: { type: [Number, String, null], default: null }
 });
 
 // Filtro por especie (fruta) y variedad
@@ -114,11 +116,13 @@ const filteredFertilizers = computed(() => {
   return props.fertilizers.data.filter(item => {
     const name = item.product_name ? item.product_name.toLowerCase() : '';
     const subfamily = item.subfamily && item.subfamily.name ? item.subfamily.name.toLowerCase() : '';
+    const operation = item.operation && item.operation.name ? item.operation.name.toLowerCase() : '';
     const unit = item.unit && item.unit.name ? item.unit.name.toLowerCase() : '';
     const unit2 = item.unit2 && item.unit2.name ? item.unit2.name.toLowerCase() : '';
     return (
       name.includes(term) ||
       subfamily.includes(term) ||
+      operation.includes(term) ||
       unit.includes(term) ||
       unit2.includes(term)
     );
@@ -360,6 +364,7 @@ var acum = ref(0);
 
 const formMultiple = useForm({
     subfamily_id: '',
+    operation_id: props.defaultOperationId,
     cc: [],
     products: [
         {
@@ -379,6 +384,7 @@ const form = useForm({
     dose: '',
     price: '',
     subfamily_id: '',
+    operation_id: props.defaultOperationId,
     unit_id: '',
     unit_id_price: '',
     observations: '',
@@ -412,6 +418,7 @@ const openEdit = (fertilizer) => {
     form.dose = fertilizer.dose;
     form.price = fertilizer.price;
     form.subfamily_id = fertilizer.subfamily_id;
+    form.operation_id = fertilizer.operation_id;
     form.unit_id = fertilizer.unit_id;
     form.unit_id_price = fertilizer.unit_id_price;
     form.observations = fertilizer.observations;
@@ -538,7 +545,8 @@ const onFilter = () => {
                                 { label: 'Dosis', key: 'dose', type: 'number' },
                                 { label: 'Unidad', key: 'unit.name' },
                                 { label: 'Precio', key: 'price', type: 'number' },
-                                { label: 'Unidad de $', key: 'unit2.name' }
+                                { label: 'Unidad de $', key: 'unit2.name' },
+                                { label: 'Operación', key: 'operation.name' }
                               ]"
                               class="btn btn-success btn-md d-flex align-items-center p-0"
                               filename="Fertilizantes.xlsx"
@@ -551,7 +559,8 @@ const onFilter = () => {
                                 { label: 'Dosis', key: 'dose' },
                                 { label: 'Unidad', key: 'unit.name' },
                                 { label: 'Precio', key: 'price' },
-                                { label: 'Unidad de $', key: 'unit2.name' }
+                                { label: 'Unidad de $', key: 'unit2.name' },
+                                { label: 'Operación', key: 'operation.name' }
                               ]"
                               class="btn btn-danger btn-md d-flex align-items-center p-0"
                               filename="Fertilizantes.pdf"
@@ -571,6 +580,7 @@ const onFilter = () => {
                                 <th width="min-w-100px">Unidad dosis</th>
                                 <th width="min-w-100px">Precio</th>
                                 <th width="min-w-100px">Unidad de $</th>
+                                <th width="min-w-100px">Operación</th>
                                 <th width="min-w-150px" style="white-space:nowrap">
                                     Meses
                                     <span @click="expandAllMonths = !expandAllMonths" class="badge ms-1" :class="expandAllMonths ? 'bg-primary' : 'bg-secondary'" style="cursor:pointer;font-size:0.65rem;" v-tooltip="expandAllMonths ? 'Colapsar meses' : 'Expandir meses'">
@@ -591,7 +601,7 @@ const onFilter = () => {
                             <!--begin::Table body-->
                             <template #body>
                                 <template v-if="filteredFertilizers.length === 0">
-                                    <Empty colspan="11" />
+                                    <Empty colspan="12" />
                                 </template>
                                 <template v-else>
                                     <tr v-for="(fertilizer, index) in filteredFertilizers" :key="index">
@@ -604,6 +614,7 @@ const onFilter = () => {
                                         <td>{{fertilizer.unit.name}}</td>
                                         <td class="text-center">{{ Number(fertilizer.price).toLocaleString('es-CL') }}</td>
                                         <td>{{fertilizer.unit2.name}}</td>
+                                        <td>{{ fertilizer.operation ? fertilizer.operation.name : '—' }}</td>
                                         <td>
                                             <template v-if="fertilizer.months && fertilizer.months.length">
                                                 {{ (expandAllMonths ? fertilizer.months : fertilizer.months.slice(0, MONTH_PREVIEW))

@@ -26,6 +26,7 @@ class UpdateManPowerRequest extends FormRequest
             'workday' => 'required',
             'price' => 'required',
             'subfamily_id' => 'required',
+            'operation_id' => 'required|exists:operations,id',
         ];
     }
 }

@@ -26,10 +26,12 @@ const filteredFields = computed(() => {
     const name = item.product_name ? item.product_name.toLowerCase() : '';
     const subfamily = item.subfamily && item.subfamily.name ? item.subfamily.name.toLowerCase() : '';
     const unit = item.unit && item.unit.name ? item.unit.name.toLowerCase() : '';
+    const operation = item.operation && item.operation.name ? item.operation.name.toLowerCase() : '';
     return (
       name.includes(term) ||
       subfamily.includes(term) ||
-      unit.includes(term)
+      unit.includes(term) ||
+      operation.includes(term)
     );
   });
 });
@@ -48,6 +50,8 @@ const props = defineProps({
     percentageField: Number,
     branches: { type: Array, default: () => [] },
     selectedBranchId: { type: Number, default: null },
+    operations: { type: Array, default: () => [] },
+    defaultOperationId: { type: [Number, String], default: null },
 });
 
 const selectedTeamId   = ref(props.team_id || null);
@@ -82,6 +86,7 @@ var acum = ref(0);
 const formMultiple = useForm({
     branch_id: null,
     subfamily_id: '',
+    operation_id: props.defaultOperationId,
     products: [
         {
             product_name: '',
@@ -98,6 +103,7 @@ const form = useForm({
     product_name: '',
     subfamily_id: '',
     branch_id: null,
+    operation_id: props.defaultOperationId,
     price: '',
     quantity: '',
     unit_id: 5,
@@ -140,6 +146,7 @@ const openEdit = (field) => {
     form.unit_id = field.unit_id;
     form.observations = field.observations;
     form.branch_id = field.branch_id ?? null;
+    form.operation_id = field.operation_id ?? props.defaultOperationId;
     form.months = field.months; 
     $('#editFieldModal').modal('show');
 }
@@ -274,7 +281,8 @@ const acum_products = (quantity) => {
                                 { label: 'SubFamilia', key: 'subfamily.name' },
                                 { label: 'Cantidad', key: 'quantity' },
                                 { label: 'Unidad', key: 'unit.name' },
-                                { label: 'Precio', key: 'price' }
+                                { label: 'Precio', key: 'price' },
+                                { label: 'Operación', key: 'operation.name' }
                               ]"
                               class="btn btn-success btn-md d-flex align-items-center p-0"
                               filename="Campos.xlsx"
@@ -286,7 +294,8 @@ const acum_products = (quantity) => {
                                 { label: 'SubFamilia', key: 'subfamily.name' },
                                 { label: 'Cantidad', key: 'quantity' },
                                 { label: 'Unidad', key: 'unit.name' },
-                                { label: 'Precio', key: 'price' }
+                                { label: 'Precio', key: 'price' },
+                                { label: 'Operación', key: 'operation.name' }
                               ]"
                               class="btn btn-danger btn-md d-flex align-items-center p-0"
                               filename="Campos.pdf"
@@ -305,6 +314,7 @@ const acum_products = (quantity) => {
                                 <th scope="col" width="min-w-100px">Cantidad</th>
                                 <th scope="col" width="min-w-100px">Unidad</th>
                                 <th scope="col" width="min-w-100px">Precio</th>
+                                <th scope="col" width="min-w-100px">Operación</th>
                                 <th scope="col" width="min-w-100px">Digitado por</th>
                                 <th scope="col" width="min-w-150px" class="text-end text-center">Acciones</th>
                                 <!--end::Table row-->
@@ -313,7 +323,7 @@ const acum_products = (quantity) => {
                             <!--begin::Table body-->
                             <template #body>
                                 <template v-if="filteredFields.length === 0">
-                                    <Empty colspan="6" />
+                                    <Empty colspan="7" />
                                 </template>
                                 <template v-else>
                                     <tr v-for="(field, index) in filteredFields" :key="index">
@@ -327,6 +337,7 @@ const acum_products = (quantity) => {
                                         <td>{{field.quantity}}</td>
                                         <td>{{field.unit.name}}</td>
                                         <td>{{field.price}}</td>
+                                        <td>{{ field.operation ? field.operation.name : '—' }}</td>
                                         <td>{{ field.user ? field.user.name : '—' }}</td>
                                         <td class="text-end text-center">
                                             <!--begin::Update-->

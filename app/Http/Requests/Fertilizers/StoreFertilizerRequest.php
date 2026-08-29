@@ -24,6 +24,7 @@ class StoreFertilizerRequest extends FormRequest
         return [
             'cc' => 'required',
             'subfamily_id' => 'required',
+            'operation_id' => 'required|exists:operations,id',
             'products.*.product_name' => 'required',
             'products.*.unit_id' => 'required',
             'products.*.unit_id_price' => 'required',

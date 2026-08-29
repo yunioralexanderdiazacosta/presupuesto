@@ -26,6 +26,7 @@ class UpdateFertilizerRequest extends FormRequest
             'dose' => 'required',
             'price' => 'required',
             'subfamily_id' => 'required',
+            'operation_id' => 'required|exists:operations,id',
             'unit_id' => 'required',
             'unit_id_price' => 'required'
         ];

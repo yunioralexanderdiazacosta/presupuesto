@@ -194,6 +194,10 @@ class DashboardController extends Controller
             });
             $costCentersId = $costCenters->pluck('value');
 
+            // Operaciones: el Dashboard solo debe reflejar filas de "Gasto"; las de "Inversión" alimentan el card de Inversiones
+            $gastoOperationId = \App\Models\Operation::whereRaw('LOWER(name) LIKE ?', ['%gasto%'])->value('id');
+            $inversionOperationId = \App\Models\Operation::whereRaw('LOWER(name) LIKE ?', ['%inversion%'])->value('id');
+
             // OPTIMIZACIÓN: Cachear cost centers con superficie y dev state (evita cientos de queries repetidas)
             $this->cachedCostCenters = CostCenter::whereIn('id', $costCentersId)
                 ->select('id', 'development_state_id', 'surface', 'fruit_id')
@@ -201,12 +205,13 @@ class DashboardController extends Controller
             $this->cachedSurfaces = $this->cachedCostCenters->pluck('surface', 'id');
 
             // OPTIMIZACIÓN: Reusar los productos consultados (evita queries duplicadas por rubro)
-            $agrochemicalProducts = $this->getAgrochemicalProducts($costCentersId);
-            $fertilizerProducts = $this->getFertilizerProducts($costCentersId);
-            $manPowerProducts = $this->getManPowerProducts($costCentersId);
-            $serviceProducts = $this->getServicesProducts($costCentersId);
-            $supplyProducts = $this->getSuppliesProducts($costCentersId);
-            $harvestProducts = $this->getHarvestsProducts($costCentersId);
+            // Filtrados por operación "Gasto": las filas de "Inversión" no deben mezclarse en Total Presupuesto/gráficos
+            $agrochemicalProducts = $this->getAgrochemicalProducts($costCentersId, $gastoOperationId);
+            $fertilizerProducts = $this->getFertilizerProducts($costCentersId, $gastoOperationId);
+            $manPowerProducts = $this->getManPowerProducts($costCentersId, $gastoOperationId);
+            $serviceProducts = $this->getServicesProducts($costCentersId, $gastoOperationId);
+            $supplyProducts = $this->getSuppliesProducts($costCentersId, $gastoOperationId);
+            $harvestProducts = $this->getHarvestsProducts($costCentersId, $gastoOperationId);
             $pieLabels = ['Agroquimicos', 'Fertilizantes', 'Mano de obra', 'Servicios', 'Insumos', 'Cosecha'];
             $pieDatasets = [
                 [
@@ -218,8 +223,8 @@ class DashboardController extends Controller
             ];
             // OPTIMIZACIÓN: Calcular totales de administración y fields UNA sola vez (se reusan más abajo)
             // Administración y Generales Campo tienen branch_id directo: se filtran por sucursal (no se prorratean)
-            $administrationTotalsByLevel12 = $this->getAdministrationTotalsByLevel12($user->team_id, $selectedBranchId);
-            $fieldTotalsByLevel12 = $this->getFieldTotalsByLevel12($user->team_id, $selectedBranchId);
+            $administrationTotalsByLevel12 = $this->getAdministrationTotalsByLevel12($user->team_id, $selectedBranchId, $gastoOperationId);
+            $fieldTotalsByLevel12 = $this->getFieldTotalsByLevel12($user->team_id, $selectedBranchId, $gastoOperationId);
             $totalAdministration = $administrationTotalsByLevel12->sum('total_amount');
             $totalFields = $fieldTotalsByLevel12->sum('total_amount');
             $totalSeason = number_format(($this->totalAgrochemical + $this->totalFertilizer + $this->totalManPower + $this->totalServices + $this->totalSupplies + $this->totalHarvests + $totalAdministration + $totalFields), 0, ',', '.');
@@ -231,8 +236,8 @@ class DashboardController extends Controller
             $totalHarvests = number_format($this->totalHarvests, 0, ',', '.');
 
             // NUEVO: Calcular y formatear los meses de administración y fields (filtrados por sucursal)
-            $monthsAdministrationRaw = $this->getMonthsAdministration($user->team_id, $selectedBranchId);
-            $monthsFieldsRaw = $this->getMonthsFields($user->team_id, $selectedBranchId);
+            $monthsAdministrationRaw = $this->getMonthsAdministration($user->team_id, $selectedBranchId, $gastoOperationId);
+            $monthsFieldsRaw = $this->getMonthsFields($user->team_id, $selectedBranchId, $gastoOperationId);
             $monthsAdministration = [];
             foreach ($monthsAdministrationRaw as $key => $value) {
                 $monthsAdministration[$key] = number_format($value, 0, ',', '.');
@@ -386,18 +391,6 @@ class DashboardController extends Controller
 
 
 
-// Calcular el total de inversiones para el equipo y temporada actual (filtrado por sucursal si corresponde)
-$totalInvestmentsQuery = \App\Models\Investment::where('season_id', $season_id)
-    ->whereHas('season', function($q) use ($user) {
-        $q->where('team_id', $user->team_id);
-    });
-if ($selectedBranchId) {
-    $totalInvestmentsQuery->whereHas('costCenters', function($q) use ($selectedBranchId) {
-        $q->where('branch_id', $selectedBranchId);
-    });
-}
-$totalInvestments = $totalInvestmentsQuery->sum('amount');
-
 
             // Calcular totales de servicios por estado de desarrollo
             $servicesByDevState = [];
@@ -478,8 +471,8 @@ $totalInvestments = $totalInvestmentsQuery->sum('amount');
             }
 
 
-            //obtener total estimacion en kilos
-            $totalEstimatedKilosData = $this->getTotalEstimatedKilos($season_id, $user->team_id);
+            //obtener total estimacion en kilos (respetando la sucursal seleccionada, igual que el resto del Dashboard)
+            $totalEstimatedKilosData = $this->getTotalEstimatedKilos($season_id, $user->team_id, null, $selectedBranchId);
             $kilosByEstimate = $totalEstimatedKilosData['kilosByEstimate'] ?? [];
             $kilosByEstimateFruitDevState = $totalEstimatedKilosData['kilosByEstimateFruitDevState'] ?? [];
             $estimateOptions = $totalEstimatedKilosData['estimateOptions'] ?? [];
@@ -495,7 +488,7 @@ $totalInvestments = $totalInvestmentsQuery->sum('amount');
             $devStates = \App\Models\DevelopmentState::all(['id', 'name'])->keyBy('id')->toArray();
 
             // OPTIMIZACIÓN: administrationTotalsByLevel12 y fieldTotalsByLevel12 ya calculados arriba
-            $totalsByLevel12 = $this->getTotalsByLevel12($user->team_id, $costCentersId);
+            $totalsByLevel12 = $this->getTotalsByLevel12($user->team_id, $costCentersId, $gastoOperationId);
 
             // OPTIMIZACIÓN: totalSurface ya calculado arriba con cachedCostCenters
             $entityCounts = self::getEntityCounts($season_id, $user->team_id);
@@ -520,6 +513,26 @@ $totalInvestments = $totalInvestmentsQuery->sum('amount');
                 array_keys($mainTotalsRaw),
                 array_values($mainTotalsRaw)
             );
+
+            // Total Inversiones: mismo cálculo que Total Presupuesto pero filtrado por operación "Inversión".
+            // A esta altura $this->totalX/$this->monthsX (modo Gasto) ya fueron leídos, es seguro reutilizarlos.
+            $this->getAgrochemicalProducts($costCentersId, $inversionOperationId);
+            $totalAgrochemicalInvestment = $this->totalAgrochemical;
+            $this->getFertilizerProducts($costCentersId, $inversionOperationId);
+            $totalFertilizerInvestment = $this->totalFertilizer;
+            $this->getManPowerProducts($costCentersId, $inversionOperationId);
+            $totalManPowerInvestment = $this->totalManPower;
+            $this->getServicesProducts($costCentersId, $inversionOperationId);
+            $totalServicesInvestment = $this->totalServices;
+            $this->getSuppliesProducts($costCentersId, $inversionOperationId);
+            $totalSuppliesInvestment = $this->totalSupplies;
+            $this->getHarvestsProducts($costCentersId, $inversionOperationId);
+            $totalHarvestsInvestment = $this->totalHarvests;
+            $totalAdministrationInvestment = $this->getAdministrationTotalsByLevel12($user->team_id, $selectedBranchId, $inversionOperationId)->sum('total_amount');
+            $totalFieldsInvestment = $this->getFieldTotalsByLevel12($user->team_id, $selectedBranchId, $inversionOperationId)->sum('total_amount');
+            $totalInvestments = $totalAgrochemicalInvestment + $totalFertilizerInvestment + $totalManPowerInvestment
+                + $totalServicesInvestment + $totalSuppliesInvestment + $totalHarvestsInvestment
+                + $totalAdministrationInvestment + $totalFieldsInvestment;
             $fruitDevStateSummary = $this->buildFruitDevelopmentStateSummary(
                 $fruitNames,
                 $devStates,
@@ -678,7 +691,7 @@ $totalInvestments = $totalInvestmentsQuery->sum('amount');
      * Actualiza las propiedades $this->totalAgrochemical y $this->monthsAgrochemical.
      * No retorna datos útiles, solo realiza side-effects.
      */
-    private function getAgrochemicalProducts($costCentersId)
+    private function getAgrochemicalProducts($costCentersId, $operationId = null)
     {
         // Obtener todos los productos agroquímicos relevantes
         $products = Agrochemical::from('agrochemicals as a')
@@ -686,6 +699,7 @@ $totalInvestments = $totalInvestmentsQuery->sum('amount');
             ->leftJoin('units as u', 'a.unit_id_price', 'u.id')
             ->select('a.id', 'a.price', 'a.dose_type_id', 'a.dose', 'a.unit_id', 'a.unit_id_price', 'a.mojamiento')
             ->whereIn('ai.cost_center_id', $costCentersId)
+            ->when($operationId, fn($q) => $q->where('a.operation_id', $operationId))
             ->groupBy('a.id', 'a.price', 'a.dose_type_id', 'a.dose', 'a.unit_id', 'a.unit_id_price', 'a.mojamiento')
             ->get();
 
@@ -748,7 +762,7 @@ $totalInvestments = $totalInvestmentsQuery->sum('amount');
      * Obtiene y acumula los totales de fertilizantes por cost center y por mes.
      * Actualiza las propiedades $this->totalFertilizer y $this->monthsFertilizer.
      */
-    private function getFertilizerProducts($costCentersId)
+    private function getFertilizerProducts($costCentersId, $operationId = null)
     {
         // Obtener todos los productos fertilizantes relevantes
         $products = Fertilizer::from('fertilizers as f')
@@ -756,6 +770,7 @@ $totalInvestments = $totalInvestmentsQuery->sum('amount');
             ->leftJoin('units as u', 'f.unit_id_price', 'u.id')
             ->select('f.id', 'f.price', 'f.dose', 'f.unit_id', 'f.unit_id_price')
             ->whereIn('fi.cost_center_id', $costCentersId)
+            ->when($operationId, fn($q) => $q->where('f.operation_id', $operationId))
             ->groupBy('f.id', 'f.price', 'f.dose', 'f.unit_id', 'f.unit_id_price')
             ->get();
 
@@ -812,7 +827,7 @@ $totalInvestments = $totalInvestmentsQuery->sum('amount');
      * Obtiene y acumula los totales de mano de obra por cost center y por mes.
      * Actualiza las propiedades $this->totalManPower y $this->monthsManPower.
      */
-    private function getManPowerProducts($costCentersId)
+    private function getManPowerProducts($costCentersId, $operationId = null)
     {
         // Obtener todos los productos de mano de obra relevantes
         $products = ManPower::from('man_powers as mp')
@@ -820,6 +835,7 @@ $totalInvestments = $totalInvestmentsQuery->sum('amount');
             ->leftJoin('units as u', 'mp.unit_id', 'u.id')
             ->select('mp.id', 'mp.price', 'mp.workday')
             ->whereIn('mpi.cost_center_id', $costCentersId)
+            ->when($operationId, fn($q) => $q->where('mp.operation_id', $operationId))
             ->groupBy('mp.id', 'mp.price', 'mp.workday')
             ->get();
 
@@ -882,7 +898,7 @@ $totalInvestments = $totalInvestmentsQuery->sum('amount');
      * Obtiene y acumula los totales de servicios por cost center y por mes.
      * Actualiza las propiedades $this->totalServices y $this->monthsServices.
      */
-    private function getServicesProducts($costCentersId)
+    private function getServicesProducts($costCentersId, $operationId = null)
     {
         // Obtener todos los productos de servicios relevantes
         $products = Service::from('services as s')
@@ -890,6 +906,7 @@ $totalInvestments = $totalInvestmentsQuery->sum('amount');
             ->leftJoin('units as u', 's.unit_id_price', 'u.id')
             ->select('s.id', 's.product_name', 's.price', 's.quantity', 's.unit_id', 's.unit_id_price', 'u.name')
             ->whereIn('si.cost_center_id', $costCentersId)
+            ->when($operationId, fn($q) => $q->where('s.operation_id', $operationId))
             ->groupBy('s.id', 's.product_name', 's.price', 's.quantity', 's.unit_id', 's.unit_id_price', 'u.name')
             ->get();
 
@@ -945,7 +962,7 @@ $totalInvestments = $totalInvestmentsQuery->sum('amount');
         return $products;
     }
 
-    private function getHarvestsProducts($costCentersId)
+    private function getHarvestsProducts($costCentersId, $operationId = null)
     {
         // Obtener todos los productos de servicios relevantes
         $products = Harvest::from('harvests as s')
@@ -953,6 +970,7 @@ $totalInvestments = $totalInvestmentsQuery->sum('amount');
             ->leftJoin('units as u', 's.unit_id_price', 'u.id')
             ->select('s.id', 's.product_name', 's.price', 's.quantity', 's.unit_id', 's.unit_id_price', 'u.name')
             ->whereIn('si.cost_center_id', $costCentersId)
+            ->when($operationId, fn($q) => $q->where('s.operation_id', $operationId))
             ->groupBy('s.id', 's.product_name', 's.price', 's.quantity', 's.unit_id', 's.unit_id_price', 'u.name')
             ->get();
 
@@ -1027,7 +1045,7 @@ $totalInvestments = $totalInvestmentsQuery->sum('amount');
      * Obtiene y acumula los totales de insumos por cost center y por mes.
      * Actualiza las propiedades $this->totalSupplies y $this->monthsSupplies.
      */
-    private function getSuppliesProducts($costCentersId)
+    private function getSuppliesProducts($costCentersId, $operationId = null)
     {
         // Obtener todos los productos de insumos relevantes
         $products = Supply::from('supplies as s')
@@ -1035,6 +1053,7 @@ $totalInvestments = $totalInvestmentsQuery->sum('amount');
             ->leftJoin('units as u', 's.unit_id_price', 'u.id')
             ->select('s.id', 's.product_name', 's.price', 's.quantity', 's.unit_id', 's.unit_id_price', 'u.name')
             ->whereIn('si.cost_center_id', $costCentersId)
+            ->when($operationId, fn($q) => $q->where('s.operation_id', $operationId))
             ->groupBy('s.id', 's.product_name', 's.price', 's.quantity', 's.unit_id', 's.unit_id_price', 'u.name')
             ->get();
 
@@ -1784,7 +1803,7 @@ $totalInvestments = $totalInvestmentsQuery->sum('amount');
      * Obtiene los totales de administración agrupados por Level 1 y Level 2.
      * Devuelve una colección con: [level1_id, level1_name, level2_id, level2_name, total_amount]
      */
-    private function getAdministrationTotalsByLevel12($team_id = null, $branchId = null)
+    private function getAdministrationTotalsByLevel12($team_id = null, $branchId = null, $operationId = null)
     {
         $season_id = session('season_id');
         $season = \App\Models\Season::select('month_id')->where('id', $season_id)->first();
@@ -1815,6 +1834,9 @@ $totalInvestments = $totalInvestmentsQuery->sum('amount');
         }
         if ($branchId) {
             $administrations->where('a.branch_id', $branchId);
+        }
+        if ($operationId) {
+            $administrations->where('a.operation_id', $operationId);
         }
         $administrations = $administrations->get();
 
@@ -1848,7 +1870,7 @@ $totalInvestments = $totalInvestmentsQuery->sum('amount');
 
 
 
-    private function getFieldTotalsByLevel12($team_id = null, $branchId = null)
+    private function getFieldTotalsByLevel12($team_id = null, $branchId = null, $operationId = null)
     {
         $season_id = session('season_id');
         $season = \App\Models\Season::select('month_id')->where('id', $season_id)->first();
@@ -1879,6 +1901,9 @@ $totalInvestments = $totalInvestmentsQuery->sum('amount');
         }
         if ($branchId) {
             $fields->where('a.branch_id', $branchId);
+        }
+        if ($operationId) {
+            $fields->where('a.operation_id', $operationId);
         }
         $fields = $fields->get()->keyBy('field_id');
 
@@ -1916,7 +1941,7 @@ $totalInvestments = $totalInvestmentsQuery->sum('amount');
      * Obtiene los totales generales (agroquímicos, fertilizantes, mano de obra, servicios, insumos) agrupados por Level 1 y Level 2.
      * Devuelve una colección con: [level1_id, level1_name, level2_id, level2_name, total_amount]
      */
-    private function getTotalsByLevel12($team_id = null, $costCenterIds = null)
+    private function getTotalsByLevel12($team_id = null, $costCenterIds = null, $operationId = null)
     {
         $season_id = session('season_id');
         $season = \App\Models\Season::select('month_id')->where('id', $season_id)->first();
@@ -1966,6 +1991,7 @@ $totalInvestments = $totalInvestmentsQuery->sum('amount');
             ->join('level1s as l1', 'l2.level1_id', 'l1.id')
             ->select('a.*', 'l1.id as level1_id', 'l1.name as level1_name', 'l2.id as level2_id', 'l2.name as level2_name', 'ai.cost_center_id')
             ->whereIn('ai.cost_center_id', $costCenters->keys())
+            ->when($operationId, fn($q) => $q->where('a.operation_id', $operationId))
             ->groupBy('a.id', 'l1.id', 'l1.name', 'l2.id', 'l2.name', 'ai.cost_center_id')
             ->get();
         // OPTIMIZACIÓN: Batch query para conteos de agrochemical_items
@@ -2009,6 +2035,7 @@ $totalInvestments = $totalInvestmentsQuery->sum('amount');
             ->join('level1s as l1', 'l2.level1_id', 'l1.id')
             ->select('f.*', 'l1.id as level1_id', 'l1.name as level1_name', 'l2.id as level2_id', 'l2.name as level2_name', 'fi.cost_center_id')
             ->whereIn('fi.cost_center_id', $costCenters->keys())
+            ->when($operationId, fn($q) => $q->where('f.operation_id', $operationId))
             ->groupBy('f.id', 'l1.id', 'l1.name', 'l2.id', 'l2.name', 'fi.cost_center_id')
             ->get();
         // OPTIMIZACIÓN: Batch query para conteos de fertilizer_items
@@ -2046,6 +2073,7 @@ $totalInvestments = $totalInvestmentsQuery->sum('amount');
             ->join('level1s as l1', 'l2.level1_id', 'l1.id')
             ->select('mp.*', 'l1.id as level1_id', 'l1.name as level1_name', 'l2.id as level2_id', 'l2.name as level2_name', 'mpi.cost_center_id')
             ->whereIn('mpi.cost_center_id', $costCenters->keys())
+            ->when($operationId, fn($q) => $q->where('mp.operation_id', $operationId))
             ->groupBy('mp.id', 'l1.id', 'l1.name', 'l2.id', 'l2.name', 'mpi.cost_center_id')
             ->get();
         // OPTIMIZACIÓN: Batch query para conteos de manpower_items
@@ -2082,6 +2110,7 @@ $totalInvestments = $totalInvestmentsQuery->sum('amount');
             ->join('level1s as l1', 'l2.level1_id', 'l1.id')
             ->select('s.*', 'l1.id as level1_id', 'l1.name as level1_name', 'l2.id as level2_id', 'l2.name as level2_name', 'si.cost_center_id')
             ->whereIn('si.cost_center_id', $costCenters->keys())
+            ->when($operationId, fn($q) => $q->where('s.operation_id', $operationId))
             ->groupBy('s.id', 'l1.id', 'l1.name', 'l2.id', 'l2.name', 'si.cost_center_id')
             ->get();
         // OPTIMIZACIÓN: Batch query para conteos de service_items
@@ -2119,6 +2148,7 @@ $totalInvestments = $totalInvestmentsQuery->sum('amount');
             ->join('level1s as l1', 'l2.level1_id', 'l1.id')
             ->select('h.*', 'l1.id as level1_id', 'l1.name as level1_name', 'l2.id as level2_id', 'l2.name as level2_name', 'hi.cost_center_id')
             ->whereIn('hi.cost_center_id', $costCenters->keys())
+            ->when($operationId, fn($q) => $q->where('h.operation_id', $operationId))
             ->groupBy('h.id', 'l1.id', 'l1.name', 'l2.id', 'l2.name', 'hi.cost_center_id')
             ->get();
         // OPTIMIZACIÓN: Batch query para conteos de harvest_items
@@ -2156,6 +2186,7 @@ $totalInvestments = $totalInvestmentsQuery->sum('amount');
             ->join('level1s as l1', 'l2.level1_id', 'l1.id')
             ->select('s.*', 'l1.id as level1_id', 'l1.name as level1_name', 'l2.id as level2_id', 'l2.name as level2_name', 'si.cost_center_id')
             ->whereIn('si.cost_center_id', $costCenters->keys())
+            ->when($operationId, fn($q) => $q->where('s.operation_id', $operationId))
             ->groupBy('s.id', 'l1.id', 'l1.name', 'l2.id', 'l2.name', 'si.cost_center_id')
             ->get();
         // OPTIMIZACIÓN: Batch query para conteos de supply_items
@@ -2189,7 +2220,7 @@ $totalInvestments = $totalInvestmentsQuery->sum('amount');
     }
 
     // Calcula los totales mensuales de administración
-    private function getMonthsAdministration($team_id = null, $branchId = null)
+    private function getMonthsAdministration($team_id = null, $branchId = null, $operationId = null)
     {
         $season_id = session('season_id');
         $season = \App\Models\Season::select('month_id')->where('id', $season_id)->first();
@@ -2209,6 +2240,9 @@ $totalInvestments = $totalInvestmentsQuery->sum('amount');
         }
         if ($branchId) {
             $administrations->where('a.branch_id', $branchId);
+        }
+        if ($operationId) {
+            $administrations->where('a.operation_id', $operationId);
         }
         $administrations = $administrations->get()->keyBy('id');
 
@@ -2236,7 +2270,7 @@ $totalInvestments = $totalInvestmentsQuery->sum('amount');
     }
 
     // Calcula los totales mensuales de fields
-    private function getMonthsFields($team_id = null, $branchId = null)
+    private function getMonthsFields($team_id = null, $branchId = null, $operationId = null)
     {
         $season_id = session('season_id');
         $season = \App\Models\Season::select('month_id')->where('id', $season_id)->first();
@@ -2256,6 +2290,9 @@ $totalInvestments = $totalInvestmentsQuery->sum('amount');
         }
         if ($branchId) {
             $fields->where('a.branch_id', $branchId);
+        }
+        if ($operationId) {
+            $fields->where('a.operation_id', $operationId);
         }
         $fields = $fields->get()->keyBy('id');
 

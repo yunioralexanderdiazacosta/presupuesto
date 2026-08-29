@@ -15,6 +15,7 @@ use App\Models\Level3;
 use App\Models\CostCenter;
 use App\Models\Month;
 use App\Models\CompanyReason;
+use App\Models\Operation;
 use Inertia\Inertia;
 
 use App\Http\Controllers\Traits\BudgetTotalsTrait;
@@ -182,7 +183,14 @@ public $totalHarvest = 0;
             ->map(fn($b) => ['value' => $b->id, 'label' => $b->name])
             ->values();
 
-        $manPowersCollection = ManPower::with('subfamily:id,name', 'items:id', 'user:id,name')->whereHas('items', function($query) use ($costCenters){
+        $operations = Operation::orderBy('name')->get(['id', 'name'])->map(fn($o) => [
+            'label' => $o->name,
+            'value' => $o->id,
+        ]);
+        // Operación pre-cargada por defecto en el formulario de creación
+        $defaultOperationId = Operation::whereRaw('LOWER(name) LIKE ?', ['%gasto%'])->value('id');
+
+        $manPowersCollection = ManPower::with('subfamily:id,name', 'items:id', 'user:id,name', 'operation:id,name')->whereHas('items', function($query) use ($costCenters){
             $query->whereIn('cost_center_id', $costCenters->pluck('value'));
         })->orderBy('id')->get()->map(function($manPower){
             $items = $manPower->items->pluck('pivot');
@@ -194,8 +202,10 @@ public $totalHarvest = 0;
                 'workday'       => $manPower->workday,
                 'price'         => $manPower->price,
                 'subfamily_id'  => $manPower->subfamily_id,
+                'operation_id'  => $manPower->operation_id,
                 'observations'  => $manPower->observations,
                 'subfamily'     => $manPower->subfamily,
+                'operation'     => $manPower->operation,
                 'price'         => $manPower->price,
                 'months'        => array_unique($months),
                 'cc'            => array_values(array_unique($cc)),
@@ -348,7 +358,7 @@ public $totalHarvest = 0;
         return Inertia::render('ManPowers', compact('subfamilies', 'months', 'costCenters', 'companyReasons', 'branches', 'groupings', 'manPowers', 'season', 'data', 'data2', 'data3', 'data4', 'totalData1', 'totalData2',
         'totalAgrochemical', 'totalFertilizer', 'totalManPower', 'totalSupplies', 'totalServices', 'totalHarvest', 'totalAdministration', 'totalField', 'totalAbsolute',
             'percentageManPower',
-            'varieties', 'fruits'));
+            'varieties', 'fruits', 'operations', 'defaultOperationId'));
     }
 
 

@@ -18,6 +18,7 @@ use App\Models\Service;
 use App\Models\DoseType;
 use App\Models\Product2;
 use App\Models\CompanyReason;
+use App\Models\Operation;
 use Inertia\Inertia;
 
 use App\Http\Controllers\Traits\BudgetTotalsTrait;
@@ -145,7 +146,14 @@ class AgrochemicalsController extends Controller
             ->map(fn($b) => ['value' => $b->id, 'label' => $b->name])
             ->values();
 
-        $agrochemicalsCollection = Agrochemical::with('subfamily:id,name', 'unit:id,name', 'items:id', 'dosetype:id,name', 'user:id,name')->whereHas('items', function($query) use ($costCenters){
+        $operations = Operation::orderBy('name')->get(['id', 'name'])->map(fn($o) => [
+            'label' => $o->name,
+            'value' => $o->id,
+        ]);
+        // Operación pre-cargada por defecto en el formulario de creación
+        $defaultOperationId = Operation::whereRaw('LOWER(name) LIKE ?', ['%gasto%'])->value('id');
+
+        $agrochemicalsCollection = Agrochemical::with('subfamily:id,name', 'unit:id,name', 'items:id', 'dosetype:id,name', 'user:id,name', 'operation:id,name')->whereHas('items', function($query) use ($costCenters){
             $query->whereIn('cost_center_id', $costCenters->pluck('value'));
     })->orderBy('id')->get()->map(function($agrochemical){
             $items = $agrochemical->items->pluck('pivot');
@@ -158,11 +166,13 @@ class AgrochemicalsController extends Controller
                 'price'         => $agrochemical->price,
                 'mojamiento'    => $agrochemical->mojamiento,
                 'subfamily_id'  => $agrochemical->subfamily_id,
+                'operation_id'  => $agrochemical->operation_id,
                 'unit_id'       => $agrochemical->unit_id,
                 'unit_id_price' => $agrochemical->unit_id_price,
                 'dose_type_id'  => $agrochemical->dose_type_id,
                 'observations'  => $agrochemical->observations,
                 'subfamily'     => $agrochemical->subfamily,
+                'operation'     => $agrochemical->operation,
                 'unit'          => $agrochemical->unit,
                 'price'         => $agrochemical->price,
                 'dosetype'      => $agrochemical->dosetype,
@@ -319,6 +329,7 @@ class AgrochemicalsController extends Controller
 
         return Inertia::render('Agrochemicals', compact(
             'units', 'subfamilies', 'months', 'costCenters', 'companyReasons', 'branches', 'groupings', 'agrochemicals', 'data', 'data2', 'data3', 'data4', 'doseTypes', 'season',
+            'operations', 'defaultOperationId',
             'totalData1', 'totalData2',
             'totalAgrochemical', 'totalFertilizer', 'totalManPower', 'totalSupplies', 'totalServices', 'totalAdministration', 'totalField', 'totalHarvest', 'totalAbsolute',
             'percentageAgrochemical',

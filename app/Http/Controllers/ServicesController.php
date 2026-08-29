@@ -17,6 +17,7 @@ use App\Models\Agrochemical;
 use App\Models\Supply;
 use App\Models\DoseType;
 use App\Models\CompanyReason;
+use App\Models\Operation;
 use Inertia\Inertia;
 use App\Http\Controllers\Traits\BudgetTotalsTrait;
 
@@ -188,7 +189,14 @@ public $totalHarvest = 0;
             ->map(fn($b) => ['value' => $b->id, 'label' => $b->name])
             ->values();
 
-        $servicesCollection = Service::with('subfamily:id,name', 'unit:id,name', 'unit2:id,name', 'items:id', 'user:id,name')->whereHas('items', function($query) use ($costCenters){
+        $operations = Operation::orderBy('name')->get(['id', 'name'])->map(fn($o) => [
+            'label' => $o->name,
+            'value' => $o->id,
+        ]);
+        // Operación pre-cargada por defecto en el formulario de creación
+        $defaultOperationId = Operation::whereRaw('LOWER(name) LIKE ?', ['%gasto%'])->value('id');
+
+        $servicesCollection = Service::with('subfamily:id,name', 'unit:id,name', 'unit2:id,name', 'items:id', 'user:id,name', 'operation:id,name')->whereHas('items', function($query) use ($costCenters){
             $query->whereIn('cost_center_id', $costCenters->pluck('value'));
         })->orderBy('id')->get()->map(function($service){
             $items = $service->items->pluck('pivot');
@@ -199,10 +207,12 @@ public $totalHarvest = 0;
                 'product_name'  => $service->product_name,
                 'quantity'      => $service->quantity,
                 'subfamily_id'  => $service->subfamily_id,
+                'operation_id'  => $service->operation_id,
                 'unit_id'       => $service->unit_id,
                 'unit_id_price' => $service->unit_id_price,
                 'observations'  => $service->observations,
                 'subfamily'     => $service->subfamily,
+                'operation'     => $service->operation,
                 'unit'          => $service->unit,
                 'unit2'         => $service->unit2,
                 'price'         => $service->price,
@@ -431,7 +441,7 @@ public $totalHarvest = 0;
 
         $data4 = $this->buildData4($costCentersId, $season_id, $user->team_id);
 
-        return Inertia::render('Services', compact('units', 'subfamilies', 'months', 'costCenters', 'companyReasons', 'branches', 'groupings', 'services', 'data', 'data2', 'data3', 'data4', 'season', 'totalData1', 'totalData2', 'percentage', 'varieties', 'fruits'));
+        return Inertia::render('Services', compact('units', 'subfamilies', 'months', 'costCenters', 'companyReasons', 'branches', 'groupings', 'services', 'data', 'data2', 'data3', 'data4', 'season', 'totalData1', 'totalData2', 'percentage', 'varieties', 'fruits', 'operations', 'defaultOperationId'));
     }
 
     private function getSubfamilies($costCenterId, $surface = null, $bills = false)

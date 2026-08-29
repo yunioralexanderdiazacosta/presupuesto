@@ -19,6 +19,7 @@ class UpdateFieldController extends Controller
         $field->quantity     = $request->quantity;
         $field->observations = $request->observations;
         $field->subfamily_id = $request->subfamily_id;
+        $field->operation_id = $request->operation_id;
         $field->unit_id      = $request->unit_id;
         $field->branch_id    = $request->branch_id ?: null;
         $field->team_id   = \App\Models\User::find(auth()->id())->team_id;

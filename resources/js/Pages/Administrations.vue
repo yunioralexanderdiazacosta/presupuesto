@@ -24,10 +24,12 @@ const filteredAdministrations = computed(() => {
   return props.administrations.data.filter(item => {
     const name = item.product_name ? item.product_name.toLowerCase() : '';
     const subfamily = item.subfamily && item.subfamily.name ? item.subfamily.name.toLowerCase() : '';
+    const operation = item.operation && item.operation.name ? item.operation.name.toLowerCase() : '';
     const unit = item.unit && item.unit.name ? item.unit.name.toLowerCase() : '';
     return (
       name.includes(term) ||
       subfamily.includes(term) ||
+      operation.includes(term) ||
       unit.includes(term)
     );
   });
@@ -45,6 +47,8 @@ const props = defineProps({
     percentageAdministration: Number,
     branches: { type: Array, default: () => [] },
     selectedBranchId: { type: Number, default: null },
+    operations: { type: Array, default: () => [] },
+    defaultOperationId: { type: [Number, String, null], default: null },
 });
 
 const selectedTeamId   = ref(props.team_id || null);
@@ -79,6 +83,7 @@ var acum = ref(0);
 const formMultiple = useForm({
     branch_id: null,
     subfamily_id: '',
+    operation_id: props.defaultOperationId,
     products: [
         {
             product_name: '',
@@ -97,6 +102,7 @@ const form = useForm({
     price: '',
     branch_id: null,
     subfamily_id: '',
+    operation_id: props.defaultOperationId,
     unit_id: 5,
     observations: '',
     months: []
@@ -119,6 +125,7 @@ const openEdit = (administration) => {
     form.price = administration.price;
     form.quantity = administration.quantity;
     form.subfamily_id = administration.subfamily_id;
+    form.operation_id = administration.operation_id;
     form.unit_id = administration.unit_id;
     form.observations = administration.observations;
     form.branch_id = administration.branch_id ?? null;
@@ -283,7 +290,8 @@ const onFilter = () => {
                             { label: 'SubFamilia', key: 'subfamily.name' },
                             { label: 'Cantidad', key: 'quantity' },
                             { label: 'Unidad', key: 'unit.name' },
-                            { label: 'Precio', key: 'price' }
+                            { label: 'Precio', key: 'price' },
+                            { label: 'Operación', key: 'operation.name' }
                           ]"
                           class="btn btn-success btn-md d-flex align-items-center p-0"
                           filename="Administracion.xlsx"
@@ -295,7 +303,8 @@ const onFilter = () => {
                             { label: 'SubFamilia', key: 'subfamily.name' },
                             { label: 'Cantidad', key: 'quantity' },
                             { label: 'Unidad', key: 'unit.name' },
-                            { label: 'Precio', key: 'price' }
+                            { label: 'Precio', key: 'price' },
+                            { label: 'Operación', key: 'operation.name' }
                           ]"
                           class="btn btn-danger btn-md d-flex align-items-center p-0"
                           filename="Administracion.pdf"
@@ -314,6 +323,7 @@ const onFilter = () => {
                             <th width="min-w-100px">Cantidad</th>
                             <th width="min-w-100px">Unidad</th>
                             <th width="min-w-100px">Precio</th>
+                            <th width="min-w-100px">Operación</th>
                             <th width="min-w-100px">Digitado por</th>
                             <th width="min-w-150px" class="text-end text-center">Acciones</th>
                             <!--end::Table row-->
@@ -322,7 +332,7 @@ const onFilter = () => {
                         <!--begin::Table body-->
                         <template #body>
                             <template v-if="filteredAdministrations.length === 0">
-                                <Empty colspan="6" />
+                                <Empty colspan="7" />
                             </template>
                             <template v-else>
                                 <tr v-for="(administration, index) in filteredAdministrations" :key="index">
@@ -336,6 +346,7 @@ const onFilter = () => {
                                     <td>{{administration.quantity}}</td>
                                     <td>{{administration.unit.name}}</td>
                                     <td>{{administration.price}}</td>
+                                     <td>{{ administration.operation ? administration.operation.name : '—' }}</td>
                                      <td>{{ administration.user ? administration.user.name : '—' }}</td>
                                     <td class="text-end text-center">
                                         <!--begin::Update-->

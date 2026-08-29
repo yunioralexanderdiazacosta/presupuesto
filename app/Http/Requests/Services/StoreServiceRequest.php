@@ -24,6 +24,7 @@ class StoreServiceRequest extends FormRequest
         return [
             'cc' => 'required',
             'subfamily_id' => 'required',
+            'operation_id' => 'required|exists:operations,id',
             'products' => 'required|array',
             'products.*.product_name' => 'required',
             'products.*.unit_id' => 'required',
