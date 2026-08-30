@@ -1,7 +1,8 @@
 <script setup>
-import { getCurrentInstance } from "vue";
+import { getCurrentInstance, watch } from "vue";
 import Multiselect from "@vueform/multiselect";
 import InputError from "@/Components/InputError.vue";
+import { useInversionOperation } from "@/Composables/useInversionOperation";
 
 const props = defineProps({
     form: Object,
@@ -9,6 +10,13 @@ const props = defineProps({
 
 const { appContext } = getCurrentInstance();
 const page = appContext.config.globalProperties.$page;
+const { isInversionOp } = useInversionOperation();
+
+watch(() => props.form.operation_id, (newVal) => {
+    if (!isInversionOp(newVal, page.props.operations)) {
+        props.form.investment_id = null;
+    }
+});
 
 // Cascada Nivel 2 -> Nivel 3
 const getLevel3s = (event) => {
@@ -97,6 +105,19 @@ const removeItem = (index) => props.form.products.splice(index, 1);
                 class="multiselect-sm"
             />
             <InputError :message="props.form.errors.operation_id" />
+        </div>
+        <div v-if="isInversionOp(props.form.operation_id, $page.props.operations)" class="col-sm-3">
+            <label class="form-label small mb-1">Inversión <span class="text-danger">*</span></label>
+            <Multiselect
+                v-model="props.form.investment_id"
+                :options="$page.props.investments"
+                placeholder="Seleccione inversión"
+                :searchable="true"
+                :close-on-select="true"
+                :class="{ 'is-invalid': props.form.errors.investment_id }"
+                class="multiselect-sm"
+            />
+            <InputError :message="props.form.errors.investment_id" />
         </div>
     </div>
 

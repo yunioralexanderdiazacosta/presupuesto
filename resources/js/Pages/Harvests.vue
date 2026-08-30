@@ -75,7 +75,8 @@ const props = defineProps({
       default: () => []
     },
     operations: { type: Array, default: () => [] },
-    defaultOperationId: { type: [Number, String, null], default: null }
+    defaultOperationId: { type: [Number, String, null], default: null },
+    investments: { type: Array, default: () => [] }
 });
 
 // Filtro por especie (fruta) y variedad
@@ -356,6 +357,7 @@ var acum = ref(0);
 const formMultiple = useForm({
     subfamily_id: '',
     operation_id: props.defaultOperationId,
+    investment_id: null,
     cc: [],
     products: [
         {
@@ -376,6 +378,7 @@ const form = useForm({
     price: '',
     subfamily_id: '',
     operation_id: props.defaultOperationId,
+    investment_id: null,
     unit_id: '',
     unit_id_price: '',
     observations: '',
@@ -400,6 +403,7 @@ const openEdit = (harvest) => {
     form.quantity = harvest.quantity;
     form.subfamily_id = harvest.subfamily_id;
     form.operation_id = harvest.operation_id;
+    form.investment_id = harvest.investment_id;
     form.unit_id = harvest.unit_id;
     form.unit_id_price = harvest.unit_id_price;
     form.observations = harvest.observations;
@@ -540,7 +544,8 @@ const excelDataResumen = computed(() => {
                             { label: 'Unidad', key: 'unit.name' },
                             { label: 'Precio', key: 'price' },
                             { label: 'Unidad de $', key: 'unit2.name' },
-                            { label: 'Operación', key: 'operation.name' }
+                            { label: 'Operación', key: 'operation.name' },
+                            { label: 'Inversión', key: 'investment.name' }
                           ]"
                           class="btn btn-success btn-md d-flex align-items-center p-0"
                           filename="cosecha.xlsx"
@@ -554,7 +559,8 @@ const excelDataResumen = computed(() => {
                             { label: 'Unidad', key: 'unit.name' },
                             { label: 'Precio', key: 'price' },
                             { label: 'Unidad de $', key: 'unit2.name' },
-                            { label: 'Operación', key: 'operation.name' }
+                            { label: 'Operación', key: 'operation.name' },
+                            { label: 'Inversión', key: 'investment.name' }
                           ]"
                           class="btn btn-danger btn-md d-flex align-items-center p-0"
                           filename="cosecha.pdf"
@@ -575,6 +581,7 @@ const excelDataResumen = computed(() => {
                             <th width="min-w-100px">Precio</th>
                             <th width="min-w-100px">Unidad de $</th>
                             <th width="min-w-100px">Operación</th>
+                            <th width="min-w-100px">Inversión</th>
                             <th width="min-w-150px" style="white-space:nowrap">
                                 Meses
                                 <span @click="expandAllMonths = !expandAllMonths" class="badge ms-1" :class="expandAllMonths ? 'bg-primary' : 'bg-secondary'" style="cursor:pointer;font-size:0.65rem;" v-tooltip="expandAllMonths ? 'Colapsar meses' : 'Expandir meses'">
@@ -595,7 +602,7 @@ const excelDataResumen = computed(() => {
                         <!--begin::Table body-->
                         <template #body>
                             <template v-if="filteredHarvests.length === 0">
-                                <Empty colspan="12" />
+                                <Empty colspan="13" />
                             </template>
                             <template v-else>
                                 <tr v-for="(harvest, index) in filteredHarvests" :key="index">
@@ -609,6 +616,7 @@ const excelDataResumen = computed(() => {
                                     <td class="text-center">{{ Number(harvest.price).toLocaleString('es-CL') }}</td>
                                     <td>{{harvest.unit2.name}}</td>
                                     <td>{{ harvest.operation ? harvest.operation.name : '—' }}</td>
+                                    <td>{{ harvest.investment ? harvest.investment.name : '—' }}</td>
                                     <td>
                                         <template v-if="harvest.months && harvest.months.length">
                                             {{ (expandAllMonths ? harvest.months : harvest.months.slice(0, MONTH_PREVIEW))

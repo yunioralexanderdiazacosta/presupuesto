@@ -213,8 +213,9 @@ class HarvestsController extends Controller
         ]);
         // Operación pre-cargada por defecto en el formulario de creación
         $defaultOperationId = Operation::whereRaw('LOWER(name) LIKE ?', ['%gasto%'])->value('id');
+        $investments = \App\Models\Investment::where('season_id', $season_id)->get()->map(fn($i) => ['value' => $i->id, 'label' => $i->name]);
 
-        $harvestsCollection = Harvest::with('subfamily:id,name', 'unit:id,name', 'unit2:id,name', 'items:id', 'user:id,name', 'operation:id,name')->whereHas('items', function($query) use ($costCenters){
+        $harvestsCollection = Harvest::with('subfamily:id,name', 'unit:id,name', 'unit2:id,name', 'items:id', 'user:id,name', 'operation:id,name', 'investment:id,name')->whereHas('items', function($query) use ($costCenters){
             $query->whereIn('cost_center_id', $costCenters->pluck('value'));
         })->orderBy('id')->get()->map(function($harvest){
             $items = $harvest->items->pluck('pivot');
@@ -226,11 +227,13 @@ class HarvestsController extends Controller
                 'quantity'      => $harvest->quantity,
                 'subfamily_id'  => $harvest->subfamily_id,
                 'operation_id'  => $harvest->operation_id,
+                'investment_id' => $harvest->investment_id,
                 'unit_id'       => $harvest->unit_id,
                 'unit_id_price' => $harvest->unit_id_price,
                 'observations'  => $harvest->observations,
                 'subfamily'     => $harvest->subfamily,
                 'operation'     => $harvest->operation,
+                'investment'    => $harvest->investment,
                 'unit'          => $harvest->unit,
                 'unit2'         => $harvest->unit2,
                 'price'         => $harvest->price,
@@ -468,7 +471,7 @@ class HarvestsController extends Controller
 
         $data4 = $this->buildData4($costCentersId, $season_id, $user->team_id);
 
-        return Inertia::render('Harvests', compact('units', 'subfamilies', 'months', 'costCenters', 'companyReasons', 'branches', 'groupings', 'harvests', 'data', 'data2', 'data3', 'data4', 'season', 'totalData1', 'totalData2', 'percentage', 'varieties', 'fruits', 'level2s', 'operations', 'defaultOperationId'));
+        return Inertia::render('Harvests', compact('units', 'subfamilies', 'months', 'costCenters', 'companyReasons', 'branches', 'groupings', 'harvests', 'data', 'data2', 'data3', 'data4', 'season', 'totalData1', 'totalData2', 'percentage', 'varieties', 'fruits', 'level2s', 'operations', 'defaultOperationId', 'investments'));
     }
 
     private function getSubfamilies($costCenterId, $surface = null, $bills = false)

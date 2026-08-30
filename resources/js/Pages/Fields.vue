@@ -52,6 +52,7 @@ const props = defineProps({
     selectedBranchId: { type: Number, default: null },
     operations: { type: Array, default: () => [] },
     defaultOperationId: { type: [Number, String], default: null },
+    investments: { type: Array, default: () => [] },
 });
 
 const selectedTeamId   = ref(props.team_id || null);
@@ -87,6 +88,7 @@ const formMultiple = useForm({
     branch_id: null,
     subfamily_id: '',
     operation_id: props.defaultOperationId,
+    investment_id: null,
     products: [
         {
             product_name: '',
@@ -104,6 +106,7 @@ const form = useForm({
     subfamily_id: '',
     branch_id: null,
     operation_id: props.defaultOperationId,
+    investment_id: null,
     price: '',
     quantity: '',
     unit_id: 5,
@@ -147,6 +150,7 @@ const openEdit = (field) => {
     form.observations = field.observations;
     form.branch_id = field.branch_id ?? null;
     form.operation_id = field.operation_id ?? props.defaultOperationId;
+    form.investment_id = field.investment_id;
     form.months = field.months; 
     $('#editFieldModal').modal('show');
 }
@@ -282,7 +286,8 @@ const acum_products = (quantity) => {
                                 { label: 'Cantidad', key: 'quantity' },
                                 { label: 'Unidad', key: 'unit.name' },
                                 { label: 'Precio', key: 'price' },
-                                { label: 'Operación', key: 'operation.name' }
+                                { label: 'Operación', key: 'operation.name' },
+                                { label: 'Inversión', key: 'investment.name' }
                               ]"
                               class="btn btn-success btn-md d-flex align-items-center p-0"
                               filename="Campos.xlsx"
@@ -295,7 +300,8 @@ const acum_products = (quantity) => {
                                 { label: 'Cantidad', key: 'quantity' },
                                 { label: 'Unidad', key: 'unit.name' },
                                 { label: 'Precio', key: 'price' },
-                                { label: 'Operación', key: 'operation.name' }
+                                { label: 'Operación', key: 'operation.name' },
+                                { label: 'Inversión', key: 'investment.name' }
                               ]"
                               class="btn btn-danger btn-md d-flex align-items-center p-0"
                               filename="Campos.pdf"
@@ -315,6 +321,7 @@ const acum_products = (quantity) => {
                                 <th scope="col" width="min-w-100px">Unidad</th>
                                 <th scope="col" width="min-w-100px">Precio</th>
                                 <th scope="col" width="min-w-100px">Operación</th>
+                                <th scope="col" width="min-w-100px">Inversión</th>
                                 <th scope="col" width="min-w-100px">Digitado por</th>
                                 <th scope="col" width="min-w-150px" class="text-end text-center">Acciones</th>
                                 <!--end::Table row-->
@@ -323,7 +330,7 @@ const acum_products = (quantity) => {
                             <!--begin::Table body-->
                             <template #body>
                                 <template v-if="filteredFields.length === 0">
-                                    <Empty colspan="7" />
+                                    <Empty colspan="8" />
                                 </template>
                                 <template v-else>
                                     <tr v-for="(field, index) in filteredFields" :key="index">
@@ -338,6 +345,7 @@ const acum_products = (quantity) => {
                                         <td>{{field.unit.name}}</td>
                                         <td>{{field.price}}</td>
                                         <td>{{ field.operation ? field.operation.name : '—' }}</td>
+                                        <td>{{ field.investment ? field.investment.name : '—' }}</td>
                                         <td>{{ field.user ? field.user.name : '—' }}</td>
                                         <td class="text-end text-center">
                                             <!--begin::Update-->

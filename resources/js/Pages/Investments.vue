@@ -137,15 +137,9 @@ const handleDelete = (investment) => {
         <div class="tab-content border p-3 mt-3" id="pill-myTabContent">
 
 
-          <Table :items="filteredInvestments" :fields="['name', 'month', 'amount', 'cost_centers', 'actions']">
+          <Table :items="filteredInvestments" :fields="['name', 'cost_centers', 'actions']">
             <template #cell(name)="{ item }">
               {{ item.name }}
-            </template>
-            <template #cell(month)="{ item }">
-              {{ item.month }}
-            </template>
-            <template #cell(amount)="{ item }">
-              {{ item.amount | currency }}
             </template>
             <template #cell(cost_centers)="{ item }">
               <span v-for="cc in item.cost_centers" :key="cc.id" class="badge bg-info me-1">{{ cc.name }}</span>

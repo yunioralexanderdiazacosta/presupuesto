@@ -41,6 +41,7 @@ const props = defineProps({
   },
   operations: { type: Array, default: () => [] },
   defaultOperationId: { type: [Number, String, null], default: null },
+  investments: { type: Array, default: () => [] },
 });
 
 const selectedFruit = ref('');
@@ -95,6 +96,7 @@ const formMultiple = useForm({
     cc: [],
     subfamily_id: '',
     operation_id: props.defaultOperationId,
+    investment_id: null,
     products: [
         {
             product_name: '',
@@ -109,6 +111,7 @@ const formMultiple = useForm({
 const form = useForm({
     subfamily_id: '',
     operation_id: props.defaultOperationId,
+    investment_id: null,
     product_name: '',
     price: '',
     workday: '',
@@ -134,6 +137,7 @@ const openEdit = (manPower) => {
     form.price = manPower.price;
     form.subfamily_id = manPower.subfamily_id;
     form.operation_id = manPower.operation_id;
+    form.investment_id = manPower.investment_id;
     form.observations = manPower.observations;
     form.cc = manPower.cc;
     form.months = manPower.months;
@@ -549,7 +553,8 @@ const excelDataResumen = computed(() => {
         { label: 'SubFamilia', key: 'subfamily.name' },
         { label: 'Jornadas', key: 'workday' },
         { label: 'Precio', key: 'price' },
-        { label: 'Operación', key: 'operation.name' }
+        { label: 'Operación', key: 'operation.name' },
+        { label: 'Inversión', key: 'investment.name' }
       ]"
       class="btn btn-success btn-md d-flex align-items-center p-0"
       filename="ManoDeObra.xlsx"
@@ -561,7 +566,8 @@ const excelDataResumen = computed(() => {
         { label: 'SubFamilia', key: 'subfamily.name' },
         { label: 'Jornadas', key: 'workday' },
         { label: 'Precio', key: 'price' },
-        { label: 'Operación', key: 'operation.name' }
+        { label: 'Operación', key: 'operation.name' },
+        { label: 'Inversión', key: 'investment.name' }
       ]"
       class="btn btn-danger btn-md d-flex align-items-center p-0"
       filename="ManoDeObra.pdf"
@@ -580,6 +586,7 @@ const excelDataResumen = computed(() => {
                                 <th width="min-w-100px">Jornadas</th>
                                 <th width="min-w-100px">Precio</th>
                                 <th width="min-w-100px">Operación</th>
+                                <th width="min-w-100px">Inversión</th>
                                 <th width="min-w-150px" style="white-space:nowrap">
                                     Meses
                                     <span @click="expandAllMonths = !expandAllMonths" class="badge ms-1" :class="expandAllMonths ? 'bg-primary' : 'bg-secondary'" style="cursor:pointer;font-size:0.65rem;" v-tooltip="expandAllMonths ? 'Colapsar meses' : 'Expandir meses'">
@@ -600,7 +607,7 @@ const excelDataResumen = computed(() => {
                             <!--begin::Table body-->
                             <template #body>
                                 <template v-if="filteredManPowers.length === 0">
-                                    <Empty colspan="10" />
+                                    <Empty colspan="11" />
                                 </template>
                                 <template v-else>
                                     <tr v-for="(manPower, index) in filteredManPowers" :key="index">
@@ -612,6 +619,7 @@ const excelDataResumen = computed(() => {
                                         <td>{{manPower.workday}}</td>
                                         <td class="text-center">{{ Number(manPower.price).toLocaleString('es-CL') }}</td>
                                         <td>{{ manPower.operation ? manPower.operation.name : '—' }}</td>
+                                        <td>{{ manPower.investment ? manPower.investment.name : '—' }}</td>
                                         <td>
                                             <template v-if="manPower.months && manPower.months.length">
                                                 {{ (expandAllMonths ? manPower.months : manPower.months.slice(0, MONTH_PREVIEW))

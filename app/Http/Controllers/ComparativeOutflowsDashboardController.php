@@ -56,9 +56,14 @@ class ComparativeOutflowsDashboardController extends Controller
         // Generar array de 12 meses desde el mes de inicio
         $months = $this->generateMonthsArray($startMonthId);
 
+        // Operaciones: Gasto vs Inversión. El toggle "Incluir Inversiones" del frontend decide si se
+        // suma o no el presupuesto de Inversión (calculado sobre los mismos módulos que Gasto).
+        $gastoOperationId = \App\Models\Operation::whereRaw('LOWER(name) LIKE ?', ['%gasto%'])->value('id');
+        $inversionOperationId = \App\Models\Operation::whereRaw('LOWER(name) LIKE ?', ['%inversion%'])->value('id');
+
         // Calcular una sola vez y reutilizar (evita queries duplicadas)
-        $monthlyComparison = $this->getMonthlyComparison($season_id, $team_id, $months, $company_reason_id);
-        $comparisonByLevel1 = $this->getComparisonByLevel1($season_id, $team_id, $company_reason_id);
+        $monthlyComparison = $this->getMonthlyComparison($season_id, $team_id, $months, $company_reason_id, $gastoOperationId, $inversionOperationId);
+        $comparisonByLevel1 = $this->getComparisonByLevel1($season_id, $team_id, $company_reason_id, $gastoOperationId, $inversionOperationId);
         $payrollByLevel2    = $this->getPayrollByLevel2($team_id, $season_id, $company_reason_id);
         $payrollByLevel3    = $this->getPayrollByLevel3($team_id, $season_id, $company_reason_id);
 
@@ -87,6 +92,7 @@ class ComparativeOutflowsDashboardController extends Controller
                     'level2'     => $payrollRow['level2'],
                     'level3'     => $payrollRow['level3'],
                     'budget'     => 0.0,
+                    'investment' => 0.0,
                     'invoiced'   => 0.0,
                     'consumed'   => 0.0,
                     'real'       => 0.0,
@@ -109,7 +115,7 @@ class ComparativeOutflowsDashboardController extends Controller
             'isAdmin'     => $user->hasRole('Admin'),
             'companyReasons'        => $this->getCompanyReasons($season_id, $team_id),
             'activeCompanyReasonIds' => $company_reason_ids,
-            'summary' => $this->getSummaryComparison($season_id, $team_id, $company_reason_id),
+            'summary' => $this->getSummaryComparison($season_id, $team_id, $company_reason_id, $gastoOperationId, $inversionOperationId),
             'monthlyComparison' => $monthlyComparison,
             'cumulativeComparison' => $this->buildCumulativeFromMonthly($monthlyComparison, $months),
             'comparisonByLevel1' => $comparisonByLevel1,
@@ -120,7 +126,7 @@ class ComparativeOutflowsDashboardController extends Controller
             'payrollSummary'   => $this->getPayrollSummary($team_id, $season_id, $company_reason_id),
             'payrollMonthly'   => $this->getPayrollMonthly($team_id, $season_id, $months, $company_reason_id),
             'payrollByLevel2'  => $payrollByLevel2,
-            'comparisonByLevel1Monthly' => $this->getComparisonByLevel1Monthly($season_id, $team_id, $company_reason_id, $months),
+            'comparisonByLevel1Monthly' => $this->getComparisonByLevel1Monthly($season_id, $team_id, $company_reason_id, $months, $gastoOperationId, $inversionOperationId),
         ]);
     }
 
@@ -199,27 +205,17 @@ class ComparativeOutflowsDashboardController extends Controller
     /**
      * Resumen comparativo general
      */
-    private function getSummaryComparison($season_id, $team_id, $company_reason_id = null)
+    private function getSummaryComparison($season_id, $team_id, $company_reason_id = null, $gastoOperationId = null, $inversionOperationId = null)
     {
         try {
-            // Total Presupuestado - usa getBudgetTotalsByLevel12 para respetar el filtro de razón social
-            // (CCs con company_reason_id = $filter OR IS NULL)
-            $budgetTotal = (float) $this->getBudgetTotalsByLevel12($season_id, $team_id, $company_reason_id)->sum('total_amount');
+            // Total Presupuestado (solo productos con operación "Gasto") - usa getBudgetTotalsByLevel12
+            // para respetar el filtro de razón social (CCs con company_reason_id = $filter OR IS NULL)
+            $budgetTotal = (float) $this->getBudgetTotalsByLevel12($season_id, $team_id, $company_reason_id, false, $gastoOperationId ? [$gastoOperationId] : null)->sum('total_amount');
 
-            // Total Inversiones (no se filtran por razón social, son globales de la temporada)
-            $monthsInvestmentsRaw = $this->getInvestmentsTotalByMonth($season_id, $team_id);
-            $monthsInvestments = [];
-            foreach($monthsInvestmentsRaw as $key => $value){
-                $monthsInvestments[$key] = (float)$value;
-            }
-            // Normalizar a 12 meses
-            $allMonthsInvestments = [];
-            for ($i = 1; $i <= 12; $i++) {
-                $key = (string)$i;
-                $allMonthsInvestments[$key] = isset($monthsInvestments[$key]) ? $monthsInvestments[$key] : 0;
-            }
-            $totalInvestments = array_sum($allMonthsInvestments);
-            
+            // Total Inversiones: mismos módulos de presupuesto pero filtrados por operación "Inversión"
+            // (antes se calculaba con el módulo Investment, que no tenía relación con los productos reales)
+            $totalInvestments = (float) $this->getBudgetTotalsByLevel12($season_id, $team_id, $company_reason_id, false, $inversionOperationId ? [$inversionOperationId] : null)->sum('total_amount');
+
             // Total General = Total Neto + Inversiones
             $budgetTotalWithInvestments = $budgetTotal + $totalInvestments;
 
@@ -371,7 +367,7 @@ class ComparativeOutflowsDashboardController extends Controller
      * Comparación mensual (no acumulada)
      * Usa EXACTAMENTE los mismos métodos que TechnicalPanelController
      */
-    private function getMonthlyComparison($season_id, $team_id, $months, $company_reason_id = null)
+    private function getMonthlyComparison($season_id, $team_id, $months, $company_reason_id = null, $gastoOperationId = null, $inversionOperationId = null)
     {
         try {
             // Usar la misma lógica que TechnicalPanelController
@@ -394,33 +390,47 @@ class ComparativeOutflowsDashboardController extends Controller
                 ->get();
             $costCentersId = $costCenters->pluck('id');
 
-            // Inicializar arrays para almacenar totales mensuales
+            // Operaciones: si no se pasaron, resolverlas aquí (permite llamar el método de forma independiente)
+            $gastoOpIds = $gastoOperationId ? [$gastoOperationId] : null;
+            $inversionOpIds = $inversionOperationId ? [$inversionOperationId] : null;
+
+            // Inicializar arrays para almacenar totales mensuales (solo operación "Gasto")
             $monthsAgrochemical = [];
             $monthsFertilizer = [];
             $monthsManPower = [];
             $monthsServices = [];
             $monthsSupplies = [];
             $monthsHarvests = [];
-            
+
+            // Arrays paralelos, solo operación "Inversión" (reemplazan al antiguo módulo Investment)
+            $monthsAgrochemicalInv = [];
+            $monthsFertilizerInv = [];
+            $monthsManPowerInv = [];
+            $monthsServicesInv = [];
+            $monthsSuppliesInv = [];
+            $monthsHarvestsInv = [];
+
             // Calcular usando los mismos métodos que TechnicalPanelController
-            $this->getAgrochemicalProductsForComparison($costCentersId, $month_id, $monthsAgrochemical);
-            $this->getFertilizerProductsForComparison($costCentersId, $month_id, $monthsFertilizer);
-            $this->getManPowerProductsForComparison($costCentersId, $month_id, $monthsManPower);
-            $this->getServicesProductsForComparison($costCentersId, $month_id, $monthsServices);
-            $this->getSuppliesProductsForComparison($costCentersId, $month_id, $monthsSupplies);
-            $this->getHarvestsProductsForComparison($costCentersId, $month_id, $monthsHarvests);
+            $this->getAgrochemicalProductsForComparison($costCentersId, $month_id, $monthsAgrochemical, $gastoOpIds);
+            $this->getFertilizerProductsForComparison($costCentersId, $month_id, $monthsFertilizer, $gastoOpIds);
+            $this->getManPowerProductsForComparison($costCentersId, $month_id, $monthsManPower, $gastoOpIds);
+            $this->getServicesProductsForComparison($costCentersId, $month_id, $monthsServices, $gastoOpIds);
+            $this->getSuppliesProductsForComparison($costCentersId, $month_id, $monthsSupplies, $gastoOpIds);
+            $this->getHarvestsProductsForComparison($costCentersId, $month_id, $monthsHarvests, $gastoOpIds);
+
+            $this->getAgrochemicalProductsForComparison($costCentersId, $month_id, $monthsAgrochemicalInv, $inversionOpIds);
+            $this->getFertilizerProductsForComparison($costCentersId, $month_id, $monthsFertilizerInv, $inversionOpIds);
+            $this->getManPowerProductsForComparison($costCentersId, $month_id, $monthsManPowerInv, $inversionOpIds);
+            $this->getServicesProductsForComparison($costCentersId, $month_id, $monthsServicesInv, $inversionOpIds);
+            $this->getSuppliesProductsForComparison($costCentersId, $month_id, $monthsSuppliesInv, $inversionOpIds);
+            $this->getHarvestsProductsForComparison($costCentersId, $month_id, $monthsHarvestsInv, $inversionOpIds);
 
             // IMPORTANTE: Agregar Administración y Gral Campo (estaban faltando!)
             // Se prorratean por superficie según razón social activa
-            $monthsAdministration = $this->getMonthsAdministration($team_id, $company_reason_id);
-            $monthsFields = $this->getMonthsFields($team_id, $company_reason_id);
-
-            // Obtener inversiones mensuales
-            $monthsInvestmentsRaw = $this->getInvestmentsTotalByMonth($season_id, $team_id);
-            $monthsInvestments = [];
-            foreach($monthsInvestmentsRaw as $key => $value){
-                $monthsInvestments[$key] = (float)$value;
-            }
+            $monthsAdministration = $this->getMonthsAdministration($team_id, $company_reason_id, $gastoOpIds);
+            $monthsFields = $this->getMonthsFields($team_id, $company_reason_id, $gastoOpIds);
+            $monthsAdministrationInv = $this->getMonthsAdministration($team_id, $company_reason_id, $inversionOpIds);
+            $monthsFieldsInv = $this->getMonthsFields($team_id, $company_reason_id, $inversionOpIds);
 
             // Crear arrays de presupuesto por mes
             $budgetByMonth = [];
@@ -450,7 +460,15 @@ class ComparativeOutflowsDashboardController extends Controller
                 $budgetByMonth[] = floatval($budgetMonth);
 
                 // Presupuesto con inversiones
-                $investmentMonth = $monthsInvestments[$monthId] ?? 0;
+                $investmentMonth =
+                    ($monthsAdministrationInv[$monthId] ?? 0) +
+                    ($monthsFieldsInv[$monthId] ?? 0) +
+                    ($monthsAgrochemicalInv[$monthId] ?? 0) +
+                    ($monthsFertilizerInv[$monthId] ?? 0) +
+                    ($monthsManPowerInv[$monthId] ?? 0) +
+                    ($monthsServicesInv[$monthId] ?? 0) +
+                    ($monthsSuppliesInv[$monthId] ?? 0) +
+                    ($monthsHarvestsInv[$monthId] ?? 0);
                 $budgetWithInvestmentsByMonth[] = floatval($budgetMonth + $investmentMonth);
 
                 // Facturado del mes (pre-calculado en batch)
@@ -1159,7 +1177,7 @@ class ComparativeOutflowsDashboardController extends Controller
     /**
      * Comparación por Level1
      */
-    private function getComparisonByLevel1($season_id, $team_id, $company_reason_id = null)
+    private function getComparisonByLevel1($season_id, $team_id, $company_reason_id = null, $gastoOperationId = null, $inversionOperationId = null)
     {
         try {
             // Inicializar array para almacenar todas las categorías encontradas
@@ -1167,17 +1185,38 @@ class ComparativeOutflowsDashboardController extends Controller
 
             // ========================================
             // 1. PRESUPUESTO por categoría - USANDO RELACIONES CON LEVEL1/LEVEL2
+            //    (solo operación "Gasto"; "Inversión" se calcula aparte y se suma en el frontend
+            //    cuando el toggle "Incluir Inversiones" está activo)
             // ========================================
-            $budgetByLevel = $this->getBudgetTotalsByLevel12($season_id, $team_id, $company_reason_id);
+            $budgetByLevel = $this->getBudgetTotalsByLevel12($season_id, $team_id, $company_reason_id, false, $gastoOperationId ? [$gastoOperationId] : null);
             
             foreach ($budgetByLevel as $row) {
                 $fullName = $row['level1_name'] . ' - ' . $row['level2_name'] . ' - ' . $row['level3_name'];
                 
                 $categories[$fullName] = [
                     'budget' => floatval($row['total_amount']),
+                    'investment' => 0,
                     'invoiced' => 0,
                     'consumed' => 0
                 ];
+            }
+
+            // Presupuesto de Inversión, mismos módulos pero filtrado por operación "Inversión"
+            $investmentByLevel = $this->getBudgetTotalsByLevel12($season_id, $team_id, $company_reason_id, false, $inversionOperationId ? [$inversionOperationId] : null);
+
+            foreach ($investmentByLevel as $row) {
+                $fullName = $row['level1_name'] . ' - ' . $row['level2_name'] . ' - ' . $row['level3_name'];
+
+                if (!isset($categories[$fullName])) {
+                    $categories[$fullName] = [
+                        'budget' => 0,
+                        'investment' => 0,
+                        'invoiced' => 0,
+                        'consumed' => 0
+                    ];
+                }
+
+                $categories[$fullName]['investment'] += floatval($row['total_amount']);
             }
 
             // ========================================
@@ -1214,6 +1253,7 @@ class ComparativeOutflowsDashboardController extends Controller
                 if (!isset($categories[$fullName])) {
                     $categories[$fullName] = [
                         'budget' => 0,
+                        'investment' => 0,
                         'invoiced' => 0,
                         'consumed' => 0
                     ];
@@ -1255,6 +1295,7 @@ class ComparativeOutflowsDashboardController extends Controller
                 if (!isset($categories[$fullName])) {
                     $categories[$fullName] = [
                         'budget' => 0,
+                        'investment' => 0,
                         'invoiced' => 0,
                         'consumed' => 0
                     ];
@@ -1307,6 +1348,7 @@ class ComparativeOutflowsDashboardController extends Controller
                 if (!isset($categories[$fullName])) {
                     $categories[$fullName] = [
                         'budget' => 0,
+                        'investment' => 0,
                         'invoiced' => 0,
                         'consumed' => 0
                     ];
@@ -1336,6 +1378,7 @@ class ComparativeOutflowsDashboardController extends Controller
                     'level2' => $level2Name,
                     'level3' => $level3Name,
                     'budget' => $data['budget'],
+                    'investment' => $data['investment'] ?? 0,
                     'invoiced' => $data['invoiced'],
                     'consumed' => $data['consumed'],
                     'real' => $data['invoiced'], // Para compatibilidad con código existente
@@ -1492,10 +1535,11 @@ class ComparativeOutflowsDashboardController extends Controller
      * @return array [{level1, level2, level3, budget_monthly: float[12], invoiced_monthly: float[12],
      *                 payroll_monthly: float[12], real_monthly: float[12], difference_monthly: float[12], ...totales}]
      */
-    private function getComparisonByLevel1Monthly($season_id, $team_id, $company_reason_id, array $months): array
+    private function getComparisonByLevel1Monthly($season_id, $team_id, $company_reason_id, array $months, $gastoOperationId = null, $inversionOperationId = null): array
     {
         try {
-            $budgetRows  = $this->getBudgetTotalsByLevel12($season_id, $team_id, $company_reason_id, true);
+            $budgetRows  = $this->getBudgetTotalsByLevel12($season_id, $team_id, $company_reason_id, true, $gastoOperationId ? [$gastoOperationId] : null);
+            $investmentRows = $this->getBudgetTotalsByLevel12($season_id, $team_id, $company_reason_id, true, $inversionOperationId ? [$inversionOperationId] : null);
             $invoicedMap = $this->getInvoicedMonthlyByLevel123($season_id, $team_id, $company_reason_id, $months);
             $payrollRows = $this->getPayrollByLevel3Monthly($team_id, $season_id, $months, $company_reason_id);
 
@@ -1503,9 +1547,10 @@ class ComparativeOutflowsDashboardController extends Controller
             $emptyRow = function ($level1, $level2, $level3) {
                 return [
                     'level1' => $level1, 'level2' => $level2, 'level3' => $level3,
-                    'budget_monthly'   => array_fill(0, 12, 0.0),
-                    'invoiced_monthly' => array_fill(0, 12, 0.0),
-                    'payroll_monthly'  => array_fill(0, 12, 0.0),
+                    'budget_monthly'     => array_fill(0, 12, 0.0),
+                    'investment_monthly' => array_fill(0, 12, 0.0),
+                    'invoiced_monthly'   => array_fill(0, 12, 0.0),
+                    'payroll_monthly'    => array_fill(0, 12, 0.0),
                 ];
             };
 
@@ -1516,6 +1561,16 @@ class ComparativeOutflowsDashboardController extends Controller
                 }
                 foreach ($row['monthly'] as $i => $v) {
                     $categories[$key]['budget_monthly'][$i] += (float) $v;
+                }
+            }
+
+            foreach ($investmentRows as $row) {
+                $key = $row['level1_name'] . '||' . $row['level2_name'] . '||' . $row['level3_name'];
+                if (!isset($categories[$key])) {
+                    $categories[$key] = $emptyRow($row['level1_name'], $row['level2_name'], $row['level3_name']);
+                }
+                foreach ($row['monthly'] as $i => $v) {
+                    $categories[$key]['investment_monthly'][$i] += (float) $v;
                 }
             }
 
@@ -1550,6 +1605,7 @@ class ComparativeOutflowsDashboardController extends Controller
                 $data['real_monthly']       = $realMonthly;
                 $data['difference_monthly'] = $differenceMonthly;
                 $data['budget_total']       = array_sum($data['budget_monthly']);
+                $data['investment_total']   = array_sum($data['investment_monthly']);
                 $data['invoiced_total']     = array_sum($data['invoiced_monthly']);
                 $data['payroll_total']      = array_sum($data['payroll_monthly']);
                 $data['real_total']         = array_sum($realMonthly);
@@ -1587,7 +1643,7 @@ class ComparativeOutflowsDashboardController extends Controller
      * Replica la lógica de DashboardController->getTotalsByLevel12()
      * Retorna: [level1_id, level1_name, level2_id, level2_name, total_amount]
      */
-    private function getBudgetTotalsByLevel12($season_id, $team_id, $company_reason_id = null, $trackMonthly = false)
+    private function getBudgetTotalsByLevel12($season_id, $team_id, $company_reason_id = null, $trackMonthly = false, $operationIds = null)
     {
         $season = \App\Models\Season::select('month_id')->where('id', $season_id)->first();
         $currentMonth = $season ? $season->month_id : 1;
@@ -1651,6 +1707,7 @@ class ComparativeOutflowsDashboardController extends Controller
             ->where('a.season_id', $season_id)
             ->where('a.team_id', $team_id)
             ->whereIn('ai.cost_center_id', $costCenters->keys())
+            ->when(!empty($operationIds), fn($q) => $q->whereIn('a.operation_id', (array) $operationIds))
             ->groupBy('a.id', 'l1.id', 'l1.name', 'l2.id', 'l2.name', 'l3.id', 'l3.name', 'ai.cost_center_id')
             ->get();
 
@@ -1706,6 +1763,7 @@ class ComparativeOutflowsDashboardController extends Controller
             ->where('f.season_id', $season_id)
             ->where('f.team_id', $team_id)
             ->whereIn('fi.cost_center_id', $costCenters->keys())
+            ->when(!empty($operationIds), fn($q) => $q->whereIn('f.operation_id', (array) $operationIds))
             ->groupBy('f.id', 'l1.id', 'l1.name', 'l2.id', 'l2.name', 'l3.id', 'l3.name', 'fi.cost_center_id')
             ->get();
 
@@ -1753,6 +1811,7 @@ class ComparativeOutflowsDashboardController extends Controller
             ->where('mp.season_id', $season_id)
             ->where('mp.team_id', $team_id)
             ->whereIn('mpi.cost_center_id', $costCenters->keys())
+            ->when(!empty($operationIds), fn($q) => $q->whereIn('mp.operation_id', (array) $operationIds))
             ->groupBy('mp.id', 'l1.id', 'l1.name', 'l2.id', 'l2.name', 'l3.id', 'l3.name', 'mpi.cost_center_id')
             ->get();
 
@@ -1799,6 +1858,7 @@ class ComparativeOutflowsDashboardController extends Controller
             ->where('s.season_id', $season_id)
             ->where('s.team_id', $team_id)
             ->whereIn('si.cost_center_id', $costCenters->keys())
+            ->when(!empty($operationIds), fn($q) => $q->whereIn('s.operation_id', (array) $operationIds))
             ->groupBy('s.id', 'l1.id', 'l1.name', 'l2.id', 'l2.name', 'l3.id', 'l3.name', 'si.cost_center_id')
             ->get();
 
@@ -1846,6 +1906,7 @@ class ComparativeOutflowsDashboardController extends Controller
             ->where('srv.season_id', $season_id)
             ->where('srv.team_id', $team_id)
             ->whereIn('si.cost_center_id', $costCenters->keys())
+            ->when(!empty($operationIds), fn($q) => $q->whereIn('srv.operation_id', (array) $operationIds))
             ->groupBy('srv.id', 'l1.id', 'l1.name', 'l2.id', 'l2.name', 'l3.id', 'l3.name', 'si.cost_center_id')
             ->get();
 
@@ -1892,6 +1953,7 @@ class ComparativeOutflowsDashboardController extends Controller
             ->where('h.season_id', $season_id)
             ->where('h.team_id', $team_id)
             ->whereIn('hi.cost_center_id', $costCenters->keys())
+            ->when(!empty($operationIds), fn($q) => $q->whereIn('h.operation_id', (array) $operationIds))
             ->groupBy('h.id', 'l1.id', 'l1.name', 'l2.id', 'l2.name', 'l3.id', 'l3.name', 'hi.cost_center_id')
             ->get();
 
@@ -1948,6 +2010,7 @@ class ComparativeOutflowsDashboardController extends Controller
             )
             ->where('a.season_id', $season_id)
             ->where('a.team_id', $team_id)
+            ->when(!empty($operationIds), fn($q) => $q->whereIn('a.operation_id', (array) $operationIds))
             ->get();
 
         // Pre-cargar meses activos de administración en batch (con detalle de qué month_id específico)
@@ -1997,6 +2060,7 @@ class ComparativeOutflowsDashboardController extends Controller
             )
             ->where('f.season_id', $season_id)
             ->where('f.team_id', $team_id)
+            ->when(!empty($operationIds), fn($q) => $q->whereIn('f.operation_id', (array) $operationIds))
             ->get();
 
         // Pre-cargar meses activos de fields en batch (con detalle de qué month_id específico)
@@ -2081,7 +2145,7 @@ class ComparativeOutflowsDashboardController extends Controller
     // MÉTODOS QUE REPLICAN TechnicalPanelController
     // ========================================
 
-    private function getAgrochemicalProductsForComparison($costCentersId, $currentMonth, &$monthsAgrochemical)
+    private function getAgrochemicalProductsForComparison($costCentersId, $currentMonth, &$monthsAgrochemical, $operationIds = null)
     {
         $months = [];
         for ($x = $currentMonth; $x < $currentMonth + 12; $x++) {
@@ -2100,6 +2164,7 @@ class ComparativeOutflowsDashboardController extends Controller
             ->leftJoin('units as u', 'a.unit_id_price', 'u.id')
             ->select('a.id', 'a.price', 'a.dose_type_id', 'a.dose', 'a.unit_id', 'a.unit_id_price', 'a.mojamiento')
             ->whereIn('a.id', $items->pluck('agrochemical_id')->unique())
+            ->when(!empty($operationIds), fn($q) => $q->whereIn('a.operation_id', (array) $operationIds))
             ->get();
 
         $surfaces = CostCenter::whereIn('id', $costCentersId)->pluck('surface', 'id');
@@ -2133,7 +2198,7 @@ class ComparativeOutflowsDashboardController extends Controller
         }
     }
 
-    private function getFertilizerProductsForComparison($costCentersId, $currentMonth, &$monthsFertilizer)
+    private function getFertilizerProductsForComparison($costCentersId, $currentMonth, &$monthsFertilizer, $operationIds = null)
     {
         $months = [];
         for ($x = $currentMonth; $x < $currentMonth + 12; $x++) {
@@ -2152,6 +2217,7 @@ class ComparativeOutflowsDashboardController extends Controller
             ->leftJoin('units as u', 'f.unit_id_price', 'u.id')
             ->select('f.id', 'f.price', 'f.dose', 'f.unit_id', 'f.unit_id_price')
             ->whereIn('f.id', $items->pluck('fertilizer_id')->unique())
+            ->when(!empty($operationIds), fn($q) => $q->whereIn('f.operation_id', (array) $operationIds))
             ->get();
 
         $surfaces = CostCenter::whereIn('id', $costCentersId)->pluck('surface', 'id');
@@ -2179,7 +2245,7 @@ class ComparativeOutflowsDashboardController extends Controller
         }
     }
 
-    private function getManPowerProductsForComparison($costCentersId, $currentMonth, &$monthsManPower)
+    private function getManPowerProductsForComparison($costCentersId, $currentMonth, &$monthsManPower, $operationIds = null)
     {
         $months = [];
         for ($x = $currentMonth; $x < $currentMonth + 12; $x++) {
@@ -2198,6 +2264,7 @@ class ComparativeOutflowsDashboardController extends Controller
             ->leftJoin('units as u', 'mp.unit_id', 'u.id')
             ->select('mp.id', 'mp.price', 'mp.workday')
             ->whereIn('mp.id', $items->pluck('man_power_id')->unique())
+            ->when(!empty($operationIds), fn($q) => $q->whereIn('mp.operation_id', (array) $operationIds))
             ->get();
 
         $surfaces = CostCenter::whereIn('id', $costCentersId)->pluck('surface', 'id');
@@ -2224,7 +2291,7 @@ class ComparativeOutflowsDashboardController extends Controller
         }
     }
 
-    private function getServicesProductsForComparison($costCentersId, $currentMonth, &$monthsServices)
+    private function getServicesProductsForComparison($costCentersId, $currentMonth, &$monthsServices, $operationIds = null)
     {
         $months = [];
         for ($x = $currentMonth; $x < $currentMonth + 12; $x++) {
@@ -2243,6 +2310,7 @@ class ComparativeOutflowsDashboardController extends Controller
             ->leftJoin('units as u', 's.unit_id_price', 'u.id')
             ->select('s.id', 's.product_name', 's.price', 's.quantity', 's.unit_id', 's.unit_id_price', 'u.name')
             ->whereIn('s.id', $items->pluck('service_id')->unique())
+            ->when(!empty($operationIds), fn($q) => $q->whereIn('s.operation_id', (array) $operationIds))
             ->get();
 
         $surfaces = CostCenter::whereIn('id', $costCentersId)->pluck('surface', 'id');
@@ -2270,7 +2338,7 @@ class ComparativeOutflowsDashboardController extends Controller
         }
     }
 
-    private function getSuppliesProductsForComparison($costCentersId, $currentMonth, &$monthsSupplies)
+    private function getSuppliesProductsForComparison($costCentersId, $currentMonth, &$monthsSupplies, $operationIds = null)
     {
         $months = [];
         for ($x = $currentMonth; $x < $currentMonth + 12; $x++) {
@@ -2289,6 +2357,7 @@ class ComparativeOutflowsDashboardController extends Controller
             ->leftJoin('units as u', 's.unit_id_price', 'u.id')
             ->select('s.id', 's.product_name', 's.price', 's.quantity', 's.unit_id', 's.unit_id_price', 'u.name')
             ->whereIn('s.id', $items->pluck('supply_id')->unique())
+            ->when(!empty($operationIds), fn($q) => $q->whereIn('s.operation_id', (array) $operationIds))
             ->get();
 
         $surfaces = CostCenter::whereIn('id', $costCentersId)->pluck('surface', 'id');
@@ -2316,7 +2385,7 @@ class ComparativeOutflowsDashboardController extends Controller
         }
     }
 
-    private function getHarvestsProductsForComparison($costCentersId, $currentMonth, &$monthsHarvests)
+    private function getHarvestsProductsForComparison($costCentersId, $currentMonth, &$monthsHarvests, $operationIds = null)
     {
         $months = [];
         for ($x = $currentMonth; $x < $currentMonth + 12; $x++) {
@@ -2335,6 +2404,7 @@ class ComparativeOutflowsDashboardController extends Controller
             ->leftJoin('units as u', 'h.unit_id_price', 'u.id')
             ->select('h.id', 'h.product_name', 'h.price', 'h.quantity', 'h.unit_id', 'h.unit_id_price', 'u.name')
             ->whereIn('h.id', $items->pluck('harvest_id')->unique())
+            ->when(!empty($operationIds), fn($q) => $q->whereIn('h.operation_id', (array) $operationIds))
             ->get();
 
         $surfaces = CostCenter::whereIn('id', $costCentersId)->pluck('surface', 'id');
@@ -2393,7 +2463,7 @@ class ComparativeOutflowsDashboardController extends Controller
         return $ratios;
     }
 
-    private function getMonthsAdministration($team_id, $company_reason_id = null)
+    private function getMonthsAdministration($team_id, $company_reason_id = null, $operationIds = null)
     {
         $season_id = session('season_id');
         $season = Season::select('month_id')->where('id', $season_id)->first();
@@ -2425,6 +2495,9 @@ class ComparativeOutflowsDashboardController extends Controller
         if ($team_id) {
             $query->where('a.team_id', $team_id);
         }
+        if (!empty($operationIds)) {
+            $query->whereIn('a.operation_id', (array) $operationIds);
+        }
         $rows = $query->groupBy('ai.month_id', 'a.branch_id')->get();
 
         foreach ($rows as $row) {
@@ -2440,7 +2513,7 @@ class ComparativeOutflowsDashboardController extends Controller
         return $result;
     }
 
-    private function getMonthsFields($team_id, $company_reason_id = null)
+    private function getMonthsFields($team_id, $company_reason_id = null, $operationIds = null)
     {
         $season_id = session('season_id');
         $season = Season::select('month_id')->where('id', $season_id)->first();
@@ -2471,6 +2544,9 @@ class ComparativeOutflowsDashboardController extends Controller
             ->whereIn('fi.month_id', $months);
         if ($team_id) {
             $query->where('f.team_id', $team_id);
+        }
+        if (!empty($operationIds)) {
+            $query->whereIn('f.operation_id', (array) $operationIds);
         }
         $rows = $query->groupBy('fi.month_id', 'f.branch_id')->get();
 

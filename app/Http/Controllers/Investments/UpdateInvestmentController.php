@@ -14,7 +14,7 @@ class UpdateInvestmentController extends Controller
     {
         $data = $request->validate([
             'name' => 'required|string|max:255',
-            'month_execute' => 'required|integer|min:1|max:12',
+            'month_execute' => 'nullable|integer|min:1|max:12',
             'amount' => 'nullable|numeric',
             'estado' => 'required|string',
             'responsable' => 'nullable|string|max:255',

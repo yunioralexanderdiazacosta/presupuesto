@@ -152,8 +152,9 @@ class AgrochemicalsController extends Controller
         ]);
         // Operación pre-cargada por defecto en el formulario de creación
         $defaultOperationId = Operation::whereRaw('LOWER(name) LIKE ?', ['%gasto%'])->value('id');
+        $investments = \App\Models\Investment::where('season_id', $season_id)->get()->map(fn($i) => ['value' => $i->id, 'label' => $i->name]);
 
-        $agrochemicalsCollection = Agrochemical::with('subfamily:id,name', 'unit:id,name', 'items:id', 'dosetype:id,name', 'user:id,name', 'operation:id,name')->whereHas('items', function($query) use ($costCenters){
+        $agrochemicalsCollection = Agrochemical::with('subfamily:id,name', 'unit:id,name', 'items:id', 'dosetype:id,name', 'user:id,name', 'operation:id,name', 'investment:id,name')->whereHas('items', function($query) use ($costCenters){
             $query->whereIn('cost_center_id', $costCenters->pluck('value'));
     })->orderBy('id')->get()->map(function($agrochemical){
             $items = $agrochemical->items->pluck('pivot');
@@ -167,12 +168,14 @@ class AgrochemicalsController extends Controller
                 'mojamiento'    => $agrochemical->mojamiento,
                 'subfamily_id'  => $agrochemical->subfamily_id,
                 'operation_id'  => $agrochemical->operation_id,
+                'investment_id' => $agrochemical->investment_id,
                 'unit_id'       => $agrochemical->unit_id,
                 'unit_id_price' => $agrochemical->unit_id_price,
                 'dose_type_id'  => $agrochemical->dose_type_id,
                 'observations'  => $agrochemical->observations,
                 'subfamily'     => $agrochemical->subfamily,
                 'operation'     => $agrochemical->operation,
+                'investment'    => $agrochemical->investment,
                 'unit'          => $agrochemical->unit,
                 'price'         => $agrochemical->price,
                 'dosetype'      => $agrochemical->dosetype,
@@ -329,7 +332,7 @@ class AgrochemicalsController extends Controller
 
         return Inertia::render('Agrochemicals', compact(
             'units', 'subfamilies', 'months', 'costCenters', 'companyReasons', 'branches', 'groupings', 'agrochemicals', 'data', 'data2', 'data3', 'data4', 'doseTypes', 'season',
-            'operations', 'defaultOperationId',
+            'operations', 'defaultOperationId', 'investments',
             'totalData1', 'totalData2',
             'totalAgrochemical', 'totalFertilizer', 'totalManPower', 'totalSupplies', 'totalServices', 'totalAdministration', 'totalField', 'totalHarvest', 'totalAbsolute',
             'percentageAgrochemical',

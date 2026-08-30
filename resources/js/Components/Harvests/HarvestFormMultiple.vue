@@ -5,6 +5,7 @@ import TextInput from "@/Components/TextInput.vue";
 import InputError from "@/Components/InputError.vue";
 import { usePage } from '@inertiajs/vue3';
 import axios from 'axios';
+import { useInversionOperation } from '@/Composables/useInversionOperation';
 
 
 
@@ -41,6 +42,13 @@ watch(selectedGrouping, (newGroupingId) => {
 // Inicializar Inertia/page
 const { appContext } = getCurrentInstance();
 const page = appContext.config.globalProperties.$page || { props: {} };
+const { isInversionOp } = useInversionOperation();
+
+watch(() => props.form.operation_id, (newVal) => {
+    if (!isInversionOp(newVal, page.props.operations)) {
+        props.form.investment_id = null;
+    }
+});
 
 // Inicializar el array de subfamilias dinámicas
 if (!props.form.level3s) {
@@ -178,6 +186,20 @@ const selectAllMonths = (index, months) => {
                 :hide-selected="false"
             />
             <InputError class="mt-2" :message="form.errors.operation_id" />
+        </div>
+        <div v-if="isInversionOp(form.operation_id, $page.props.operations)" class="col-lg-2">
+            <label for="investment_id" class="col-form-label">Inversión</label>
+            <Multiselect
+                :placeholder="'Seleccione inversión'"
+                v-model="form.investment_id"
+                :close-on-select="true"
+                :options="$page.props.investments"
+                class="multiselect-blue form-control"
+                :class="{ 'is-invalid': form.errors.investment_id }"
+                :searchable="true"
+                :hide-selected="false"
+            />
+            <InputError class="mt-2" :message="form.errors.investment_id" />
         </div>
 
           <!-- Selector de agrupación con Multiselect -->

@@ -197,8 +197,9 @@ class FertilizersController extends Controller
         ]);
         // Operación pre-cargada por defecto en el formulario de creación
         $defaultOperationId = Operation::whereRaw('LOWER(name) LIKE ?', ['%gasto%'])->value('id');
+        $investments = \App\Models\Investment::where('season_id', $season_id)->get()->map(fn($i) => ['value' => $i->id, 'label' => $i->name]);
 
-        $fertilizersCollection = Fertilizer::with('subfamily:id,name', 'unit:id,name', 'items:id', 'unit2:id,name', 'user:id,name', 'operation:id,name')->whereHas('items', function($query) use ($costCenters){
+        $fertilizersCollection = Fertilizer::with('subfamily:id,name', 'unit:id,name', 'items:id', 'unit2:id,name', 'user:id,name', 'operation:id,name', 'investment:id,name')->whereHas('items', function($query) use ($costCenters){
             $query->whereIn('cost_center_id', $costCenters->pluck('value'));
         })->orderBy('id')->get()->map(function($fertilizer){
             $items = $fertilizer->items->pluck('pivot');
@@ -211,11 +212,13 @@ class FertilizersController extends Controller
                 'price'         => $fertilizer->price,
                 'subfamily_id'  => $fertilizer->subfamily_id,
                 'operation_id'  => $fertilizer->operation_id,
+                'investment_id' => $fertilizer->investment_id,
                 'unit_id'       => $fertilizer->unit_id,
                 'unit_id_price' => $fertilizer->unit_id_price,
                 'observations'  => $fertilizer->observations,
                 'subfamily'     => $fertilizer->subfamily,
                 'operation'     => $fertilizer->operation,
+                'investment'    => $fertilizer->investment,
                 'unit'          => $fertilizer->unit,
                 'unit2'     => $fertilizer->unit2,
                 'months'        => array_unique($months),
@@ -341,7 +344,7 @@ class FertilizersController extends Controller
         $totalData1 = number_format($this->totalData1, 0, ',', '.');
         $totalData2 = number_format($totalFertilizer, 0, ',', '.');
 
-        return Inertia::render('Fertilizers', compact('units', 'subfamilies', 'months', 'costCenters', 'companyReasons', 'branches', 'groupings', 'fertilizers', 'season', 'data', 'data2', 'data3', 'totalData1', 'totalData2', 'percentage', 'varieties', 'fruits', 'products', 'operations', 'defaultOperationId'));
+        return Inertia::render('Fertilizers', compact('units', 'subfamilies', 'months', 'costCenters', 'companyReasons', 'branches', 'groupings', 'fertilizers', 'season', 'data', 'data2', 'data3', 'totalData1', 'totalData2', 'percentage', 'varieties', 'fruits', 'products', 'operations', 'defaultOperationId', 'investments'));
     }
 
     private function getSubfamilies($costCenterId, $surface = null, $bills = false)

@@ -32,7 +32,8 @@ const props = defineProps({
     varieties: {type: Array, default: () => [] },
     fruits: { type: Array, default: () => []},
     operations: { type: Array, default: () => [] },
-    defaultOperationId: { type: [Number, String, null], default: null }
+    defaultOperationId: { type: [Number, String, null], default: null },
+    investments: { type: Array, default: () => [] }
 });
 
 var acum = ref(0);
@@ -40,6 +41,7 @@ var acum = ref(0);
 const formMultiple = useForm({
     subfamily_id: '',
     operation_id: props.defaultOperationId,
+    investment_id: null,
     cc: [],
     products: [
         {
@@ -63,6 +65,7 @@ const form = useForm({
     mojamiento: '',
     subfamily_id: '',
     operation_id: props.defaultOperationId,
+    investment_id: null,
     unit_id: '',
     unit_id_price: '',
     dose_type_id: '',
@@ -141,6 +144,7 @@ const openEdit = (agrochemical) => {
     form.mojamiento = agrochemical.mojamiento;
     form.subfamily_id = agrochemical.subfamily_id;
     form.operation_id = agrochemical.operation_id;
+    form.investment_id = agrochemical.investment_id;
     form.unit_id = agrochemical.unit_id;
     form.unit_id_price = agrochemical.unit_id_price;
     form.dose_type_id = agrochemical.dose_type_id;
@@ -581,7 +585,8 @@ const onFilter = () => {
                                 { label: 'Tipo Dosis', key: 'dosetype.name' },
                                 { label: 'Mojamiento', key: 'mojamiento' },
                                 { label: 'Precio', key: 'price', type: 'number' },
-                                { label: 'Operación', key: 'operation.name' }
+                                { label: 'Operación', key: 'operation.name' },
+                                { label: 'Inversión', key: 'investment.name' }
                               ]"
                               class="btn btn-success btn-md d-flex align-items-center p-0"
                               filename="Agroquimicos.xlsx"
@@ -596,7 +601,8 @@ const onFilter = () => {
                                 { label: 'Tipo Dosis', key: 'dosetype.name' },
                                 { label: 'Mojamiento', key: 'mojamiento' },
                                 { label: 'Precio', key: 'price', type: 'number' },
-                                { label: 'Operación', key: 'operation.name' }
+                                { label: 'Operación', key: 'operation.name' },
+                                { label: 'Inversión', key: 'investment.name' }
                               ]"
                               class="btn btn-danger btn-md d-flex align-items-center p-0"
                               filename="Agroquimicos.pdf"
@@ -612,6 +618,7 @@ const onFilter = () => {
                                 <th scope="col" width="min-w-100px">Nombre</th>
                                 <th scope="col" width="min-w-100px">Nivel 3</th>
                                 <th scope="col" width="min-w-100px">Operación</th>
+                                <th scope="col" width="min-w-100px">Inversión</th>
                                 <th scope="col" width="min-w-100px">Dosis</th>
                                 <th scope="col" width="min-w-100px">Unidad</th>
                                 <th scope="col" width="min-w-100px">Tipo Dosis</th>
@@ -637,7 +644,7 @@ const onFilter = () => {
                             <!--begin::Table body-->
                             <template #body>
                                 <template v-if="filteredAgrochemicals.length == 0">
-                                    <Empty colspan="13" />
+                                    <Empty colspan="14" />
                                 </template>
                                 <template v-else>
                                     <tr v-for="(agrochemical, index) in filteredAgrochemicals" :key="index">
@@ -647,6 +654,7 @@ const onFilter = () => {
                                         </td>
                                         <td>{{agrochemical.subfamily.name}}</td>
                                         <td>{{ agrochemical.operation ? agrochemical.operation.name : '—' }}</td>
+                                        <td>{{ agrochemical.investment ? agrochemical.investment.name : '—' }}</td>
                                         <td>{{agrochemical.dose}}</td>
                                         <td>{{agrochemical.unit.name}}</td>
                                         <td>{{agrochemical.dosetype.name}}</td>

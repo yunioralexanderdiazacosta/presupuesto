@@ -21,12 +21,14 @@ class UpdateSupplyRequest extends FormRequest
      */
     public function rules(): array
     {
+        $inversionId = \App\Models\Operation::whereRaw('LOWER(name) LIKE ?', ['%inversion%'])->value('id');
         return [
             'product_name' => 'required',
             'quantity' => 'required',
             'price' => 'required',
             'subfamily_id' => 'required',
             'operation_id' => 'required|exists:operations,id',
+            'investment_id' => $inversionId ? "nullable|exists:investments,id|required_if:operation_id,{$inversionId}" : 'nullable|exists:investments,id',
             'unit_id' => 'required',
             'unit_id_price' => 'required'
         ];

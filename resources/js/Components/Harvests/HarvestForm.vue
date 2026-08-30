@@ -4,9 +4,17 @@
     import InputError from '@/Components/InputError.vue';
 
 import { ref, getCurrentInstance, watch } from 'vue';
+import { useInversionOperation } from '@/Composables/useInversionOperation';
 
 const { appContext } = getCurrentInstance();
     const page = appContext.config.globalProperties.$page;
+    const { isInversionOp } = useInversionOperation();
+
+    watch(() => form.operation_id, (newVal) => {
+        if (!isInversionOp(newVal, page.props.operations)) {
+            form.investment_id = null;
+        }
+    });
 
 
 
@@ -93,6 +101,20 @@ const { appContext } = getCurrentInstance();
                 :hide-selected="false"
             />
             <InputError class="mt-2" :message="form.errors.operation_id" />
+        </div>
+        <div v-if="isInversionOp(form.operation_id, $page.props.operations)" class="col-lg-3">
+            <label for="investment_id" class="col-form-label">Inversión</label>
+            <Multiselect
+                :placeholder="'Seleccione inversión'"
+                v-model="form.investment_id"
+                :close-on-select="true"
+                :options="$page.props.investments"
+                class="multiselect-blue form-control"
+                :class="{'is-invalid': form.errors.investment_id}"
+                :searchable="true"
+                :hide-selected="false"
+            />
+            <InputError class="mt-2" :message="form.errors.investment_id" />
         </div>
 
 

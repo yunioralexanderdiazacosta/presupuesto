@@ -189,8 +189,9 @@ public $totalHarvest = 0;
         ]);
         // Operación pre-cargada por defecto en el formulario de creación
         $defaultOperationId = Operation::whereRaw('LOWER(name) LIKE ?', ['%gasto%'])->value('id');
+        $investments = \App\Models\Investment::where('season_id', $season_id)->get()->map(fn($i) => ['value' => $i->id, 'label' => $i->name]);
 
-        $manPowersCollection = ManPower::with('subfamily:id,name', 'items:id', 'user:id,name', 'operation:id,name')->whereHas('items', function($query) use ($costCenters){
+        $manPowersCollection = ManPower::with('subfamily:id,name', 'items:id', 'user:id,name', 'operation:id,name', 'investment:id,name')->whereHas('items', function($query) use ($costCenters){
             $query->whereIn('cost_center_id', $costCenters->pluck('value'));
         })->orderBy('id')->get()->map(function($manPower){
             $items = $manPower->items->pluck('pivot');
@@ -203,9 +204,11 @@ public $totalHarvest = 0;
                 'price'         => $manPower->price,
                 'subfamily_id'  => $manPower->subfamily_id,
                 'operation_id'  => $manPower->operation_id,
+                'investment_id' => $manPower->investment_id,
                 'observations'  => $manPower->observations,
                 'subfamily'     => $manPower->subfamily,
                 'operation'     => $manPower->operation,
+                'investment'    => $manPower->investment,
                 'price'         => $manPower->price,
                 'months'        => array_unique($months),
                 'cc'            => array_values(array_unique($cc)),
@@ -358,7 +361,7 @@ public $totalHarvest = 0;
         return Inertia::render('ManPowers', compact('subfamilies', 'months', 'costCenters', 'companyReasons', 'branches', 'groupings', 'manPowers', 'season', 'data', 'data2', 'data3', 'data4', 'totalData1', 'totalData2',
         'totalAgrochemical', 'totalFertilizer', 'totalManPower', 'totalSupplies', 'totalServices', 'totalHarvest', 'totalAdministration', 'totalField', 'totalAbsolute',
             'percentageManPower',
-            'varieties', 'fruits', 'operations', 'defaultOperationId'));
+            'varieties', 'fruits', 'operations', 'defaultOperationId', 'investments'));
     }
 
 

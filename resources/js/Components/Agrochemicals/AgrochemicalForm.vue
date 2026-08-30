@@ -3,9 +3,17 @@ import { ref, computed, watch } from "vue";
 import { usePage } from "@inertiajs/vue3";
 import Multiselect from "@vueform/multiselect";
 import InputError from "@/Components/InputError.vue";
+import { useInversionOperation } from "@/Composables/useInversionOperation";
 
 const props = defineProps({ form: Object });
 const page = usePage();
+const { isInversionOp } = useInversionOperation();
+
+watch(() => props.form.operation_id, (newVal) => {
+    if (!isInversionOp(newVal, page.props.operations)) {
+        props.form.investment_id = null;
+    }
+});
 
 // === CC & AGRUPACION ===
 const selectedGrouping = ref("");
@@ -80,6 +88,13 @@ const monthAbbr = (label) => label ? label.substring(0, 3) : '';
                 placeholder="Seleccione operación" :searchable="true" :close-on-select="true"
                 :class="{ 'is-invalid': form.errors.operation_id }" class="multiselect-sm" />
             <InputError :message="form.errors.operation_id" />
+        </div>
+        <div v-if="isInversionOp(form.operation_id, $page.props.operations)" class="col-sm-2">
+            <label class="form-label small mb-1">Inversión <span class="text-danger">*</span></label>
+            <Multiselect v-model="form.investment_id" :options="$page.props.investments"
+                placeholder="Seleccione inversión" :searchable="true" :close-on-select="true"
+                :class="{ 'is-invalid': form.errors.investment_id }" class="multiselect-sm" />
+            <InputError :message="form.errors.investment_id" />
         </div>
     </div>
 

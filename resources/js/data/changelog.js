@@ -7,6 +7,32 @@
 
 export const changelog = [
   {
+    fecha: '2026-08-29',
+    titulo: 'Dashboard de Inversiones — Ahora se muestra lo que falta por asignar',
+    items: [
+      'Se detectó que los totales de "Presupuestado" y "Real" del Dashboard de Inversiones podían no coincidir con la suma de la tabla "Detalle por Inversión", porque existían productos o gastos clasificados como Inversión que todavía no estaban vinculados a ninguna inversión puntual.',
+      'Ahora esos montos "sin asignar" se muestran de forma explícita: aparece un aviso bajo las tarjetas de Presupuestado y Real cuando corresponde, una fila destacada "Sin inversión asignada" en la tabla de detalle, y un grupo resaltado en la tabla de salidas por Nivel 3, para que los totales siempre cuadren y quede claro qué falta por vincular.',
+    ]
+  },
+  {
+    fecha: '2026-08-29',
+    titulo: 'Inversiones — Ahora se vinculan directamente a los productos de cada módulo',
+    items: [
+      'Al cargar un producto en Agroquímicos, Fertilizantes, Mano de Obra, Servicios, Insumos, Cosecha, Administración o Generales de Campo y marcarlo como "Inversión", ahora aparece un campo para elegir a qué inversión pertenece (por ejemplo: "Riego tecnificado", "Nuevo packing", etc.). Este dato también se puede ver y editar desde el listado de cada módulo, y se incluye en las exportaciones a Excel y PDF.',
+      'El módulo de Inversiones ya no pide ingresar un monto ni un mes de ejecución manual: ese presupuesto ahora se calcula automáticamente a partir de los productos que se vayan vinculando a cada inversión, evitando datos duplicados o desactualizados.',
+      'El Dashboard de Inversiones fue actualizado para mostrar el presupuesto real (sumado desde los productos vinculados) comparado con lo efectivamente gastado, tanto en los totales generales como en el detalle mensual y el detalle por inversión.',
+    ]
+  },
+  {
+    fecha: '2026-08-29',
+    titulo: 'Dashboard Comparativo — El interruptor de Inversiones ahora funciona igual que en el resto del sistema',
+    items: [
+      'El interruptor "Incluir Inversiones" del Dashboard Comparativo ya no usa el módulo antiguo de Inversiones (que no tenía relación con los productos reales). Ahora suma o quita el presupuesto de Inversión calculado sobre los mismos productos de Agroquímicos, Fertilizantes, Mano de Obra, Servicios, Insumos, Cosecha, Administración y Generales de Campo, según cómo esté clasificado cada uno (Gasto o Inversión), igual que en el Panel Técnico.',
+      'Se corrigió que el presupuesto base (sin inversiones) mezclara montos de Gasto e Inversión sin separarlos; ahora el presupuesto "sin inversiones" solo considera productos clasificados como Gasto.',
+      'La tabla "Detalle por Categoría" y la tabla "Detalle Mensual por Categoría" ahora también respetan el interruptor: al activarlo, suman el presupuesto de Inversión de cada categoría, y las diferencias y porcentajes se recalculan en base a ese presupuesto ajustado.',
+    ]
+  },
+  {
     fecha: '2026-08-28',
     titulo: 'Dashboard — Kilos Estimados ahora respeta la sucursal seleccionada',
     items: [

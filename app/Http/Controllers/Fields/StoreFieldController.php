@@ -29,6 +29,7 @@ $season_id = session('season_id'); // la temporada activa o seleccionada
                 'unit_id'       => $product['unit_id'],
                 'subfamily_id'  => $request->subfamily_id,
                 'operation_id'  => $request->operation_id,
+                'investment_id' => $request->investment_id ?: null,
                 'team_id'       => $user->team_id,
                 'user_id'       => $user->id,
                 'season_id'     => $season_id,

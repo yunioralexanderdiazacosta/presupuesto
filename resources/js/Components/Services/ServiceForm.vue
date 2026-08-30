@@ -2,11 +2,19 @@
 import { ref, watch, getCurrentInstance } from 'vue';
 import Multiselect from '@vueform/multiselect';
 import InputError from '@/Components/InputError.vue';
+import { useInversionOperation } from '@/Composables/useInversionOperation';
 
 const { form } = defineProps({ form: Object });
 
 const { appContext } = getCurrentInstance();
 const page = appContext.config.globalProperties.$page;
+const { isInversionOp } = useInversionOperation();
+
+watch(() => form.operation_id, (newVal) => {
+    if (!isInversionOp(newVal, page.props.operations)) {
+        form.investment_id = null;
+    }
+});
 
 const selectedGrouping = ref('');
 watch(selectedGrouping, (newId) => {
@@ -87,6 +95,19 @@ const monthAbbr = (label) => label ? label.substring(0, 3) : '';
                 class="multiselect-sm"
             />
             <InputError :message="form.errors.operation_id" />
+        </div>
+        <div v-if="isInversionOp(form.operation_id, $page.props.operations)" class="col-sm-2">
+            <label class="form-label small mb-1">Inversión <span class="text-danger">*</span></label>
+            <Multiselect
+                v-model="form.investment_id"
+                :options="$page.props.investments"
+                placeholder="Seleccione inversión"
+                :searchable="true"
+                :close-on-select="true"
+                :class="{ 'is-invalid': form.errors.investment_id }"
+                class="multiselect-sm"
+            />
+            <InputError :message="form.errors.investment_id" />
         </div>
     </div>
 

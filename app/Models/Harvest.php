@@ -9,7 +9,7 @@ class Harvest extends Model
 {
     use HasFactory;
 
-     protected $fillable = ['product_name', 'price', 'observations', 'quantity', 'unit_id', 'unit_id_price', 'subfamily_id', 'operation_id','team_id', 'season_id', 'user_id'];
+     protected $fillable = ['product_name', 'price', 'observations', 'quantity', 'unit_id', 'unit_id_price', 'subfamily_id', 'operation_id', 'investment_id','team_id', 'season_id', 'user_id'];
 
     public function items()
     {
@@ -24,6 +24,11 @@ class Harvest extends Model
     public function operation()
     {
         return $this->belongsTo(Operation::class);
+    }
+
+    public function investment()
+    {
+        return $this->belongsTo(Investment::class);
     }
 
     public function unit()

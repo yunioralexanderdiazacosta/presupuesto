@@ -149,8 +149,9 @@ class AdministrationsController extends Controller
         ]);
         // Operación pre-cargada por defecto en el formulario de creación
         $defaultOperationId = Operation::whereRaw('LOWER(name) LIKE ?', ['%gasto%'])->value('id');
+        $investments = \App\Models\Investment::where('season_id', $season_id)->get()->map(fn($i) => ['value' => $i->id, 'label' => $i->name]);
 
-        $administrationsCollection = Administration::with(['subfamily:id,name', 'unit:id,name', 'items', 'user:id,name', 'operation:id,name'])
+        $administrationsCollection = Administration::with(['subfamily:id,name', 'unit:id,name', 'items', 'user:id,name', 'operation:id,name', 'investment:id,name'])
             ->where('team_id', $team_id)
             ->where('season_id', $season_id)
             ->when($branchId, fn($q) => $q->where('branch_id', $branchId))
@@ -162,12 +163,14 @@ class AdministrationsController extends Controller
                     'quantity'      => $admin->quantity,
                     'subfamily_id'  => $admin->subfamily_id,
                     'operation_id'  => $admin->operation_id,
+                    'investment_id' => $admin->investment_id,
                     'unit_id'       => $admin->unit_id,
                     'price'         => $admin->price,
                     'observations'  => $admin->observations,
                     'branch_id'     => $admin->branch_id,
                     'subfamily'     => $admin->subfamily,
                     'operation'     => $admin->operation,
+                    'investment'    => $admin->investment,
                     'unit'          => $admin->unit,
                     'user'          => $admin->user ? ['name' => $admin->user->name] : null,
                     'months'        => $admin->items->pluck('month_id')->map(fn($m) => (string)$m)->unique()->values()->toArray(),
@@ -335,7 +338,8 @@ class AdministrationsController extends Controller
             'percentageAdministration',
             'branches',
             'operations',
-            'defaultOperationId'
+            'defaultOperationId',
+            'investments'
         ) + ['selectedBranchId' => $branchId]);
     }
 

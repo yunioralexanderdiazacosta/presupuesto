@@ -246,6 +246,7 @@ class FieldsController extends Controller
 
         $operations = Operation::get()->map(fn($o) => ['label' => $o->name, 'value' => $o->id]);
         $defaultOperationId = Operation::whereRaw('LOWER(name) LIKE ?', ['%gasto%'])->value('id');
+        $investments = \App\Models\Investment::where('season_id', $season_id)->get()->map(fn($i) => ['value' => $i->id, 'label' => $i->name]);
 
 
         $months = array();
@@ -263,7 +264,7 @@ class FieldsController extends Controller
 
 
 
-        $fieldsCollection = Field::with(['subfamily:id,name', 'unit:id,name', 'operation:id,name', 'items', 'user:id,name'])
+        $fieldsCollection = Field::with(['subfamily:id,name', 'unit:id,name', 'operation:id,name', 'investment:id,name', 'items', 'user:id,name'])
             ->where('team_id', $team_id)
             ->where('season_id', $season_id)
             ->when($branchId, fn($q) => $q->where('branch_id', $branchId))
@@ -279,9 +280,11 @@ class FieldsController extends Controller
                     'observations'  => $field->observations,
                     'branch_id'     => $field->branch_id,
                     'operation_id'  => $field->operation_id,
+                    'investment_id' => $field->investment_id,
                     'subfamily'     => $field->subfamily,
                     'unit'          => $field->unit,
                     'operation'     => $field->operation,
+                    'investment'    => $field->investment,
                     'user'          => $field->user ? ['name' => $field->user->name] : null,
                     'months'        => $field->items->pluck('month_id')->map(fn($m) => (string)$m)->unique()->values()->toArray(),
                 ];
@@ -352,7 +355,8 @@ class FieldsController extends Controller
             'percentageField',
             'branches',
             'operations',
-            'defaultOperationId'
+            'defaultOperationId',
+            'investments'
         ) + ['selectedBranchId' => $branchId]);
     }
 

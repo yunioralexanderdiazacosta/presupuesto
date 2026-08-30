@@ -21,11 +21,13 @@ class StoreManPowerRequest extends FormRequest
      */
     public function rules(): array
     {
+        $inversionId = \App\Models\Operation::whereRaw('LOWER(name) LIKE ?', ['%inversion%'])->value('id');
         return [
             //
             'cc' => 'required',
             'subfamily_id' => 'required',
             'operation_id' => 'required|exists:operations,id',
+            'investment_id' => $inversionId ? "nullable|exists:investments,id|required_if:operation_id,{$inversionId}" : 'nullable|exists:investments,id',
             'products.*.product_name' => 'required',
             'products.*.workday' => 'required',
             'products.*.price' => 'required'

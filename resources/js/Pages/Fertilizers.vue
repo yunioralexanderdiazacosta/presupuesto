@@ -37,7 +37,8 @@ const props = defineProps({
       default: () => []
     },
     operations: { type: Array, default: () => [] },
-    defaultOperationId: { type: [Number, String, null], default: null }
+    defaultOperationId: { type: [Number, String, null], default: null },
+    investments: { type: Array, default: () => [] }
 });
 
 // Filtro por especie (fruta) y variedad
@@ -365,6 +366,7 @@ var acum = ref(0);
 const formMultiple = useForm({
     subfamily_id: '',
     operation_id: props.defaultOperationId,
+    investment_id: null,
     cc: [],
     products: [
         {
@@ -385,6 +387,7 @@ const form = useForm({
     price: '',
     subfamily_id: '',
     operation_id: props.defaultOperationId,
+    investment_id: null,
     unit_id: '',
     unit_id_price: '',
     observations: '',
@@ -419,6 +422,7 @@ const openEdit = (fertilizer) => {
     form.price = fertilizer.price;
     form.subfamily_id = fertilizer.subfamily_id;
     form.operation_id = fertilizer.operation_id;
+    form.investment_id = fertilizer.investment_id;
     form.unit_id = fertilizer.unit_id;
     form.unit_id_price = fertilizer.unit_id_price;
     form.observations = fertilizer.observations;
@@ -546,7 +550,8 @@ const onFilter = () => {
                                 { label: 'Unidad', key: 'unit.name' },
                                 { label: 'Precio', key: 'price', type: 'number' },
                                 { label: 'Unidad de $', key: 'unit2.name' },
-                                { label: 'Operación', key: 'operation.name' }
+                                { label: 'Operación', key: 'operation.name' },
+                                { label: 'Inversión', key: 'investment.name' }
                               ]"
                               class="btn btn-success btn-md d-flex align-items-center p-0"
                               filename="Fertilizantes.xlsx"
@@ -560,7 +565,8 @@ const onFilter = () => {
                                 { label: 'Unidad', key: 'unit.name' },
                                 { label: 'Precio', key: 'price' },
                                 { label: 'Unidad de $', key: 'unit2.name' },
-                                { label: 'Operación', key: 'operation.name' }
+                                { label: 'Operación', key: 'operation.name' },
+                                { label: 'Inversión', key: 'investment.name' }
                               ]"
                               class="btn btn-danger btn-md d-flex align-items-center p-0"
                               filename="Fertilizantes.pdf"
@@ -581,6 +587,7 @@ const onFilter = () => {
                                 <th width="min-w-100px">Precio</th>
                                 <th width="min-w-100px">Unidad de $</th>
                                 <th width="min-w-100px">Operación</th>
+                                <th width="min-w-100px">Inversión</th>
                                 <th width="min-w-150px" style="white-space:nowrap">
                                     Meses
                                     <span @click="expandAllMonths = !expandAllMonths" class="badge ms-1" :class="expandAllMonths ? 'bg-primary' : 'bg-secondary'" style="cursor:pointer;font-size:0.65rem;" v-tooltip="expandAllMonths ? 'Colapsar meses' : 'Expandir meses'">
@@ -601,7 +608,7 @@ const onFilter = () => {
                             <!--begin::Table body-->
                             <template #body>
                                 <template v-if="filteredFertilizers.length === 0">
-                                    <Empty colspan="12" />
+                                    <Empty colspan="13" />
                                 </template>
                                 <template v-else>
                                     <tr v-for="(fertilizer, index) in filteredFertilizers" :key="index">
@@ -615,6 +622,7 @@ const onFilter = () => {
                                         <td class="text-center">{{ Number(fertilizer.price).toLocaleString('es-CL') }}</td>
                                         <td>{{fertilizer.unit2.name}}</td>
                                         <td>{{ fertilizer.operation ? fertilizer.operation.name : '—' }}</td>
+                                        <td>{{ fertilizer.investment ? fertilizer.investment.name : '—' }}</td>
                                         <td>
                                             <template v-if="fertilizer.months && fertilizer.months.length">
                                                 {{ (expandAllMonths ? fertilizer.months : fertilizer.months.slice(0, MONTH_PREVIEW))

@@ -19,6 +19,7 @@ class UpdateAdministrationController extends Controller
         $administration->observations = $request->observations;
         $administration->subfamily_id = $request->subfamily_id;
         $administration->operation_id = $request->operation_id;
+        $administration->investment_id = $request->investment_id ?: null;
         $administration->unit_id      = $request->unit_id;
         $administration->branch_id    = $request->branch_id ?: null;
         $administration->team_id   = \App\Models\User::find(auth()->id())->team_id;

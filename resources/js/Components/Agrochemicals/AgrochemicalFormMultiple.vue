@@ -5,11 +5,19 @@ import Multiselect from "@vueform/multiselect";
 import InputError from "@/Components/InputError.vue";
 import Products2Modal from '@/Components/Products2/Products2Modal.vue';
 import axios from 'axios';
+import { useInversionOperation } from '@/Composables/useInversionOperation';
 
 const props = defineProps({ form: Object });
 
 const page = usePage();
 const sessionPrice = computed(() => page.props.price ?? 1);
+const { isInversionOp } = useInversionOperation();
+
+watch(() => props.form.operation_id, (newVal) => {
+    if (!isInversionOp(newVal, page.props.operations)) {
+        props.form.investment_id = null;
+    }
+});
 
 // === CC & AGRUPACION ===
 const selectedGrouping = ref("");
@@ -187,6 +195,20 @@ watch(
                 class="multiselect-sm"
             />
             <InputError :message="form.errors.operation_id" />
+        </div>
+        <!-- Inversión (solo si Operación = Inversión) -->
+        <div v-if="isInversionOp(form.operation_id, $page.props.operations)" class="col-sm-2">
+            <label class="form-label small mb-1">Inversión <span class="text-danger">*</span></label>
+            <Multiselect
+                v-model="form.investment_id"
+                :options="$page.props.investments"
+                placeholder="Seleccione inversión"
+                :searchable="true"
+                :close-on-select="true"
+                :class="{ 'is-invalid': form.errors.investment_id }"
+                class="multiselect-sm"
+            />
+            <InputError :message="form.errors.investment_id" />
         </div>
     </div>
 

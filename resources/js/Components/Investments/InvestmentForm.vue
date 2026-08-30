@@ -1,7 +1,6 @@
 <script setup>
 import { watch, defineProps, defineEmits } from 'vue';
 import Multiselect from '@vueform/multiselect';
-import TextInput from '@/Components/TextInput.vue';
 import InputError from '@/Components/InputError.vue';
 // Emitimos cuando el form cambie para sincronizar con el padre
 const props = defineProps({
@@ -23,31 +22,6 @@ watch(form, () => emit('update:form', form), { deep: true });
       <div class="col-md-6">
         <label class="form-label">Nombre</label>
         <input v-model="form.name" type="text" class="form-control" required />
-      </div>
-      <div class="col-md-6">
-        <label class="form-label">Mes</label>
-        <Multiselect
-          v-model="form.month_execute"
-          :options="months.map((m, idx) => ({ value: idx+1, label: m }))"
-          :searchable="true"
-          :close-on-select="true"
-          :allow-empty="false"
-          placeholder="Seleccione mes"
-          class="multiselect-blue form-control"
-          :class="{'is-invalid': form.errors?.month_execute}"
-        />
-      </div>
-      <div class="col-md-6">
-        <div class="fv-row">
-          <label class="form-label">Monto</label>
-          <TextInput
-            v-model="form.amount"
-            type="number"
-            class="form-control"
-            :class="{'is-invalid': form.errors.amount}"
-          />
-          <InputError class="mt-2" :message="form.errors.amount" />
-        </div>
       </div>
       <div class="col-md-6">
         <label class="form-label">Centros de Costo</label>

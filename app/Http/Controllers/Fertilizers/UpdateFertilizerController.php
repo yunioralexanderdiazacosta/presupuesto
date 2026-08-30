@@ -19,6 +19,7 @@ class UpdateFertilizerController extends Controller
         $fertilizer->observations = $request->observations;
         $fertilizer->subfamily_id = $request->subfamily_id;
         $fertilizer->operation_id = $request->operation_id;
+        $fertilizer->investment_id = $request->investment_id ?: null;
         $fertilizer->unit_id      = $request->unit_id;
         $fertilizer->unit_id_price= $request->unit_id_price;
         $fertilizer->team_id = \App\Models\User::find(auth()->id())->team_id;

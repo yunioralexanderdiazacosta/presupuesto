@@ -48,6 +48,27 @@ let cumulativeChart = null;
 // Toggle ÚNICO para incluir/excluir inversiones en TODO el dashboard
 const includeInvestments = ref(false);
 
+// Versión de "comparisonByLevel1" (tabla Detalle por Categoría) que respeta el toggle de Inversiones:
+// suma (o no) el presupuesto de Inversión al presupuesto de Gasto de cada categoría y recalcula
+// diferencia/variación en base a ese presupuesto ajustado. Se usa en TODOS los lugares que antes
+// consumían props.comparisonByLevel1 directamente.
+const effectiveComparisonByLevel1 = computed(() => {
+    return (props.comparisonByLevel1 || []).map(item => {
+        const budget = (item.budget || 0) + (includeInvestments.value ? (item.investment || 0) : 0);
+        const invoiced = item.invoiced || 0;
+        const payroll = item.payroll || 0;
+        const difference = budget - invoiced - payroll;
+        const variance = budget > 0 ? ((invoiced - budget) / budget) * 100 : 0;
+        return {
+            ...item,
+            budget,
+            difference,
+            variance,
+            status: variance > 0 ? 'over' : 'under',
+        };
+    });
+});
+
 // Filtro Razón Social
 const selectedCompanyReasons = ref(props.activeCompanyReasonIds ?? []);
 const applyCompanyReasonFilter = () => {
@@ -176,10 +197,10 @@ const payrollExpanded = ref(true);
 
 // Computed para saber si todas las filas están seleccionadas
 const allRowsSelected = computed({
-    get: () => props.comparisonByLevel1?.length > 0 && selectedRows.value.length === props.comparisonByLevel1.length,
+    get: () => effectiveComparisonByLevel1.value?.length > 0 && selectedRows.value.length === effectiveComparisonByLevel1.value.length,
     set: (value) => {
         if (value) {
-            selectedRows.value = props.comparisonByLevel1.map((item, index) => index);
+            selectedRows.value = effectiveComparisonByLevel1.value.map((item, index) => index);
         } else {
             selectedRows.value = [];
         }
@@ -202,7 +223,7 @@ const groupSelected = () => {
     
     // Obtener las filas seleccionadas con sus índices originales
     const selectedItems = selectedRows.value.map(idx => ({
-        ...props.comparisonByLevel1[idx],
+        ...effectiveComparisonByLevel1.value[idx],
         originalIndex: idx
     }));
     
@@ -275,7 +296,7 @@ const groupByLevel1 = () => {
     
     // Construir mapa L1 → L2 → items
     const level1Map = {};
-    props.comparisonByLevel1.forEach((item, index) => {
+    effectiveComparisonByLevel1.value.forEach((item, index) => {
         if (isRowVisible(index)) {
             if (!level1Map[item.level1]) level1Map[item.level1] = {};
             if (!level1Map[item.level1][item.level2]) level1Map[item.level1][item.level2] = [];
@@ -834,6 +855,25 @@ watch([includeInvestments, () => props.activeCompanyReasonIds], () => {
     }
 });
 
+// Igual que effectiveComparisonByLevel1, pero para el Detalle Mensual por Categoría: suma (o no)
+// investment_monthly a budget_monthly según el toggle "Incluir Inversiones" y recalcula
+// difference_monthly/budget_total/difference_total en base a ese presupuesto ajustado.
+const effectiveMonthlyDetailItems = computed(() => {
+    return (props.comparisonByLevel1Monthly || []).map(item => {
+        const budget_monthly = (item.budget_monthly || []).map((b, i) =>
+            b + (includeInvestments.value ? (item.investment_monthly?.[i] || 0) : 0)
+        );
+        const difference_monthly = budget_monthly.map((b, i) => b - (item.real_monthly?.[i] || 0));
+        return {
+            ...item,
+            budget_monthly,
+            difference_monthly,
+            budget_total: budget_monthly.reduce((a, b) => a + b, 0),
+            difference_total: difference_monthly.reduce((a, b) => a + b, 0),
+        };
+    });
+});
+
 // Fuente de datos activa para la tabla: Facturado (prop tal cual) o Consumido
 // (presupuesto de comparisonByLevel1Monthly + consumido fusionado por categoría).
 // El Real de Consumido también suma Remuneraciones (payroll_monthly), igual que
@@ -841,7 +881,7 @@ watch([includeInvestments, () => props.activeCompanyReasonIds], () => {
 // Nota: la clasificación de Consumido es la propia del outflow, por lo que puede
 // haber categorías que no existan en Facturado/Presupuesto (se agregan al final).
 const activeMonthlyDetailItems = computed(() => {
-    const budgetItems = props.comparisonByLevel1Monthly || [];
+    const budgetItems = effectiveMonthlyDetailItems.value;
     if (realSourceMode.value !== 'consumido') return budgetItems;
 
     const consumedMap = new Map();
@@ -1168,7 +1208,7 @@ const detailCategoryExcelData = computed(() => {
     }
 
     // Vista plana normal
-    return props.comparisonByLevel1.map(item => row(item.level1, item.level2, item.level3, item));
+    return effectiveComparisonByLevel1.value.map(item => row(item.level1, item.level2, item.level3, item));
 });
 
 // Watch para actualizar gráficos cuando cambie el toggle o la conversión USD
@@ -2742,7 +2782,7 @@ function createCumulativeChart() {
                                         </template>
                                         
                                         <!-- Filas normales (solo las que no están en grupos) -->
-                                        <tr v-for="(item, index) in comparisonByLevel1" :key="item.category" v-show="isRowVisible(index)">
+                                        <tr v-for="(item, index) in effectiveComparisonByLevel1" :key="item.category" v-show="isRowVisible(index)">
                                             <td>
                                                 <input 
                                                     type="checkbox" 

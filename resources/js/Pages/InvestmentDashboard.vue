@@ -160,7 +160,6 @@ const getEstadoBadge = (estado) => {
 const excelDetailData = computed(() => {
     return props.investmentDetails.map(item => ({
         'Nombre': item.name,
-        'Mes': item.month_name,
         'Estado': item.estado,
         'Presupuestado': dividir.value && divisor.value ? item.budgeted / divisor.value : item.budgeted,
         'Real': dividir.value && divisor.value ? item.real / divisor.value : item.real,
@@ -419,6 +418,9 @@ function createComparisonBarChart() {
                             </div>
                             <h4 class="mb-0 text-primary text-nowrap" style="font-size: 1.15rem;">{{ formatCLP(summary.budgeted_total) }}</h4>
                             <small class="text-muted" style="font-size: 0.75rem;">{{ formatCLP(summary.budgeted_per_hectare) }}/ha</small>
+                            <div v-if="summary.unassigned_budgeted > 0" class="small text-warning mt-1" style="font-size: 0.7rem;">
+                                <i class="fas fa-exclamation-triangle me-1"></i>{{ formatCLP(summary.unassigned_budgeted) }} sin inversión asignada
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -427,11 +429,14 @@ function createComparisonBarChart() {
                     <div class="card h-100">
                         <div class="card-body">
                             <div class="d-flex justify-content-between align-items-center mb-2">
-                                <h6 class="mb-0 text-muted">{{ t.real }}</h6>
+                                <h6 class="mb-0 text-muted">Real Inversión</h6>
                                 <i class="fas fa-receipt text-danger fa-lg"></i>
                             </div>
                             <h4 class="mb-0 text-danger text-nowrap" style="font-size: 1.15rem;">{{ formatCLP(summary.real_total) }}</h4>
                             <small class="text-muted" style="font-size: 0.75rem;">{{ formatCLP(summary.real_per_hectare) }}/ha</small>
+                            <div v-if="summary.unassigned_real > 0" class="small text-warning mt-1" style="font-size: 0.7rem;">
+                                <i class="fas fa-exclamation-triangle me-1"></i>{{ formatCLP(summary.unassigned_real) }} sin inversión asignada
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -502,7 +507,6 @@ function createComparisonBarChart() {
                                     :data="excelDetailData"
                                     :headers="[
                                         { label: 'Nombre', key: 'Nombre' },
-                                        { label: 'Mes', key: 'Mes' },
                                         { label: 'Estado', key: 'Estado' },
                                         { label: 'Presupuestado', key: 'Presupuestado' },
                                         { label: 'Real', key: 'Real' },
@@ -523,23 +527,23 @@ function createComparisonBarChart() {
                                     <thead class="bg-light">
                                         <tr>
                                             <th class="border-0 py-2"><span class="text-uppercase fw-bold">{{ t.name }}</span></th>
-                                            <th class="border-0 py-2 text-center"><span class="text-uppercase fw-bold">{{ t.month }}</span></th>
                                             <th class="border-0 py-2 text-center"><span class="text-uppercase fw-bold">{{ t.status }}</span></th>
                                             <th class="border-0 py-2 text-end"><span class="text-uppercase fw-bold">{{ t.budgeted }}</span></th>
-                                            <th class="border-0 py-2 text-end"><span class="text-uppercase fw-bold">{{ t.real }}</span></th>
+                                            <th class="border-0 py-2 text-end"><span class="text-uppercase fw-bold">Real Inversión</span></th>
                                             <th class="border-0 py-2 text-end"><span class="text-uppercase fw-bold">{{ t.difference }}</span></th>
                                             <th class="border-0 py-2 text-end"><span class="text-uppercase fw-bold">{{ t.execution }}</span></th>
                                             <th class="border-0 py-2"><span class="text-uppercase fw-bold">{{ t.costCenters }}</span></th>
                                         </tr>
                                     </thead>
                                     <tbody>
-                                        <tr v-for="item in investmentDetails" :key="item.id">
-                                            <td class="fw-semibold">{{ item.name }}</td>
-                                            <td class="text-center">
-                                                <span class="badge bg-light text-dark">{{ item.month_name }}</span>
+                                        <tr v-for="item in investmentDetails" :key="item.id" :class="{ 'table-warning': item.unassigned }">
+                                            <td class="fw-semibold">
+                                                {{ item.name }}
+                                                <i v-if="item.unassigned" class="fas fa-exclamation-triangle text-warning ms-1" v-tooltip="item.observations"></i>
                                             </td>
                                             <td class="text-center">
-                                                <span class="badge" :class="getEstadoBadge(item.estado)">{{ item.estado }}</span>
+                                                <span v-if="item.estado" class="badge" :class="getEstadoBadge(item.estado)">{{ item.estado }}</span>
+                                                <span v-else class="text-muted">-</span>
                                             </td>
                                             <td class="text-end">{{ formatCLP(item.budgeted) }}</td>
                                             <td class="text-end">{{ formatCLP(item.real) }}</td>
@@ -556,7 +560,7 @@ function createComparisonBarChart() {
                                         </tr>
                                         <!-- Fila de totales -->
                                         <tr class="table-primary fw-bold">
-                                            <td colspan="3">TOTAL</td>
+                                            <td colspan="2">TOTAL</td>
                                             <td class="text-end">{{ formatCLP(summary.budgeted_total) }}</td>
                                             <td class="text-end">{{ formatCLP(summary.real_total) }}</td>
                                             <td class="text-end" :class="summary.difference >= 0 ? 'text-success' : 'text-danger'">
@@ -615,10 +619,11 @@ function createComparisonBarChart() {
                         <tbody>
                             <template v-for="inv in byLevel3" :key="inv.investment_id">
                                 <!-- Nivel 1: Inversión -->
-                                <tr class="table-light" style="cursor:pointer;" @click="toggleInvGroup('inv-' + inv.investment_id)">
+                                <tr :class="inv.investment_id === 0 ? 'table-warning' : 'table-light'" style="cursor:pointer;" @click="toggleInvGroup('inv-' + inv.investment_id)">
                                     <td class="py-2 fw-bold text-primary">
                                         <i class="fas me-2" :class="expandedGroups.has('inv-' + inv.investment_id) ? 'fa-chevron-down' : 'fa-chevron-right'"></i>
                                         {{ inv.investment_name }}
+                                        <i v-if="inv.investment_id === 0" class="fas fa-exclamation-triangle text-warning ms-1" v-tooltip="'Salidas clasificadas como Inversión sin vincular a una inversión específica'"></i>
                                         <small class="text-muted ms-1">({{ inv.level3s.length }})</small>
                                     </td>
                                     <td class="py-2 text-end fw-bold text-primary">{{ formatCLP(inv.total) }}</td>
