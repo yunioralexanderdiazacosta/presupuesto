@@ -27,6 +27,13 @@ watch(selectedGrouping, (newId) => {
     }
 });
 
+const selectedCcSurface = computed(() => {
+    const selected = (props.form.cc || []).map(String);
+    return (page.props.costCenters || [])
+        .filter(cc => selected.includes(String(cc.value)))
+        .reduce((sum, cc) => sum + (Number(cc.surface) || 0), 0);
+});
+
 // === UNIDADES ===
 const allowedPriceUnits = { 1: [1,2,8], 2: [1,2,8], 3: [3,4], 4: [3,4], 5: [5], 8: [1,2,8] };
 const disallowedDoseUnitIds = [6, 7];
@@ -76,6 +83,7 @@ const monthAbbr = (label) => label ? label.substring(0, 3) : '';
             <label class="form-label small mb-1">
                 Centros de Costo <span class="text-danger">*</span>
                 <span v-if="form.cc?.length" class="badge bg-primary ms-1" style="font-size:0.65rem;">{{ form.cc.length }} sel.</span>
+                <span v-if="form.cc?.length" class="badge bg-info ms-1" style="font-size:0.65rem;"><i class="fas fa-ruler-combined me-1"></i>{{ selectedCcSurface.toLocaleString('es-CL', { maximumFractionDigits: 2 }) }} ha</span>
             </label>
             <Multiselect mode="tags" v-model="form.cc" :options="$page.props.costCenters"
                 placeholder="Seleccione CC" :searchable="true" :close-on-select="false"

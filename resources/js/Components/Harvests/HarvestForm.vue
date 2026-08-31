@@ -3,7 +3,7 @@
     import TextInput from '@/Components/TextInput.vue';
     import InputError from '@/Components/InputError.vue';
 
-import { ref, getCurrentInstance, watch } from 'vue';
+import { ref, getCurrentInstance, watch, computed } from 'vue';
 import { useInversionOperation } from '@/Composables/useInversionOperation';
 
 const { appContext } = getCurrentInstance();
@@ -34,6 +34,12 @@ const { appContext } = getCurrentInstance();
         }
     });
 
+    const selectedCcSurface = computed(() => {
+        const selected = (form.cc || []).map(String);
+        return (page.props.costCenters || [])
+            .filter(cc => selected.includes(String(cc.value)))
+            .reduce((sum, cc) => sum + (Number(cc.surface) || 0), 0);
+    });
 
 </script>
 <script setup></script>
@@ -61,6 +67,9 @@ const { appContext } = getCurrentInstance();
                 <div class="d-flex align-items-center gap-1">
                     <span v-if="form.cc && form.cc.length > 0" class="badge bg-soft-primary text-primary" style="font-size: 0.7rem;">
                         {{ form.cc.length }} seleccionados
+                    </span>
+                    <span v-if="form.cc && form.cc.length > 0" class="badge bg-soft-info text-info" style="font-size: 0.7rem;">
+                        <i class="fas fa-ruler-combined me-1"></i>{{ selectedCcSurface.toLocaleString('es-CL', { maximumFractionDigits: 2 }) }} ha
                     </span>
                     <button
                         v-if="form.cc && form.cc.length > 5"

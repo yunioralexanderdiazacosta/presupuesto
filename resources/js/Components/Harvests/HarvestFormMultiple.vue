@@ -1,5 +1,5 @@
 <script setup>
-import { ref, watch, getCurrentInstance } from "vue";
+import { ref, watch, getCurrentInstance, computed } from "vue";
 import Multiselect from "@vueform/multiselect";
 import TextInput from "@/Components/TextInput.vue";
 import InputError from "@/Components/InputError.vue";
@@ -48,6 +48,13 @@ watch(() => props.form.operation_id, (newVal) => {
     if (!isInversionOp(newVal, page.props.operations)) {
         props.form.investment_id = null;
     }
+});
+
+const selectedCcSurface = computed(() => {
+    const selected = (props.form.cc || []).map(String);
+    return (page.props.costCenters || [])
+        .filter(cc => selected.includes(String(cc.value)))
+        .reduce((sum, cc) => sum + (Number(cc.surface) || 0), 0);
 });
 
 // Inicializar el array de subfamilias dinámicas
@@ -144,6 +151,9 @@ const selectAllMonths = (index, months) => {
                 <div class="d-flex align-items-center gap-1">
                     <span v-if="form.cc && form.cc.length > 0" class="badge bg-soft-primary text-primary" style="font-size: 0.7rem;">
                         {{ form.cc.length }} seleccionados
+                    </span>
+                    <span v-if="form.cc && form.cc.length > 0" class="badge bg-soft-info text-info" style="font-size: 0.7rem;">
+                        <i class="fas fa-ruler-combined me-1"></i>{{ selectedCcSurface.toLocaleString('es-CL', { maximumFractionDigits: 2 }) }} ha
                     </span>
                     <button
                         v-if="form.cc && form.cc.length > 5"

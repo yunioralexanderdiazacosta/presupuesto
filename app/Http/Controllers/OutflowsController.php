@@ -205,7 +205,7 @@ class OutflowsController extends Controller
         $cost_centers = \App\Models\CostCenter::where('season_id', $season_id)
             ->whereHas('season', function($q) use ($user) {
                 $q->where('team_id', $user->team_id);
-            })->get()->map(fn($c) => ['value' => $c->id, 'label' => $c->name, 'branch_id' => $c->branch_id]);
+            })->get()->map(fn($c) => ['value' => $c->id, 'label' => $c->name, 'branch_id' => $c->branch_id, 'surface' => $c->surface]);
 
         // Traer detalles de salidas ya registradas con sus centros de costo
         // 🔥 OPTIMIZACIÓN: Eager loading completo para evitar N+1 queries

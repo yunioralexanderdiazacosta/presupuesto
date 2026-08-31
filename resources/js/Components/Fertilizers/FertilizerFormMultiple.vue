@@ -1,5 +1,5 @@
 ﻿<script setup>
-import { ref, watch, getCurrentInstance } from "vue";
+import { ref, watch, getCurrentInstance, computed } from "vue";
 import Multiselect from "@vueform/multiselect";
 import InputError from "@/Components/InputError.vue";
 import { useInversionOperation } from "@/Composables/useInversionOperation";
@@ -26,6 +26,13 @@ watch(selectedGrouping, (newGroupingId) => {
     if (grouping && Array.isArray(grouping.cost_centers)) {
         props.form.cc = grouping.cost_centers.map(cc => cc.id);
     }
+});
+
+const selectedCcSurface = computed(() => {
+    const selected = (props.form.cc || []).map(String);
+    return (page.props.costCenters || [])
+        .filter(cc => selected.includes(String(cc.value)))
+        .reduce((sum, cc) => sum + (Number(cc.surface) || 0), 0);
 });
 
 // Unidades
@@ -98,6 +105,7 @@ const removeItem = (index) => props.form.products.splice(index, 1);
             <label class="form-label small mb-1">
                 Centros de Costo <span class="text-danger">*</span>
                 <span v-if="props.form.cc?.length" class="badge bg-primary ms-1">{{ props.form.cc.length }} sel.</span>
+                <span v-if="props.form.cc?.length" class="badge bg-info ms-1"><i class="fas fa-ruler-combined me-1"></i>{{ selectedCcSurface.toLocaleString('es-CL', { maximumFractionDigits: 2 }) }} ha</span>
             </label>
             <Multiselect
                 mode="tags"

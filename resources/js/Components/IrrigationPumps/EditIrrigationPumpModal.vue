@@ -84,21 +84,21 @@ function update() {
 
 <template>
     <div class="modal fade" id="editIrrigationPumpModal" tabindex="-1" data-bs-backdrop="static">
-        <div class="modal-dialog modal-xl">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h5 class="modal-title mb-0">
-                        <i class="fas fa-edit me-2"></i>Editar Bomba de Riego
+        <div class="modal-dialog modal-xl modal-dialog-scrollable">
+            <div class="modal-content border-0 shadow-lg">
+                <div class="modal-header bg-white border-bottom">
+                    <h5 class="modal-title mb-0 fw-bold">
+                        <i class="fas fa-edit text-primary me-2"></i>Editar Bomba de Riego
                     </h5>
                     <button type="button" class="btn-close" @click="closeModal"></button>
                 </div>
 
-                <div class="modal-body">
+                <div class="modal-body bg-body-tertiary">
                     <IrrigationPumpForm :form="form" :is-editing="true" />
                 </div>
 
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" @click="closeModal">
+                <div class="modal-footer bg-white border-top">
+                    <button type="button" class="btn btn-light" @click="closeModal">
                         <i class="fas fa-times me-1"></i>Cancelar
                     </button>
                     <button

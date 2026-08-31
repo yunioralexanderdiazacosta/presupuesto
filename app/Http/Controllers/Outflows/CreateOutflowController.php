@@ -38,7 +38,13 @@ class CreateOutflowController extends Controller
             'seasons' => Season::where('id', session('season_id'))->get(),
             'costCenters' => CostCenter::whereHas('season', function($q) use ($user) {
                 $q->where('team_id', $user->team_id);
-            })->where('season_id', session('season_id'))->get(['id', 'name']),
+            })->where('season_id', session('season_id'))
+                ->get(['id', 'name', 'surface'])
+                ->map(fn($costCenter) => [
+                    'value' => $costCenter->id,
+                    'label' => $costCenter->name,
+                    'surface' => $costCenter->surface,
+                ]),
         ]);
     }
 }

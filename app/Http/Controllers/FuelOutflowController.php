@@ -71,7 +71,7 @@ class FuelOutflowController extends Controller
             ->whereHas('season', function($q) use ($user) {
                 $q->where('team_id', $user->team_id);
             })
-            ->get(['id', 'name']);
+            ->get(['id', 'name', 'surface']);
         
         // ========================================
         // 🔥 NUEVO: Calcular stock disponible de COMBUSTIBLES

@@ -25,6 +25,13 @@ watch(selectedGrouping, (newId) => {
     }
 });
 
+const selectedCcSurface = computed(() => {
+    const selected = (form.cc || []).map(String);
+    return (page.props.costCenters || [])
+        .filter(cc => selected.includes(String(cc.value)))
+        .reduce((sum, cc) => sum + (Number(cc.surface) || 0), 0);
+});
+
 const disallowedUnitIds = [6, 7];
 const filteredUnits = computed(() => (page.props.units || []).filter(u => !disallowedUnitIds.includes(u.value)));
 const getPriceUnitOptions = () => {
@@ -80,6 +87,7 @@ const monthAbbr = (label) => label ? label.substring(0, 3) : '';
             <label class="form-label small mb-1">
                 Centros de Costo <span class="text-danger">*</span>
                 <span v-if="form.cc?.length" class="badge bg-primary ms-1">{{ form.cc.length }} sel.</span>
+                <span v-if="form.cc?.length" class="badge bg-info ms-1"><i class="fas fa-ruler-combined me-1"></i>{{ selectedCcSurface.toLocaleString('es-CL', { maximumFractionDigits: 2 }) }} ha</span>
             </label>
             <Multiselect
                 mode="tags"

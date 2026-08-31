@@ -1,6 +1,6 @@
 <script setup>
 // Basado en FormProducts.vue, ajusta aquí la lógica específica de salidas (outflows)
-import { watch } from 'vue';
+import { watch, computed } from 'vue';
 import Multiselect from '@vueform/multiselect';
 import InputError from '@/Components/InputError.vue';
 import { usePage } from '@inertiajs/vue3';
@@ -9,6 +9,19 @@ const page = usePage();
 const props = defineProps({
     form: Object
 })
+
+// Superficie total (ha) de los centros de costo seleccionados en las líneas de salida
+const selectedCcSurface = computed(() => {
+    const selectedIds = [...new Set(
+        (props.form.outflows || [])
+            .map(o => o.cost_center_id)
+            .filter(id => id !== '' && id !== null && id !== undefined)
+            .map(String)
+    )];
+    return (page.props.costCenters || [])
+        .filter(cc => selectedIds.includes(String(cc.value)))
+        .reduce((sum, cc) => sum + (Number(cc.surface) || 0), 0);
+});
 
 // Aquí puedes adaptar la lógica para salidas, por ejemplo, selección de productos, centros de costo, etc.
 const newTag = (input) => ({ id: input, name: input });
@@ -49,6 +62,12 @@ watch(
 </script>
 <template>
     <div class="elegant-divider my-2"></div>
+    <div v-if="selectedCcSurface > 0" class="mb-2">
+        <span class="badge bg-info" style="font-size:0.75rem;">
+            <i class="fas fa-ruler-combined me-1"></i>
+            Superficie total CC seleccionados: {{ selectedCcSurface.toLocaleString('es-CL', { maximumFractionDigits: 2 }) }} ha
+        </span>
+    </div>
     <div class="table-responsive mb-1" style="max-width:100vw; margin-left:0; margin-right:0;">
         <table class="table g-2 gs-0 mb-0 fw-bold text-gray-700" style="font-size:0.85rem;">
             <thead>
@@ -93,9 +112,7 @@ watch(
                         <Multiselect
                             placeholder="Centro de Costo"
                             v-model="outflow.cost_center_id"
-                            :options="$page.cost_centers"
-                            option-label="label"
-                            option-value="value"
+                            :options="page.props.costCenters"
                             :searchable="true"
                             class="multiselect-blue form-control"
                         />

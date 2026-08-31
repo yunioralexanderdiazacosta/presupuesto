@@ -646,6 +646,12 @@ function getProrationAmount(outflow, ccId) {
 
 // id de centro de costo -> branch_id (catálogo, ya trae branch_id por CC)
 const ccBranchLookup = computed(() => Object.fromEntries((props.cost_centers || []).map(c => [String(c.value), c.branch_id])));
+// id de centro de costo -> superficie (ha), para el badge de superficie seleccionada
+const ccSurfaceLookup = computed(() => Object.fromEntries((props.cost_centers || []).map(c => [String(c.value), Number(c.surface) || 0])));
+// Suma la superficie (ha) de los centros de costo seleccionados en un card de registro de salida
+function getSelectedCcSurface(costCenterIds) {
+  return (costCenterIds || []).reduce((sum, id) => sum + (ccSurfaceLookup.value[String(id)] || 0), 0);
+}
 // id de sucursal -> nombre
 const branchNameLookup = computed(() => Object.fromEntries((props.branches || []).map(b => [String(b.value), b.label])));
 
@@ -1663,6 +1669,10 @@ function copyToAllCards(sourceCardId) {
                               <label class="form-label mb-0">Centro de Costo
                                 <span v-if="selected.cost_center_ids.length > 0" class="badge bg-primary ms-1" style="font-size: 0.6rem; vertical-align: middle;">
                                   {{ selected.cost_center_ids.length }}
+                                </span>
+                                <span v-if="selected.cost_center_ids.length > 0" class="badge bg-info ms-1" style="font-size: 0.6rem; vertical-align: middle;">
+                                  <i class="fas fa-ruler-combined"></i>
+                                  {{ getSelectedCcSurface(selected.cost_center_ids).toLocaleString('es-CL', { maximumFractionDigits: 2 }) }} ha
                                 </span>
                               </label>
                               <button

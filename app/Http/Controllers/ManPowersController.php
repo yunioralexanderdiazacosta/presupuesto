@@ -152,7 +152,7 @@ public $totalHarvest = 0;
             array_push($months, $object);
         }
 
-        $costCenters = CostCenter::select('id', 'name', 'variety_id', 'company_reason_id', 'branch_id')->where('season_id', $season_id)->whereHas('season.team', function($query) use ($user){
+        $costCenters = CostCenter::select('id', 'name', 'variety_id', 'company_reason_id', 'branch_id', 'surface')->where('season_id', $season_id)->whereHas('season.team', function($query) use ($user){
             $query->where('team_id', $user->team_id);
         })->get()->transform(function($costCenter){
             return [
@@ -161,6 +161,7 @@ public $totalHarvest = 0;
                 'variety_id' => $costCenter->variety_id,
                 'company_reason_id' => $costCenter->company_reason_id,
                 'branch_id' => $costCenter->branch_id,
+                'surface' => $costCenter->surface,
             ];
         });
 

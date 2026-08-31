@@ -1,5 +1,5 @@
 ﻿<script setup>
-import { ref, watch } from 'vue';
+import { ref, watch, computed } from 'vue';
 import { usePage, useForm } from '@inertiajs/vue3';
 import Multiselect from '@vueform/multiselect';
 import InputError from '@/Components/InputError.vue';
@@ -24,6 +24,13 @@ watch(selectedGrouping, (newId) => {
     if (grouping && Array.isArray(grouping.cost_centers)) {
         props.form.cc = grouping.cost_centers.map(cc => cc.id);
     }
+});
+
+const selectedCcSurface = computed(() => {
+    const selected = (props.form.cc || []).map(String);
+    return (page.props.costCenters || [])
+        .filter(cc => selected.includes(String(cc.value)))
+        .reduce((sum, cc) => sum + (Number(cc.surface) || 0), 0);
 });
 
 // === CALCULADORA JORNADAS ===
@@ -97,6 +104,7 @@ const monthAbbr = (label) => label ? label.substring(0, 3) : '';
             <label class="form-label small mb-1">
                 Centros de Costo <span class="text-danger">*</span>
                 <span v-if="form.cc?.length" class="badge bg-primary ms-1" style="font-size:0.65rem;">{{ form.cc.length }} sel.</span>
+                <span v-if="form.cc?.length" class="badge bg-info ms-1" style="font-size:0.65rem;"><i class="fas fa-ruler-combined me-1"></i>{{ selectedCcSurface.toLocaleString('es-CL', { maximumFractionDigits: 2 }) }} ha</span>
             </label>
             <Multiselect
                 mode="tags"

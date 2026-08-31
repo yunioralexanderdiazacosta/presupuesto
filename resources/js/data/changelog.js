@@ -7,6 +7,43 @@
 
 export const changelog = [
   {
+    fecha: '2026-08-30',
+    titulo: 'Bombas de Riego — Rediseño del formulario',
+    items: [
+      'Los formularios para crear y editar una bomba de riego (Nombre, Código, Marca, Modelo) ahora usan campos más compactos y secciones con mejor separación visual.',
+    ]
+  },
+  {
+    fecha: '2026-08-30',
+    titulo: 'Combustibles — Rediseño del formulario de nuevo consumo',
+    items: [
+      'El modal para registrar un nuevo consumo de combustible fue reorganizado en secciones claras (Origen, Maquinaria y Operario, Centro de Costo y Clasificación, Observaciones) para hacerlo más ordenado y fácil de usar.',
+      'Los selectores de Maquinaria, Proyecto y Operación ahora usan el mismo estilo que el resto del formulario (más livianos y consistentes visualmente).',
+    ]
+  },
+  {
+    fecha: '2026-08-30',
+    titulo: 'Combustibles — Superficie total de los centros de costo seleccionados',
+    items: [
+      'En el modal de nuevo consumo de combustible, al elegir los centros de costo ahora aparece un indicador con la superficie total (en hectáreas) que suman los centros de costo seleccionados.',
+    ]
+  },
+  {
+    fecha: '2026-08-30',
+    titulo: 'Registro de Salidas — Superficie total de los centros de costo seleccionados',
+    items: [
+      'En la pestaña "Disponible para Salida", al elegir los centros de costo dentro del card de registro, ahora aparece un indicador con la superficie total (en hectáreas) que suman los centros de costo seleccionados.',
+      'Lo mismo se agregó en el formulario para registrar una salida de productos desde su propia pantalla.',
+    ]
+  },
+  {
+    fecha: '2026-08-30',
+    titulo: 'Módulos de Presupuesto — Superficie total de los centros de costo seleccionados',
+    items: [
+      'Al seleccionar los centros de costo en Agroquímicos, Fertilizantes, Mano de Obra, Servicios, Insumos y Cosecha, ahora aparece un indicador con la superficie total (en hectáreas) que suman los centros de costo elegidos, junto a la cantidad seleccionada.',
+    ]
+  },
+  {
     fecha: '2026-08-29',
     titulo: 'Dashboard de Inversiones — Ahora se muestra lo que falta por asignar',
     items: [

@@ -107,8 +107,8 @@ const getTotalSurface = () => {
     <div class="row g-3">
         <!-- Datos de la Bomba -->
         <div class="col-12">
-            <h6 class="border-bottom pb-2 mb-3">
-                <i class="fas fa-tint me-2"></i>Datos de la Bomba
+            <h6 class="pump-section-title">
+                <i class="fas fa-tint"></i>Datos de la Bomba
             </h6>
         </div>
 
@@ -117,7 +117,7 @@ const getTotalSurface = () => {
             <TextInput
                 v-model="form.name"
                 type="text"
-                class="form-control"
+                class="form-control form-control-sm"
                 placeholder="Ej: Bomba Central A"
             />
             <InputError :message="form.errors.name" class="mt-1" />
@@ -128,7 +128,7 @@ const getTotalSurface = () => {
             <TextInput
                 v-model="form.code"
                 type="text"
-                class="form-control"
+                class="form-control form-control-sm"
                 placeholder="Ej: BC-001"
             />
             <InputError :message="form.errors.code" class="mt-1" />
@@ -139,7 +139,7 @@ const getTotalSurface = () => {
             <TextInput
                 v-model="form.brand"
                 type="text"
-                class="form-control"
+                class="form-control form-control-sm"
                 placeholder="Ej: Grundfos"
             />
             <InputError :message="form.errors.brand" class="mt-1" />
@@ -150,16 +150,18 @@ const getTotalSurface = () => {
             <TextInput
                 v-model="form.model"
                 type="text"
-                class="form-control"
+                class="form-control form-control-sm"
                 placeholder="Ej: CR 64-2"
             />
             <InputError :message="form.errors.model" class="mt-1" />
         </div>
 
+        <div class="col-12"><hr class="pump-section-divider"></div>
+
         <!-- Sectores de Riego -->
-        <div class="col-12 mt-4">
-            <h6 class="border-bottom pb-2 mb-3">
-                <i class="fas fa-layer-group me-2"></i>Sectores de Riego
+        <div class="col-12">
+            <h6 class="pump-section-title">
+                <i class="fas fa-layer-group"></i>Sectores de Riego
                 <span class="badge bg-secondary ms-2">{{ form.sectors.length }} sectores</span>
                 <span v-if="form.sectors.length > 0" class="badge bg-info ms-1">
                     Total: {{ getTotalSurface().toFixed(2) }} ha
@@ -336,3 +338,26 @@ const getTotalSurface = () => {
         </div>
     </div>
 </template>
+
+<style scoped>
+.pump-section-title {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    font-size: 0.75rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+    color: var(--kt-text-muted, #6c757d);
+    margin-bottom: 0.9rem;
+}
+.pump-section-title i {
+    color: #2c7be5;
+}
+.pump-section-divider {
+    border: none;
+    height: 1px;
+    background: linear-gradient(90deg, rgba(44,123,229,0.15) 0%, rgba(44,123,229,0.35) 50%, rgba(44,123,229,0.15) 100%);
+    margin: 0.25rem 0 1rem;
+}
+</style>
