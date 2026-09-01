@@ -443,10 +443,10 @@ async function openCard(outflow) {
     tipo,
     invoice_product_id: outflow.invoice_product_id || null,
     credit_debit_note_item_id: outflow.credit_debit_note_item_id || null,
-    project_id: '',
+    project_id: null,
     operation_id: '',
     investment_id: null,
-    machinery_id: '',
+    machinery_id: null,
     product_name: outflow.product,
     unit_name: outflow.unit,
     branch_name: outflow.branch_name || '-', // Sucursal de la línea (solo lectura)
@@ -526,6 +526,14 @@ function isCardOpen(outflow) {
 }
 
 function handleSave() {
+  // Bloquear el guardado si alguna card tiene operación "Inversión" sin inversión seleccionada
+  const faltaInversion = selectedOutflows.value.some(sel =>
+    isInversionOp(sel.operation_id) && !sel.investment_id
+  );
+  if (faltaInversion) {
+    Swal.fire({ icon: 'warning', title: 'Atención', text: 'Debe seleccionar una inversión en los registros con operación "Inversión".' });
+    return;
+  }
   // Filtrar solo las cards con datos obligatorios (ejemplo: cantidad y al menos un centro de costo)
   const registros = selectedOutflows.value.filter(sel => {
     return sel.quantity && sel.cost_center_ids && sel.cost_center_ids.length > 0 && (sel.invoice_product_id || sel.credit_debit_note_item_id);
@@ -1574,16 +1582,18 @@ function copyToAllCards(sourceCardId) {
                           </div>
                           <!-- Select inversión: solo aparece si la operación seleccionada es "Inversión" -->
                           <div v-if="isInversionOp(selected.operation_id)" class="col-12 col-md-2">
-                            <label class="form-label">Inversión</label>
+                            <label class="form-label">Inversión <span class="text-danger">*</span></label>
                             <select
                               v-model="selected.investment_id"
                               class="form-select form-select-sm"
+                              :class="{ 'is-invalid': !selected.investment_id }"
                             >
-                              <option :value="null">— Sin inversión —</option>
+                              <option :value="null">Seleccione inversión</option>
                               <option v-for="inv in props.investments" :key="inv.value" :value="inv.value">
                                 {{ inv.label }}
                               </option>
                             </select>
+                            <small v-if="!selected.investment_id" class="text-danger">Debe seleccionar una inversión</small>
                           </div>
                           <div class="col-12 col-md-2">
                             <label class="form-label">Proyecto</label>
@@ -1591,7 +1601,7 @@ function copyToAllCards(sourceCardId) {
                               v-model="selected.project_id" 
                               class="form-select form-select-sm"
                             >
-                              <option :value="null" disabled selected hidden>Seleccione proyecto</option>
+                              <option :value="null">— Sin proyecto —</option>
                               <option v-for="project in props.projects" :key="project.value" :value="project.value">
                                 {{ project.label }}
                               </option>
@@ -1603,7 +1613,7 @@ function copyToAllCards(sourceCardId) {
                               v-model="selected.machinery_id" 
                               class="form-select form-select-sm"
                             >
-                              <option :value="null" disabled selected hidden>Seleccione maquinaria</option>
+                              <option :value="null">— Sin maquinaria —</option>
                               <option v-for="machinery in props.machineries" :key="machinery.value" :value="machinery.value">
                                 {{ machinery.label }}
                               </option>

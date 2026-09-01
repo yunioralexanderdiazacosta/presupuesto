@@ -7,6 +7,20 @@
 
 export const changelog = [
   {
+    fecha: '2026-09-01',
+    titulo: 'Salidas — Inversión obligatoria al seleccionar operación "Inversión"',
+    items: [
+      'Al registrar una salida con operación "Inversión", ahora es obligatorio elegir a qué inversión corresponde antes de poder guardar.',
+    ]
+  },
+  {
+    fecha: '2026-09-01',
+    titulo: 'Salidas — Corrección en selects de Proyecto y Maquinaria',
+    items: [
+      'Al registrar una salida, ahora es posible volver a dejar en blanco los campos "Proyecto" y "Maquinaria" después de haber seleccionado una opción.',
+    ]
+  },
+  {
     fecha: '2026-08-30',
     titulo: 'Bombas de Riego — Rediseño del formulario',
     items: [
