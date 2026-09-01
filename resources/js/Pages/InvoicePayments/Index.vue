@@ -561,7 +561,7 @@ const excelData = computed(() => {
                                             <span class="badge" :class="dueDateConfig[getDueDateStatus(invoice)].class">
                                                 {{ dueDateConfig[getDueDateStatus(invoice)].label }}
                                             </span>
-                                            <small v-if="getDueDateDays(invoice)" class="d-block text-muted mt-1" style="font-size:0.7rem;">
+                                            <small v-if="getDueDateDays(invoice)" class="text-muted ms-1" style="font-size:0.7rem;">
                                                 {{ getDueDateDays(invoice) }}
                                             </small>
                                         </template>
@@ -571,10 +571,10 @@ const excelData = computed(() => {
                                         <button
                                             v-if="invoice.payment_status !== 'paid' && !invoice.is_annulled"
                                             @click.stop="openCreateModal(invoice)"
-                                            class="btn btn-falcon-default btn-sm"
+                                            class="btn btn-falcon-default btn-sm py-0 px-2"
                                             v-tooltip="'Registrar pago'"
                                         >
-                                            <i class="fas fa-dollar-sign"></i>
+                                            <i class="fas fa-dollar-sign fa-sm"></i>
                                         </button>
                                         <span
                                             v-else-if="invoice.is_annulled"
