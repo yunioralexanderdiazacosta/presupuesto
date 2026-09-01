@@ -463,7 +463,7 @@ const excelData = computed(() => {
             <div class="card-body bg-body-tertiary">
                 <div class="table-responsive" :style="{ maxHeight: tableMaxHeight, minHeight: '200px', overflowY: 'auto' }">
                     <table id="invoice-payments-table" class="table table-sm table-hover fs-10">
-                        <thead class="bg-200 text-900">
+                        <thead class="bg-200 text-900" style="position: sticky; top: 0; z-index: 1;">
                             <tr>
                                 <th style="width:30px;"></th>
                                 <th>Fecha</th>
