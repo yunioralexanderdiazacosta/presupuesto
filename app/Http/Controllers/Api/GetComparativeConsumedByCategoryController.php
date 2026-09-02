@@ -55,9 +55,7 @@ class GetComparativeConsumedByCategoryController extends Controller
                 ->where('team_id', $team_id)
                 ->with([
                     'invoiceProduct:id,unit_price,invoice_id',
-                    'invoiceProduct.invoice:id,date',
                     'creditDebitNoteItem:id,unit_price,credit_debit_note_id',
-                    'creditDebitNoteItem.creditDebitNote:id,date',
                     'costCenters.costCenter:id,company_reason_id,surface',
                     'operation:id,name',
                     'level3:id,name,level2_id',
@@ -69,13 +67,9 @@ class GetComparativeConsumedByCategoryController extends Controller
             foreach ($outflows as $outflow) {
                 if (!$this->outflowMatchesCompanyReason($outflow, $company_reason_id)) continue;
 
-                $monthId = null;
-                if ($outflow->invoice_product_id && $outflow->invoiceProduct && $outflow->invoiceProduct->invoice) {
-                    $monthId = (int) date('n', strtotime($outflow->invoiceProduct->invoice->date));
-                } elseif ($outflow->credit_debit_note_item_id && $outflow->creditDebitNoteItem && $outflow->creditDebitNoteItem->creditDebitNote) {
-                    $monthId = (int) date('n', strtotime($outflow->creditDebitNoteItem->creditDebitNote->date));
-                }
-                if (!$monthId) continue;
+                // Mes de la SALIDA (fecha propia del outflow), no de la factura/nota de origen
+                if (!$outflow->date) continue;
+                $monthId = (int) date('n', strtotime($outflow->date));
 
                 $isInvestment = $outflow->operation && stripos($outflow->operation->name, 'inversion') !== false;
                 if ($isInvestment && !$includeInvestments) continue;

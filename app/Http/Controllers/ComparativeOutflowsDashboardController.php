@@ -927,9 +927,7 @@ class ComparativeOutflowsDashboardController extends Controller
                 ->where('team_id', $team_id)
                 ->with([
                     'invoiceProduct:id,unit_price,invoice_id',
-                    'invoiceProduct.invoice:id,date',
                     'creditDebitNoteItem:id,unit_price,credit_debit_note_id',
-                    'creditDebitNoteItem.creditDebitNote:id,date',
                     'costCenters.costCenter:id,company_reason_id,surface',
                     'operation:id,name',
                 ])
@@ -938,14 +936,9 @@ class ComparativeOutflowsDashboardController extends Controller
             foreach ($allOutflows as $outflow) {
                 if (!$this->outflowMatchesCompanyReason($outflow, $company_reason_id)) continue;
 
-                $monthId = null;
-                // Determinar mes desde la factura o nota
-                if ($outflow->invoice_product_id && $outflow->invoiceProduct && $outflow->invoiceProduct->invoice) {
-                    $monthId = (int) date('n', strtotime($outflow->invoiceProduct->invoice->date));
-                } elseif ($outflow->credit_debit_note_item_id && $outflow->creditDebitNoteItem && $outflow->creditDebitNoteItem->creditDebitNote) {
-                    $monthId = (int) date('n', strtotime($outflow->creditDebitNoteItem->creditDebitNote->date));
-                }
-                if (!$monthId) continue;
+                // Mes de la SALIDA (fecha propia del outflow), no de la factura/nota de origen
+                if (!$outflow->date) continue;
+                $monthId = (int) date('n', strtotime($outflow->date));
 
                 $amount = $this->proratedOutflowAmount($outflow, $company_reason_id);
                 if ($amount == 0.0) continue;
@@ -1017,7 +1010,7 @@ class ComparativeOutflowsDashboardController extends Controller
     /**
      * Obtener consumido de un mes específico desde outflows
      * Retorna dos valores: total (sin inversiones) y total_with_investments (con inversiones)
-     * IMPORTANTE: Filtra por el MES DE LA FACTURA/NOTA, no por la fecha del outflow
+     * Filtra por el MES DE LA SALIDA (fecha propia del outflow), no por la factura/nota de origen
      * 
      * @param int $season_id
      * @param int $team_id
@@ -1027,19 +1020,10 @@ class ComparativeOutflowsDashboardController extends Controller
     private function getConsumedForMonth($season_id, $team_id, $month_id)
     {
         try {
-            // Consumido CON inversiones (todos los outflows del mes según fecha de factura)
+            // Consumido CON inversiones (todos los outflows del mes según su propia fecha)
             $allOutflows = Outflow::where('season_id', $season_id)
                 ->where('team_id', $team_id)
-                ->where(function($query) use ($month_id) {
-                    // Filtrar por mes de factura (invoice_product)
-                    $query->whereHas('invoiceProduct.invoice', function($q) use ($month_id) {
-                        $q->whereRaw('MONTH(date) = ?', [$month_id]);
-                    })
-                    // O por mes de nota de crédito/débito
-                    ->orWhereHas('creditDebitNoteItem.creditDebitNote', function($q) use ($month_id) {
-                        $q->whereRaw('MONTH(date) = ?', [$month_id]);
-                    });
-                })
+                ->whereRaw('MONTH(date) = ?', [$month_id])
                 ->with(['invoiceProduct', 'creditDebitNoteItem'])
                 ->get();
 
@@ -1053,19 +1037,10 @@ class ComparativeOutflowsDashboardController extends Controller
                 return 0;
             });
 
-            // Consumido SOLO inversiones (también por mes de factura)
+            // Consumido SOLO inversiones (también por mes de la salida)
             $investmentOutflows = Outflow::where('season_id', $season_id)
                 ->where('team_id', $team_id)
-                ->where(function($query) use ($month_id) {
-                    // Filtrar por mes de factura (invoice_product)
-                    $query->whereHas('invoiceProduct.invoice', function($q) use ($month_id) {
-                        $q->whereRaw('MONTH(date) = ?', [$month_id]);
-                    })
-                    // O por mes de nota de crédito/débito
-                    ->orWhereHas('creditDebitNoteItem.creditDebitNote', function($q) use ($month_id) {
-                        $q->whereRaw('MONTH(date) = ?', [$month_id]);
-                    });
-                })
+                ->whereRaw('MONTH(date) = ?', [$month_id])
                 ->whereHas('operation', function($query) {
                     $query->whereRaw('LOWER(name) LIKE ?', ['%inversion%']);
                 })
