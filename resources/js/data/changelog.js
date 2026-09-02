@@ -8,6 +8,13 @@
 export const changelog = [
   {
     fecha: '2026-09-01',
+    titulo: 'Salidas — Filtro por mes ahora permite elegir entre mes de salida o mes contable',
+    items: [
+      'En la pestaña "Edición" (y en las de "Matriz de Consumo") el filtro por mes ahora deja elegir si se busca por el mes en que realmente se registró la salida, o por el mes contable de la factura/nota asociada. Antes solo buscaba por el mes contable, lo que podía mostrar resultados distintos a lo esperado.',
+    ]
+  },
+  {
+    fecha: '2026-09-01',
     titulo: 'Dashboard Comparativo — Corrección en el mes usado para "Consumido"',
     items: [
       'En la tabla "Detalle Mensual por Categoría" y en los gráficos del Dashboard Comparativo, el "Consumido" ahora se ubica en el mes en que realmente se registró la salida de bodega, en vez del mes de la factura o nota asociada. Esto evita diferencias entre el mes donde aparecía el consumo y el mes real del movimiento.',

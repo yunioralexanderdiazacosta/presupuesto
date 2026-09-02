@@ -85,6 +85,14 @@ const hasMoreEdicion = computed(() => sortedOutflowDetails.value.length > visibl
 
 // Filtros avanzados para la tabla de edición
 const filterMes = ref(null);
+// Criterio del filtro de mes: 'salida' = fecha real de la salida, 'contable' = mes contable de la factura/nota de origen
+const filterMesCriterio = ref('salida');
+// Al cambiar el criterio, mantener el mes seleccionado si sigue existiendo en la nueva lista; si no, recién ahí limpiarlo
+watch(filterMesCriterio, () => {
+  if (filterMes.value && !mesOptions.value.some(o => o.value === filterMes.value)) {
+    filterMes.value = null;
+  }
+});
 const filterOperation = ref(null);
 const filterSupplier = ref(null);
 const filterLevel1 = ref(null);
@@ -112,7 +120,8 @@ const filterBranchEdicion = ref(null);
 // Opciones únicas extraídas de los datos ya cargados
 const mesOptions = computed(() => {
   if (!props.outflowDetails?.length) return [];
-  const unique = [...new Set(props.outflowDetails.map(i => i.mes_contable).filter(Boolean))];
+  const field = filterMesCriterio.value === 'contable' ? 'mes_contable' : 'mes_salida';
+  const unique = [...new Set(props.outflowDetails.map(i => i[field]).filter(Boolean))];
   return unique.sort().map(v => ({ value: v, label: v }));
 });
 const operationOptions = computed(() => {
@@ -180,7 +189,10 @@ const filteredOutflowDetails = computed(() => {
   let result = props.outflowDetails;
 
   // Filtros de select
-  if (filterMes.value) result = result.filter(i => i.mes_contable === filterMes.value);
+  if (filterMes.value) {
+    const field = filterMesCriterio.value === 'contable' ? 'mes_contable' : 'mes_salida';
+    result = result.filter(i => i[field] === filterMes.value);
+  }
   if (filterOperation.value) result = result.filter(i => i.operation === filterOperation.value);
   if (filterSupplier.value) result = result.filter(i => i.supplier === filterSupplier.value);
   if (filterLevel1.value) result = result.filter(i => i.level1_name === filterLevel1.value);
@@ -1167,6 +1179,10 @@ function copyToAllCards(sourceCardId) {
                           <i class="fas fa-times"></i>
                         </button>
                       </div>
+                      <div class="mes-criterio-toggle">
+                        <button type="button" class="mes-criterio-btn" :class="{ active: filterMesCriterio === 'salida' }" @click="filterMesCriterio = 'salida'" v-tooltip="'Filtrar por mes de la salida'"><i class="fas fa-dolly"></i></button>
+                        <button type="button" class="mes-criterio-btn" :class="{ active: filterMesCriterio === 'contable' }" @click="filterMesCriterio = 'contable'" v-tooltip="'Filtrar por mes contable de la factura/nota'"><i class="fas fa-file-invoice"></i></button>
+                      </div>
                       <div style="min-width: 110px; flex: 0 1 130px;">
                         <select v-model="filterMes" class="form-select form-select-sm" style="font-size:0.72rem;">
                           <option :value="null">Todos los meses</option>
@@ -1762,6 +1778,10 @@ function copyToAllCards(sourceCardId) {
                           <i class="fas fa-times"></i>
                         </button>
                       </div>
+                      <div class="mes-criterio-toggle">
+                        <button type="button" class="mes-criterio-btn" :class="{ active: filterMesCriterio === 'salida' }" @click="filterMesCriterio = 'salida'" v-tooltip="'Filtrar por mes de la salida'"><i class="fas fa-dolly"></i></button>
+                        <button type="button" class="mes-criterio-btn" :class="{ active: filterMesCriterio === 'contable' }" @click="filterMesCriterio = 'contable'" v-tooltip="'Filtrar por mes contable de la factura/nota'"><i class="fas fa-file-invoice"></i></button>
+                      </div>
                       <div style="min-width:110px; flex:0 1 130px;">
                         <select v-model="filterMes" class="form-select form-select-sm" style="font-size:0.72rem;">
                           <option :value="null">Todos los meses</option>
@@ -1957,6 +1977,10 @@ function copyToAllCards(sourceCardId) {
                         <button v-if="appliedTermEdicion || termEdicion" type="button" class="btn btn-falcon-default btn-sm px-2 flex-shrink-0" @click="clearSearchEdicion" title="Limpiar búsqueda" style="height:31px;">
                           <i class="fas fa-times"></i>
                         </button>
+                      </div>
+                      <div class="mes-criterio-toggle">
+                        <button type="button" class="mes-criterio-btn" :class="{ active: filterMesCriterio === 'salida' }" @click="filterMesCriterio = 'salida'" v-tooltip="'Filtrar por mes de la salida'"><i class="fas fa-dolly"></i></button>
+                        <button type="button" class="mes-criterio-btn" :class="{ active: filterMesCriterio === 'contable' }" @click="filterMesCriterio = 'contable'" v-tooltip="'Filtrar por mes contable de la factura/nota'"><i class="fas fa-file-invoice"></i></button>
                       </div>
                       <div style="min-width:110px; flex:0 1 130px;">
                         <select v-model="filterMes" class="form-select form-select-sm" style="font-size:0.72rem;">
@@ -2161,6 +2185,41 @@ function copyToAllCards(sourceCardId) {
 
 
 <style>
+/* Toggle compacto para elegir el criterio del filtro de mes (salida vs contable) */
+.mes-criterio-toggle {
+    display: inline-flex;
+    background: var(--bs-tertiary-bg, #edf2f9);
+    border: 1px solid var(--bs-border-color, #e3e6ed);
+    border-radius: 0.35rem;
+    padding: 2px;
+    gap: 2px;
+    height: 26px;
+    align-items: center;
+    flex-shrink: 0;
+}
+.mes-criterio-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border: none;
+    background: transparent;
+    width: 24px;
+    height: 20px;
+    font-size: 0.68rem;
+    color: var(--bs-secondary-color, #6c757d);
+    border-radius: 0.3rem;
+    transition: background-color .15s ease, color .15s ease;
+}
+.mes-criterio-btn:hover:not(.active) {
+    background: rgba(0, 0, 0, 0.06);
+    color: var(--bs-emphasis-color, #212529);
+}
+.mes-criterio-btn.active {
+    background: var(--bs-body-bg, #fff);
+    color: var(--bs-primary, #2c7be5);
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.15);
+}
+
 /* Fila seleccionada en Matriz de Consumo */
 .matriz-row-selected td {
     background-color: #fff3cd !important;

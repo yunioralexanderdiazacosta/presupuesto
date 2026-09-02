@@ -235,6 +235,7 @@ class OutflowsController extends Controller
             ->orderByDesc('id')
             ->get()
             ->map(function($outflow) {
+                $mesesNombres = [1=>'Enero',2=>'Febrero',3=>'Marzo',4=>'Abril',5=>'Mayo',6=>'Junio',7=>'Julio',8=>'Agosto',9=>'Septiembre',10=>'Octubre',11=>'Noviembre',12=>'Diciembre'];
                 return [
                     'id' => $outflow->id,
                     'fuel_outflow_id' => $outflow->fuel_outflow_id,
@@ -250,6 +251,8 @@ class OutflowsController extends Controller
                         : ($outflow->creditDebitNoteItem
                             ? ($outflow->creditDebitNoteItem->creditDebitNote->month?->name ?? '')
                             : ($outflow->fuelOutflow?->invoiceProduct?->invoice?->month?->name ?? '')),
+                    // Mes calendario de la propia salida (outflow.date), no de la factura/nota de origen
+                    'mes_salida' => $outflow->date ? ($mesesNombres[\Carbon\Carbon::parse($outflow->date)->month] ?? '') : '',
                     'number_document' => $outflow->invoiceProduct
                         ? ($outflow->invoiceProduct->invoice->number_document ?? '')
                         : ($outflow->creditDebitNoteItem
