@@ -7,6 +7,14 @@
 
 export const changelog = [
   {
+    fecha: '2026-09-07',
+    titulo: 'Pago de Facturas — Tabla sin paginación, se ve todo con scroll',
+    items: [
+      'La tabla de facturas ahora muestra todos los resultados de una sola vez, con scroll interno, en vez de estar dividida en páginas de 50.',
+      'La exportación a Excel ahora incluye todas las facturas filtradas, no solo las de la página actual.',
+    ]
+  },
+  {
     fecha: '2026-09-01',
     titulo: 'Salidas — Filtro por mes ahora permite elegir entre mes de salida o mes contable',
     items: [

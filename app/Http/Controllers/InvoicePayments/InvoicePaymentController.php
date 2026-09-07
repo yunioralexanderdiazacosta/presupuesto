@@ -174,6 +174,8 @@ class InvoicePaymentController extends Controller
 
         // Orden por defecto: lo no resuelto (pendiente/parcial) primero, ordenado por vencimiento
         // más próximo/atrasado primero; lo ya resuelto (pagado/anulado) al final.
+        // Sin paginación: se carga todo el resultado filtrado (scroll interno en el frontend) para que
+        // el Excel exportado incluya siempre el total de filas, no solo la página visible.
         $invoices = $query
             ->orderByRaw('
                 CASE
@@ -184,8 +186,8 @@ class InvoicePaymentController extends Controller
                 END ASC
             ')
             ->orderBy('invoices.due_date', 'asc')
-            ->paginate(50)
-            ->through(function ($invoice) {
+            ->get()
+            ->map(function ($invoice) {
                 $debt = $invoice->calculateDebt((float) $invoice->total_neto, (float) $invoice->total_paid);
 
                 $totalNeto    = $debt['total_neto'];
@@ -250,7 +252,8 @@ class InvoicePaymentController extends Controller
                         'number_document'     => $invoice->number_document,
                     ])->values(),
                 ];
-            });
+            })
+            ->values();
 
         // Obtener bancos activos
         $banks = Bank::where('active', true)->orderBy('name')->get(['id', 'name']);
@@ -259,7 +262,7 @@ class InvoicePaymentController extends Controller
         $suppliers = Supplier::where('team_id', $user->team_id)->orderBy('name')->get(['id', 'name']);
 
         return Inertia::render('InvoicePayments/Index', [
-            'invoices'  => $invoices,
+            'invoices'  => ['data' => $invoices],
             'banks'     => $banks,
             'suppliers' => $suppliers,
             'summary'   => $summary,

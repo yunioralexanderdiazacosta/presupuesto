@@ -658,18 +658,8 @@ const excelData = computed(() => {
                     </table>
                 </div>
 
-                <!-- Paginación -->
-                <div v-if="invoices.links && invoices.links.length > 3" class="d-flex justify-content-center mt-3">
-                    <nav>
-                        <ul class="pagination pagination-sm">
-                            <li v-for="(link, index) in invoices.links" :key="index"
-                                class="page-item"
-                                :class="{ 'active': link.active, 'disabled': !link.url }">
-                                <Link v-if="link.url" :href="link.url" class="page-link" v-html="link.label" preserve-state />
-                                <span v-else class="page-link" v-html="link.label"></span>
-                            </li>
-                        </ul>
-                    </nav>
+                <div class="text-muted small mt-2">
+                    {{ invoices.data.length }} factura{{ invoices.data.length === 1 ? '' : 's' }} encontrada{{ invoices.data.length === 1 ? '' : 's' }}
                 </div>
             </div>
         </div>
