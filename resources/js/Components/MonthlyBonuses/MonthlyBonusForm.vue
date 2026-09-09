@@ -111,7 +111,7 @@ const filteredLaborTypes = computed(() => {
                 :searchable="true"
                 :close-on-select="false"
                 placeholder="Seleccione centros de costo..."
-                :class="['multiselect-tags-limited', { 'multiselect-tags-expanded': expandedCC }, { 'is-invalid': form.errors?.cost_center_ids }]"
+                :class="['multiselect-blue multiselect-tags-limited', { 'multiselect-tags-expanded': expandedCC }, { 'is-invalid': form.errors?.cost_center_ids }]"
             />
             <div v-if="form.errors?.cost_center_ids" class="text-danger" style="font-size:0.85em;">{{ form.errors.cost_center_ids }}</div>
         </div>
@@ -155,6 +155,19 @@ const filteredLaborTypes = computed(() => {
 </template>
 
 <style scoped>
+.multiselect-blue {
+    min-height: 26px !important;
+    font-size: 0.75rem !important;
+}
+
+/* Opciones más compactas en el dropdown para ver más ítems a la vez */
+.multiselect-blue :deep(.multiselect-option) {
+    font-size: 0.75rem !important;
+    padding: 0.15rem 0.5rem !important;
+    line-height: 1.3 !important;
+    min-height: 0 !important;
+}
+
 /* Limitar tags visibles en el multiselect de centros de costo */
 .multiselect-tags-limited :deep(.multiselect-tags) {
     max-height: 32px !important;

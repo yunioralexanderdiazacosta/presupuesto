@@ -7,6 +7,20 @@
 
 export const changelog = [
   {
+    fecha: '2026-09-09',
+    titulo: 'Editar Salida — El campo Proyecto ahora se puede volver a dejar en blanco',
+    items: [
+      'En el modal de edición de una salida de producto, el selector de Proyecto ahora permite quitar la selección y dejarlo vacío, igual que en el formulario de registro de salidas.',
+    ]
+  },
+  {
+    fecha: '2026-09-09',
+    titulo: 'Selector de Centro de Costo — Lista desplegable más compacta',
+    items: [
+      'Al elegir centro(s) de costo en Salidas, Combustibles, Órdenes de Aplicación, Órdenes de Fertilización, Órdenes de Compra, Bonos Mensuales, Horas Extra y Solicitudes de Pago, la lista desplegable ahora muestra más opciones a la vez, con letra y espaciado más compactos.',
+    ]
+  },
+  {
     fecha: '2026-09-07',
     titulo: 'Pago de Facturas — Tabla sin paginación, se ve todo con scroll',
     items: [

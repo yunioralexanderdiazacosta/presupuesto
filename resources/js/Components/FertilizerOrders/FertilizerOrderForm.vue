@@ -372,7 +372,7 @@ onMounted(() => {
                         placeholder="Seleccionar centros de costo"
                         label="label"
                         value-prop="value"
-                        class="form-control-sm multiselect-tags-limited"
+                        class="multiselect-blue form-control-sm multiselect-tags-limited"
                         :class="{ 'multiselect-tags-expanded': expandedCC }"
                     />
                 </div>
@@ -513,6 +513,19 @@ onMounted(() => {
 
 
 <style scoped>
+.multiselect-blue {
+    min-height: 26px !important;
+    font-size: 0.75rem !important;
+}
+
+/* Opciones más compactas en el dropdown para ver más ítems a la vez */
+.multiselect-blue :deep(.multiselect-option) {
+    font-size: 0.75rem !important;
+    padding: 0.15rem 0.5rem !important;
+    line-height: 1.3 !important;
+    min-height: 0 !important;
+}
+
 .multiselect-tags-limited :deep(.multiselect-tags) {
     max-height: 32px;
     overflow: hidden;

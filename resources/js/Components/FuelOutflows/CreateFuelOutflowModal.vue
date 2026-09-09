@@ -441,6 +441,19 @@ function save() {
     background: linear-gradient(90deg, rgba(44,123,229,0.15) 0%, rgba(44,123,229,0.35) 50%, rgba(44,123,229,0.15) 100%);
     margin: 1.25rem 0;
 }
+.multiselect-blue {
+    min-height: 26px !important;
+    font-size: 0.75rem !important;
+}
+
+/* Opciones más compactas en el dropdown para ver más ítems a la vez */
+.multiselect-blue :deep(.multiselect-option) {
+    font-size: 0.75rem !important;
+    padding: 0.15rem 0.5rem !important;
+    line-height: 1.3 !important;
+    min-height: 0 !important;
+}
+
 .multiselect-tags-limited :deep(.multiselect-tags) {
     max-height: 32px !important;
     overflow: hidden !important;

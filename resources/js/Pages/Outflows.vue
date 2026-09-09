@@ -2235,6 +2235,17 @@ function copyToAllCards(sourceCardId) {
     padding-top: 2px !important;
     padding-bottom: 2px !important;
     line-height: 22px !important;
+    --ms-option-py: 0.15rem;
+    --ms-option-px: 0.5rem;
+    --ms-option-font-size: 0.75rem;
+}
+
+/* Opciones más compactas en el dropdown para ver más ítems a la vez */
+.multiselect-blue .multiselect-option {
+    font-size: 0.75rem !important;
+    padding: 0.15rem 0.5rem !important;
+    line-height: 1.3 !important;
+    min-height: 0 !important;
 }
 
 /* Ajuste de placeholder dentro de multiselect-blue */

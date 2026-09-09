@@ -555,6 +555,16 @@ defineExpose({ form, submit });
     --ms-tag-color: var(--kt-primary);
     --ms-option-bg-selected: var(--kt-primary);
     --ms-option-bg-selected-pointed: var(--kt-primary);
+    min-height: 26px !important;
+    font-size: 0.75rem !important;
+}
+
+/* Opciones más compactas en el dropdown para ver más ítems a la vez */
+.multiselect-blue .multiselect-option {
+    font-size: 0.75rem !important;
+    padding: 0.15rem 0.5rem !important;
+    line-height: 1.3 !important;
+    min-height: 0 !important;
 }
 
 .btn-light-danger {
