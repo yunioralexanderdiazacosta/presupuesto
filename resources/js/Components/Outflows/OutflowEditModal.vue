@@ -3,6 +3,7 @@ import { reactive, computed, watch, ref, onMounted, onUpdated, nextTick } from '
 import axios from 'axios';
 import Swal from 'sweetalert2';
 import Multiselect from '@vueform/multiselect';
+import StockLineSelectorModal from './StockLineSelectorModal.vue';
 
 
 const props = defineProps({
@@ -95,6 +96,12 @@ const originalQuantity = computed(() => Number(stockLine.value?.cantidad_origina
 
 // Máximo permitido: cantidad original + stock disponible
 const maxQuantity = computed(() => originalQuantity.value + stockAvailable.value);
+
+// Selector de línea de stock (sin trigger UI aún; evita warnings de propiedades no definidas)
+const showStockLineModal = ref(false);
+function handleStockLineSelected(line) {
+  showStockLineModal.value = false;
+}
 
 const emit = defineEmits(['close','updated']);
 

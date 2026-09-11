@@ -80,6 +80,8 @@ const clearSearchEdicion = () => { termEdicion.value = ''; appliedTermEdicion.va
 // Límite de filas visibles + "Ver más" en la tabla de Edición
 const EDICION_PAGE_SIZE = 200;
 const visibleCountEdicion = ref(EDICION_PAGE_SIZE);
+// Pestaña activa: evita recalcular las matrices de consumo (pesadas) mientras están ocultas
+const activeTab = ref('edicion');
 const pagedOutflowDetails = computed(() => sortedOutflowDetails.value.slice(0, visibleCountEdicion.value));
 const hasMoreEdicion = computed(() => sortedOutflowDetails.value.length > visibleCountEdicion.value);
 
@@ -1131,10 +1133,10 @@ function copyToAllCards(sourceCardId) {
                   <div class="row align-items-center mb-2">
                     <div class="col">
                       <ul class="nav nav-pills" id="pill-myTab" role="tablist">
-                        <li class="nav-item"><a class="nav-link active" id="pill-edicion" data-bs-toggle="tab" href="#pill-tab-edicion" role="tab" aria-controls="pill-tab-edicion" aria-selected="true">Edición</a></li>
-                        <li class="nav-item"><a class="nav-link" id="pill-salidas" data-bs-toggle="tab" href="#pill-tab-salidas" role="tab" aria-controls="pill-tab-salidas" aria-selected="false">Disponible para Salida</a></li>
-                        <li class="nav-item"><a class="nav-link" id="pill-gastos" data-bs-toggle="tab" href="#pill-tab-gastos" role="tab" aria-controls="pill-tab-gastos" aria-selected="false">Matriz de Consumo</a></li>
-                        <li class="nav-item"><a class="nav-link" id="pill-detalles-compra" data-bs-toggle="tab" href="#pill-tab-detalles-compra" role="tab" aria-controls="pill-tab-detalles-compra" aria-selected="false">Matriz de Consumo por Hectárea</a></li>
+                        <li class="nav-item"><a class="nav-link active" id="pill-edicion" data-bs-toggle="tab" href="#pill-tab-edicion" role="tab" aria-controls="pill-tab-edicion" aria-selected="true" @click="activeTab = 'edicion'">Edición</a></li>
+                        <li class="nav-item"><a class="nav-link" id="pill-salidas" data-bs-toggle="tab" href="#pill-tab-salidas" role="tab" aria-controls="pill-tab-salidas" aria-selected="false" @click="activeTab = 'salidas'">Disponible para Salida</a></li>
+                        <li class="nav-item"><a class="nav-link" id="pill-gastos" data-bs-toggle="tab" href="#pill-tab-gastos" role="tab" aria-controls="pill-tab-gastos" aria-selected="false" @click="activeTab = 'gastos'">Matriz de Consumo</a></li>
+                        <li class="nav-item"><a class="nav-link" id="pill-detalles-compra" data-bs-toggle="tab" href="#pill-tab-detalles-compra" role="tab" aria-controls="pill-tab-detalles-compra" aria-selected="false" @click="activeTab = 'detalles-compra'">Matriz de Consumo por Hectárea</a></li>
                       </ul>
                     </div>
                     <div class="col-auto text-end">
@@ -1166,6 +1168,7 @@ function copyToAllCards(sourceCardId) {
             <div class="tab-content border p-3 mt-3" id="pill-myTabContent">
                
                   <div class="tab-pane fade show active" id="pill-tab-edicion" role="tabpanel" aria-labelledby="pill-edicion">
+                    <template v-if="activeTab === 'edicion'">
                     <!-- Filtros compactos en una sola fila -->
                     <div class="d-flex flex-wrap align-items-center gap-2 mb-2">
                       <div class="d-flex gap-1 align-items-center" style="min-width: 220px; flex: 1 1 260px; max-width: 340px;">
@@ -1426,6 +1429,7 @@ function copyToAllCards(sourceCardId) {
                       </table>
                     </div>
                     </div>
+                    </template>
                   </div>
                   <div class="tab-pane fade" id="pill-tab-salidas" role="tabpanel" aria-labelledby="salidas-tab">
                     <div style="max-height: 450px; overflow-y: auto; overflow-x: auto;">
@@ -1765,6 +1769,7 @@ function copyToAllCards(sourceCardId) {
                   </div>
                   <!-- ── Tab Consumo Matriz ───────────────────────────────────────── -->
                   <div class="tab-pane fade" id="pill-tab-gastos" role="tabpanel" aria-labelledby="pill-gastos">
+                    <template v-if="activeTab === 'gastos'">
                     <!-- Filtros -->
                     <div class="d-flex flex-wrap gap-2 align-items-center mb-2">
                       <div class="d-flex gap-1 align-items-center" style="min-width:180px; flex:1 1 220px; max-width:300px;">
@@ -1961,10 +1966,12 @@ function copyToAllCards(sourceCardId) {
                         </tfoot>
                       </table>
                     </div>
+                    </template>
                   </div>
                   <!-- ──────────────────────────────────────────────────────────────── -->
                   <!-- ── Tab Consumo Matriz Hectárea ──────────────────────────────── -->
                   <div class="tab-pane fade" id="pill-tab-detalles-compra" role="tabpanel" aria-labelledby="pill-detalles-compra">
+                    <template v-if="activeTab === 'detalles-compra'">
                     <!-- Filtros -->
                     <div class="d-flex flex-wrap gap-2 align-items-center mb-2">
                       <div class="d-flex gap-1 align-items-center" style="min-width:180px; flex:1 1 220px; max-width:300px;">
@@ -2154,6 +2161,7 @@ function copyToAllCards(sourceCardId) {
                         </tfoot>
                       </table>
                     </div>
+                    </template>
                   </div>
                   <!-- ──────────────────────────────────────────────────────────────── -->
                </div>
@@ -2240,12 +2248,13 @@ function copyToAllCards(sourceCardId) {
     --ms-option-font-size: 0.75rem;
 }
 
-/* Opciones más compactas en el dropdown para ver más ítems a la vez */
+/* Opciones más compactas en el dropdown, pero con separación legible entre ítems */
 .multiselect-blue .multiselect-option {
     font-size: 0.75rem !important;
-    padding: 0.15rem 0.5rem !important;
+    padding: 0.25rem 0.55rem !important;
     line-height: 1.3 !important;
-    min-height: 0 !important;
+    min-height: 1.4rem !important;
+    border-bottom: 1px solid rgba(0, 0, 0, 0.06);
 }
 
 /* Ajuste de placeholder dentro de multiselect-blue */

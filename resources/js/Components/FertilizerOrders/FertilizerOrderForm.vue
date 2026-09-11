@@ -520,12 +520,13 @@ onMounted(() => {
     font-size: 0.75rem !important;
 }
 
-/* Opciones más compactas en el dropdown para ver más ítems a la vez */
+/* Opciones más compactas en el dropdown, pero con separación legible entre ítems */
 .multiselect-blue :deep(.multiselect-option) {
     font-size: 0.75rem !important;
-    padding: 0.15rem 0.5rem !important;
+    padding: 0.25rem 0.55rem !important;
     line-height: 1.3 !important;
-    min-height: 0 !important;
+    min-height: 1.4rem !important;
+    border-bottom: 1px solid rgba(0, 0, 0, 0.06);
 }
 
 .multiselect-tags-limited :deep(.multiselect-tags) {

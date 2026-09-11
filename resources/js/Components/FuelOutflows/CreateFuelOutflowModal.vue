@@ -73,6 +73,12 @@ function stockKey(stock) {
     return stock.invoice_product_id ? 'ip-' + stock.invoice_product_id : 'nd-' + stock.credit_debit_note_item_id;
 }
 
+// Nombre del estanque asignado a la línea de origen (el que se eligió al crear la factura)
+function tankLabelFor(stock) {
+    if (!stock.tank_id) return null;
+    return props.fuelTanks.find(t => String(t.value) === String(stock.tank_id))?.label ?? null;
+}
+
 // Manejar selección de línea de stock
 function onStockLineSelected() {
     if (selectedStockKey.value) {
@@ -218,6 +224,7 @@ function save() {
                       {{ stock.supplier }} -
                       {{ stock.product_name }}
                       (Disponible: {{ stock.stock_disponible }} {{ stock.unit }})
+                      <template v-if="tankLabelFor(stock)"> - Estanque: {{ tankLabelFor(stock) }}</template>
                     </option>
                   </select>
                 </div>
