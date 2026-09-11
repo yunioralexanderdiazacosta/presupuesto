@@ -18,6 +18,8 @@ const props = defineProps({
     isEditing: { type: Boolean, default: false },
 });
 
+const sortedProducts = computed(() => [...props.products].sort((a, b) => a.label.localeCompare(b.label, 'es')));
+
 // Usar form externo si existe (modo edición), sino crear uno interno (modo creación)
 const localForm = props.form || useForm({
     date: '',
@@ -417,7 +419,7 @@ onMounted(() => {
                                 >
                                     <option :value="null">Seleccionar producto...</option>
                                     <option 
-                                        v-for="prod in props.products" 
+                                        v-for="prod in sortedProducts" 
                                         :key="prod.value" 
                                         :value="prod.value"
                                     >

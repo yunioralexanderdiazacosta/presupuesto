@@ -24,7 +24,8 @@ const props = defineProps({
 });
 
 // ==== PRODUCTOS ====
-const productsOptions = ref(props.products);
+const sortProducts = (list) => [...(list || [])].sort((a, b) => a.label.localeCompare(b.label, 'es'));
+const productsOptions = ref(sortProducts(props.products));
 
 // ==== TRACTORES, EQUIPOS, OPERARIOS (Multiselect tags → string separado por coma) ====
 const machineryNames = computed(() => (props.machineries || []).map(m => m.label));
@@ -129,7 +130,7 @@ const refreshProducts = async () => {
     isRefreshingProducts.value = true;
     try {
         const response = await axios.get(route('api.products'));
-        productsOptions.value = response.data;
+        productsOptions.value = sortProducts(response.data);
         newProduct.value.product_id = ''; // Limpiar selección actual
         Swal.fire({
             icon: 'success',

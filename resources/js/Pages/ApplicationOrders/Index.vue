@@ -39,7 +39,7 @@ const statusOptions = [
 ];
 
 // Ordenamiento por columna (fecha o número de orden)
-const sortBy = ref('date');
+const sortBy = ref('id');
 const sortDir = ref('desc');
 
 function toggleSort(field) {

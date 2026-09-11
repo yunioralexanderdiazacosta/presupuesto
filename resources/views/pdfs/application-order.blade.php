@@ -500,7 +500,7 @@
                 @if($maquinadasCompletas > 0)
                 <td style="width: {{ $fraccionSaldo > 0 ? '50%' : '100%' }}; border: none; padding: 5px; vertical-align: top;">
                     <div style="border: 1px solid #007bff; padding: 5px;">
-                        <div style="background-color: #007bff; color: white; padding: 3px 5px; font-weight: bold; font-size: 9px; margin: -5px -5px 5px -5px;">
+                        <div style="background-color: #007bff; color: white; padding: 3px 5px; font-weight: bold; font-size: 11px; margin: -5px -5px 5px -5px;">
                             MAQUINADAS COMPLETAS: {{ $maquinadasCompletas }}
                         </div>
                         <div style="margin-bottom: 4px; font-size: 9px;">
@@ -533,7 +533,7 @@
                 @if($fraccionSaldo > 0)
                 <td style="width: {{ $maquinadasCompletas > 0 ? '50%' : '100%' }}; border: none; padding: 5px; vertical-align: top;">
                     <div style="border: 1px solid #ffc107; padding: 5px;">
-                        <div style="background-color: #ffc107; color: #000; padding: 3px 5px; font-weight: bold; font-size: 9px; margin: -5px -5px 5px -5px;">
+                        <div style="background-color: #ffc107; color: #000; padding: 3px 5px; font-weight: bold; font-size: 11px; margin: -5px -5px 5px -5px;">
                             MAQUINADA DE SALDO ({{ number_format($fraccionSaldo, 2, ',', '.') }})
                         </div>
                         <div style="margin-bottom: 4px; font-size: 9px;">

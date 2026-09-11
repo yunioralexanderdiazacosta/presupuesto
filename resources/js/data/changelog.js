@@ -7,6 +7,13 @@
 
 export const changelog = [
   {
+    fecha: '2026-09-11',
+    titulo: 'Órdenes de Aplicación y Fertilización — Productos ordenados alfabéticamente',
+    items: [
+      'Al crear o editar una Orden de Aplicación o una Orden de Fertilización, el selector de producto ahora muestra las opciones ordenadas alfabéticamente para encontrarlas más rápido.',
+    ]
+  },
+  {
     fecha: '2026-09-09',
     titulo: 'Editar Salida — El campo Proyecto ahora se puede volver a dejar en blanco',
     items: [
