@@ -249,6 +249,8 @@ use App\Http\Controllers\CostCenterVarieties\UpdateCostCenterVarietyController;
 use App\Http\Controllers\CostCenterVarieties\DeleteCostCenterVarietyController;
 // Rutas para Production Dispatches (despachos de producción)
 use App\Http\Controllers\ProductionDispatches\ProductionDispatchController;
+use App\Http\Controllers\CostCenterAnalysis\CostCenterAnalysisController;
+use App\Http\Controllers\CostCenterAnalysis\CompareCostCentersController;
 use App\Http\Controllers\ProductionDispatches\StoreProductionDispatchController;
 use App\Http\Controllers\ProductionDispatches\UpdateProductionDispatchController;
 use App\Http\Controllers\ProductionDispatches\DeleteProductionDispatchController;
@@ -1045,6 +1047,10 @@ Route::middleware([
     Route::put('/production-dispatches/{productionDispatch}', UpdateProductionDispatchController::class)->name('production-dispatches.update');
     Route::delete('/production-dispatches/{productionDispatch}', DeleteProductionDispatchController::class)->name('production-dispatches.delete');
     Route::put('/production-dispatches/{productionDispatch}/process', ProcessProductionDispatchController::class)->name('production-dispatches.process');
+
+    // Análisis Comparativo de Cuarteles
+    Route::get('/cost-center-analysis', CostCenterAnalysisController::class)->name('cost-center-analysis.index');
+    Route::get('/cost-center-analysis/compare', CompareCostCentersController::class)->name('cost-center-analysis.compare');
 
     // Production Summaries (Resumen de Producción)
     Route::get('/production-summaries', ProductionSummaryController::class)->name('production-summaries.index');

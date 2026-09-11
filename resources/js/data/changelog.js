@@ -8,6 +8,24 @@
 export const changelog = [
   {
     fecha: '2026-09-11',
+    titulo: 'Corrección: pantallas quedaban congeladas al abrir ventanas o filtrar',
+    items: [
+      'Se corrigió un problema que dejaba la pantalla sin responder (por ejemplo en Análisis Comparativo de Cuarteles), impidiendo abrir ventanas de comparación o navegar a otra sección.',
+      'Ahora el botón "Comparar" abre correctamente la ventana, los filtros funcionan y se puede seguir usando el menú sin recargar la página.',
+    ]
+  },
+  {
+    fecha: '2026-09-11',
+    titulo: 'Nuevo: Análisis Comparativo de Cuarteles',
+    items: [
+      'Se agregó una nueva pantalla (menú Producción) para comparar entre 2 y 4 cuarteles al mismo tiempo y entender por qué uno rinde distinto que otro.',
+      'La comparación muestra, lado a lado, los kilos por hectárea, la distribución de calibre, y el costo por hectárea de agroquímicos, fertilizantes y otras categorías.',
+      'Cada cuartel tiene un detalle desplegable con los productos aplicados (agroquímicos y fertilizantes), su dosis por hectárea y la cantidad de aplicaciones realizadas, para detectar diferencias de manejo entre cuarteles.',
+      'Las diferencias relevantes (mayores al 10%) se destacan en rojo o verde para identificar rápido qué cuartel gastó más o rindió mejor.',
+    ]
+  },
+  {
+    fecha: '2026-09-11',
     titulo: 'Órdenes de Aplicación y Fertilización — Productos ordenados alfabéticamente',
     items: [
       'Al crear o editar una Orden de Aplicación o una Orden de Fertilización, el selector de producto ahora muestra las opciones ordenadas alfabéticamente para encontrarlas más rápido.',

@@ -104,6 +104,7 @@ const menuItems = [
     { label: 'Estimaciones', route: 'estimates.index', icon: 'fas fa-calculator', section: 'Gestión' },
     { label: 'Ingresar Producción', route: 'production-dispatches.index', icon: 'fas fa-truck-loading', section: 'Producción' },
     { label: 'Ingreso Rápido de Producción', route: 'production-summaries.index', icon: 'fas fa-bolt', section: 'Producción' },
+    { label: 'Análisis Comparativo de Cuarteles', route: 'cost-center-analysis.index', icon: 'fas fa-balance-scale-right', section: 'Producción' },
     { label: 'Proveedores', route: 'suppliers.index', icon: 'fas fa-handshake', section: 'Gestión' },
     { label: 'Inventario', route: 'inventory', icon: 'fas fa-warehouse', section: 'Gestión' },
     { label: 'Productos', route: 'products.index', icon: 'fas fa-barcode', section: 'Gestión' },
@@ -538,6 +539,13 @@ const navigateTo = (routeName) => {
                           <Link class="nav-link" :href="route('production-summaries.index')">
                             <div class="d-flex align-items-center">
                               <span class="nav-link-text ps-4">Ingreso Rápido de Producción</span>
+                            </div>
+                          </Link>
+                        </li>
+                        <li class="nav-item">
+                          <Link class="nav-link" :href="route('cost-center-analysis.index')">
+                            <div class="d-flex align-items-center">
+                              <span class="nav-link-text ps-4">Análisis Comparativo de Cuarteles</span>
                             </div>
                           </Link>
                         </li>
@@ -1022,7 +1030,6 @@ const navigateTo = (routeName) => {
                 <img class="rounded-circle" :src="$page.props.auth.user.profile_photo_url" alt="photo" />
               </div>
             </a>
-            <li class="nav-item dropdown">
             <div class="dropdown-menu dropdown-caret dropdown-caret dropdown-menu-end ps-2" aria-labelledby="navbarDropdownUser">
               <div class="d-flex flex-column align-items-start mb-2">
                 <div class="bg-white dark__bg-1000 rounded-2 py-2 px-2 mt-2 w-100">
@@ -1039,7 +1046,6 @@ const navigateTo = (routeName) => {
                 </form>
               </div>
             </div>
-            </li>
           </li>
         </ul>
         </nav>

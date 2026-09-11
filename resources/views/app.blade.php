@@ -55,6 +55,12 @@
     <script src="{{ asset('vendors/anchorjs/anchor.min.js') }}"></script>
     <script src="{{ asset('vendors/is/is.min.js') }}"></script>
     <script src="{{ asset('vendors/echarts/echarts.min.js') }}"></script>
+    <script>
+        // 'nest' anida el <svg> dentro del <i> en lugar de reemplazarlo,
+        // evitando que Font Awesome deje huérfanos los nodos que Vue administra
+        // (causaba TypeError: insertBefore de null al re-renderizar layouts).
+        window.FontAwesomeConfig = { autoReplaceSvg: 'nest' };
+    </script>
     <script src="{{ asset('vendors/fontawesome/all.min.js') }}"></script>
     <script src="{{ asset('vendors/lodash/lodash.min.js') }}"></script>
     <script src="{{ asset('vendors/list.js/list.min.js') }}"></script>
