@@ -22,6 +22,7 @@ export const changelog = [
       'La comparación muestra, lado a lado, los kilos por hectárea, la distribución de calibre, y el costo por hectárea de agroquímicos, fertilizantes y otras categorías.',
       'Cada cuartel tiene un detalle desplegable con los productos aplicados (agroquímicos y fertilizantes), su dosis por hectárea y la cantidad de aplicaciones realizadas, para detectar diferencias de manejo entre cuarteles.',
       'Las diferencias relevantes (mayores al 10%) se destacan en rojo o verde para identificar rápido qué cuartel gastó más o rindió mejor.',
+      'Los filtros por frutal y variedad ahora usan selectores desplegables estándar, más simples y directos de usar.',
     ]
   },
   {

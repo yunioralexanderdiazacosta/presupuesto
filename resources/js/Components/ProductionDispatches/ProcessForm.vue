@@ -51,6 +51,11 @@ function n(val) {
     return isNaN(num) ? 0 : num;
 }
 
+// Formato para mostrar totales: redondea a 2 decimales y evita errores de punto flotante
+function fmt(val) {
+    return Math.round(n(val) * 100) / 100;
+}
+
 // Inicializar items desde clasificaciones (enfoque matriz)
 function initializeItems() {
     const cls = currentClassifications.value;
@@ -168,7 +173,7 @@ watch(form, () => emit('update:form', form), { deep: true });
                         <i class="fas fa-file-alt me-1"></i>Guía: {{ dispatch.guide_number }}
                     </span>
                     <span class="badge bg-soft-warning text-warning px-2 py-1 ms-auto">
-                        <i class="fas fa-weight-hanging me-1"></i>{{ n(dispatch.kg_dispatched) }} kg
+                        <i class="fas fa-weight-hanging me-1"></i>{{ fmt(dispatch.kg_dispatched) }} kg
                     </span>
                 </div>
             </div>
@@ -222,8 +227,8 @@ watch(form, () => emit('update:form', form), { deep: true });
                 <div class="alert py-1 px-2 mb-0 fs-10" :class="kgBreakdownExceeded ? 'alert-danger' : 'alert-light'">
                     <i v-show="kgBreakdownExceeded" class="fas fa-exclamation-triangle me-1"></i>
                     <strong>Total asignado:</strong>
-                    {{ kgBreakdownTotal }} de {{ kgBreakdownLimit }} kg
-                    {{ kgBreakdownRemaining > 0 ? '— quedan ' + kgBreakdownRemaining + ' kg' : '' }}
+                    {{ fmt(kgBreakdownTotal) }} de {{ fmt(kgBreakdownLimit) }} kg
+                    {{ kgBreakdownRemaining > 0 ? '— quedan ' + fmt(kgBreakdownRemaining) + ' kg' : '' }}
                     {{ kgBreakdownExceeded ? '— Excede el límite' : '' }}
                 </div>
             </div>
@@ -242,7 +247,7 @@ watch(form, () => emit('update:form', form), { deep: true });
                         {{ typeLabels[type] || type }}
                     </span>
                     <small :class="typeExceeded(type) ? 'text-danger fw-bold' : 'text-muted'">
-                        Total: {{ n(totalsByType[type] || 0) }} / {{ kgLimit }} kg
+                        Total: {{ fmt(totalsByType[type] || 0) }} / {{ fmt(kgLimit) }} kg
                         <i v-if="typeExceeded(type)" class="fas fa-exclamation-triangle ms-1"></i>
                     </small>
                 </div>
@@ -272,7 +277,7 @@ watch(form, () => emit('update:form', form), { deep: true });
                                     />
                                 </td>
                                 <td class="text-center align-middle fw-bold" :class="typeExceeded(type) ? 'text-danger' : ''">
-                                    {{ n(totalsByType[type] || 0) }}
+                                    {{ fmt(totalsByType[type] || 0) }}
                                 </td>
                             </tr>
                         </tbody>

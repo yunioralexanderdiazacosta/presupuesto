@@ -5,7 +5,6 @@ import Swal from 'sweetalert2';
 import { Head } from '@inertiajs/vue3';
 import AppLayout from '@/Layouts/AppLayout.vue';
 import Breadcrumb from '@/Components/Breadcrumb.vue';
-import Multiselect from '@vueform/multiselect';
 import CompareCostCentersModal from '@/Components/CostCenterAnalysis/CompareCostCentersModal.vue';
 
 const props = defineProps({
@@ -143,24 +142,16 @@ function closeModal() {
 
                 <div class="row g-2 mb-3">
                     <div class="col-md-3">
-                        <Multiselect
-                            v-model="fruitFilter"
-                            :options="fruits"
-                            placeholder="Filtrar por frutal"
-                            class="multiselect-blue form-control"
-                            :searchable="true"
-                            :close-on-select="true"
-                        />
+                        <select v-model="fruitFilter" class="form-select form-select-sm">
+                            <option value="">Todos los frutales</option>
+                            <option v-for="f in fruits" :key="f.value" :value="f.value">{{ f.label }}</option>
+                        </select>
                     </div>
                     <div class="col-md-3">
-                        <Multiselect
-                            v-model="varietyFilter"
-                            :options="filteredVarieties"
-                            placeholder="Filtrar por variedad"
-                            class="multiselect-blue form-control"
-                            :searchable="true"
-                            :close-on-select="true"
-                        />
+                        <select v-model="varietyFilter" class="form-select form-select-sm">
+                            <option value="">Todas las variedades</option>
+                            <option v-for="v in filteredVarieties" :key="v.value" :value="v.value">{{ v.label }}</option>
+                        </select>
                     </div>
                     <div class="col-md-4">
                         <input v-model="search" type="text" class="form-control form-control-sm" placeholder="Buscar cuartel por nombre..." />
