@@ -1,6 +1,6 @@
 <script setup>
 import { ref, computed, onMounted } from 'vue';
-import { usePage, Head, Link } from '@inertiajs/vue3';
+import { usePage, Head, Link, router } from '@inertiajs/vue3';
 import AppLayout from '@/Layouts/AppLayout.vue';
 import Breadcrumb from '@/Components/Breadcrumb.vue';
 import CreateFertilizerOrderModal from '@/Components/FertilizerOrders/CreateFertilizerOrderModal.vue';
@@ -8,7 +8,6 @@ import EditFertilizerOrderModal from '@/Components/FertilizerOrders/EditFertiliz
 import ExportExcelButton from '@/Components/ExportExcelButton.vue';
 import FertilizerNavBar from '@/Components/FertilizerOutflows/FertilizerNavBar.vue';
 import Swal from 'sweetalert2';
-import axios from 'axios';
 
 const props = defineProps({
     fertilizerOrders: { type: Array, default: () => [] },
@@ -32,14 +31,19 @@ const showCreateModal = ref(false);
 const showEditModal = ref(false);
 
 const filteredFertilizerOrders = computed(() => {
-    if (!searchTerm.value) return props.fertilizerOrders;
-    
-    const term = searchTerm.value.toLowerCase();
-    return props.fertilizerOrders.filter(order => 
-        order.date?.toLowerCase().includes(term) ||
-        order.responsable?.toLowerCase().includes(term) ||
-        order.irrigation_pump?.name?.toLowerCase().includes(term)
-    );
+    let orders = props.fertilizerOrders;
+
+    if (searchTerm.value) {
+        const term = searchTerm.value.toLowerCase();
+        orders = orders.filter(order =>
+            order.date?.toLowerCase().includes(term) ||
+            order.responsable?.toLowerCase().includes(term) ||
+            order.irrigation_pump?.name?.toLowerCase().includes(term)
+        );
+    }
+
+    // Ordenar por número de orden (id) descendente
+    return [...orders].sort((a, b) => Number(b.id) - Number(a.id));
 });
 
 const openCreateModal = () => {
@@ -72,14 +76,15 @@ const deleteFertilizerOrder = (id) => {
         cancelButtonText: 'Cancelar'
     }).then((result) => {
         if (result.isConfirmed) {
-            axios.delete(route('fertilizer-orders.destroy', id))
-                .then(() => {
-                    Swal.fire('¡Eliminado!', 'La orden ha sido eliminada.', 'success')
-                        .then(() => window.location.reload());
-                })
-                .catch(error => {
-                    Swal.fire('Error', error.response?.data?.message || 'No se pudo eliminar la orden', 'error');
-                });
+            router.delete(route('fertilizer-orders.delete', id), {
+                preserveScroll: true,
+                onSuccess: () => {
+                    Swal.fire('¡Eliminado!', 'La orden ha sido eliminada.', 'success');
+                },
+                onError: () => {
+                    Swal.fire('Error', 'No se pudo eliminar la orden', 'error');
+                },
+            });
         }
     });
 };

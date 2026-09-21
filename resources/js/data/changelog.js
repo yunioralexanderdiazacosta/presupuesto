@@ -7,6 +7,14 @@
 
 export const changelog = [
   {
+    fecha: '2026-09-21',
+    titulo: 'Órdenes de Fertilizante — Corrección al eliminar y orden de la tabla',
+    items: [
+      'El botón de eliminar en el listado de órdenes de fertilizante ya funciona correctamente.',
+      'La tabla ahora se muestra ordenada por número de orden, de mayor a menor.',
+    ]
+  },
+  {
     fecha: '2026-09-11',
     titulo: 'Corrección: pantallas quedaban congeladas al abrir ventanas o filtrar',
     items: [

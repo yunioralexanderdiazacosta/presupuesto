@@ -73,7 +73,7 @@ function confirmDelete() {
         cancelButtonText: 'Cancelar'
     }).then((result) => {
         if (result.isConfirmed) {
-            router.delete(route('fertilizer-orders.destroy', props.fertilizerOrder.id), {
+            router.delete(route('fertilizer-orders.delete', props.fertilizerOrder.id), {
                 onSuccess: () => {
                     Swal.fire('¡Eliminado!', 'La orden ha sido eliminada.', 'success');
                 }
