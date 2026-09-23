@@ -24,11 +24,12 @@ class GetPendingExpenseReportItemsController extends Controller
                     ->whereIn('status', ['aprobada', 'pagada']);
             })
             ->with([
-                'expenseReport:id,number,status',
+                'expenseReport:id,number,description,status',
                 'supplier:id,name',
             ])
-            ->orderBy('date', 'desc')
-            ->get();
+            ->get()
+            ->sortByDesc(fn ($item) => $item->expenseReport->number ?? '', SORT_NATURAL)
+            ->values();
 
         // Facturas candidatas del equipo (mismos proveedores) para detectar si el
         // documento de la rendición ya fue ingresado por otra vía (evita duplicados).
@@ -48,6 +49,7 @@ class GetPendingExpenseReportItemsController extends Controller
             return [
                 'id' => $item->id,
                 'expense_report_number' => $item->expenseReport->number ?? '',
+                'expense_report_description' => $item->expenseReport->description ?? '',
                 'expense_report_id' => $item->expense_report_id,
                 'date' => $item->date->format('d/m/Y'),
                 'date_raw' => $item->date->format('Y-m-d'),

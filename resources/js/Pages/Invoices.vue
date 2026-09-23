@@ -1110,7 +1110,7 @@ invoice, index
 
         <!-- Modal: Importar desde Rendición -->
         <div class="modal fade" id="importRendicionModal" tabindex="-1" aria-labelledby="importRendicionModalLabel" aria-hidden="true">
-            <div class="modal-dialog modal-xl modal-dialog-scrollable">
+            <div class="modal-dialog modal-dialog-scrollable" style="max-width: 95vw;">
                 <div class="modal-content">
                     <div class="modal-header py-2 border-bottom">
                         <div class="d-flex align-items-center gap-2">
@@ -1182,10 +1182,11 @@ invoice, index
                                     <thead class="bg-200 position-sticky top-0">
                                         <tr>
                                             <th style="min-width: 100px;">Rendición</th>
+                                            <th style="min-width: 180px;">Descripción</th>
                                             <th style="min-width: 90px;">Fecha</th>
                                             <th style="min-width: 180px;">Proveedor</th>
                                             <th style="min-width: 150px;">Producto</th>
-                                            <th style="min-width: 180px;">Descripción</th>
+                                            <th style="min-width: 180px;">Detalle del Ítem</th>
                                             <th class="text-end" style="min-width: 110px;">Monto</th>
                                             <th class="text-center" style="min-width: 50px;">Doc.</th>
                                             <th class="text-center" style="min-width: 150px;">Acción</th>
@@ -1195,6 +1196,11 @@ invoice, index
                                         <tr v-for="item in pendingItems" :key="item.id" class="align-middle">
                                             <td>
                                                 <span class="badge bg-soft-info text-info">{{ item.expense_report_number }}</span>
+                                            </td>
+                                            <td>
+                                                <div class="text-truncate" style="max-width: 200px;" :title="item.expense_report_description">
+                                                    {{ item.expense_report_description || '—' }}
+                                                </div>
                                             </td>
                                             <td>{{ item.date }}</td>
                                             <td>

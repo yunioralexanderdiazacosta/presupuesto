@@ -7,6 +7,14 @@
 
 export const changelog = [
   {
+    fecha: '2026-09-23',
+    titulo: 'Facturas — Descripción de la rendición en la ventana de importar',
+    items: [
+      'En la ventana "Importar desde Rendición de Gastos" ahora se muestra la descripción de la rendición junto a su número.',
+      'La columna que antes decía "Descripción" (correspondiente al detalle del ítem) ahora se llama "Detalle del Ítem" para evitar confusiones.',
+    ]
+  },
+  {
     fecha: '2026-09-21',
     titulo: 'Órdenes de Fertilizante — Corrección al eliminar y orden de la tabla',
     items: [
