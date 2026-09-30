@@ -7,6 +7,17 @@
 
 export const changelog = [
   {
+    fecha: '2026-09-30',
+    titulo: 'Inventario — Consulta del inventario a una fecha anterior',
+    items: [
+      'Ahora puedes elegir una fecha en "Inventario al:" para ver cuánto stock tenías ese día.',
+      'La fecha aplica a las pestañas Inventario, Inventario Valorizado y Kardex (el saldo del Kardex se corta en la fecha elegida).',
+      'El botón "Hoy" vuelve a mostrar el inventario actual.',
+      'El stock del inventario y del Kardex ahora se muestra sin decimales excesivos y respeta cantidades pequeñas (por ejemplo 0.005 litros).',
+      'Corrección: el precio de costo de las líneas con nota de crédito de descuento ya no se rebaja dos veces en el inventario valorizado, las salidas y las salidas de combustible.',
+    ]
+  },
+  {
     fecha: '2026-09-23',
     titulo: 'Facturas — Descripción de la rendición en la ventana de importar',
     items: [

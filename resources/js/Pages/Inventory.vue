@@ -20,6 +20,7 @@ const props = defineProps({
   valorizedInventory: { type: Array, default: () => [] },
   kardex: Array,
   branches: { type: Array, default: () => [] },
+  asOf: { type: String, default: null },
 });
 
 // Form para editar clasificación del producto
@@ -129,6 +130,9 @@ const filteredValorizedInventory = computed(() => {
 
 const numberFormatter = new Intl.NumberFormat('es-ES', { style: 'decimal', minimumFractionDigits: 0, maximumFractionDigits: 0 });
 
+// Cantidades: mínimo 2 decimales, hasta 4 (ej. 10.00, 0.005)
+const fmtQty = (v) => Number(v).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 4, useGrouping: false });
+
 // Valor total del inventario valorizado (respeta filtros aplicados)
 const totalValorizedInventory = computed(() => {
   return filteredValorizedInventory.value.reduce((sum, item) => sum + Number(item.valor || 0), 0);
@@ -157,6 +161,26 @@ function kardexKey(productId, branchId) {
   return `${productId}_${branchId ?? 'null'}`;
 }
 
+// Fecha de corte: vacío = stock actual
+const asOfDate = ref(props.asOf || '');
+const todayLocal = (() => {
+  const d = new Date();
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+})();
+
+function applyAsOf(value) {
+  asOfDate.value = value || '';
+  kardexView.value = {};
+  kardexUnits.value = {};
+  expandedRows.value = [];
+  router.get(route('inventory'), asOfDate.value ? { as_of: asOfDate.value } : {}, {
+    preserveState: true,
+    preserveScroll: true,
+    replace: true,
+    only: ['inventory', 'valorizedInventory', 'asOf'],
+  });
+}
+
 async function toggleRow(productId, branchId) {
   const key = kardexKey(productId, branchId);
   const idx = expandedRows.value.indexOf(key);
@@ -174,7 +198,11 @@ async function toggleRow(productId, branchId) {
 async function loadKardex(productId, branchId) {
   const key = kardexKey(productId, branchId);
   try {
-    const url = route('kardex.show', { product: productId }) + (branchId ? `?branch_id=${branchId}` : '');
+    const params = new URLSearchParams();
+    if (branchId) params.set('branch_id', branchId);
+    if (asOfDate.value) params.set('as_of', asOfDate.value);
+    const qs = params.toString();
+    const url = route('kardex.show', { product: productId }) + (qs ? `?${qs}` : '');
     const response = await fetch(url, {
       headers: { 'X-Requested-With': 'XMLHttpRequest' }
     });
@@ -366,6 +394,25 @@ function printKardex(key) {
      
 
          <div class="card-body bg-body-tertiary">
+            <div class="d-flex align-items-center justify-content-end gap-2 mb-3">
+              <label for="inventory-as-of" class="form-label small mb-0">Inventario al:</label>
+              <input
+                id="inventory-as-of"
+                type="date"
+                class="form-control form-control-sm"
+                style="width:170px;"
+                :value="asOfDate"
+                :max="todayLocal"
+                @change="applyAsOf($event.target.value)"
+              />
+              <button v-if="asOfDate" type="button" class="btn btn-falcon-default btn-sm" @click="applyAsOf('')">
+                <span class="fas fa-undo" data-fa-transform="shrink-3 down-2"></span>
+                <span class="d-none d-sm-inline-block ms-1">Hoy</span>
+              </button>
+            </div>
+            <div v-if="asOfDate" class="alert alert-warning py-1 px-2 small mb-3">
+              Mostrando el inventario calculado con los movimientos hasta el {{ asOfDate }}.
+            </div>
             <ul class="nav nav-pills" id="pill-myTab" role="tablist">
                 <li class="nav-item"><a class="nav-link active" id="pill-edicion" data-bs-toggle="tab" href="#pill-tab-edicion" role="tab" aria-controls="pill-tab-edicion" aria-selected="true">Inventario</a></li>
                 <li class="nav-item"><a class="nav-link" id="pill-valorizado" data-bs-toggle="tab" href="#pill-tab-valorizado" role="tab" aria-controls="pill-tab-valorizado" aria-selected="false">Inventario Valorizado</a></li>
@@ -641,9 +688,9 @@ function printKardex(key) {
                                       <td>{{ mov.tipo }}</td>
                                       <td>{{ mov.proveedor || '' }}</td>
                                       <td>{{ mov.documento }}</td>
-                                      <td>{{ mov.entrada !== undefined && mov.entrada !== null ? Number(mov.entrada).toFixed(2) : '' }}</td>
-                                      <td class="text-danger">{{ mov.salida !== undefined && mov.salida !== null ? (-Number(mov.salida)).toFixed(2) : '' }}</td>
-                                      <td>{{ mov.saldo !== undefined && mov.saldo !== null ? Number(mov.saldo).toFixed(2) : '' }}</td>
+                                      <td>{{ mov.entrada !== undefined && mov.entrada !== null ? fmtQty(mov.entrada) : '' }}</td>
+                                      <td class="text-danger">{{ mov.salida !== undefined && mov.salida !== null ? fmtQty(-Number(mov.salida)) : '' }}</td>
+                                      <td>{{ mov.saldo !== undefined && mov.saldo !== null ? fmtQty(mov.saldo) : '' }}</td>
                                       <td>{{ mov.precio ?? '' }}</td>
                                       <td>{{ mov.observaciones || '' }}</td>
                                       <td>
@@ -658,9 +705,9 @@ function printKardex(key) {
                                       <td colspan="10" class="text-center text-muted">Cargando...</td>
                                     </tr>
                                     <tr v-if="kardexView[kardexKey(item.product_id, item.branch_id)] && kardexView[kardexKey(item.product_id, item.branch_id)].length">
-                                      <td colspan="5" class="text-end fw-bold">Total stock actual:</td>
+                                      <td colspan="5" class="text-end fw-bold">{{ asOfDate ? `Stock al ${asOfDate}:` : 'Total stock actual:' }}</td>
                                       <td class="fw-bold">
-                                        {{ (() => { const k = kardexKey(item.product_id, item.branch_id); const arr = kardexView[k]; const v = Number(arr[arr.length-1].saldo); return Number(v.toFixed(2)); })() }}
+                                        {{ (() => { const k = kardexKey(item.product_id, item.branch_id); const arr = kardexView[k]; const v = Number(arr[arr.length-1].saldo); return Number(v.toFixed(4)); })() }}
                                         <span v-if="kardexUnits[kardexKey(item.product_id, item.branch_id)]">
                                           {{ kardexUnits[kardexKey(item.product_id, item.branch_id)] }}
                                         </span>

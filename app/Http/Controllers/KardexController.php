@@ -15,6 +15,8 @@ class KardexController extends Controller
         $user = Auth::user();
         $season_id = session('season_id');
         $branch_id = $request->input('branch_id');
+        $request->validate(['as_of' => 'nullable|date_format:Y-m-d']);
+        $asOf = $request->input('as_of') ?: null;
     $product = Product::with('unit')->findOrFail($product_id);
 
         // Movimientos de facturas (entradas)
@@ -136,7 +138,9 @@ class KardexController extends Controller
             ->unionAll($outflowsND)
             ->get();
         // Ordenar por fecha en PHP para evitar problemas con ORDER BY en consultas UNION
-    $movimientos = collect($movimientos)->sortBy('fecha')->values()->all();
+    $movimientos = collect($movimientos)
+        ->when($asOf, fn($c) => $c->filter(fn($m) => substr((string) $m->fecha, 0, 10) <= $asOf))
+        ->sortBy('fecha')->values()->all();
 
         // Calcular saldo acumulado
     // Calcular saldo acumulado
@@ -145,7 +149,7 @@ class KardexController extends Controller
     $kardex = [];
     /** @var \stdClass $mov */
     foreach ($movimientos as $mov) {
-            $saldo += ($mov->entrada - $mov->salida);
+            $saldo = round($saldo + ($mov->entrada - $mov->salida), 4);
             $kardex[] = [
                 'fecha' => $mov->fecha,
                 'tipo' => $mov->tipo,

@@ -20,8 +20,11 @@ class InventoryController extends Controller
         $season_id = session('season_id');
         $team_id = $user->team_id;
 
-        $inventory = $this->getInventory($team_id, $season_id);
-        $valorizedInventory = $this->getValorizedInventory($team_id, $season_id);
+        $request->validate(['as_of' => 'nullable|date_format:Y-m-d']);
+        $asOf = $request->input('as_of') ?: null;
+
+        $inventory = $this->getInventory($team_id, $season_id, $asOf);
+        $valorizedInventory = $this->getValorizedInventory($team_id, $season_id, $asOf);
 
         // Cargar unidades para el formulario de productos
         $units = Unit::get()->transform(function($unit){
@@ -42,6 +45,7 @@ class InventoryController extends Controller
         return Inertia::render('Inventory', [
             'inventory' => $inventory,
             'valorizedInventory' => $valorizedInventory,
+            'asOf' => $asOf,
             'units' => $units,
             'level1s' => $level1s,
             'branches' => Branch::where('team_id', $team_id)

@@ -9,8 +9,9 @@ trait HasInventory
     /**
      * Calcula el inventario agrupado por nivel2, nivel3 y producto.
      * Devuelve un array con: nivel2_id, nivel3_id, product_id, cantidad, nombre_producto
+     * $asOf (Y-m-d): si se indica, solo considera movimientos con fecha <= $asOf.
      */
-    public function getInventory($team_id, $season_id)
+    public function getInventory($team_id, $season_id, $asOf = null)
     {
     // Entradas: Facturas + Notas de débito
     $entradas = DB::table('invoice_products')
@@ -23,6 +24,7 @@ trait HasInventory
             ->leftJoin('branches', 'invoice_products.branch_id', '=', 'branches.id')
             ->where('invoices.team_id', $team_id)
             ->where('invoices.season_id', $season_id)
+            ->when($asOf, fn($q) => $q->where('invoices.date', '<=', $asOf))
             ->select(
                 'level2s.level1_id',
                 'level1s.name as level1_name',
@@ -52,6 +54,7 @@ trait HasInventory
             ->where('credit_debit_notes.season_id', $season_id)
             ->where('credit_debit_notes.type', 'debito')
             ->where('credit_debit_notes.affects_inventory', 1)
+            ->when($asOf, fn($q) => $q->where('credit_debit_notes.date', '<=', $asOf))
             ->select(
                 'level2s.level1_id',
                 'level1s.name as level1_name',
@@ -81,6 +84,7 @@ trait HasInventory
             ->where('outflows.team_id', $team_id)
             ->where('outflows.season_id', $season_id)
             ->whereNotNull('outflows.invoice_product_id')
+            ->when($asOf, fn($q) => $q->where('outflows.date', '<=', $asOf))
             ->select(
                 'level2s.level1_id',
                 'level1s.name as level1_name',
@@ -109,6 +113,7 @@ trait HasInventory
             ->where('outflows.team_id', $team_id)
             ->where('outflows.season_id', $season_id)
             ->whereNotNull('outflows.credit_debit_note_item_id')
+            ->when($asOf, fn($q) => $q->where('outflows.date', '<=', $asOf))
             ->select(
                 'level2s.level1_id',
                 'level1s.name as level1_name',
@@ -140,6 +145,7 @@ trait HasInventory
             ->where('credit_debit_notes.season_id', $season_id)
             ->where('credit_debit_notes.type', 'credito')
             ->where('credit_debit_notes.affects_inventory', 1)
+            ->when($asOf, fn($q) => $q->where('credit_debit_notes.date', '<=', $asOf))
             ->select(
                 'level2s.level1_id',
                 'level1s.name as level1_name',
@@ -207,7 +213,11 @@ trait HasInventory
                 $inventario[$key]['cantidad'] -= $row->cantidad;
             }
         }
-        return array_values($inventario);
+        // Redondeo a 4 decimales (precisión de outflows.quantity): elimina el ruido de coma flotante sin perder cantidades pequeñas
+        return array_values(array_map(function ($row) {
+            $row['cantidad'] = round($row['cantidad'], 4);
+            return $row;
+        }, $inventario));
     }
 
     /**
@@ -286,7 +296,7 @@ trait HasInventory
                 $consumido = $consumosByInvoiceProduct[$product->pivot->id] ?? 0;
                 $devuelto = $creditNotesReturns[$product->pivot->id] ?? 0;
                 $cantidadOriginal = $product->pivot->amount ?? 0;
-                $stockDisponible = round($cantidadOriginal - $consumido - $devuelto, 2);
+                $stockDisponible = round($cantidadOriginal - $consumido - $devuelto, 4);
 
                 if ($stockDisponible <= 0) {
                     continue;
@@ -297,7 +307,8 @@ trait HasInventory
                     $stocksByProduct[$product->id] = [];
                 }
 
-                $unitPrice = $product->pivot->unit_price ?? 0;
+                // Base = precio original: la rebaja de la NC financiera se resta aparte, no dos veces
+                $unitPrice = $product->pivot->original_unit_price ?? $product->pivot->unit_price ?? 0;
                 $ncFinanciero = $financialNCsByIP[$product->pivot->id] ?? 0;
                 $effectiveUnitPrice = $cantidadOriginal > 0
                     ? round($unitPrice - ($ncFinanciero / $cantidadOriginal), 2)
@@ -328,7 +339,7 @@ trait HasInventory
      * El stock y precio se calculan a nivel de lote (línea de factura o item de nota de débito), igual que
      * getAvailableStocksByInvoiceProduct, para reflejar el precio real de costo de cada lote consumido/restante.
      */
-    public function getValorizedInventory($team_id, $season_id)
+    public function getValorizedInventory($team_id, $season_id, $asOf = null)
     {
         // Consumos de outflows por lote (factura o nota de débito)
         $outflowsByInvoiceProduct = DB::table('outflows')
@@ -336,6 +347,7 @@ trait HasInventory
             ->where('team_id', $team_id)
             ->where('season_id', $season_id)
             ->whereNotNull('invoice_product_id')
+            ->when($asOf, fn($q) => $q->where('date', '<=', $asOf))
             ->groupBy('invoice_product_id')
             ->pluck('total_consumido', 'invoice_product_id');
 
@@ -344,6 +356,7 @@ trait HasInventory
             ->where('team_id', $team_id)
             ->where('season_id', $season_id)
             ->whereNotNull('credit_debit_note_item_id')
+            ->when($asOf, fn($q) => $q->where('date', '<=', $asOf))
             ->groupBy('credit_debit_note_item_id')
             ->pluck('total_consumido', 'credit_debit_note_item_id');
 
@@ -354,6 +367,7 @@ trait HasInventory
             ->where('credit_debit_notes.season_id', $season_id)
             ->where('credit_debit_notes.type', 'credito')
             ->where('credit_debit_notes.affects_inventory', 1)
+            ->when($asOf, fn($q) => $q->where('credit_debit_notes.date', '<=', $asOf))
             ->whereNotNull('credit_debit_note_items.invoice_product_id')
             ->select('credit_debit_note_items.invoice_product_id', DB::raw('SUM(credit_debit_note_items.quantity) as total_devuelto'))
             ->groupBy('credit_debit_note_items.invoice_product_id')
@@ -366,6 +380,7 @@ trait HasInventory
             ->where('credit_debit_notes.season_id', $season_id)
             ->where('credit_debit_notes.type', 'credito')
             ->where('credit_debit_notes.affects_inventory', 0)
+            ->when($asOf, fn($q) => $q->where('credit_debit_notes.date', '<=', $asOf))
             ->whereNotNull('credit_debit_note_items.invoice_product_id')
             ->select('credit_debit_note_items.invoice_product_id', DB::raw('SUM(credit_debit_note_items.quantity * credit_debit_note_items.unit_price) as nc_total'))
             ->groupBy('credit_debit_note_items.invoice_product_id')
@@ -384,10 +399,12 @@ trait HasInventory
             ->leftJoin('branches', 'invoice_products.branch_id', '=', 'branches.id')
             ->where('invoices.team_id', $team_id)
             ->where('invoices.season_id', $season_id)
+            ->when($asOf, fn($q) => $q->where('invoices.date', '<=', $asOf))
             ->select(
                 'invoice_products.id',
                 'invoice_products.amount',
                 'invoice_products.unit_price',
+                'invoice_products.original_unit_price',
                 'invoice_products.branch_id',
                 'branches.name as branch_name',
                 'products.id as product_id',
@@ -406,16 +423,18 @@ trait HasInventory
             $consumido = $outflowsByInvoiceProduct[$ip->id] ?? 0;
             $devuelto = $creditNotesReturns[$ip->id] ?? 0;
             $cantidadOriginal = $ip->amount ?? 0;
-            $stockDisponible = round($cantidadOriginal - $consumido - $devuelto, 2);
+            $stockDisponible = round($cantidadOriginal - $consumido - $devuelto, 4);
 
             if ($stockDisponible <= 0) {
                 continue;
             }
 
+            // Base = precio original: la rebaja de la NC financiera se resta aparte, no dos veces
+            $basePrice = $ip->original_unit_price ?? $ip->unit_price;
             $ncFinanciero = $financialNCsByIP[$ip->id] ?? 0;
             $effectivePrice = $cantidadOriginal > 0
-                ? round($ip->unit_price - ($ncFinanciero / $cantidadOriginal), 2)
-                : $ip->unit_price;
+                ? round($basePrice - ($ncFinanciero / $cantidadOriginal), 2)
+                : $basePrice;
 
             $key = $ip->product_id . '-' . ($ip->branch_id ?? 'null');
             if (!isset($result[$key])) {
@@ -452,6 +471,7 @@ trait HasInventory
             ->where('credit_debit_notes.season_id', $season_id)
             ->where('credit_debit_notes.type', 'debito')
             ->where('credit_debit_notes.affects_inventory', 1)
+            ->when($asOf, fn($q) => $q->where('credit_debit_notes.date', '<=', $asOf))
             ->select(
                 'credit_debit_note_items.id',
                 'credit_debit_note_items.quantity',
@@ -472,7 +492,7 @@ trait HasInventory
 
         foreach ($debitItems as $item) {
             $consumido = $outflowsByDebitNoteItem[$item->id] ?? 0;
-            $stockDisponible = round($item->quantity - $consumido, 2);
+            $stockDisponible = round($item->quantity - $consumido, 4);
 
             if ($stockDisponible <= 0) {
                 continue;
@@ -501,7 +521,7 @@ trait HasInventory
         }
 
         return array_values(array_map(function ($row) {
-            $row['cantidad'] = round($row['cantidad'], 2);
+            $row['cantidad'] = round($row['cantidad'], 4);
             $row['valor'] = round($row['valor'], 2);
             $row['precio_promedio'] = $row['cantidad'] > 0 ? round($row['valor'] / $row['cantidad'], 2) : 0;
             return $row;

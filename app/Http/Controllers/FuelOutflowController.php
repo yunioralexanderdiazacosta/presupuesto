@@ -176,7 +176,8 @@ class FuelOutflowController extends Controller
                     continue;
                 }
                 
-                $unitPrice = $invoiceProduct->unit_price ?? 0;
+                // Base = precio original: la rebaja de la NC financiera se resta aparte, no dos veces
+                $unitPrice = $invoiceProduct->original_unit_price ?? $invoiceProduct->unit_price ?? 0;
                 $ncFinanciero = $financialNCsByIP[$invoiceProduct->id] ?? 0;
                 $effectiveUnitPrice = $cantidadOriginal > 0
                     ? round($unitPrice - ($ncFinanciero / $cantidadOriginal), 2)
