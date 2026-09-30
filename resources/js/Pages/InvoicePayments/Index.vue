@@ -108,6 +108,8 @@ function deletePayment(paymentId) {
     }).then((result) => {
         if (result.isConfirmed) {
             router.delete(route('invoice-payments.delete', paymentId), {
+                preserveScroll: true,
+                preserveState: true,
                 onSuccess: () => Swal.fire('Eliminado', 'El pago ha sido eliminado.', 'success'),
             });
         }
@@ -501,7 +503,7 @@ const excelData = computed(() => {
                                             <span
                                                 v-if="invoice.is_annulled"
                                                 class="badge bg-dark text-white"
-                                                v-tooltip="notesTooltip(invoice)"
+                                                :title="notesTooltip(invoice)"
                                                 style="cursor:help;"
                                             >
                                                 <i class="fas fa-ban fa-xs me-1"></i>ANULADA
@@ -511,7 +513,7 @@ const excelData = computed(() => {
                                                     v-if="invoice.expense_report"
                                                     :href="route('expense-reports.show', invoice.expense_report.id)"
                                                     class="badge bg-info text-white text-decoration-none"
-                                                    v-tooltip="'Pagada mediante la rendición ' + invoice.expense_report.number + '. No se registra pago en este módulo.'"
+                                                    :title="'Pagada mediante la rendición ' + invoice.expense_report.number + '. No se registra pago en este módulo.'"
                                                     @click.stop
                                                 >
                                                     <i class="fas fa-receipt fa-xs me-1"></i>RENDICIÓN {{ invoice.expense_report.number }}
@@ -521,7 +523,7 @@ const excelData = computed(() => {
                                                 <span
                                                     v-if="invoice.credit_total > 0"
                                                     class="badge bg-danger text-white"
-                                                    v-tooltip="notesTooltip(invoice)"
+                                                    :title="notesTooltip(invoice)"
                                                     style="cursor:help;"
                                                 >
                                                     <i class="fas fa-file-invoice-dollar fa-xs me-1"></i>NC
@@ -529,7 +531,7 @@ const excelData = computed(() => {
                                                 <span
                                                     v-if="invoice.debit_total > 0"
                                                     class="badge bg-primary text-white"
-                                                    v-tooltip="notesTooltip(invoice)"
+                                                    :title="notesTooltip(invoice)"
                                                     style="cursor:help;"
                                                 >
                                                     <i class="fas fa-file-invoice-dollar fa-xs me-1"></i>ND
@@ -543,7 +545,7 @@ const excelData = computed(() => {
                                     <td class="text-end text-nowrap">
                                         $ {{ formatCurrency(invoice.total_invoice) }}
                                         <span v-if="invoice.iva > 0"
-                                            v-tooltip="'Neto: $' + formatCurrency(invoice.total_neto) + ' + IVA: $' + formatCurrency(invoice.iva)"
+                                            :title="'Neto: $' + formatCurrency(invoice.total_neto) + ' + IVA: $' + formatCurrency(invoice.iva)"
                                             class="text-muted ms-1" style="font-size:0.7rem; cursor:help;">
                                             <i class="fas fa-info-circle fa-xs"></i>
                                         </span>
@@ -572,14 +574,14 @@ const excelData = computed(() => {
                                             v-if="invoice.payment_status !== 'paid' && !invoice.is_annulled"
                                             @click.stop="openCreateModal(invoice)"
                                             class="btn btn-falcon-default btn-sm py-0 px-2"
-                                            v-tooltip="'Registrar pago'"
+                                            title="Registrar pago"
                                         >
                                             <i class="fas fa-dollar-sign fa-sm"></i>
                                         </button>
                                         <span
                                             v-else-if="invoice.is_annulled"
                                             class="text-muted"
-                                            v-tooltip="'Factura anulada por nota de crédito. No se puede pagar.'"
+                                            title="Factura anulada por nota de crédito. No se puede pagar."
                                             style="cursor:help;"
                                         >
                                             <i class="fas fa-ban"></i>
@@ -587,7 +589,7 @@ const excelData = computed(() => {
                                         <span
                                             v-else-if="invoice.paid_via_expense_report"
                                             class="text-info"
-                                            v-tooltip="'Pagada mediante rendición. No se registra pago en este módulo.'"
+                                            title="Pagada mediante rendición. No se registra pago en este módulo."
                                             style="cursor:help;"
                                         >
                                             <i class="fas fa-receipt"></i>

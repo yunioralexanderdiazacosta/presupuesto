@@ -12,6 +12,7 @@ export const changelog = [
     items: [
       'La pantalla de Facturas carga mucho más rápido, especialmente en equipos con muchas facturas.',
       'Al registrar un pago, la pantalla ya no se queda pegada mientras se actualiza el listado.',
+      'Al eliminar un pago desde el detalle de la factura, la pantalla ya no se congela y se mantiene la posición en la tabla.',
     ]
   },
   {
