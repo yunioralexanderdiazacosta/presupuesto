@@ -8,6 +8,14 @@
 export const changelog = [
   {
     fecha: '2026-09-30',
+    titulo: 'Pagos de Facturas — Mayor velocidad de carga',
+    items: [
+      'La pantalla de Facturas carga mucho más rápido, especialmente en equipos con muchas facturas.',
+      'Al registrar un pago, la pantalla ya no se queda pegada mientras se actualiza el listado.',
+    ]
+  },
+  {
+    fecha: '2026-09-30',
     titulo: 'Inventario — Consulta del inventario a una fecha anterior',
     items: [
       'Ahora puedes elegir una fecha en "Inventario al:" para ver cuánto stock tenías ese día.',

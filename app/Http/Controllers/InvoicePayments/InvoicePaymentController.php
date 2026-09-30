@@ -32,44 +32,10 @@ class InvoicePaymentController extends Controller
         $paymentStatus = $request->payment_status ?? '';
         $paymentType   = $request->has('payment_type') ? $request->payment_type : '1'; // Default: Crédito
 
-        // Query base: Facturas del equipo/temporada con totales calculados via subquery
-        // total_neto: suma pura de productos (sin IVA)
-        // total_invoice: neto × 1.19 (redondeado igual que Invoice::calculateDebt(), IVA redondeado antes de sumar)
-        // para FACTURA/NOTA CREDITO/NOTA DEBITO, neto redondeado para el resto.
-        // inv_credit_adj/debit_adj: cada nota se redondea individualmente antes de sumar (igual que calculateDebt()).
-        // Redondear aquí igual que en PHP evita que una factura aparezca "Parcial" en el filtro pero "Pagada"
-        // en la tabla (o viceversa) por diferencias de centavos entre el cálculo SQL sin redondear y el de PHP.
-        $query = Invoice::select('invoices.*')
-            ->selectRaw('(SELECT COALESCE(SUM(ip.unit_price * ip.amount), 0) FROM invoice_products ip WHERE ip.invoice_id = invoices.id) as total_neto')
-            ->selectRaw("
-                CASE WHEN UPPER(td.name) IN ('FACTURA', 'NOTA CREDITO', 'NOTA DEBITO')
-                    THEN ROUND(
-                        (SELECT COALESCE(SUM(ip.unit_price * ip.amount), 0) FROM invoice_products ip WHERE ip.invoice_id = invoices.id)
-                        + ROUND((SELECT COALESCE(SUM(ip.unit_price * ip.amount), 0) FROM invoice_products ip WHERE ip.invoice_id = invoices.id) * 0.19)
-                    )
-                    ELSE ROUND((SELECT COALESCE(SUM(ip.unit_price * ip.amount), 0) FROM invoice_products ip WHERE ip.invoice_id = invoices.id))
-                END as total_invoice
-            ")
-            ->selectRaw('(SELECT COALESCE(SUM(pay.amount), 0) FROM invoice_payments pay WHERE pay.invoice_id = invoices.id) as total_paid')
-            ->selectRaw('(SELECT COUNT(*) FROM credit_debit_notes cdn WHERE cdn.invoice_id = invoices.id AND cdn.is_annulment = 1) as annulment_count')
-            ->selectRaw("
-                ROUND(COALESCE((
-                    SELECT SUM(cdni.quantity * cdni.unit_price)
-                    FROM credit_debit_notes cdn
-                    JOIN credit_debit_note_items cdni ON cdni.credit_debit_note_id = cdn.id
-                    WHERE cdn.invoice_id = invoices.id AND cdn.type = 'credito' AND cdn.affects_inventory = 1 AND cdn.is_annulment = 0
-                ), 0) * 1.19) as inv_credit_adj
-            ")
-            ->selectRaw("
-                ROUND(COALESCE((
-                    SELECT SUM(cdni.quantity * cdni.unit_price)
-                    FROM credit_debit_notes cdn
-                    JOIN credit_debit_note_items cdni ON cdni.credit_debit_note_id = cdn.id
-                    WHERE cdn.invoice_id = invoices.id AND cdn.type = 'debito' AND cdn.is_annulment = 0
-                ), 0) * 1.19) as debit_adj
-            ")
-            ->leftJoin('type_documents as td', 'td.id', '=', 'invoices.type_document_id')
-            ->with([
+        // Una sola carga de facturas: estado, saldos, resumen y filtro por estado salen de
+        // Invoice::calculateDebt() (fuente única de verdad, sin duplicar la lógica en SQL).
+        $allInvoices = Invoice::with([
+                'invoiceProducts',
                 'supplier',
                 'supplier.bankAccounts.bank:id,name',
                 'supplier.bankAccounts.accountType:id,name',
@@ -95,28 +61,10 @@ class InvoicePaymentController extends Controller
             ->when($dueDateFrom, fn($q, $date) => $q->whereDate('invoices.due_date', '>=', $date))
             ->when($dueDateTo,   fn($q, $date) => $q->whereDate('invoices.due_date', '<=', $date))
             ->when($supplierId, fn($q, $id) => $q->where('invoices.supplier_id', $id))
-            ->when($paymentType !== '', fn($q) => $q->where('invoices.payment_type', $paymentType));
-
-        // Resumen por estado (sin filtro de payment_status para mostrar siempre los totales completos).
-        // Se calcula con el mismo helper calculateDebt() que usa la tabla, para evitar diferencias de
-        // centavos por redondeo entre el resumen (antes SQL crudo sin redondear) y el detalle por factura.
-        $summaryInvoices = Invoice::with(['invoiceProducts', 'payments', 'typeDocument', 'creditDebitNotes.items'])
-            ->where('invoices.team_id', $user->team_id)
-            ->where('invoices.season_id', $season_id)
-            ->when($term, function ($q, $search) {
-                $q->where(function($q2) use ($search) {
-                    $q2->where('invoices.number_document', 'like', '%'.$search.'%')
-                       ->orWhereHas('supplier', fn($sq) => $sq->where('name', 'like', '%'.$search.'%'));
-                });
-            })
-            ->when($dateFrom, fn($q, $date) => $q->whereDate('invoices.date', '>=', $date))
-            ->when($dateTo,   fn($q, $date) => $q->whereDate('invoices.date', '<=', $date))
-            ->when($dueDateFrom, fn($q, $date) => $q->whereDate('invoices.due_date', '>=', $date))
-            ->when($dueDateTo,   fn($q, $date) => $q->whereDate('invoices.due_date', '<=', $date))
-            ->when($supplierId, fn($q, $id) => $q->where('invoices.supplier_id', $id))
             ->when($paymentType !== '', fn($q) => $q->where('invoices.payment_type', $paymentType))
             ->get();
 
+        // Resumen por estado (siempre sobre todas las facturas filtradas, sin filtro de payment_status).
         $summary = [
             'total'    => ['count' => 0, 'amount'  => 0],
             'pending'  => ['count' => 0, 'amount'  => 0],
@@ -128,8 +76,10 @@ class InvoicePaymentController extends Controller
 
         $today = now()->startOfDay();
 
-        foreach ($summaryInvoices as $invoice) {
-            $debt = $invoice->calculateDebt();
+        $debts = [];
+
+        foreach ($allInvoices as $invoice) {
+            $debt = $debts[$invoice->id] = $invoice->calculateDebt();
 
             $summary['total']['count']++;
             $summary['total']['amount'] += $debt['total_invoice'];
@@ -156,39 +106,30 @@ class InvoicePaymentController extends Controller
         }
 
 
-        // Filtro por estado de pago usando HAVING (sobre los subqueries).
-        // owed = total_invoice - inv_credit_adj + debit_adj (monto real a pagar), redondeado igual que
-        // Invoice::calculateDebt() para que el estado coincida con el que se muestra en la tabla.
-        if ($paymentStatus === 'pending') {
-            $query->havingRaw('annulment_count = 0 AND expense_report_id IS NULL AND total_paid = 0 AND ROUND(total_invoice - inv_credit_adj + debit_adj) > 0');
-        } elseif ($paymentStatus === 'paid') {
-            $query->havingRaw('annulment_count = 0 AND (ROUND(total_invoice - inv_credit_adj + debit_adj) <= 0 OR total_paid >= ROUND(total_invoice - inv_credit_adj + debit_adj) OR expense_report_id IS NOT NULL)');
-        } elseif ($paymentStatus === 'partial') {
-            $query->havingRaw('annulment_count = 0 AND expense_report_id IS NULL AND total_paid > 0 AND total_paid < ROUND(total_invoice - inv_credit_adj + debit_adj)');
-        } elseif ($paymentStatus === 'annulled') {
-            $query->havingRaw('annulment_count > 0');
-        } elseif ($paymentStatus === 'overdue') {
-            $query->whereDate('invoices.due_date', '<', now())
-                ->havingRaw('annulment_count = 0 AND expense_report_id IS NULL AND total_paid < ROUND(total_invoice - inv_credit_adj + debit_adj)');
-        }
+        // Filtro por estado de pago (mismo criterio que el resumen y la tabla).
+        $isOverdue = fn($invoice) => $invoice->due_date
+            && !$debts[$invoice->id]['is_annulled']
+            && $debts[$invoice->id]['status'] !== 'paid'
+            && Carbon::parse($invoice->due_date)->startOfDay()->lt($today);
+
+        $filtered = !in_array($paymentStatus, ['pending', 'partial', 'paid', 'annulled', 'overdue'], true)
+            ? $allInvoices
+            : $allInvoices->filter(fn($invoice) => $paymentStatus === 'overdue'
+                ? $isOverdue($invoice)
+                : $debts[$invoice->id]['status'] === $paymentStatus);
 
         // Orden por defecto: lo no resuelto (pendiente/parcial) primero, ordenado por vencimiento
         // más próximo/atrasado primero; lo ya resuelto (pagado/anulado) al final.
         // Sin paginación: se carga todo el resultado filtrado (scroll interno en el frontend) para que
         // el Excel exportado incluya siempre el total de filas, no solo la página visible.
-        $invoices = $query
-            ->orderByRaw('
-                CASE
-                    WHEN annulment_count > 0 THEN 1
-                    WHEN expense_report_id IS NOT NULL THEN 1
-                    WHEN total_paid >= ROUND(total_invoice - inv_credit_adj + debit_adj) THEN 1
-                    ELSE 0
-                END ASC
-            ')
-            ->orderBy('invoices.due_date', 'asc')
-            ->get()
-            ->map(function ($invoice) {
-                $debt = $invoice->calculateDebt((float) $invoice->total_neto, (float) $invoice->total_paid);
+        $invoices = $filtered
+            ->sortBy([
+                fn($a, $b) => (int) in_array($debts[$a->id]['status'], ['paid', 'annulled'], true)
+                    <=> (int) in_array($debts[$b->id]['status'], ['paid', 'annulled'], true),
+                fn($a, $b) => strcmp((string) $a->due_date, (string) $b->due_date),
+            ])
+            ->map(function ($invoice) use ($debts) {
+                $debt = $debts[$invoice->id];
 
                 $totalNeto    = $debt['total_neto'];
                 $iva          = $debt['iva'];
@@ -285,7 +226,7 @@ class InvoicePaymentController extends Controller
         $user = Auth::user();
         $season_id = session('season_id');
 
-        $query = Invoice::with(['supplier', 'supplier.bankAccounts.bank:id,name', 'supplier.bankAccounts.accountType:id,name', 'typeDocument', 'companyReason', 'invoiceProducts', 'creditDebitNotes.items'])
+        $query = Invoice::with(['supplier', 'supplier.bankAccounts.bank:id,name', 'supplier.bankAccounts.accountType:id,name', 'typeDocument', 'companyReason', 'invoiceProducts', 'creditDebitNotes.items', 'payments'])
             ->where('team_id', $user->team_id)
             ->where('season_id', $season_id)
             // No permitir pagar facturas anuladas por nota de crédito
@@ -311,7 +252,7 @@ class InvoicePaymentController extends Controller
             $iva     = $hasIva ? round($totalNeto * 0.19) : 0;
             $totalInvoice = round($totalNeto + $iva);
 
-            $totalPaid = $invoice->payments()->sum('amount');
+            $totalPaid = $invoice->payments->sum('amount');
 
             // Ajuste del saldo por notas (mismo criterio que el índice):
             // NC de inventario resta, nota de débito suma. NC financiera ya está en el precio.
