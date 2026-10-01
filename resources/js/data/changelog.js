@@ -8,6 +8,24 @@
 export const changelog = [
   {
     fecha: '2026-09-30',
+    titulo: 'Comparativo Presupuesto vs Real — Nuevo filtro por Frutal',
+    items: [
+      'Ahora puedes filtrar por Frutal junto a la Razón Social, y ambos filtros se pueden combinar.',
+      'El filtro de Frutal aplica a todo el dashboard: tarjetas resumen, Resumen Mensual y sus gráficos, Detalle por Categoría, Detalle Mensual por Categoría y el detalle que se abre al hacer clic en una barra.',
+      'Con un frutal seleccionado, el Real se muestra como Consumido y la diferencia se mide contra Consumido, porque las facturas no tienen frutal.',
+    ]
+  },
+  {
+    fecha: '2026-09-30',
+    titulo: 'Comparativo Presupuesto vs Real — Filtro de razón social corregido',
+    items: [
+      'Al seleccionar varias razones sociales a la vez, el Facturado y el Presupuesto ahora consideran todas las seleccionadas (antes solo tomaban la primera).',
+      'Al hacer clic en una barra del gráfico, el detalle del mes ahora respeta el filtro de razón social.',
+      'El detalle de Consumos por mes ahora usa el mismo criterio que el resto del dashboard: la razón social del centro de costo y la fecha de la salida.',
+    ]
+  },
+  {
+    fecha: '2026-09-30',
     titulo: 'Pagos de Facturas — Mayor velocidad de carga',
     items: [
       'La pantalla de Facturas carga mucho más rápido, especialmente en equipos con muchas facturas.',

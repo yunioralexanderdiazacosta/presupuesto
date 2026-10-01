@@ -30,6 +30,8 @@ class GetComparativeConsumedByCategoryController extends Controller
             'include_investments'  => 'nullable|boolean',
             'company_reason_ids'   => 'nullable|array',
             'company_reason_ids.*' => 'integer',
+            'fruit_ids'            => 'nullable|array',
+            'fruit_ids.*'          => 'integer',
         ]);
 
         $user      = Auth::user();
@@ -47,6 +49,12 @@ class GetComparativeConsumedByCategoryController extends Controller
             ->values()
             ->all();
         $company_reason_id = count($companyReasonIds) > 0 ? $companyReasonIds : null;
+        $fruitIds = collect($request->input('fruit_ids', []))
+            ->filter()
+            ->map(fn ($id) => (int) $id)
+            ->values()
+            ->all();
+        $fruit_ids = count($fruitIds) > 0 ? $fruitIds : null;
 
         $map = [];
 
@@ -56,7 +64,7 @@ class GetComparativeConsumedByCategoryController extends Controller
                 ->with([
                     'invoiceProduct:id,unit_price,invoice_id',
                     'creditDebitNoteItem:id,unit_price,credit_debit_note_id',
-                    'costCenters.costCenter:id,company_reason_id,surface',
+                    'costCenters.costCenter:id,company_reason_id,fruit_id,surface',
                     'operation:id,name',
                     'level3:id,name,level2_id',
                     'level3.level2:id,name,level1_id',
@@ -65,7 +73,7 @@ class GetComparativeConsumedByCategoryController extends Controller
                 ->get();
 
             foreach ($outflows as $outflow) {
-                if (!$this->outflowMatchesCompanyReason($outflow, $company_reason_id)) continue;
+                if (!$this->outflowMatchesCompanyReason($outflow, $company_reason_id, $fruit_ids)) continue;
 
                 // Mes de la SALIDA (fecha propia del outflow), no de la factura/nota de origen
                 if (!$outflow->date) continue;
@@ -74,7 +82,7 @@ class GetComparativeConsumedByCategoryController extends Controller
                 $isInvestment = $outflow->operation && stripos($outflow->operation->name, 'inversion') !== false;
                 if ($isInvestment && !$includeInvestments) continue;
 
-                $amount = $this->proratedOutflowAmount($outflow, $company_reason_id);
+                $amount = $this->proratedOutflowAmount($outflow, $company_reason_id, $fruit_ids);
                 if ($amount == 0.0) continue;
 
                 $level3 = $outflow->level3;

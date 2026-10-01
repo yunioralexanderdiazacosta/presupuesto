@@ -8,6 +8,7 @@ import axios from 'axios';
 import Swal from 'sweetalert2';
 import Multiselect from '@vueform/multiselect';
 import ExportExcelButton from '@/Components/ExportExcelButton.vue';
+import ActiveFilterBadge from '@/Components/ActiveFilterBadge.vue';
 
 Chart.register(...registerables);
 
@@ -40,6 +41,8 @@ const props = defineProps({
     },
     companyReasons:         { type: Array,  default: () => [] },
     activeCompanyReasonIds: { type: Array,  default: () => [] },
+    fruits:                 { type: Array,  default: () => [] },
+    activeFruitIds:         { type: Array,  default: () => [] },
 });
 
 let monthlyChart = null;
@@ -55,34 +58,84 @@ const includeInvestments = ref(false);
 const effectiveComparisonByLevel1 = computed(() => {
     return (props.comparisonByLevel1 || []).map(item => {
         const budget = (item.budget || 0) + (includeInvestments.value ? (item.investment || 0) : 0);
-        const invoiced = item.invoiced || 0;
         const payroll = item.payroll || 0;
+        // Con frutal no hay Facturado: el "real" de la fila es Consumido (la columna Facturado se muestra como "—")
+        const invoiced = hasFruitFilter.value ? (item.consumed || 0) : (item.invoiced || 0);
         const difference = budget - invoiced - payroll;
         const variance = budget > 0 ? ((invoiced - budget) / budget) * 100 : 0;
         return {
             ...item,
             budget,
+            invoiced,
             difference,
             variance,
             status: variance > 0 ? 'over' : 'under',
         };
-    });
+    })
+    // Con frutal, las categorías sin ningún monto solo agregan ruido
+    .filter(item => !hasFruitFilter.value || item.budget || item.investment || item.consumed || item.payroll);
 });
 
-// Filtro Razón Social
+// Filtros Razón Social + Frutal (se combinan)
 const selectedCompanyReasons = ref(props.activeCompanyReasonIds ?? []);
-const applyCompanyReasonFilter = () => {
-    router.get(
-        route('comparative.dashboard'),
-        selectedCompanyReasons.value.length > 0 ? { company_reason_ids: selectedCompanyReasons.value } : {},
-        { preserveScroll: false }
-    );
+const selectedFruits = ref(props.activeFruitIds ?? []);
+// Las facturas no tienen frutal: con frutal activo el "Real" solo puede mostrarse como Consumido
+const hasFruitFilter = computed(() => (props.activeFruitIds ?? []).length > 0);
+const applyFilters = () => {
+    const params = {};
+    if (selectedCompanyReasons.value.length > 0) params.company_reason_ids = selectedCompanyReasons.value;
+    if (selectedFruits.value.length > 0) params.fruit_ids = selectedFruits.value;
+    router.get(route('comparative.dashboard'), params, { preserveScroll: false });
+};
+
+const sameIds = (a, b) => {
+    const x = [...(a ?? [])].map(String).sort();
+    const y = [...(b ?? [])].map(String).sort();
+    return x.length === y.length && x.every((v, i) => v === y[i]);
+};
+// Hay cambios en los selectores que aún no se han aplicado
+const filtersDirty = computed(() =>
+    !sameIds(selectedCompanyReasons.value, props.activeCompanyReasonIds)
+    || !sameIds(selectedFruits.value, props.activeFruitIds)
+);
+const hasActiveFilters = computed(() =>
+    (props.activeCompanyReasonIds ?? []).length > 0 || (props.activeFruitIds ?? []).length > 0
+);
+const activeFiltersSummary = computed(() => {
+    const parts = [];
+    const rs = (props.activeCompanyReasonIds ?? []).length;
+    const fr = (props.activeFruitIds ?? []).length;
+    if (rs > 0) parts.push(rs === 1 ? '1 razón social' : `${rs} razones sociales`);
+    if (fr > 0) parts.push(fr === 1 ? '1 frutal' : `${fr} frutales`);
+    return parts.join(' · ');
+});
+const clearFilters = () => {
+    selectedCompanyReasons.value = [];
+    selectedFruits.value = [];
+    router.get(route('comparative.dashboard'), {}, { preserveScroll: false });
+};
+
+// Texto del filtro aplicado (frutal · razón social) para mostrarlo en títulos y exportaciones
+const labelsOf = (options, ids) => (options ?? [])
+    .filter(o => (ids ?? []).map(String).includes(String(o.value)))
+    .map(o => o.label);
+const summarizeNames = (names, plural) => names.length > 2 ? `${names.length} ${plural}` : names.join(', ');
+const activeFilterLabel = computed(() => [
+    summarizeNames(labelsOf(props.fruits, props.activeFruitIds), 'frutales'),
+    summarizeNames(labelsOf(props.companyReasons, props.activeCompanyReasonIds), 'razones sociales'),
+].filter(Boolean).join(' · '));
+const exportFilename = (base) => {
+    const slug = activeFilterLabel.value
+        .normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+        .toLowerCase().replace(/[^a-z0-9]+/g, '_').replace(/^_|_$/g, '')
+        .slice(0, 60);
+    return slug ? `${base}_${slug}.xlsx` : `${base}.xlsx`;
 };
 
 // Toggles para mostrar/ocultar series en gráficos
 const showBudget = ref(true);
-const showInvoiced = ref(true);
-const showConsumed = ref(false);
+const showInvoiced = ref(!hasFruitFilter.value);
+const showConsumed = ref(hasFruitFilter.value);
 const showPayroll = ref(true);
 
 // Toggle idioma ES/EN
@@ -547,7 +600,8 @@ const toggleBarSelection = async (event, datasetIndex, barIndex, month, clickedT
                     const response = await axios.get(route('api.comparative.payroll-monthly-detail'), {
                         params: {
                             month_id: bar.monthId,
-                            ...(selectedCompanyReasons.value.length > 0 ? { company_reason_ids: selectedCompanyReasons.value } : {})
+                            ...(selectedCompanyReasons.value.length > 0 ? { company_reason_ids: selectedCompanyReasons.value } : {}),
+                            ...(selectedFruits.value.length > 0 ? { fruit_ids: selectedFruits.value } : {})
                         }
                     });
                     payrollDetailCache.value = { ...payrollDetailCache.value, [bar.monthId]: response.data };
@@ -556,7 +610,8 @@ const toggleBarSelection = async (event, datasetIndex, barIndex, month, clickedT
                         params: {
                             month_id: bar.monthId,
                             include_investments: includeInvestments.value ? 1 : 0,
-                            ...(selectedCompanyReasons.value.length > 0 ? { company_reason_ids: selectedCompanyReasons.value } : {})
+                            ...(selectedCompanyReasons.value.length > 0 ? { company_reason_ids: selectedCompanyReasons.value } : {}),
+                            ...(selectedFruits.value.length > 0 ? { fruit_ids: selectedFruits.value } : {})
                         }
                     });
                     monthlyDetailCache.value = { ...monthlyDetailCache.value, [bar.monthId]: response.data };
@@ -582,7 +637,8 @@ watch(includeInvestments, async () => {
                     params: {
                         month_id: bar.monthId,
                         include_investments: includeInvestments.value ? 1 : 0,
-                        ...(selectedCompanyReasons.value.length > 0 ? { company_reason_ids: selectedCompanyReasons.value } : {})
+                        ...(selectedCompanyReasons.value.length > 0 ? { company_reason_ids: selectedCompanyReasons.value } : {}),
+                        ...(selectedFruits.value.length > 0 ? { fruit_ids: selectedFruits.value } : {})
                     }
                 });
                 monthlyDetailCache.value = { ...monthlyDetailCache.value, [bar.monthId]: response.data };
@@ -669,13 +725,19 @@ const displayedInvoicedPerHectare = computed(() => {
     return props.summary.invoiced_per_hectare - investmentsPerHa;
 });
 
+// Con filtro de frutal no hay Facturado (las facturas no tienen frutal): diferencia y ejecución se miden contra Consumido
+const fmtInvoiced = (v) => hasFruitFilter.value ? '—' : formatCLP(v);
+const displayedRealBase = computed(() =>
+    hasFruitFilter.value ? displayedConsumed.value : displayedInvoiced.value
+);
+
 const displayedDifference = computed(() => 
-    displayedBudget.value - displayedInvoiced.value - (props.payrollSummary?.total || 0)
+    displayedBudget.value - displayedRealBase.value - (props.payrollSummary?.total || 0)
 );
 
 const displayedPercentageExecution = computed(() => 
     displayedBudget.value > 0
-        ? ((displayedInvoiced.value + (props.payrollSummary?.total || 0)) / displayedBudget.value) * 100
+        ? ((displayedRealBase.value + (props.payrollSummary?.total || 0)) / displayedBudget.value) * 100
         : 0
 );
 
@@ -813,7 +875,7 @@ const getStatusIcon = (status) => {
 // cambien los filtros (inversiones / razón social aplicada).
 // ────────────────────────────────────────────────────────────────
 
-const realSourceMode = ref('facturado'); // 'facturado' | 'consumido'
+const realSourceMode = ref(props.activeFruitIds?.length ? 'consumido' : 'facturado'); // 'facturado' | 'consumido'
 const consumedCategoryRows = ref(null); // null = aún no cargado
 const loadingConsumedByCategory = ref(false);
 const realColumnLabel = computed(() => realSourceMode.value === 'consumido' ? 'Consumido' : 'Real');
@@ -828,7 +890,8 @@ const fetchConsumedByCategory = async () => {
         const response = await axios.get(route('api.comparative.consumed-by-category'), {
             params: {
                 include_investments: includeInvestments.value ? 1 : 0,
-                ...(selectedCompanyReasons.value.length > 0 ? { company_reason_ids: selectedCompanyReasons.value } : {})
+                ...(selectedCompanyReasons.value.length > 0 ? { company_reason_ids: selectedCompanyReasons.value } : {}),
+                ...(selectedFruits.value.length > 0 ? { fruit_ids: selectedFruits.value } : {})
             }
         });
         consumedCategoryRows.value = response.data.rows || [];
@@ -847,13 +910,16 @@ watch(realSourceMode, (val) => {
     }
 });
 
-// Si cambian inversiones o la razón social aplicada, invalidar caché de consumido
-watch([includeInvestments, () => props.activeCompanyReasonIds], () => {
+// Si cambian inversiones, la razón social o el frutal aplicados, invalidar caché de consumido
+watch([includeInvestments, () => props.activeCompanyReasonIds, () => props.activeFruitIds], () => {
     if (realSourceMode.value === 'consumido') {
         consumedCategoryRows.value = null;
         fetchConsumedByCategory();
     }
 });
+
+// Con frutal activo la página se abre directo en Consumido (el watch de arriba solo reacciona a cambios)
+if (realSourceMode.value === 'consumido') fetchConsumedByCategory();
 
 // Igual que effectiveComparisonByLevel1, pero para el Detalle Mensual por Categoría: suma (o no)
 // investment_monthly a budget_monthly según el toggle "Incluir Inversiones" y recalcula
@@ -1092,16 +1158,17 @@ const cumulativeTableData = computed(() => {
         
         return {
             month: month,
-            invoiced_monthly: convertedInvoicedMonthly !== null ? convertedInvoicedMonthly : 0,
+            invoiced_monthly: hasFruitFilter.value ? 'N/D' : (convertedInvoicedMonthly !== null ? convertedInvoicedMonthly : 0),
             payroll_monthly: convertedPayrollMonth !== null ? convertedPayrollMonth : 0,
             payroll_cumulative: convertedPayrollCum !== null ? convertedPayrollCum : 0,
             budget: convertedBudget || 0,
-            invoiced: convertedInvoiced || 0,
+            invoiced: hasFruitFilter.value ? 'N/D' : (convertedInvoiced || 0),
             consumed: convertedConsumed || 0,
-            difference: difference !== null ? difference : 0,
+            difference: hasFruitFilter.value ? 'N/D' : (difference !== null ? difference : 0),
             differenceConsumed: differenceConsumed !== null ? differenceConsumed : 0,
-            variance: variance !== null ? variance.toFixed(2) : 0,
-            varianceConsumed: varianceConsumed !== null ? varianceConsumed.toFixed(2) : 0
+            variance: hasFruitFilter.value ? 'N/D' : (variance !== null ? variance.toFixed(2) : 0),
+            varianceConsumed: varianceConsumed !== null ? varianceConsumed.toFixed(2) : 0,
+            filter: activeFilterLabel.value
         };
     });
 });
@@ -1131,6 +1198,12 @@ const excelData = computed(() => {
 const detailCategoryExcelData = computed(() => {
     const div = dividir.value && divisor.value ? divisor.value : 1;
     const conv = (v) => (v || 0) / div;
+    // Con frutal no hay Facturado (N/D); con cualquier filtro activo se agrega la columna Filtro
+    const markNoInvoiced = (rows) => rows.map(r => ({
+        ...r,
+        ...(hasFruitFilter.value ? { 'Facturado': 'N/D' } : {}),
+        ...(activeFilterLabel.value ? { 'Filtro': activeFilterLabel.value } : {}),
+    }));
 
     const row = (nivel1, nivel2, nivel3, item, indent = '') => ({
         'Nivel 1': nivel1,
@@ -1204,11 +1277,11 @@ const detailCategoryExcelData = computed(() => {
                 }
             }
         }
-        return rows;
+        return markNoInvoiced(rows);
     }
 
     // Vista plana normal
-    return effectiveComparisonByLevel1.value.map(item => row(item.level1, item.level2, item.level3, item));
+    return markNoInvoiced(effectiveComparisonByLevel1.value.map(item => row(item.level1, item.level2, item.level3, item)));
 });
 
 // Watch para actualizar gráficos cuando cambie el toggle o la conversión USD
@@ -1546,7 +1619,7 @@ function createCumulativeChart() {
                     <div class="row flex-between-center">
                         <div class="col-6 col-sm-auto d-flex align-items-center pe-0">
                             <h5 class="fs-9 mb-0 text-nowrap py-2 py-xl-0">
-                                <i class="fas fa-chart-line me-2"></i>{{ t.dashboardTitle }}
+                                <i class="fas fa-chart-line me-2"></i>{{ t.dashboardTitle }}<ActiveFilterBadge :label="activeFilterLabel" />
                             </h5>
                         </div>
                         <div class="col-6 col-sm-auto ms-auto text-end ps-0">
@@ -1632,40 +1705,63 @@ function createCumulativeChart() {
                         </div>
                     </div>
                 </div>
-                <!-- Filtro Razón Social -->
-                <div class="row mt-0 mb-2 ms-1 align-items-center g-1" v-if="companyReasons?.length > 0">
-                    <div class="col-auto">
-                        <label class="form-label mb-0 small fw-semibold text-muted">
-                            <i class="fas fa-building me-1"></i>Razón Social
-                        </label>
+                <!-- Filtros Razón Social + Frutal -->
+                <div class="comparative-filters border rounded-3 bg-body-tertiary p-2 mb-2 mx-1" v-if="companyReasons?.length > 0 || fruits?.length > 0">
+                    <div class="row g-2 align-items-end">
+                        <div v-if="companyReasons?.length > 0" class="col-12 col-md-5">
+                            <label class="form-label mb-1 small fw-semibold text-muted d-block"><i class="fas fa-building me-1"></i>Razón Social</label>
+                            <Multiselect
+                                v-model="selectedCompanyReasons"
+                                :options="companyReasons"
+                                mode="tags"
+                                :searchable="true"
+                                :close-on-select="false"
+                                :hide-selected="false"
+                                placeholder="Todas las razones sociales"
+                                no-options-text="Sin opciones"
+                                no-results-text="Sin resultados"
+                                class="filter-multiselect"
+                            />
+                        </div>
+                        <div v-if="fruits?.length > 0" class="col-12 col-md-2">
+                            <label class="form-label mb-1 small fw-semibold text-muted d-block"><i class="fas fa-apple-whole me-1"></i>Frutal</label>
+                            <Multiselect
+                                v-model="selectedFruits"
+                                :options="fruits"
+                                mode="tags"
+                                :searchable="true"
+                                :close-on-select="false"
+                                :hide-selected="false"
+                                placeholder="Todos los frutales"
+                                no-options-text="Sin opciones"
+                                no-results-text="Sin resultados"
+                                class="filter-multiselect"
+                            />
+                        </div>
+                        <div class="col-12 col-md-auto d-flex align-items-center gap-2">
+                            <button
+                                type="button"
+                                class="btn btn-falcon-primary btn-sm"
+                                :disabled="!filtersDirty"
+                                @click="applyFilters"
+                            >
+                                <i class="fas fa-filter fa-xs me-1"></i>Aplicar
+                            </button>
+                            <button
+                                v-if="hasActiveFilters || filtersDirty"
+                                type="button"
+                                class="btn btn-falcon-default btn-sm"
+                                @click="clearFilters"
+                            >
+                                <i class="fas fa-times fa-xs me-1"></i>Limpiar
+                            </button>
+                        </div>
                     </div>
-                    <div class="col" style="max-width: 460px;">
-                        <Multiselect
-                            v-model="selectedCompanyReasons"
-                            :options="companyReasons"
-                            mode="multiple"
-                            :searchable="true"
-                            :close-on-select="false"
-                            :hide-selected="false"
-                            :multipleLabel="(vals) => vals.length ? vals.map(v => v.label).join(', ') : 'Todas las razones sociales'"
-                            placeholder="Todas las razones sociales"
-                            no-options-text="Sin opciones"
-                            no-results-text="Sin resultados"
-                            class="multiselect-sm multiselect-company-reason"
-                            :style="{'--ms-min-h': '1.9rem', '--ms-py': '0.25rem', '--ms-font-size': '0.78rem'}"
-                        />
+                    <div v-if="hasActiveFilters" class="small text-muted mt-2">
+                        <i class="fas fa-filter fa-xs me-1"></i>Filtros activos: <strong>{{ activeFiltersSummary }}</strong>
                     </div>
-                    <div class="col-auto ps-1">
-                        <button
-                            type="button"
-                            class="btn btn-falcon-primary btn-sm"
-                            @click="applyCompanyReasonFilter"
-                        >
-                            <i class="fas fa-filter fa-xs me-1"></i>Aplicar
-                        </button>
-                        <span v-if="props.activeCompanyReasonIds && props.activeCompanyReasonIds.length > 0" class="btn btn-sm btn-primary ms-1 pe-none" style="font-size:0.75rem;">
-                            {{ props.activeCompanyReasonIds.length }} filtradas
-                        </span>
+                    <div v-if="hasFruitFilter" class="small text-muted mt-1">
+                        <i class="fas fa-circle-info me-1"></i>Con filtro de frutal, Facturado no está disponible (las facturas no tienen centro de costo asignado aun.) y la diferencia se mide contra <strong>Consumido</strong>.
                     </div>
                 </div>
             </div>
@@ -1700,8 +1796,14 @@ function createCumulativeChart() {
                                 <h6 class="mb-0 text-muted">{{ t.invoiced }}</h6>
                                 <i class="fas fa-file-invoice-dollar text-success fa-lg"></i>
                             </div>
-                            <h4 class="mb-0 text-success text-nowrap" style="font-size: 1.15rem;">{{ formatCLP(displayedInvoiced) }}</h4>
-                            <small class="text-muted" style="font-size: 0.75rem;">{{ formatCLP(displayedInvoicedPerHectare) }}/ha</small>
+                            <template v-if="hasFruitFilter">
+                                <h4 class="mb-0 text-muted text-nowrap" style="font-size: 1.15rem;">No disponible</h4>
+                                <small class="text-muted" style="font-size: 0.75rem;">Las facturas no tienen frutal</small>
+                            </template>
+                            <template v-else>
+                                <h4 class="mb-0 text-success text-nowrap" style="font-size: 1.15rem;">{{ formatCLP(displayedInvoiced) }}</h4>
+                                <small class="text-muted" style="font-size: 0.75rem;">{{ formatCLP(displayedInvoicedPerHectare) }}/ha</small>
+                            </template>
                         </div>
                     </div>
                 </div>
@@ -1753,7 +1855,7 @@ function createCumulativeChart() {
                             <h4 class="mb-0 text-nowrap" style="font-size: 1.15rem;" :class="displayedDifference >= 0 ? 'text-success' : 'text-danger'">
                                 {{ formatCLP(Math.abs(displayedDifference)) }}
                             </h4>
-                            <small class="text-muted d-block mb-2">{{ t.budgetMinusInvoiced }}</small>
+                            <small class="text-muted d-block mb-2">{{ hasFruitFilter ? (isEnglish ? 'Budget - Outflows - Payroll' : 'Presupuesto - Consumido - Remun.') : t.budgetMinusInvoiced }}</small>
                             <span :class="['badge', displayedDifference >= 0 ? 'bg-success' : 'bg-danger']">
                                 {{ displayedDifference >= 0 ? t.underBudget : t.overBudget }}
                             </span>
@@ -1796,8 +1898,8 @@ function createCumulativeChart() {
                                         </span>
                                     </label>
                                 </div>
-                                <div class="form-check form-switch mb-0 d-flex align-items-center">
-                                    <input class="form-check-input me-2" type="checkbox" role="switch" id="showInvoicedToggle" v-model="showInvoiced" style="cursor: pointer;">
+                                <div class="form-check form-switch mb-0 d-flex align-items-center" :title="hasFruitFilter ? 'Las facturas no tienen frutal: con filtro de frutal no se puede ver Facturado' : ''">
+                                    <input class="form-check-input me-2" type="checkbox" role="switch" id="showInvoicedToggle" v-model="showInvoiced" :disabled="hasFruitFilter" style="cursor: pointer;">
                                     <label class="form-check-label small mb-0" for="showInvoicedToggle" style="cursor: pointer;">
                                         <span :class="showInvoiced ? 'text-success' : 'text-secondary'">
                                             <i :class="showInvoiced ? 'fas fa-check-circle' : 'fas fa-times-circle'"></i>
@@ -1860,6 +1962,7 @@ function createCumulativeChart() {
                                         >{{ monthlyDetailColumn === 'invoiced' ? 'Facturado' : (monthlyDetailColumn === 'payroll' ? 'Remuneraciones' : 'Consumos') }}</span>
                                         — <span class="text-primary">{{ monthlyDetailMonthNames }}</span>
                                         <span v-if="selectedBars.length > 1" class="badge bg-primary ms-1" style="font-size:0.68rem;">{{ selectedBars.length }} meses</span>
+                                        <ActiveFilterBadge :label="activeFilterLabel" />
                                     </h6>
                                     <!-- Badge inversiones (no aplica a Remuneraciones) -->
                                     <span
@@ -2022,7 +2125,7 @@ function createCumulativeChart() {
                     <div class="card">
                         <div class="card-header">
                             <h6 class="mb-0">
-                                <i class="fas fa-table me-2"></i>Resumen Mensual: Presupuesto vs Costos
+                                <i class="fas fa-table me-2"></i>Resumen Mensual: Presupuesto vs Costos<ActiveFilterBadge :label="activeFilterLabel" />
                             </h6>
                         </div>
                         <div class="card-body p-0">
@@ -2165,13 +2268,13 @@ function createCumulativeChart() {
             </div>
 
             <!-- Detalle Mensual por Categoría -->
-            <div class="row g-3 mb-3">
+            <div class="row g-2 mb-2">
                 <div class="col-12">
                     <div class="card">
                         <div class="card-header">
                             <div class="d-flex align-items-center justify-content-between mb-2 flex-wrap gap-2">
                                 <h6 class="mb-0">
-                                    <i class="fas fa-calendar-alt me-2"></i>Detalle Mensual por Categoría
+                                    <i class="fas fa-calendar-alt me-2"></i>Detalle Mensual por Categoría<ActiveFilterBadge :label="activeFilterLabel" />
                                 </h6>
                                 <button
                                     class="btn btn-sm"
@@ -2215,6 +2318,8 @@ function createCumulativeChart() {
                                             type="button"
                                             class="segmented-option"
                                             :class="{ active: realSourceMode === 'facturado' }"
+                                            :disabled="hasFruitFilter"
+                                            :title="hasFruitFilter ? 'Las facturas no tienen frutal: con filtro de frutal solo se puede ver Consumido' : ''"
                                             @click="realSourceMode = 'facturado'"
                                         ><i class="fas fa-file-invoice-dollar me-1"></i>Facturado</button>
                                         <button
@@ -2233,6 +2338,7 @@ function createCumulativeChart() {
                             <div v-if="realSourceMode === 'consumido'" class="alert alert-warning py-1 px-2 mb-0 small">
                                 <i class="fas fa-triangle-exclamation me-1"></i>
                                 Estás viendo el <strong>Consumido</strong> (salidas de bodega). Su clasificación por categoría y su reparto por razón social son distintos a los de Facturado, por lo que algunas categorías pueden variar o aparecer solo en esta vista.
+                                <template v-if="hasFruitFilter"> Con filtro de frutal, el Consumido se reparte por superficie entre los frutales de cada salida y Facturado no está disponible (las facturas no tienen frutal).</template>
                             </div>
                         </div>
                         <div class="card-body pt-2">
@@ -2370,7 +2476,7 @@ function createCumulativeChart() {
                         <div class="card-header">
                             <div class="d-flex justify-content-between align-items-center">
                                 <h6 class="mb-0">
-                                    <i class="fas fa-chart-line me-2"></i>{{ t.cumulativeTableTitle }}
+                                    <i class="fas fa-chart-line me-2"></i>{{ t.cumulativeTableTitle }}<ActiveFilterBadge :label="activeFilterLabel" />
                                 </h6>
                                 <ExportExcelButton
                                     :data="cumulativeTableData"
@@ -2385,17 +2491,18 @@ function createCumulativeChart() {
                                         { label: 'Diferencia (Presup. - Fact.)', key: 'difference' },
                                         { label: 'Diferencia (Presup. - Cons.)', key: 'differenceConsumed' },
                                         { label: 'Variación % (Fact.)', key: 'variance' },
-                                        { label: 'Variación % (Cons.)', key: 'varianceConsumed' }
+                                        { label: 'Variación % (Cons.)', key: 'varianceConsumed' },
+                                        ...(activeFilterLabel ? [{ label: 'Filtro', key: 'filter' }] : [])
                                     ]"
-                                    filename="evolucion_acumulada.xlsx"
-                                    class="btn btn-sm btn-light-primary"
+                                    :filename="exportFilename('evolucion_acumulada')"
+                                    class="btn btn-sm btn-light-primary excel-header-btn"
                                 >
                                     <i class="fas fa-file-excel me-1"></i>
                                     Exportar
                                 </ExportExcelButton>
                             </div>
                         </div>
-                        <div class="card-body">
+                        <div class="card-body pt-2">
                             <div class="table-responsive">
                                 <table class="table table-sm table-hover mb-0" style="font-size: 0.8rem;">
                                     <thead class="table-light">
@@ -2417,7 +2524,7 @@ function createCumulativeChart() {
                                         <tr v-for="(month, index) in cumulativeComparison.labels" :key="index">
                                             <td class="fw-semibold">{{ month }}</td>
                                             <td class="text-end">
-                                                <span v-if="index <= cumulativeComparison.last_month_with_data">
+                                                <span v-if="!hasFruitFilter && index <= cumulativeComparison.last_month_with_data">
                                                     {{ formatCLP(monthlyComparison.real[index]) }}
                                                 </span>
                                                 <span v-else class="text-muted">-</span>
@@ -2555,7 +2662,7 @@ function createCumulativeChart() {
                         <div class="card-header">
                             <div class="d-flex align-items-center justify-content-between">
                                 <h6 class="mb-0">
-                                    <i class="fas fa-table me-2"></i>Detalle por Categoría
+                                    <i class="fas fa-table me-2"></i>Detalle por Categoría<ActiveFilterBadge :label="activeFilterLabel" />
                                 </h6>
                                 <div class="d-flex align-items-center gap-2">
                                     <ExportExcelButton
@@ -2570,9 +2677,10 @@ function createCumulativeChart() {
                                             { label: 'Remuneraciones', key: 'Remuneraciones' },
                                             { label: 'Diferencia',     key: 'Diferencia' },
                                             { label: 'Variación %',    key: 'Variación %' },
+                                            ...(activeFilterLabel ? [{ label: 'Filtro', key: 'Filtro' }] : [])
                                         ]"
-                                        filename="detalle_por_categoria.xlsx"
-                                        class="btn btn-sm btn-light-primary"
+                                        :filename="exportFilename('detalle_por_categoria')"
+                                        class="btn btn-sm btn-light-primary excel-header-btn"
                                     >
                                         <i class="fas fa-file-excel me-1"></i>
                                         Exportar
@@ -2614,7 +2722,7 @@ function createCumulativeChart() {
                             </div>
                         </div>
                         
-                        <div class="card-body">
+                        <div class="card-body pt-2">
                             <div class="table-responsive">
                                 <table class="table table-striped table-hover table-sm" style="font-size: 0.8rem;">
                                     <thead>
@@ -2661,7 +2769,7 @@ function createCumulativeChart() {
                                                     </span>
                                                 </td>
                                                 <td class="text-end fw-bold">{{ formatCLP(group.totals.budget) }}</td>
-                                                <td class="text-end fw-bold">{{ formatCLP(group.totals.invoiced) }}</td>
+                                                <td class="text-end fw-bold">{{ fmtInvoiced(group.totals.invoiced) }}</td>
                                                 <td class="text-end fw-bold">{{ formatCLP(group.totals.consumed) }}</td>
                                                 <td class="text-end fw-bold text-muted">{{ formatCLP(group.totals.payroll || 0) }}</td>
                                                 <td class="text-end fw-bold" :class="group.totals.difference > 0 ? 'text-success' : 'text-danger'">
@@ -2695,7 +2803,7 @@ function createCumulativeChart() {
                                                                 <span class="text-muted fw-normal small ms-1">({{ l2group.items.length }})</span>
                                                             </td>
                                                             <td class="text-end fw-semibold">{{ formatCLP(l2group.totals.budget) }}</td>
-                                                            <td class="text-end fw-semibold">{{ formatCLP(l2group.totals.invoiced) }}</td>
+                                                            <td class="text-end fw-semibold">{{ fmtInvoiced(l2group.totals.invoiced) }}</td>
                                                             <td class="text-end fw-semibold">{{ formatCLP(l2group.totals.consumed) }}</td>
                                                             <td class="text-end fw-semibold text-muted">{{ formatCLP(l2group.totals.payroll || 0) }}</td>
                                                             <td class="text-end fw-semibold" :class="l2group.totals.difference > 0 ? 'text-success' : 'text-danger'">
@@ -2722,7 +2830,7 @@ function createCumulativeChart() {
                                                                 <td></td>
                                                                 <td class="small ps-4">└ {{ item.level3 }}</td>
                                                                 <td class="text-end">{{ formatCLP(item.budget) }}</td>
-                                                                <td class="text-end">{{ formatCLP(item.invoiced) }}</td>
+                                                                <td class="text-end">{{ fmtInvoiced(item.invoiced) }}</td>
                                                                 <td class="text-end">{{ formatCLP(item.consumed) }}</td>
                                                                 <td class="text-end">
                                                                     <span v-if="(item.payroll || 0) > 0" class="text-success">{{ formatCLP(item.payroll) }}</span>
@@ -2755,7 +2863,7 @@ function createCumulativeChart() {
                                                         <td class="fw-normal">{{ item.level2 }}</td>
                                                         <td class="fw-normal text-muted small">{{ item.level3 }}</td>
                                                         <td class="text-end">{{ formatCLP(item.budget) }}</td>
-                                                        <td class="text-end">{{ formatCLP(item.invoiced) }}</td>
+                                                        <td class="text-end">{{ fmtInvoiced(item.invoiced) }}</td>
                                                         <td class="text-end">{{ formatCLP(item.consumed) }}</td>
                                                         <td class="text-end">
                                                             <span v-if="(item.payroll || 0) > 0" class="text-success">{{ formatCLP(item.payroll) }}</span>
@@ -2795,7 +2903,7 @@ function createCumulativeChart() {
                                             <td class="fw-bold">{{ item.level2 }}</td>
                                             <td class="text-muted small">{{ item.level3 }}</td>
                                             <td class="text-end">{{ formatCLP(item.budget) }}</td>
-                                            <td class="text-end">{{ formatCLP(item.invoiced) }}</td>
+                                            <td class="text-end">{{ fmtInvoiced(item.invoiced) }}</td>
                                             <td class="text-end">{{ formatCLP(item.consumed) }}</td>
                                             <td class="text-end">
                                                 <span v-if="(item.payroll || 0) > 0" class="text-success">{{ formatCLP(item.payroll) }}</span>
@@ -2823,7 +2931,7 @@ function createCumulativeChart() {
                                             <td></td>
                                             <td colspan="3">TOTAL</td>
                                             <td class="text-end">{{ formatCLP(displayedBudget) }}</td>
-                                            <td class="text-end">{{ formatCLP(summary.invoiced_total) }}</td>
+                                            <td class="text-end">{{ fmtInvoiced(summary.invoiced_total) }}</td>
                                             <td class="text-end">{{ formatCLP(displayedConsumed) }}</td>
                                             <td class="text-end text-success">{{ formatCLP(payrollSummary?.total || 0) }}</td>
                                             <td class="text-end" :class="displayedDifference > 0 ? 'text-success' : 'text-danger'">
@@ -2971,6 +3079,31 @@ thead .sticky-col {
 }
 .total-zone-br {
     border-bottom-right-radius: 8px;
+}
+
+/* Filtros del dashboard (razón social / frutal): chips en vez de texto separado por comas */
+.filter-multiselect {
+    --ms-font-size: 0.78rem;
+    --ms-py: 0.2rem;
+    --ms-tag-font-size: 0.72rem;
+    --ms-tag-bg: #e7efff;
+    --ms-tag-color: #2c7be5;
+    --ms-tag-py: 0.1rem;
+    --ms-tag-px: 0.45rem;
+    --ms-tag-my: 0.1rem;
+    --ms-tag-mx: 0.15rem;
+    --ms-tag-radius: 999px;
+    --ms-option-font-size: 0.78rem;
+    --ms-option-py: 0.3rem;
+    --ms-option-px: 0.6rem;
+}
+
+/* Encabezados de tabla sin margen inferior (el botón Excel trae mb-1 por defecto) */
+.excel-header-btn {
+    margin-bottom: 0 !important;
+}
+.card-header h6 {
+    margin-bottom: 0 !important;
 }
 
 /* Multiselect razón social */

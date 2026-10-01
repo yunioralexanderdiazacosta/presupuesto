@@ -39,6 +39,13 @@ class ComparativeOutflowsDashboardController extends Controller
             ->toArray();
         $company_reason_id = count($company_reason_ids) > 0 ? $company_reason_ids : null;
 
+        $fruit_ids = collect($request->input('fruit_ids', []))
+            ->map(fn($id) => (int) $id)
+            ->filter()
+            ->values()
+            ->toArray();
+        $fruitIdsFilter = count($fruit_ids) > 0 ? $fruit_ids : null;
+
         if (!$season_id) {
             return redirect()->route('select.budget');
         }
@@ -62,10 +69,10 @@ class ComparativeOutflowsDashboardController extends Controller
         $inversionOperationId = \App\Models\Operation::whereRaw('LOWER(name) LIKE ?', ['%inversion%'])->value('id');
 
         // Calcular una sola vez y reutilizar (evita queries duplicadas)
-        $monthlyComparison = $this->getMonthlyComparison($season_id, $team_id, $months, $company_reason_id, $gastoOperationId, $inversionOperationId);
-        $comparisonByLevel1 = $this->getComparisonByLevel1($season_id, $team_id, $company_reason_id, $gastoOperationId, $inversionOperationId);
-        $payrollByLevel2    = $this->getPayrollByLevel2($team_id, $season_id, $company_reason_id);
-        $payrollByLevel3    = $this->getPayrollByLevel3($team_id, $season_id, $company_reason_id);
+        $monthlyComparison = $this->getMonthlyComparison($season_id, $team_id, $months, $company_reason_id, $gastoOperationId, $inversionOperationId, $fruitIdsFilter);
+        $comparisonByLevel1 = $this->getComparisonByLevel1($season_id, $team_id, $company_reason_id, $gastoOperationId, $inversionOperationId, $fruitIdsFilter);
+        $payrollByLevel2    = $this->getPayrollByLevel2($team_id, $season_id, $company_reason_id, $fruitIdsFilter);
+        $payrollByLevel3    = $this->getPayrollByLevel3($team_id, $season_id, $company_reason_id, $fruitIdsFilter);
 
         // ── Merge payroll en las filas de detailedTable (match exacto por Nivel1+Nivel2+Nivel3) ──
         foreach ($payrollByLevel3 as $payrollRow) {
@@ -115,18 +122,20 @@ class ComparativeOutflowsDashboardController extends Controller
             'isAdmin'     => $user->hasRole('Admin'),
             'companyReasons'        => $this->getCompanyReasons($season_id, $team_id),
             'activeCompanyReasonIds' => $company_reason_ids,
-            'summary' => $this->getSummaryComparison($season_id, $team_id, $company_reason_id, $gastoOperationId, $inversionOperationId),
+            'fruits' => $this->getFruits($season_id, $team_id),
+            'activeFruitIds' => $fruit_ids,
+            'summary' => $this->getSummaryComparison($season_id, $team_id, $company_reason_id, $gastoOperationId, $inversionOperationId, $fruitIdsFilter),
             'monthlyComparison' => $monthlyComparison,
-            'cumulativeComparison' => $this->buildCumulativeFromMonthly($monthlyComparison, $months),
+            'cumulativeComparison' => $this->buildCumulativeFromMonthly($monthlyComparison, $months, (bool) $fruitIdsFilter),
             'comparisonByLevel1' => $comparisonByLevel1,
             'comparisonByLevel2' => [],
             'detailedTable' => $comparisonByLevel1,
             'months' => $months,
             'seasonStartMonth' => $startMonthId,
-            'payrollSummary'   => $this->getPayrollSummary($team_id, $season_id, $company_reason_id),
-            'payrollMonthly'   => $this->getPayrollMonthly($team_id, $season_id, $months, $company_reason_id),
+            'payrollSummary'   => $this->getPayrollSummary($team_id, $season_id, $company_reason_id, $fruitIdsFilter),
+            'payrollMonthly'   => $this->getPayrollMonthly($team_id, $season_id, $months, $company_reason_id, $fruitIdsFilter),
             'payrollByLevel2'  => $payrollByLevel2,
-            'comparisonByLevel1Monthly' => $this->getComparisonByLevel1Monthly($season_id, $team_id, $company_reason_id, $months, $gastoOperationId, $inversionOperationId),
+            'comparisonByLevel1Monthly' => $this->getComparisonByLevel1Monthly($season_id, $team_id, $company_reason_id, $months, $gastoOperationId, $inversionOperationId, $fruitIdsFilter),
         ]);
     }
 
@@ -183,6 +192,24 @@ class ComparativeOutflowsDashboardController extends Controller
     }
 
     /**
+     * Retorna los frutales con centros de costo en la temporada (para el selector de frutal).
+     */
+    private function getFruits($season_id, $team_id): array
+    {
+        $fruitIds = CostCenter::where('season_id', $season_id)
+            ->whereHas('season.team', fn ($q) => $q->where('team_id', $team_id))
+            ->whereNotNull('fruit_id')
+            ->distinct()
+            ->pluck('fruit_id');
+
+        return \App\Models\Fruit::whereIn('id', $fruitIds)
+            ->orderBy('name')
+            ->get(['id', 'name'])
+            ->map(fn ($f) => ['value' => $f->id, 'label' => $f->name])
+            ->toArray();
+    }
+
+    /**
      * Retorna IDs de centros de costo filtrados:
      * cuando hay filtro: company_reason_id = $id  OR  company_reason_id IS NULL
      * cuando no hay filtro: todos.
@@ -205,16 +232,16 @@ class ComparativeOutflowsDashboardController extends Controller
     /**
      * Resumen comparativo general
      */
-    private function getSummaryComparison($season_id, $team_id, $company_reason_id = null, $gastoOperationId = null, $inversionOperationId = null)
+    private function getSummaryComparison($season_id, $team_id, $company_reason_id = null, $gastoOperationId = null, $inversionOperationId = null, $fruitIds = null)
     {
         try {
             // Total Presupuestado (solo productos con operación "Gasto") - usa getBudgetTotalsByLevel12
             // para respetar el filtro de razón social (CCs con company_reason_id = $filter OR IS NULL)
-            $budgetTotal = (float) $this->getBudgetTotalsByLevel12($season_id, $team_id, $company_reason_id, false, $gastoOperationId ? [$gastoOperationId] : null)->sum('total_amount');
+            $budgetTotal = (float) $this->getBudgetTotalsByLevel12($season_id, $team_id, $company_reason_id, false, $gastoOperationId ? [$gastoOperationId] : null, $fruitIds)->sum('total_amount');
 
             // Total Inversiones: mismos módulos de presupuesto pero filtrados por operación "Inversión"
             // (antes se calculaba con el módulo Investment, que no tenía relación con los productos reales)
-            $totalInvestments = (float) $this->getBudgetTotalsByLevel12($season_id, $team_id, $company_reason_id, false, $inversionOperationId ? [$inversionOperationId] : null)->sum('total_amount');
+            $totalInvestments = (float) $this->getBudgetTotalsByLevel12($season_id, $team_id, $company_reason_id, false, $inversionOperationId ? [$inversionOperationId] : null, $fruitIds)->sum('total_amount');
 
             // Total General = Total Neto + Inversiones
             $budgetTotalWithInvestments = $budgetTotal + $totalInvestments;
@@ -229,7 +256,8 @@ class ComparativeOutflowsDashboardController extends Controller
             };
 
             // Total Facturado - SQL aggregation con filtro de razón social
-            $invoicesTotal = (float) ($applyInvoiceFilter(
+            // (las facturas no tienen frutal: con filtro de frutal el Facturado no aplica y queda en 0)
+            $invoicesTotal = $fruitIds ? 0.0 : (float) ($applyInvoiceFilter(
                 DB::table('invoices as i')
                     ->join('invoice_products as ip', 'i.id', '=', 'ip.invoice_id')
                     ->where('i.team_id', $team_id)
@@ -237,7 +265,7 @@ class ComparativeOutflowsDashboardController extends Controller
             )->sum(DB::raw('ip.unit_price * ip.amount')) ?? 0);
 
             // Notas de crédito (se restan) — filtro por razón social de la factura asociada
-            $creditNotesTotal = (float) (DB::table('credit_debit_notes as cdn')
+            $creditNotesTotal = $fruitIds ? 0.0 : (float) (DB::table('credit_debit_notes as cdn')
                 ->join('credit_debit_note_items as cdni', 'cdn.id', '=', 'cdni.credit_debit_note_id')
                 ->leftJoin('invoices as i', 'cdn.invoice_id', '=', 'i.id')
                 ->where('cdn.team_id', $team_id)
@@ -253,7 +281,7 @@ class ComparativeOutflowsDashboardController extends Controller
                 ->sum(DB::raw('cdni.unit_price * cdni.quantity')) ?? 0);
 
             // Notas de débito (se suman)
-            $debitNotesTotal = (float) (DB::table('credit_debit_notes as cdn')
+            $debitNotesTotal = $fruitIds ? 0.0 : (float) (DB::table('credit_debit_notes as cdn')
                 ->join('credit_debit_note_items as cdni', 'cdn.id', '=', 'cdni.credit_debit_note_id')
                 ->leftJoin('invoices as i', 'cdn.invoice_id', '=', 'i.id')
                 ->where('cdn.team_id', $team_id)
@@ -280,7 +308,7 @@ class ComparativeOutflowsDashboardController extends Controller
                 ->with([
                     'invoiceProduct:id,unit_price',
                     'creditDebitNoteItem:id,unit_price',
-                    'costCenters.costCenter:id,company_reason_id,surface',
+                    'costCenters.costCenter:id,company_reason_id,fruit_id,surface',
                     'operation:id,name',
                 ])
                 ->get();
@@ -288,8 +316,8 @@ class ComparativeOutflowsDashboardController extends Controller
             $consumedTotalWithInvestments = 0.0;
             $consumedInvestmentsTotal = 0.0;
             foreach ($consumedOutflows as $outflow) {
-                if (!$this->outflowMatchesCompanyReason($outflow, $company_reason_id)) continue;
-                $amount = $this->proratedOutflowAmount($outflow, $company_reason_id);
+                if (!$this->outflowMatchesCompanyReason($outflow, $company_reason_id, $fruitIds)) continue;
+                $amount = $this->proratedOutflowAmount($outflow, $company_reason_id, $fruitIds);
                 if ($amount == 0.0) continue;
 
                 $consumedTotalWithInvestments += $amount;
@@ -319,6 +347,7 @@ class ComparativeOutflowsDashboardController extends Controller
                           ->orWhereNull('company_reason_id');
                     });
                 })
+                ->when($fruitIds, fn ($q) => $q->whereIn('fruit_id', $fruitIds))
                 ->sum('surface');
 
             return [
@@ -367,7 +396,7 @@ class ComparativeOutflowsDashboardController extends Controller
      * Comparación mensual (no acumulada)
      * Usa EXACTAMENTE los mismos métodos que TechnicalPanelController
      */
-    private function getMonthlyComparison($season_id, $team_id, $months, $company_reason_id = null, $gastoOperationId = null, $inversionOperationId = null)
+    private function getMonthlyComparison($season_id, $team_id, $months, $company_reason_id = null, $gastoOperationId = null, $inversionOperationId = null, $fruitIds = null)
     {
         try {
             // Usar la misma lógica que TechnicalPanelController
@@ -387,6 +416,7 @@ class ComparativeOutflowsDashboardController extends Controller
                           ->orWhereNull('company_reason_id');
                     });
                 })
+                ->when($fruitIds, fn ($q) => $q->whereIn('fruit_id', $fruitIds))
                 ->get();
             $costCentersId = $costCenters->pluck('id');
 
@@ -427,10 +457,10 @@ class ComparativeOutflowsDashboardController extends Controller
 
             // IMPORTANTE: Agregar Administración y Gral Campo (estaban faltando!)
             // Se prorratean por superficie según razón social activa
-            $monthsAdministration = $this->getMonthsAdministration($team_id, $company_reason_id, $gastoOpIds);
-            $monthsFields = $this->getMonthsFields($team_id, $company_reason_id, $gastoOpIds);
-            $monthsAdministrationInv = $this->getMonthsAdministration($team_id, $company_reason_id, $inversionOpIds);
-            $monthsFieldsInv = $this->getMonthsFields($team_id, $company_reason_id, $inversionOpIds);
+            $monthsAdministration = $this->getMonthsAdministration($team_id, $company_reason_id, $gastoOpIds, $fruitIds);
+            $monthsFields = $this->getMonthsFields($team_id, $company_reason_id, $gastoOpIds, $fruitIds);
+            $monthsAdministrationInv = $this->getMonthsAdministration($team_id, $company_reason_id, $inversionOpIds, $fruitIds);
+            $monthsFieldsInv = $this->getMonthsFields($team_id, $company_reason_id, $inversionOpIds, $fruitIds);
 
             // Crear arrays de presupuesto por mes
             $budgetByMonth = [];
@@ -440,8 +470,9 @@ class ComparativeOutflowsDashboardController extends Controller
             $consumedWithInvestmentsByMonth = [];
 
             // Batch: obtener facturado y consumido de TODOS los meses en pocas queries
-            $allInvoicedByMonth = $this->getAllInvoicedByMonth($season_id, $team_id, $company_reason_id);
-            $allConsumedByMonth = $this->getAllConsumedByMonth($season_id, $team_id, $company_reason_id);
+            // Las facturas no tienen frutal: con filtro de frutal el Facturado no aplica (el frontend muestra Consumido)
+            $allInvoicedByMonth = $fruitIds ? array_fill(1, 12, 0.0) : $this->getAllInvoicedByMonth($season_id, $team_id, $company_reason_id);
+            $allConsumedByMonth = $this->getAllConsumedByMonth($season_id, $team_id, $company_reason_id, $fruitIds);
 
             foreach ($months as $month) {
                 $monthId = $month['id'];
@@ -504,7 +535,7 @@ class ComparativeOutflowsDashboardController extends Controller
     /**
      * Comparación acumulada mes a mes
      */
-    private function buildCumulativeFromMonthly($monthlyData, $months)
+    private function buildCumulativeFromMonthly($monthlyData, $months, $useConsumedAsReal = false)
     {
         try {
             $budgetCumulative = [];
@@ -534,6 +565,11 @@ class ComparativeOutflowsDashboardController extends Controller
                 }
             }
 
+            // Con filtro de frutal no hay Facturado: el último mes con datos lo define el Consumido
+            if ($useConsumedAsReal) {
+                $lastMonthWithData = $lastMonthWithConsumedData;
+            }
+
             foreach ($monthlyData['budget'] as $index => $budgetValue) {
                 $accumulatedBudget += $budgetValue;
                 $budgetCumulative[] = floatval($accumulatedBudget);
@@ -543,8 +579,8 @@ class ComparativeOutflowsDashboardController extends Controller
                 $accumulatedBudgetWithInvestments += $budgetWithInvestmentsValue;
                 $budgetWithInvestmentsCumulative[] = floatval($accumulatedBudgetWithInvestments);
                 
-                // Solo acumular real hasta el último mes con datos
-                if ($index <= $lastMonthWithData) {
+                // Solo acumular real hasta el último mes con datos (con frutal no hay Facturado: queda en null)
+                if (!$useConsumedAsReal && $index <= $lastMonthWithData) {
                     $accumulatedReal += $monthlyData['real'][$index];
                     $realCumulative[] = floatval($accumulatedReal);
                 } else {
@@ -853,7 +889,7 @@ class ComparativeOutflowsDashboardController extends Controller
                 ->whereNotNull('i.month_id')
                 ->when($company_reason_id, function ($q) use ($company_reason_id) {
                     $q->where(function ($w) use ($company_reason_id) {
-                        $w->where('i.company_reason_id', $company_reason_id)
+                        $w->whereIn('i.company_reason_id', $company_reason_id)
                           ->orWhereNull('i.company_reason_id');
                     });
                 })
@@ -878,7 +914,7 @@ class ComparativeOutflowsDashboardController extends Controller
                 ->where('cdn.affects_inventory', 1)
                 ->when($company_reason_id, function ($q) use ($company_reason_id) {
                     $q->where(function ($w) use ($company_reason_id) {
-                        $w->where('i.company_reason_id', $company_reason_id)
+                        $w->whereIn('i.company_reason_id', $company_reason_id)
                           ->orWhereNull('i.company_reason_id');
                     });
                 })
@@ -911,7 +947,7 @@ class ComparativeOutflowsDashboardController extends Controller
      * Reemplaza 12× getConsumedForMonth() → 24-48 queries por ~4 queries.
      * @return array [month_id => ['total' => float, 'total_with_investments' => float]]
      */
-    private function getAllConsumedByMonth($season_id, $team_id, $company_reason_id = null)
+    private function getAllConsumedByMonth($season_id, $team_id, $company_reason_id = null, $fruit_ids = null)
     {
         // Inicializar todos los meses
         $result = [];
@@ -928,19 +964,19 @@ class ComparativeOutflowsDashboardController extends Controller
                 ->with([
                     'invoiceProduct:id,unit_price,invoice_id',
                     'creditDebitNoteItem:id,unit_price,credit_debit_note_id',
-                    'costCenters.costCenter:id,company_reason_id,surface',
+                    'costCenters.costCenter:id,company_reason_id,fruit_id,surface',
                     'operation:id,name',
                 ])
                 ->get();
 
             foreach ($allOutflows as $outflow) {
-                if (!$this->outflowMatchesCompanyReason($outflow, $company_reason_id)) continue;
+                if (!$this->outflowMatchesCompanyReason($outflow, $company_reason_id, $fruit_ids)) continue;
 
                 // Mes de la SALIDA (fecha propia del outflow), no de la factura/nota de origen
                 if (!$outflow->date) continue;
                 $monthId = (int) date('n', strtotime($outflow->date));
 
-                $amount = $this->proratedOutflowAmount($outflow, $company_reason_id);
+                $amount = $this->proratedOutflowAmount($outflow, $company_reason_id, $fruit_ids);
                 if ($amount == 0.0) continue;
 
                 // Verificar si es inversión
@@ -1152,7 +1188,7 @@ class ComparativeOutflowsDashboardController extends Controller
     /**
      * Comparación por Level1
      */
-    private function getComparisonByLevel1($season_id, $team_id, $company_reason_id = null, $gastoOperationId = null, $inversionOperationId = null)
+    private function getComparisonByLevel1($season_id, $team_id, $company_reason_id = null, $gastoOperationId = null, $inversionOperationId = null, $fruitIds = null)
     {
         try {
             // Inicializar array para almacenar todas las categorías encontradas
@@ -1163,7 +1199,7 @@ class ComparativeOutflowsDashboardController extends Controller
             //    (solo operación "Gasto"; "Inversión" se calcula aparte y se suma en el frontend
             //    cuando el toggle "Incluir Inversiones" está activo)
             // ========================================
-            $budgetByLevel = $this->getBudgetTotalsByLevel12($season_id, $team_id, $company_reason_id, false, $gastoOperationId ? [$gastoOperationId] : null);
+            $budgetByLevel = $this->getBudgetTotalsByLevel12($season_id, $team_id, $company_reason_id, false, $gastoOperationId ? [$gastoOperationId] : null, $fruitIds);
             
             foreach ($budgetByLevel as $row) {
                 $fullName = $row['level1_name'] . ' - ' . $row['level2_name'] . ' - ' . $row['level3_name'];
@@ -1177,7 +1213,7 @@ class ComparativeOutflowsDashboardController extends Controller
             }
 
             // Presupuesto de Inversión, mismos módulos pero filtrado por operación "Inversión"
-            $investmentByLevel = $this->getBudgetTotalsByLevel12($season_id, $team_id, $company_reason_id, false, $inversionOperationId ? [$inversionOperationId] : null);
+            $investmentByLevel = $this->getBudgetTotalsByLevel12($season_id, $team_id, $company_reason_id, false, $inversionOperationId ? [$inversionOperationId] : null, $fruitIds);
 
             foreach ($investmentByLevel as $row) {
                 $fullName = $row['level1_name'] . ' - ' . $row['level2_name'] . ' - ' . $row['level3_name'];
@@ -1198,8 +1234,8 @@ class ComparativeOutflowsDashboardController extends Controller
             // 2. FACTURADO por categoría (Level2 real de la BD)
             // ========================================
             
-            // Facturas (filtro razón social)
-            $invoicesByLevel2 = DB::table('invoices as i')
+            // Facturas (filtro razón social). Las facturas no tienen frutal: con filtro de frutal no aplica.
+            $invoicesByLevel2 = $fruitIds ? collect() : DB::table('invoices as i')
                 ->join('invoice_products as ip', 'i.id', '=', 'ip.invoice_id')
                 ->join('products as p', 'ip.product_id', '=', 'p.id')
                 ->leftJoin('level3s as l3', 'p.level3_id', '=', 'l3.id')
@@ -1209,7 +1245,7 @@ class ComparativeOutflowsDashboardController extends Controller
                 ->where('i.season_id', $season_id)
                 ->when($company_reason_id, function ($q) use ($company_reason_id) {
                     $q->where(function ($w) use ($company_reason_id) {
-                        $w->where('i.company_reason_id', $company_reason_id)
+                        $w->whereIn('i.company_reason_id', $company_reason_id)
                           ->orWhereNull('i.company_reason_id');
                     });
                 })
@@ -1238,7 +1274,7 @@ class ComparativeOutflowsDashboardController extends Controller
             }
 
             // Notas de Crédito/Débito (solo affects_inventory=1) con filtro razón social
-            $notesByLevel2 = DB::table('credit_debit_notes as cdn')
+            $notesByLevel2 = $fruitIds ? collect() : DB::table('credit_debit_notes as cdn')
                 ->join('credit_debit_note_items as cdni', 'cdn.id', '=', 'cdni.credit_debit_note_id')
                 ->join('products as p', 'cdni.product_id', '=', 'p.id')
                 ->leftJoin('level3s as l3', 'p.level3_id', '=', 'l3.id')
@@ -1250,7 +1286,7 @@ class ComparativeOutflowsDashboardController extends Controller
                 ->where('cdn.affects_inventory', 1)
                 ->when($company_reason_id, function ($q) use ($company_reason_id) {
                     $q->where(function ($w) use ($company_reason_id) {
-                        $w->where('i.company_reason_id', $company_reason_id)
+                        $w->whereIn('i.company_reason_id', $company_reason_id)
                           ->orWhereNull('i.company_reason_id');
                     });
                 })
@@ -1301,7 +1337,7 @@ class ComparativeOutflowsDashboardController extends Controller
                     'level3.level2.level1',
                     'invoiceProduct:id,unit_price',
                     'creditDebitNoteItem:id,unit_price',
-                    'costCenters.costCenter:id,company_reason_id,surface',
+                    'costCenters.costCenter:id,company_reason_id,fruit_id,surface',
                 ])
                 ->get()
                 ->groupBy(function($outflow) {
@@ -1315,9 +1351,9 @@ class ComparativeOutflowsDashboardController extends Controller
                 });
 
             foreach ($outflowsByLevel2 as $fullName => $outflows) {
-                $total = $outflows->sum(function($outflow) use ($company_reason_id) {
-                    if (!$this->outflowMatchesCompanyReason($outflow, $company_reason_id)) return 0.0;
-                    return $this->proratedOutflowAmount($outflow, $company_reason_id);
+                $total = $outflows->sum(function($outflow) use ($company_reason_id, $fruitIds) {
+                    if (!$this->outflowMatchesCompanyReason($outflow, $company_reason_id, $fruitIds)) return 0.0;
+                    return $this->proratedOutflowAmount($outflow, $company_reason_id, $fruitIds);
                 });
 
                 if (!isset($categories[$fullName])) {
@@ -1510,13 +1546,14 @@ class ComparativeOutflowsDashboardController extends Controller
      * @return array [{level1, level2, level3, budget_monthly: float[12], invoiced_monthly: float[12],
      *                 payroll_monthly: float[12], real_monthly: float[12], difference_monthly: float[12], ...totales}]
      */
-    private function getComparisonByLevel1Monthly($season_id, $team_id, $company_reason_id, array $months, $gastoOperationId = null, $inversionOperationId = null): array
+    private function getComparisonByLevel1Monthly($season_id, $team_id, $company_reason_id, array $months, $gastoOperationId = null, $inversionOperationId = null, $fruitIds = null): array
     {
         try {
-            $budgetRows  = $this->getBudgetTotalsByLevel12($season_id, $team_id, $company_reason_id, true, $gastoOperationId ? [$gastoOperationId] : null);
-            $investmentRows = $this->getBudgetTotalsByLevel12($season_id, $team_id, $company_reason_id, true, $inversionOperationId ? [$inversionOperationId] : null);
-            $invoicedMap = $this->getInvoicedMonthlyByLevel123($season_id, $team_id, $company_reason_id, $months);
-            $payrollRows = $this->getPayrollByLevel3Monthly($team_id, $season_id, $months, $company_reason_id);
+            $budgetRows  = $this->getBudgetTotalsByLevel12($season_id, $team_id, $company_reason_id, true, $gastoOperationId ? [$gastoOperationId] : null, $fruitIds);
+            $investmentRows = $this->getBudgetTotalsByLevel12($season_id, $team_id, $company_reason_id, true, $inversionOperationId ? [$inversionOperationId] : null, $fruitIds);
+            // Las facturas no tienen frutal: con filtro de frutal el Facturado no aplica (el frontend usa Consumido)
+            $invoicedMap = $fruitIds ? [] : $this->getInvoicedMonthlyByLevel123($season_id, $team_id, $company_reason_id, $months);
+            $payrollRows = $this->getPayrollByLevel3Monthly($team_id, $season_id, $months, $company_reason_id, $fruitIds);
 
             $categories = [];
             $emptyRow = function ($level1, $level2, $level3) {
@@ -1618,7 +1655,7 @@ class ComparativeOutflowsDashboardController extends Controller
      * Replica la lógica de DashboardController->getTotalsByLevel12()
      * Retorna: [level1_id, level1_name, level2_id, level2_name, total_amount]
      */
-    private function getBudgetTotalsByLevel12($season_id, $team_id, $company_reason_id = null, $trackMonthly = false, $operationIds = null)
+    private function getBudgetTotalsByLevel12($season_id, $team_id, $company_reason_id = null, $trackMonthly = false, $operationIds = null, $fruitIds = null)
     {
         $season = \App\Models\Season::select('month_id')->where('id', $season_id)->first();
         $currentMonth = $season ? $season->month_id : 1;
@@ -1637,14 +1674,18 @@ class ComparativeOutflowsDashboardController extends Controller
         // Filtro razón social: incluir CCs con la razón social indicada O sin razón social (prorrateados)
         if ($company_reason_id) {
             $costCentersQuery->where(function ($w) use ($company_reason_id) {
-                $w->where('company_reason_id', $company_reason_id)
+                $w->whereIn('company_reason_id', $company_reason_id)
                   ->orWhereNull('company_reason_id');
             });
+        }
+        // Filtro frutal: solo CCs de los frutales indicados (se combina con razón social)
+        if ($fruitIds) {
+            $costCentersQuery->whereIn('fruit_id', $fruitIds);
         }
         $costCenters = $costCentersQuery->get(['id', 'fruit_id', 'surface'])->keyBy('id');
 
         // Administración y Generales Campo no tienen CC propio: se atribuyen por su sucursal (branch_id)
-        $branchRatios = $this->getBranchCompanyReasonRatios($season_id, $company_reason_id);
+        $branchRatios = $this->getBranchCompanyReasonRatios($season_id, $company_reason_id, $fruitIds);
 
         $totals = [];
         
@@ -2002,7 +2043,7 @@ class ComparativeOutflowsDashboardController extends Controller
             $countMonths = count($activeMonths);
             if ($countMonths > 0) {
                 $quantity = ($adm->quantity !== null && ($adm->quantity > 0)) ? ((in_array($adm->unit_id ?? null, [2, 4])) ? ($adm->quantity / 1000) : $adm->quantity) : 0;
-                $ratio = !$company_reason_id ? 1.0 : (is_null($adm->branch_id) ? 0.0 : ($branchRatios[$adm->branch_id] ?? 0.0));
+                $ratio = (!$company_reason_id && !$fruitIds) ? 1.0 : (is_null($adm->branch_id) ? 0.0 : ($branchRatios[$adm->branch_id] ?? 0.0));
                 $amountPerMonth = round($adm->price * $quantity * $ratio, 2);
                 $monthlyAmounts = array_fill(0, 12, 0.0);
                 foreach ($months as $idx => $month) {
@@ -2052,7 +2093,7 @@ class ComparativeOutflowsDashboardController extends Controller
             $countMonths = count($activeMonths);
             if ($countMonths > 0) {
                 $quantity = ($fld->quantity !== null && ($fld->quantity > 0)) ? ((in_array($fld->unit_id ?? null, [2, 4])) ? ($fld->quantity / 1000) : $fld->quantity) : 0;
-                $ratio = !$company_reason_id ? 1.0 : (is_null($fld->branch_id) ? 0.0 : ($branchRatios[$fld->branch_id] ?? 0.0));
+                $ratio = (!$company_reason_id && !$fruitIds) ? 1.0 : (is_null($fld->branch_id) ? 0.0 : ($branchRatios[$fld->branch_id] ?? 0.0));
                 $amountPerMonth = round($fld->price * $quantity * $ratio, 2);
                 $monthlyAmounts = array_fill(0, 12, 0.0);
                 foreach ($months as $idx => $month) {
@@ -2413,32 +2454,34 @@ class ComparativeOutflowsDashboardController extends Controller
      * de más de una razón social, por eso se prorratea a nivel de esa sucursal
      * específica (no sobre el total de superficie de todo el equipo).
      */
-    private function getBranchCompanyReasonRatios($season_id, $company_reason_id)
+    private function getBranchCompanyReasonRatios($season_id, $company_reason_id, $fruit_ids = null)
     {
-        if (!$company_reason_id) {
+        if (!$company_reason_id && !$fruit_ids) {
             return [];
         }
 
         $branchSurfaces = DB::table('cost_centers')
             ->where('season_id', $season_id)
             ->whereNotNull('branch_id')
-            ->select('branch_id', 'company_reason_id', DB::raw('SUM(surface) as surface'))
-            ->groupBy('branch_id', 'company_reason_id')
+            ->select('branch_id', 'company_reason_id', 'fruit_id', DB::raw('SUM(surface) as surface'))
+            ->groupBy('branch_id', 'company_reason_id', 'fruit_id')
             ->get()
             ->groupBy('branch_id');
 
         $ratios = [];
         foreach ($branchSurfaces as $branchId => $rows) {
             $total = $rows->sum('surface');
-            $filtered = $rows->filter(function ($r) use ($company_reason_id) {
-                return is_null($r->company_reason_id) || in_array($r->company_reason_id, $company_reason_id);
+            $filtered = $rows->filter(function ($r) use ($company_reason_id, $fruit_ids) {
+                $reasonOk = !$company_reason_id || is_null($r->company_reason_id) || in_array($r->company_reason_id, $company_reason_id);
+                $fruitOk = !$fruit_ids || in_array((int) $r->fruit_id, $fruit_ids, true);
+                return $reasonOk && $fruitOk;
             })->sum('surface');
             $ratios[$branchId] = $total > 0 ? ($filtered / $total) : 0.0;
         }
         return $ratios;
     }
 
-    private function getMonthsAdministration($team_id, $company_reason_id = null, $operationIds = null)
+    private function getMonthsAdministration($team_id, $company_reason_id = null, $operationIds = null, $fruit_ids = null)
     {
         $season_id = session('season_id');
         $season = Season::select('month_id')->where('id', $season_id)->first();
@@ -2451,7 +2494,7 @@ class ComparativeOutflowsDashboardController extends Controller
         $result = array_fill_keys($months, 0);
 
         // Ratio de atribución por sucursal según razón social filtrada
-        $branchRatios = $this->getBranchCompanyReasonRatios($season_id, $company_reason_id);
+        $branchRatios = $this->getBranchCompanyReasonRatios($season_id, $company_reason_id, $fruit_ids);
 
         // Batch: JOIN administrations con items agrupados por mes y sucursal
         $query = DB::table('administrations as a')
@@ -2479,8 +2522,8 @@ class ComparativeOutflowsDashboardController extends Controller
             if (!isset($result[$row->month_id])) {
                 continue;
             }
-            // Sin razón social filtrada: 100%. Con filtro, sin sucursal asignada: se excluye (igual que fields.index al filtrar por sucursal)
-            $ratio = !$company_reason_id
+            // Sin razón social ni frutal filtrados: 100%. Con filtro, sin sucursal asignada: se excluye (igual que fields.index al filtrar por sucursal)
+            $ratio = (!$company_reason_id && !$fruit_ids)
                 ? 1.0
                 : (is_null($row->branch_id) ? 0.0 : ($branchRatios[$row->branch_id] ?? 0.0));
             $result[$row->month_id] += floatval($row->total) * $ratio;
@@ -2488,7 +2531,7 @@ class ComparativeOutflowsDashboardController extends Controller
         return $result;
     }
 
-    private function getMonthsFields($team_id, $company_reason_id = null, $operationIds = null)
+    private function getMonthsFields($team_id, $company_reason_id = null, $operationIds = null, $fruit_ids = null)
     {
         $season_id = session('season_id');
         $season = Season::select('month_id')->where('id', $season_id)->first();
@@ -2501,7 +2544,7 @@ class ComparativeOutflowsDashboardController extends Controller
         $result = array_fill_keys($months, 0);
 
         // Ratio de atribución por sucursal según razón social filtrada
-        $branchRatios = $this->getBranchCompanyReasonRatios($season_id, $company_reason_id);
+        $branchRatios = $this->getBranchCompanyReasonRatios($season_id, $company_reason_id, $fruit_ids);
 
         // Batch: JOIN fields con items agrupados por mes y sucursal
         $query = DB::table('fields as f')
@@ -2529,7 +2572,7 @@ class ComparativeOutflowsDashboardController extends Controller
             if (!isset($result[$row->month_id])) {
                 continue;
             }
-            $ratio = !$company_reason_id
+            $ratio = (!$company_reason_id && !$fruit_ids)
                 ? 1.0
                 : (is_null($row->branch_id) ? 0.0 : ($branchRatios[$row->branch_id] ?? 0.0));
             $result[$row->month_id] += floatval($row->total) * $ratio;

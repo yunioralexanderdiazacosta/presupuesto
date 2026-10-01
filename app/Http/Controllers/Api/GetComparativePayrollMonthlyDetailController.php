@@ -17,6 +17,8 @@ class GetComparativePayrollMonthlyDetailController extends Controller
             'month_id'            => 'required|integer|between:1,12',
             'company_reason_ids'  => 'nullable|array',
             'company_reason_ids.*' => 'integer',
+            'fruit_ids'           => 'nullable|array',
+            'fruit_ids.*'         => 'integer',
         ]);
 
         $user             = Auth::user();
@@ -24,6 +26,11 @@ class GetComparativePayrollMonthlyDetailController extends Controller
         $season_id        = session('season_id');
         $month_id         = (int) $request->month_id;
         $companyReasonIds = collect($request->input('company_reason_ids', []))
+            ->filter()
+            ->map(fn ($id) => (int) $id)
+            ->values()
+            ->all();
+        $fruitIds = collect($request->input('fruit_ids', []))
             ->filter()
             ->map(fn ($id) => (int) $id)
             ->values()
@@ -37,7 +44,8 @@ class GetComparativePayrollMonthlyDetailController extends Controller
             $team_id,
             $season_id,
             $month_id,
-            count($companyReasonIds) > 0 ? $companyReasonIds : null
+            count($companyReasonIds) > 0 ? $companyReasonIds : null,
+            count($fruitIds) > 0 ? $fruitIds : null
         );
 
         $rows = [];

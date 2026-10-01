@@ -20,13 +20,24 @@ trait OutflowProrationTrait
      *
      * Requiere el outflow con costCenters.costCenter cargado.
      */
-    protected function outflowMatchesCompanyReason($outflow, $company_reason_id): bool
+    protected function outflowMatchesCompanyReason($outflow, $company_reason_id, $fruit_ids = null): bool
     {
-        if (!$company_reason_id) return true;
-        $ids = is_array($company_reason_id) ? $company_reason_id : [$company_reason_id];
+        if (!$company_reason_id && !$fruit_ids) return true;
         return $outflow->costCenters->contains(
-            fn($occ) => $occ->costCenter && in_array((int) $occ->costCenter->company_reason_id, $ids, true)
+            fn($occ) => $this->costCenterMatchesFilters($occ->costCenter, $company_reason_id, $fruit_ids)
         );
+    }
+
+    /**
+     * Un centro de costo cumple los filtros activos: razón social Y frutal (cada uno solo si viene informado).
+     * Requiere el costCenter con company_reason_id y fruit_id cargados.
+     */
+    protected function costCenterMatchesFilters($costCenter, $company_reason_id, $fruit_ids = null): bool
+    {
+        if (!$costCenter) return false;
+        if ($company_reason_id && !in_array((int) $costCenter->company_reason_id, (array) $company_reason_id, true)) return false;
+        if ($fruit_ids && !in_array((int) $costCenter->fruit_id, (array) $fruit_ids, true)) return false;
+        return true;
     }
 
     /**
@@ -41,7 +52,7 @@ trait OutflowProrationTrait
      * Requiere el outflow con invoiceProduct, creditDebitNoteItem y
      * costCenters.costCenter cargados.
      */
-    protected function proratedOutflowAmount($outflow, $company_reason_id = null): float
+    protected function proratedOutflowAmount($outflow, $company_reason_id = null, $fruit_ids = null): float
     {
         // Monto completo del consumo (cantidad × precio unitario)
         $unitPrice = 0.0;
@@ -57,14 +68,13 @@ trait OutflowProrationTrait
 
         // Sin centros de costo: sin filtro aporta completo; con filtro no aporta
         if ($ccs === null || $ccs->isEmpty()) {
-            return $company_reason_id ? 0.0 : $full;
+            return ($company_reason_id || $fruit_ids) ? 0.0 : $full;
         }
 
-        // CC que corresponden a la(s) razón(es) social(es) filtradas (o todos)
-        if ($company_reason_id) {
-            $ids = is_array($company_reason_id) ? $company_reason_id : [$company_reason_id];
+        // CC que corresponden a los filtros activos (razón social y/o frutal), o todos
+        if ($company_reason_id || $fruit_ids) {
             $matching = $ccs->filter(
-                fn($occ) => $occ->costCenter && in_array((int) $occ->costCenter->company_reason_id, $ids, true)
+                fn($occ) => $this->costCenterMatchesFilters($occ->costCenter, $company_reason_id, $fruit_ids)
             );
         } else {
             $matching = $ccs;

@@ -13,12 +13,12 @@ trait PayrollDataTrait
      *
      * @return array{total: int, workdays: float}
      */
-    public function getPayrollSummary(int $teamId, int $seasonId, array|null $companyReasonId = null): array
+    public function getPayrollSummary(int $teamId, int $seasonId, array|null $companyReasonId = null, array|null $fruitIds = null): array
     {
         $contractIds = Contract::where('team_id', $teamId)->pluck('id');
 
         // ── 1. TARJAS ─────────────────────────────────────────────────────
-        if ($companyReasonId) {
+        if ($companyReasonId || $fruitIds) {
             // Prorrateo por superficie: solo la fracción proporcional al RS
             $yieldSurfaceTotals = DB::table('daily_yield_cost_center as dycc2')
                 ->join('cost_centers as cc2', 'dycc2.cost_center_id', '=', 'cc2.id')
@@ -33,7 +33,8 @@ trait PayrollDataTrait
                          ->where('dy.season_id', '=', $seasonId);
                 })
                 ->leftJoinSub($yieldSurfaceTotals, 'surf_dy', 'dycc.daily_yield_id', '=', 'surf_dy.daily_yield_id')
-                ->whereIn('cc.company_reason_id', $companyReasonId)
+                ->when($companyReasonId, fn ($q) => $q->whereIn('cc.company_reason_id', $companyReasonId))
+                ->when($fruitIds, fn ($q) => $q->whereIn('cc.fruit_id', $fruitIds))
                 ->selectRaw("
                     COALESCE(SUM(
                         CASE WHEN cc.surface = 0 OR COALESCE(surf_dy.total_surface, 0) = 0
@@ -65,7 +66,7 @@ trait PayrollDataTrait
         // ── 2. BONOS MENSUALES ────────────────────────────────────────────
         $bonusesTotal = 0.0;
         if ($contractIds->isNotEmpty()) {
-            if ($companyReasonId) {
+            if ($companyReasonId || $fruitIds) {
                 $bonusSurfaceTotals = DB::table('monthly_bonus_cost_centers as mbcc2')
                     ->join('cost_centers as cc2', 'mbcc2.cost_center_id', '=', 'cc2.id')
                     ->select('mbcc2.monthly_bonus_id', DB::raw('SUM(cc2.surface) as total_surface'))
@@ -82,7 +83,8 @@ trait PayrollDataTrait
                              ->whereIn('mb.contract_id', $contractIds->toArray());
                     })
                     ->leftJoinSub($bonusSurfaceTotals, 'surf_mb', 'mbcc.monthly_bonus_id', '=', 'surf_mb.monthly_bonus_id')
-                    ->whereIn('cc.company_reason_id', $companyReasonId)
+                    ->when($companyReasonId, fn ($q) => $q->whereIn('cc.company_reason_id', $companyReasonId))
+                    ->when($fruitIds, fn ($q) => $q->whereIn('cc.fruit_id', $fruitIds))
                     ->selectRaw("
                         COALESCE(SUM(
                             CASE WHEN cc.surface = 0 OR COALESCE(surf_mb.total_surface, 0) = 0
@@ -109,7 +111,7 @@ trait PayrollDataTrait
         // ── 3. HORAS EXTRA ────────────────────────────────────────────────
         $overtimeTotal = 0.0;
         if ($contractIds->isNotEmpty()) {
-            if ($companyReasonId) {
+            if ($companyReasonId || $fruitIds) {
                 $otSurfaceTotals = DB::table('overtime_hour_cost_centers as ohcc2')
                     ->join('cost_centers as cc2', 'ohcc2.cost_center_id', '=', 'cc2.id')
                     ->select('ohcc2.overtime_hour_id', DB::raw('SUM(cc2.surface) as total_surface'))
@@ -126,7 +128,8 @@ trait PayrollDataTrait
                              ->whereIn('oh.contract_id', $contractIds->toArray());
                     })
                     ->leftJoinSub($otSurfaceTotals, 'surf_oh', 'ohcc.overtime_hour_id', '=', 'surf_oh.overtime_hour_id')
-                    ->whereIn('cc.company_reason_id', $companyReasonId)
+                    ->when($companyReasonId, fn ($q) => $q->whereIn('cc.company_reason_id', $companyReasonId))
+                    ->when($fruitIds, fn ($q) => $q->whereIn('cc.fruit_id', $fruitIds))
                     ->selectRaw("
                         COALESCE(SUM(
                             CASE WHEN cc.surface = 0 OR COALESCE(surf_oh.total_surface, 0) = 0
@@ -335,12 +338,12 @@ trait PayrollDataTrait
      *
      * @return array ['level2Name' => ['total' => int, 'level1' => string]]
      */
-    public function getPayrollByLevel2(int $teamId, int $seasonId, array|null $companyReasonId = null): array
+    public function getPayrollByLevel2(int $teamId, int $seasonId, array|null $companyReasonId = null, array|null $fruitIds = null): array
     {
         $contractIds = Contract::where('team_id', $teamId)->pluck('id');
 
         // ── 1. TARJAS ─────────────────────────────────────────────────────
-        if ($companyReasonId) {
+        if ($companyReasonId || $fruitIds) {
             $yieldSurfaceTotals = DB::table('daily_yield_cost_center as dycc2')
                 ->join('cost_centers as cc2', 'dycc2.cost_center_id', '=', 'cc2.id')
                 ->select('dycc2.daily_yield_id', DB::raw('SUM(cc2.surface) as total_surface'))
@@ -356,7 +359,8 @@ trait PayrollDataTrait
                 ->leftJoinSub($yieldSurfaceTotals, 'surf_dy', 'dycc.daily_yield_id', '=', 'surf_dy.daily_yield_id')
                 ->where('dy.team_id', $teamId)
                 ->where('dy.season_id', $seasonId)
-                ->whereIn('cc.company_reason_id', $companyReasonId)
+                ->when($companyReasonId, fn ($q) => $q->whereIn('cc.company_reason_id', $companyReasonId))
+                ->when($fruitIds, fn ($q) => $q->whereIn('cc.fruit_id', $fruitIds))
                 ->selectRaw("COALESCE(l2.name, 'Sin Clasificar') as level2_name, COALESCE(l1.name, 'Sin Clasificar') as level1_name,
                     COALESCE(SUM(
                         CASE WHEN cc.surface = 0 OR COALESCE(surf_dy.total_surface, 0) = 0
@@ -383,7 +387,7 @@ trait PayrollDataTrait
         // ── 2. BONOS MENSUALES ────────────────────────────────────────────
         $bonusRows = collect();
         if ($contractIds->isNotEmpty()) {
-            if ($companyReasonId) {
+            if ($companyReasonId || $fruitIds) {
                 $bonusSurfaceTotals = DB::table('monthly_bonus_cost_centers as mbcc2')
                     ->join('cost_centers as cc2', 'mbcc2.cost_center_id', '=', 'cc2.id')
                     ->select('mbcc2.monthly_bonus_id', DB::raw('SUM(cc2.surface) as total_surface'))
@@ -402,7 +406,8 @@ trait PayrollDataTrait
                         $q->where('mb.season_id', $seasonId)->orWhereNull('mb.season_id');
                     })
                     ->whereIn('mb.contract_id', $contractIds->toArray())
-                    ->whereIn('cc.company_reason_id', $companyReasonId)
+                    ->when($companyReasonId, fn ($q) => $q->whereIn('cc.company_reason_id', $companyReasonId))
+                    ->when($fruitIds, fn ($q) => $q->whereIn('cc.fruit_id', $fruitIds))
                     ->selectRaw("COALESCE(l2.name, 'Sin Clasificar') as level2_name, COALESCE(l1.name, 'Sin Clasificar') as level1_name,
                         COALESCE(SUM(
                             CASE WHEN cc.surface = 0 OR COALESCE(surf_mb.total_surface, 0) = 0
@@ -433,7 +438,7 @@ trait PayrollDataTrait
         // ── 3. HORAS EXTRA ────────────────────────────────────────────────
         $otRows = collect();
         if ($contractIds->isNotEmpty()) {
-            if ($companyReasonId) {
+            if ($companyReasonId || $fruitIds) {
                 $otSurfaceTotals = DB::table('overtime_hour_cost_centers as ohcc2')
                     ->join('cost_centers as cc2', 'ohcc2.cost_center_id', '=', 'cc2.id')
                     ->select('ohcc2.overtime_hour_id', DB::raw('SUM(cc2.surface) as total_surface'))
@@ -452,7 +457,8 @@ trait PayrollDataTrait
                         $q->where('oh.season_id', $seasonId)->orWhereNull('oh.season_id');
                     })
                     ->whereIn('oh.contract_id', $contractIds->toArray())
-                    ->whereIn('cc.company_reason_id', $companyReasonId)
+                    ->when($companyReasonId, fn ($q) => $q->whereIn('cc.company_reason_id', $companyReasonId))
+                    ->when($fruitIds, fn ($q) => $q->whereIn('cc.fruit_id', $fruitIds))
                     ->selectRaw("COALESCE(l2.name, 'Sin Clasificar') as level2_name, COALESCE(l1.name, 'Sin Clasificar') as level1_name,
                         COALESCE(SUM(
                             CASE WHEN cc.surface = 0 OR COALESCE(surf_oh.total_surface, 0) = 0
@@ -501,12 +507,12 @@ trait PayrollDataTrait
      *
      * @return array [{level1: string, level2: string, level3: string, total: float}]
      */
-    public function getPayrollByLevel3(int $teamId, int $seasonId, array|null $companyReasonId = null): array
+    public function getPayrollByLevel3(int $teamId, int $seasonId, array|null $companyReasonId = null, array|null $fruitIds = null): array
     {
         $contractIds = Contract::where('team_id', $teamId)->pluck('id');
 
         // ── 1. TARJAS ─────────────────────────────────────────────────────
-        if ($companyReasonId) {
+        if ($companyReasonId || $fruitIds) {
             $yieldSurfaceTotals = DB::table('daily_yield_cost_center as dycc2')
                 ->join('cost_centers as cc2', 'dycc2.cost_center_id', '=', 'cc2.id')
                 ->select('dycc2.daily_yield_id', DB::raw('SUM(cc2.surface) as total_surface'))
@@ -522,7 +528,8 @@ trait PayrollDataTrait
                 ->leftJoinSub($yieldSurfaceTotals, 'surf_dy', 'dycc.daily_yield_id', '=', 'surf_dy.daily_yield_id')
                 ->where('dy.team_id', $teamId)
                 ->where('dy.season_id', $seasonId)
-                ->whereIn('cc.company_reason_id', $companyReasonId)
+                ->when($companyReasonId, fn ($q) => $q->whereIn('cc.company_reason_id', $companyReasonId))
+                ->when($fruitIds, fn ($q) => $q->whereIn('cc.fruit_id', $fruitIds))
                 ->selectRaw("COALESCE(l3.name, 'Sin Clasificar') as level3_name, COALESCE(l2.name, 'Sin Clasificar') as level2_name, COALESCE(l1.name, 'Sin Clasificar') as level1_name,
                     COALESCE(SUM(
                         CASE WHEN cc.surface = 0 OR COALESCE(surf_dy.total_surface, 0) = 0
@@ -549,7 +556,7 @@ trait PayrollDataTrait
         // ── 2. BONOS MENSUALES ────────────────────────────────────────────
         $bonusRows = collect();
         if ($contractIds->isNotEmpty()) {
-            if ($companyReasonId) {
+            if ($companyReasonId || $fruitIds) {
                 $bonusSurfaceTotals = DB::table('monthly_bonus_cost_centers as mbcc2')
                     ->join('cost_centers as cc2', 'mbcc2.cost_center_id', '=', 'cc2.id')
                     ->select('mbcc2.monthly_bonus_id', DB::raw('SUM(cc2.surface) as total_surface'))
@@ -568,7 +575,8 @@ trait PayrollDataTrait
                         $q->where('mb.season_id', $seasonId)->orWhereNull('mb.season_id');
                     })
                     ->whereIn('mb.contract_id', $contractIds->toArray())
-                    ->whereIn('cc.company_reason_id', $companyReasonId)
+                    ->when($companyReasonId, fn ($q) => $q->whereIn('cc.company_reason_id', $companyReasonId))
+                    ->when($fruitIds, fn ($q) => $q->whereIn('cc.fruit_id', $fruitIds))
                     ->selectRaw("COALESCE(l3.name, 'Sin Clasificar') as level3_name, COALESCE(l2.name, 'Sin Clasificar') as level2_name, COALESCE(l1.name, 'Sin Clasificar') as level1_name,
                         COALESCE(SUM(
                             CASE WHEN cc.surface = 0 OR COALESCE(surf_mb.total_surface, 0) = 0
@@ -599,7 +607,7 @@ trait PayrollDataTrait
         // ── 3. HORAS EXTRA ────────────────────────────────────────────────
         $otRows = collect();
         if ($contractIds->isNotEmpty()) {
-            if ($companyReasonId) {
+            if ($companyReasonId || $fruitIds) {
                 $otSurfaceTotals = DB::table('overtime_hour_cost_centers as ohcc2')
                     ->join('cost_centers as cc2', 'ohcc2.cost_center_id', '=', 'cc2.id')
                     ->select('ohcc2.overtime_hour_id', DB::raw('SUM(cc2.surface) as total_surface'))
@@ -618,7 +626,8 @@ trait PayrollDataTrait
                         $q->where('oh.season_id', $seasonId)->orWhereNull('oh.season_id');
                     })
                     ->whereIn('oh.contract_id', $contractIds->toArray())
-                    ->whereIn('cc.company_reason_id', $companyReasonId)
+                    ->when($companyReasonId, fn ($q) => $q->whereIn('cc.company_reason_id', $companyReasonId))
+                    ->when($fruitIds, fn ($q) => $q->whereIn('cc.fruit_id', $fruitIds))
                     ->selectRaw("COALESCE(l3.name, 'Sin Clasificar') as level3_name, COALESCE(l2.name, 'Sin Clasificar') as level2_name, COALESCE(l1.name, 'Sin Clasificar') as level1_name,
                         COALESCE(SUM(
                             CASE WHEN cc.surface = 0 OR COALESCE(surf_oh.total_surface, 0) = 0
@@ -669,7 +678,7 @@ trait PayrollDataTrait
      * @param  array  $months  Array de 12 meses generado por generateMonthsArray() — cada elemento tiene 'id'
      * @return array [{level1: string, level2: string, level3: string, monthly: float[12]}]
      */
-    public function getPayrollByLevel3Monthly(int $teamId, int $seasonId, array $months, array|null $companyReasonId = null): array
+    public function getPayrollByLevel3Monthly(int $teamId, int $seasonId, array $months, array|null $companyReasonId = null, array|null $fruitIds = null): array
     {
         $contractIds = Contract::where('team_id', $teamId)->pluck('id');
 
@@ -693,7 +702,7 @@ trait PayrollDataTrait
         };
 
         // ── 1. TARJAS ─────────────────────────────────────────────────────
-        if ($companyReasonId) {
+        if ($companyReasonId || $fruitIds) {
             $yieldSurfaceTotals = DB::table('daily_yield_cost_center as dycc2')
                 ->join('cost_centers as cc2', 'dycc2.cost_center_id', '=', 'cc2.id')
                 ->select('dycc2.daily_yield_id', DB::raw('SUM(cc2.surface) as total_surface'))
@@ -709,7 +718,8 @@ trait PayrollDataTrait
                 ->leftJoinSub($yieldSurfaceTotals, 'surf_dy', 'dycc.daily_yield_id', '=', 'surf_dy.daily_yield_id')
                 ->where('dy.team_id', $teamId)
                 ->where('dy.season_id', $seasonId)
-                ->whereIn('cc.company_reason_id', $companyReasonId)
+                ->when($companyReasonId, fn ($q) => $q->whereIn('cc.company_reason_id', $companyReasonId))
+                ->when($fruitIds, fn ($q) => $q->whereIn('cc.fruit_id', $fruitIds))
                 ->selectRaw("MONTH(dy.date) as month_num, COALESCE(l3.name, 'Sin Clasificar') as level3_name, COALESCE(l2.name, 'Sin Clasificar') as level2_name, COALESCE(l1.name, 'Sin Clasificar') as level1_name,
                     COALESCE(SUM(
                         CASE WHEN cc.surface = 0 OR COALESCE(surf_dy.total_surface, 0) = 0
@@ -736,7 +746,7 @@ trait PayrollDataTrait
 
         // ── 2. BONOS MENSUALES ────────────────────────────────────────────
         if ($contractIds->isNotEmpty()) {
-            if ($companyReasonId) {
+            if ($companyReasonId || $fruitIds) {
                 $bonusSurfaceTotals = DB::table('monthly_bonus_cost_centers as mbcc2')
                     ->join('cost_centers as cc2', 'mbcc2.cost_center_id', '=', 'cc2.id')
                     ->select('mbcc2.monthly_bonus_id', DB::raw('SUM(cc2.surface) as total_surface'))
@@ -755,7 +765,8 @@ trait PayrollDataTrait
                         $q->where('mb.season_id', $seasonId)->orWhereNull('mb.season_id');
                     })
                     ->whereIn('mb.contract_id', $contractIds->toArray())
-                    ->whereIn('cc.company_reason_id', $companyReasonId)
+                    ->when($companyReasonId, fn ($q) => $q->whereIn('cc.company_reason_id', $companyReasonId))
+                    ->when($fruitIds, fn ($q) => $q->whereIn('cc.fruit_id', $fruitIds))
                     ->selectRaw("mb.month_id as month_num, COALESCE(l3.name, 'Sin Clasificar') as level3_name, COALESCE(l2.name, 'Sin Clasificar') as level2_name, COALESCE(l1.name, 'Sin Clasificar') as level1_name,
                         COALESCE(SUM(
                             CASE WHEN cc.surface = 0 OR COALESCE(surf_mb.total_surface, 0) = 0
@@ -786,7 +797,7 @@ trait PayrollDataTrait
 
         // ── 3. HORAS EXTRA ────────────────────────────────────────────────
         if ($contractIds->isNotEmpty()) {
-            if ($companyReasonId) {
+            if ($companyReasonId || $fruitIds) {
                 $otSurfaceTotals = DB::table('overtime_hour_cost_centers as ohcc2')
                     ->join('cost_centers as cc2', 'ohcc2.cost_center_id', '=', 'cc2.id')
                     ->select('ohcc2.overtime_hour_id', DB::raw('SUM(cc2.surface) as total_surface'))
@@ -805,7 +816,8 @@ trait PayrollDataTrait
                         $q->where('oh.season_id', $seasonId)->orWhereNull('oh.season_id');
                     })
                     ->whereIn('oh.contract_id', $contractIds->toArray())
-                    ->whereIn('cc.company_reason_id', $companyReasonId)
+                    ->when($companyReasonId, fn ($q) => $q->whereIn('cc.company_reason_id', $companyReasonId))
+                    ->when($fruitIds, fn ($q) => $q->whereIn('cc.fruit_id', $fruitIds))
                     ->selectRaw("oh.month_id as month_num, COALESCE(l3.name, 'Sin Clasificar') as level3_name, COALESCE(l2.name, 'Sin Clasificar') as level2_name, COALESCE(l1.name, 'Sin Clasificar') as level1_name,
                         COALESCE(SUM(
                             CASE WHEN cc.surface = 0 OR COALESCE(surf_oh.total_surface, 0) = 0
@@ -844,12 +856,12 @@ trait PayrollDataTrait
      *
      * @return array ['level2Name' => ['total' => int, 'level1' => string]]
      */
-    public function getPayrollByLevel2ForMonth(int $teamId, int $seasonId, int $monthId, array|null $companyReasonId = null): array
+    public function getPayrollByLevel2ForMonth(int $teamId, int $seasonId, int $monthId, array|null $companyReasonId = null, array|null $fruitIds = null): array
     {
         $contractIds = Contract::where('team_id', $teamId)->pluck('id');
 
         // ── 1. TARJAS ─────────────────────────────────────────────────────
-        if ($companyReasonId) {
+        if ($companyReasonId || $fruitIds) {
             $yieldSurfaceTotals = DB::table('daily_yield_cost_center as dycc2')
                 ->join('cost_centers as cc2', 'dycc2.cost_center_id', '=', 'cc2.id')
                 ->select('dycc2.daily_yield_id', DB::raw('SUM(cc2.surface) as total_surface'))
@@ -866,7 +878,8 @@ trait PayrollDataTrait
                 ->where('dy.team_id', $teamId)
                 ->where('dy.season_id', $seasonId)
                 ->whereMonth('dy.date', $monthId)
-                ->whereIn('cc.company_reason_id', $companyReasonId)
+                ->when($companyReasonId, fn ($q) => $q->whereIn('cc.company_reason_id', $companyReasonId))
+                ->when($fruitIds, fn ($q) => $q->whereIn('cc.fruit_id', $fruitIds))
                 ->selectRaw("COALESCE(l2.name, 'Sin Clasificar') as level2_name, COALESCE(l1.name, 'Sin Clasificar') as level1_name,
                     COALESCE(SUM(
                         CASE WHEN cc.surface = 0 OR COALESCE(surf_dy.total_surface, 0) = 0
@@ -894,7 +907,7 @@ trait PayrollDataTrait
         // ── 2. BONOS MENSUALES ────────────────────────────────────────────
         $bonusRows = collect();
         if ($contractIds->isNotEmpty()) {
-            if ($companyReasonId) {
+            if ($companyReasonId || $fruitIds) {
                 $bonusSurfaceTotals = DB::table('monthly_bonus_cost_centers as mbcc2')
                     ->join('cost_centers as cc2', 'mbcc2.cost_center_id', '=', 'cc2.id')
                     ->select('mbcc2.monthly_bonus_id', DB::raw('SUM(cc2.surface) as total_surface'))
@@ -914,7 +927,8 @@ trait PayrollDataTrait
                     })
                     ->where('mb.month_id', $monthId)
                     ->whereIn('mb.contract_id', $contractIds->toArray())
-                    ->whereIn('cc.company_reason_id', $companyReasonId)
+                    ->when($companyReasonId, fn ($q) => $q->whereIn('cc.company_reason_id', $companyReasonId))
+                    ->when($fruitIds, fn ($q) => $q->whereIn('cc.fruit_id', $fruitIds))
                     ->selectRaw("COALESCE(l2.name, 'Sin Clasificar') as level2_name, COALESCE(l1.name, 'Sin Clasificar') as level1_name,
                         COALESCE(SUM(
                             CASE WHEN cc.surface = 0 OR COALESCE(surf_mb.total_surface, 0) = 0
@@ -946,7 +960,7 @@ trait PayrollDataTrait
         // ── 3. HORAS EXTRA ────────────────────────────────────────────────
         $otRows = collect();
         if ($contractIds->isNotEmpty()) {
-            if ($companyReasonId) {
+            if ($companyReasonId || $fruitIds) {
                 $otSurfaceTotals = DB::table('overtime_hour_cost_centers as ohcc2')
                     ->join('cost_centers as cc2', 'ohcc2.cost_center_id', '=', 'cc2.id')
                     ->select('ohcc2.overtime_hour_id', DB::raw('SUM(cc2.surface) as total_surface'))
@@ -966,7 +980,8 @@ trait PayrollDataTrait
                     })
                     ->where('oh.month_id', $monthId)
                     ->whereIn('oh.contract_id', $contractIds->toArray())
-                    ->whereIn('cc.company_reason_id', $companyReasonId)
+                    ->when($companyReasonId, fn ($q) => $q->whereIn('cc.company_reason_id', $companyReasonId))
+                    ->when($fruitIds, fn ($q) => $q->whereIn('cc.fruit_id', $fruitIds))
                     ->selectRaw("COALESCE(l2.name, 'Sin Clasificar') as level2_name, COALESCE(l1.name, 'Sin Clasificar') as level1_name,
                         COALESCE(SUM(
                             CASE WHEN cc.surface = 0 OR COALESCE(surf_oh.total_surface, 0) = 0
@@ -1015,7 +1030,7 @@ trait PayrollDataTrait
      * @param  array  $months  Array de 12 meses generado por generateMonthsArray() — cada elemento tiene 'id'
      * @return int[]           Array de 12 enteros, indexado por posición del mes en la temporada
      */
-    public function getPayrollMonthly(int $teamId, int $seasonId, array $months, array|null $companyReasonId = null): array
+    public function getPayrollMonthly(int $teamId, int $seasonId, array $months, array|null $companyReasonId = null, array|null $fruitIds = null): array
     {
         $contractIds = Contract::where('team_id', $teamId)->pluck('id');
 
@@ -1028,7 +1043,7 @@ trait PayrollDataTrait
         $result = array_fill(0, 12, 0);
 
         // ── 1. TARJAS ─────────────────────────────────────────────────────
-        if ($companyReasonId) {
+        if ($companyReasonId || $fruitIds) {
             $yieldSurfaceTotals = DB::table('daily_yield_cost_center as dycc2')
                 ->join('cost_centers as cc2', 'dycc2.cost_center_id', '=', 'cc2.id')
                 ->select('dycc2.daily_yield_id', DB::raw('SUM(cc2.surface) as total_surface'))
@@ -1040,7 +1055,8 @@ trait PayrollDataTrait
                 ->leftJoinSub($yieldSurfaceTotals, 'surf_dy', 'dycc.daily_yield_id', '=', 'surf_dy.daily_yield_id')
                 ->where('dy.team_id', $teamId)
                 ->where('dy.season_id', $seasonId)
-                ->whereIn('cc.company_reason_id', $companyReasonId)
+                ->when($companyReasonId, fn ($q) => $q->whereIn('cc.company_reason_id', $companyReasonId))
+                ->when($fruitIds, fn ($q) => $q->whereIn('cc.fruit_id', $fruitIds))
                 ->selectRaw("
                     MONTH(dy.date) as month_num,
                     COALESCE(SUM(
@@ -1071,7 +1087,7 @@ trait PayrollDataTrait
 
         // ── 2. BONOS MENSUALES ────────────────────────────────────────────
         if ($contractIds->isNotEmpty()) {
-            if ($companyReasonId) {
+            if ($companyReasonId || $fruitIds) {
                 $bonusSurfaceTotals = DB::table('monthly_bonus_cost_centers as mbcc2')
                     ->join('cost_centers as cc2', 'mbcc2.cost_center_id', '=', 'cc2.id')
                     ->select('mbcc2.monthly_bonus_id', DB::raw('SUM(cc2.surface) as total_surface'))
@@ -1086,7 +1102,8 @@ trait PayrollDataTrait
                         $q->where('mb.season_id', $seasonId)->orWhereNull('mb.season_id');
                     })
                     ->whereIn('mb.contract_id', $contractIds->toArray())
-                    ->whereIn('cc.company_reason_id', $companyReasonId)
+                    ->when($companyReasonId, fn ($q) => $q->whereIn('cc.company_reason_id', $companyReasonId))
+                    ->when($fruitIds, fn ($q) => $q->whereIn('cc.fruit_id', $fruitIds))
                     ->selectRaw("
                         mb.month_id,
                         COALESCE(SUM(
@@ -1121,7 +1138,7 @@ trait PayrollDataTrait
 
         // ── 3. HORAS EXTRA ────────────────────────────────────────────────
         if ($contractIds->isNotEmpty()) {
-            if ($companyReasonId) {
+            if ($companyReasonId || $fruitIds) {
                 $otSurfaceTotals = DB::table('overtime_hour_cost_centers as ohcc2')
                     ->join('cost_centers as cc2', 'ohcc2.cost_center_id', '=', 'cc2.id')
                     ->select('ohcc2.overtime_hour_id', DB::raw('SUM(cc2.surface) as total_surface'))
@@ -1136,7 +1153,8 @@ trait PayrollDataTrait
                         $q->where('oh.season_id', $seasonId)->orWhereNull('oh.season_id');
                     })
                     ->whereIn('oh.contract_id', $contractIds->toArray())
-                    ->whereIn('cc.company_reason_id', $companyReasonId)
+                    ->when($companyReasonId, fn ($q) => $q->whereIn('cc.company_reason_id', $companyReasonId))
+                    ->when($fruitIds, fn ($q) => $q->whereIn('cc.fruit_id', $fruitIds))
                     ->selectRaw("
                         oh.month_id,
                         COALESCE(SUM(

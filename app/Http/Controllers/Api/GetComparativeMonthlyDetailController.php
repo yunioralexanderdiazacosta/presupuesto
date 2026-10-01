@@ -3,18 +3,25 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Http\Controllers\Traits\OutflowProrationTrait;
+use App\Models\Outflow;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 
 class GetComparativeMonthlyDetailController extends Controller
 {
+    use OutflowProrationTrait;
+
     public function __invoke(Request $request)
     {
         $request->validate([
-            'month_id'            => 'required|integer|between:1,12',
-            'include_investments' => 'nullable|boolean',
-            'company_reason_id'   => 'nullable|integer',
+            'month_id'             => 'required|integer|between:1,12',
+            'include_investments'  => 'nullable|boolean',
+            'company_reason_ids'   => 'nullable|array',
+            'company_reason_ids.*' => 'integer',
+            'fruit_ids'            => 'nullable|array',
+            'fruit_ids.*'          => 'integer',
         ]);
 
         $user               = Auth::user();
@@ -22,7 +29,18 @@ class GetComparativeMonthlyDetailController extends Controller
         $season_id          = session('season_id');
         $month_id           = (int) $request->month_id;
         $includeInvestments = filter_var($request->input('include_investments', true), FILTER_VALIDATE_BOOLEAN);
-        $companyReasonId    = $request->integer('company_reason_id') ?: null;
+        $companyReasonIds   = collect($request->input('company_reason_ids', []))
+            ->filter()
+            ->map(fn ($id) => (int) $id)
+            ->values()
+            ->all();
+        $companyReasonId    = count($companyReasonIds) > 0 ? $companyReasonIds : null;
+        $fruitIds           = collect($request->input('fruit_ids', []))
+            ->filter()
+            ->map(fn ($id) => (int) $id)
+            ->values()
+            ->all();
+        $fruitIds           = count($fruitIds) > 0 ? $fruitIds : null;
 
         if (!$season_id) {
             return response()->json(['error' => 'Sin temporada activa'], 422);
@@ -42,9 +60,11 @@ class GetComparativeMonthlyDetailController extends Controller
             ->where('i.team_id', $team_id)
             ->where('i.season_id', $season_id)
             ->where('i.month_id', $month_id)
+            // Las facturas no tienen frutal: con filtro de frutal el Facturado no aplica
+            ->when($fruitIds, fn ($q) => $q->whereRaw('1 = 0'))
             ->when($companyReasonId, function ($q) use ($companyReasonId) {
                 $q->where(function ($w) use ($companyReasonId) {
-                    $w->where('i.company_reason_id', $companyReasonId)
+                    $w->whereIn('i.company_reason_id', $companyReasonId)
                       ->orWhereNull('i.company_reason_id');
                 });
             })
@@ -77,10 +97,11 @@ class GetComparativeMonthlyDetailController extends Controller
             ->where('cdn.season_id', $season_id)
             ->where('cdn.affects_inventory', 1)
             ->whereMonth('cdn.date', $month_id)
+            ->when($fruitIds, fn ($q) => $q->whereRaw('1 = 0'))
             ->when($companyReasonId, function ($q) use ($companyReasonId) {
                 $q->leftJoin('invoices as i_cdn', 'cdn.invoice_id', '=', 'i_cdn.id')
                   ->where(function ($w) use ($companyReasonId) {
-                      $w->where('i_cdn.company_reason_id', $companyReasonId)
+                      $w->whereIn('i_cdn.company_reason_id', $companyReasonId)
                         ->orWhereNull('i_cdn.company_reason_id')
                         ->orWhereNull('cdn.invoice_id');
                   });
@@ -120,74 +141,64 @@ class GetComparativeMonthlyDetailController extends Controller
         }
 
         // -------------------------------------------------------
-        // 2. CONSUMIDO del mes: outflows agrupados por fecha de FACTURA/NOTA
-        //    Igual que getAllConsumedByMonth: usa invoice->date o cdn->date,
-        //    NO la fecha del propio outflow
+        // 2. CONSUMIDO del mes: outflows por fecha propia de la SALIDA (outflows.date)
+        //    Misma lógica que getAllConsumedByMonth: razón social por CENTRO DE COSTO
+        //    con prorrateo por superficie (NO por la factura de origen)
         // -------------------------------------------------------
-        $consumedQuery = DB::table('outflows as o')
-            ->leftJoin('invoice_products as ip', 'o.invoice_product_id', '=', 'ip.id')
-            ->leftJoin('invoices as i', 'ip.invoice_id', '=', 'i.id')
-            ->leftJoin('credit_debit_note_items as cdni', 'o.credit_debit_note_item_id', '=', 'cdni.id')
-            ->leftJoin('credit_debit_notes as cdn', 'cdni.credit_debit_note_id', '=', 'cdn.id')
-            ->leftJoin('products as p', DB::raw('COALESCE(ip.product_id, cdni.product_id)'), '=', 'p.id')
-            // Usar solo la clasificación propia del outflow (o.level3_id)
-            ->leftJoin('level3s as l3', 'l3.id', '=', 'o.level3_id')
-            ->leftJoin('level2s as l2', 'l3.level2_id', '=', 'l2.id')
-            ->leftJoin('level1s as l1', 'l2.level1_id', '=', 'l1.id')
-            ->leftJoin('operations as op', 'o.operation_id', '=', 'op.id')
-            ->where('o.team_id', $team_id)
-            ->where('o.season_id', $season_id)
-            ->whereRaw('MONTH(COALESCE(i.date, cdn.date)) = ?', [$month_id])
-            ->whereNotNull('p.id')
-            ->when($companyReasonId, function ($q) use ($companyReasonId) {
-                $q->where(function ($w) use ($companyReasonId) {
-                    $w->where(function ($sub) use ($companyReasonId) {
-                        $sub->whereNotNull('o.invoice_product_id')
-                            ->where(function ($q2) use ($companyReasonId) {
-                                $q2->where('i.company_reason_id', $companyReasonId)
-                                   ->orWhereNull('i.company_reason_id');
-                            });
-                    })->orWhere(function ($sub) use ($companyReasonId) {
-                        $sub->whereNotNull('o.credit_debit_note_item_id')
-                            ->where(function ($q2) use ($companyReasonId) {
-                                $q2->whereNull('cdn.invoice_id')
-                                   ->orWhereExists(function ($q3) use ($companyReasonId) {
-                                       $q3->select(DB::raw(1))
-                                          ->from('invoices as i_cdn2')
-                                          ->whereColumn('i_cdn2.id', 'cdn.invoice_id')
-                                          ->where(function ($q4) use ($companyReasonId) {
-                                              $q4->where('i_cdn2.company_reason_id', $companyReasonId)
-                                                 ->orWhereNull('i_cdn2.company_reason_id');
-                                          });
-                                   });
-                            });
-                    });
-                });
-            });
+        $outflows = Outflow::where('team_id', $team_id)
+            ->where('season_id', $season_id)
+            ->whereMonth('date', $month_id)
+            ->with([
+                'invoiceProduct:id,unit_price,invoice_id,product_id',
+                'invoiceProduct.product:id,name',
+                'creditDebitNoteItem:id,unit_price,credit_debit_note_id,product_id',
+                'creditDebitNoteItem.product:id,name',
+                'costCenters.costCenter:id,company_reason_id,fruit_id,surface',
+                'operation:id,name',
+                'level3:id,name,level2_id',
+                'level3.level2:id,name,level1_id',
+                'level3.level2.level1:id,name',
+            ])
+            ->get();
 
-        // Excluir inversiones si el toggle está desactivado (mismo criterio que el gráfico)
-        if (!$includeInvestments) {
-            $consumedQuery->where(function($q) {
-                $q->whereNull('o.operation_id')
-                  ->orWhereRaw('LOWER(op.name) NOT LIKE ?', ['%inversion%']);
-            });
+        $consumedMap = [];
+        foreach ($outflows as $outflow) {
+            if (!$this->outflowMatchesCompanyReason($outflow, $companyReasonId, $fruitIds)) continue;
+
+            // Excluir inversiones si el toggle está desactivado (mismo criterio que el gráfico)
+            $isInvestment = $outflow->operation && stripos($outflow->operation->name, 'inversion') !== false;
+            if ($isInvestment && !$includeInvestments) continue;
+
+            $product = $outflow->invoiceProduct?->product ?? $outflow->creditDebitNoteItem?->product;
+            if (!$product) continue;
+
+            $amount = $this->proratedOutflowAmount($outflow, $companyReasonId, $fruitIds);
+            if ($amount == 0.0) continue;
+
+            // Clasificación propia del outflow (o.level3_id)
+            $level3 = $outflow->level3;
+            $level2 = $level3?->level2;
+            $level1 = $level2?->level1;
+            $level1Name = $level1->name ?? 'Sin clasificar';
+            $level2Name = $level2->name ?? 'Sin clasificar';
+            $level3Name = $level3->name ?? 'Sin clasificar';
+
+            // El mismo producto puede tener múltiples filas con distintos level3
+            $key = $product->id . '||' . $level1Name . '||' . $level2Name . '||' . $level3Name;
+            if (!isset($consumedMap[$key])) {
+                $consumedMap[$key] = [
+                    'product_id'     => $product->id,
+                    'product_name'   => $product->name,
+                    'level1'         => $level1Name,
+                    'level2'         => $level2Name,
+                    'level3'         => $level3Name,
+                    'total_consumed' => 0.0,
+                ];
+            }
+            $consumedMap[$key]['total_consumed'] += $amount;
         }
 
-        $consumedRows = $consumedQuery
-            ->select(
-                DB::raw('COALESCE(ip.product_id, cdni.product_id) as product_id'),
-                'p.name as product_name',
-                DB::raw("COALESCE(l3.name, 'Sin clasificar') as level3"),
-                DB::raw("COALESCE(l2.name, 'Sin clasificar') as level2"),
-                DB::raw("COALESCE(l1.name, 'Sin clasificar') as level1"),
-                DB::raw('SUM(CASE
-                    WHEN o.invoice_product_id IS NOT NULL AND ip.id IS NOT NULL THEN o.quantity * ip.unit_price
-                    WHEN o.credit_debit_note_item_id IS NOT NULL AND cdni.id IS NOT NULL THEN o.quantity * cdni.unit_price
-                    ELSE 0
-                END) as total_consumed')
-            )
-            ->groupBy(DB::raw('COALESCE(ip.product_id, cdni.product_id)'), 'p.name', 'l3.name', 'l2.name', 'l1.name')
-            ->get(); // No keyBy: el mismo producto puede tener múltiples filas con distintos level3
+        $consumedRows = collect(array_values($consumedMap))->map(fn ($r) => (object) $r);
 
         // -------------------------------------------------------
         // 3. Construir filas separadas para consumed e invoiced
