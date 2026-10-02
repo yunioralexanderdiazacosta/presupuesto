@@ -8,6 +8,16 @@
 export const changelog = [
   {
     fecha: '2026-10-02',
+    titulo: 'Pagos de Facturas — Filtro por razón social y vista más liviana',
+    items: [
+      'Nuevo filtro "Razón Social" en el panel de filtros. También se aplica al Excel.',
+      'Las listas desplegables de filtros ahora son más compactas.',
+      'El estado de pago se muestra como texto de color en lugar de etiqueta.',
+      'La tabla vuelve a mostrar 50 facturas con el botón "Ver más" para cargar el resto.',
+    ]
+  },
+  {
+    fecha: '2026-10-02',
     titulo: 'Facturas — Excel respeta buscador y filtros',
     items: [
       'El botón "Excel" de la pestaña Resumen ahora descarga exactamente lo que se ve en la tabla, según el buscador y los filtros aplicados.',

@@ -15,6 +15,7 @@ const props = defineProps({
     invoices: Object,
     banks: Array,
     suppliers: Array,
+    companyReasons: { type: Array, default: () => [] },
     summary: Object,
     filters: Object,
 });
@@ -34,6 +35,7 @@ const filterDateTo         = ref(props.filters.date_to || '');
 const filterDueDateFrom    = ref(props.filters.due_date_from || '');
 const filterDueDateTo      = ref(props.filters.due_date_to || '');
 const filterSupplierId     = ref(props.filters.supplier_id || null);
+const filterCompanyReasonId = ref(props.filters.company_reason_id || null);
 const filterPaymentStatus  = ref(props.filters.payment_status || null);
 const filterPaymentType    = ref(props.filters.payment_type ?? '1'); // Default: Crédito
 const showFilters          = ref(false);
@@ -91,6 +93,7 @@ function search() {
         due_date_from:  filterDueDateFrom.value,
         due_date_to:    filterDueDateTo.value,
         supplier_id:    filterSupplierId.value,
+        company_reason_id: filterCompanyReasonId.value,
         payment_status: filterPaymentStatus.value,
         payment_type:   filterPaymentType.value,
     }, { preserveState: true, replace: true });
@@ -103,6 +106,7 @@ function clearFilters() {
     filterDueDateFrom.value   = '';
     filterDueDateTo.value     = '';
     filterSupplierId.value    = null;
+    filterCompanyReasonId.value = null;
     filterPaymentStatus.value = null;
     filterPaymentType.value   = '1'; // Volver a Crédito por defecto
     search();
@@ -303,7 +307,7 @@ const excelData = computed(() => {
                         </div>
                     </div>
                     <div class="col-md-3">
-                        <select v-model="filterPaymentType" @change="search" class="form-select form-select-sm">
+                        <select v-model="filterPaymentType" @change="search" class="form-select form-select-sm select-compact">
                             <option value="">Todos (Crédito + Contado)</option>
                             <option value="1">Crédito</option>
                             <option value="2">Contado</option>
@@ -458,14 +462,21 @@ const excelData = computed(() => {
                             </div>
                         </div>
                         <div class="row g-3 mt-0">
-                            <div class="col-md-4">
+                            <div class="col-md-3">
                                 <label class="form-label small">Proveedor</label>
-                                <select v-model="filterSupplierId" class="form-select form-select-sm">
+                                <select v-model="filterSupplierId" class="form-select form-select-sm select-compact">
                                     <option :value="null">Todos</option>
                                     <option v-for="s in suppliers" :key="s.id" :value="s.id">{{ s.name }}</option>
                                 </select>
                             </div>
-                            <div class="col-md-8 d-flex align-items-end justify-content-end gap-2">
+                            <div class="col-md-3">
+                                <label class="form-label small">Razón Social</label>
+                                <select v-model="filterCompanyReasonId" class="form-select form-select-sm select-compact">
+                                    <option :value="null">Todas</option>
+                                    <option v-for="c in companyReasons" :key="c.id" :value="c.id">{{ c.name }}</option>
+                                </select>
+                            </div>
+                            <div class="col-md-6 d-flex align-items-end justify-content-end gap-2">
                                 <button @click="search" class="btn btn-primary btn-sm">
                                     <i class="fas fa-search me-1"></i> Aplicar
                                 </button>
@@ -714,6 +725,12 @@ const excelData = computed(() => {
 </template>
 
 <style scoped>
+.select-compact option {
+    padding: 1px 6px;
+    font-size: 0.75rem;
+    line-height: 1.2;
+}
+
 :deep(.excel-toolbar-btn) {
     margin-bottom: 0 !important;
 }

@@ -29,6 +29,7 @@ class InvoicePaymentController extends Controller
         $dueDateFrom   = $request->due_date_from ?? '';
         $dueDateTo     = $request->due_date_to ?? '';
         $supplierId    = $request->supplier_id ?? '';
+        $companyReasonId = $request->company_reason_id ?? '';
         $paymentStatus = $request->payment_status ?? '';
         $paymentType   = $request->has('payment_type') ? $request->payment_type : '1'; // Default: Crédito
 
@@ -61,6 +62,7 @@ class InvoicePaymentController extends Controller
             ->when($dueDateFrom, fn($q, $date) => $q->whereDate('invoices.due_date', '>=', $date))
             ->when($dueDateTo,   fn($q, $date) => $q->whereDate('invoices.due_date', '<=', $date))
             ->when($supplierId, fn($q, $id) => $q->where('invoices.supplier_id', $id))
+            ->when($companyReasonId, fn($q, $id) => $q->where('invoices.company_reason_id', $id))
             ->when($paymentType !== '', fn($q) => $q->where('invoices.payment_type', $paymentType))
             ->get();
 
@@ -202,10 +204,13 @@ class InvoicePaymentController extends Controller
         // Obtener proveedores del equipo
         $suppliers = Supplier::where('team_id', $user->team_id)->orderBy('name')->get(['id', 'name']);
 
+        $companyReasons = \App\Models\CompanyReason::where('team_id', $user->team_id)->orderBy('name')->get(['id', 'name']);
+
         return Inertia::render('InvoicePayments/Index', [
             'invoices'  => ['data' => $invoices],
             'banks'     => $banks,
             'suppliers' => $suppliers,
+            'companyReasons' => $companyReasons,
             'summary'   => $summary,
             'filters'   => [
                 'term'           => $term,
@@ -214,6 +219,7 @@ class InvoicePaymentController extends Controller
                 'due_date_from'  => $dueDateFrom,
                 'due_date_to'    => $dueDateTo,
                 'supplier_id'    => $supplierId,
+                'company_reason_id' => $companyReasonId,
                 'payment_status' => $paymentStatus,
                 'payment_type'   => $paymentType,
             ],
