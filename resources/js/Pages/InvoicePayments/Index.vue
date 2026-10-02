@@ -37,6 +37,12 @@ const showFilters          = ref(false);
 // cuando el panel de filtros avanzados está abierto, ya que ahora ocupa dos filas.
 const tableMaxHeight = computed(() => showFilters.value ? 'calc(100vh - 720px)' : 'calc(100vh - 520px)');
 
+// Solo se renderizan las primeras filas; el Excel, los totales y el contador usan todas.
+const PAGE_SIZE = 50;
+const visibleCount = ref(PAGE_SIZE);
+const pagedInvoices = computed(() => props.invoices.data.slice(0, visibleCount.value));
+const remainingCount = computed(() => Math.max(0, props.invoices.data.length - visibleCount.value));
+
 // Filas expandidas (para ver pagos de una factura)
 const expandedRows = ref({});
 function toggleRow(id) {
@@ -71,6 +77,7 @@ function closeEditModal() {
 }
 
 function search() {
+    visibleCount.value = PAGE_SIZE;
     router.get(route('invoice-payments.index'), {
         term:           term.value,
         date_from:      filterDateFrom.value,
@@ -487,7 +494,7 @@ const excelData = computed(() => {
                             </tr>
                         </thead>
                         <tbody>
-                            <template v-for="invoice in invoices.data" :key="invoice.id">
+                            <template v-for="invoice in pagedInvoices" :key="invoice.id">
                                 <!-- Fila principal de factura -->
                                 <tr
                                     :class="{ 'table-active': expandedRows[invoice.id] }"
@@ -658,6 +665,14 @@ const excelData = computed(() => {
                             <tr v-if="invoices.data.length === 0">
                                 <td colspan="12" class="text-center text-muted py-4">
                                     No hay facturas registradas con los filtros seleccionados
+                                </td>
+                            </tr>
+                            <tr v-if="remainingCount > 0" class="no-export">
+                                <td colspan="12" class="text-center py-2">
+                                    <button type="button" class="btn btn-sm btn-falcon-default" @click="visibleCount += PAGE_SIZE">
+                                        <i class="fas fa-chevron-down me-1"></i>
+                                        Ver más ({{ remainingCount }} restantes)
+                                    </button>
                                 </td>
                             </tr>
                         </tbody>
