@@ -6,7 +6,6 @@ import { Link, router, Head } from '@inertiajs/vue3';
 import AppLayout from '@/Layouts/AppLayout.vue';
 import CreateInvoicePaymentModal from '@/Components/InvoicePayments/CreateInvoicePaymentModal.vue';
 import EditInvoicePaymentModal from '@/Components/InvoicePayments/EditInvoicePaymentModal.vue';
-import PaymentStatusBadge from '@/Components/InvoicePayments/PaymentStatusBadge.vue';
 import InvoiceDebtReportModal from '@/Components/InvoicePayments/InvoiceDebtReportModal.vue';
 import ExportExcelButton from '@/Components/ExportExcelButton.vue';
 
@@ -21,6 +20,13 @@ const props = defineProps({
 });
 
 const title = 'Facturas';
+
+const paymentStatusConfig = {
+    pending:  { label: 'Pendiente', class: 'text-danger' },
+    partial:  { label: 'Parcial',   class: 'text-info' },
+    paid:     { label: 'Pagado',    class: 'text-success' },
+    annulled: { label: 'Anulada',   class: 'text-dark' },
+};
 
 const term                 = ref(props.filters.term || '');
 const filterDateFrom       = ref(props.filters.date_from || '');
@@ -566,7 +572,7 @@ const excelData = computed(() => {
                                         $ {{ formatCurrency(invoice.balance) }}
                                     </td>
                                     <td class="text-center">
-                                        <PaymentStatusBadge :status="invoice.payment_status" />
+                                        <span class="fw-semibold" :class="paymentStatusConfig[invoice.payment_status]?.class">{{ paymentStatusConfig[invoice.payment_status]?.label }}</span>
                                     </td>
                                     <td class="text-nowrap">{{ formatDate(invoice.due_date) }}</td>
                                     <td class="text-center text-nowrap">
