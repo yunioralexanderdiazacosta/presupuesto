@@ -200,7 +200,7 @@ const expandedInvoices = computed(() => {
             invoice.products.forEach(prod => {
                 const subtotal = (prod.amount || 0) * (prod.unit_price || 0);
                 const isFactura = invoice.type_document && invoice.type_document.toLowerCase() === 'factura';
-                const iva = isFactura ? subtotal * 0.19 : 0;
+                const iva = isFactura && !prod.is_exento ? subtotal * 0.19 : 0;
                 rows.push({
                     ...base,
                     product_name: prod.product_name,
@@ -719,7 +719,8 @@ const formatCurrency = (value) => {
                                 <th style="white-space:nowrap;">Fecha</th>
                                 <th style="white-space:nowrap;">Vencimiento</th>
                                 <th style="white-space:nowrap; max-width:200px;">Productos</th>
-                                <th class="text-end" style="white-space:nowrap;">Neto</th>
+                                <th class="text-end" style="white-space:nowrap;">Neto Afecto</th>
+                                <th class="text-end" style="white-space:nowrap;">Exento</th>
                                 <th class="text-end" style="white-space:nowrap;">IVA (19%)</th>
                                 <th class="text-end" style="white-space:nowrap;">Total</th>
                                 <th style="white-space:nowrap;">Rendición</th>
@@ -829,7 +830,11 @@ invoice, index
                                             <span v-else class="text-muted">—</span>
                                         </td>
                                         <td class="text-end" style="white-space:nowrap;">
-                                            ${{ fmt(invoice.neto) }}
+                                            ${{ fmt(invoice.neto_afecto) }}
+                                        </td>
+                                        <td class="text-end" style="white-space:nowrap;">
+                                            <span v-if="invoice.exento">${{ fmt(invoice.exento) }}</span>
+                                            <span v-else class="text-muted">—</span>
                                         </td>
                                         <td class="text-end" style="white-space:nowrap;">
                                             <span v-if="invoice.iva">${{ fmt(invoice.iva) }}</span>
@@ -858,7 +863,7 @@ invoice, index
                                 <!-- Ver más -->
                                 <template v-if="hasMoreResumen">
                                     <tr>
-                                        <td :colspan="13" class="text-center py-2">
+                                        <td :colspan="14" class="text-center py-2">
                                             <button type="button" class="btn btn-sm btn-falcon-default" @click="visibleCount += RESUMEN_PAGE_SIZE">
                                                 <i class="fas fa-chevron-down me-1"></i>
                                                 Ver más ({{ filteredInvoices.length - visibleCount }} restantes)

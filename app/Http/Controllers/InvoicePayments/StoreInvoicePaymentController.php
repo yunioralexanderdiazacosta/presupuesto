@@ -30,11 +30,8 @@ class StoreInvoicePaymentController extends Controller
             return back()->withErrors(['invoice_id' => 'Esta factura pertenece a la rendición '.($invoice->expenseReport->number ?? '').' y ya fue cubierta por ese proceso. No se puede registrar un pago aquí.']);
         }
 
-        // Calcular total real de la factura (neto + IVA si aplica)
-        $totalNeto = $invoice->invoiceProducts->sum(fn($ip) => $ip->unit_price * $ip->amount);
-        $tipoDoc   = strtoupper($invoice->typeDocument?->name ?? '');
-        $hasIva    = in_array($tipoDoc, ['FACTURA', 'NOTA CREDITO', 'NOTA DEBITO']);
-        $totalInvoice = round($totalNeto + ($hasIva ? round($totalNeto * 0.19) : 0));
+        // Total real de la factura (neto + IVA solo sobre líneas afectas)
+        $totalInvoice = $invoice->calculateTotals()['total'];
         $totalPaid = $invoice->payments()->sum('amount');
         $balance = round($totalInvoice - $totalPaid);
 

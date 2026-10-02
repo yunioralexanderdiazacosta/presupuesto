@@ -36,11 +36,8 @@ class InvoicesPdfController extends Controller
         }
 
         $invoices = $invoicesQuery->get()->map(function ($invoice) {
-            $neto    = $invoice->invoiceProducts->sum(fn($ip) => $ip->unit_price * $ip->amount);
-            $tipoDoc = strtoupper($invoice->typeDocument?->name ?? '');
-            $hasIva  = in_array($tipoDoc, ['FACTURA', 'NOTA CREDITO', 'NOTA DEBITO']);
-            $iva     = $hasIva ? round($neto * 0.19) : 0;
-            $total   = $neto + $iva;
+            $totals = $invoice->calculateTotals();
+            $total  = $totals['neto'] + $totals['iva'];
 
             return [
                 'id'              => $invoice->id,
@@ -51,16 +48,20 @@ class InvoicesPdfController extends Controller
                 'type_document'   => $invoice->typeDocument?->name ?? '—',
                 'month'           => $invoice->month?->name ?? '—',
                 'number_document' => $invoice->number_document,
-                'neto'            => $neto,
-                'iva'             => $iva,
+                'neto_afecto'     => $totals['neto_afecto'],
+                'exento'          => $totals['exento'],
+                'neto'            => $totals['neto'],
+                'iva'             => $totals['iva'],
                 'total'           => $total,
             ];
         });
 
         $totales = [
-            'neto'  => $invoices->sum('neto'),
-            'iva'   => $invoices->sum('iva'),
-            'total' => $invoices->sum('total'),
+            'neto_afecto' => $invoices->sum('neto_afecto'),
+            'exento'      => $invoices->sum('exento'),
+            'neto'        => $invoices->sum('neto'),
+            'iva'         => $invoices->sum('iva'),
+            'total'       => $invoices->sum('total'),
         ];
 
         $pdf = Pdf::loadView('pdfs.invoices', compact('invoices', 'totales', 'term'))

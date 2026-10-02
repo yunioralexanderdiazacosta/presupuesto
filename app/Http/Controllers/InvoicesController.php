@@ -58,21 +58,11 @@ class InvoicesController extends Controller
         // Calcular totales globales
         $totalFacturas = 0;
         $totalIva = 0;
-        $totalGeneral = 0;
 
         foreach ($allInvoices as $invoice) {
-            $total = 0;
-            foreach ($invoice->invoiceProducts as $ip) {
-                $total += $ip->unit_price * $ip->amount;
-            }
-            
-            $totalFacturas += $total;
-
-            // Agregar IVA si es factura, nota de crédito o nota de débito
-            $tipoDoc = strtoupper($invoice->typeDocument?->name ?? '');
-            if (in_array($tipoDoc, ['FACTURA', 'NOTA CREDITO', 'NOTA DEBITO'])) {
-                $totalIva += $total * 0.19;
-            }
+            $totals = $invoice->calculateTotals();
+            $totalFacturas += $totals['neto'];
+            $totalIva += $totals['iva'];
         }
 
         $totalGeneral = $totalFacturas + $totalIva;
@@ -96,13 +86,9 @@ class InvoicesController extends Controller
 
         // Preparar datos para la vista
         $invoices = $allInvoices->map(function($invoice) {
-            $neto = 0;
-            foreach ($invoice->invoiceProducts as $ip) {
-                $neto += $ip->unit_price * $ip->amount;
-            }
-            $tipoDoc = strtoupper($invoice->typeDocument?->name ?? '');
-            $hasIva = in_array($tipoDoc, ['FACTURA', 'NOTA CREDITO', 'NOTA DEBITO']);
-            $iva = $hasIva ? round($neto * 0.19) : 0;
+            $totals = $invoice->calculateTotals();
+            $neto = $totals['neto'];
+            $iva = $totals['iva'];
             $total = $neto + $iva;
 
             return [
@@ -122,10 +108,13 @@ class InvoicesController extends Controller
                         'amount' => $ip->amount,
                         'unit_price' => $ip->unit_price,
                         'original_unit_price' => $ip->original_unit_price,
+                        'is_exento' => (bool) $ip->is_exento,
                         'branch_id' => $ip->branch_id,
                         'branch_name' => $ip->branch ? $ip->branch->name : null,
                     ];
                 }),
+                'neto_afecto'       => $totals['neto_afecto'],
+                'exento'            => $totals['exento'],
                 'neto'              => $neto,
                 'iva'               => $iva,
                 'total'             => '$' . number_format($total, 0, ',', '.'),

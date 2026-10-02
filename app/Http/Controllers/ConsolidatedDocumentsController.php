@@ -28,22 +28,15 @@ class ConsolidatedDocumentsController extends Controller
             ->where('season_id', $season_id)
             ->get()
             ->map(function ($invoice) use ($meses) {
-                $neto_afecto = (float)(DB::table('invoice_products')
-                    ->where('invoice_id', $invoice->id)
-                    ->where('is_exento', false)
-                    ->selectRaw('COALESCE(SUM(amount * unit_price), 0) as total')
-                    ->value('total') ?? 0);
-                $exento = (float)(DB::table('invoice_products')
-                    ->where('invoice_id', $invoice->id)
-                    ->where('is_exento', true)
-                    ->selectRaw('COALESCE(SUM(amount * unit_price), 0) as total')
-                    ->value('total') ?? 0);
+                $totals = $invoice->calculateTotals();
+                $neto_afecto = $totals['neto_afecto'];
+                $exento = $totals['exento'];
                 $mes_num = (int)date('n', strtotime($invoice->date));
                 $mes_texto = $meses[$mes_num] ?? '';
                 $tipo_doc = $invoice->typeDocument->name ?? '';
-                $monto_total = $neto_afecto + $exento;
-                // IVA solo sobre neto afecto para facturas
-                $iva = (strtolower($tipo_doc) === 'factura') ? ($neto_afecto * 0.19) : null;
+                $monto_total = $totals['neto'];
+                // Sin IVA (boletas, exentas) se muestra vacío
+                $iva = $totals['iva'] > 0 ? $totals['iva'] : null;
                 
                 $sucursal = $invoice->invoiceProducts
                     ->filter(fn($ip) => $ip->branch)

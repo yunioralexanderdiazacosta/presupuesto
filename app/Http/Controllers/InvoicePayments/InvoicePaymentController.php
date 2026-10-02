@@ -245,12 +245,10 @@ class InvoicePaymentController extends Controller
 
         // Obtener resultados limitados a 50
         $invoices = $query->limit(50)->get()->map(function($invoice) {
-            $totalNeto = $invoice->invoiceProducts->sum(fn($ip) => $ip->unit_price * $ip->amount);
-
-            $tipoDoc = strtoupper($invoice->typeDocument?->name ?? '');
-            $hasIva  = in_array($tipoDoc, ['FACTURA', 'NOTA CREDITO', 'NOTA DEBITO']);
-            $iva     = $hasIva ? round($totalNeto * 0.19) : 0;
-            $totalInvoice = round($totalNeto + $iva);
+            $totals       = $invoice->calculateTotals();
+            $totalNeto    = $totals['neto'];
+            $iva          = $totals['iva'];
+            $totalInvoice = $totals['total'];
 
             $totalPaid = $invoice->payments->sum('amount');
 

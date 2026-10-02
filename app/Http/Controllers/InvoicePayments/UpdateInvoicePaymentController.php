@@ -21,12 +21,9 @@ class UpdateInvoicePaymentController extends Controller
             abort(403, 'No tiene permisos para editar este pago.');
         }
 
-        // Calcular total real (neto + IVA si aplica)
+        // Calcular total real (neto + IVA solo sobre líneas afectas)
         $invoice      = $payment->invoice()->with(['typeDocument', 'invoiceProducts'])->first();
-        $totalNeto    = $invoice->invoiceProducts->sum(fn($ip) => $ip->unit_price * $ip->amount);
-        $tipoDoc      = strtoupper($invoice->typeDocument?->name ?? '');
-        $hasIva       = in_array($tipoDoc, ['FACTURA', 'NOTA CREDITO', 'NOTA DEBITO']);
-        $totalInvoice = $totalNeto + ($hasIva ? round($totalNeto * 0.19) : 0);
+        $totalInvoice = $invoice->calculateTotals()['total'];
         $totalPaid    = $invoice->payments()->where('id', '!=', $payment->id)->sum('amount');
         $balance      = $totalInvoice - $totalPaid;
 

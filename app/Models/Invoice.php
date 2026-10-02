@@ -96,20 +96,43 @@ class Invoice extends Model
     }
 
     /**
+     * Fuente única de neto afecto, exento, IVA y total de la factura. Las líneas exentas no pagan IVA.
+     * Requiere 'invoiceProducts' y 'typeDocument' cargados.
+     */
+    public function calculateTotals(): array
+    {
+        $lineTotal = fn($ip) => $ip->unit_price * $ip->amount;
+
+        $netoAfecto = (float) $this->invoiceProducts->reject(fn($ip) => $ip->is_exento)->sum($lineTotal);
+        $exento     = (float) $this->invoiceProducts->filter(fn($ip) => $ip->is_exento)->sum($lineTotal);
+
+        $tipoDoc = strtoupper($this->typeDocument?->name ?? '');
+        $hasIva  = in_array($tipoDoc, ['FACTURA', 'NOTA CREDITO', 'NOTA DEBITO']);
+        $iva     = $hasIva ? round($netoAfecto * 0.19) : 0;
+
+        return [
+            'neto_afecto' => $netoAfecto,
+            'exento'      => $exento,
+            'neto'        => $netoAfecto + $exento,
+            'iva'         => $iva,
+            'total'       => round($netoAfecto + $exento + $iva),
+        ];
+    }
+
+    /**
      * Cálculo centralizado de deuda real de la factura (con IVA, notas de crédito/débito y rendiciones).
      * Usado tanto por el listado de InvoicePaymentController como por el informe de deuda por razón social.
-     * Requiere 'typeDocument' y 'creditDebitNotes.items' cargados (eager load); 'invoiceProducts'/'payments'
-     * solo si no se pasan $totalNeto/$totalPaid ya calculados (p.ej. vía subquery SQL).
+     * Requiere 'typeDocument', 'invoiceProducts' y 'creditDebitNotes.items' cargados (eager load);
+     * 'payments' solo si no se pasa $totalPaid ya calculado.
      */
-    public function calculateDebt(?float $totalNeto = null, ?float $totalPaid = null): array
+    public function calculateDebt(?float $totalPaid = null): array
     {
-        $totalNeto = $totalNeto ?? (float) $this->invoiceProducts->sum(fn($ip) => $ip->unit_price * $ip->amount);
+        $totals    = $this->calculateTotals();
         $totalPaid = $totalPaid ?? (float) $this->payments->sum('amount');
 
-        $tipoDoc      = strtoupper($this->typeDocument?->name ?? '');
-        $hasIva       = in_array($tipoDoc, ['FACTURA', 'NOTA CREDITO', 'NOTA DEBITO']);
-        $iva          = $hasIva ? round($totalNeto * 0.19) : 0;
-        $totalInvoice = round($totalNeto + $iva);
+        $totalNeto    = $totals['neto'];
+        $iva          = $totals['iva'];
+        $totalInvoice = $totals['total'];
 
         // Notas de crédito/débito asociadas (llevan IVA igual que la factura)
         $notes = $this->creditDebitNotes->map(function ($note) {

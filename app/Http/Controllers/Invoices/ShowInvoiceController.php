@@ -36,8 +36,9 @@ class ShowInvoiceController extends Controller
         }
 
         $grant_total = number_format($total, 2, ',', '.');
+        $totals = $invoice->calculateTotals();
 
-        return Inertia::render('Invoices/Show', compact('invoice', 'supplier', 'companyReason', 'invoiceProducts', 'typeDocument', 'grant_total'));
+        return Inertia::render('Invoices/Show', compact('invoice', 'supplier', 'companyReason', 'invoiceProducts', 'typeDocument', 'grant_total', 'totals'));
     }
 
 

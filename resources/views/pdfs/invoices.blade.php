@@ -113,7 +113,8 @@
     </div>
 
     <div class="summary-box">
-        <span>Neto total: <b>$ {{ number_format($totales['neto'], 0, ',', '.') }}</b></span>
+        <span>Neto afecto: <b>$ {{ number_format($totales['neto_afecto'], 0, ',', '.') }}</b></span>
+        <span>Exento: <b>$ {{ number_format($totales['exento'], 0, ',', '.') }}</b></span>
         <span>IVA total: <b>$ {{ number_format($totales['iva'], 0, ',', '.') }}</b></span>
         <span>Total general: <b>$ {{ number_format($totales['total'], 0, ',', '.') }}</b></span>
     </div>
@@ -129,7 +130,8 @@
                 <th>N° Doc.</th>
                 <th>Fecha</th>
                 <th>Vencimiento</th>
-                <th class="text-right">Neto</th>
+                <th class="text-right">Neto Afecto</th>
+                <th class="text-right">Exento</th>
                 <th class="text-right">IVA (19%)</th>
                 <th class="text-right">Total</th>
             </tr>
@@ -155,7 +157,14 @@
                 <td class="text-center">{{ $inv['number_document'] }}</td>
                 <td class="text-center">{{ $inv['date'] ? \Carbon\Carbon::parse($inv['date'])->format('d/m/Y') : '—' }}</td>
                 <td class="text-center">{{ $inv['due_date'] ? \Carbon\Carbon::parse($inv['due_date'])->format('d/m/Y') : '—' }}</td>
-                <td class="text-right">$ {{ number_format($inv['neto'], 0, ',', '.') }}</td>
+                <td class="text-right">$ {{ number_format($inv['neto_afecto'], 0, ',', '.') }}</td>
+                <td class="text-right">
+                    @if($inv['exento'] != 0)
+                        $ {{ number_format($inv['exento'], 0, ',', '.') }}
+                    @else
+                        <span class="text-muted">—</span>
+                    @endif
+                </td>
                 <td class="text-right">
                     @if($inv['iva'] > 0)
                         $ {{ number_format($inv['iva'], 0, ',', '.') }}
@@ -167,14 +176,15 @@
             </tr>
             @empty
             <tr>
-                <td colspan="11" class="text-center text-muted" style="padding: 10px;">Sin registros</td>
+                <td colspan="12" class="text-center text-muted" style="padding: 10px;">Sin registros</td>
             </tr>
             @endforelse
         </tbody>
         <tfoot>
             <tr>
                 <td colspan="8" class="text-right">TOTALES</td>
-                <td class="text-right">$ {{ number_format($totales['neto'], 0, ',', '.') }}</td>
+                <td class="text-right">$ {{ number_format($totales['neto_afecto'], 0, ',', '.') }}</td>
+                <td class="text-right">$ {{ number_format($totales['exento'], 0, ',', '.') }}</td>
                 <td class="text-right">$ {{ number_format($totales['iva'], 0, ',', '.') }}</td>
                 <td class="text-right">$ {{ number_format($totales['total'], 0, ',', '.') }}</td>
             </tr>

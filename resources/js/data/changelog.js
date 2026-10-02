@@ -7,6 +7,24 @@
 
 export const changelog = [
   {
+    fecha: '2026-10-01',
+    titulo: 'Pagos de Facturas — Tabla más rápida',
+    items: [
+      'La tabla de facturas ahora muestra 50 filas y un botón "Ver más" al final para mostrar el resto, evitando que la página se cuelgue al filtrar o buscar.',
+      'El buscador, los filtros, los totales y la descarga de Excel siguen considerando todas las facturas, no solo las visibles.',
+    ]
+  },
+  {
+    fecha: '2026-10-01',
+    titulo: 'Facturas — Cantidad negativa para Impuesto Específico',
+    items: [
+      'Ahora se puede ingresar una cantidad negativa en la línea del producto "Impuesto Específico" para reflejar los casos en que el impuesto resta al total de la factura.',
+      'El IVA de las facturas, los saldos, los pagos y los reportes de facturas ahora se calcula solo sobre las líneas afectas; las líneas marcadas como exentas ya no pagan IVA.',
+      'En el listado de facturas, el PDF y el detalle de cada factura ahora se muestran por separado el Neto Afecto y el Exento, para que coincidan con el documento.',
+      'En la pestaña Detalles del listado de facturas, las líneas exentas ya no se calculan con IVA.',
+    ]
+  },
+  {
     fecha: '2026-09-30',
     titulo: 'Comparativo Presupuesto vs Real — Nuevo filtro por Frutal',
     items: [

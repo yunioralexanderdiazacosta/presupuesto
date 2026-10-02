@@ -223,6 +223,18 @@ const isFuelProduct = (productId) => {
 	return ($page.fuelProductIds || []).some(id => String(id) === String(productId));
 };
 
+// Único producto que admite cantidad negativa (ajuste MEPCO); se detecta por nombre.
+const isSpecificTaxProduct = (productId) => {
+	if (!productId) return false;
+	const opt = productOptions.find(o => String(o.value) === String(productId));
+	return /impuesto\s+espec[ií]fico/i.test(String(opt?.label ?? productId));
+};
+
+const isInvalidAmount = (product) => {
+	if (!product.amount) return true;
+	return product.amount <= 0 && !isSpecificTaxProduct(product.product_id);
+};
+
 const tanksForBranch = (branchId) => {
 	const tanks = $page.fuelTanks || [];
 	if (!branchId) return tanks;
@@ -360,8 +372,8 @@ watch(
 
 					   <!-- Cantidad -->
 					   <td class="ps-1 pe-1" style="width:65px; min-width:65px; max-width:65px;">
-						<input class="form-control form-control-sm" :class="{'is-invalid': showProductValidation && (!product.amount || product.amount <= 0), 'bg-light': isProtected(product.product_id)}" type="number" min="0.01" v-model="product.amount" step="0.01" required :disabled="isProtected(product.product_id)" />
-						<span v-if="showProductValidation && (!product.amount || product.amount <= 0)" class="text-danger" style="font-size:0.7em;">Obligatorio</span>
+						<input class="form-control form-control-sm" :class="{'is-invalid': showProductValidation && isInvalidAmount(product), 'bg-light': isProtected(product.product_id)}" type="number" :min="isSpecificTaxProduct(product.product_id) ? null : 0.01" v-model="product.amount" step="0.01" required :disabled="isProtected(product.product_id)" />
+						<span v-if="showProductValidation && isInvalidAmount(product)" class="text-danger" style="font-size:0.7em;">Obligatorio</span>
 					</td>
 
 					<!-- Precio -->
@@ -435,7 +447,7 @@ watch(
 					<th colspan="3"></th>
 				</tr>
 				<!-- Exento -->
-				<tr v-if="calculateExento() > 0" class="align-top fw-bold text-gray-700">
+				<tr v-if="calculateExento() !== 0" class="align-top fw-bold text-gray-700">
 					<th colspan="4"></th>
 					<th class="fs-8 ps-0 text-end">Exento</th>
 					<th class="text-end fs-8 text-nowrap">$<span>{{ calculateExento().toLocaleString('es-ES', { maximumFractionDigits: 0 }) }}</span></th>

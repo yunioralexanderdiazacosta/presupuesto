@@ -116,13 +116,17 @@ function deletePayment(paymentId) {
     });
 }
 
+// Formateadores reutilizados: crear Intl en cada llamada hacía lento cada render de la tabla (cientos de filas).
+const currencyFormatter = new Intl.NumberFormat('es-ES', { minimumFractionDigits: 0, maximumFractionDigits: 0 });
+const dateFormatter = new Intl.DateTimeFormat('es-CL');
+
 function formatCurrency(value) {
-    return new Intl.NumberFormat('es-ES', { minimumFractionDigits: 0, maximumFractionDigits: 0 }).format(value || 0);
+    return currencyFormatter.format(value || 0);
 }
 
 function formatDate(dateStr) {
     if (!dateStr) return '-';
-    return new Date(dateStr).toLocaleDateString('es-CL');
+    return dateFormatter.format(new Date(dateStr));
 }
 
 function getDueDateStatus(invoice) {
