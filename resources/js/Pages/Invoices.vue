@@ -177,7 +177,6 @@ const activeTab = ref('resumen'); // controla qué pestaña está activa
 
 // Expansión completa (sin filtro ni spread de objeto completo)
 const expandedInvoices = computed(() => {
-    if (activeTab.value !== 'detalles') return [];
     const source = filteredInvoices.value;
     const rows = [];
     source.forEach(invoice => {
@@ -298,6 +297,33 @@ const excelDetallesData = computed(() => {
         iva: Math.round(row.product_iva),
         total: Math.round(row.product_total),
         expense_report: row.expense_report || '',
+    }));
+});
+
+// Mismo conjunto que la tabla Resumen (buscador + filtros avanzados), con números puros
+const parseMoney = (val) => {
+    if (typeof val === 'number') return val;
+    return parseFloat(String(val ?? '').replace(/\./g, '').replace(',', '.')) || 0;
+};
+
+const excelResumenData = computed(() => {
+    return filteredInvoices.value.map(i => ({
+        id: i.id,
+        type_document: i.type_document || '',
+        month: i.month || '',
+        supplier: i.supplier?.name || '',
+        branch: [...new Set((i.products || []).filter(p => p.branch_name).map(p => p.branch_name))].join(', '),
+        company_reason: i.companyReason?.name || '',
+        number_document: i.number_document,
+        date: i.date,
+        due_date: i.due_date,
+        products: (i.products || []).map(p => p.product_name).join(', '),
+        neto_afecto: Math.round(i.neto_afecto || 0),
+        exento: Math.round(i.exento || 0),
+        iva: Math.round(i.iva || 0),
+        total: Math.round(parseMoney(i.total)),
+        expense_report: i.expense_report || '',
+        user_name: i.user_name || '',
     }));
 });
 
@@ -635,9 +661,32 @@ const formatCurrency = (value) => {
                                 <a :href="route('invoices.pdf', { term: term })" target="_blank" class="btn btn-falcon-default btn-sm" style="font-size: 0.7rem;">
                                     <i class="fas fa-file-pdf me-1"></i>PDF
                                 </a>
-                                <a :href="route('invoices.excel', { term: term })" target="_blank" class="btn btn-falcon-default btn-sm" style="font-size: 0.7rem;">
+                                <ExportExcelButton
+                                    :data="excelResumenData"
+                                    :headers="[
+                                        { label: 'ID', key: 'id' },
+                                        { label: 'Tipo Doc.', key: 'type_document' },
+                                        { label: 'Mes', key: 'month' },
+                                        { label: 'Proveedor', key: 'supplier' },
+                                        { label: 'Sucursal', key: 'branch' },
+                                        { label: 'Razón Social', key: 'company_reason' },
+                                        { label: 'N° Doc', key: 'number_document' },
+                                        { label: 'Fecha', key: 'date' },
+                                        { label: 'Vencimiento', key: 'due_date' },
+                                        { label: 'Productos', key: 'products' },
+                                        { label: 'Neto Afecto', key: 'neto_afecto' },
+                                        { label: 'Exento', key: 'exento' },
+                                        { label: 'IVA (19%)', key: 'iva' },
+                                        { label: 'Total', key: 'total' },
+                                        { label: 'Rendición', key: 'expense_report' },
+                                        { label: 'Digitado por', key: 'user_name' },
+                                    ]"
+                                    class="btn btn-falcon-default btn-sm"
+                                    style="font-size: 0.7rem;"
+                                    filename="Facturas_Resumen.xlsx"
+                                >
                                     <i class="fas fa-file-excel me-1"></i>Excel
-                                </a>
+                                </ExportExcelButton>
                             </div>
                         </div>
 

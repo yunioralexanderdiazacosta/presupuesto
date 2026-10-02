@@ -7,6 +7,15 @@
 
 export const changelog = [
   {
+    fecha: '2026-10-02',
+    titulo: 'Facturas — Excel respeta buscador y filtros',
+    items: [
+      'El botón "Excel" de la pestaña Resumen ahora descarga exactamente lo que se ve en la tabla, según el buscador y los filtros aplicados.',
+      'El Excel incluye las mismas columnas de la tabla: tipo de documento, sucursal, productos, neto, exento, IVA, total, rendición y digitador.',
+      'El botón "Excel Detalles" ya no sale vacío cuando se está en la pestaña Resumen.',
+    ]
+  },
+  {
     fecha: '2026-10-01',
     titulo: 'Pagos de Facturas — Tabla más rápida',
     items: [
