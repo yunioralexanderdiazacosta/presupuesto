@@ -7,6 +7,15 @@
 
 export const changelog = [
   {
+    fecha: '2026-10-07',
+    titulo: 'Salidas — Corrección de la selección de agrupación',
+    items: [
+      'Al crear o editar una salida, la agrupación ya no queda seleccionada de la vez anterior.',
+      'Se puede volver a elegir la misma agrupación y sus centros de costo se cargan correctamente.',
+      'Elegir una agrupación en una tarjeta ya no modifica los centros de costo de las otras.',
+    ]
+  },
+  {
     fecha: '2026-10-02',
     titulo: 'Pagos de Facturas — Filtro por razón social y vista más liviana',
     items: [

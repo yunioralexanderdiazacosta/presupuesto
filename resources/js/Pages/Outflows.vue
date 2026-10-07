@@ -527,6 +527,7 @@ function closeCard(id) {
       selectedOutflows.value.splice(selectedIdx, 1);
     }
   }
+  delete selectedGroupings.value[id];
 }
 
 // Determina si el card está abierto para el outflow
@@ -580,6 +581,7 @@ function handleSave() {
     onSuccess: () => {
       selectedOutflows.value = [];
       showCards.value = [];
+      selectedGroupings.value = {};
       Swal.fire({ icon: 'success', title: '¡Guardado!', text: 'Las salidas fueron registradas correctamente.' });
     },
     onError: (error) => {
@@ -985,17 +987,16 @@ const getFilteredLevels3 = (cardId) => {
   return props.levels3.filter(l3 => l3.level2_id == card.level2_id);
 };
 
-watch(selectedGroupings, (newVals) => {
-  Object.entries(newVals).forEach(([cardId, groupingId]) => {
-    if (!groupingId) return;
-    const grouping = page.props.groupings?.find(g => g.id == groupingId);
-    if (grouping && Array.isArray(grouping.cost_centers)) {
-      const groupCCs = grouping.cost_centers.map(cc => cc.id);
-      const card = selectedOutflows.value.find(sel => sel.id == cardId);
-      if (card) card.cost_center_ids = groupCCs;
-    }
-  });
-}, { deep: true });
+// Aplica los CC de la agrupación solo a ese card y limpia el select para poder re-seleccionar la misma
+function applyGrouping(cardId) {
+  const groupingId = selectedGroupings.value[cardId];
+  const grouping = page.props.groupings?.find(g => String(g.id) === String(groupingId));
+  const card = selectedOutflows.value.find(sel => sel.id === cardId);
+  if (grouping && card && Array.isArray(grouping.cost_centers)) {
+    card.cost_center_ids = grouping.cost_centers.map(cc => cc.id);
+  }
+  delete selectedGroupings.value[cardId];
+}
 
 // Función para copiar el CC de un card a todos los demás
 function copyCCToAllCards(sourceCardId) {
@@ -1686,6 +1687,7 @@ function copyToAllCards(sourceCardId) {
                             <label class="col-form-label mb-0">Agrupación</label>
                             <select 
                               v-model="selectedGroupings[selected.id]" 
+                              @change="applyGrouping(selected.id)"
                               class="form-select form-select-sm"
                             >
                               <option :value="null" disabled selected hidden>Seleccione agrupación</option>

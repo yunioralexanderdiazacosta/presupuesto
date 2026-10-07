@@ -176,14 +176,18 @@ const selectedGrouping = ref(null);
 // Estado para expandir/colapsar tags de CC
 const expandedCC = ref(false);
 
-// Watch para aplicar agrupación automáticamente
-watch(selectedGrouping, (groupingId) => {
-  if (!groupingId) return;
-  const grouping = props.groupings?.find(g => g.id == groupingId);
+// Aplica los CC de la agrupación elegida y limpia el select para poder re-seleccionar la misma
+function applyGrouping() {
+  const grouping = props.groupings?.find(g => String(g.id) === String(selectedGrouping.value));
   if (grouping && Array.isArray(grouping.cost_centers)) {
-    const groupCCs = grouping.cost_centers.map(cc => cc.id);
-    localForm.cost_center_ids = groupCCs;
+    localForm.cost_center_ids = grouping.cost_centers.map(cc => Number(cc.id));
   }
+  selectedGrouping.value = null;
+}
+
+// Reiniciar selección de agrupación al abrir/cambiar de registro
+watch([() => props.show, () => props.form], () => {
+  selectedGrouping.value = null;
 });
 
 
@@ -385,6 +389,7 @@ function submit() {
                 <label class="form-label">Agrupación</label>
                 <select 
                   v-model="selectedGrouping" 
+                  @change="applyGrouping"
                   class="form-select form-select-sm"
                 >
                   <option :value="null">Seleccione agrupación</option>
