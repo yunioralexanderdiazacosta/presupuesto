@@ -8,6 +8,13 @@
 export const changelog = [
   {
     fecha: '2026-10-07',
+    titulo: 'Salidas — Edición sin error de cantidad',
+    items: [
+      'Al editar una salida ya no aparece el error de cantidad máxima cuando no modificas la cantidad.',
+    ]
+  },
+  {
+    fecha: '2026-10-07',
     titulo: 'Salidas — Corrección de la selección de agrupación',
     items: [
       'Al crear o editar una salida, la agrupación ya no queda seleccionada de la vez anterior.',

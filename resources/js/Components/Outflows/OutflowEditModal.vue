@@ -94,8 +94,9 @@ const stockLine = computed(() => props.stockLineData || null);
 const stockAvailable = computed(() => Number(stockLine.value?.stock_disponible) || 0);
 const originalQuantity = computed(() => Number(stockLine.value?.cantidad_original) || 0);
 
-// Máximo permitido: cantidad original + stock disponible
-const maxQuantity = computed(() => originalQuantity.value + stockAvailable.value);
+// Máximo permitido: el mayor entre el stock disponible y la cantidad ya guardada,
+// para poder guardar sin tocar la cantidad cuando la línea quedó sobreconsumida
+const maxQuantity = computed(() => Math.max(stockAvailable.value, Number(props.form?.quantity) || 0));
 
 // Selector de línea de stock (sin trigger UI aún; evita warnings de propiedades no definidas)
 const showStockLineModal = ref(false);
@@ -200,8 +201,8 @@ const isInversionOp = computed(() => {
 });
 
 function submit() {
-  if (Number(localForm.quantity) > stockAvailable.value) {
-    return Swal.fire('Error', `La cantidad no puede exceder el stock disponible (${stockAvailable.value})`, 'error');
+  if (Number(localForm.quantity) > maxQuantity.value) {
+    return Swal.fire('Error', `La cantidad no puede exceder el stock disponible (${maxQuantity.value})`, 'error');
   }
   // Preparar datos para enviar (excluir level2_id que es solo filtro UI)
   const dataToSend = {
@@ -287,12 +288,12 @@ function submit() {
                   type="number"
                   class="form-control"
                   v-model.number="localForm.quantity"
-                  :max="stockAvailable"
+                  :max="maxQuantity"
                   :min="0"
                   step="0.01"
                   required
                 />
-                <div class="form-text">Máximo permitido: {{ stockAvailable.toFixed(2) }}</div>
+                <div class="form-text">Máximo permitido: {{ maxQuantity.toFixed(2) }}</div>
               </div>
               <div class="col-12 col-md-3">
                 <label class="form-label">Fecha <span class="text-danger">*</span></label>
