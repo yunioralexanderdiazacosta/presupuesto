@@ -33,6 +33,7 @@ use App\Http\Controllers\Products2\DeleteProduct2Controller;
     use App\Http\Controllers\ApplicationOrders\StoreApplicationOrderController;
     use App\Http\Controllers\ApplicationOrders\ShowApplicationOrderController;
     use App\Http\Controllers\ApplicationOrders\UpdateApplicationOrderController;
+    use App\Http\Controllers\ApplicationOrders\UpdateApplicationOrderStatusController;
     use App\Http\Controllers\ApplicationOrders\DeleteApplicationOrderController;
     use App\Http\Controllers\ApplicationOrders\PdfApplicationOrderController;
 
@@ -965,6 +966,7 @@ Route::middleware([
     Route::get('/application-orders/{applicationOrder}/pdf', PdfApplicationOrderController::class)->name('application-orders.pdf');
     Route::get('/application-orders/{applicationOrder}', ShowApplicationOrderController::class)->name('application-orders.show');
     Route::put('/application-orders/{applicationOrder}', UpdateApplicationOrderController::class)->name('application-orders.update');
+    Route::patch('/application-orders/{applicationOrder}/status', UpdateApplicationOrderStatusController::class)->name('application-orders.status');
     Route::delete('/application-orders/{applicationOrder}', DeleteApplicationOrderController::class)->name('application-orders.delete');
 
     // Irrigation Pumps

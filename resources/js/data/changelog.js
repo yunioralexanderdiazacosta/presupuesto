@@ -7,6 +7,26 @@
 
 export const changelog = [
   {
+    fecha: '2026-10-12',
+    titulo: 'Órdenes de Aplicación — Cambio rápido de estado',
+    items: [
+      'Ahora puedes cambiar el estado de una orden haciendo clic en su estado dentro de la tabla, sin abrir la edición.',
+      'Puedes marcar una orden como "Completada" sin registrar la salida de agroquímicos; se muestra como "Completada (sin salida)" y pide confirmación porque no descuenta stock ni costo.',
+      'Las órdenes que ya tienen salidas registradas mantienen su estado hasta que se revierta la aplicación desde Salidas.',
+      'Nuevo filtro "Completada sin salida" para revisar esas órdenes.',
+    ]
+  },
+  {
+    fecha: '2026-10-12',
+    titulo: 'Órdenes de Aplicación — Vista de calendario',
+    items: [
+      'Nuevo botón "Calendario" para ver las órdenes de aplicación por fecha de inicio, con número de orden, productos y centros de costo.',
+      'Las órdenes se distinguen por color según su estado: pendiente, atrasada, en proceso, completada y cancelada.',
+      'Puedes cambiar entre vista mensual, semanal o lista, y hacer clic en una orden para ver su detalle.',
+      'Botones Excel y PDF para exportar o imprimir las órdenes del período que estás viendo en el calendario.',
+    ]
+  },
+  {
     fecha: '2026-10-07',
     titulo: 'Salidas — Edición sin error de cantidad',
     items: [

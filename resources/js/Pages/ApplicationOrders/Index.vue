@@ -8,6 +8,7 @@ import Breadcrumb from '@/Components/Breadcrumb.vue';
 import AgrochemicalNavBar from '@/Components/AgrochemicalOutflows/AgrochemicalNavBar.vue';
 import CreateApplicationOrderModal from '@/Components/ApplicationOrders/CreateApplicationOrderModal.vue';
 import EditApplicationOrderModal from '@/Components/ApplicationOrders/EditApplicationOrderModal.vue';
+import ApplicationOrderCalendar from '@/Components/ApplicationOrders/ApplicationOrderCalendar.vue';
 const isLocked = useSeasonLock();
 const props = defineProps({
     applicationOrders: Array,
@@ -28,15 +29,25 @@ const links = [
     { title, active: true },
 ];
 
+const viewMode = ref(localStorage.getItem('applicationOrdersView') === 'calendar' ? 'calendar' : 'table');
+watch(viewMode, (val) => localStorage.setItem('applicationOrdersView', val));
+
 const term = ref('');
 const statusFilter = ref('');
 const statusOptions = [
     { value: '', label: 'Todos los estados' },
     { value: 'pendiente', label: 'Pendiente' },
-    { value: 'en_proceso', label: 'En Proceso' },
     { value: 'completada', label: 'Completada' },
+    { value: 'completada_sin_salida', label: 'Completada sin salida' },
     { value: 'cancelada', label: 'Cancelada' },
 ];
+
+// Una orden completada sin salidas de agroquímicos fue marcada manualmente
+const isManualCompleted = (order) =>
+    order.status === 'completada' && Number(order.agrochemical_outflows_count || 0) === 0;
+
+// Con salidas registradas, el estado solo se cambia revirtiendo desde Salidas
+const hasOutflows = (order) => Number(order.agrochemical_outflows_count || 0) > 0;
 
 // Ordenamiento por columna (fecha o número de orden)
 const sortBy = ref('id');
@@ -70,7 +81,9 @@ const filteredRows = computed(() => {
         });
     }
 
-    if (statusFilter.value) {
+    if (statusFilter.value === 'completada_sin_salida') {
+        rows = rows.filter(item => isManualCompleted(item));
+    } else if (statusFilter.value) {
         rows = rows.filter(item => item.status === statusFilter.value);
     }
 
@@ -159,6 +172,75 @@ function getStatusLabel(status) {
     return labels[status] || status;
 }
 
+// Menú rápido de cambio de estado (posición fija para no quedar recortado por el scroll de la tabla)
+const statusMenu = ref({ open: false, order: null, top: 0, left: 0 });
+
+const statusMenuOptions = computed(() => {
+    const order = statusMenu.value.order;
+    if (!order) return [];
+    return ['pendiente', 'completada', 'cancelada']
+        .filter(s => s !== order.status)
+        .map(s => ({ value: s, label: s === 'pendiente' && order.status === 'cancelada' ? 'Reactivar (Pendiente)' : getStatusLabel(s) }));
+});
+
+function openStatusMenu(event, order) {
+    if (isLocked.value || hasOutflows(order)) return;
+    const rect = event.currentTarget.getBoundingClientRect();
+    statusMenu.value = {
+        open: true,
+        order,
+        top: rect.bottom + 4,
+        left: Math.min(rect.left, window.innerWidth - 220),
+    };
+}
+
+function closeStatusMenu() {
+    statusMenu.value.open = false;
+}
+
+async function changeStatus(newStatus) {
+    const order = statusMenu.value.order;
+    closeStatusMenu();
+    if (!order) return;
+
+    let confirmOptions = null;
+    if (newStatus === 'completada') {
+        confirmOptions = {
+            title: '¿Completar sin salida?',
+            text: 'La orden se marcará como completada sin registrar la salida de agroquímicos. No se descontará stock ni se cargará el costo.',
+            confirmButtonText: 'Sí, marcar sin salida',
+        };
+    } else if (newStatus === 'cancelada') {
+        confirmOptions = {
+            title: '¿Cancelar la orden?',
+            text: `La orden #${order.id} quedará cancelada.`,
+            confirmButtonText: 'Sí, cancelar',
+        };
+    }
+
+    if (confirmOptions) {
+        const result = await Swal.fire({
+            ...confirmOptions,
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonColor: '#3085d6',
+            cancelButtonColor: '#d33',
+            cancelButtonText: 'Volver',
+        });
+        if (!result.isConfirmed) return;
+    }
+
+    router.patch(route('application-orders.status', order.id), { status: newStatus }, {
+        preserveScroll: true,
+        onSuccess: () => {
+            Swal.fire({ icon: 'success', title: 'Estado actualizado', showConfirmButton: false, timer: 1000 });
+        },
+        onError: (errors) => {
+            Swal.fire('Error', errors.error || 'No se pudo cambiar el estado', 'error');
+        },
+    });
+}
+
 // Función para inicializar tooltips
 function initTooltips() {
     nextTick(() => {
@@ -198,13 +280,39 @@ watch(filteredRows, () => {
         <div class="card my-3">
                 <div class="card-header d-flex justify-content-between align-items-center">
                     <h5 class="mb-0">{{ title }}</h5>
-                    <button @click="openCreateModal" class="btn btn-falcon-default btn-sm" :disabled="isLocked">
-                        <span class="fas fa-plus" data-fa-transform="shrink-3 down-2"></span>
-                        <span class="d-none d-sm-inline-block ms-1">Nueva Orden</span>
-                    </button>
+                    <div class="d-flex align-items-center gap-2">
+                        <div class="d-flex align-items-center gap-1" role="group">
+                            <button
+                                type="button"
+                                class="btn btn-falcon-default btn-sm"
+                                :class="{ active: viewMode === 'table' }"
+                                @click="viewMode = 'table'"
+                            >
+                                <span class="fas fa-list"></span>
+                                <span class="d-none d-sm-inline-block ms-1">Tabla</span>
+                            </button>
+                            <button
+                                type="button"
+                                class="btn btn-falcon-default btn-sm"
+                                :class="{ active: viewMode === 'calendar' }"
+                                @click="viewMode = 'calendar'"
+                            >
+                                <span class="fas fa-calendar-alt"></span>
+                                <span class="d-none d-sm-inline-block ms-1">Calendario</span>
+                            </button>
+                        </div>
+                        <button @click="openCreateModal" class="btn btn-falcon-default btn-sm" :disabled="isLocked">
+                            <span class="fas fa-plus" data-fa-transform="shrink-3 down-2"></span>
+                            <span class="d-none d-sm-inline-block ms-1">Nueva Orden</span>
+                        </button>
+                    </div>
                 </div>
 
-                <div class="card-body">
+                <div v-if="viewMode === 'calendar'" class="card-body">
+                    <ApplicationOrderCalendar :orders="applicationOrders" />
+                </div>
+
+                <div v-show="viewMode === 'table'" class="card-body">
                     <!-- Buscador y filtros -->
                     <div class="row mb-3 g-2">
                         <div class="col-12 col-md-6">
@@ -254,9 +362,23 @@ watch(filteredRows, () => {
                                     <td><strong class="text-primary">#{{ order.id }}</strong></td>
                                     <td>{{ new Date(order.date).toLocaleDateString('es-ES') }}</td>
                                     <td>
-                                        <span class="badge" :class="getStatusBadgeClass(order.status)">
-                                            {{ getStatusLabel(order.status) }}
-                                        </span>
+                                        <button
+                                            type="button"
+                                            class="badge border-0"
+                                            :class="[
+                                                getStatusBadgeClass(order.status),
+                                                { 'badge-manual-completed': isManualCompleted(order) },
+                                            ]"
+                                            :style="{ cursor: (isLocked || hasOutflows(order)) ? 'default' : 'pointer' }"
+                                            :title="hasOutflows(order)
+                                                ? 'Tiene salidas registradas: para cambiar el estado revierta la aplicación desde Salidas'
+                                                : (isManualCompleted(order) ? 'Completada sin salida de agroquímicos. Click para cambiar el estado' : 'Click para cambiar el estado')"
+                                            @click.stop="openStatusMenu($event, order)"
+                                        >
+                                            <i v-if="isManualCompleted(order)" class="fas fa-exclamation-circle me-1"></i>
+                                            {{ getStatusLabel(order.status) }}<span v-if="isManualCompleted(order)"> (sin salida)</span>
+                                            <i v-if="!isLocked && !hasOutflows(order)" class="fas fa-caret-down ms-1"></i>
+                                        </button>
                                     </td>
                                     <td>{{ Number(order.mojamiento).toLocaleString('es-ES') }}</td>
                                     <td style="max-width: 250px;">
@@ -320,6 +442,25 @@ watch(filteredRows, () => {
                 </div>
         </div>
 
+        <!-- Menú rápido de estado -->
+        <Teleport to="body">
+            <template v-if="statusMenu.open">
+                <div class="status-menu-backdrop" @click="closeStatusMenu"></div>
+                <div class="status-menu shadow" :style="{ top: statusMenu.top + 'px', left: statusMenu.left + 'px' }">
+                    <div class="status-menu-title">Cambiar estado · #{{ statusMenu.order?.id }}</div>
+                    <button
+                        v-for="opt in statusMenuOptions"
+                        :key="opt.value"
+                        type="button"
+                        class="status-menu-item"
+                        @click="changeStatus(opt.value)"
+                    >
+                        <span class="badge me-2" :class="getStatusBadgeClass(opt.value)">&nbsp;</span>{{ opt.label }}
+                    </button>
+                </div>
+            </template>
+        </Teleport>
+
         <!-- Modales -->
         <CreateApplicationOrderModal
             :show="showCreateModal"
@@ -351,3 +492,51 @@ watch(filteredRows, () => {
         />
     </AppLayout>
 </template>
+
+<style scoped>
+.badge-manual-completed {
+    outline: 2px dashed #00a862;
+    outline-offset: 1px;
+}
+
+.status-menu-backdrop {
+    position: fixed;
+    inset: 0;
+    z-index: 1990;
+}
+
+.status-menu {
+    position: fixed;
+    z-index: 2000;
+    min-width: 200px;
+    background: #fff;
+    border: 1px solid #d8e2ef;
+    border-radius: 8px;
+    padding: 6px;
+}
+
+.status-menu-title {
+    font-size: 0.7rem;
+    color: #9da9bb;
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+    padding: 4px 8px;
+}
+
+.status-menu-item {
+    display: flex;
+    align-items: center;
+    width: 100%;
+    background: transparent;
+    border: 0;
+    border-radius: 6px;
+    padding: 6px 8px;
+    font-size: 0.8rem;
+    text-align: left;
+    color: #344050;
+}
+
+.status-menu-item:hover {
+    background: #edf2f9;
+}
+</style>

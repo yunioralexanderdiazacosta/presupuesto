@@ -101,4 +101,12 @@ class ApplicationOrder extends Model
     {
         return $this->hasMany(ApplicationOrderCostCenter::class);
     }
+
+    /**
+     * Salidas de agroquímicos generadas al ejecutar la orden
+     */
+    public function agrochemicalOutflows()
+    {
+        return $this->hasMany(AgrochemicalOutflow::class);
+    }
 }

@@ -32,6 +32,7 @@ class ApplicationOrdersController extends Controller
             'orderCostCenters.costCenter',
             'phenologicalStage',
         ])
+            ->withCount('agrochemicalOutflows')
             ->where('team_id', $user->team_id)
             ->where('season_id', $season_id)
             ->latest('date')
