@@ -7,6 +7,38 @@
 
 export const changelog = [
   {
+    fecha: '2026-10-13',
+    titulo: 'Órdenes de Aplicación — Receta por maquinada más clara',
+    items: [
+      'Las cantidades calculadas por maquinada ahora se muestran con un redondeo práctico para facilitar su medición en terreno.',
+      'Las cantidades muy pequeñas conservan los decimales necesarios para evitar que una dosis positiva se muestre como cero.',
+      'La vista de detalle y el PDF muestran la receta con el mismo criterio.',
+    ]
+  },
+  {
+    fecha: '2026-10-13',
+    titulo: 'Órdenes de Aplicación — PDF más legible',
+    items: [
+      'Los productos y centros de costo ahora se muestran con texto más grande en el PDF de la orden.',
+    ]
+  },
+  {
+    fecha: '2026-10-13',
+    titulo: 'Órdenes de Aplicación — Productos visibles al editar',
+    items: [
+      'Al editar una orden, la tabla de productos ahora muestra correctamente el nombre y el ingrediente activo.',
+      'La información se mantiene visible aunque el identificador del producto llegue en un formato diferente.',
+    ]
+  },
+  {
+    fecha: '2026-10-13',
+    titulo: 'Órdenes de Aplicación — Mayor precisión en las dosis',
+    items: [
+      'Las dosis de productos ahora se pueden guardar y editar con hasta cuatro decimales, por ejemplo 0,015.',
+      'La tabla, el detalle y el PDF muestran las dosis pequeñas sin redondearlas a dos decimales.',
+    ]
+  },
+  {
     fecha: '2026-10-12',
     titulo: 'Órdenes de Aplicación — Cambio rápido de estado',
     items: [

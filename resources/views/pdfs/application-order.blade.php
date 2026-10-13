@@ -45,8 +45,36 @@
         if (floor($value) == $value) {
             return number_format($value, 0, ',', '.');
         }
-        // Si tiene decimales significativos, mostrar 2 decimales
-        return number_format($value, 2, ',', '.');
+        // Conservar hasta 4 decimales sin agregar ceros innecesarios
+        return rtrim(rtrim(number_format($value, 4, ',', '.'), '0'), ',');
+    }
+
+    /**
+     * Formatea cantidades calculadas para que sean medibles en terreno.
+     */
+    function formatRecipeQuantity($value, $unitName) {
+        $value = (float) $value;
+
+        if ($value == 0.0) {
+            return '0';
+        }
+
+        $unit = strtolower(trim($unitName));
+        $decimals = in_array($unit, ['cc', 'gr'], true) ? 0 : 2;
+
+        while (round(abs($value), $decimals) == 0.0 && $decimals < 4) {
+            $decimals++;
+        }
+
+        if (round(abs($value), $decimals) == 0.0) {
+            return '< 0,0001';
+        }
+
+        if ($decimals === 0) {
+            return number_format($value, 0, ',', '.');
+        }
+
+        return rtrim(rtrim(number_format($value, $decimals, ',', '.'), '0'), ',');
     }
     @endphp
     
@@ -168,6 +196,13 @@
             padding: 3px 4px;
             border-bottom: 1px solid #dee2e6;
             font-size: 9px;
+        }
+
+        .cost-centers-table th,
+        .cost-centers-table td,
+        .products-table th,
+        .products-table td {
+            font-size: 11px;
         }
         
         table tbody tr:nth-child(even) {
@@ -378,7 +413,7 @@
             <tr>
                 @foreach($ccChunks as $chunkIdx => $chunk)
                 <td style="width: {{ $colWidth }}%; border: none; padding: 0 {{ $chunkIdx > 0 ? '0 0 4px' : '0' }}; vertical-align: top;">
-                    <table style="width: 100%; margin: 0;">
+                    <table class="cost-centers-table" style="width: 100%; margin: 0;">
                         <thead>
                             <tr>
                                 <th style="width: 25px;">#</th>
@@ -416,7 +451,7 @@
         <p style="font-size: 8.5px; color: #666; margin-bottom: 3px; font-style: italic;">
             * Cantidades mostradas en unidades prácticas para aplicación en campo (cc, gr, etc.)
         </p>
-        <table>
+        <table class="products-table">
             <thead>
                 <tr>
                     <th style="width: 5%;">#</th>
@@ -521,7 +556,7 @@
                                 @endphp
                                 <tr>
                                     <td style="font-size: 10px;">{{ $op->product->name ?? 'N/A' }}</td>
-                                    <td class="text-right" style="font-size: 10px; font-weight: bold;">{{ formatQuantityForPdf($converted['value']) }} {{ $converted['unit'] }}</td>
+                                    <td class="text-right" style="font-size: 10px; font-weight: bold;">{{ formatRecipeQuantity($converted['value'], $converted['unit']) }} {{ $converted['unit'] }}</td>
                                 </tr>
                                 @endforeach
                             </tbody>
@@ -555,7 +590,7 @@
                                 @endphp
                                 <tr>
                                     <td style="font-size: 10px;">{{ $op->product->name ?? 'N/A' }}</td>
-                                    <td class="text-right" style="font-size: 10px; font-weight: bold;">{{ formatQuantityForPdf($converted['value']) }} {{ $converted['unit'] }}</td>
+                                    <td class="text-right" style="font-size: 10px; font-weight: bold;">{{ formatRecipeQuantity($converted['value'], $converted['unit']) }} {{ $converted['unit'] }}</td>
                                 </tr>
                                 @endforeach
                             </tbody>

@@ -77,6 +77,13 @@ const fraccionSaldo = computed(() => {
 const aguaPorMaquinada = computed(() => Number(props.applicationOrder.volume || 0));
 const aguaSaldo = computed(() => Math.round(aguaPorMaquinada.value * fraccionSaldo.value));
 
+function formatProductQuantity(value) {
+    return Number(value || 0).toLocaleString('es-ES', {
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 4,
+    });
+}
+
 function getProductoPorMaquinada(op) {
     const cantTotal = Number(op.cantidad_total || 0);
     const maq = maquinadas.value;
@@ -88,9 +95,41 @@ function getProductoSaldo(op) {
     return getProductoPorMaquinada(op) * fraccionSaldo.value;
 }
 
-function formatDosis(value, unitName) {
-    const converted = getPracticalQuantityPerHa(value, unitName);
-    return converted.value + ' ' + converted.unit;
+function formatRecipeQuantity(value, unitName) {
+    const amount = Number(value || 0);
+    const normalizedUnit = String(unitName || '').trim().toLowerCase();
+    let convertedAmount = amount;
+    let convertedUnit = unitName;
+
+    if (normalizedUnit === 'lt' && Math.abs(amount) < 1) {
+        convertedAmount = amount * 1000;
+        convertedUnit = 'cc';
+    } else if (normalizedUnit === 'kg' && Math.abs(amount) < 1) {
+        convertedAmount = amount * 1000;
+        convertedUnit = 'gr';
+    }
+
+    if (convertedAmount === 0) {
+        return `0 ${convertedUnit}`;
+    }
+
+    const practicalUnit = String(convertedUnit || '').trim().toLowerCase();
+    let decimals = ['cc', 'gr'].includes(practicalUnit) ? 0 : 2;
+
+    while (Number(Math.abs(convertedAmount).toFixed(decimals)) === 0 && decimals < 4) {
+        decimals++;
+    }
+
+    const roundedAmount = Number(convertedAmount.toFixed(decimals));
+
+    if (roundedAmount === 0) {
+        return `< 0,0001 ${convertedUnit}`;
+    }
+
+    return `${roundedAmount.toLocaleString('es-ES', {
+        minimumFractionDigits: 0,
+        maximumFractionDigits: decimals,
+    })} ${convertedUnit}`;
 }
 
 function openEditModal() {
@@ -169,7 +208,7 @@ function getSimplifiedQuantity(orderProduct) {
     
     // No convertir, devolver original
     return {
-        value: cantidad.toFixed(2),
+        value: formatProductQuantity(cantidad),
         unit: orderProduct.unit?.name || orderProduct.product?.unit?.name || ''
     };
 }
@@ -196,7 +235,7 @@ function getPracticalQuantityPerHa(value, unitName) {
     }
     
     return {
-        value: cantidad.toFixed(2),
+        value: formatProductQuantity(cantidad),
         unit: unitName
     };
 }
@@ -488,7 +527,7 @@ function getPracticalQuantityPerHa(value, unitName) {
                                             <tr v-for="op in applicationOrder.order_products" :key="'full-'+op.id">
                                                 <td class="py-1">{{ op.product?.name }}</td>
                                                 <td class="py-1 text-end fw-bold">
-                                                    {{ formatDosis(getProductoPorMaquinada(op), op.unit?.name || op.product?.unit?.name || '') }}
+                                                    {{ formatRecipeQuantity(getProductoPorMaquinada(op), op.unit?.name || op.product?.unit?.name || '') }}
                                                 </td>
                                             </tr>
                                         </tbody>
@@ -513,7 +552,7 @@ function getPracticalQuantityPerHa(value, unitName) {
                                             <tr v-for="op in applicationOrder.order_products" :key="'partial-'+op.id">
                                                 <td class="py-1">{{ op.product?.name }}</td>
                                                 <td class="py-1 text-end fw-bold">
-                                                    {{ formatDosis(getProductoSaldo(op), op.unit?.name || op.product?.unit?.name || '') }}
+                                                    {{ formatRecipeQuantity(getProductoSaldo(op), op.unit?.name || op.product?.unit?.name || '') }}
                                                 </td>
                                             </tr>
                                         </tbody>

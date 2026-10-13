@@ -78,7 +78,7 @@ const isSavingCarenciaReingreso = ref(false);
 // Watch para auto-asignar unit_id cuando se selecciona un producto
 watch(() => newProduct.value.product_id, (productId) => {
     if (productId) {
-        const product = productsOptions.value.find(p => p.value === productId);
+        const product = productsOptions.value.find(p => String(p.value) === String(productId));
         if (product) {
             newProduct.value.unit_id = product.unit_id || '';
             newProduct.value.carencia = product.carencia ?? '';
@@ -111,7 +111,7 @@ const saveCarenciaReingresoToProduct = async () => {
             }
         );
         // Actualizar el array local de opciones
-        const idx = productsOptions.value.findIndex(p => p.value === newProduct.value.product_id);
+        const idx = productsOptions.value.findIndex(p => String(p.value) === String(newProduct.value.product_id));
         if (idx !== -1) {
             productsOptions.value[idx].carencia = response.data.carencia;
             productsOptions.value[idx].reingreso = response.data.reingreso;
@@ -193,21 +193,28 @@ const calculatedTotalQuantity = computed(() => {
     return calculatedQuantityPerHa.value * effectiveHectareas.value;
 });
 
+function formatProductQuantity(value) {
+    return Number(value || 0).toLocaleString('es-ES', {
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 4,
+    });
+}
+
 // Computed para obtener la unidad base del producto seleccionado
 const selectedProductUnit = computed(() => {
     if (!newProduct.value.product_id) return '';
-    const product = productsOptions.value.find(p => p.value === newProduct.value.product_id);
+    const product = productsOptions.value.find(p => String(p.value) === String(newProduct.value.product_id));
     return product?.unit_name || '';
 });
 
 // Computed para vista previa de cantidad total con unidad base del producto
 const previewSimplifiedQuantity = computed(() => {
     const cantidad = calculatedTotalQuantity.value;
-    const prod = productsOptions.value.find(p => p.value === newProduct.value.product_id);
+    const prod = productsOptions.value.find(p => String(p.value) === String(newProduct.value.product_id));
     const unitName = prod?.unit_name || '';
     
     return {
-        value: cantidad.toFixed(2),
+        value: cantidad,
         unit: unitName
     };
 });
@@ -242,7 +249,7 @@ function addProduct() {
     }
     
     // Verificar si el producto ya existe (solo al agregar nuevo)
-    const exists = props.form.products.find(p => p.product_id === newProduct.value.product_id);
+    const exists = props.form.products.find(p => String(p.product_id) === String(newProduct.value.product_id));
     if (exists) {
         Swal.fire('Advertencia', 'Este producto ya fue agregado', 'warning');
         return;
@@ -278,7 +285,7 @@ function editProduct(index) {
     };
 
     // Verificar si el producto master tiene estos datos
-    const masterProduct = productsOptions.value.find(p => p.value === product.product_id);
+    const masterProduct = productsOptions.value.find(p => String(p.value) === String(product.product_id));
     productHasCarencia.value = masterProduct ? (masterProduct.carencia !== null && masterProduct.carencia !== undefined && masterProduct.carencia !== '') : true;
     productHasReingreso.value = masterProduct ? (masterProduct.reingreso !== null && masterProduct.reingreso !== undefined && masterProduct.reingreso !== '') : true;
     
@@ -309,27 +316,27 @@ function removeProduct(index) {
 }
 
 function getProductName(productId) {
-    const product = productsOptions.value.find(p => p.value === productId);
+    const product = productsOptions.value.find(p => String(p.value) === String(productId));
     return product?.label || '';
 }
 
 function getProductActiveIngredient(productId) {
-    const product = productsOptions.value.find(p => p.value === productId);
+    const product = productsOptions.value.find(p => String(p.value) === String(productId));
     return product?.active_ingredient || '-';
 }
 
 function getProductUnitName(productId) {
-    const product = productsOptions.value.find(p => p.value === productId);
+    const product = productsOptions.value.find(p => String(p.value) === String(productId));
     return product?.unit_name || '';
 }
 
 function getProductUnit(productId) {
-    const product = productsOptions.value.find(p => p.value === productId);
+    const product = productsOptions.value.find(p => String(p.value) === String(productId));
     return product?.unit_name || '';
 }
 
 function getUnitName(unitId) {
-    const unit = props.units.find(u => u.value === unitId);
+    const unit = props.units.find(u => String(u.value) === String(unitId));
     return unit?.label || '';
 }
 
@@ -424,11 +431,11 @@ function getProductTotalQuantity(product) {
 // Función para obtener cantidad con unidad base del producto
 function getSimplifiedQuantity(product) {
     const cantidad = getProductTotalQuantity(product);
-    const prod = productsOptions.value.find(p => p.value === product.product_id);
+    const prod = productsOptions.value.find(p => String(p.value) === String(product.product_id));
     const unitName = prod?.unit_name || '';
     
     return {
-        value: cantidad.toFixed(2),
+        value: cantidad,
         unit: unitName
     };
 }
@@ -826,9 +833,10 @@ function getSimplifiedQuantity(product) {
                         <input
                             v-model="newProduct.dosis_por_hectarea"
                             type="number"
-                            step="0.01"
+                            min="0"
+                            step="0.0001"
                             class="form-control form-control-sm"
-                            placeholder="0.00"
+                            placeholder="0.0000"
                         />
                     </div>
 
@@ -837,9 +845,10 @@ function getSimplifiedQuantity(product) {
                         <input
                             v-model="newProduct.dosis_por_100"
                             type="number"
-                            step="0.01"
+                            min="0"
+                            step="0.0001"
                             class="form-control form-control-sm"
-                            placeholder="0.00"
+                            placeholder="0.0000"
                         />
                     </div>
 
@@ -924,9 +933,9 @@ function getSimplifiedQuantity(product) {
                 <div v-if="newProduct.product_id && totalHectareas > 0" class="alert alert-info py-2 mt-2 mb-0">
                     <strong class="small">Vista Previa:</strong><br>
                     <small>
-                        Cantidad por hectárea: <strong>{{ calculatedQuantityPerHa.toFixed(2) }}</strong> 
+                        Cantidad por hectárea: <strong>{{ formatProductQuantity(calculatedQuantityPerHa) }}</strong>
                         {{ selectedProductUnit }}/ha<br>
-                        Cantidad total: <strong>{{ Number(previewSimplifiedQuantity.value).toLocaleString('es-ES', {minimumFractionDigits: 2}) }}</strong> 
+                        Cantidad total: <strong>{{ formatProductQuantity(previewSimplifiedQuantity.value) }}</strong>
                         {{ previewSimplifiedQuantity.unit }}
                     </small>
                 </div>
@@ -959,17 +968,17 @@ function getSimplifiedQuantity(product) {
                         </td>
                         <td class="text-end small">
                             <span v-if="product.tipo_dosis === 'por_hectarea'">
-                                {{ Number(product.dosis_por_hectarea).toFixed(2) }} {{ getUnitName(product.unit_id) || getProductUnit(product.product_id) }}/ha
+                                {{ formatProductQuantity(product.dosis_por_hectarea) }} {{ getUnitName(product.unit_id) || getProductUnit(product.product_id) }}/ha
                             </span>
                             <span v-else>
-                                {{ Number(product.dosis_por_100).toFixed(2) }} {{ getUnitName(product.unit_id) || getProductUnit(product.product_id) }}/100L
+                                {{ formatProductQuantity(product.dosis_por_100) }} {{ getUnitName(product.unit_id) || getProductUnit(product.product_id) }}/100L
                             </span>
                         </td>
                         <td class="text-end small">
-                            {{ getProductQuantityPerHa(product).toFixed(2) }} {{ getUnitName(product.unit_id) || getProductUnit(product.product_id) }}/ha
+                            {{ formatProductQuantity(getProductQuantityPerHa(product)) }} {{ getUnitName(product.unit_id) || getProductUnit(product.product_id) }}/ha
                         </td>
                         <td class="text-end small">
-                            <strong>{{ Number(getSimplifiedQuantity(product).value).toLocaleString('es-ES', {minimumFractionDigits: 2}) }}</strong> {{ getSimplifiedQuantity(product).unit }}
+                            <strong>{{ formatProductQuantity(getSimplifiedQuantity(product).value) }}</strong> {{ getSimplifiedQuantity(product).unit }}
                         </td>
                         <td class="text-center small">{{ product.carencia }} d</td>
                         <td class="text-center small">{{ product.reingreso }} h</td>

@@ -37,11 +37,12 @@ class ShowApplicationOrderController
         // Obtener productos del equipo para el modal de edición
         $products = Product::with('unit:id,name')
             ->where('team_id', $user->team_id)
-            ->get(['id', 'name', 'unit_id'])
+            ->get(['id', 'name', 'active_ingredient', 'unit_id'])
             ->map(function($product) {
                 return [
                     'value' => $product->id,
                     'label' => $product->name,
+                    'active_ingredient' => $product->active_ingredient,
                     'unit_id' => $product->unit_id,
                     'unit_name' => $product->unit->name ?? '',
                 ];

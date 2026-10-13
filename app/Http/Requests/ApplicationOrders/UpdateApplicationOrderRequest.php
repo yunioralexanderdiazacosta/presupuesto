@@ -38,8 +38,8 @@ class UpdateApplicationOrderRequest extends FormRequest
             'products' => 'required|array|min:1',
             'products.*.product_id' => 'required|exists:products,id',
             'products.*.tipo_dosis' => 'required|in:por_hectarea,por_100_litros',
-            'products.*.dosis_por_100' => 'nullable|numeric|min:0',
-            'products.*.dosis_por_hectarea' => 'nullable|numeric|min:0',
+            'products.*.dosis_por_100' => 'nullable|numeric|decimal:0,4|min:0',
+            'products.*.dosis_por_hectarea' => 'nullable|numeric|decimal:0,4|min:0',
             'products.*.carencia' => 'required|integer|min:0',
             'products.*.reingreso' => 'required|integer|min:0',
             
@@ -64,6 +64,8 @@ class UpdateApplicationOrderRequest extends FormRequest
             'responsable.required' => 'El responsable es obligatorio.',
             'products.required' => 'Debe agregar al menos un producto.',
             'products.min' => 'Debe agregar al menos un producto.',
+            'products.*.dosis_por_100.decimal' => 'La dosis por 100 litros admite hasta 4 decimales.',
+            'products.*.dosis_por_hectarea.decimal' => 'La dosis por hectárea admite hasta 4 decimales.',
             'cost_centers.required' => 'Debe seleccionar al menos un centro de costo.',
             'cost_centers.min' => 'Debe seleccionar al menos un centro de costo.',
         ];

@@ -25,10 +25,10 @@ class ApplicationOrderProduct extends Model
     ];
 
     protected $casts = [
-        'dosis_por_100' => 'decimal:2',
-        'dosis_por_hectarea' => 'decimal:2',
-        'cantidad_por_hectarea' => 'decimal:2',
-        'cantidad_total' => 'decimal:2',
+        'dosis_por_100' => 'decimal:4',
+        'dosis_por_hectarea' => 'decimal:4',
+        'cantidad_por_hectarea' => 'decimal:4',
+        'cantidad_total' => 'decimal:4',
         'carencia' => 'integer',
         'reingreso' => 'integer',
     ];
