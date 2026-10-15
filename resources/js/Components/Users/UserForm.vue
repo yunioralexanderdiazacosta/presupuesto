@@ -1,4 +1,5 @@
 <script setup>
+import { ref } from 'vue';
 import TextInput from '@/Components/TextInput.vue';
 import InputError from '@/Components/InputError.vue';
 
@@ -35,6 +36,40 @@ const toggleGroup = (group, checked) => {
 const selectAll = () => { props.form.allowed_modules = allKeys(); };
 const selectNone = () => { props.form.allowed_modules = []; };
 const onlyExpenseReports = () => { props.form.allowed_modules = ['expense-reports.index']; };
+
+const selectedCount = (group) => group.modules.filter(m => props.form.allowed_modules.includes(m.key)).length;
+
+// Submenús dentro de cada grupo (campo "section" del catálogo), en el orden en que aparecen
+const sectionsOf = (group) => {
+    const sections = [];
+    group.modules.forEach(module => {
+        let section = sections.find(s => s.name === module.section);
+        if (!section) {
+            section = { name: module.section, modules: [] };
+            sections.push(section);
+        }
+        section.modules.push(module);
+    });
+    return sections;
+};
+
+const groupIcons = {
+    'Presupuestos': 'fas fa-lock',
+    'Gestión': 'fas fa-tags',
+    'Remuneraciones': 'fas fa-money-check-alt',
+    'Evaluación de Proyectos': 'fas fa-seedling',
+    'Parámetros': 'fas fa-user',
+};
+const groupIcon = (name) => groupIcons[name] || 'fas fa-folder';
+
+// Grupos abiertos: por defecto todos cerrados para ver de un vistazo el estado de cada grupo
+const openGroups = ref([]);
+const isOpen = (name) => openGroups.value.includes(name);
+const toggleOpen = (name) => {
+    openGroups.value = isOpen(name)
+        ? openGroups.value.filter(n => n !== name)
+        : [...openGroups.value, name];
+};
 </script>
 <template>
     <div class="row g-3">
@@ -138,37 +173,66 @@ const onlyExpenseReports = () => { props.form.allowed_modules = ['expense-report
                     <button type="button" class="btn btn-falcon-default btn-sm" @click="selectNone">Desmarcar todo</button>
                     <button type="button" class="btn btn-falcon-default btn-sm" @click="onlyExpenseReports">Solo Rendiciones de Gastos</button>
                 </div>
-                <div class="border rounded p-2 bg-body-tertiary" style="max-height: 320px; overflow-y: auto;">
-                    <div v-for="group in moduleGroups" :key="group.group" class="mb-2">
-                        <div class="form-check">
-                            <input
-                                class="form-check-input"
-                                type="checkbox"
-                                :id="`group-${group.group}`"
-                                :checked="groupState(group) === 'all'"
-                                :indeterminate.prop="groupState(group) === 'some'"
-                                :disabled="!canManageModules"
-                                @change="toggleGroup(group, $event.target.checked)"
+                <div class="module-access">
+                    <div v-for="group in moduleGroups" :key="group.group" class="module-group" :class="{ 'is-off': groupState(group) === 'none' }">
+                        <div class="module-group-header" @click="toggleOpen(group.group)">
+                            <span class="module-group-icon">
+                                <i :class="groupIcon(group.group)"></i>
+                            </span>
+                            <div class="flex-grow-1 min-w-0">
+                                <div class="module-group-title">{{ group.group }}</div>
+                                <div class="module-group-sub">
+                                    {{ selectedCount(group) }} de {{ group.modules.length }} módulos con acceso
+                                </div>
+                            </div>
+                            <span
+                                class="badge rounded-pill me-2"
+                                :class="{
+                                    'badge-subtle-success': groupState(group) === 'all',
+                                    'badge-subtle-warning': groupState(group) === 'some',
+                                    'badge-subtle-secondary': groupState(group) === 'none'
+                                }"
                             >
-                            <label class="form-check-label small fw-semibold" :for="`group-${group.group}`">
-                                {{ group.group }}
-                            </label>
+                                {{ groupState(group) === 'all' ? 'Completo' : groupState(group) === 'some' ? 'Parcial' : 'Sin acceso' }}
+                            </span>
+                            <div class="form-check form-switch mb-0 me-2" @click.stop v-tooltip="'Marcar o desmarcar todo el grupo'">
+                                <input
+                                    class="form-check-input"
+                                    type="checkbox"
+                                    role="switch"
+                                    :id="`group-${group.group}`"
+                                    :checked="groupState(group) === 'all'"
+                                    :indeterminate.prop="groupState(group) === 'some'"
+                                    :disabled="!canManageModules"
+                                    @change="toggleGroup(group, $event.target.checked)"
+                                >
+                            </div>
+                            <i class="fas fa-chevron-down module-chevron" :class="{ 'is-open': isOpen(group.group) }"></i>
                         </div>
-                        <div class="row g-1 ps-4">
-                            <div v-for="module in group.modules" :key="module.key" class="col-md-6">
-                                <div class="form-check">
-                                    <input
-                                        class="form-check-input"
-                                        type="checkbox"
-                                        :id="`module-${module.key}`"
-                                        :value="module.key"
-                                        v-model="form.allowed_modules"
-                                        :disabled="!canManageModules"
-                                    >
-                                    <label class="form-check-label small" :for="`module-${module.key}`">
-                                        {{ module.label }}
-                                        <span class="text-muted" style="font-size: 0.65rem;" v-if="module.section !== group.group">· {{ module.section }}</span>
-                                    </label>
+
+                        <div v-show="isOpen(group.group)" class="module-group-body">
+                            <div v-for="section in sectionsOf(group)" :key="section.name" class="module-section">
+                                <div v-if="section.name !== group.group || sectionsOf(group).length > 1" class="module-section-title">
+                                    {{ section.name }}
+                                </div>
+                                <div class="row g-1">
+                                    <div v-for="module in section.modules" :key="module.key" class="col-md-6">
+                                        <label
+                                            class="module-item"
+                                            :class="{ 'is-checked': form.allowed_modules.includes(module.key), 'is-disabled': !canManageModules }"
+                                            :for="`module-${module.key}`"
+                                        >
+                                            <input
+                                                class="form-check-input mt-0"
+                                                type="checkbox"
+                                                :id="`module-${module.key}`"
+                                                :value="module.key"
+                                                v-model="form.allowed_modules"
+                                                :disabled="!canManageModules"
+                                            >
+                                            <span class="module-item-label">{{ module.label }}</span>
+                                        </label>
+                                    </div>
                                 </div>
                             </div>
                         </div>
@@ -179,3 +243,113 @@ const onlyExpenseReports = () => { props.form.allowed_modules = ['expense-report
         </div>
     </div>
 </template>
+
+<style scoped>
+.module-access {
+    max-height: 380px;
+    overflow-y: auto;
+    padding-right: 4px;
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+.module-group {
+    flex-shrink: 0;
+    border: 1px solid var(--falcon-border-color, #d8e2ef);
+    border-radius: 0.5rem;
+    background: #fff;
+    overflow: hidden;
+}
+.module-group.is-off .module-group-icon {
+    background: #edf2f9;
+    color: #9da9bb;
+}
+.module-group-header {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 0.6rem 0.75rem;
+    cursor: pointer;
+    background: var(--falcon-body-bg, #f9fafd);
+    user-select: none;
+}
+.module-group-header:hover {
+    background: #edf2f9;
+}
+.module-group-icon {
+    width: 32px;
+    height: 32px;
+    flex-shrink: 0;
+    border-radius: 0.5rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(44, 123, 229, 0.12);
+    color: #2c7be5;
+    font-size: 0.85rem;
+}
+.module-group-title {
+    font-weight: 700;
+    font-size: 0.85rem;
+    color: #344050;
+    line-height: 1.2;
+}
+.module-group-sub {
+    font-size: 0.7rem;
+    color: #9da9bb;
+}
+.module-chevron {
+    font-size: 0.7rem;
+    color: #9da9bb;
+    transition: transform 0.2s;
+}
+.module-chevron.is-open {
+    transform: rotate(180deg);
+}
+.module-group-body {
+    padding: 0.6rem 0.75rem 0.75rem 1.25rem;
+    margin-left: 1rem;
+    border-top: 1px solid var(--falcon-border-color, #d8e2ef);
+    border-left: 2px solid rgba(44, 123, 229, 0.25);
+    margin-bottom: 0.5rem;
+    margin-top: 0.25rem;
+}
+.module-section + .module-section {
+    margin-top: 0.6rem;
+}
+.module-section-title {
+    font-size: 0.65rem;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: #9da9bb;
+    margin-bottom: 0.3rem;
+}
+.module-item {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.3rem 0.5rem;
+    border-radius: 0.375rem;
+    border: 1px solid transparent;
+    cursor: pointer;
+    font-size: 0.78rem;
+    color: #748194;
+    transition: background 0.15s, border-color 0.15s;
+}
+.module-item:hover:not(.is-disabled) {
+    background: #f9fafd;
+    border-color: #d8e2ef;
+}
+.module-item.is-checked {
+    color: #344050;
+    background: rgba(44, 123, 229, 0.06);
+}
+.module-item.is-disabled {
+    cursor: not-allowed;
+    opacity: 0.75;
+}
+.module-item-label {
+    line-height: 1.2;
+}
+</style>
