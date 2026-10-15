@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\Users\UpdateUserRequest;
 use Illuminate\Support\Facades\Hash;
 use App\Models\User;
+use App\Support\ModuleAccess;
 
 class UpdateUserController extends Controller
 {
@@ -29,6 +30,8 @@ class UpdateUserController extends Controller
         }
         $user->save();
 
-        $user->syncRoles($request->roles); 
+        $user->syncRoles($request->roles ?? []);
+
+        ModuleAccess::syncUserModules($owner, $user, $request->boolean('restrict_modules'), (array) $request->input('allowed_modules', []));
     }
 }

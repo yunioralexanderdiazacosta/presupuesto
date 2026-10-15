@@ -559,8 +559,7 @@ Route::middleware([
     'auth:sanctum',
     config('jetstream.auth_session'),
     'verified',
-    \App\Http\Middleware\RestrictExpenseSubmitter::class,
-    \App\Http\Middleware\CheckTeamModuleAccess::class,
+    \App\Http\Middleware\CheckModuleAccess::class,
 ])->group(function () {
 
 

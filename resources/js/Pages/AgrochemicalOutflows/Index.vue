@@ -128,18 +128,39 @@ const filteredOutflows = computed(() => {
     });
 });
 
+// Una fila por cuartel/producto aplicado, respetando los filtros activos
+const excelHeaders = [
+    { label: 'Fecha', key: 'fecha' },
+    { label: 'Orden', key: 'orden' },
+    { label: 'Razón Social', key: 'razon_social' },
+    { label: 'Cuartel', key: 'cuartel' },
+    { label: 'Producto', key: 'producto' },
+    { label: 'Cantidad', key: 'cantidad', type: 'number' },
+    { label: 'Unidad', key: 'unidad' },
+    { label: 'Factura', key: 'factura' },
+    { label: 'Maquinadas', key: 'maquinadas', type: 'number' },
+    { label: 'Observaciones', key: 'observaciones' },
+];
+
 const excelData = computed(() => {
-    return filteredOutflows.value.map(item => ({
-        'Fecha': item.date,
-        'Orden': `#${item.application_order_id}`,
-        'Maquinadas': item.maquinadas,
-        'Productos': item.productos,
-        'Cuarteles': item.cuarteles,
-        'Cantidad Total': item.cantidad_total,
-        'Unidad': item.unidad,
-        'Facturas': item.facturas,
-        'Observaciones': item.observations || '',
-    }));
+    return filteredOutflows.value.flatMap(item => {
+        const [y, m, d] = String(item.date).substring(0, 10).split('-');
+        const base = {
+            fecha: `${d}/${m}/${y}`,
+            orden: `#${item.application_order_id}`,
+            razon_social: item.razones_sociales || '',
+            maquinadas: Number(item.maquinadas) || 0,
+            observaciones: item.observations || '',
+        };
+        return (item.detalle || []).map(det => ({
+            ...base,
+            cuartel: det.cuartel,
+            producto: det.producto,
+            cantidad: Number(det.cantidad) || 0,
+            unidad: det.unidad || '',
+            factura: det.factura,
+        }));
+    });
 });
 </script>
 
@@ -159,8 +180,8 @@ const excelData = computed(() => {
                         <div class="d-flex align-items-center gap-2">
                             <ExportExcelButton 
                                 :data="excelData"
-                                filename="aplicaciones-agroquimicos"
-                                sheet-name="Aplicaciones"
+                                :headers="excelHeaders"
+                                filename="aplicaciones-agroquimicos.xlsx"
                                 class="btn btn-falcon-default btn-sm d-flex align-items-center"
                             />
                             <button 

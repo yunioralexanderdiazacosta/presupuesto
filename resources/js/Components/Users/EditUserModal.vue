@@ -4,7 +4,9 @@ import Modal from '@/Components/Modal.vue';
 
 const props = defineProps({
     form: Object,
-    availableRoles: Array
+    availableRoles: Array,
+    moduleGroups: { type: Array, default: () => [] },
+    canManageModules: { type: Boolean, default: true }
 });
 
 defineEmits(['update']);
@@ -24,7 +26,7 @@ defineEmits(['update']);
             </div>
         </template>
         <template #body>
-            <UserForm :form="form" :availableRoles="availableRoles" />
+            <UserForm :form="form" :availableRoles="availableRoles" :moduleGroups="moduleGroups" :canManageModules="canManageModules" />
         </template>
         <template #footer>
             <button type="button" id="kt_modal_update_user_cancel" data-bs-dismiss="modal" class="btn btn-light me-3">Cerrar</button>

@@ -56,6 +56,7 @@ class User extends Authenticatable
     protected $casts = [
         'email_verified_at' => 'datetime',
         'status' => 'boolean',
+        'restrict_modules' => 'boolean',
         'dollar_price' => 'float',
     ];
 
@@ -76,5 +77,16 @@ class User extends Authenticatable
     public function owner()
     {
         return $this->hasMany(Team::class);
+    }
+
+    /** Módulos permitidos cuando restrict_modules es true. */
+    public function modules()
+    {
+        return $this->hasMany(UserModule::class);
+    }
+
+    public function allowedModuleKeys(): array
+    {
+        return $this->modules->pluck('module_key')->all();
     }
 }

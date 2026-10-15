@@ -13,7 +13,8 @@ import EditUserModal from '@/Components/Users/EditUserModal.vue';
 const props = defineProps({
     users: Object,
     term: String,
-    availableRoles: Array
+    availableRoles: Array,
+    moduleGroups: { type: Array, default: () => [] }
 });
 
 const form = useForm({
@@ -22,8 +23,12 @@ const form = useForm({
     username: '',
     email: '',
     password: '',
-    roles: []    
+    roles: [],
+    allowed_modules: []
 });
+
+// Si el usuario logueado no puede editar el acceso a módulos del usuario abierto (admins, él mismo)
+const canManageModules = ref(true);
 
 const title = 'Usuarios';
 
@@ -31,8 +36,18 @@ const term  = ref(props.term);
 
 const links = [{ title: 'Tablero', link: 'dashboard' }, { title: title, active: true }];
 
+const allModuleKeys = computed(() => props.moduleGroups.flatMap(g => g.modules.map(m => m.key)));
+
+// Todo marcado = sin restricción. Si falta algún módulo por marcar, el usuario queda restringido a los marcados.
+form.transform(data => ({
+    ...data,
+    restrict_modules: allModuleKeys.value.some(key => !data.allowed_modules.includes(key)),
+}));
+
 const openAdd = () => {
     form.reset();
+    form.allowed_modules = [...allModuleKeys.value];
+    canManageModules.value = true;
     $('#createUserModal').modal('show');
 }
 
@@ -43,6 +58,8 @@ const openEdit = (user) => {
     form.username = user.username;
     form.email = user.email;
     form.roles = user.roles || [];   
+    form.allowed_modules = user.restrict_modules ? [...(user.allowed_modules || [])] : [...allModuleKeys.value];
+    canManageModules.value = !!user.can_manage_modules;
     $('#editUserModal').modal('show');
 }
 
@@ -211,7 +228,10 @@ const onFilter = () => {
                                     >
                                         {{ role == 'Normal' ? 'Digitador' : role }}
                                     </span>
-                                    <span v-if="user.roles.length === 0" class="text-muted">Sin rol</span>
+                                    <span v-if="user.roles.length === 0 && !user.restrict_modules" class="text-muted">Sin rol</span>
+                                    <span v-if="user.restrict_modules" class="badge rounded-pill badge-subtle-warning" v-tooltip="'Solo accede a módulos específicos'">
+                                        <i class="fas fa-lock me-1"></i>Acceso restringido ({{ user.allowed_modules.length }})
+                                    </span>
                                 </td>
                                 <td>{{moment(user.created_at).format('DD-MM-YYYY hh:mm A')}}</td>
                                 <td>
@@ -242,7 +262,7 @@ const onFilter = () => {
             </div>
         </div>
 
-        <CreateUserModal @store="storeUser" :form="form" :availableRoles="availableRoles" />
-        <EditUserModal @update="updateUser" :form="form" :availableRoles="availableRoles" />
+        <CreateUserModal @store="storeUser" :form="form" :availableRoles="availableRoles" :moduleGroups="moduleGroups" :canManageModules="canManageModules" />
+        <EditUserModal @update="updateUser" :form="form" :availableRoles="availableRoles" :moduleGroups="moduleGroups" :canManageModules="canManageModules" />
     </AppLayout>
 </template>

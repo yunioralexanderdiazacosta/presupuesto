@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use App\Models\User;
+use App\Support\ModuleAccess;
 use Spatie\Permission\Models\Role;
 use Inertia\Inertia;
 
@@ -25,7 +26,7 @@ class UsersController extends Controller
         })
         ->paginate(10)
         ->withQueryString()
-        ->through(function($value){
+        ->through(function($value) use ($user) {
             return [
                 'id' => $value->id,
                 'name' => $value->name,
@@ -33,7 +34,10 @@ class UsersController extends Controller
                 'email' => $value->email,
                 'roles' => $value->getRoleNames()->toArray(),
                 'status' => $value->status,
-                'created_at' => $value->created_at 
+                'created_at' => $value->created_at,
+                'restrict_modules' => (bool) $value->restrict_modules,
+                'allowed_modules' => $value->allowedModuleKeys(),
+                'can_manage_modules' => ModuleAccess::canManageModules($user, $value),
             ];
         });
 
@@ -49,6 +53,11 @@ class UsersController extends Controller
                 ];
             });
 
-        return Inertia::render('Users', compact('users', 'term', 'availableRoles'));
+        // Módulos que se pueden asignar (agrupados como en el menú), sin los bloqueados para la empresa
+        $moduleGroups = ModuleAccess::groupedCatalog(
+            $user->team ? $user->team->disabledModules()->pluck('module_key')->all() : []
+        );
+
+        return Inertia::render('Users', compact('users', 'term', 'availableRoles', 'moduleGroups'));
     }
 }

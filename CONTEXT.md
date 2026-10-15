@@ -174,6 +174,17 @@ Este proyecto es un sistema de gestión presupuestaria agrícola desarrollado en
 - Esto aplica a **todos** los componentes que comparan IDs provenientes de props de Inertia contra datos de relaciones Eloquent (cost_center_variety_id, fruit_id, team_id, etc.).
 - **Causa raíz**: El driver MySQL de producción puede tener configuración PDO distinta (`ATTR_STRINGIFY_FETCHES`) a la de desarrollo local.
 
+### Acceso por módulos (empresa y usuario)
+- **Catálogo único**: `config/modules.php` lista los módulos (`key` = ruta `.index`, `section`, `prefixes` opcionales con rutas de apoyo como APIs o pestañas). El primer nivel del menú se deriva de `section` en `ModuleAccess::GROUPS`.
+- **Dos niveles de bloqueo, una sola lógica** (`app/Support/ModuleAccess.php`, middleware `CheckModuleAccess`):
+  - Por empresa: `team_disabled_modules` (lo gestiona el Super Admin).
+  - Por usuario: `users.restrict_modules` + `user_modules` (lista **permitida**; lo gestiona el Admin en Usuarios). Si no está restringido, ve todo.
+- Super Admin nunca se restringe. Rutas básicas (home, perfil, FAQ, selección de temporada, lookups comunes) siempre están permitidas.
+- **Menú lateral**: el backend comparte `moduleAccess.blockedUris` y `AppLayout.vue` oculta enlaces y grupos sin enlaces visibles. El 403 real lo aplica el middleware, nunca el frontend.
+- **Reglas de edición**: un Admin edita el acceso de cualquier usuario de su empresa (incluidos otros Admin), pero nunca el suyo propio; el Super Admin edita a cualquiera salvo a otros Super Admin (`ModuleAccess::canManageModules`).
+- **Rendidor** ya no es un rol: es un usuario restringido solo a `expense-reports.index`.
+- **Agregar un módulo nuevo**: registrarlo en `config/modules.php` con sus `prefixes` de apoyo; si no está en el catálogo, un usuario restringido no podrá entrar.
+
 ## Notas adicionales
 - Si tienes dudas sobre la lógica o reglas, consulta este archivo antes de implementar cambios.
 - Actualiza este archivo si agregas reglas o flujos nuevos.

@@ -7,6 +7,25 @@
 
 export const changelog = [
   {
+    fecha: '2026-10-14',
+    titulo: 'Usuarios — Acceso restringido por módulos',
+    items: [
+      'En Usuarios, al crear o editar un usuario, aparece la sección "Acceso a módulos" con todos los módulos marcados (agrupados como en el menú lateral). Desmarca los que ese usuario no debe ver.',
+      'El usuario restringido solo ve en el menú los módulos permitidos y no puede entrar a los demás, ni escribiendo la dirección en el navegador.',
+      'Por defecto todos los usuarios siguen viendo todos los módulos de su empresa.',
+      'El botón "Solo Rendiciones de Gastos" reemplaza al antiguo rol Rendidor: los usuarios que lo tenían quedan con esa restricción.',
+      'No puedes cambiar tu propio acceso a módulos, pero un Admin sí puede editar el de otros Admin y usuarios de su empresa.',
+    ]
+  },
+  {
+    fecha: '2026-10-14',
+    titulo: 'Aplicaciones de Agroquímicos — Exportación a Excel',
+    items: [
+      'El botón Excel del registro de aplicaciones ahora descarga el archivo con los datos.',
+      'El archivo incluye una fila por cuartel y producto (fecha, orden, razón social, cantidad, unidad, factura y maquinadas) y respeta los filtros aplicados.',
+    ]
+  },
+  {
     fecha: '2026-10-13',
     titulo: 'Órdenes de Aplicación — Receta por maquinada más clara',
     items: [

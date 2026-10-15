@@ -7,6 +7,7 @@ use Illuminate\Support\Facades\Auth;
 use App\Http\Requests\Users\StoreUserRequest;
 use Illuminate\Support\Facades\Hash;
 use App\Models\User;
+use App\Support\ModuleAccess;
 
 class StoreUserController extends Controller
 {
@@ -23,6 +24,8 @@ class StoreUserController extends Controller
         $user->team_id = $owner->team_id;
         $user->save();
 
-        $user->syncRoles($request->roles);
+        $user->syncRoles($request->roles ?? []);
+
+        ModuleAccess::syncUserModules($owner, $user, $request->boolean('restrict_modules'), (array) $request->input('allowed_modules', []));
     }
 }

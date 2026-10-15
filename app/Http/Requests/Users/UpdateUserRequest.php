@@ -4,6 +4,8 @@ namespace App\Http\Requests\Users;
 
 use Illuminate\Contracts\Validation\Validator;
 use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Validation\Rule;
+use App\Support\ModuleAccess;
 
 class UpdateUserRequest extends FormRequest
 {
@@ -34,12 +36,18 @@ class UpdateUserRequest extends FormRequest
      */
     public function rules(): array
     {
+        $restrict = $this->boolean('restrict_modules');
+
         return [
             'name' => 'required',
             'username' => 'required|max:255|unique:users,username,'. $this->user->id,
             'email' => 'required|max:255|email',
-            'roles' => 'required|array|min:1',
-            'roles.*' => 'exists:roles,name'
+            // Un usuario con acceso restringido por módulos puede no tener roles
+            'roles' => $restrict ? ['nullable', 'array'] : ['required', 'array', 'min:1'],
+            'roles.*' => 'exists:roles,name',
+            'restrict_modules' => 'boolean',
+            'allowed_modules' => $restrict ? ['required', 'array', 'min:1'] : ['nullable', 'array'],
+            'allowed_modules.*' => Rule::in(ModuleAccess::catalogKeys()),
         ];
     }
 
@@ -48,7 +56,10 @@ class UpdateUserRequest extends FormRequest
         return [
             'roles.required' => 'Debe seleccionar al menos un rol.',
             'roles.min' => 'Debe seleccionar al menos un rol.',
-            'roles.*.exists' => 'El rol seleccionado no es válido.'
+            'roles.*.exists' => 'El rol seleccionado no es válido.',
+            'allowed_modules.required' => 'Debe seleccionar al menos un módulo permitido.',
+            'allowed_modules.min' => 'Debe seleccionar al menos un módulo permitido.',
+            'allowed_modules.*.in' => 'Uno de los módulos seleccionados no es válido.',
         ];
     }
 }

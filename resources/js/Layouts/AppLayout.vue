@@ -1,5 +1,5 @@
 <script setup>
-import { computed, ref } from 'vue';
+import { computed, ref, watch, nextTick } from 'vue';
 import { router, Link, usePage } from '@inertiajs/vue3';
 import JetDropdownLink from '@/Components/DropdownLink.vue';
 import { onMounted, onUnmounted } from 'vue';
@@ -18,12 +18,86 @@ const isAdminUser = computed(() => {
   const roles = $page.props.gates?.roles || [];
   return roles.includes('Admin') || roles.includes('Super Admin');
 });
-// Usuario cuyo único rol asignado es "Rendidor" (nada más marcado): solo ve el módulo de Rendiciones de Gastos
-const isRendidorOnly = computed(() => {
-  const roles = $page.props.gates?.roles || [];
-  return roles.length === 1 && roles.includes('Rendidor');
-});
+// Usuario con acceso restringido a módulos específicos (se configura en Usuarios)
+const isModuleRestricted = computed(() => !!$page.props.moduleAccess?.restricted);
+// El menú principal lo ven los administradores y los usuarios restringidos por módulos (solo con lo permitido)
+const showMainMenu = computed(() => isAdminUser.value || isModuleRestricted.value);
 const seasonLinkComponent = computed(() => isAdminUser.value ? Link : 'span');
+
+// ── Bloqueo por módulos ───────────────────────────────────────
+// El backend entrega las rutas bloqueadas (empresa o usuario restringido): aquí solo se ocultan
+// los enlaces y los grupos que quedan sin ningún enlace visible. El 403 real lo aplica el middleware.
+const blockedPaths = computed(() => new Set($page.props.moduleAccess?.blockedUris || []));
+// Enlaces siempre permitidos (FAQ, etc.): no cuentan para decidir si un grupo quedó vacío
+const neutralPaths = computed(() => new Set($page.props.moduleAccess?.neutralUris || []));
+
+const normalizePath = (path) => path.replace(/\/+$/, '') || '/';
+
+const isRouteBlocked = (routeName) => {
+  try {
+    return blockedPaths.value.has(normalizePath(route(routeName, {}, false)));
+  } catch (e) {
+    return false;
+  }
+};
+
+const HIDDEN_ATTR = 'data-module-hidden';
+
+const setHidden = (el, hidden) => {
+  if (hidden) {
+    el.style.display = 'none';
+    el.setAttribute(HIDDEN_ATTR, '1');
+  } else if (el.hasAttribute(HIDDEN_ATTR)) {
+    el.style.display = '';
+    el.removeAttribute(HIDDEN_ATTR);
+  }
+};
+
+const isLinkVisible = (link, root) => {
+  for (let el = link; el && el !== root; el = el.parentElement) {
+    if (el.hasAttribute(HIDDEN_ATTR)) return false;
+  }
+  return true;
+};
+
+const applyModuleFilter = () => {
+  const nav = document.getElementById('navbarVerticalNav');
+  if (!nav) return;
+
+  nav.querySelectorAll(`[${HIDDEN_ATTR}]`).forEach(el => setHidden(el, false));
+
+  if (blockedPaths.value.size > 0) {
+    nav.querySelectorAll('a[href]:not([href^="#"])').forEach(link => {
+      const path = normalizePath(new URL(link.href, window.location.origin).pathname);
+      if (blockedPaths.value.has(path)) {
+        // Se oculta el <li> solo si el enlace es lo único que contiene
+        const item = link.closest('li');
+        const onlyLink = item && item.querySelectorAll('a[href]:not([href^="#"])').length === 1;
+        setHidden(onlyLink ? item : link, true);
+      }
+    });
+  }
+
+  // De los grupos más internos a los externos: un grupo sin enlaces visibles se oculta completo
+  [...nav.querySelectorAll('a.dropdown-indicator[href^="#"]')].reverse().forEach(header => {
+    const target = nav.querySelector(header.getAttribute('href'));
+    if (!target) return;
+
+    const visible = [...target.querySelectorAll('a[href]:not([href^="#"])')].some(link =>
+      isLinkVisible(link, target) && !neutralPaths.value.has(normalizePath(new URL(link.href, window.location.origin).pathname))
+    );
+
+    if (!visible) {
+      // Submenú anidado: el <li> contiene solo el encabezado y su lista. Un grupo de primer nivel comparte <li> con los demás.
+      const parent = header.parentElement;
+      const ownItem = parent?.tagName === 'LI' && parent.children.length === 2;
+      setHidden(ownItem ? parent : header, true);
+      setHidden(target, true);
+    }
+  });
+};
+
+watch(blockedPaths, () => nextTick(applyModuleFilter));
 
  let timeoutId;
   const inactivityTime = (lifetime.value || 30) * 60 * 1000; // Minutos en milisegundos (default 30 min)
@@ -37,6 +111,8 @@ const seasonLinkComponent = computed(() => isAdminUser.value ? Link : 'span');
 
 
  onMounted(() => {
+    nextTick(applyModuleFilter);
+
     // Detección de actividad
 	window.addEventListener('mousemove', resetTimer);
 	window.addEventListener('keypress', resetTimer);
@@ -149,12 +225,10 @@ const normalize = (str) => str.normalize('NFD').replace(/[\u0300-\u036f]/g, '').
 const filteredMenuItems = computed(() => {
     if (!menuSearch.value.trim()) return [];
     const q = normalize(menuSearch.value.trim());
-    const base = isRendidorOnly.value
-        ? menuItems.filter(item => item.route.startsWith('expense-reports.'))
-        : menuItems;
-    return base.filter(item =>
-        normalize(item.label).includes(q) ||
-        (item.section && normalize(item.section).includes(q))
+    return menuItems.filter(item =>
+        !isRouteBlocked(item.route) &&
+        (normalize(item.label).includes(q) ||
+        (item.section && normalize(item.section).includes(q)))
     );
 });
 
@@ -250,18 +324,6 @@ const navigateTo = (routeName) => {
         </a>
       </li>
 
-      <!-- Menú exclusivo para el rol Rendidor (sin acceso a Admin/Super Admin) -->
-      <li class="nav-item" v-if="isRendidorOnly">
-        <Link class="nav-link" :href="route('expense-reports.index')" role="button">
-          <div class="d-flex align-items-center">
-            <span class="nav-link-icon">
-              <span class="fas fa-receipt"></span>
-            </span>
-            <span class="nav-link-text ps-1">Rendiciones de Gastos</span>
-          </div>
-        </Link>
-      </li>
-
       <li class="nav-item" v-role="'Super Admin'">
         <Link class="nav-link" :href="route('dashboard')" role="button">
           <div class="d-flex align-items-center">
@@ -304,7 +366,7 @@ const navigateTo = (routeName) => {
           </div>
         </Link>
       </li>
-            <li class="nav-item" v-role="'Admin'">
+            <li class="nav-item" v-if="showMainMenu">
           
               <!-- parent pages--><a class="nav-link dropdown-indicator" href="#authentication" role="button" data-bs-toggle="collapse" aria-expanded="false" aria-controls="authentication">
                 <div class="d-flex align-items-center"><span class="nav-link-icon"><span class="fas fa-lock"></span></span><span class="nav-link-text text-dark ps-1">Presupuestos</span>

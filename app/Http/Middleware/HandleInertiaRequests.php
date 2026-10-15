@@ -7,6 +7,7 @@ use Inertia\Middleware;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Http;
 use App\Models\Season;
+use App\Support\ModuleAccess;
 
 class HandleInertiaRequests extends Middleware
 {
@@ -66,6 +67,19 @@ class HandleInertiaRequests extends Middleware
                     'roles' => $user->getRoleNames(),
                     'permissions' => $user->getAllPermissions()->pluck('name')
                 ] : null;
+            },
+            // Rutas bloqueadas por módulo (empresa o usuario restringido): el menú lateral las oculta
+            'moduleAccess' => function () {
+                $user = Auth::user();
+                if (!$user) {
+                    return null;
+                }
+
+                return [
+                    'restricted' => (bool) $user->restrict_modules,
+                    'blockedUris' => ModuleAccess::blockedUris($user),
+                    'neutralUris' => ModuleAccess::neutralUris($user),
+                ];
             },
             'flash' => [
                 'error' => fn () => $request->session()->get('error'),
