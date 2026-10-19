@@ -67,24 +67,18 @@ watch(
         if (type === 'debito') {
             props.form.is_annulment = false;
         }
-        if (type === 'credito') {
-            props.form.branch_id = '';
-            if (isAnnulment) {
-                props.form.affects_inventory = true;
-            }
+        if (type === 'credito' && isAnnulment) {
+            props.form.affects_inventory = true;
         }
     }
 );
 
-// Al cambiar la sucursal, actualizar branch_id en TODOS los ítems existentes
+// Al cambiar entre crédito y débito se descartan los ítems: cada tipo calcula precio y stock distinto
 watch(
-    () => props.form.branch_id,
-    (newBranchId) => {
-        if (props.form.type !== 'debito') return;
-        if (props.form.items && props.form.items.length > 0) {
-            props.form.items.forEach(item => {
-                item.branch_id = newBranchId || '';
-            });
+    () => props.form.type,
+    (nuevoTipo, viejoTipo) => {
+        if (viejoTipo && nuevoTipo !== viejoTipo) {
+            props.form.items = [];
         }
     }
 );
@@ -118,10 +112,11 @@ watch(
         const factura = props.invoices.find((inv) => inv.value === invoiceId);
         if (!factura || !factura.products) return;
 
-        // Si es anulación total (crédito) o si se desmarca "Afecta inventario" (en crédito o débito)
+        // Si es anulación total (crédito), si se desmarca "Afecta inventario" o si es débito: cargar las líneas de la factura
         if (
             (type === "credito" && isAnnulment && invoiceId) ||
-            (affectsInventory === false && invoiceId)
+            (affectsInventory === false && invoiceId) ||
+            (type === "debito" && invoiceId)
         ) {
             props.form.items = factura.products
                 .filter(
@@ -131,8 +126,11 @@ watch(
                     invoice_product_id: prod.value, // id de la línea, nunca null
                     product_id: prod.product_id ?? prod.value, // para backend y watcher
                     unit_id: prod.unit_id,
-                    quantity: prod.amount ?? 1,
-                    unit_price: prod.unit_price ?? 0,
+                    branch_id: prod.branch_id ?? '',
+                    // ND con stock: parte en 0 y el usuario indica cuánto ingresa en cada línea
+                    quantity: type === "debito" && affectsInventory ? '' : (prod.amount ?? 1),
+                    // NC de solo precio: parte sin descuento; el usuario indica cuánto se rebaja
+                    unit_price: type === "credito" && !isAnnulment ? 0 : (prod.unit_price ?? 0),
                 }));
         }
     }
@@ -228,21 +226,6 @@ watch(
         </div>
     </div>
 
-    <!-- Sucursal (solo para tipo débito) -->
-    <div v-if="form.type === 'debito' && branches.length > 0" class="row mb-2">
-        <div class="col-lg-4">
-            <div class="fv-row">
-                <label class="col-form-label fw-bold">
-                    <i class="fas fa-building text-primary me-1"></i>Sucursal
-                </label>
-                <select v-model="form.branch_id" class="form-select form-control">
-                    <option value="">Sin sucursal</option>
-                    <option v-for="b in branches" :key="b.value" :value="b.value">{{ b.label }}</option>
-                </select>
-            </div>
-        </div>
-    </div>
-
     <!-- Ambos checkboxes en cards, en la misma fila -->
     <div class="row mb-3 mt-3">
       <div class="col-lg-6">
@@ -262,7 +245,7 @@ watch(
             </div>
             <div v-if="form.is_annulment && form.type === 'credito'" class="alert alert-danger py-1 px-2 mb-0 mt-2" style="font-size: 0.75rem;">
               <i class="fas fa-undo me-1"></i>
-              Se revertirá TODO el stock y montos de la factura. Los items se autocompletarán.
+              Se revertirá TODO el stock y montos de la factura. Los items se autocompletarán. Solo es posible si no se ha consumido nada de la factura.
             </div>
             <div v-else-if="form.type !== 'credito'" class="mt-2">
               <small class="text-muted"><i class="fas fa-info-circle me-1"></i>Solo disponible para notas de crédito</small>
@@ -297,7 +280,7 @@ watch(
             <div v-else class="alert alert-warning py-1 px-2 mb-0 mt-2" style="font-size: 0.75rem;">
               <i class="fas fa-exclamation-triangle me-1"></i>
               <strong>NC Financiera:</strong> No moverá stock. El descuento se aplicará directamente al precio unitario de la factura.
-              <br><small class="text-muted">Los items se autocompletarán con las líneas de la factura.</small>
+              <br><small class="text-muted">Los items se autocompletarán con las líneas de la factura. Indique en cada línea el monto total a rebajar (neto); se reparte entre todas las unidades facturadas, incluidas las ya consumidas.</small>
             </div>
           </div>
         </div>
@@ -340,9 +323,8 @@ watch(
     <!-- Items -->
     <FormItems
         v-model:items="form.items"
-        :products="form.type === 'credito' ? filteredInvoiceLines : products"
+        :products="filteredInvoiceLines"
         :units="units"
-        :branch-id="form.branch_id"
         :is_annulment="form.is_annulment"
         :type="form.type"
         :affects_inventory="form.affects_inventory"

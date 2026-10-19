@@ -586,7 +586,8 @@ function handleSave() {
     },
     onError: (error) => {
       console.log(error?.response?.data || error);
-      Swal.fire({ icon: 'error', title: 'Error', text: 'Ocurrió un error al guardar las salidas.' });
+      const messages = error && typeof error === 'object' ? Object.values(error).filter(m => typeof m === 'string') : [];
+      Swal.fire({ icon: 'error', title: 'Error', text: messages.length ? messages.join(' ') : 'Ocurrió un error al guardar las salidas.' });
     }
   });
 }

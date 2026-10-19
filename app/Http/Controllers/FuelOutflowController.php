@@ -209,6 +209,7 @@ class FuelOutflowController extends Controller
             ->where('team_id', $user->team_id)
             ->where('season_id', $season_id)
             ->where('type', 'debito')
+            ->where('affects_inventory', true)
             ->get();
         
         foreach ($debitNotes as $note) {

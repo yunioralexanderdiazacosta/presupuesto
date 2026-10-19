@@ -43,6 +43,7 @@ class ProductStockLinesController extends Controller
                 ->where('credit_debit_notes.team_id', $user->team_id)
                 ->where('credit_debit_notes.season_id', $season_id)
                 ->where('credit_debit_notes.type', 'debito')
+                ->where('credit_debit_notes.affects_inventory', 1)
                 ->where('credit_debit_note_items.product_id', $product_id)
                 ->select(
                     'credit_debit_note_items.id as line_id',

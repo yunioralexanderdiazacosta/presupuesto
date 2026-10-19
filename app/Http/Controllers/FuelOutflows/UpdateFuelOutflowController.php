@@ -6,8 +6,10 @@ use App\Models\FuelOutflow;
 use App\Models\Outflow;
 use App\Models\Product;
 use App\Http\Requests\FuelOutflows\UpdateFuelOutflowRequest;
+use App\Services\InventoryAvailabilityService;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Validation\ValidationException;
 
 use App\Traits\CheckSeasonLocked;
 
@@ -30,6 +32,18 @@ class UpdateFuelOutflowController
         DB::beginTransaction();
         
         try {
+            // 0. Validar stock del lote excluyendo el consumo que se está editando
+            $liters = (float) $validated['liters'];
+            $previousKardex = $fuelOutFlow->outflow;
+            $excludeOutflowIds = array_filter([$previousKardex?->id]);
+            $prevByIp = $previousKardex?->invoice_product_id ? [(int) $previousKardex->invoice_product_id => (float) $previousKardex->quantity] : [];
+            $prevByNd = $previousKardex?->credit_debit_note_item_id ? [(int) $previousKardex->credit_debit_note_item_id => (float) $previousKardex->quantity] : [];
+            if (!empty($validated['invoice_product_id'])) {
+                InventoryAvailabilityService::assertCanConsume([(int) $validated['invoice_product_id'] => $liters], [], $excludeOutflowIds, 'liters', $prevByIp);
+            } elseif (!empty($validated['credit_debit_note_item_id'])) {
+                InventoryAvailabilityService::assertCanConsume([], [(int) $validated['credit_debit_note_item_id'] => $liters], $excludeOutflowIds, 'liters', [], $prevByNd);
+            }
+
             // 1. Actualizar el registro principal de FuelOutflow
             $fuelOutFlow->update($validated);
             $fuelOutFlow->refresh();
@@ -88,6 +102,9 @@ class UpdateFuelOutflowController
             
             DB::commit();
             
+        } catch (ValidationException $e) {
+            DB::rollBack();
+            return back()->withErrors($e->errors())->withInput();
         } catch (\Exception $e) {
             DB::rollBack();
             return back()->withErrors([

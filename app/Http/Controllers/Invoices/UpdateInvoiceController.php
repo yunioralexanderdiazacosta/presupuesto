@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Invoices;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\FormInvoiceRequest;
 use App\Models\Invoice;
+use App\Services\InventoryAvailabilityService;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use App\Traits\CheckSeasonLocked;
@@ -92,6 +93,23 @@ class UpdateInvoiceController extends Controller
                 return redirect()->back()->with('error',
                     "No se puede eliminar el producto \"{$productNames}\" porque tiene movimientos asociados."
                 );
+            }
+        }
+
+        // Una línea con consumos o devoluciones no puede quedar con menos cantidad de la ya utilizada
+        if ($protectedInvoiceProductIds->isNotEmpty()) {
+            foreach ($request->products as $rawItem) {
+                $ipId = (int) ($rawItem['invoice_product_id'] ?? 0);
+                if (!$ipId || !$protectedInvoiceProductIds->contains($ipId) || !isset($rawItem['amount'])) {
+                    continue;
+                }
+                $stock = InventoryAvailabilityService::forInvoiceProduct($ipId);
+                $used = $stock['consumed'] + $stock['returned'];
+                if ((float) $rawItem['amount'] + InventoryAvailabilityService::EPSILON < $used) {
+                    return redirect()->back()->with('error',
+                        "La cantidad de \"{$stock['product_name']}\" no puede ser menor a {$used}, porque ya tiene consumos ({$stock['consumed']}) y devoluciones ({$stock['returned']}) registrados."
+                    );
+                }
             }
         }
 

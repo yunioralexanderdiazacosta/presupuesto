@@ -3,9 +3,11 @@
 namespace App\Http\Controllers\CreditDebitNotes;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\FormCreditDebitNoteRequest;
 use App\Models\CreditDebitNote;
 use App\Models\InvoiceProduct;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Validation\ValidationException;
 
 use App\Traits\CheckSeasonLocked;
 
@@ -13,6 +15,27 @@ class DeleteCreditDebitNoteController extends Controller
 {
     public function __invoke(CreditDebitNote $note)
     {
+        if ($note->type === CreditDebitNote::TYPE_DEBIT) {
+            $itemIds = $note->items()->pluck('id');
+            $consumed = $itemIds->isNotEmpty() && (
+                DB::table('outflows')->whereIn('credit_debit_note_item_id', $itemIds)->exists()
+                || DB::table('fuel_outflows')->whereIn('credit_debit_note_item_id', $itemIds)->exists()
+                || DB::table('agrochemical_outflows')->whereIn('credit_debit_note_item_id', $itemIds)->exists()
+                || DB::table('fertilizer_outflows')->whereIn('credit_debit_note_item_id', $itemIds)->exists()
+            );
+            if ($consumed) {
+                throw ValidationException::withMessages([
+                    'note' => 'No se puede eliminar la nota de débito porque ya tiene consumos registrados. Elimine o reasigne esos consumos primero.',
+                ]);
+            }
+        }
+
+        if ($note->isFinancialCredit() && $note->invoice_id && FormCreditDebitNoteRequest::invoiceSeasonIsLocked($note->invoice_id)) {
+            throw ValidationException::withMessages([
+                'note' => 'No se puede eliminar esta nota de crédito de solo precio: su factura pertenece a una temporada cerrada y se modificarían sus costos.',
+            ]);
+        }
+
         DB::transaction(function () use ($note) {
             $isFinancialCredit = !$note->affects_inventory
                 && in_array(strtolower($note->type), ['credito', 'nc']);

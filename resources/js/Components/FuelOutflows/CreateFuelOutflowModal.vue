@@ -163,8 +163,8 @@ function save() {
             emit('saved');
             closeModal();
         },
-        onError: () => {
-            Swal.fire({ icon: 'error', title: 'Error', text: 'Revisa los campos e inténtalo de nuevo.' });
+        onError: (errors) => {
+            Swal.fire({ icon: 'error', title: 'Error', text: errors?.liters || errors?.error || 'Revisa los campos e inténtalo de nuevo.' });
         }
     });
 }

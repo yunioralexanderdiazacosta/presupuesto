@@ -1,13 +1,9 @@
 <script setup>
-import { computed, watch, onMounted } from 'vue';
+import { computed, watch, onMounted, reactive } from 'vue';
 const props = defineProps({
   items: Array,
-  products: Array,  // líneas de factura (crédito) o productos (débito)
+  products: Array,  // líneas de la factura seleccionada (crédito y débito)
   units: Array,
-  branchId: {
-    type: [String, Number],
-    default: ''
-  },
   is_annulment: Boolean,
   type: String, // 'credito' o 'debito'
   affects_inventory: {
@@ -37,7 +33,7 @@ function add() {
     unit_id: '',
     quantity: 0,
     unit_price: 0,
-    branch_id: props.branchId || '',
+    branch_id: '',
   });
   emit('update:items', newItems);
 }
@@ -47,40 +43,32 @@ function remove(idx) {
   emit('update:items', newItems);
 }
 
-// Watch para crédito: al cambiar invoice_product_id, auto-rellenar datos
+// Al elegir una línea de la factura (crédito o débito), auto-rellenar producto, unidad, precio y sucursal
 watch(
   () => props.items.map(i => i.invoice_product_id),
   (newIds, oldIds) => {
-    if (props.type !== 'credito') return;
     newIds.forEach((id, idx) => {
       if (id && id !== oldIds[idx]) {
-        // Buscar la línea seleccionada
-        const line = props.products.find(p => p.value === id);
+        const line = props.products.find(p => String(p.value) === String(id));
         if (line) {
           // Si la línea tiene product_id, úsalo; si no, usa value (debe ser el id real de producto)
           props.items[idx].product_id = line.product_id ?? line.value;
           props.items[idx].unit_id = line.unit_id;
-          props.items[idx].unit_price = line.unit_price;
+          props.items[idx].unit_price = props.type === 'credito' && !props.affects_inventory && !props.is_annulment ? 0 : line.unit_price;
+          // La sucursal es la de la línea de la factura y no se puede cambiar
+          props.items[idx].branch_id = line.branch_id ?? '';
         }
       }
     });
   }, { deep: true }
 );
-// Watch para débito: al cambiar product_id, auto-rellenar unidad
-watch(
-  () => props.items.map(i => i.product_id),
-  (newIds, oldIds) => {
-    if (props.type !== 'debito') return;
-    newIds.forEach((id, idx) => {
-      if (id && id !== oldIds[idx]) {
-        const prod = props.products.find(p => p.value === id);
-        if (prod && prod.unit_id) {
-          props.items[idx].unit_id = prod.unit_id;
-        }
-      }
-    });
-  }, { deep: true }
-);
+
+// Sucursal (solo lectura) de la línea de factura elegida
+const getBranchName = (item) => {
+  if (!item.invoice_product_id) return null;
+  const line = props.products.find(p => String(p.value) === String(item.invoice_product_id));
+  return line ? (line.branch_name || 'Sin sucursal') : null;
+};
 
 const total = computed(() => {
   let t = 0;
@@ -121,6 +109,49 @@ const exceedsQuantity = (item) => {
   if (max === null) return false;
   return Number(item.quantity) > Number(max);
 };
+
+// Stock de la línea de factura seleccionada (consumido, devuelto y disponible en bodega)
+const getStockInfo = (item) => {
+  if (props.type !== 'credito' || !item.invoice_product_id) return null;
+  const line = props.products.find(p => String(p.value) === String(item.invoice_product_id));
+  if (!line || line.available === undefined) return null;
+  return { consumed: line.consumed, returned: line.returned, available: line.available };
+};
+
+// La devolución física (o anulación) no puede superar lo que queda en bodega
+const exceedsStock = (item) => {
+  const info = getStockInfo(item);
+  if (!info || !(props.affects_inventory || props.is_annulment)) return false;
+  return Number(item.quantity) - Number(info.available) > 0.0001;
+};
+
+// NC de solo precio: no mueve stock; el monto se reparte entre TODAS las unidades facturadas
+const isFinancialCredit = computed(() => props.type === 'credito' && !props.affects_inventory && !props.is_annulment);
+
+const discountTotal = (item) => {
+  const t = (parseFloat(item.unit_price) || 0) * (parseFloat(item.quantity) || 0);
+  return t ? Math.round(t * 100) / 100 : '';
+};
+
+// Monto tal como lo escribió el usuario (el precio unitario se guarda con 2 decimales y podría redondear)
+const typedTotals = reactive({});
+const unitFromTotal = (item, total) => {
+  const qty = parseFloat(item.quantity) || 0;
+  return qty > 0 ? Math.round((total / qty) * 100) / 100 : 0;
+};
+const discountInputValue = (item) => {
+  const typed = typedTotals[item.invoice_product_id];
+  if (typed !== undefined && typed !== '' && unitFromTotal(item, parseFloat(typed) || 0) === (parseFloat(item.unit_price) || 0)) {
+    return typed;
+  }
+  return discountTotal(item);
+};
+
+// El usuario escribe el monto total a rebajar; se guarda como descuento por unidad sobre la cantidad facturada
+const setDiscountTotal = (item, value) => {
+  typedTotals[item.invoice_product_id] = value;
+  item.unit_price = unitFromTotal(item, parseFloat(value) || 0);
+};
 </script>
 
 <template>
@@ -136,22 +167,21 @@ const exceedsQuantity = (item) => {
         <tr>
           <th>Producto</th>
           <th>Unidad</th>
-          <th>Cantidad</th>
-          <th>Precio Unitario</th>
+          <th>{{ isFinancialCredit ? 'Cantidad facturada' : 'Cantidad' }}</th>
+          <th>{{ isFinancialCredit ? 'Monto a rebajar (neto)' : 'Precio Unitario' }}</th>
           <th></th>
         </tr>
       </thead>
       <tbody>
-        <tr v-for="(item, idx) in items" :key="idx" :class="exceedsQuantity(item) ? 'table-danger' : ''">
+        <tr v-for="(item, idx) in items" :key="idx" :class="(exceedsQuantity(item) || exceedsStock(item)) ? 'table-danger' : ''">
           <td>
-            <select v-if="type === 'credito'" v-model="item.invoice_product_id" class="form-control">
-              <option value="" disabled>Seleccione línea</option>
-              <option v-for="p in products" :key="p.value" :value="p.value">{{ p.label }}</option>
+            <select v-model="item.invoice_product_id" class="form-control" :disabled="isFinancialCredit">
+              <option value="" disabled>Seleccione línea de la factura</option>
+              <option v-for="p in products" :key="p.value" :value="p.value">{{ p.label }}{{ p.branch_name ? ' — ' + p.branch_name : '' }}</option>
             </select>
-            <select v-else v-model="item.product_id" class="form-control">
-              <option value="" disabled>Seleccione producto</option>
-              <option v-for="p in products" :key="p.value" :value="p.value">{{ p.label }}</option>
-            </select>
+            <div v-if="getBranchName(item)" class="text-muted" style="font-size: 0.65rem;">
+              <i class="fas fa-building me-1"></i>Sucursal: <strong>{{ getBranchName(item) }}</strong>
+            </div>
           </td>
           <td>
             <select v-model="item.unit_id" class="form-control">
@@ -165,15 +195,49 @@ const exceedsQuantity = (item) => {
               v-model="item.quantity"
               class="form-control"
               :class="exceedsQuantity(item) ? 'is-invalid' : ''"
+              :readonly="isFinancialCredit"
+              :placeholder="type === 'debito' ? 'Ingrese cantidad' : ''"
               :min="type === 'debito' && affects_inventory === false ? 0.01 : 0"
               :max="getMaxQuantity(item) || undefined"
               step="0.01"
             />
-            <div v-if="type === 'credito' && getMaxQuantity(item)" style="font-size: 0.65rem;" :class="exceedsQuantity(item) ? 'text-danger fw-bold' : 'text-muted'">
+            <div v-if="isFinancialCredit" class="text-muted" style="font-size: 0.65rem;">
+              El descuento se reparte entre todas las unidades facturadas, incluidas las ya consumidas.
+            </div>
+            <div v-if="!isFinancialCredit && type === 'credito' && getMaxQuantity(item)" style="font-size: 0.65rem;" :class="exceedsQuantity(item) ? 'text-danger fw-bold' : 'text-muted'">
               Máx: {{ getMaxQuantity(item) }}
             </div>
+            <div v-if="!isFinancialCredit && getStockInfo(item)" style="font-size: 0.65rem;" :class="exceedsStock(item) ? 'text-danger fw-bold' : 'text-muted'">
+              Consumido: {{ getStockInfo(item).consumed }} · Devuelto: {{ getStockInfo(item).returned }} ·
+              <strong>Disponible: {{ getStockInfo(item).available }}</strong>
+            </div>
+            <div v-if="exceedsStock(item)" class="text-danger" style="font-size: 0.65rem;">
+              Supera lo disponible. Si es solo rebaja de precio, quite el check de
+              <template v-if="is_annulment">«Anula factura completa» y «Afecta inventario»</template>
+              <template v-else>«Afecta inventario»</template>
+              o elimine las salidas.
+            </div>
           </td>
-          <td><input type="number" v-model="item.unit_price" class="form-control" min="0" step="0.01" /></td>
+          <td>
+            <template v-if="isFinancialCredit">
+              <input
+                type="number"
+                class="form-control"
+                :value="discountInputValue(item)"
+                @input="setDiscountTotal(item, $event.target.value)"
+                min="0"
+                step="1"
+                placeholder="Monto total neto a rebajar"
+              />
+              <div class="text-muted" style="font-size: 0.65rem;">
+                Equivale a rebajar ${{ (parseFloat(item.unit_price) || 0).toLocaleString('es-CL', { maximumFractionDigits: 2 }) }} por unidad
+                <span v-if="discountTotal(item) !== '' && Math.abs(discountTotal(item) - (parseFloat(discountInputValue(item)) || 0)) > 0.005">
+                  (se aplicará ${{ discountTotal(item).toLocaleString('es-CL', { maximumFractionDigits: 2 }) }} por redondeo)
+                </span>
+              </div>
+            </template>
+            <input v-else type="number" v-model="item.unit_price" class="form-control" min="0" step="0.01" />
+          </td>
           <td>
             <input v-if="type === 'credito' && products.length && products.find(p => p.value === item.product_id) && products.find(p => p.value === item.product_id).id" type="hidden" v-model="item.invoice_product_id" />
             <button class="btn btn-danger btn-sm" @click.prevent="remove(idx)"
@@ -182,7 +246,7 @@ const exceedsQuantity = (item) => {
         </tr>
       </tbody>
     </table>
-    <button class="btn btn-success btn-sm" @click.prevent="add"
+    <button v-if="!isFinancialCredit" class="btn btn-success btn-sm" @click.prevent="add"
       :disabled="is_annulment || (type === 'credito' && Math.abs(total) >= invoiceTotal) || (type === 'debito' && affects_inventory === false)">
       Agregar línea
     </button>

@@ -30,6 +30,8 @@ const form = useForm({
 });
 
 
+const isFinancialCredit = computed(() => form.type === 'credito' && !form.affects_inventory && !form.is_annulment);
+
 const hasInvalidDebitQty = computed(() => {
   if (form.type !== 'debito' || !!form.affects_inventory) return false;
   return form.items.some(item => !item.quantity || Number(item.quantity) <= 0);
@@ -46,6 +48,22 @@ const hasExceedingQuantity = computed(() => {
     if (!line) return false;
     return Number(item.quantity) > Number(line.amount || line.quantity || 0);
   });
+});
+
+// NC con devolución física: no se puede devolver más de lo que queda en bodega
+const exceedingReturns = computed(() => {
+  if (form.type !== 'credito' || !(form.affects_inventory || form.is_annulment)) return [];
+  const invoice = props.invoices.find(inv => String(inv.value) === String(form.invoice_id));
+  if (!invoice || !invoice.products) return [];
+  const byLine = {};
+  form.items.forEach(item => {
+    if (!item.invoice_product_id) return;
+    const key = String(item.invoice_product_id);
+    byLine[key] = (byLine[key] || 0) + (parseFloat(item.quantity) || 0);
+  });
+  return Object.entries(byLine)
+    .map(([id, qty]) => ({ line: invoice.products.find(p => String(p.value) === id), qty }))
+    .filter(({ line, qty }) => line && line.available !== undefined && qty - Number(line.available) > 0.0001);
 });
 
 // Validar si el monto total excede la factura
@@ -79,6 +97,21 @@ const save = () => {
     Swal.fire({ icon: 'error', title: 'Cantidad excedida', text: 'Al menos un item tiene una cantidad mayor a la facturada. Corrija antes de guardar.' });
     return;
   }
+  // Devolución física mayor a lo que queda en bodega
+  if (exceedingReturns.value.length) {
+    const detail = exceedingReturns.value
+      .map(({ line, qty }) => `<li><strong>${line.label}</strong>: devolver ${qty}, disponible ${line.available}</li>`)
+      .join('');
+    Swal.fire({
+      icon: 'error',
+      title: form.is_annulment ? 'No se puede anular la factura' : 'Devolución mayor al stock disponible',
+      html: `<div style="text-align:left; font-size:0.9rem;">
+        <ul>${detail}</ul>
+        <p>Si es solo una rebaja de precio, quite el check de ${form.is_annulment ? '«Anula factura completa» y «Afecta inventario»' : '«Afecta inventario»'}. Si no, elimine las salidas.</p>
+      </div>`,
+    });
+    return;
+  }
   // Advertencia si excede total factura
   if (exceedsInvoiceTotal.value) {
     Swal.fire({ icon: 'error', title: 'Monto excedido', text: 'El monto total de la nota excede el total de la factura. Corrija antes de guardar.' });
@@ -89,9 +122,19 @@ const save = () => {
     Swal.fire({ icon: 'error', title: 'Sin items', text: 'Debe agregar al menos un item a la nota.' });
     return;
   }
+  // ND con stock: las líneas vienen cargadas desde la factura; debe haber cantidad en al menos una
+  if (form.type === 'debito' && form.affects_inventory && !form.items.some(item => (parseFloat(item.quantity) || 0) > 0)) {
+    Swal.fire({ icon: 'error', title: 'Falta la cantidad', text: 'Indique la cantidad en al menos una línea de la factura.' });
+    return;
+  }
 
   // Confirmación con resumen
   const totalNota = form.items.reduce((sum, item) => sum + (parseFloat(item.unit_price) || 0) * (parseFloat(item.quantity) || 0), 0);
+  // NC de solo precio: el formulario parte con descuento 0, hay que indicar cuánto se rebaja
+  if (isFinancialCredit.value && totalNota <= 0) {
+    Swal.fire({ icon: 'error', title: 'Falta el monto a rebajar', text: 'Indique el monto total a rebajar (neto) en al menos una línea.' });
+    return;
+  }
   Swal.fire({
     icon: 'question',
     title: '¿Confirmar nota de ' + (form.type === 'credito' ? 'Crédito' : 'Débito') + '?',
@@ -100,7 +143,7 @@ const save = () => {
         <p><strong>Acción:</strong> ${operationDescription.value}</p>
         <p><strong>Items:</strong> ${form.items.length} producto(s)</p>
         <p><strong>Monto total:</strong> $${totalNota.toLocaleString('es-CL')}</p>
-        ${!form.affects_inventory ? '<p class="text-warning"><i class="fas fa-exclamation-triangle"></i> <strong>NC Financiera:</strong> Se ajustará el precio unitario en la factura.</p>' : ''}
+        ${!form.affects_inventory ? '<p class="text-warning"><i class="fas fa-exclamation-triangle"></i> <strong>NC Financiera:</strong> Se ajustará el precio unitario en la factura. El descuento se reparte entre todas las unidades facturadas, incluidas las ya consumidas.</p>' : ''}
         ${form.is_annulment ? '<p class="text-danger"><i class="fas fa-exclamation-triangle"></i> <strong>Anulación total:</strong> Se revertirá todo el stock.</p>' : ''}
       </div>
     `,
@@ -110,12 +153,23 @@ const save = () => {
     confirmButtonColor: '#2c7be5',
   }).then((result) => {
     if (!result.isConfirmed) return;
-    form.post(route('credit_debit_notes.store'), {
+    // NC de solo precio: se omiten las líneas sin descuento. ND con stock: se omiten las líneas sin cantidad.
+    form.transform((data) => ({
+      ...data,
+      items: isFinancialCredit.value
+        ? data.items.filter(item => (parseFloat(item.unit_price) || 0) * (parseFloat(item.quantity) || 0) > 0)
+        : (data.type === 'debito' && data.affects_inventory
+          ? data.items.filter(item => (parseFloat(item.quantity) || 0) > 0)
+          : data.items),
+    })).post(route('credit_debit_notes.store'), {
       preserveScroll: true,
       onSuccess: () => {
         msgSuccess('Guardado correctamente');
         router.reload({ only: [] });
         router.get(route('credit_debit_notes.index'));
+      },
+      onError: (errors) => {
+        Swal.fire({ icon: 'error', title: 'No se pudo guardar', text: Object.values(errors).join(' ') });
       }
     });
   });

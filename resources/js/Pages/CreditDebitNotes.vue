@@ -94,6 +94,9 @@ const onDeleted = (id) => {
         preserveScroll: true,
         onSuccess: () => {
           msgSuccess('Registro eliminado correctamente');
+        },
+        onError: (errors) => {
+          Swal.fire({ icon: 'error', title: 'No se pudo eliminar', text: Object.values(errors).join(' ') });
         }
       });
     }

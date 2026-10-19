@@ -5,7 +5,10 @@ namespace App\Http\Controllers\Outflows;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\OutflowRequest;
 use App\Models\Outflow;
+use App\Services\InventoryAvailabilityService;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Validation\ValidationException;
 
 use App\Traits\CheckSeasonLocked;
 
@@ -18,37 +21,61 @@ class StoreOutflowController extends Controller
         $userId = $user->id;
         $teamId = $user->team_id;
         $seasonId = session('season_id');
-        
+
         $outflows = $request->input('outflows', []);
-        $saved = 0;
+
+        // Agrupar por lote: varias tarjetas pueden consumir de la misma línea en un mismo envío
+        $byInvoiceProduct = [];
+        $byDebitNoteItem = [];
         foreach ($outflows as $outflowData) {
-            // Determinar si es factura o nota de débito
-            $data = [
-                'invoice_product_id' => $outflowData['tipo'] === 'factura' ? ($outflowData['invoice_product_id'] ?? null) : null,
-                'credit_debit_note_item_id' => $outflowData['tipo'] === 'nota_debito' ? ($outflowData['credit_debit_note_item_id'] ?? null) : null,
-                'user_id' => $userId,
-                'team_id' => $teamId,
-                'season_id' => $seasonId,
-                'project_id' => $outflowData['project_id'] ?? null,
-                'operation_id' => $outflowData['operation_id'] ?? null,
-                'investment_id' => $outflowData['investment_id'] ?? null,
-                'machinery_id' => $outflowData['machinery_id'] ?? null,
-                'quantity' => $outflowData['quantity'] ?? null,
-                'notes' => $outflowData['notes'] ?? null,
-                'date' => $outflowData['date'] ?? now(),
-                'level3_id' => $outflowData['level3_id'] ?? null,
-            ];
-            $outflow = \App\Models\Outflow::create($data);
-            if (isset($outflowData['cost_center_ids']) && is_array($outflowData['cost_center_ids'])) {
-                foreach ($outflowData['cost_center_ids'] as $costCenterId) {
-                    $outflow->costCenters()->create([
-                        'cost_center_id' => $costCenterId,
-                        'observations' => $outflowData['notes'] ?? null,
-                    ]);
-                }
+            $qty = (float) ($outflowData['quantity'] ?? 0);
+            if (($outflowData['tipo'] ?? null) === 'factura' && !empty($outflowData['invoice_product_id'])) {
+                $id = (int) $outflowData['invoice_product_id'];
+                $byInvoiceProduct[$id] = ($byInvoiceProduct[$id] ?? 0) + $qty;
+            } elseif (($outflowData['tipo'] ?? null) === 'nota_debito' && !empty($outflowData['credit_debit_note_item_id'])) {
+                $id = (int) $outflowData['credit_debit_note_item_id'];
+                $byDebitNoteItem[$id] = ($byDebitNoteItem[$id] ?? 0) + $qty;
+            } else {
+                throw ValidationException::withMessages(['outflows' => 'Cada salida debe indicar la factura o nota de débito de origen.']);
             }
-            $saved++;
         }
+
+        $saved = DB::transaction(function () use ($outflows, $byInvoiceProduct, $byDebitNoteItem, $userId, $teamId, $seasonId) {
+            InventoryAvailabilityService::assertCanConsume($byInvoiceProduct, $byDebitNoteItem, [], 'outflows');
+
+            $saved = 0;
+            foreach ($outflows as $outflowData) {
+                // Determinar si es factura o nota de débito
+                $data = [
+                    'invoice_product_id' => $outflowData['tipo'] === 'factura' ? ($outflowData['invoice_product_id'] ?? null) : null,
+                    'credit_debit_note_item_id' => $outflowData['tipo'] === 'nota_debito' ? ($outflowData['credit_debit_note_item_id'] ?? null) : null,
+                    'user_id' => $userId,
+                    'team_id' => $teamId,
+                    'season_id' => $seasonId,
+                    'project_id' => $outflowData['project_id'] ?? null,
+                    'operation_id' => $outflowData['operation_id'] ?? null,
+                    'investment_id' => $outflowData['investment_id'] ?? null,
+                    'machinery_id' => $outflowData['machinery_id'] ?? null,
+                    'quantity' => $outflowData['quantity'] ?? null,
+                    'notes' => $outflowData['notes'] ?? null,
+                    'date' => $outflowData['date'] ?? now(),
+                    'level3_id' => $outflowData['level3_id'] ?? null,
+                ];
+                $outflow = Outflow::create($data);
+                if (isset($outflowData['cost_center_ids']) && is_array($outflowData['cost_center_ids'])) {
+                    foreach ($outflowData['cost_center_ids'] as $costCenterId) {
+                        $outflow->costCenters()->create([
+                            'cost_center_id' => $costCenterId,
+                            'observations' => $outflowData['notes'] ?? null,
+                        ]);
+                    }
+                }
+                $saved++;
+            }
+
+            return $saved;
+        });
+
         return redirect()->route('outflows.index')->with('success', "$saved salidas registradas correctamente.");
     }
 }

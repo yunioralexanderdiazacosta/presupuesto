@@ -7,6 +7,27 @@
 
 export const changelog = [
   {
+    fecha: '2026-10-19',
+    titulo: 'Notas de Crédito/Débito — Control de stock en devoluciones y consumos',
+    items: [
+      'Se corrigió un error que impedía abrir el formulario de notas de crédito y débito.',
+      'Una nota de crédito que devuelve productos ya no puede dejar el stock en negativo: si parte de la mercadería ya fue consumida, el sistema avisa cuánto queda realmente en bodega y no permite devolver más.',
+      'Si la nota de crédito llega después de haber consumido el producto, regístrela quitando el check de «Afecta inventario» (rebaja de monto): se descuenta de la deuda con el proveedor sin tocar el stock.',
+      'La anulación total de una factura solo es posible si todavía no se ha consumido nada de ella.',
+      'Una nota de crédito de solo precio no puede superar el valor de la línea de factura.',
+      'Todas las salidas (generales, agroquímicos, fertilizantes y combustible) validan el stock disponible real, considerando devoluciones, para evitar stock negativo. Al editar una salida, bajar la cantidad siempre está permitido.',
+      'Se corrigió la edición de aplicaciones de agroquímicos: el kardex ahora guarda el total de todos los cuarteles y no solo la cantidad del último cuartel.',
+      'Al eliminar un cuartel de una aplicación de agroquímicos, solo se descuenta el consumo de ese cuartel; los demás cuarteles mantienen su salida en el kardex.',
+      'Una nota de crédito de solo precio rebaja el costo de todas las unidades de la factura, incluidas las ya consumidas. Por eso no se puede registrar ni eliminar si la factura pertenece a una temporada cerrada.',
+      'Las notas de débito que solo ajustan monto ya no aparecen como productos disponibles para salida.',
+      'No se puede eliminar una nota de débito cuyos productos ya fueron consumidos, ni reducir en una factura la cantidad de un producto por debajo de lo ya consumido o devuelto.',
+      'Los mensajes de error al guardar notas y salidas ahora explican el motivo exacto.',
+      'Al crear una nota de crédito, cada línea muestra cuánto se ha consumido, cuánto se devolvió antes y cuánto queda disponible, y se marca en rojo si intenta devolver más de lo disponible.',
+      'En una nota de crédito de solo precio, la cantidad queda fija en lo facturado y se ingresa el monto total neto a rebajar; el sistema calcula el descuento por unidad. Ya no se autocompleta con el 100% de la factura.',
+      'Notas de débito: ahora se arman a partir de las líneas de la factura (igual que las notas de crédito). Cada línea trae su sucursal fija, que no se puede cambiar, así el producto ya no aparece sin sucursal en el kardex. Ya no existe el selector de sucursal en el encabezado, y la factura es obligatoria.',
+    ]
+  },
+  {
     fecha: '2026-10-14',
     titulo: 'Usuarios — Acceso restringido por módulos',
     items: [

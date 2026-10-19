@@ -9,8 +9,10 @@ use App\Models\CreditDebitNoteItem;
 use App\Models\Product;
 use App\Models\FertilizerOrder;
 use App\Http\Requests\FertilizerOutflows\StoreFertilizerOutflowRequest;
+use App\Services\InventoryAvailabilityService;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Validation\ValidationException;
 
 use App\Traits\CheckSeasonLocked;
 
@@ -23,44 +25,17 @@ class StoreFertilizerOutflowController
         $seasonId = session('season_id');
         
         // ========================================
-        // VALIDAR STOCK DISPONIBLE PARA CADA LÍNEA
+        // AGRUPAR CANTIDADES POR LÍNEA DE FACTURA (validación de stock dentro de la transacción)
         // ========================================
-        
+
+        $requestedByLine = [];
         foreach ($request->products as $productData) {
-            // Cada producto tiene múltiples líneas
             foreach ($productData['lines'] as $line) {
-                $invoiceProductId = $line['invoice_product_id'] ?? null;
-                $quantity = $line['quantity'];
-                
-                if (!$invoiceProductId) {
+                if (empty($line['invoice_product_id']) || $line['quantity'] <= 0) {
                     continue;
                 }
-                
-                $stockDisponible = 0;
-                
-                $ip = InvoiceProduct::findOrFail($invoiceProductId);
-                $cantidadOriginal = $ip->quantity ?? $ip->amount ?? 0;
-                
-                // Calcular consumos desde outflows (kardex maestro)
-                $consumido = DB::table('outflows')
-                    ->where('invoice_product_id', $invoiceProductId)
-                    ->sum('quantity');
-                
-                // Calcular devoluciones
-                $devuelto = CreditDebitNoteItem::whereHas('creditDebitNote', function($q) {
-                    $q->where('type', 'credito');
-                })
-                ->where('invoice_product_id', $invoiceProductId)
-                ->sum('quantity');
-                
-                $stockDisponible = $cantidadOriginal - $consumido - $devuelto;
-                
-                if ($quantity > $stockDisponible) {
-                    $productName = Product::find($productData['product_id'])->name ?? 'Producto';
-                    return back()->withErrors([
-                        'stock' => "Stock insuficiente para {$productName}. Disponible: {$stockDisponible}"
-                    ])->withInput();
-                }
+                $id = (int) $line['invoice_product_id'];
+                $requestedByLine[$id] = ($requestedByLine[$id] ?? 0) + (float) $line['quantity'];
             }
         }
         
@@ -71,6 +46,8 @@ class StoreFertilizerOutflowController
         DB::beginTransaction();
         
         try {
+            InventoryAvailabilityService::assertCanConsume($requestedByLine);
+
             $fertilizerOrderId = $request->fertilizer_order_id;
             $date = $request->date;
             $observations = $request->observations;
@@ -141,6 +118,9 @@ class StoreFertilizerOutflowController
             
             return redirect()->route('fertilizer-outflows.index')->with('success', 'Aplicación de fertilizante registrada correctamente');
             
+        } catch (ValidationException $e) {
+            DB::rollBack();
+            return back()->withErrors($e->errors())->withInput();
         } catch (\Exception $e) {
             DB::rollBack();
             return back()->withErrors(['error' => 'Error al registrar la aplicación: ' . $e->getMessage()])->withInput();

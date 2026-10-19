@@ -8,8 +8,10 @@ use App\Models\InvoiceProduct;
 use App\Models\CreditDebitNoteItem;
 use App\Models\Product;
 use App\Http\Requests\FuelOutflows\StoreFuelOutflowRequest;
+use App\Services\InventoryAvailabilityService;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Validation\ValidationException;
 
 use App\Traits\CheckSeasonLocked;
 
@@ -22,42 +24,12 @@ class StoreFuelOutflowController
         $seasonId = session('season_id');
         
         // ========================================
-        // 🔥 VALIDAR STOCK DISPONIBLE
+        // 🔥 STOCK: se valida dentro de la transacción con bloqueo del lote
         // ========================================
         
         $invoiceProductId = $request->input('invoice_product_id');
         $creditDebitNoteItemId = $request->input('credit_debit_note_item_id');
-        $liters = $request->input('liters');
-        
-        $stockDisponible = 0;
-        
-        if ($invoiceProductId) {
-            $ip = InvoiceProduct::findOrFail($invoiceProductId);
-            $cantidadOriginal = $ip->quantity ?? $ip->amount ?? 0;
-            $consumido = FuelOutflow::where('invoice_product_id', $invoiceProductId)->sum('liters');
-            
-            // Calcular devoluciones (notas de crédito)
-            $devuelto = \App\Models\CreditDebitNoteItem::whereHas('creditDebitNote', function($q) {
-                $q->where('type', 'credito');
-            })
-            ->where('invoice_product_id', $invoiceProductId)
-            ->sum('quantity');
-            
-            $stockDisponible = round($cantidadOriginal - $consumido - $devuelto, 2);
-            
-        } elseif ($creditDebitNoteItemId) {
-            $item = CreditDebitNoteItem::findOrFail($creditDebitNoteItemId);
-            $cantidadOriginal = $item->quantity ?? 0;
-            $consumido = FuelOutflow::where('credit_debit_note_item_id', $creditDebitNoteItemId)->sum('liters');
-            $stockDisponible = round($cantidadOriginal - $consumido, 2);
-        }
-        
-        // Validar que no exceda el stock
-        if ($liters > $stockDisponible) {
-            return back()->withErrors([
-                'liters' => "No hay suficiente stock. Disponible: {$stockDisponible} litros"
-            ])->withInput();
-        }
+        $liters = (float) $request->input('liters');
         
         // ========================================
         // 🔥 CREAR FUEL OUTFLOW Y OUTFLOW EN TRANSACCIÓN
@@ -73,6 +45,14 @@ class StoreFuelOutflowController
         DB::beginTransaction();
         
         try {
+            if ($invoiceProductId) {
+                InventoryAvailabilityService::assertCanConsume([(int) $invoiceProductId => $liters], [], [], 'liters');
+            } elseif ($creditDebitNoteItemId) {
+                InventoryAvailabilityService::assertCanConsume([], [(int) $creditDebitNoteItemId => $liters], [], 'liters');
+            } else {
+                throw ValidationException::withMessages(['liters' => 'Seleccione la factura o nota de débito de origen.']);
+            }
+
             // 1. Crear FuelOutflow
             $fuelOutflow = FuelOutflow::create($validated);
             
@@ -109,6 +89,9 @@ class StoreFuelOutflowController
             
             DB::commit();
             
+        } catch (ValidationException $e) {
+            DB::rollBack();
+            return back()->withErrors($e->errors())->withInput();
         } catch (\Exception $e) {
             DB::rollBack();
             return back()->withErrors([

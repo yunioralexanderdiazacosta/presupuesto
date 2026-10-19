@@ -10,6 +10,8 @@ use App\Models\CreditDebitNoteItem;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Validation\ValidationException;
+use App\Services\InventoryAvailabilityService;
 use App\Traits\CheckSeasonLocked;
 
 class UpdateFertilizerOutflowController extends Controller
@@ -37,34 +39,24 @@ class UpdateFertilizerOutflowController extends Controller
         // Validar stock disponible
         $invoiceProductId = $request->invoice_product_id;
         $quantity = $request->quantity;
-        
-        $ip = InvoiceProduct::findOrFail($invoiceProductId);
-        $cantidadOriginal = $ip->quantity ?? $ip->amount ?? 0;
-        
-        // Calcular consumos excluyendo ESTE registro que estamos editando
-        $consumido = DB::table('outflows')
-            ->where('invoice_product_id', $invoiceProductId)
-            ->where('id', '!=', DB::table('outflows')->where('fertilizer_outflow_id', $fertilizerOutflow->id)->value('id'))
-            ->sum('quantity');
-        
-        // Calcular devoluciones
-        $devuelto = CreditDebitNoteItem::whereHas('creditDebitNote', function($q) {
-            $q->where('type', 'credito');
-        })
-        ->where('invoice_product_id', $invoiceProductId)
-        ->sum('quantity');
-        
-        $stockDisponible = $cantidadOriginal - $consumido - $devuelto;
-        
-        if ($quantity > $stockDisponible) {
-            return back()->withErrors([
-                'quantity' => "Stock insuficiente. Disponible: {$stockDisponible}"
-            ])->withInput();
-        }
+        $currentOutflow = DB::table('outflows')->where('fertilizer_outflow_id', $fertilizerOutflow->id)->first(['id', 'invoice_product_id', 'quantity']);
+        $currentOutflowId = $currentOutflow?->id;
+        $previousByLine = $currentOutflow?->invoice_product_id
+            ? [(int) $currentOutflow->invoice_product_id => (float) $currentOutflow->quantity]
+            : [];
 
         DB::beginTransaction();
 
         try {
+            // Validar stock disponible excluyendo el consumo que se está editando
+            InventoryAvailabilityService::assertCanConsume(
+                [(int) $invoiceProductId => (float) $quantity],
+                [],
+                array_filter([$currentOutflowId]),
+                'quantity',
+                $previousByLine
+            );
+
             // Actualizar fertilizer outflow
             $fertilizerOutflow->update([
                 'date' => $request->date,
@@ -88,6 +80,9 @@ class UpdateFertilizerOutflowController extends Controller
 
             return back()->with('success', 'Aplicación actualizada correctamente');
 
+        } catch (ValidationException $e) {
+            DB::rollBack();
+            return back()->withErrors($e->errors())->withInput();
         } catch (\Exception $e) {
             DB::rollBack();
             return back()->withErrors(['error' => 'Error al actualizar: ' . $e->getMessage()]);

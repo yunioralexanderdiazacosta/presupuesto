@@ -108,11 +108,11 @@ function update() {
             emit('saved');
             closeModal();
         },
-        onError: () => {
+        onError: (errors) => {
             Swal.fire({ 
                 icon: 'error', 
                 title: 'Error', 
-                text: 'Revisa los campos e inténtalo de nuevo.' 
+                text: errors?.liters || errors?.error || 'Revisa los campos e inténtalo de nuevo.' 
             });
         }
     });

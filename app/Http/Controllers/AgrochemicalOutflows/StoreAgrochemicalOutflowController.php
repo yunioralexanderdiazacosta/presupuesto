@@ -9,8 +9,10 @@ use App\Models\CreditDebitNoteItem;
 use App\Models\Product;
 use App\Models\ApplicationOrder;
 use App\Http\Requests\AgrochemicalOutflows\StoreAgrochemicalOutflowRequest;
+use App\Services\InventoryAvailabilityService;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Validation\ValidationException;
 
 use App\Traits\CheckSeasonLocked;
 
@@ -23,40 +25,17 @@ class StoreAgrochemicalOutflowController
         $seasonId = session('season_id');
         
         // ========================================
-        // VALIDAR STOCK DISPONIBLE PARA CADA LÍNEA
+        // AGRUPAR CANTIDADES POR LÍNEA DE FACTURA (validación de stock dentro de la transacción)
         // ========================================
-        
+
+        $requestedByLine = [];
         foreach ($request->products as $productData) {
-            // Cada producto ahora tiene múltiples líneas
             foreach ($productData['lines'] as $line) {
-                $invoiceProductId = $line['invoice_product_id'] ?? null;
-                $quantity = $line['quantity'];
-                
-                if (!$invoiceProductId) {
+                if (empty($line['invoice_product_id'])) {
                     continue;
                 }
-                
-                $stockDisponible = 0;
-                
-                $ip = InvoiceProduct::findOrFail($invoiceProductId);
-                $cantidadOriginal = $ip->quantity ?? $ip->amount ?? 0;
-                $consumido = AgrochemicalOutflow::where('invoice_product_id', $invoiceProductId)->sum('quantity');
-                
-                // Calcular devoluciones
-                $devuelto = CreditDebitNoteItem::whereHas('creditDebitNote', function($q) {
-                    $q->where('type', 'credito');
-                })
-                ->where('invoice_product_id', $invoiceProductId)
-                ->sum('quantity');
-                
-                $stockDisponible = round($cantidadOriginal - $consumido - $devuelto, 2);
-                
-                if ($quantity > $stockDisponible) {
-                    $productName = Product::find($productData['product_id'])->name ?? 'Producto';
-                    return back()->withErrors([
-                        'stock' => "Stock insuficiente para {$productName}. Disponible: {$stockDisponible}"
-                    ])->withInput();
-                }
+                $id = (int) $line['invoice_product_id'];
+                $requestedByLine[$id] = ($requestedByLine[$id] ?? 0) + (float) $line['quantity'];
             }
         }
         
@@ -67,6 +46,8 @@ class StoreAgrochemicalOutflowController
         DB::beginTransaction();
         
         try {
+            InventoryAvailabilityService::assertCanConsume($requestedByLine);
+
             $applicationOrderId = $request->application_order_id;
             $maquinadas = $request->maquinadas;
             $date = $request->date;
@@ -149,6 +130,9 @@ class StoreAgrochemicalOutflowController
             
             DB::commit();
             
+        } catch (ValidationException $e) {
+            DB::rollBack();
+            return back()->withErrors($e->errors())->withInput();
         } catch (\Exception $e) {
             DB::rollBack();
             return back()->withErrors([
