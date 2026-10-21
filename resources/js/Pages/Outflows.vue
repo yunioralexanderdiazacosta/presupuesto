@@ -324,6 +324,7 @@ const links = [
 
 const form = ref({ outflows: [] });
 const showCards = ref([]);
+const isSaving = ref(false);
 const selectedOutflows = ref([]);
 const showEditModal = ref(false);
 const editForm = ref({
@@ -541,6 +542,8 @@ function isCardOpen(outflow) {
 }
 
 function handleSave() {
+  // Evita doble envío: el 2º POST ve el stock ya descontado por el 1º y falla con "stock insuficiente"
+  if (isSaving.value) return;
   // Bloquear el guardado si alguna card tiene operación "Inversión" sin inversión seleccionada
   const faltaInversion = selectedOutflows.value.some(sel =>
     isInversionOp(sel.operation_id) && !sel.investment_id
@@ -577,7 +580,9 @@ function handleSave() {
     Swal.fire({ icon: 'warning', title: 'Atención', text: 'No hay registros completos para guardar.' });
     return;
   }
+  isSaving.value = true;
   router.post(route('outflows.store'), { outflows: registros }, {
+    onFinish: () => { isSaving.value = false; },
     onSuccess: () => {
       selectedOutflows.value = [];
       showCards.value = [];
@@ -1763,8 +1768,8 @@ function copyToAllCards(sourceCardId) {
                       <!-- Botón Guardar global -->
                 <div class="row mt-4" v-if="selectedOutflows.length">
                   <div class="col-12 d-flex justify-content-end">
-                    <button class="btn btn-primary btn-sm px-3 py-1" @click="handleSave">
-                      <i class="fas fa-save me-2"></i> Guardar todas las salidas
+                    <button class="btn btn-primary btn-sm px-3 py-1" :disabled="isSaving" @click="handleSave">
+                      <i class="fas me-2" :class="isSaving ? 'fa-spinner fa-spin' : 'fa-save'"></i> Guardar todas las salidas
                     </button>
                   </div>
                 </div>

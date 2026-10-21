@@ -7,6 +7,13 @@
 
 export const changelog = [
   {
+    fecha: '2026-10-20',
+    titulo: 'Salidas — Se evita el mensaje falso de «stock insuficiente»',
+    items: [
+      'Al guardar salidas, el botón se bloquea mientras se procesa. Antes, un doble clic enviaba la salida dos veces y la segunda mostraba un error de stock aunque la salida sí se había registrado.',
+    ]
+  },
+  {
     fecha: '2026-10-19',
     titulo: 'Notas de Crédito/Débito — Control de stock en devoluciones y consumos',
     items: [
