@@ -1,10 +1,14 @@
 <script setup>
-import { computed, ref } from 'vue';
+import { computed, ref, watch } from 'vue';
 import { Head } from '@inertiajs/vue3';
+import axios from 'axios';
+import Swal from 'sweetalert2';
 import AppLayout from '@/Layouts/AppLayout.vue';
 import Multiselect from '@vueform/multiselect';
 
 const props = defineProps({
+    dollarPrice: { type: Number, default: 970 },
+    isAdmin: { type: Boolean, default: false },
     consumoPorSucursal: { type: Array, default: () => [] },
     stockValorizado: { type: Array, default: () => [] },
     branches: { type: Array, default: () => [] },
@@ -13,12 +17,127 @@ const props = defineProps({
     developmentStates: { type: Array, default: () => [] },
 });
 
-const title = 'Detalle de Salidas por Sucursal';
+// Toggle idioma ES/EN
+const isEnglish = ref(false);
+const t = computed(() => isEnglish.value ? {
+    title: 'Outflows Detail by Branch',
+    consumption: 'Consumption',
+    valuedStock: 'Valued Stock',
+    total: 'Total',
+    grandTotals: 'Grand Totals',
+    totalConsumption: 'Total Consumption',
+    totalValuedStock: 'Total Valued Stock',
+    grandTotal: 'Grand Total',
+    branches: 'Branches:',
+    allBranches: 'All branches (accumulated)',
+    noOptions: 'No options',
+    noResults: 'No results',
+    expandAll: 'Expand all',
+    collapseAll: 'Collapse all',
+    levelHeader: 'Level 1 / Level 2 / Level 3',
+    pctTotal: '% Total',
+    noData: 'No data to display',
+    unclassified: 'Unclassified',
+    noBranch: 'No branch',
+    haTitle: 'Consumption per Hectare',
+    devState: 'Development stage:',
+    allStates: 'All stages',
+    surfaceConsidered: 'Surface considered:',
+    average: 'Average',
+    averageTooltip: 'Weighted average: total amount ÷ total surface of the selected branches',
+    haNote: (c) => `Values in ${c} per hectare. The branch considered is the one from the cost center (block), the same used by the amounts table.`,
+    viewUsd: 'View in USD',
+    divisor: 'Exchange rate:',
+    divisorTitle: 'Enter the exchange rate manually (up to 4 decimals)',
+    saveDivisorTitle: 'Save as the default value for the team',
+    saved: 'Saved',
+    exchangeRate: 'Exchange rate',
+    saveError: 'Error saving',
+    saveErrorText: 'Could not save the exchange rate.',
+} : {
+    title: 'Detalle de Salidas por Sucursal',
+    consumption: 'Consumo',
+    valuedStock: 'Stock Valorizado',
+    total: 'Total',
+    grandTotals: 'Totales Generales',
+    totalConsumption: 'Total Consumo',
+    totalValuedStock: 'Total Stock Valorizado',
+    grandTotal: 'Total General',
+    branches: 'Sucursales:',
+    allBranches: 'Todas las sucursales (acumulado)',
+    noOptions: 'Sin opciones',
+    noResults: 'Sin resultados',
+    expandAll: 'Expandir todo',
+    collapseAll: 'Colapsar todo',
+    levelHeader: 'Nivel 1 / Nivel 2 / Nivel 3',
+    pctTotal: '% Total',
+    noData: 'No hay datos para mostrar',
+    unclassified: 'Sin Clasificar',
+    noBranch: 'Sin sucursal',
+    haTitle: 'Consumo por Hectárea',
+    devState: 'Estado de desarrollo:',
+    allStates: 'Todos los estados',
+    surfaceConsidered: 'Superficie considerada:',
+    average: 'Promedio',
+    averageTooltip: 'Promedio ponderado: monto total ÷ superficie total de las sucursales seleccionadas',
+    haNote: (c) => `Valores en ${c} por hectárea. La sucursal considerada es la del centro de costo (cuartel), la misma que usa la tabla de montos.`,
+    viewUsd: 'Ver en USD',
+    divisor: 'Divisor:',
+    divisorTitle: 'Ingresa el tipo de cambio manualmente (hasta 4 decimales)',
+    saveDivisorTitle: 'Guardar como valor predeterminado para el equipo',
+    saved: 'Guardado',
+    exchangeRate: 'Tipo de cambio',
+    saveError: 'Error al guardar',
+    saveErrorText: 'No se pudo guardar el tipo de cambio.',
+});
+
+const title = computed(() => t.value.title);
+
+// Conversión USD (el tipo de cambio se comparte con el dashboard comparativo)
+const LS_DIVISOR = 'comparative_divisor';
+const LS_DIVIDIR = 'detail_outflows_dividir';
+const _savedDivisor = parseFloat(localStorage.getItem(LS_DIVISOR));
+const divisor = ref(!isNaN(_savedDivisor) ? _savedDivisor : props.dollarPrice);
+const divisorMin = 800;
+const divisorMax = 1300;
+const dividir = ref(localStorage.getItem(LS_DIVIDIR) === '1');
+watch(divisor, v => localStorage.setItem(LS_DIVISOR, v));
+watch(dividir, v => localStorage.setItem(LS_DIVIDIR, v ? '1' : '0'));
+const savingDollar = ref(false);
+
+const saveDollarPrice = async () => {
+    if (!props.isAdmin) return;
+    savingDollar.value = true;
+    try {
+        const response = await axios.patch(route('api.dollar-price.update'), { dollar_price: divisor.value });
+        divisor.value = response.data.dollar_price;
+        Swal.fire({ icon: 'success', title: t.value.saved, text: `${t.value.exchangeRate}: $${Number(response.data.dollar_price).toLocaleString('es-CL')}`, timer: 1800, showConfirmButton: false });
+    } catch (e) {
+        console.error('Error guardando tipo de cambio', e);
+        Swal.fire({ icon: 'error', title: t.value.saveError, text: e?.response?.data?.errors?.dollar_price?.[0] || e?.response?.data?.message || t.value.saveErrorText });
+    } finally {
+        savingDollar.value = false;
+    }
+};
+
+const currencyLabel = computed(() => dividir.value ? 'USD' : 'CLP');
+
+// Nombre de sucursal para agrupar: el valor interno es siempre el nombre en español (el filtro compara por nombre),
+// la traducción solo se aplica al mostrar.
+const NO_BRANCH = 'Sin sucursal';
+const displayBranch = (name) => name === NO_BRANCH ? t.value.noBranch : name;
+const displayTotal = (name) => name === 'Total' ? t.value.total : displayBranch(name);
+const displayLevel = (name) => name === 'Sin Clasificar' ? t.value.unclassified : name;
 
 // Normaliza el stock valorizado para usar el mismo campo 'amount' que el consumo
 const normalizedStock = computed(() => props.stockValorizado.map(r => ({ ...r, amount: r.valor })));
 
-const formatNumber = (value) => new Intl.NumberFormat('es-ES', { style: 'decimal', minimumFractionDigits: 0, maximumFractionDigits: 0 }).format(Math.round(value || 0));
+// Los montos se convierten a USD solo al mostrarse; los cálculos internos siguen en CLP
+const formatNumber = (value) => {
+    const base = Number(value || 0);
+    const converted = dividir.value && divisor.value ? base / divisor.value : base;
+    return new Intl.NumberFormat('es-ES', { style: 'decimal', minimumFractionDigits: 0, maximumFractionDigits: 0 }).format(Math.round(converted));
+};
 const formatHa = (value) => new Intl.NumberFormat('es-ES', { style: 'decimal', minimumFractionDigits: 1, maximumFractionDigits: 1 }).format(value || 0);
 
 // Cards apiladas: Consumo + Stock Valorizado por sucursal
@@ -280,7 +399,7 @@ const collapseAllLevelsHa = () => {
 
 <template>
     <Head :title="title" />
-    <AppLayout title="Detalle de Salidas por Sucursal">
+    <AppLayout :title="title">
         <div class="card my-3">
             <div class="card-header">
                 <div class="row flex-between-center">
@@ -288,6 +407,50 @@ const collapseAllLevelsHa = () => {
                         <h5 class="fs-9 mb-0 text-nowrap py-2 py-xl-0">
                             <i class="fas fa-code-branch me-2"></i>{{ title }}
                         </h5>
+                    </div>
+                    <div class="col-12 col-sm-auto ms-auto">
+                        <div class="d-flex flex-wrap align-items-center gap-3">
+                            <div class="form-check form-switch mb-0 d-flex align-items-center">
+                                <input class="form-check-input" type="checkbox" id="detail-dividir-switch" v-model="dividir">
+                                <label class="form-check-label ms-2 mt-0 mb-0 small" for="detail-dividir-switch">{{ t.viewUsd }}</label>
+                            </div>
+
+                            <div class="vr d-none d-md-block" style="height: 24px;"></div>
+
+                            <div class="form-check form-switch mb-0 d-flex align-items-center">
+                                <input class="form-check-input" type="checkbox" id="detail-lang-switch" v-model="isEnglish">
+                                <label class="form-check-label ms-2 mt-0 mb-0 small" for="detail-lang-switch">
+                                    <span v-if="isEnglish">🇺🇸 EN</span>
+                                    <span v-else>🇨🇱 ES</span>
+                                </label>
+                            </div>
+
+                            <template v-if="dividir">
+                                <div class="d-flex align-items-center gap-2">
+                                    <label for="detail-divisor-slider" class="form-label mb-0 me-2 small">{{ t.divisor }}</label>
+                                    <input
+                                        id="detail-divisor-slider"
+                                        type="range"
+                                        class="form-range"
+                                        v-model.number="divisor"
+                                        :min="divisorMin"
+                                        :max="divisorMax"
+                                        :step="1"
+                                        style="width:220px; flex-shrink:0;"
+                                    />
+                                    <input type="number" v-model.number="divisor"
+                                           min="1" step="0.0001"
+                                           class="form-control form-control-sm text-end"
+                                           style="width:110px; flex-shrink:0;"
+                                           :title="t.divisorTitle" />
+                                    <button v-if="isAdmin" @click="saveDollarPrice" :disabled="savingDollar"
+                                        class="btn btn-sm btn-outline-secondary py-0 px-2"
+                                        :title="t.saveDivisorTitle">
+                                        <i class="fas fa-save fa-xs" :class="{'fa-spin fa-circle-notch': savingDollar}"></i>
+                                    </button>
+                                </div>
+                            </template>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -298,19 +461,19 @@ const collapseAllLevelsHa = () => {
                     <div class="col-12 col-sm-6 col-md-4 col-xl-3" v-for="b in branchTotals" :key="b.name">
                         <div class="card h-100 border border-primary">
                             <div class="card-header py-2 bg-primary bg-opacity-10">
-                                <h6 class="mb-0 text-primary fw-bold fs-10 text-nowrap"><i class="fas fa-code-branch me-1"></i>{{ b.name }}</h6>
+                                <h6 class="mb-0 text-primary fw-bold                                 fs-10 text-nowrap"><i class="fas fa-code-branch me-1"></i>{{ displayBranch(b.name) }} <span class="badge bg-soft-primary text-primary ms-1">{{ currencyLabel }}</span></h6>
                             </div>
                             <div class="card-body py-2">
                                 <div class="d-flex justify-content-between align-items-center py-1">
-                                    <small class="text-muted">Consumo</small>
+                                                                    <small class="text-muted">{{ t.consumption }}</small>
                                     <strong>{{ formatNumber(b.consumo) }}</strong>
                                 </div>
                                 <div class="d-flex justify-content-between align-items-center py-1 border-top">
-                                    <small class="text-muted">Stock Valorizado</small>
+                                                                    <small class="text-muted">{{ t.valuedStock }}</small>
                                     <strong>{{ formatNumber(b.stock) }}</strong>
                                 </div>
                                 <div class="d-flex justify-content-between align-items-center py-1 border-top">
-                                    <small class="text-muted fw-semibold">Total</small>
+                                                                    <small class="text-muted fw-semibold">{{ t.total }}</small>
                                     <strong class="text-primary">{{ formatNumber(b.total) }}</strong>
                                 </div>
                             </div>
@@ -319,19 +482,19 @@ const collapseAllLevelsHa = () => {
                     <div class="col-12 col-sm-6 col-md-4 col-xl-3">
                         <div class="card h-100 border border-success">
                             <div class="card-header py-2 bg-success bg-opacity-10">
-                                <h6 class="mb-0 text-success fw-bold fs-10 text-nowrap"><i class="fas fa-layer-group me-1"></i>Totales Generales</h6>
+                                <h6 class="mb-0 text-success fw-bold fs-10 text-nowrap">                                <i class="fas fa-layer-group me-1"></i>{{ t.grandTotals }} <span class="badge bg-soft-success text-success ms-1">{{ currencyLabel }}</span></h6>
                             </div>
                             <div class="card-body py-2">
                                 <div class="d-flex justify-content-between align-items-center py-1">
-                                    <small class="text-muted">Total Consumo</small>
+                                                                    <small class="text-muted">{{ t.totalConsumption }}</small>
                                     <strong>{{ formatNumber(totalConsumo) }}</strong>
                                 </div>
                                 <div class="d-flex justify-content-between align-items-center py-1 border-top">
-                                    <small class="text-muted">Total Stock Valorizado</small>
+                                                                    <small class="text-muted">{{ t.totalValuedStock }}</small>
                                     <strong>{{ formatNumber(totalStock) }}</strong>
                                 </div>
                                 <div class="d-flex justify-content-between align-items-center py-1 border-top">
-                                    <small class="text-muted fw-semibold">Total General</small>
+                                                                    <small class="text-muted fw-semibold">{{ t.grandTotal }}</small>
                                     <strong class="text-success">{{ formatNumber(totalGeneral) }}</strong>
                                 </div>
                             </div>
@@ -341,7 +504,7 @@ const collapseAllLevelsHa = () => {
 
                 <!-- Filtros para la tabla por nivel -->
                 <div class="d-flex flex-wrap align-items-center gap-2 mb-2">
-                    <label class="form-label mb-0 small fw-semibold text-muted">Sucursales:</label>
+                    <label class="form-label mb-0 small fw-semibold text-muted">{{ t.branches }}</label>
                     <div style="min-width: 300px; max-width: 480px; flex: 1 1 350px;">
                         <Multiselect
                             v-model="selectedBranches"
@@ -350,10 +513,10 @@ const collapseAllLevelsHa = () => {
                             :searchable="true"
                             :close-on-select="false"
                             :hide-selected="false"
-                            :multipleLabel="(vals) => vals.length ? vals.map(v => v.label).join(', ') : 'Todas las sucursales (acumulado)'"
-                            placeholder="Todas las sucursales (acumulado)"
-                            no-options-text="Sin opciones"
-                            no-results-text="Sin resultados"
+                            :multipleLabel="(vals) => vals.length ? vals.map(v => v.label).join(', ') : t.allBranches"
+                            :placeholder="t.allBranches"
+                            :no-options-text="t.noOptions"
+                            :no-results-text="t.noResults"
                             class="multiselect-sm"
                             :style="{'--ms-min-h': '1.9rem', '--ms-py': '0.25rem', '--ms-font-size': '0.78rem'}"
                         />
@@ -361,18 +524,20 @@ const collapseAllLevelsHa = () => {
 
                     <div class="segmented-control ms-2">
                         <button type="button" class="segmented-option" :class="{ active: tableMode === 'consumo' }" @click="tableMode = 'consumo'">
-                            <i class="fas fa-arrow-circle-down me-1"></i>Consumo
+                            <i class="fas fa-arrow-circle-down me-1"></i>{{ t.consumption }}
                         </button>
                         <button type="button" class="segmented-option" :class="{ active: tableMode === 'stock' }" @click="tableMode = 'stock'">
-                            <i class="fas fa-boxes-stacked me-1"></i>Stock Valorizado
+                            <i class="fas fa-boxes-stacked me-1"></i>{{ t.valuedStock }}
                         </button>
                     </div>
 
+                    <span class="badge bg-soft-primary text-primary">{{ currencyLabel }}</span>
+
                     <div class="btn-group btn-group-sm ms-auto" role="group">
-                        <button type="button" class="btn btn-outline-secondary btn-sm" @click="expandAllLevels" v-tooltip="'Expandir todo'">
+                        <button type="button" class="btn btn-outline-secondary btn-sm" @click="expandAllLevels" v-tooltip="t.expandAll">
                             <i class="fas fa-expand-alt"></i>
                         </button>
-                        <button type="button" class="btn btn-outline-secondary btn-sm" @click="collapseAllLevels" v-tooltip="'Colapsar todo'">
+                        <button type="button" class="btn btn-outline-secondary btn-sm" @click="collapseAllLevels" v-tooltip="t.collapseAll">
                             <i class="fas fa-compress-alt"></i>
                         </button>
                     </div>
@@ -383,21 +548,21 @@ const collapseAllLevelsHa = () => {
                     <table class="table table-hover align-middle table-sm mb-0" style="font-size: 0.85rem;">
                         <thead class="table-primary">
                             <tr>
-                                <th class="border-0 py-2">Nivel 1 / Nivel 2 / Nivel 3</th>
-                                <th class="border-0 py-2 text-end" v-for="col in activeBranchColumns" :key="'head-' + col">{{ col }}</th>
-                                <th class="border-0 py-2 text-end" v-if="showAggregateTotal">Total</th>
-                                <th class="border-0 py-2 text-end">% Total</th>
+                                <th class="border-0 py-2">{{ t.levelHeader }}</th>
+                                <th class="border-0 py-2 text-end" v-for="col in activeBranchColumns" :key="'head-' + col">{{ displayTotal(col) }}</th>
+                                <th class="border-0 py-2 text-end" v-if="showAggregateTotal">{{ t.total }}</th>
+                                <th class="border-0 py-2 text-end">{{ t.pctTotal }}</th>
                             </tr>
                         </thead>
                         <tbody>
                             <tr v-if="!levelTree.length">
-                                <td :colspan="colSpanCount" class="text-center py-4 text-muted">No hay datos para mostrar</td>
+                                <td :colspan="colSpanCount" class="text-center py-4 text-muted">{{ t.noData }}</td>
                             </tr>
                             <template v-for="g in levelTree" :key="'l1-' + g.level1_id">
                                 <tr class="table-light" style="cursor:pointer;" @click="toggleL1('l1-' + g.level1_id)">
                                     <td class="py-2 fw-bold text-primary">
                                         <i class="fas me-2" :class="expandedL1.has('l1-' + g.level1_id) ? 'fa-chevron-down' : 'fa-chevron-right'"></i>
-                                        {{ g.level1_name }}
+                                                                                {{ displayLevel(g.level1_name) }}
                                         <small class="text-muted ms-1">({{ g.level2s.length }})</small>
                                     </td>
                                     <td class="py-2 text-end fw-bold text-primary" v-for="col in activeBranchColumns" :key="'l1c-' + g.level1_id + '-' + col">{{ formatNumber(g.byBranch[col] || 0) }}</td>
@@ -411,7 +576,7 @@ const collapseAllLevelsHa = () => {
                                         <tr style="cursor:pointer;" @click="toggleL2('l2-' + g.level1_id + '-' + l2.level2_id)">
                                             <td class="py-2 ps-5">
                                                 <i class="fas me-2" :class="expandedL2.has('l2-' + g.level1_id + '-' + l2.level2_id) ? 'fa-chevron-down' : 'fa-chevron-right'"></i>
-                                                {{ l2.level2_name }}
+                                                                                                {{ displayLevel(l2.level2_name) }}
                                                 <small class="text-muted ms-1">({{ l2.level3s.length }})</small>
                                             </td>
                                             <td class="py-2 text-end" v-for="col in activeBranchColumns" :key="'l2c-' + g.level1_id + '-' + l2.level2_id + '-' + col">{{ formatNumber(l2.byBranch[col] || 0) }}</td>
@@ -421,7 +586,7 @@ const collapseAllLevelsHa = () => {
                                             </td>
                                         </tr>
                                         <tr v-if="expandedL2.has('l2-' + g.level1_id + '-' + l2.level2_id)" v-for="l3 in l2.level3s" :key="'l3-' + g.level1_id + '-' + l2.level2_id + '-' + l3.level3_id">
-                                            <td class="py-2 ps-7">{{ l3.level3_name }}</td>
+                                            <td class="py-2 ps-7">{{ displayLevel(l3.level3_name) }}</td>
                                             <td class="py-2 text-end" v-for="col in activeBranchColumns" :key="'l3c-' + g.level1_id + '-' + l2.level2_id + '-' + l3.level3_id + '-' + col">{{ formatNumber(l3.byBranch[col] || 0) }}</td>
                                             <td class="py-2 text-end" v-if="showAggregateTotal">{{ formatNumber(l3.total) }}</td>
                                             <td class="py-2 text-end">
@@ -434,7 +599,7 @@ const collapseAllLevelsHa = () => {
                         </tbody>
                         <tfoot v-if="levelTree.length">
                             <tr class="table-primary fw-bold">
-                                <td class="py-2">Total</td>
+                                <td class="py-2">{{ t.total }}</td>
                                 <td class="py-2 text-end" v-for="col in activeBranchColumns" :key="'footc-' + col">{{ formatNumber(levelTreeBranchTotals[col] || 0) }}</td>
                                 <td class="py-2 text-end" v-if="showAggregateTotal">{{ formatNumber(levelTreeGrandTotal) }}</td>
                                 <td class="py-2 text-end"><span class="badge bg-primary">100%</span></td>
@@ -451,7 +616,7 @@ const collapseAllLevelsHa = () => {
                 <div class="row flex-between-center">
                     <div class="col-12 col-sm-auto d-flex align-items-center pe-0">
                         <h5 class="fs-9 mb-0 text-nowrap py-2 py-xl-0">
-                            <i class="fas fa-ruler-combined me-2"></i>Consumo por Hectárea
+                            <i class="fas fa-ruler-combined me-2"></i>{{ t.haTitle }}
                         </h5>
                     </div>
                 </div>
@@ -460,7 +625,7 @@ const collapseAllLevelsHa = () => {
             <div class="card-body bg-body-tertiary">
                 <!-- Filtros -->
                 <div class="d-flex flex-wrap align-items-center gap-2 mb-2">
-                    <label class="form-label mb-0 small fw-semibold text-muted">Sucursales:</label>
+                                                <label class="form-label mb-0 small fw-semibold text-muted">{{ t.branches }}</label>
                     <div style="min-width: 260px; max-width: 420px; flex: 1 1 300px;">
                         <Multiselect
                             v-model="selectedBranchesHa"
@@ -469,16 +634,16 @@ const collapseAllLevelsHa = () => {
                             :searchable="true"
                             :close-on-select="false"
                             :hide-selected="false"
-                            :multipleLabel="(vals) => vals.length ? vals.map(v => v.label).join(', ') : 'Todas las sucursales (acumulado)'"
-                            placeholder="Todas las sucursales (acumulado)"
-                            no-options-text="Sin opciones"
-                            no-results-text="Sin resultados"
+                                                        :multipleLabel="(vals) => vals.length ? vals.map(v => v.label).join(', ') : t.allBranches"
+                                                        :placeholder="t.allBranches"
+                                                        :no-options-text="t.noOptions"
+                                                        :no-results-text="t.noResults"
                             class="multiselect-sm"
                             :style="{'--ms-min-h': '1.9rem', '--ms-py': '0.25rem', '--ms-font-size': '0.78rem'}"
                         />
                     </div>
 
-                    <label class="form-label mb-0 small fw-semibold text-muted">Estado de desarrollo:</label>
+                                                <label class="form-label mb-0 small fw-semibold text-muted">{{ t.devState }}</label>
                     <div style="min-width: 220px; max-width: 380px; flex: 1 1 260px;">
                         <Multiselect
                             v-model="selectedDevStates"
@@ -487,53 +652,55 @@ const collapseAllLevelsHa = () => {
                             :searchable="true"
                             :close-on-select="false"
                             :hide-selected="false"
-                            :multipleLabel="(vals) => vals.length ? vals.map(v => v.label).join(', ') : 'Todos los estados'"
-                            placeholder="Todos los estados"
-                            no-options-text="Sin opciones"
-                            no-results-text="Sin resultados"
+                                                        :multipleLabel="(vals) => vals.length ? vals.map(v => v.label).join(', ') : t.allStates"
+                                                        :placeholder="t.allStates"
+                                                        :no-options-text="t.noOptions"
+                                                        :no-results-text="t.noResults"
                             class="multiselect-sm"
                             :style="{'--ms-min-h': '1.9rem', '--ms-py': '0.25rem', '--ms-font-size': '0.78rem'}"
                         />
                     </div>
 
-                    <div class="btn-group btn-group-sm ms-auto" role="group">
-                        <button type="button" class="btn btn-outline-secondary btn-sm" @click="expandAllLevelsHa" v-tooltip="'Expandir todo'">
-                            <i class="fas fa-expand-alt"></i>
-                        </button>
-                        <button type="button" class="btn btn-outline-secondary btn-sm" @click="collapseAllLevelsHa" v-tooltip="'Colapsar todo'">
-                            <i class="fas fa-compress-alt"></i>
-                        </button>
-                    </div>
-                </div>
+                                                <span class="badge bg-soft-primary text-primary">{{ currencyLabel }}/ha</span>
 
-                <!-- Fila de superficie base (denominador) por columna -->
-                <div class="d-flex flex-wrap align-items-center gap-2 mb-2 small text-muted">
-                    <span class="fw-semibold">Superficie considerada:</span>
-                    <span v-for="col in activeBranchColumnsHa" :key="'ha-surf-' + col">
-                        {{ col }}: <strong>{{ formatHa(haSurfaceByBranch[col] || 0) }} ha</strong>
-                    </span>
-                </div>
+                                                <div class="btn-group btn-group-sm ms-auto" role="group">
+                                                    <button type="button" class="btn btn-outline-secondary btn-sm" @click="expandAllLevelsHa" v-tooltip="t.expandAll">
+                                                        <i class="fas fa-expand-alt"></i>
+                                                    </button>
+                                                    <button type="button" class="btn btn-outline-secondary btn-sm" @click="collapseAllLevelsHa" v-tooltip="t.collapseAll">
+                                                        <i class="fas fa-compress-alt"></i>
+                                                    </button>
+                                                </div>
+                                            </div>
 
-                <!-- Tabla Nivel 1 / Nivel 2 / Nivel 3 en $/ha -->
-                <div class="table-responsive">
-                    <table class="table table-hover align-middle table-sm mb-0" style="font-size: 0.85rem;">
-                        <thead class="table-primary">
-                            <tr>
-                                <th class="border-0 py-2">Nivel 1 / Nivel 2 / Nivel 3</th>
-                                <th class="border-0 py-2 text-end" v-for="col in activeBranchColumnsHa" :key="'ha-head-' + col">{{ col === 'Total' ? 'Promedio' : col }}</th>
-                                <th class="border-0 py-2 text-end" v-if="showAggregateTotalHa" v-tooltip="'Promedio ponderado: monto total \u00f7 superficie total de las sucursales seleccionadas'">Promedio</th>
-                                <th class="border-0 py-2 text-end">% Total</th>
+                                            <!-- Fila de superficie base (denominador) por columna -->
+                                            <div class="d-flex flex-wrap align-items-center gap-2 mb-2 small text-muted">
+                                                <span class="fw-semibold">{{ t.surfaceConsidered }}</span>
+                                                <span v-for="col in activeBranchColumnsHa" :key="'ha-surf-' + col">
+                                                    {{ displayTotal(col) }}: <strong>{{ formatHa(haSurfaceByBranch[col] || 0) }} ha</strong>
+                                                </span>
+                                            </div>
+
+                                            <!-- Tabla Nivel 1 / Nivel 2 / Nivel 3 en $/ha -->
+                                            <div class="table-responsive">
+                                                <table class="table table-hover align-middle table-sm mb-0" style="font-size: 0.85rem;">
+                                                    <thead class="table-primary">
+                                                        <tr>
+                                                            <th class="border-0 py-2">{{ t.levelHeader }}</th>
+                                                            <th class="border-0 py-2 text-end" v-for="col in activeBranchColumnsHa" :key="'ha-head-' + col">{{ col === 'Total' ? t.average : displayBranch(col) }}</th>
+                                                            <th class="border-0 py-2 text-end" v-if="showAggregateTotalHa" v-tooltip="t.averageTooltip">{{ t.average }}</th>
+                                                            <th class="border-0 py-2 text-end">{{ t.pctTotal }}</th>
                             </tr>
                         </thead>
                         <tbody>
                             <tr v-if="!levelTreeHa.length">
-                                <td :colspan="colSpanCountHa" class="text-center py-4 text-muted">No hay datos para mostrar</td>
+                                <td :colspan="colSpanCountHa" class="text-center py-4 text-muted">{{ t.noData }}</td>
                             </tr>
                             <template v-for="g in levelTreeHa" :key="'ha-l1-' + g.level1_id">
                                 <tr class="table-light" style="cursor:pointer;" @click="toggleL1Ha('l1-' + g.level1_id)">
                                     <td class="py-2 fw-bold text-primary">
                                         <i class="fas me-2" :class="expandedL1Ha.has('l1-' + g.level1_id) ? 'fa-chevron-down' : 'fa-chevron-right'"></i>
-                                        {{ g.level1_name }}
+                                                                                {{ displayLevel(g.level1_name) }}
                                         <small class="text-muted ms-1">({{ g.level2s.length }})</small>
                                     </td>
                                     <td class="py-2 text-end fw-bold text-primary" v-for="col in activeBranchColumnsHa" :key="'ha-l1c-' + g.level1_id + '-' + col">{{ formatNumber(perHa(g.byBranch[col] || 0, col)) }}</td>
@@ -547,7 +714,7 @@ const collapseAllLevelsHa = () => {
                                         <tr style="cursor:pointer;" @click="toggleL2Ha('l2-' + g.level1_id + '-' + l2.level2_id)">
                                             <td class="py-2 ps-5">
                                                 <i class="fas me-2" :class="expandedL2Ha.has('l2-' + g.level1_id + '-' + l2.level2_id) ? 'fa-chevron-down' : 'fa-chevron-right'"></i>
-                                                {{ l2.level2_name }}
+                                                                                                {{ displayLevel(l2.level2_name) }}
                                                 <small class="text-muted ms-1">({{ l2.level3s.length }})</small>
                                             </td>
                                             <td class="py-2 text-end" v-for="col in activeBranchColumnsHa" :key="'ha-l2c-' + g.level1_id + '-' + l2.level2_id + '-' + col">{{ formatNumber(perHa(l2.byBranch[col] || 0, col)) }}</td>
@@ -557,7 +724,7 @@ const collapseAllLevelsHa = () => {
                                             </td>
                                         </tr>
                                         <tr v-if="expandedL2Ha.has('l2-' + g.level1_id + '-' + l2.level2_id)" v-for="l3 in l2.level3s" :key="'ha-l3-' + g.level1_id + '-' + l2.level2_id + '-' + l3.level3_id">
-                                            <td class="py-2 ps-7">{{ l3.level3_name }}</td>
+                                            <td class="py-2 ps-7">{{ displayLevel(l3.level3_name) }}</td>
                                             <td class="py-2 text-end" v-for="col in activeBranchColumnsHa" :key="'ha-l3c-' + g.level1_id + '-' + l2.level2_id + '-' + l3.level3_id + '-' + col">{{ formatNumber(perHa(l3.byBranch[col] || 0, col)) }}</td>
                                             <td class="py-2 text-end" v-if="showAggregateTotalHa">{{ formatNumber(perHaTotal(l3.total)) }}</td>
                                             <td class="py-2 text-end">
@@ -570,7 +737,7 @@ const collapseAllLevelsHa = () => {
                         </tbody>
                         <tfoot v-if="levelTreeHa.length">
                             <tr class="table-primary fw-bold">
-                                <td class="py-2">Total</td>
+                                <td class="py-2">{{ t.total }}</td>
                                 <td class="py-2 text-end" v-for="col in activeBranchColumnsHa" :key="'ha-footc-' + col">{{ formatNumber(perHa(levelTreeHaBranchTotals[col] || 0, col)) }}</td>
                                 <td class="py-2 text-end" v-if="showAggregateTotalHa">{{ formatNumber(perHaTotal(levelTreeHaGrandTotal)) }}</td>
                                 <td class="py-2 text-end"><span class="badge bg-primary">100%</span></td>
@@ -578,7 +745,7 @@ const collapseAllLevelsHa = () => {
                         </tfoot>
                     </table>
                 </div>
-                <small class="text-muted d-block mt-1">Valores en $ por hectárea. La sucursal considerada es la del centro de costo (cuartel), la misma que usa la tabla de montos.</small>
+                <small class="text-muted d-block mt-1">{{ t.haNote(currencyLabel) }}</small>
             </div>
         </div>
     </AppLayout>

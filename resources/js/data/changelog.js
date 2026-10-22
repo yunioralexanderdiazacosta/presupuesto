@@ -8,6 +8,15 @@
 export const changelog = [
   {
     fecha: '2026-10-22',
+    titulo: 'Detalle de Salidas por Sucursal — Ver en USD y traducción a inglés',
+    items: [
+      'Ahora puedes ver todos los montos (tarjetas por sucursal, tablas de consumo, stock valorizado y consumo por hectárea) en dólares con el interruptor "Ver en USD".',
+      'Puedes ajustar el tipo de cambio con la barra o escribiéndolo; el administrador puede guardarlo como valor predeterminado del equipo.',
+      'Nuevo interruptor ES/EN para ver el dashboard en inglés, igual que en el dashboard comparativo.',
+    ]
+  },
+  {
+    fecha: '2026-10-22',
     titulo: 'Gestión diaria / Rendimientos — Licencias y ausencias al editar una tarja',
     items: [
       'Al editar una tarja y cambiar la labor a una ausencia no remunerada (por ejemplo, Licencia médica), la tarifa y el monto ahora quedan en $0 automáticamente.',

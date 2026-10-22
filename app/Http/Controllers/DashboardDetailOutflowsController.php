@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Branch;
+use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Inertia\Inertia;
@@ -24,6 +25,12 @@ class DashboardDetailOutflowsController extends Controller
             return redirect()->route('select.budget');
         }
 
+        // Obtener dollar_price del admin del equipo
+        $adminUser = User::where('team_id', $team_id)
+            ->role('Admin')
+            ->first();
+        $dollarPrice = (float) ($adminUser?->dollar_price ?? 970);
+
         $branches = Branch::where('season_id', $season_id)
             ->orderBy('name')
             ->get(['id', 'name'])
@@ -37,6 +44,8 @@ class DashboardDetailOutflowsController extends Controller
             'consumoPorHectarea'      => $this->getConsumoPorHectarea($team_id, $season_id),
             'superficiePorSucursal'   => $this->getSuperficiePorSucursalEstado($team_id, $season_id),
             'developmentStates'       => $this->getDevelopmentStatesForSeason($season_id),
+            'dollarPrice'             => $dollarPrice,
+            'isAdmin'                 => $user->hasRole('Admin'),
         ]);
     }
 }
