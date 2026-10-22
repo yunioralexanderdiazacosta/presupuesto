@@ -8,6 +8,14 @@
 export const changelog = [
   {
     fecha: '2026-10-22',
+    titulo: 'Gestión diaria / Rendimientos — Licencias y ausencias al editar una tarja',
+    items: [
+      'Al editar una tarja y cambiar la labor a una ausencia no remunerada (por ejemplo, Licencia médica), la tarifa y el monto ahora quedan en $0 automáticamente.',
+      'En esos casos se limpian también el bono y el precio objetivo, y ya no se exige centro de costo.',
+    ]
+  },
+  {
+    fecha: '2026-10-22',
     titulo: 'Inversiones — Corrección al guardar una nueva inversión',
     items: [
       'Se corrigió el error que aparecía al crear una inversión nueva. Ahora se guarda correctamente sin necesidad de indicar el mes.',

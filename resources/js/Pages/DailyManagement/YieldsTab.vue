@@ -620,6 +620,12 @@ function onEditPaymentTypeChange() {
 
 function recalcEditDailyRate() {
     if (editLine.payment_type !== 'dia') return;
+    // Ausencia no remunerada (ej. licencia médica): la tarifa siempre es 0
+    const selectedLabor = props.laborTypes.find(lt => String(lt.value) === String(editLine.labor_type_id));
+    if (selectedLabor?.is_absence && !selectedLabor?.is_paid) {
+        editLine.rate = 0;
+        return;
+    }
     const emp = props.employees.find(e => e.yields && e.yields.some(y => y.id === editingYieldId.value));
     const fullDayRate = emp ? emp.daily_rate : 0;
     editLine.rate = Math.round(fullDayRate * (editLine.workdays || 0));
@@ -631,6 +637,20 @@ function onEditWorkdayChange() {
 
 function onEditLaborChange() {
     editLine.labor_rate_id = '';
+    const selectedLabor = props.laborTypes.find(lt => String(lt.value) === String(editLine.labor_type_id));
+    if (selectedLabor?.is_absence) {
+        editLine.payment_type = 'dia';
+        editLine.quantity = 1;
+        editLine.bonus_type_id = '';
+        editLine.bonus_amount = 0;
+        editLine.target_price = null;
+        editLine.target_price_bonus = null;
+        if (!selectedLabor.is_paid) {
+            editLine.cost_center_ids = [];
+        }
+        recalcEditDailyRate();
+        return;
+    }
     if (editLine.payment_type === 'dia') {
         recalcEditDailyRate();
     } else {

@@ -5,6 +5,7 @@ namespace App\Http\Controllers\DailyYields;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\DailyYields\UpdateDailyYieldRequest;
 use App\Models\DailyYield;
+use App\Models\LaborType;
 
 use App\Traits\CheckSeasonLocked;
 
@@ -12,13 +13,18 @@ class UpdateDailyYieldController extends Controller
 {
     public function __invoke(UpdateDailyYieldRequest $request, DailyYield $dailyYield)
     {
+        // Ausencia no remunerada (ej. licencia médica): tarifa y monto siempre 0
+        $laborType = LaborType::find($request->labor_type_id);
+        $isUnpaidAbsence = $laborType && $laborType->is_absence && !$laborType->is_paid;
+        $rate = $isUnpaidAbsence ? 0 : $request->rate;
+
         $dailyYield->update([
             'payment_type' => $request->payment_type,
             'labor_type_id' => $request->labor_type_id,
             'labor_rate_id' => $request->payment_type === 'trato' ? $request->labor_rate_id : null,
-            'rate' => $request->rate,
+            'rate' => $rate,
             'quantity' => $request->quantity,
-            'amount' => $request->rate * $request->quantity,
+            'amount' => $rate * $request->quantity,
             'workdays' => $request->workdays,
             'bonus_type_id' => $request->bonus_type_id,
             'bonus_amount' => $request->bonus_amount ?? 0,

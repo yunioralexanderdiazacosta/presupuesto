@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\DailyYields\StoreDailyYieldRequest;
 use App\Models\Contract;
 use App\Models\DailyYield;
+use App\Models\LaborType;
 use App\Models\Termination;
 use Illuminate\Support\Facades\Auth;
 
@@ -37,6 +38,11 @@ class StoreDailyYieldController extends Controller
 
         $contractId = $contract->id;
 
+        // Ausencia no remunerada (ej. licencia médica): tarifa y monto siempre 0
+        $laborType = LaborType::find($request->labor_type_id);
+        $isUnpaidAbsence = $laborType && $laborType->is_absence && !$laborType->is_paid;
+        $rate = $isUnpaidAbsence ? 0 : $request->rate;
+
         $yield = DailyYield::create([
             'employee_id'        => $request->employee_id,
             'contract_id'        => $contractId,
@@ -44,9 +50,9 @@ class StoreDailyYieldController extends Controller
             'payment_type'       => $request->payment_type,
             'labor_type_id'      => $request->labor_type_id,
             'labor_rate_id'      => $request->payment_type === 'trato' ? $request->labor_rate_id : null,
-            'rate'               => $request->rate,
+            'rate'               => $rate,
             'quantity'           => $request->quantity,
-            'amount'             => $request->rate * $request->quantity,
+            'amount'             => $rate * $request->quantity,
             'workdays'           => $request->workdays,
             'bonus_type_id'      => $request->bonus_type_id,
             'bonus_amount'       => $request->bonus_amount ?? 0,
