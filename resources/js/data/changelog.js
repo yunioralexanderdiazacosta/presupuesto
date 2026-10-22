@@ -7,6 +7,21 @@
 
 export const changelog = [
   {
+    fecha: '2026-10-22',
+    titulo: 'Inversiones — Corrección al guardar una nueva inversión',
+    items: [
+      'Se corrigió el error que aparecía al crear una inversión nueva. Ahora se guarda correctamente sin necesidad de indicar el mes.',
+    ]
+  },
+  {
+    fecha: '2026-10-22',
+    titulo: 'Órdenes de Aplicación — Búsqueda con botón',
+    items: [
+      'El buscador ya no filtra letra por letra, lo que evita que la pantalla se congele. Ahora se busca con el botón «Buscar» o presionando Enter.',
+      'Se agregó un botón para limpiar la búsqueda rápidamente.',
+    ]
+  },
+  {
     fecha: '2026-10-20',
     titulo: 'Salidas — Se evita el mensaje falso de «stock insuficiente»',
     items: [

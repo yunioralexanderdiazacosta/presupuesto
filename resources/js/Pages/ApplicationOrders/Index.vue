@@ -32,7 +32,11 @@ const links = [
 const viewMode = ref(localStorage.getItem('applicationOrdersView') === 'calendar' ? 'calendar' : 'table');
 watch(viewMode, (val) => localStorage.setItem('applicationOrdersView', val));
 
+// termInput es lo que se escribe; term es el valor aplicado al presionar Buscar/Enter
+const termInput = ref('');
 const term = ref('');
+const applySearch = () => { term.value = termInput.value.trim(); };
+const clearSearch = () => { termInput.value = ''; term.value = ''; };
 const statusFilter = ref('');
 const statusOptions = [
     { value: '', label: 'Todos los estados' },
@@ -319,11 +323,25 @@ watch(filteredRows, () => {
                             <div class="input-group">
                                 <span class="input-group-text"><i class="fas fa-search"></i></span>
                                 <input
-                                    v-model="term"
+                                    v-model="termInput"
                                     type="text"
                                     class="form-control"
                                     placeholder="Buscar..."
+                                    @keyup.enter="applySearch"
                                 />
+                                <button
+                                    v-if="termInput || term"
+                                    type="button"
+                                    class="btn btn-falcon-default btn-sm"
+                                    title="Limpiar búsqueda"
+                                    @click="clearSearch"
+                                >
+                                    <i class="fas fa-times"></i>
+                                </button>
+                                <button type="button" class="btn btn-falcon-default btn-sm" @click="applySearch">
+                                    <span class="fas fa-search"></span>
+                                    <span class="d-none d-sm-inline-block ms-1">Buscar</span>
+                                </button>
                             </div>
                         </div>
                         <div class="col-12 col-md-3">
