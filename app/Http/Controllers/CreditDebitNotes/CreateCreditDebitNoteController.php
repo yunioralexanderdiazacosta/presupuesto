@@ -58,7 +58,9 @@ class CreateCreditDebitNoteController extends Controller
                     'amount'            => $line->amount,
                     'consumed'          => round($consumed, 4),
                     'returned'          => round($returned, 4),
-                    'available'         => round(max(0, (float) $line->amount - $consumed - $returned), 4),
+                    'available'         => (float) $line->amount < 0
+                        ? round(min(0, (float) $line->amount - $consumed - $returned), 4)
+                        : round(max(0, (float) $line->amount - $consumed - $returned), 4),
                 ];
             })->values()->all();
             return [

@@ -54,11 +54,11 @@ const msgSuccess = (msg) => {
 // --- Totales de notas de débito y crédito ---
 const filteredNotes = computed(() => {
   if (!filterBranch.value) return props.notes;
-  return props.notes.filter(n => n.branch_name === filterBranch.value);
+  return props.notes.filter(n => (n.branch_names || []).includes(filterBranch.value));
 });
 
 const branchOptions = computed(() => {
-  const unique = [...new Set(props.notes.map(n => n.branch_name).filter(Boolean))];
+  const unique = [...new Set(props.notes.flatMap(n => n.branch_names || []))];
   return unique.sort();
 });
 
@@ -140,7 +140,7 @@ const openEdit = async (note) => {
 };
 
 const updateNote = () => {
-  form.put(route('credit_debit_notes.update', form.id), {
+  form.post(route('credit_debit_notes.update', form.id), {
     preserveScroll: true,
     onSuccess: () => {
       form.reset();

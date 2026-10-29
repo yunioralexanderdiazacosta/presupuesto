@@ -6,6 +6,7 @@ use Illuminate\Http\Request;
 use App\Models\Outflow;
 use App\Models\Invoice;
 use App\Models\Branch;
+use App\Support\SpecificTax;
 use Inertia\Inertia;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Auth;
@@ -81,11 +82,10 @@ class OutflowsController extends Controller
                 $cantidadOriginal = $invoiceProduct->quantity ?? $invoiceProduct->amount ?? 0;
                 $stockLinea = round($cantidadOriginal - $consumido - $devuelto, 2);
 
-                // Excluir líneas con stock cero o negativo
-                if ($stockLinea <= 0) {
+                // Excluir líneas sin stock. Las negativas solo se listan para Impuesto Específico (pendientes de reverso de consumo)
+                if ($stockLinea == 0 || ($stockLinea < 0 && !SpecificTax::isName($invoiceProduct->product->name ?? ''))) {
                     continue;
                 }
-                // Buscar info de nota(s) de crédito asociada(s)
                 $creditNoteInfo = null;
                 if ($devuelto > 0) {
                     $creditNotes = \App\Models\CreditDebitNote::where('type', 'credito')

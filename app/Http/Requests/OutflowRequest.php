@@ -3,6 +3,7 @@
 namespace App\Http\Requests;
 
 use App\Models\Operation;
+use App\Support\SpecificTax;
 use Illuminate\Foundation\Http\FormRequest;
 
 class OutflowRequest extends FormRequest
@@ -33,6 +34,28 @@ class OutflowRequest extends FormRequest
     }
 
     /**
+     * Cantidad de la salida: distinta de cero. Solo las líneas de Impuesto Específico admiten
+     * cantidad negativa (reverso de consumo de una línea negativa de la factura).
+     */
+    protected function quantityRule(callable $getInvoiceProductId): array
+    {
+        return [
+            'required',
+            'numeric',
+            function ($attribute, $value, $fail) use ($getInvoiceProductId) {
+                $qty = (float) $value;
+                if ($qty == 0.0) {
+                    $fail('La cantidad debe ser distinta de cero.');
+                } elseif ($qty > 0 && $qty < 0.01) {
+                    $fail('La cantidad mínima es 0,01.');
+                } elseif ($qty < 0 && !SpecificTax::isInvoiceProduct($getInvoiceProductId($attribute))) {
+                    $fail('Solo el Impuesto Específico admite cantidad negativa.');
+                }
+            },
+        ];
+    }
+
+    /**
      * Get the validation rules that apply to the request.
      *
      * @return array<string, \Illuminate\Contracts\Validation\ValidationRule|array<mixed>|string>
@@ -56,7 +79,10 @@ class OutflowRequest extends FormRequest
                     }),
                 ],
                 'outflows.*.machinery_id' => 'nullable|exists:machineries,id',
-                'outflows.*.quantity' => 'required|numeric|min:0.01',
+                'outflows.*.quantity' => $this->quantityRule(function ($attribute) {
+                    preg_match('/outflows\.(\d+)\.quantity/', $attribute, $matches);
+                    return $this->input('outflows.' . ($matches[1] ?? 0) . '.invoice_product_id');
+                }),
                 'outflows.*.notes' => 'nullable|string|max:255',
                 'outflows.*.date' => 'required|date|after:2000-01-01|before:2100-01-01',
                 'outflows.*.cost_center_ids' => 'nullable|array',
@@ -74,7 +100,7 @@ class OutflowRequest extends FormRequest
                 $this->investmentRequiredWhenInversionRule(fn () => $this->input('operation_id')),
             ],
             'machinery_id' => 'nullable|exists:machineries,id',
-            'quantity' => 'required|numeric|min:0.01',
+            'quantity' => $this->quantityRule(fn () => $this->route('outflow')?->invoice_product_id),
             'notes' => 'nullable|string|max:255',
             'date' => 'required|date|after:2000-01-01|before:2100-01-01',
             'cost_center_ids' => 'nullable|array',

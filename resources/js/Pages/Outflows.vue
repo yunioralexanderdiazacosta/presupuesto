@@ -279,10 +279,11 @@ const inputTerm   = ref("");   // texto que el usuario escribe
 const appliedTerm = ref("");   // término aplicado al presionar Buscar / Enter
 const filterBranch = ref('');
 const filteredOutflows = computed(() => {
-  // Primero filtrar solo los outflows con stock numérico > 0
+  // Primero filtrar solo los outflows con stock numérico distinto de cero
+  // (el backend solo envía stock negativo para Impuesto Específico: reverso de consumo)
   let stockFiltered = props.outflows.data.filter(outflow => {
     const stockNum = Number(outflow.stock);
-    return isFinite(stockNum) && stockNum > 0;
+    return isFinite(stockNum) && stockNum !== 0;
   });
   // Filtro por sucursal
   if (filterBranch.value) {
@@ -359,6 +360,17 @@ const isInversionOp = (operationId, operationsList) => {
 };
 
 // Función para calcular el precio total de una salida
+// Con stock negativo (Impuesto Específico) la cantidad es un reverso de consumo y no puede pasar del stock negativo de la línea
+const quantityExceedsStock = (selected) => {
+  const stock = Number(selected.stock_original);
+  const qty = Number(selected.quantity);
+  return stock < 0 ? qty < stock : qty > stock;
+};
+const clampQuantity = (selected) => {
+  if (quantityExceedsStock(selected)) {
+    selected.quantity = selected.stock_original;
+  }
+};
 const calculateTotal = (selected) => {
   const precio = Number(selected.unit_price) || 0;
   const cantidad = Number(selected.quantity) || 0;
@@ -1554,16 +1566,12 @@ function copyToAllCards(sourceCardId) {
                               v-model="selected.quantity"
                               class="form-control form-control-sm w-100"
                               type="number"
-                              min="0.01"
-                              :max="selected.stock_original"
+                              :min="Number(selected.stock_original) < 0 ? selected.stock_original : 0.01"
+                              :max="Number(selected.stock_original) < 0 ? -0.01 : selected.stock_original"
                               step="0.01"
-                              @input="
-                                if (Number(selected.quantity) > Number(selected.stock_original)) {
-                                  selected.quantity = selected.stock_original;
-                                }
-                              "
+                              @input="clampQuantity(selected)"
                             />
-                            <small v-if="Number(selected.quantity) > Number(selected.stock_original)" class="text-danger">No puede exceder el stock disponible ({{ selected.stock_original }})</small>
+                            <small v-if="quantityExceedsStock(selected)" class="text-danger">No puede exceder el stock disponible ({{ selected.stock_original }})</small>
                           </div>
                           <div class="col-6 col-md-2">
                             <label class="form-label">Fecha <span class="text-danger">*</span></label>

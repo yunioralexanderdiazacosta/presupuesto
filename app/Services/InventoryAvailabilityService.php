@@ -128,8 +128,16 @@ class InventoryAvailabilityService
         ksort($byInvoiceProduct);
         foreach ($byInvoiceProduct as $ipId => $requested) {
             $stock = self::forInvoiceProduct((int) $ipId, $excludeOutflowIds, true);
-            $isIncrease = $requested - (float) ($previousByInvoiceProduct[$ipId] ?? 0) > self::EPSILON;
-            if ($isIncrease && $requested - $stock['available'] > self::EPSILON) {
+            $previous = (float) ($previousByInvoiceProduct[$ipId] ?? 0);
+            if ($requested < 0) {
+                // Línea negativa (Impuesto Específico): el reverso de consumo no puede pasar de la cantidad negativa de la línea
+                $isIncrease = $previous - $requested > self::EPSILON;
+                $exceeds = $requested - $stock['available'] < -self::EPSILON;
+            } else {
+                $isIncrease = $requested - $previous > self::EPSILON;
+                $exceeds = $requested - $stock['available'] > self::EPSILON;
+            }
+            if ($isIncrease && $exceeds) {
                 $errors[] = self::consumeMessage($stock, $requested);
             }
         }
@@ -161,7 +169,11 @@ class InventoryAvailabilityService
         ksort($byInvoiceProduct);
         foreach ($byInvoiceProduct as $ipId => $requested) {
             $stock = self::forInvoiceProduct((int) $ipId, [], true);
-            if ($requested - $stock['available'] > self::EPSILON) {
+            // Línea negativa (Impuesto Específico): la devolución también es negativa y no puede pasar de la línea
+            $exceeds = $requested < 0
+                ? $requested - $stock['available'] < -self::EPSILON
+                : $requested - $stock['available'] > self::EPSILON;
+            if ($exceeds) {
                 $errors[] = sprintf(
                     '%s: se intenta devolver %s y solo hay %s disponible.',
                     $stock['product_name'],
@@ -182,6 +194,15 @@ class InventoryAvailabilityService
 
     private static function consumeMessage(array $stock, float $requested): string
     {
+        if ($requested < 0) {
+            return sprintf(
+                'Reverso de consumo excedido para %s: solicitado %s, disponible %s.',
+                $stock['product_name'],
+                self::fmt($requested),
+                self::fmt(min(0, $stock['available']))
+            );
+        }
+
         return sprintf(
             'Stock insuficiente para %s: solicitado %s, disponible %s.',
             $stock['product_name'],

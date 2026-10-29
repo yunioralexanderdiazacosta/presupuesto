@@ -97,6 +97,7 @@ const exceedsInvoiceTotal = computed(() => {
 });
 
 // Obtener la cantidad máxima permitida para un item (basada en la línea de factura)
+// En una línea negativa (Impuesto Específico) es negativa y la nota también debe serlo
 const getMaxQuantity = (item) => {
   if (props.type !== 'credito' || !item.invoice_product_id) return null;
   const line = props.products.find(p => p.value === item.invoice_product_id);
@@ -107,7 +108,20 @@ const getMaxQuantity = (item) => {
 const exceedsQuantity = (item) => {
   const max = getMaxQuantity(item);
   if (max === null) return false;
-  return Number(item.quantity) > Number(max);
+  return Number(max) < 0
+    ? Number(item.quantity) < Number(max) || Number(item.quantity) > 0
+    : Number(item.quantity) > Number(max);
+};
+
+// Rango permitido del input: una línea negativa admite cantidades entre su cantidad y 0
+const getMinInput = (item) => {
+  const max = getMaxQuantity(item);
+  if (max !== null && Number(max) < 0) return Number(max);
+  return props.type === 'debito' && props.affects_inventory === false ? 0.01 : 0;
+};
+const getMaxInput = (item) => {
+  const max = getMaxQuantity(item);
+  return max !== null && Number(max) < 0 ? 0 : (max || undefined);
 };
 
 // Stock de la línea de factura seleccionada (consumido, devuelto y disponible en bodega)
@@ -122,7 +136,11 @@ const getStockInfo = (item) => {
 const exceedsStock = (item) => {
   const info = getStockInfo(item);
   if (!info || !(props.affects_inventory || props.is_annulment)) return false;
-  return Number(item.quantity) - Number(info.available) > 0.0001;
+  const qty = Number(item.quantity);
+  if (qty < 0 || Number(info.available) < 0) {
+    return qty - Number(info.available) < -0.0001;
+  }
+  return qty - Number(info.available) > 0.0001;
 };
 
 // NC de solo precio: no mueve stock; el monto se reparte entre TODAS las unidades facturadas
@@ -197,8 +215,8 @@ const setDiscountTotal = (item, value) => {
               :class="exceedsQuantity(item) ? 'is-invalid' : ''"
               :readonly="isFinancialCredit"
               :placeholder="type === 'debito' ? 'Ingrese cantidad' : ''"
-              :min="type === 'debito' && affects_inventory === false ? 0.01 : 0"
-              :max="getMaxQuantity(item) || undefined"
+              :min="getMinInput(item)"
+              :max="getMaxInput(item)"
               step="0.01"
             />
             <div v-if="isFinancialCredit" class="text-muted" style="font-size: 0.65rem;">

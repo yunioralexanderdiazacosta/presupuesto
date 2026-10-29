@@ -7,6 +7,24 @@
 
 export const changelog = [
   {
+    fecha: '2026-10-28',
+    titulo: 'Notas de Crédito/Débito y Salidas — Cantidad negativa para Impuesto Específico',
+    items: [
+      'Ahora las notas de crédito y débito aceptan cantidad negativa en la línea de Impuesto Específico, con el mismo signo que la línea de la factura (la nota de una línea de −1 se registra con −1).',
+      'En Salidas, las líneas negativas de Impuesto Específico aparecen para registrar su salida en negativo (reverso de consumo), de modo que el Consumido refleje el crédito igual que el Facturado.',
+      'Solo el producto Impuesto Específico admite cantidades negativas; el resto de los productos mantiene la validación de cantidad mayor a cero.',
+    ]
+  },
+  {
+    fecha: '2026-10-28',
+    titulo: 'Notas de Crédito/Débito — Sucursal visible en el listado',
+    items: [
+      'La columna Sucursal ahora muestra la sucursal de la factura relacionada (antes aparecía vacía en las notas de crédito).',
+      'Si la nota incluye productos de distintas sucursales, se muestran todas separadas por comas.',
+      'El filtro por sucursal encuentra la nota si al menos uno de sus productos pertenece a la sucursal elegida.',
+    ]
+  },
+  {
     fecha: '2026-10-22',
     titulo: 'Detalle de Salidas por Sucursal — Ver en USD y traducción a inglés',
     items: [

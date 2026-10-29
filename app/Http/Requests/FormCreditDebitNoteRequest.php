@@ -2,6 +2,7 @@
 
 namespace App\Http\Requests;
 
+use App\Support\SpecificTax;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Support\Facades\DB;
 
@@ -26,7 +27,20 @@ class FormCreditDebitNoteRequest extends FormRequest
             'items'             => ['required', 'array', 'min:1'],
             'items.*.product_id'=> ['required', 'exists:products,id'],
             'items.*.unit_id'   => ['required', 'exists:units,id'],
-            'items.*.quantity'  => ['required', 'numeric', 'gt:0'],
+            'items.*.quantity'  => ['required', 'numeric', function ($attribute, $value, $fail) {
+                if ((float) $value == 0.0) {
+                    $fail('La cantidad debe ser distinta de cero.');
+                    return;
+                }
+                // Solo el Impuesto Específico admite cantidad negativa (reversa de una línea negativa de la factura)
+                if ((float) $value < 0) {
+                    preg_match('/items\.(\d+)\.quantity/', $attribute, $m);
+                    $invoiceProductId = $this->input('items.' . ($m[1] ?? 0) . '.invoice_product_id');
+                    if (!SpecificTax::isInvoiceProduct($invoiceProductId)) {
+                        $fail('Solo el Impuesto Específico admite cantidad negativa.');
+                    }
+                }
+            }],
             'items.*.unit_price'=> ['required', 'numeric', 'min:0'],
             'items.*.invoice_product_id' => ['required', 'exists:invoice_products,id'],
         ];
@@ -84,7 +98,15 @@ class FormCreditDebitNoteRequest extends FormRequest
                     );
                     continue;
                 }
-                if ($item['quantity'] > $ip->amount) {
+                // La cantidad de la nota debe tener el signo de la línea facturada (línea negativa = nota negativa)
+                $qty = (float) $item['quantity'];
+                $lineAmount = (float) $ip->amount;
+                if (($lineAmount < 0) !== ($qty < 0)) {
+                    $validator->errors()->add(
+                        "items.{$idx}.quantity",
+                        "La cantidad ({$item['quantity']}) debe tener el mismo signo que la cantidad facturada ({$ip->amount})."
+                    );
+                } elseif (abs($qty) > abs($lineAmount)) {
                     $validator->errors()->add(
                         "items.{$idx}.quantity",
                         "La cantidad ({$item['quantity']}) excede la cantidad facturada ({$ip->amount})."
@@ -142,7 +164,6 @@ class FormCreditDebitNoteRequest extends FormRequest
     {
         return [
             'items.min'              => 'Debe agregar al menos un item.',
-            'items.*.quantity.gt'    => 'La cantidad debe ser mayor a cero.',
             'items.*.unit_price.min' => 'El precio unitario no puede ser negativo.',
             'items.*.invoice_product_id.required' => 'Seleccione la línea de factura a la que corresponde la nota de crédito.',
         ];

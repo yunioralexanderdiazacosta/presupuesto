@@ -98,6 +98,11 @@ const originalQuantity = computed(() => Number(stockLine.value?.cantidad_origina
 // para poder guardar sin tocar la cantidad cuando la línea quedó sobreconsumida
 const maxQuantity = computed(() => Math.max(stockAvailable.value, Number(props.form?.quantity) || 0));
 
+// Línea negativa (Impuesto Específico): la salida es un reverso de consumo y su rango es negativo
+const isNegativeLine = computed(() => stockAvailable.value < 0 || Number(props.form?.quantity) < 0);
+const minQuantity = computed(() => isNegativeLine.value ? Math.min(stockAvailable.value, Number(props.form?.quantity) || 0) : 0);
+const upperQuantity = computed(() => isNegativeLine.value ? -0.01 : maxQuantity.value);
+
 // Selector de línea de stock (sin trigger UI aún; evita warnings de propiedades no definidas)
 const showStockLineModal = ref(false);
 function handleStockLineSelected(line) {
@@ -201,7 +206,10 @@ const isInversionOp = computed(() => {
 });
 
 function submit() {
-  if (Number(localForm.quantity) > maxQuantity.value) {
+  if (isNegativeLine.value && Number(localForm.quantity) < minQuantity.value) {
+    return Swal.fire('Error', `El reverso no puede ser menor a ${minQuantity.value}`, 'error');
+  }
+  if (!isNegativeLine.value && Number(localForm.quantity) > maxQuantity.value) {
     return Swal.fire('Error', `La cantidad no puede exceder el stock disponible (${maxQuantity.value})`, 'error');
   }
   // Preparar datos para enviar (excluir level2_id que es solo filtro UI)
@@ -288,12 +296,12 @@ function submit() {
                   type="number"
                   class="form-control"
                   v-model.number="localForm.quantity"
-                  :max="maxQuantity"
-                  :min="0"
+                  :max="upperQuantity"
+                  :min="minQuantity"
                   step="0.01"
                   required
                 />
-                <div class="form-text">Máximo permitido: {{ maxQuantity.toFixed(2) }}</div>
+                <div class="form-text">{{ isNegativeLine ? 'Mínimo permitido' : 'Máximo permitido' }}: {{ (isNegativeLine ? minQuantity : maxQuantity).toFixed(2) }}</div>
               </div>
               <div class="col-12 col-md-3">
                 <label class="form-label">Fecha <span class="text-danger">*</span></label>

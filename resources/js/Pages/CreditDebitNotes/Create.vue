@@ -46,7 +46,10 @@ const hasExceedingQuantity = computed(() => {
     if (!item.invoice_product_id) return false;
     const line = invoice.products.find(p => p.value === item.invoice_product_id);
     if (!line) return false;
-    return Number(item.quantity) > Number(line.amount || line.quantity || 0);
+    // Una línea negativa (Impuesto Específico) exige nota negativa sin pasar de la cantidad facturada
+    const max = Number(line.amount || line.quantity || 0);
+    const qty = Number(item.quantity);
+    return max < 0 ? (qty < max || qty > 0) : qty > max;
   });
 });
 
@@ -63,7 +66,11 @@ const exceedingReturns = computed(() => {
   });
   return Object.entries(byLine)
     .map(([id, qty]) => ({ line: invoice.products.find(p => String(p.value) === id), qty }))
-    .filter(({ line, qty }) => line && line.available !== undefined && qty - Number(line.available) > 0.0001);
+    .filter(({ line, qty }) => line && line.available !== undefined && (
+      qty < 0 || Number(line.available) < 0
+        ? qty - Number(line.available) < -0.0001
+        : qty - Number(line.available) > 0.0001
+    ));
 });
 
 // Validar si el monto total excede la factura
@@ -123,7 +130,7 @@ const save = () => {
     return;
   }
   // ND con stock: las líneas vienen cargadas desde la factura; debe haber cantidad en al menos una
-  if (form.type === 'debito' && form.affects_inventory && !form.items.some(item => (parseFloat(item.quantity) || 0) > 0)) {
+  if (form.type === 'debito' && form.affects_inventory && !form.items.some(item => (parseFloat(item.quantity) || 0) !== 0)) {
     Swal.fire({ icon: 'error', title: 'Falta la cantidad', text: 'Indique la cantidad en al menos una línea de la factura.' });
     return;
   }
@@ -159,7 +166,7 @@ const save = () => {
       items: isFinancialCredit.value
         ? data.items.filter(item => (parseFloat(item.unit_price) || 0) * (parseFloat(item.quantity) || 0) > 0)
         : (data.type === 'debito' && data.affects_inventory
-          ? data.items.filter(item => (parseFloat(item.quantity) || 0) > 0)
+          ? data.items.filter(item => (parseFloat(item.quantity) || 0) !== 0)
           : data.items),
     })).post(route('credit_debit_notes.store'), {
       preserveScroll: true,

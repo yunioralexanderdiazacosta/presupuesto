@@ -20,7 +20,7 @@ class CreditDebitNotesController extends Controller
         $season_id = session('season_id');
         $term = $request->term ?? '';
 
-        $notes = CreditDebitNote::with(['supplier', 'invoice', 'items.product', 'items.branch:id,name'])
+        $notes = CreditDebitNote::with(['supplier', 'invoice', 'items.product', 'items.branch:id,name', 'items.invoiceProduct.branch:id,name'])
             ->where('team_id', $user->team_id)
             ->where('season_id', $season_id)
             ->when($request->term, function ($query, $search) {
@@ -38,6 +38,10 @@ class CreditDebitNotesController extends Controller
                 $productNames = $note->items->map(function($item) {
                     return $item->product ? $item->product->name : null;
                 })->filter()->unique()->values()->all();
+                // NC: sucursal vía la línea de factura; ND: la guardada en el item (o la de la línea si falta)
+                $branchNames = $note->items->map(function($item) {
+                    return $item->branch?->name ?? $item->invoiceProduct?->branch?->name;
+                })->filter()->unique()->sort()->values()->all();
                 $total = 0;
                 foreach ($note->items as $item) {
                     $total += ($item->quantity * $item->unit_price);
@@ -53,7 +57,8 @@ class CreditDebitNotesController extends Controller
                     'affects_inventory' => $note->affects_inventory,
                     'products'    => implode(', ', $productNames),
                     'total'       => $total,
-                    'branch_name' => $note->items->first(fn($i) => $i->branch_id)?->branch?->name,
+                    'branch_name' => implode(', ', $branchNames),
+                    'branch_names' => $branchNames,
                 ];
             });
 
