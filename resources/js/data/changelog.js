@@ -7,6 +7,34 @@
 
 export const changelog = [
   {
+    fecha: '2026-11-03',
+    titulo: 'Inventario — Buscador con botón para evitar lentitud',
+    items: [
+      'El buscador de Inventario (pestañas Edición, Valorizado y Kardex) ya no filtra con cada tecla, lo que lo dejaba lento y pegado con muchos datos.',
+      'Ahora se escribe el texto y se busca con el botón de la lupa o presionando Enter; el botón con la X limpia la búsqueda.',
+    ]
+  },
+  {
+    fecha: '2026-11-03',
+    titulo: 'Presupuesto — Versiones de presupuesto dentro de una temporada',
+    items: [
+      'Los administradores pueden crear versiones del presupuesto de la temporada (por ejemplo "Presupuesto 2026-2027 v2") copiando una versión existente, para editarla libremente sin tocar la oficial.',
+      'Nueva pantalla "Versiones de Presupuesto" en Parámetros: permite crear, renombrar, marcar como oficial y eliminar versiones.',
+      'Junto a la temporada, en la barra superior, el administrador elige en qué versión trabaja. Las pantallas de ingreso por rubro, el Dashboard, el Panel Técnico, el Comparativo, Inversiones y Hectáreas muestran la versión elegida, y el Comparativo la compara contra lo real.',
+      'La versión oficial es la que ven y usan todos los demás usuarios; las otras versiones son solo para administradores. Al iniciar sesión o cambiar de temporada se vuelve a la oficial.',
+      'Cuando se trabaja en una versión que no es la oficial, se marca en naranja en la barra superior y en el Comparativo para evitar editarla por error.',
+    ]
+  },
+  {
+    fecha: '2026-11-03',
+    titulo: 'Temporadas — Copiar presupuesto más completo y sin errores',
+    items: [
+      'Al copiar el presupuesto a otra temporada ahora se conserva el tipo de operación (Gasto o Inversión) de cada línea, que antes se perdía y dejaba las líneas fuera de los dashboards.',
+      'También se conservan la inversión asociada y la sucursal de Administración y Generales de Campo, buscando su equivalente por nombre en la temporada destino.',
+      'Si una subfamilia no existe en la temporada destino, esa línea se omite y se avisa en las advertencias. Antes la copia completa fallaba con un error.',
+    ]
+  },
+  {
     fecha: '2026-10-28',
     titulo: 'Notas de Crédito/Débito y Salidas — Cantidad negativa para Impuesto Específico',
     items: [

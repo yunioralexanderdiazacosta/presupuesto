@@ -461,7 +461,7 @@ public $totalHarvest = 0;
 
     private function getTotal($costCenterId)
     {
-        $total = DB::table('manpower_items')
+        $total = \App\Support\ActiveBudgetVersion::pivot('manpower_items')
         ->select('man_power_id')
         ->where('cost_center_id', $costCenterId)
         ->distinct('man_power_id')

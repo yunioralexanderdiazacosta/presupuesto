@@ -436,7 +436,7 @@ class FertilizersController extends Controller
 
     private function getTotal($costCenterId)
     {   
-        $total = DB::table('fertilizer_items')
+        $total = \App\Support\ActiveBudgetVersion::pivot('fertilizer_items')
         ->select('fertilizer_id')
         ->where('cost_center_id', $costCenterId)
         ->distinct('fertilizer_id')

@@ -18,6 +18,7 @@ class ClearSessionOnLogout
         // Limpiar todas las variables de sesión personalizadas
         Session::forget('season_id');
         Session::forget('price');
+        Session::forget('budget_version_id');
         
         // Opcional: Limpiar toda la sesión
         // Session::flush();

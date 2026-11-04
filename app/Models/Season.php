@@ -25,4 +25,14 @@ class Season extends Model
     {
         return $this->belongsTo(Team::class);
     }
+
+    public function budgetVersions()
+    {
+        return $this->hasMany(BudgetVersion::class);
+    }
+
+    public function officialBudgetVersion()
+    {
+        return $this->hasOne(BudgetVersion::class)->where('is_official', true);
+    }
 }

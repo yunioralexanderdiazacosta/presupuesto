@@ -38,7 +38,10 @@ const productForm = useForm({
 });
 
 // Filtro local
-const term = ref('');
+const term = ref('');          // lo que se escribe en el buscador
+const appliedTerm = ref('');   // término aplicado al presionar Buscar / Enter
+const applySearch = () => { appliedTerm.value = term.value; };
+const clearSearch = () => { term.value = ''; appliedTerm.value = ''; };
 const filterBranch = ref('');
 const filterLevel1 = ref('');
 const filterLevel2 = ref('');
@@ -80,8 +83,8 @@ watch(filterLevel1, () => {
 const filteredInventory = computed(() => {
   if (!props.inventory || !props.inventory.length) return [];
   let data = props.inventory;
-  if (term.value) {
-    const search = term.value.toLowerCase();
+  if (appliedTerm.value) {
+    const search = appliedTerm.value.toLowerCase();
     data = data.filter(item => {
       const level2 = item.level2_name ? item.level2_name.toLowerCase() : '';
       const level3 = item.level3_name ? item.level3_name.toLowerCase() : '';
@@ -106,8 +109,8 @@ const filteredInventory = computed(() => {
 const filteredValorizedInventory = computed(() => {
   if (!props.valorizedInventory || !props.valorizedInventory.length) return [];
   let data = props.valorizedInventory;
-  if (term.value) {
-    const search = term.value.toLowerCase();
+  if (appliedTerm.value) {
+    const search = appliedTerm.value.toLowerCase();
     data = data.filter(item => {
       const level2 = item.level2_name ? item.level2_name.toLowerCase() : '';
       const level3 = item.level3_name ? item.level3_name.toLowerCase() : '';
@@ -428,7 +431,14 @@ function printKardex(key) {
                       v-model="term"
                       placeholder="Buscar por producto, nivel 2, nivel 3 o sucursal..."
                       style="margin-bottom:0 !important; margin-top:0 !important;"
+                      @keyup.enter="applySearch"
                     />
+                    <button type="button" class="btn btn-falcon-primary btn-sm px-2 flex-shrink-0" @click="applySearch" title="Buscar" style="height:31px;">
+                      <i class="fas fa-search"></i>
+                    </button>
+                    <button v-if="appliedTerm || term" type="button" class="btn btn-falcon-default btn-sm px-2 flex-shrink-0" @click="clearSearch" title="Limpiar búsqueda" style="height:31px;">
+                      <i class="fas fa-times"></i>
+                    </button>
                     <select v-model="filterBranch" class="form-select form-select-sm" style="width:280px; flex-shrink:0;">
                       <option value="">Todas las sucursales</option>
                       <option v-for="b in props.branches" :key="b.value" :value="b.value">{{ b.label }}</option>
@@ -501,7 +511,14 @@ function printKardex(key) {
                       v-model="term"
                       placeholder="Buscar por producto, nivel 2, nivel 3 o sucursal..."
                       style="margin-bottom:0 !important; margin-top:0 !important;"
+                      @keyup.enter="applySearch"
                     />
+                    <button type="button" class="btn btn-falcon-primary btn-sm px-2 flex-shrink-0" @click="applySearch" title="Buscar" style="height:31px;">
+                      <i class="fas fa-search"></i>
+                    </button>
+                    <button v-if="appliedTerm || term" type="button" class="btn btn-falcon-default btn-sm px-2 flex-shrink-0" @click="clearSearch" title="Limpiar búsqueda" style="height:31px;">
+                      <i class="fas fa-times"></i>
+                    </button>
                     <select v-model="filterBranch" class="form-select form-select-sm" style="width:280px; flex-shrink:0;">
                       <option value="">Todas las sucursales</option>
                       <option v-for="b in props.branches" :key="b.value" :value="b.value">{{ b.label }}</option>
@@ -590,7 +607,14 @@ function printKardex(key) {
                         v-model="term"
                         placeholder="Buscar por producto, nivel 2, nivel 3 o sucursal..."
                         style="margin-bottom:0 !important; margin-top:0 !important;"
+                        @keyup.enter="applySearch"
                       />
+                      <button type="button" class="btn btn-falcon-primary btn-sm px-2 flex-shrink-0" @click="applySearch" title="Buscar" style="height:31px;">
+                        <i class="fas fa-search"></i>
+                      </button>
+                      <button v-if="appliedTerm || term" type="button" class="btn btn-falcon-default btn-sm px-2 flex-shrink-0" @click="clearSearch" title="Limpiar búsqueda" style="height:31px;">
+                        <i class="fas fa-times"></i>
+                      </button>
                       <select v-model="filterBranch" class="form-select form-select-sm" style="width:280px; flex-shrink:0;">
                         <option value="">Todas las sucursales</option>
                         <option v-for="b in props.branches" :key="b.value" :value="b.value">{{ b.label }}</option>

@@ -8,6 +8,7 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Http;
 use App\Models\Season;
 use App\Support\ModuleAccess;
+use App\Support\ActiveBudgetVersion;
 
 class HandleInertiaRequests extends Middleware
 {
@@ -58,6 +59,27 @@ class HandleInertiaRequests extends Middleware
             'temporada'   => $season ? strtoupper($season->name) : '',
             'seasonColor' => $season ? $season->color : null,
             'seasonLocked' => $season ? (bool) $season->is_locked : false,
+            // Versión de presupuesto activa y versiones disponibles (solo los administradores pueden cambiarla)
+            'budgetVersion' => function () {
+                $version = ActiveBudgetVersion::current();
+
+                return $version ? [
+                    'id'          => $version->id,
+                    'name'        => $version->name,
+                    'is_official' => $version->is_official,
+                    'is_locked'   => $version->is_locked,
+                ] : null;
+            },
+            'budgetVersions' => function () {
+                if (!ActiveBudgetVersion::isAdmin(Auth::user())) {
+                    return [];
+                }
+
+                return ActiveBudgetVersion::forCurrentSeason()
+                    ->orderByDesc('is_official')
+                    ->orderBy('id')
+                    ->get(['id', 'name', 'is_official']);
+            },
             'auth' => fn () => [
                 'user' => Auth::user() ? Auth::user()->load('team') : null,
             ],

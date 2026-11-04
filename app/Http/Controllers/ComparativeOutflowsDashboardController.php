@@ -2007,7 +2007,7 @@ class ComparativeOutflowsDashboardController extends Controller
         }
 
         // ADMINISTRATIONS
-        $administrations = DB::table('administrations as a')
+        $administrations = \App\Support\ActiveBudgetVersion::table('administrations as a')
             ->join('level3s as l3', 'a.subfamily_id', '=', 'l3.id')
             ->join('level2s as l2', 'l3.level2_id', '=', 'l2.id')
             ->join('level1s as l1', 'l2.level1_id', '=', 'l1.id')
@@ -2057,7 +2057,7 @@ class ComparativeOutflowsDashboardController extends Controller
         }
 
         // FIELDS
-        $fields = DB::table('fields as f')
+        $fields = \App\Support\ActiveBudgetVersion::table('fields as f')
             ->join('level3s as l3', 'f.subfamily_id', '=', 'l3.id')
             ->join('level2s as l2', 'l3.level2_id', '=', 'l2.id')
             ->join('level1s as l1', 'l2.level1_id', '=', 'l1.id')
@@ -2497,7 +2497,7 @@ class ComparativeOutflowsDashboardController extends Controller
         $branchRatios = $this->getBranchCompanyReasonRatios($season_id, $company_reason_id, $fruit_ids);
 
         // Batch: JOIN administrations con items agrupados por mes y sucursal
-        $query = DB::table('administrations as a')
+        $query = \App\Support\ActiveBudgetVersion::table('administrations as a')
             ->join('administration_items as ai', 'a.id', '=', 'ai.administration_id')
             ->select(
                 'ai.month_id',
@@ -2547,7 +2547,7 @@ class ComparativeOutflowsDashboardController extends Controller
         $branchRatios = $this->getBranchCompanyReasonRatios($season_id, $company_reason_id, $fruit_ids);
 
         // Batch: JOIN fields con items agrupados por mes y sucursal
-        $query = DB::table('fields as f')
+        $query = \App\Support\ActiveBudgetVersion::table('fields as f')
             ->join('field_items as fi', 'f.id', '=', 'fi.field_id')
             ->select(
                 'fi.month_id',

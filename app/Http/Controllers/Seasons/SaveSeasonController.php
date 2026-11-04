@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Seasons;
 
 use App\Http\Controllers\Controller;
 use App\Models\Season;
+use App\Support\ActiveBudgetVersion;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Redirect;
 use Inertia\Inertia;
@@ -32,6 +33,9 @@ class SaveSeasonController extends Controller
             'season_name' => $season ? $season->name : 'Temporada',
             'season_color' => $season ? $season->color : null
         ]);
+
+        // La versión de presupuesto activa pertenece a la temporada anterior
+        ActiveBudgetVersion::forget();
 
         // Retornar sin hacer nada - el frontend maneja el redirect
         return back();

@@ -29,7 +29,7 @@ class ModuleAccess
     protected const ALWAYS_NAMES = [
         'home', 'home.index', 'logout',
         'system-guide', 'faq',
-        'select.budget', 'select.seasons.save',
+        'select.budget', 'select.seasons.save', 'budget-versions.activate',
         'weather',
         'password.confirm', 'password.confirm.store', 'password.confirmation',
         'api.dollar-price.update',

@@ -444,7 +444,7 @@ class SuppliesController extends Controller
 
     private function getTotal($costCenterId)
     {   
-        $total = DB::table('supply_items')
+        $total = \App\Support\ActiveBudgetVersion::pivot('supply_items')
         ->select('supply_id')
         ->where('cost_center_id', $costCenterId)
         ->distinct('supply_id')

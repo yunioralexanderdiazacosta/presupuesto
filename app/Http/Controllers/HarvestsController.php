@@ -306,7 +306,7 @@ class HarvestsController extends Controller
     $subfamiliesByCostCenter = $subfamiliesRaw->groupBy('cost_center_id');
 
     // Preload totals for all cost centers
-    $totalsByCostCenter = DB::table('harvest_items')
+    $totalsByCostCenter = \App\Support\ActiveBudgetVersion::pivot('harvest_items')
         ->select('cost_center_id', DB::raw('COUNT(DISTINCT harvest_id) as total'))
         ->whereIn('cost_center_id', $costCenterIds)
         ->groupBy('cost_center_id')
@@ -531,7 +531,7 @@ class HarvestsController extends Controller
 
     private function getTotal($costCenterId)
     {   
-        $total = DB::table('harvest_items')
+        $total = \App\Support\ActiveBudgetVersion::pivot('harvest_items')
         ->select('harvest_id')
         ->where('cost_center_id', $costCenterId)
         ->distinct('harvest_id')

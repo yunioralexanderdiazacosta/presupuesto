@@ -7,7 +7,7 @@ use Illuminate\Database\Eloquent\Model;
 
 class Agrochemical extends Model
 {
-    use HasFactory;
+    use HasFactory, \App\Models\Concerns\BelongsToBudgetVersion;
 
     protected $fillable = ['product_name', 'price', 'dose', 'observations', 'mojamiento', 'unit_id', 'unit_id_price', 'subfamily_id', 'operation_id', 'investment_id', 'dose_type_id', 'team_id','season_id', 'user_id'];
 

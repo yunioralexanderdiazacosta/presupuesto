@@ -7,7 +7,7 @@ use Illuminate\Database\Eloquent\Model;
 
 class Fertilizer extends Model
 {
-    use HasFactory;
+    use HasFactory, \App\Models\Concerns\BelongsToBudgetVersion;
 
     protected $fillable = ['product_name', 'price', 'dose', 'unit_id', 'unit_id_price', 'subfamily_id', 'operation_id', 'investment_id', 'observations','team_id', 'season_id', 'user_id'];
 

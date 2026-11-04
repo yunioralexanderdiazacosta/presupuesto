@@ -80,5 +80,6 @@ return [
     ['key' => 'rootstocks.index', 'label' => 'Portainjertos', 'section' => 'Parámetros'],
     ['key' => 'parcels.index', 'label' => 'Parcelas', 'section' => 'Parámetros'],
     ['key' => 'seasons.index', 'label' => 'Temporadas', 'section' => 'Parámetros'],
+    ['key' => 'budget-versions.index', 'label' => 'Versiones de presupuesto', 'section' => 'Parámetros'],
     ['key' => 'users.index', 'label' => 'Usuarios', 'section' => 'Parámetros'],
 ];

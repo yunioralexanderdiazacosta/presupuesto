@@ -1620,6 +1620,13 @@ function createCumulativeChart() {
                         <div class="col-6 col-sm-auto d-flex align-items-center pe-0">
                             <h5 class="fs-9 mb-0 text-nowrap py-2 py-xl-0">
                                 <i class="fas fa-chart-line me-2"></i>{{ t.dashboardTitle }}<ActiveFilterBadge :label="activeFilterLabel" />
+                                <span
+                                    v-if="$page.props.budgetVersion && !$page.props.budgetVersion.is_official"
+                                    class="badge bg-warning text-dark ms-2 fw-semibold"
+                                    v-tooltip="'Estás comparando contra una versión de presupuesto que no es la oficial'"
+                                >
+                                    <i class="fas fa-code-branch me-1"></i>{{ isEnglish ? 'Budget' : 'Presupuesto' }}: {{ $page.props.budgetVersion.name }}
+                                </span>
                             </h5>
                         </div>
                         <div class="col-6 col-sm-auto ms-auto text-end ps-0">

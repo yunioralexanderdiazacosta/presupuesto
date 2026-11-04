@@ -33,5 +33,8 @@ class InitializeSeason
         if ($seasonId) {
             Session::put('season_id', $seasonId);
         }
+
+        // Al iniciar sesión siempre se parte de la versión oficial
+        Session::forget('budget_version_id');
     }
 }

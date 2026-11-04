@@ -287,7 +287,7 @@ public $totalHarvest = 0;
     $subfamiliesByCostCenter = $subfamiliesRaw->groupBy('cost_center_id');
 
     // Preload totals for all cost centers
-    $totalsByCostCenter = DB::table('service_items')
+    $totalsByCostCenter = \App\Support\ActiveBudgetVersion::pivot('service_items')
         ->select('cost_center_id', DB::raw('COUNT(DISTINCT service_id) as total'))
         ->whereIn('cost_center_id', $costCenterIds)
         ->groupBy('cost_center_id')
@@ -503,7 +503,7 @@ public $totalHarvest = 0;
 
     private function getTotal($costCenterId)
     {   
-        $total = DB::table('service_items')
+        $total = \App\Support\ActiveBudgetVersion::pivot('service_items')
         ->select('service_id')
         ->where('cost_center_id', $costCenterId)
         ->distinct('service_id')

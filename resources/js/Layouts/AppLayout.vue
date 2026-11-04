@@ -24,6 +24,12 @@ const isModuleRestricted = computed(() => !!$page.props.moduleAccess?.restricted
 const showMainMenu = computed(() => isAdminUser.value || isModuleRestricted.value);
 const seasonLinkComponent = computed(() => isAdminUser.value ? Link : 'span');
 
+// Cambia la versión de presupuesto activa (solo administradores); el servidor redirige y recarga la página actual
+const activateBudgetVersion = (version) => {
+  if (String(version.id) === String($page.props.budgetVersion?.id)) return;
+  router.post(route('budget-versions.activate', version.id), {}, { preserveScroll: true });
+};
+
 // ── Bloqueo por módulos ───────────────────────────────────────
 // El backend entrega las rutas bloqueadas (empresa o usuario restringido): aquí solo se ocultan
 // los enlaces y los grupos que quedan sin ningún enlace visible. El 403 real lo aplica el middleware.
@@ -218,6 +224,7 @@ const menuItems = [
     { label: 'Portainjertos', route: 'rootstocks.index', icon: 'fas fa-tree', section: 'Parámetros' },
     { label: 'Parcelas', route: 'parcels.index', icon: 'fas fa-map-marked-alt', section: 'Parámetros' },
     { label: 'Temporadas', route: 'seasons.index', icon: 'fas fa-calendar-alt', section: 'Parámetros' },
+    { label: 'Versiones de Presupuesto', route: 'budget-versions.index', icon: 'fas fa-code-branch', section: 'Parámetros' },
 ];
 
 const normalize = (str) => str.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
@@ -915,6 +922,13 @@ const navigateTo = (routeName) => {
                   </Link>
                   <!-- more inner pages-->
                 </li>
+                <li v-if="isAdminUser" class="nav-item">
+                  <Link class="nav-link" :href="route('budget-versions.index')">
+                    <div class="d-flex align-items-center">
+                      <span class="nav-link-text ps-3">Versiones de Presupuesto</span>
+                    </div>
+                  </Link>
+                </li>
                 <li class="nav-item"><Link class="nav-link" :href="route('faq')">
                     <div class="d-flex align-items-center"><span class="nav-link-text ps-3">FAQ</span>
                     </div>
@@ -949,19 +963,53 @@ const navigateTo = (routeName) => {
         </a>
         <ul class="navbar-nav align-items-center d-none d-lg-block">
           <li class="nav-item">
-            <div class="search-box" data-list='{"valueNames":["title"]}'>
+            <div class="search-box d-flex align-items-center" style="width: auto;" data-list='{"valueNames":["title"]}'>
               <!-- v2: degradado con color dinámico de temporada -->
               <component
                 :is="seasonLinkComponent"
                 :href="isAdminUser ? route('select.budget') : undefined"
-                class="d-inline-flex align-items-center px-4 py-2 mb-0 mt-1 rounded-pill shadow-lg me-3 text-decoration-none"
-                :style="{ background: $page.props.seasonColor ? `linear-gradient(90deg, ${$page.props.seasonColor}cc 0%, ${$page.props.seasonColor} 100%)` : 'linear-gradient(90deg, #6ea8fe 0%, #1e40af 100%)', color: '#fff', whiteSpace: 'nowrap', cursor: isAdminUser ? 'pointer' : 'default' }"
+                class="d-inline-flex align-items-center px-3 py-1 mb-0 mt-1 rounded-pill shadow-sm me-3 text-decoration-none fw-semibold"
+                :style="{ background: $page.props.seasonColor ? `linear-gradient(90deg, ${$page.props.seasonColor}cc 0%, ${$page.props.seasonColor} 100%)` : 'linear-gradient(90deg, #6ea8fe 0%, #1e40af 100%)', color: '#fff', whiteSpace: 'nowrap', cursor: isAdminUser ? 'pointer' : 'default', fontSize: '0.8rem', lineHeight: 1.5, border: '1px solid transparent' }"
                 :title="isAdminUser ? 'Cambiar temporada' : ''"
               >
-                <span class="fas fa-calendar-alt me-2 fs-8"></span>
-                <span class="fw-bold fs-8">{{$page.props.temporada ?? ''}}</span>
+                <span class="fas fa-calendar-alt me-2"></span>
+                <span>{{$page.props.temporada ?? ''}}</span>
                 <span v-if="isAdminUser" class="fas fa-chevron-down ms-2 fs-10 opacity-75"></span>
               </component>
+              <!-- Versión de presupuesto activa (solo administradores) -->
+              <div v-if="isAdminUser && $page.props.budgetVersion" class="dropdown d-inline-block me-3 mt-1">
+                <button
+                  type="button"
+                  data-bs-toggle="dropdown"
+                  aria-expanded="false"
+                  class="btn d-inline-flex align-items-center px-3 py-1 rounded-pill fw-semibold shadow-sm"
+                  :style="$page.props.budgetVersion.is_official
+                    ? { background: '#f9fafd', color: '#344050', border: '1px solid #d8e2ef', fontSize: '0.8rem', whiteSpace: 'nowrap' }
+                    : { background: '#f5803e', color: '#fff', border: '1px solid #f5803e', fontSize: '0.8rem', whiteSpace: 'nowrap' }"
+                  v-tooltip="$page.props.budgetVersion.is_official ? 'Versión oficial del presupuesto' : 'Estás trabajando en una versión NO oficial del presupuesto'"
+                >
+                  <span class="fas fa-code-branch me-2"></span>
+                  <span>{{ $page.props.budgetVersion.name }}</span>
+                  <span v-if="!$page.props.budgetVersion.is_official" class="ms-2" style="font-size: 0.7rem;">(no oficial)</span>
+                  <span class="fas fa-chevron-down ms-2 fs-10 opacity-75"></span>
+                </button>
+                <ul class="dropdown-menu dropdown-menu-start shadow-sm">
+                  <li><h6 class="dropdown-header">Versión de presupuesto</h6></li>
+                  <li v-for="version in $page.props.budgetVersions" :key="version.id">
+                    <button type="button" class="dropdown-item d-flex align-items-center" @click="activateBudgetVersion(version)">
+                      <i class="fas fa-check me-2" :class="String(version.id) === String($page.props.budgetVersion.id) ? 'text-success' : 'invisible'"></i>
+                      <span>{{ version.name }}</span>
+                      <span v-if="version.is_official" class="badge bg-success ms-2">Oficial</span>
+                    </button>
+                  </li>
+                  <li><hr class="dropdown-divider"></li>
+                  <li>
+                    <Link class="dropdown-item" :href="route('budget-versions.index')">
+                      <i class="fas fa-cog me-2"></i>Gestionar versiones
+                    </Link>
+                  </li>
+                </ul>
+              </div>
               <!-- Badge temporada bloqueada -->
               <span
                 v-if="$page.props.seasonLocked"

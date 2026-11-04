@@ -7,7 +7,7 @@ use Illuminate\Database\Eloquent\Model;
 
 class ManPower extends Model
 {
-    use HasFactory;
+    use HasFactory, \App\Models\Concerns\BelongsToBudgetVersion;
 
     protected $fillable = ['product_name', 'price', 'workday', 'observations', 'subfamily_id', 'operation_id', 'investment_id', 'unit_id', 'team_id', 'season_id', 'user_id'];
 

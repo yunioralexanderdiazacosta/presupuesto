@@ -155,6 +155,22 @@ Este proyecto es un sistema de gestión presupuestaria agrícola desarrollado en
 3. Poblar `month_id` automáticamente al crear/editar la nota (derivarlo de `date`), y correr un backfill para los registros existentes con `month_id = null`.
 4. Migrar los ~12 call-sites de forma oportunista (cuando se toquen por otra razón), no en un solo refactor grande, para no arriesgar romper reportes que hoy funcionan.
 
+### Versiones de presupuesto
+
+Cada temporada tiene una o más **versiones de presupuesto** (`budget_versions`); una sola es la **oficial** (`is_official`). Las 8 tablas de líneas (`agrochemicals`, `fertilizers`, `supplies`, `services`, `harvests`, `man_powers`, `administrations`, `fields`) tienen `budget_version_id` obligatorio. Cuarteles, niveles, inversiones, estimaciones, sucursales y todo lo real (facturas, salidas, nómina) son **compartidos** por todas las versiones.
+
+- **Versión activa**: `App\Support\ActiveBudgetVersion::current()/id()`. Solo los administradores pueden elegir una versión distinta de la oficial (se guarda en sesión como `budget_version_id`); los demás usuarios siempre usan la oficial. Cambiar de temporada, iniciar o cerrar sesión la reinicia.
+- **Lectura**: los 8 modelos usan el trait `BelongsToBudgetVersion`, que aplica un filtro automático por versión activa (respeta alias, ej. `Agrochemical::from('agrochemicals as a')`). No hay que agregar `where` por versión en consultas Eloquent.
+- **Lo que NO pasa por el filtro automático** y debe filtrarse a mano:
+  - `DB::table('administrations as a')` / `DB::table('fields as f')` y similares → usar `ActiveBudgetVersion::table('fields as f')`.
+  - Consultas que **agregan directo sobre una tabla de items** sin pasar por las líneas (ej. contar líneas por cuartel) → usar `ActiveBudgetVersion::pivot('fertilizer_items')`. Consultar items por `where('<fk>', $id)` o `whereIn('<fk>', $ids)` de líneas ya filtradas es seguro.
+  - SQL directo (`DB::select`, `selectRaw`): agregar `AND (? IS NULL OR budget_version_id = ?)` con `ActiveBudgetVersion::id()`.
+- **Escritura**: toda línea nueva queda en la versión activa (hook `creating` del trait). Como el filtro aplica también al route-model binding, no se puede editar ni borrar una línea de otra versión (404).
+- **Leer otra versión a propósito** (copiar, comparar, borrar temporada): `->withoutGlobalScopes()` explícito. Ver `BudgetCopyService` y `DeleteSeasonController`.
+- **Copiar presupuesto**: `App\Services\BudgetCopyService` es la única lógica de copia (entre temporadas y para crear una versión nueva). Misma temporada: conserva todos los ids. Otra temporada: traduce cuarteles, subfamilias, sucursales e inversiones por nombre; una línea sin subfamilia equivalente se omite con advertencia (`subfamily_id` es obligatorio).
+- **Gestión**: pantalla `budget-versions.index` y controladores en `BudgetVersions/`, solo administradores. No se puede eliminar la oficial. Crear, editar, marcar oficial y eliminar se bloquean si la temporada está bloqueada.
+- **Guardas**: `tests/Unit/ActiveBudgetVersionTest.php` falla si un modelo de línea pierde el trait. Un modelo/consulta nueva de presupuesto que se salte el filtro duplica los totales en silencio cuando hay 2+ versiones.
+
 ### Exportación a Excel
 - **Formato de datos numéricos**: Al exportar datos a Excel usando el componente `ExportExcelButton`, los valores numéricos (como totales, precios, cantidades) deben exportarse como números puros (sin formatear con `toLocaleString`).
 - **Razón**: Si se exportan como strings formateados, el componente ExportExcelButton los reconvierte y elimina el separador de miles. Al enviar números puros, Excel los formatea automáticamente con separador de miles (coma) según su configuración regional.

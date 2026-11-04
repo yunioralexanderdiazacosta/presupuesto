@@ -63,26 +63,19 @@ class DashboardController extends Controller
      */
     public static function getEntityCounts($season_id, $team_id)
     {
+        $versionId = \App\Support\ActiveBudgetVersion::id();
+        $b = [$season_id, $team_id, $versionId, $versionId];
         $counts = DB::selectOne("
             SELECT
-                (SELECT COUNT(*) FROM agrochemicals WHERE season_id = ? AND team_id = ?) as agrochemicals,
-                (SELECT COUNT(*) FROM fertilizers WHERE season_id = ? AND team_id = ?) as fertilizers,
-                (SELECT COUNT(*) FROM man_powers WHERE season_id = ? AND team_id = ?) as manpowers,
-                (SELECT COUNT(*) FROM supplies WHERE season_id = ? AND team_id = ?) as supplies,
-                (SELECT COUNT(*) FROM services WHERE season_id = ? AND team_id = ?) as services,
-                (SELECT COUNT(*) FROM fields WHERE season_id = ? AND team_id = ?) as fields,
-                (SELECT COUNT(*) FROM harvests WHERE season_id = ? AND team_id = ?) as harvests,
-                (SELECT COUNT(*) FROM administrations WHERE season_id = ? AND team_id = ?) as administrations
-        ", [
-            $season_id, $team_id,
-            $season_id, $team_id,
-            $season_id, $team_id,
-            $season_id, $team_id,
-            $season_id, $team_id,
-            $season_id, $team_id,
-            $season_id, $team_id,
-            $season_id, $team_id,
-        ]);
+                (SELECT COUNT(*) FROM agrochemicals WHERE season_id = ? AND team_id = ? AND (? IS NULL OR budget_version_id = ?)) as agrochemicals,
+                (SELECT COUNT(*) FROM fertilizers WHERE season_id = ? AND team_id = ? AND (? IS NULL OR budget_version_id = ?)) as fertilizers,
+                (SELECT COUNT(*) FROM man_powers WHERE season_id = ? AND team_id = ? AND (? IS NULL OR budget_version_id = ?)) as manpowers,
+                (SELECT COUNT(*) FROM supplies WHERE season_id = ? AND team_id = ? AND (? IS NULL OR budget_version_id = ?)) as supplies,
+                (SELECT COUNT(*) FROM services WHERE season_id = ? AND team_id = ? AND (? IS NULL OR budget_version_id = ?)) as services,
+                (SELECT COUNT(*) FROM fields WHERE season_id = ? AND team_id = ? AND (? IS NULL OR budget_version_id = ?)) as fields,
+                (SELECT COUNT(*) FROM harvests WHERE season_id = ? AND team_id = ? AND (? IS NULL OR budget_version_id = ?)) as harvests,
+                (SELECT COUNT(*) FROM administrations WHERE season_id = ? AND team_id = ? AND (? IS NULL OR budget_version_id = ?)) as administrations
+        ", array_merge($b, $b, $b, $b, $b, $b, $b, $b));
 
         return (array) $counts;
     }
@@ -1814,7 +1807,7 @@ class DashboardController extends Controller
             $months[] = $id;
         }
 
-        $administrations = DB::table('administrations as a')
+        $administrations = \App\Support\ActiveBudgetVersion::table('administrations as a')
             ->join('level3s as l3', 'a.subfamily_id', '=', 'l3.id')
             ->join('level2s as l2', 'l3.level2_id', '=', 'l2.id')
             ->join('level1s as l1', 'l2.level1_id', '=', 'l1.id')
@@ -1881,7 +1874,7 @@ class DashboardController extends Controller
             $months[] = $id;
         }
 
-        $fields = DB::table('fields as a')
+        $fields = \App\Support\ActiveBudgetVersion::table('fields as a')
             ->join('level3s as l3', 'a.subfamily_id', '=', 'l3.id')
             ->join('level2s as l2', 'l3.level2_id', '=', 'l2.id')
             ->join('level1s as l1', 'l2.level1_id', '=', 'l1.id')
@@ -2232,7 +2225,7 @@ class DashboardController extends Controller
         }
         $result = array_fill_keys($months, 0);
         // Obtener todas las administraciones relevantes
-        $administrations = DB::table('administrations as a')
+        $administrations = \App\Support\ActiveBudgetVersion::table('administrations as a')
             ->select('a.id', 'a.price', 'a.quantity', 'a.unit_id')
             ->where('a.season_id', $season_id);
         if ($team_id) {
@@ -2282,7 +2275,7 @@ class DashboardController extends Controller
         }
         $result = array_fill_keys($months, 0);
         // Obtener todos los fields relevantes
-        $fields = DB::table('fields as a')
+        $fields = \App\Support\ActiveBudgetVersion::table('fields as a')
             ->select('a.id', 'a.price', 'a.quantity', 'a.unit_id')
             ->where('a.season_id', $season_id);
         if ($team_id) {

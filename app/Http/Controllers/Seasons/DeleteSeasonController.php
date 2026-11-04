@@ -34,7 +34,7 @@ class DeleteSeasonController extends Controller
         $count = Parcel::where('season_id', $season->id)->count();
         if ($count) $dependencies[] = "$count parcela(s)";
 
-        $count = Field::where('season_id', $season->id)->count();
+        $count = Field::withoutGlobalScopes()->where('season_id', $season->id)->count();
         if ($count) $dependencies[] = "$count campo(s)";
 
         if (!empty($dependencies)) {

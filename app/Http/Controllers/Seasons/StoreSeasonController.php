@@ -25,6 +25,14 @@ class StoreSeasonController extends Controller
             'color' => $request->color
         ]);
 
+        // Toda temporada nace con su versión oficial de presupuesto
+        $season->budgetVersions()->create([
+            'team_id'     => $user->team_id,
+            'name'        => 'Original',
+            'is_official' => true,
+            'created_by'  => $user->id,
+        ]);
+
         // Si no hay plantillas definidas, copiar niveles desde la temporada base (id=1)
         $level1Templates = Level1Template::orderBy('order')->get();
         if ($level1Templates->isEmpty()) {

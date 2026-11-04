@@ -427,6 +427,14 @@ use App\Http\Controllers\Seasons\StoreSeasonController;
 use App\Http\Controllers\Seasons\UpdateSeasonController;
 use App\Http\Controllers\Seasons\DeleteSeasonController;
 use App\Http\Controllers\Seasons\CopyBudgetController;
+
+// Rutas para Versiones de Presupuesto
+use App\Http\Controllers\BudgetVersions\BudgetVersionController;
+use App\Http\Controllers\BudgetVersions\StoreBudgetVersionController;
+use App\Http\Controllers\BudgetVersions\UpdateBudgetVersionController;
+use App\Http\Controllers\BudgetVersions\DeleteBudgetVersionController;
+use App\Http\Controllers\BudgetVersions\ActivateBudgetVersionController;
+use App\Http\Controllers\BudgetVersions\SetOfficialBudgetVersionController;
 use App\Http\Controllers\Seasons\ToggleLockSeasonController;
 use App\Http\Controllers\Machineries\StoreMachineryController;
 use App\Http\Controllers\Machineries\UpdateMachineryController;
@@ -792,6 +800,14 @@ Route::middleware([
     Route::post('/seasons/{season}/set-default', SetDefaultSeasonController::class)->name('seasons.set-default');
     Route::post('/seasons/{season}/copy-budget', CopyBudgetController::class)->name('seasons.copy-budget');
     Route::post('/seasons/{season}/toggle-lock', ToggleLockSeasonController::class)->name('seasons.toggle-lock');
+
+    // Versiones de presupuesto (solo administradores; operan sobre la temporada activa)
+    Route::get('/budget-versions', [BudgetVersionController::class, 'index'])->name('budget-versions.index');
+    Route::post('/budget-versions/store', StoreBudgetVersionController::class)->name('budget-versions.store');
+    Route::post('/budget-versions/{budgetVersion}/update', UpdateBudgetVersionController::class)->name('budget-versions.update');
+    Route::delete('/budget-versions/{budgetVersion}/delete', DeleteBudgetVersionController::class)->name('budget-versions.delete');
+    Route::post('/budget-versions/{budgetVersion}/activate', ActivateBudgetVersionController::class)->name('budget-versions.activate');
+    Route::post('/budget-versions/{budgetVersion}/set-official', SetOfficialBudgetVersionController::class)->name('budget-versions.set-official');
 
     // Guía del Sistema (fuera de check.selected.budget porque no requiere temporada)
     Route::get('/system-guide', SystemGuideController::class)->name('system-guide');
