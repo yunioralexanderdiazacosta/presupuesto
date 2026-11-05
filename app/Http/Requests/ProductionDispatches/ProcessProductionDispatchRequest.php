@@ -34,7 +34,7 @@ class ProcessProductionDispatchRequest extends FormRequest
             $dispatch = $this->route('productionDispatch');
             if (!$dispatch) return;
 
-            $kgLimit = (float) $dispatch->kg_dispatched;
+            $kgLimit = (float) $this->input('kg_exported', 0);
             $items = $this->input('items', []);
 
             $totalsByType = [];
@@ -47,11 +47,11 @@ class ProcessProductionDispatchRequest extends FormRequest
 
             $labels = ['caliber' => 'Calibre', 'color' => 'Color', 'quality' => 'Calidad'];
             foreach ($totalsByType as $type => $total) {
-                if ($total > $kgLimit) {
+                if ($total - $kgLimit > 0.001) {
                     $label = $labels[$type] ?? $type;
                     $validator->errors()->add(
                         'items',
-                        "Los kg de {$label} (" . number_format($total, 2, ',', '.') . ") superan los kg despachados (" . number_format($kgLimit, 2, ',', '.') . ")."
+                        "Los kg de {$label} (" . number_format($total, 2, ',', '.') . ") superan los kg de exportación (" . number_format($kgLimit, 2, ',', '.') . ")."
                     );
                 }
             }

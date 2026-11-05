@@ -97,7 +97,8 @@ function getItem(type, value) {
 }
 
 // Totales por tipo de clasificación
-const kgLimit = computed(() => n(props.dispatch.kg_dispatched));
+// Las clasificaciones se desglosan sobre los Kg de Exportación
+const kgLimit = computed(() => n(form.kg_exported));
 
 const totalsByType = computed(() => {
     const totals = {};
@@ -110,7 +111,7 @@ const totalsByType = computed(() => {
 });
 
 function typeExceeded(type) {
-    return (totalsByType.value[type] || 0) > kgLimit.value;
+    return (totalsByType.value[type] || 0) - kgLimit.value > 0.001;
 }
 
 function anyTypeExceeded() {

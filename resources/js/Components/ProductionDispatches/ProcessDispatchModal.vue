@@ -48,7 +48,7 @@ function save() {
         return;
     }
     if (processFormRef.value?.anyTypeExceeded()) {
-        Swal.fire({ icon: 'warning', title: 'Kg excedidos', text: 'Los kg por tipo de clasificación no pueden superar los kg despachados.' });
+        Swal.fire({ icon: 'warning', title: 'Kg excedidos', text: 'Los kg por tipo de clasificación no pueden superar los Kg de Exportación.' });
         return;
     }
     if (processFormRef.value?.kgBreakdownExceeded) {

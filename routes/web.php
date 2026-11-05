@@ -250,6 +250,9 @@ use App\Http\Controllers\CostCenterVarieties\UpdateCostCenterVarietyController;
 use App\Http\Controllers\CostCenterVarieties\DeleteCostCenterVarietyController;
 // Rutas para Production Dispatches (despachos de producción)
 use App\Http\Controllers\ProductionDispatches\ProductionDispatchController;
+use App\Http\Controllers\ProductionAnalysis\ProductionAnalysisController;
+use App\Http\Controllers\DailyHarvestSummary\DailyHarvestSummaryController;
+use App\Http\Controllers\DailyHarvestSummary\PdfDailyHarvestSummaryController;
 use App\Http\Controllers\CostCenterAnalysis\CostCenterAnalysisController;
 use App\Http\Controllers\CostCenterAnalysis\CompareCostCentersController;
 use App\Http\Controllers\ProductionDispatches\StoreProductionDispatchController;
@@ -1064,6 +1067,13 @@ Route::middleware([
     Route::put('/production-dispatches/{productionDispatch}', UpdateProductionDispatchController::class)->name('production-dispatches.update');
     Route::delete('/production-dispatches/{productionDispatch}', DeleteProductionDispatchController::class)->name('production-dispatches.delete');
     Route::put('/production-dispatches/{productionDispatch}/process', ProcessProductionDispatchController::class)->name('production-dispatches.process');
+
+    // Resumen Diario de Cosecha
+    Route::get('/daily-harvest-summary', DailyHarvestSummaryController::class)->name('daily-harvest-summary.index');
+    Route::get('/daily-harvest-summary/pdf', PdfDailyHarvestSummaryController::class)->name('daily-harvest-summary.pdf');
+
+    // Análisis de Producción (estimado vs real vs exportado)
+    Route::get('/production-analysis', ProductionAnalysisController::class)->name('production-analysis.index');
 
     // Análisis Comparativo de Cuarteles
     Route::get('/cost-center-analysis', CostCenterAnalysisController::class)->name('cost-center-analysis.index');

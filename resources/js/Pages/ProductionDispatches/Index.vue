@@ -166,6 +166,7 @@ function statusClass(status) {
 
 function getClassificationStatus(item) {
     if (item.status !== 'processed' || !item.items || item.items.length === 0) return null;
+    // Mismo criterio que el formulario de proceso: cada tipo se compara contra los Kg Exportados
     const kgExported = Number(item.kg_exported) || 0;
     if (kgExported === 0) return null;
 
@@ -176,7 +177,8 @@ function getClassificationStatus(item) {
         }
     });
 
-    const types = Object.keys(totalsByType);
+    // Los tipos sin kg (todos sus valores en 0) no se usaron, no deben marcar descuadre
+    const types = Object.keys(totalsByType).filter(t => totalsByType[t] > 0);
     if (types.length === 0) return null;
 
     const mismatched = types.filter(t => Math.abs(totalsByType[t] - kgExported) > 0.01);

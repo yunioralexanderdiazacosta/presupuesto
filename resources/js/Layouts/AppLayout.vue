@@ -186,6 +186,8 @@ const menuItems = [
     { label: 'Estimaciones', route: 'estimates.index', icon: 'fas fa-calculator', section: 'Gestión' },
     { label: 'Ingresar Producción', route: 'production-dispatches.index', icon: 'fas fa-truck-loading', section: 'Producción' },
     { label: 'Ingreso Rápido de Producción', route: 'production-summaries.index', icon: 'fas fa-bolt', section: 'Producción' },
+    { label: 'Resumen Diario de Cosecha', route: 'daily-harvest-summary.index', icon: 'fas fa-calendar-day', section: 'Producción' },
+    { label: 'Análisis de Producción', route: 'production-analysis.index', icon: 'fas fa-chart-bar', section: 'Producción' },
     { label: 'Análisis Comparativo de Cuarteles', route: 'cost-center-analysis.index', icon: 'fas fa-balance-scale-right', section: 'Producción' },
     { label: 'Proveedores', route: 'suppliers.index', icon: 'fas fa-handshake', section: 'Gestión' },
     { label: 'Inventario', route: 'inventory', icon: 'fas fa-warehouse', section: 'Gestión' },
@@ -608,6 +610,20 @@ const navigateTo = (routeName) => {
                           <Link class="nav-link" :href="route('production-summaries.index')">
                             <div class="d-flex align-items-center">
                               <span class="nav-link-text ps-4">Ingreso Rápido de Producción</span>
+                            </div>
+                          </Link>
+                        </li>
+                        <li class="nav-item">
+                          <Link class="nav-link" :href="route('daily-harvest-summary.index')">
+                            <div class="d-flex align-items-center">
+                              <span class="nav-link-text ps-4">Resumen Diario de Cosecha</span>
+                            </div>
+                          </Link>
+                        </li>
+                        <li class="nav-item">
+                          <Link class="nav-link" :href="route('production-analysis.index')">
+                            <div class="d-flex align-items-center">
+                              <span class="nav-link-text ps-4">Análisis de Producción</span>
                             </div>
                           </Link>
                         </li>
