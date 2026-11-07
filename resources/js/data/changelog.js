@@ -7,6 +7,22 @@
 
 export const changelog = [
   {
+    fecha: '2026-11-07',
+    titulo: 'Menú — Grupo "Producción" renombrado a "Cosecha"',
+    items: [
+      'En el menú lateral, el grupo "Producción" ahora se llama "Cosecha".',
+      '"Ingresar Producción" ahora se llama "Ingresar Cosecha" y "Análisis de Producción" ahora se llama "Análisis de Cosecha".',
+    ]
+  },
+  {
+    fecha: '2026-11-07',
+    titulo: 'Consumos de Combustible — Buscador con botón para evitar lentitud',
+    items: [
+      'El buscador de Consumos de Combustible ya no filtra con cada tecla, lo que dejaba la pantalla lenta con muchos datos.',
+      'Ahora se escribe el texto y se busca con el botón "Buscar" o presionando Enter; el botón con la X limpia la búsqueda.',
+    ]
+  },
+  {
     fecha: '2026-11-03',
     titulo: 'Inventario — Buscador con botón para evitar lentitud',
     items: [

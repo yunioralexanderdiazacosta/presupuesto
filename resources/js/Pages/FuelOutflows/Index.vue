@@ -45,7 +45,16 @@ const links = [
     { title, active: true },
 ];
 
+// El filtro solo se aplica al presionar "Buscar" o Enter, para no recalcular en cada tecla
+const searchInput = ref('');
 const term = ref('');
+function applySearch() {
+    term.value = searchInput.value.trim();
+}
+function clearSearch() {
+    searchInput.value = '';
+    term.value = '';
+}
 const filteredRows = computed(() => {
     if (!props.fuelOutflows || !Array.isArray(props.fuelOutflows)) return [];
     if (!term.value) return props.fuelOutflows;
@@ -216,7 +225,15 @@ function deleteFuelOutflow(id) {
                     </div>
                 </div>
 
-                <input v-model="term" class="form-control mb-3" placeholder="Buscar..." />
+                <form class="input-group mb-3" @submit.prevent="applySearch">
+                    <input v-model="searchInput" class="form-control" placeholder="Buscar..." />
+                    <button v-if="term" type="button" class="btn btn-falcon-default" @click="clearSearch" title="Limpiar búsqueda">
+                        <span class="fas fa-times"></span>
+                    </button>
+                    <button type="submit" class="btn btn-falcon-default">
+                        <span class="fas fa-search me-1"></span>Buscar
+                    </button>
+                </form>
                 <div class="table-responsive">
                   <table class="table table-bordered table-striped table-hover table-sm fs-10 mb-0">
                     <thead class="table-primary">

@@ -184,11 +184,11 @@ const menuItems = [
     { label: 'Salida Agroquímicos', route: 'application-orders.index', icon: 'fas fa-spray-can', section: 'Agroquímicos' },
     { label: 'Salida Fertilizantes', route: 'fertilizer-orders.index', icon: 'fas fa-leaf', section: 'Fertilizantes' },
     { label: 'Estimaciones', route: 'estimates.index', icon: 'fas fa-calculator', section: 'Gestión' },
-    { label: 'Ingresar Producción', route: 'production-dispatches.index', icon: 'fas fa-truck-loading', section: 'Producción' },
-    { label: 'Ingreso Rápido de Producción', route: 'production-summaries.index', icon: 'fas fa-bolt', section: 'Producción' },
-    { label: 'Resumen Diario de Cosecha', route: 'daily-harvest-summary.index', icon: 'fas fa-calendar-day', section: 'Producción' },
-    { label: 'Análisis de Producción', route: 'production-analysis.index', icon: 'fas fa-chart-bar', section: 'Producción' },
-    { label: 'Análisis Comparativo de Cuarteles', route: 'cost-center-analysis.index', icon: 'fas fa-balance-scale-right', section: 'Producción' },
+    { label: 'Ingresar Cosecha', route: 'production-dispatches.index', icon: 'fas fa-truck-loading', section: 'Cosecha' },
+    { label: 'Ingreso Rápido de Producción', route: 'production-summaries.index', icon: 'fas fa-bolt', section: 'Cosecha' },
+    { label: 'Resumen Diario de Cosecha', route: 'daily-harvest-summary.index', icon: 'fas fa-calendar-day', section: 'Cosecha' },
+    { label: 'Análisis de Cosecha', route: 'production-analysis.index', icon: 'fas fa-chart-bar', section: 'Cosecha' },
+    { label: 'Análisis Comparativo de Cuarteles', route: 'cost-center-analysis.index', icon: 'fas fa-balance-scale-right', section: 'Cosecha' },
     { label: 'Proveedores', route: 'suppliers.index', icon: 'fas fa-handshake', section: 'Gestión' },
     { label: 'Inventario', route: 'inventory', icon: 'fas fa-warehouse', section: 'Gestión' },
     { label: 'Productos', route: 'products.index', icon: 'fas fa-barcode', section: 'Gestión' },
@@ -595,14 +595,14 @@ const navigateTo = (routeName) => {
                     <li class="nav-item">
                       <a class="nav-link dropdown-indicator" href="#productionMenu" data-bs-toggle="collapse" aria-expanded="false" aria-controls="productionMenu">
                         <div class="d-flex align-items-center">
-                          <span class="nav-link-text ps-3">Producción</span>
+                          <span class="nav-link-text ps-3">Cosecha</span>
                         </div>
                       </a>
                       <ul class="nav collapse" id="productionMenu">
                         <li class="nav-item">
                           <Link class="nav-link" :href="route('production-dispatches.index')">
                             <div class="d-flex align-items-center">
-                              <span class="nav-link-text ps-4">Ingresar Producción</span>
+                              <span class="nav-link-text ps-4">Ingresar Cosecha</span>
                             </div>
                           </Link>
                         </li>
@@ -623,7 +623,7 @@ const navigateTo = (routeName) => {
                         <li class="nav-item">
                           <Link class="nav-link" :href="route('production-analysis.index')">
                             <div class="d-flex align-items-center">
-                              <span class="nav-link-text ps-4">Análisis de Producción</span>
+                              <span class="nav-link-text ps-4">Análisis de Cosecha</span>
                             </div>
                           </Link>
                         </li>
