@@ -1,8 +1,9 @@
 <script setup>
 import { ref, computed, watch, onMounted, onBeforeUnmount, nextTick } from 'vue';
-import { Head } from '@inertiajs/vue3';
+import { Head, Link } from '@inertiajs/vue3';
 import Multiselect from '@vueform/multiselect';
 import { Chart, registerables } from 'chart.js';
+import '@/chartTheme';
 import AppLayout from '@/Layouts/AppLayout.vue';
 import Breadcrumb from '@/Components/Breadcrumb.vue';
 import ExportExcelButton from '@/Components/ExportExcelButton.vue';
@@ -384,6 +385,10 @@ const excelFilename = computed(() =>
                     </div>
                     <div class="col-6 col-sm-auto ms-auto text-end ps-0">
                         <div class="d-flex align-items-center gap-2">
+                            <Link :href="route('production-analysis.classifications')" class="btn btn-falcon-default btn-sm">
+                                <span class="fas fa-sort-amount-down" data-fa-transform="shrink-3 down-2"></span>
+                                <span class="d-none d-sm-inline-block ms-1">Clasificación</span>
+                            </Link>
                             <ExportExcelButton
                                 v-if="enrichedRows.length > 0"
                                 :data="excelData"

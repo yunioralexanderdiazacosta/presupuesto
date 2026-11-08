@@ -44,7 +44,7 @@ return [
     ['key' => 'estimates.index', 'label' => 'Estimaciones', 'section' => 'Gestión', 'prefixes' => ['estimate-status.']],
     ['key' => 'production-dispatches.index', 'label' => 'Ingresar Producción', 'section' => 'Producción', 'prefixes' => ['bin-types.', 'box-types.', 'carriers.', 'exporters.', 'packing-houses.', 'productions.', 'api.bin-types', 'api.box-types', 'api.carriers', 'api.exporters', 'api.packing-houses', 'api.fruit-classifications.']],
     ['key' => 'production-summaries.index', 'label' => 'Ingreso Rápido de Producción', 'section' => 'Producción', 'prefixes' => ['productions.', 'api.bin-types', 'api.box-types', 'api.carriers', 'api.exporters', 'api.packing-houses', 'api.fruit-classifications.']],
-    ['key' => 'cost-center-analysis.index', 'label' => 'Análisis Comparativo de Cuarteles', 'section' => 'Producción'],
+    ['key' => 'cost-center-analysis.index', 'label' => 'Análisis Comparativo de Cuarteles', 'section' => 'Gestión'],
     ['key' => 'suppliers.index', 'label' => 'Proveedores', 'section' => 'Gestión'],
     ['key' => 'inventory', 'label' => 'Inventario', 'section' => 'Gestión', 'prefixes' => ['kardex.', 'product-stock-lines.']],
     ['key' => 'products.index', 'label' => 'Productos', 'section' => 'Gestión'],

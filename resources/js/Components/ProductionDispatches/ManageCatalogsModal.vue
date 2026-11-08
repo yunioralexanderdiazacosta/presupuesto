@@ -1,5 +1,5 @@
 <script setup>
-import { ref, watch } from 'vue';
+import { ref, computed, watch } from 'vue';
 import { useForm } from '@inertiajs/vue3';
 import axios from 'axios';
 import Swal from 'sweetalert2';
@@ -132,13 +132,38 @@ async function saveClassification() {
         return;
     }
     try {
+        classForm.value.sort_order = classifications.value.filter(c => c.type === classForm.value.type).length;
         await axios.post(route('api.fruit-classifications.store'), classForm.value);
         classForm.value.value = '';
-        classForm.value.sort_order = classifications.value.length;
         loadClassifications();
         Swal.fire({ icon: 'success', title: 'Clasificación creada', timer: 1000, showConfirmButton: false });
     } catch {
         Swal.fire('Error', 'No se pudo guardar', 'error');
+    }
+}
+
+// Posición dentro de su tipo, para mostrar y habilitar los botones de subir/bajar
+const classificationRows = computed(() => {
+    const totals = {};
+    const counters = {};
+    classifications.value.forEach(c => { totals[c.type] = (totals[c.type] || 0) + 1; });
+    return classifications.value.map(c => {
+        counters[c.type] = (counters[c.type] || 0) + 1;
+        return { ...c, pos: counters[c.type], total: totals[c.type] };
+    });
+});
+
+async function moveClassification(c, direction) {
+    const ids = classifications.value.filter(x => x.type === c.type).map(x => x.id);
+    const from = ids.indexOf(c.id);
+    const to = from + direction;
+    if (to < 0 || to >= ids.length) return;
+    [ids[from], ids[to]] = [ids[to], ids[from]];
+    try {
+        await axios.post(route('api.fruit-classifications.reorder'), { fruit_id: selectedFruitId.value, type: c.type, ids });
+        await loadClassifications();
+    } catch {
+        Swal.fire('Error', 'No se pudo cambiar el orden', 'error');
     }
 }
 
@@ -585,13 +610,10 @@ function deleteCarrier(id) {
                                     <option value="quality">Calidad</option>
                                 </select>
                             </div>
-                            <div class="col-md-3">
+                            <div class="col-md-4">
                                 <input v-model="classForm.value" type="text" class="form-control form-control-sm" placeholder="Valor (ej: XL, Light)" />
                             </div>
-                            <div class="col-md-2">
-                                <input v-model="classForm.sort_order" type="number" class="form-control form-control-sm" placeholder="Orden" min="0" />
-                            </div>
-                            <div class="col-md-2">
+                            <div class="col-md-3">
                                 <button class="btn btn-sm btn-primary w-100" @click="saveClassification" :disabled="!selectedFruitId || !classForm.type || !classForm.value">
                                     <i class="fas fa-plus me-1"></i>Agregar
                                 </button>
@@ -601,10 +623,10 @@ function deleteCarrier(id) {
                         <div v-if="selectedFruitId" class="table-responsive">
                             <table class="table table-sm table-bordered fs-10 mb-0">
                                 <thead class="table-light">
-                                    <tr><th>Tipo</th><th>Valor</th><th>Orden</th><th style="width:60px;"></th></tr>
+                                    <tr><th>Tipo</th><th>Valor</th><th style="width:110px;">Orden</th><th style="width:60px;"></th></tr>
                                 </thead>
                                 <tbody>
-                                    <tr v-for="c in classifications" :key="c.id">
+                                    <tr v-for="c in classificationRows" :key="c.id">
                                         <td>
                                             <span class="badge" :class="{
                                                 'bg-primary': c.type === 'caliber',
@@ -613,7 +635,17 @@ function deleteCarrier(id) {
                                             }">{{ typeLabels[c.type] || c.type }}</span>
                                         </td>
                                         <td>{{ c.value }}</td>
-                                        <td>{{ c.sort_order }}</td>
+                                        <td>
+                                            <div class="d-flex align-items-center gap-1">
+                                                <button class="btn btn-sm p-1" :disabled="c.pos === 1" @click="moveClassification(c, -1)" title="Subir">
+                                                    <i class="fas fa-arrow-up"></i>
+                                                </button>
+                                                <button class="btn btn-sm p-1" :disabled="c.pos === c.total" @click="moveClassification(c, 1)" title="Bajar">
+                                                    <i class="fas fa-arrow-down"></i>
+                                                </button>
+                                                <span class="text-muted">{{ c.pos }}</span>
+                                            </div>
+                                        </td>
                                         <td class="text-center">
                                             <button class="btn btn-sm p-1" @click="deleteClassification(c.id)" title="Eliminar">
                                                 <i class="fas fa-times text-danger"></i>

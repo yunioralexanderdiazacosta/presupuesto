@@ -3,6 +3,7 @@ import AppLayout from '@/Layouts/AppLayout.vue';
 import { ref, computed, onMounted, watch } from 'vue';
 import { router } from '@inertiajs/vue3';
 import { Chart, registerables } from 'chart.js';
+import { chartTextColor } from '@/chartTheme';
 import ChartDataLabels from 'chartjs-plugin-datalabels';
 import axios from 'axios';
 import Swal from 'sweetalert2';
@@ -1406,7 +1407,7 @@ function createMonthlyChart() {
                     align: 'end',
                     rotation: -45,
                     font: { size: 10, weight: 'bold' },
-                    color: '#333',
+                    color: () => chartTextColor(),
                     formatter: function(value) {
                         if (value >= 1000000000) {
                             return (value / 1000000000).toFixed(1) + ' MM';
@@ -3050,10 +3051,19 @@ thead .sticky-col {
 .total-col {
     background-color: #eef0f2 !important;
 }
+[data-bs-theme=dark] .total-col {
+    background-color: #2d2d30 !important;
+}
+[data-bs-theme=dark] .table th {
+    border-bottom-color: #454545;
+}
 
 /* Línea vertical entre meses, mismo color que el borde del header (a partir de la fila de sub-encabezados) */
 .month-divider {
     border-left: 2px solid #dee2e6 !important;
+}
+[data-bs-theme=dark] .month-divider {
+    border-left-color: #454545 !important;
 }
 
 /* border-collapse: separate es necesario para que se vean las esquinas redondeadas de la zona "Total selección" */

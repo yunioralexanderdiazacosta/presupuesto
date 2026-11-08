@@ -2,7 +2,8 @@
 import { Head } from '@inertiajs/vue3';
 import AppLayout from '@/Layouts/AppLayout.vue';
 import FalconBarChart from '@/Components/FalconBarChart.vue';
-import { onMounted, ref, computed, nextTick, watch, watchEffect } from 'vue'
+import { onMounted, onBeforeUnmount, ref, computed, nextTick, watch, watchEffect } from 'vue'
+import { echartsColors, onThemeChange } from '@/themeColors';
 import { router } from '@inertiajs/vue3'
 
 
@@ -681,6 +682,8 @@ const entityLabels = {
 };
 
 // Renderizar los gauge charts usando ECharts
+const gaugeThemeOffs = [];
+onBeforeUnmount(() => gaugeThemeOffs.forEach((off) => off()));
 // Colores personalizados para los gauges (excepto fields y administration)
 const gaugeColors = [
   '#1a922e ', // Agroquímicos
@@ -718,7 +721,9 @@ onMounted(() => {
           // Si es especial, usa azul Bootstrap, si no, usa el color del arreglo
           const color = isSpecial ? '#0d6efd' : gaugeColors[idx % gaugeColors.length];
           const myChart = window.echarts.init(chartDom);
-          myChart.setOption({
+          const renderGauge = () => {
+            const theme = echartsColors();
+            myChart.setOption({
             series: [
               {
                 type: 'gauge',
@@ -738,7 +743,7 @@ onMounted(() => {
                     width: 18, // ancho reducido
                     color: [
                       [item.percent / 100, color], // color de la parte llena
-                      [1, '#e3e1e1'] // color de la parte vacía (blanco)
+                      [1, theme.gaugeTrack] // parte vacía del anillo
                     ]
                   }
                 },
@@ -760,6 +765,7 @@ onMounted(() => {
                 detail: {
                   valueAnimation: true,
                   fontSize: 18,
+                  color: theme.text,
                   offsetCenter: [0, '90%'],
                   formatter: '{value}%'
                 },
@@ -771,6 +777,9 @@ onMounted(() => {
               }
             ]
           });
+          };
+          renderGauge();
+          gaugeThemeOffs.push(onThemeChange(renderGauge));
         }
       });
     }

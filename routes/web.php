@@ -251,6 +251,8 @@ use App\Http\Controllers\CostCenterVarieties\DeleteCostCenterVarietyController;
 // Rutas para Production Dispatches (despachos de producción)
 use App\Http\Controllers\ProductionDispatches\ProductionDispatchController;
 use App\Http\Controllers\ProductionAnalysis\ProductionAnalysisController;
+use App\Http\Controllers\ProductionAnalysis\ClassificationAnalysisController;
+use App\Http\Controllers\ProductionAnalysis\SaveClassificationGroupsController;
 use App\Http\Controllers\DailyHarvestSummary\DailyHarvestSummaryController;
 use App\Http\Controllers\DailyHarvestSummary\PdfDailyHarvestSummaryController;
 use App\Http\Controllers\CostCenterAnalysis\CostCenterAnalysisController;
@@ -1074,6 +1076,8 @@ Route::middleware([
 
     // Análisis de Producción (estimado vs real vs exportado)
     Route::get('/production-analysis', ProductionAnalysisController::class)->name('production-analysis.index');
+    Route::get('/production-analysis/classifications', ClassificationAnalysisController::class)->name('production-analysis.classifications');
+    Route::post('/production-analysis/classification-groups', SaveClassificationGroupsController::class)->name('production-analysis.classification-groups.save');
 
     // Análisis Comparativo de Cuarteles
     Route::get('/cost-center-analysis', CostCenterAnalysisController::class)->name('cost-center-analysis.index');
@@ -1284,6 +1288,7 @@ Route::middleware([
 
     Route::get('/api/fruit-classifications', [FruitClassificationController::class, 'index'])->name('api.fruit-classifications.index');
     Route::post('/api/fruit-classifications', [FruitClassificationController::class, 'store'])->name('api.fruit-classifications.store');
+    Route::post('/api/fruit-classifications/reorder', [FruitClassificationController::class, 'reorder'])->name('api.fruit-classifications.reorder');
     Route::delete('/api/fruit-classifications/{fruitClassificationType}', [FruitClassificationController::class, 'destroy'])->name('api.fruit-classifications.delete');
 
 });

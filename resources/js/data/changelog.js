@@ -7,6 +7,26 @@
 
 export const changelog = [
   {
+    fecha: '2026-11-08',
+    titulo: 'Cosecha — Análisis de Clasificación (calibre, color y calidad)',
+    items: [
+      'Nueva pantalla "Análisis de Clasificación" en el menú Cosecha: muestra los kilos, el porcentaje, los kilos por hectárea y las cajas de cada calibre, color o calidad por variedad y cuartel.',
+      'Usa los filtros de sucursal, razón social, especie y variedad, y solo considera guías ya procesadas. El porcentaje se calcula sobre los kilos exportados.',
+      'Se puede agrupar valores (por ejemplo, "Grandes" = J, XL, L) con el botón "Configurar grupos" y alternar entre ver cada valor o cada grupo.',
+      'Incluye gráficos de distribución, tarjetas resumen y exportación a Excel.',
+    ]
+  },
+  {
+    fecha: '2026-11-08',
+    titulo: 'Sistema — Modo oscuro',
+    items: [
+      'Nuevo botón de luna/sol en la barra superior para cambiar entre modo claro y modo oscuro.',
+      'El modo oscuro usa colores grises suaves, similares a Visual Studio Code, y se recuerda en cada navegador.',
+      'Los gráficos y los textos de las tablas también se adaptan al modo oscuro.',
+      'En esta primera versión algunas pantallas pueden verse con zonas claras; se irán ajustando.',
+    ]
+  },
+  {
     fecha: '2026-11-07',
     titulo: 'Menú — Grupo "Producción" renombrado a "Cosecha"',
     items: [

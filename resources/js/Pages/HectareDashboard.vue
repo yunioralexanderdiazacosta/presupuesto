@@ -6,6 +6,7 @@ import FalconBarChart from '@/Components/FalconBarChart.vue';
 import FalconPieChart from '@/Components/FalconPieChart.vue';
 import { computed, ref, onMounted, onUnmounted, watch, nextTick } from 'vue';
 import { Chart, LineController, LineElement, PointElement, BarController, BarElement, CategoryScale, LinearScale, Tooltip, Legend, Filler } from 'chart.js';
+import '@/chartTheme';
 
 Chart.register(LineController, LineElement, PointElement, BarController, BarElement, CategoryScale, LinearScale, Tooltip, Legend, Filler);
 

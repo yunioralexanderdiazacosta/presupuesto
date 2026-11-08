@@ -148,6 +148,16 @@ const toggleSidebar = () => {
     localStorage.setItem('sidebarHidden', String(sidebarHidden.value));
 };
 
+// ── Modo oscuro (comparte la clave 'theme' con config.js del tema) ──
+const isDarkMode = ref(document.documentElement.getAttribute('data-bs-theme') === 'dark');
+const toggleTheme = () => {
+    const next = isDarkMode.value ? 'light' : 'dark';
+    isDarkMode.value = next === 'dark';
+    localStorage.setItem('theme', next);
+    document.documentElement.setAttribute('data-bs-theme', next);
+    window.dispatchEvent(new CustomEvent('app-theme-change', { detail: next }));
+};
+
 // ── Buscador del menú lateral ─────────────────────────────────
 const menuSearch = ref('');
 
@@ -171,6 +181,7 @@ const menuItems = [
     { label: 'Detalle de Salidas por Sucursal', route: 'dashboard-detail-outflows.index', icon: 'fas fa-code-branch', section: 'Gestión' },
     { label: 'Dashboard Inversiones', route: 'investment.dashboard', icon: 'fas fa-chart-pie', section: 'Gestión' },
     { label: 'Utilidad / Pérdida', route: 'profit-loss.index', icon: 'fas fa-balance-scale', section: 'Gestión' },
+    { label: 'Análisis Comparativo de Cuarteles', route: 'cost-center-analysis.index', icon: 'fas fa-balance-scale-right', section: 'Gestión' },
     { label: 'Facturas y otros', route: 'invoices.index', icon: 'fas fa-file-invoice', section: 'Registro de Gastos' },
     { label: 'Rendiciones de Gastos', route: 'expense-reports.index', icon: 'fas fa-receipt', section: 'Registro de Gastos' },
     { label: 'Órdenes de Compra', route: 'purchase-orders.index', icon: 'fas fa-shopping-cart', section: 'Registro de Gastos' },
@@ -185,10 +196,10 @@ const menuItems = [
     { label: 'Salida Fertilizantes', route: 'fertilizer-orders.index', icon: 'fas fa-leaf', section: 'Fertilizantes' },
     { label: 'Estimaciones', route: 'estimates.index', icon: 'fas fa-calculator', section: 'Gestión' },
     { label: 'Ingresar Cosecha', route: 'production-dispatches.index', icon: 'fas fa-truck-loading', section: 'Cosecha' },
-    { label: 'Ingreso Rápido de Producción', route: 'production-summaries.index', icon: 'fas fa-bolt', section: 'Cosecha' },
     { label: 'Resumen Diario de Cosecha', route: 'daily-harvest-summary.index', icon: 'fas fa-calendar-day', section: 'Cosecha' },
     { label: 'Análisis de Cosecha', route: 'production-analysis.index', icon: 'fas fa-chart-bar', section: 'Cosecha' },
-    { label: 'Análisis Comparativo de Cuarteles', route: 'cost-center-analysis.index', icon: 'fas fa-balance-scale-right', section: 'Cosecha' },
+    { label: 'Análisis de Clasificación (Calibre, Color)', route: 'production-analysis.classifications', icon: 'fas fa-sort-amount-down', section: 'Cosecha' },
+    { label: 'Ingreso Rápido de Producción', route: 'production-summaries.index', icon: 'fas fa-bolt', section: 'Cosecha' },
     { label: 'Proveedores', route: 'suppliers.index', icon: 'fas fa-handshake', section: 'Gestión' },
     { label: 'Inventario', route: 'inventory', icon: 'fas fa-warehouse', section: 'Gestión' },
     { label: 'Productos', route: 'products.index', icon: 'fas fa-barcode', section: 'Gestión' },
@@ -489,6 +500,13 @@ const navigateTo = (routeName) => {
                             </div>
                           </Link>
                         </li>
+                        <li class="nav-item">
+                          <Link class="nav-link" :href="route('cost-center-analysis.index')">
+                            <div class="d-flex align-items-center">
+                              <span class="nav-link-text ps-4"><i class="fas fa-balance-scale-right me-2"></i>Análisis Comparativo de Cuarteles</span>
+                            </div>
+                          </Link>
+                        </li>
                       </ul>
                     </li>
 
@@ -607,13 +625,6 @@ const navigateTo = (routeName) => {
                           </Link>
                         </li>
                         <li class="nav-item">
-                          <Link class="nav-link" :href="route('production-summaries.index')">
-                            <div class="d-flex align-items-center">
-                              <span class="nav-link-text ps-4">Ingreso Rápido de Producción</span>
-                            </div>
-                          </Link>
-                        </li>
-                        <li class="nav-item">
                           <Link class="nav-link" :href="route('daily-harvest-summary.index')">
                             <div class="d-flex align-items-center">
                               <span class="nav-link-text ps-4">Resumen Diario de Cosecha</span>
@@ -628,9 +639,16 @@ const navigateTo = (routeName) => {
                           </Link>
                         </li>
                         <li class="nav-item">
-                          <Link class="nav-link" :href="route('cost-center-analysis.index')">
+                          <Link class="nav-link" :href="route('production-analysis.classifications')">
                             <div class="d-flex align-items-center">
-                              <span class="nav-link-text ps-4">Análisis Comparativo de Cuarteles</span>
+                              <span class="nav-link-text ps-4">Análisis de Clasificación</span>
+                            </div>
+                          </Link>
+                        </li>
+                        <li class="nav-item">
+                          <Link class="nav-link" :href="route('production-summaries.index')">
+                            <div class="d-flex align-items-center">
+                              <span class="nav-link-text ps-4">Ingreso Rápido de Producción</span>
                             </div>
                           </Link>
                         </li>
@@ -1000,7 +1018,7 @@ const navigateTo = (routeName) => {
                   aria-expanded="false"
                   class="btn d-inline-flex align-items-center px-3 py-1 rounded-pill fw-semibold shadow-sm"
                   :style="$page.props.budgetVersion.is_official
-                    ? { background: '#f9fafd', color: '#344050', border: '1px solid #d8e2ef', fontSize: '0.8rem', whiteSpace: 'nowrap' }
+                    ? { background: 'var(--falcon-gray-100)', color: 'var(--falcon-gray-900)', border: '1px solid var(--falcon-gray-300)', fontSize: '0.8rem', whiteSpace: 'nowrap' }
                     : { background: '#f5803e', color: '#fff', border: '1px solid #f5803e', fontSize: '0.8rem', whiteSpace: 'nowrap' }"
                   v-tooltip="$page.props.budgetVersion.is_official ? 'Versión oficial del presupuesto' : 'Estás trabajando en una versión NO oficial del presupuesto'"
                 >
@@ -1151,6 +1169,12 @@ const navigateTo = (routeName) => {
           </li>
          
          
+          <li class="nav-item me-2">
+            <button type="button" class="btn btn-link nav-link px-2 py-0" @click="toggleTheme" :title="isDarkMode ? 'Cambiar a modo claro' : 'Cambiar a modo oscuro'" aria-label="Cambiar tema">
+              <span class="fas fa-moon d-dark-none"></span>
+              <span class="fas fa-sun d-light-none"></span>
+            </button>
+          </li>
           <li class="nav-item dropdown"><a class="nav-link pe-0 ps-2" id="navbarDropdownUser" role="button" data-bs-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
               <div class="avatar avatar-xl bg-primary bg-opacity-25 p-1 rounded-circle">
                 <img class="rounded-circle" :src="$page.props.auth.user.profile_photo_url" alt="photo" />

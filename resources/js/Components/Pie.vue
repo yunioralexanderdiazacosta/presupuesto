@@ -3,6 +3,7 @@
 </template>
 <script>
 import { Chart, registerables } from 'chart.js';
+import '@/chartTheme';
 import { PieChart, usePieChart } from 'vue-chart-3';
 import { ref, computed, defineComponent } from 'vue';
 import { shuffle } from 'lodash';

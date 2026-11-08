@@ -584,6 +584,7 @@ import { ref, computed, onMounted, watch } from 'vue';
 import AppLayout from '@/Layouts/AppLayout.vue';
 import Multiselect from '@vueform/multiselect';
 import { Chart, registerables } from 'chart.js';
+import '@/chartTheme';
 import ExportExcelButton from '@/Components/ExportExcelButton.vue';
 
 Chart.register(...registerables);

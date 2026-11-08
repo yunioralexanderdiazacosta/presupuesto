@@ -1,5 +1,6 @@
 <script setup>
-import { ref, watch, onMounted, nextTick } from 'vue';
+import { ref, watch, onMounted, onBeforeUnmount, nextTick } from 'vue';
+import { echartsColors, onThemeChange } from '@/themeColors';
 
 const props = defineProps({
   pieLabels: Array,
@@ -12,20 +13,26 @@ const props = defineProps({
 
 const chartRef = ref(null);
 let chartInstance = null;
+let offThemeChange = null;
 
 function renderChart() {
   if (chartRef.value && window.echarts) {
     if (!chartInstance) {
       chartInstance = window.echarts.init(chartRef.value);
     }
+    const theme = echartsColors();
     chartInstance.setOption({
       tooltip: {
         trigger: 'item',
-        formatter: '{b}: {c} ({d}%)'
+        formatter: '{b}: {c} ({d}%)',
+        backgroundColor: theme.tooltipBg,
+        borderColor: theme.tooltipBorder,
+        textStyle: { color: theme.tooltipText }
       },
       legend: {
         orient: 'vertical',
-        left: 10
+        left: 10,
+        textStyle: { color: theme.text }
       },
       series: [
         {
@@ -37,6 +44,7 @@ function renderChart() {
             show: true,
             position: 'outside',
             alignTo: 'edge',
+            color: theme.text,
             formatter: function(params) {
               // Si showPercentage es true, muestra porcentaje, sino muestra monto
               if (props.showPercentage) {
@@ -64,6 +72,11 @@ onMounted(() => {
     renderChart();
     window.addEventListener('resize', () => chartInstance && chartInstance.resize());
   });
+  offThemeChange = onThemeChange(renderChart);
+});
+
+onBeforeUnmount(() => {
+  if (offThemeChange) offThemeChange();
 });
 
 watch(() => [props.pieLabels, props.pieDatasets], () => {

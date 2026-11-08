@@ -9,6 +9,7 @@ import * as echarts from 'echarts/core';
 import { BarChart } from 'echarts/charts';
 import { TooltipComponent, GridComponent } from 'echarts/components';
 import { CanvasRenderer } from 'echarts/renderers';
+import { echartsColors, onThemeChange } from '@/themeColors';
 
 echarts.use([BarChart, TooltipComponent, GridComponent, CanvasRenderer]);
 
@@ -41,6 +42,7 @@ const props = defineProps({
 
 const chartRef = ref(null);
 let chartInstance = null;
+let offThemeChange = null;
 
 const emit = defineEmits(['bar-click']);
 
@@ -63,14 +65,15 @@ const setChart = () => {
   
   // Si color es un array, usarlo; si no, crear un array con un solo color
   const colors = Array.isArray(props.color) ? props.color : [props.color];
+  const theme = echartsColors();
   
   const option = {
     color: colors,
     tooltip: {
       trigger: 'axis',
-      backgroundColor: '#212529',
-      borderColor: '#212529',
-      textStyle: { color: '#fff' },
+      backgroundColor: theme.tooltipBg,
+      borderColor: theme.tooltipBorder,
+      textStyle: { color: theme.tooltipText },
       formatter: function(params) {
         const p = params[0];
         return `<strong>${p.name}</strong><br/>${formatNumber(p.value)}`;
@@ -87,9 +90,9 @@ const setChart = () => {
       type: 'category',
       data: props.barLabels,
       axisTick: { alignWithLabel: true },
-      axisLine: { lineStyle: { color: '#e3e6ed' } },
+      axisLine: { lineStyle: { color: theme.axisLine } },
       axisLabel: {
-        color: '#6c757d',
+        color: theme.axisLabel,
         fontWeight: 'bold',
         interval: 0,
         rotate: 30
@@ -98,9 +101,9 @@ const setChart = () => {
     yAxis: {
       type: 'value',
       axisLine: { show: false },
-      splitLine: { lineStyle: { color: '#f1f3f4' } },
+      splitLine: { lineStyle: { color: theme.splitLine } },
       axisLabel: {
-        color: '#6c757d',
+        color: theme.axisLabel,
         fontWeight: 'bold',
         formatter: formatNumber
       }
@@ -125,7 +128,7 @@ const setChart = () => {
           position: 'top',
           fontWeight: 'bold',
           formatter: formatNumber,
-          color: '#495057'
+          color: theme.valueLabel
         }
       }
     ]
@@ -145,9 +148,11 @@ onMounted(() => {
     requestAnimationFrame(() => setChart());
   });
   window.addEventListener('resize', setChart);
+  offThemeChange = onThemeChange(setChart);
 });
 
 onBeforeUnmount(() => {
+  if (offThemeChange) offThemeChange();
   if (chartInstance) {
     chartInstance.dispose();
     chartInstance = null;

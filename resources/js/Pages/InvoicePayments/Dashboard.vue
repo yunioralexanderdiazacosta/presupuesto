@@ -3,6 +3,7 @@ import { computed, onMounted } from 'vue';
 import { Head, Link } from '@inertiajs/vue3';
 import AppLayout from '@/Layouts/AppLayout.vue';
 import { Chart, registerables } from 'chart.js';
+import '@/chartTheme';
 
 Chart.register(...registerables);
 

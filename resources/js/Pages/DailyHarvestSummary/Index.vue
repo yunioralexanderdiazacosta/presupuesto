@@ -3,6 +3,7 @@ import { ref, computed, watch, onMounted, onBeforeUnmount, nextTick } from 'vue'
 import { Head, router } from '@inertiajs/vue3';
 import Multiselect from '@vueform/multiselect';
 import { Chart, registerables } from 'chart.js';
+import '@/chartTheme';
 import AppLayout from '@/Layouts/AppLayout.vue';
 import Breadcrumb from '@/Components/Breadcrumb.vue';
 import ExportExcelButton from '@/Components/ExportExcelButton.vue';

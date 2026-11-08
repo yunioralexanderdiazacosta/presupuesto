@@ -2,6 +2,7 @@
 import AppLayout from '@/Layouts/AppLayout.vue';
 import { ref, computed, onMounted, watch } from 'vue';
 import { Chart, registerables } from 'chart.js';
+import '@/chartTheme';
 import axios from 'axios';
 import ExportExcelButton from '@/Components/ExportExcelButton.vue';
 

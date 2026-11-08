@@ -4,6 +4,7 @@ import '../css/app.css';
 import '../css/budget-tables.css';
 import 'sweetalert2/dist/sweetalert2.min.css';
 import '@vueform/multiselect/themes/default.css';
+import '../css/dark-theme.css';
 
 
 

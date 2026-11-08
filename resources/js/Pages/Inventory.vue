@@ -692,7 +692,7 @@ function printKardex(key) {
                                   </div><!-- /d-flex gap-1 -->
                                 </div><!-- /d-flex justify-content-between -->
                                 <table class="table table-bordered table-sm mb-0 mt-2 kardex-print" :id="'kardex-table-' + kardexKey(item.product_id, item.branch_id)">
-                                  <thead style="background: #DADAE6; color: #fff;">
+                                  <thead class="kardex-head">
                                     <tr>
                                       <th>Fecha</th>
                                       <th>Tipo</th>
@@ -763,6 +763,16 @@ function printKardex(key) {
 </template>
 
 <style>
+.kardex-head {
+  background: #DADAE6;
+  color: #fff;
+}
+[data-bs-theme=dark] .kardex-head,
+[data-bs-theme=dark] .kardex-head th {
+  background: #2d2d30;
+  color: #cccccc;
+}
+
 @media print {
   body * {
     visibility: hidden !important;
@@ -776,6 +786,11 @@ function printKardex(key) {
     background: white;
     z-index: 9999;
     box-shadow: none !important;
+  }
+  [data-bs-theme=dark] .kardex-print,
+  [data-bs-theme=dark] .kardex-print * {
+    color: #000 !important;
+    background: #fff !important;
   }
 }
 </style>

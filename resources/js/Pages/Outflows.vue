@@ -2384,7 +2384,7 @@ textarea::placeholder {
 th {
   position: sticky;
   top: 0;
-  background: #f8f9fa;
+  background: var(--falcon-gray-100, #f8f9fa);
   z-index: 2;
   white-space: nowrap;
 }
@@ -2430,7 +2430,7 @@ th {
 th {
   position: sticky;
   top: 0;
-  background: #f8f9fa;
+  background: var(--falcon-gray-100, #f8f9fa);
   z-index: 2;
 }
 /* Estilos para columnas ordenables */

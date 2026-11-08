@@ -1,6 +1,7 @@
 <script setup>
 import { computed, ref, watch, nextTick, onMounted } from 'vue';
 import { Chart, DoughnutController, ArcElement, Tooltip, Legend } from 'chart.js';
+import '@/chartTheme';
 import ChartDataLabels from 'chartjs-plugin-datalabels';
 Chart.register(DoughnutController, ArcElement, Tooltip, Legend);
 

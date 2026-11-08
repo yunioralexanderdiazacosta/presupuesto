@@ -7,6 +7,7 @@
 <script setup>
 import { onMounted, watch, ref } from 'vue';
 import { Chart, BarController, BarElement, CategoryScale, LinearScale, Tooltip, Legend } from 'chart.js';
+import '@/chartTheme';
 import ChartDataLabels from 'chartjs-plugin-datalabels';
 Chart.register(ChartDataLabels);
 Chart.register(BarController, BarElement, CategoryScale, LinearScale, Tooltip, Legend);
