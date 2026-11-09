@@ -118,6 +118,25 @@ function anyTypeExceeded() {
     return Object.keys(totalsByType.value).some(t => typeExceeded(t));
 }
 
+// Estado de cada tipo respecto a los kg de exportación, para la barra de avance y el mensaje
+function statusOf(type) {
+    const total = totalsByType.value[type] || 0;
+    if (typeExceeded(type)) return 'exceeded';
+    if (kgLimit.value > 0 && Math.abs(total - kgLimit.value) <= 0.001) return 'complete';
+    return total > 0 ? 'partial' : 'empty';
+}
+const progressPct = (type) => {
+    if (kgLimit.value <= 0) return typeExceeded(type) ? 100 : 0;
+    return Math.min(100, ((totalsByType.value[type] || 0) / kgLimit.value) * 100);
+};
+const progressClass = (type) => ({ exceeded: 'bg-danger', complete: 'bg-success', partial: 'bg-primary', empty: 'bg-secondary' }[statusOf(type)]);
+const remainingKg = (type) => Math.max(0, kgLimit.value - (totalsByType.value[type] || 0));
+const excessKg = (type) => Math.max(0, (totalsByType.value[type] || 0) - kgLimit.value);
+function itemPct(type, value) {
+    const kg = n(getItem(type, value)?.kg);
+    return kgLimit.value > 0 && kg > 0 ? ((kg / kgLimit.value) * 100).toFixed(1) + '%' : '';
+}
+
 // Tope absoluto: Kg Despachados
 const kgDispatched = computed(() => n(props.dispatch.kg_dispatched));
 
@@ -239,50 +258,53 @@ watch(form, () => emit('update:form', form), { deep: true });
         <div v-if="selectedFruitId && Object.keys(currentClassifications).length > 0" class="mt-3">
             <h6 class="mb-2 fw-bold">
                 <i class="fas fa-chart-pie me-1"></i>Desglose por Clasificación
+                <small class="text-muted fw-normal ms-1">sobre los {{ fmt(kgLimit) }} kg de exportación</small>
             </h6>
 
-            <div v-for="(values, type) in currentClassifications" :key="type" class="mb-3">
-                <div class="d-flex justify-content-between align-items-center mb-1">
-                    <span class="fw-semibold small">
-                        <i class="fas me-1" :class="typeIcons[type] || 'fa-tag'"></i>
-                        {{ typeLabels[type] || type }}
+            <div v-if="kgLimit <= 0" class="alert alert-light border py-2 fs-10 mb-2">
+                <i class="fas fa-info-circle me-1"></i>Ingresa primero los <strong>Kg Exportación</strong> para repartirlos por clasificación.
+            </div>
+
+            <div v-for="(values, type) in currentClassifications" :key="type" class="card border mb-2" :class="{ 'border-danger': typeExceeded(type) }">
+                <div class="card-header py-2 px-3 d-flex flex-wrap align-items-center justify-content-between gap-2">
+                    <span class="fw-semibold">
+                        <i class="fas me-2 text-primary" :class="typeIcons[type] || 'fa-tag'"></i>{{ typeLabels[type] || type }}
                     </span>
-                    <small :class="typeExceeded(type) ? 'text-danger fw-bold' : 'text-muted'">
-                        Total: {{ fmt(totalsByType[type] || 0) }} / {{ fmt(kgLimit) }} kg
-                        <i v-if="typeExceeded(type)" class="fas fa-exclamation-triangle ms-1"></i>
-                    </small>
+                    <div class="d-flex align-items-center gap-2" style="min-width: 260px;">
+                        <div class="progress flex-grow-1" style="height: 6px;">
+                            <div class="progress-bar" :class="progressClass(type)" :style="{ width: progressPct(type) + '%' }"></div>
+                        </div>
+                        <small class="text-nowrap" :class="typeExceeded(type) ? 'text-danger fw-bold' : 'text-muted'">
+                            {{ fmt(totalsByType[type] || 0) }} / {{ fmt(kgLimit) }} kg
+                        </small>
+                    </div>
                 </div>
 
-                <div class="table-responsive">
-                    <table class="table table-sm table-bordered fs-10 mb-0">
-                        <thead class="table-light">
-                            <tr>
-                                <th style="width: 60px;"></th>
-                                <th v-for="cls in values" :key="cls.value" class="text-center" style="min-width: 80px;">
-                                    {{ cls.value }}
-                                </th>
-                                <th class="text-center" style="min-width: 80px;">Total</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            <tr>
-                                <th class="text-end small align-middle">Kg</th>
-                                <td v-for="cls in values" :key="cls.value" class="p-1">
-                                    <input
-                                        v-if="getItem(type, cls.value)"
-                                        type="number"
-                                        v-model.number="getItem(type, cls.value).kg"
-                                        class="form-control form-control-sm text-center"
-                                        step="0.01" min="0" placeholder="0"
-                                        :class="{'is-invalid': typeExceeded(type)}"
-                                    />
-                                </td>
-                                <td class="text-center align-middle fw-bold" :class="typeExceeded(type) ? 'text-danger' : ''">
-                                    {{ fmt(totalsByType[type] || 0) }}
-                                </td>
-                            </tr>
-                        </tbody>
-                    </table>
+                <div class="card-body py-2 px-3">
+                    <div class="row g-2">
+                        <div v-for="cls in values" :key="cls.value" class="col-6 col-sm-4 col-md-3 col-xl-2">
+                            <label class="form-label small fw-semibold mb-1 d-flex justify-content-between">
+                                <span>{{ cls.value }}</span>
+                                <span class="text-muted fw-normal">{{ itemPct(type, cls.value) }}</span>
+                            </label>
+                            <div v-if="getItem(type, cls.value)" class="input-group input-group-sm">
+                                <input
+                                    type="number"
+                                    v-model.number="getItem(type, cls.value).kg"
+                                    class="form-control text-end"
+                                    step="0.01" min="0" placeholder="0"
+                                    :class="{ 'is-invalid': typeExceeded(type) }"
+                                />
+                                <span class="input-group-text">kg</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div v-if="kgLimit > 0 || typeExceeded(type)" class="mt-2 small">
+                        <span v-if="statusOf(type) === 'complete'" class="text-success"><i class="fas fa-check-circle me-1"></i>Completo</span>
+                        <span v-else-if="statusOf(type) === 'exceeded'" class="text-danger"><i class="fas fa-exclamation-triangle me-1"></i>Excede en {{ fmt(excessKg(type)) }} kg</span>
+                        <span v-else class="text-muted">Faltan {{ fmt(remainingKg(type)) }} kg por repartir</span>
+                    </div>
                 </div>
             </div>
         </div>
