@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\AgrochemicalOutflow;
 use App\Models\CostCenter;
 use App\Models\FertilizerOutflow;
+use App\Support\DispatchAllocation;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
@@ -67,11 +68,12 @@ class CompareCostCentersController extends Controller
         $ccvIds = DB::table('cost_center_varieties')->where('cost_center_id', $ccId)->pluck('id');
 
         $total = (float) DB::table('production_dispatches')
-            ->where('team_id', $teamId)
-            ->where('season_id', $seasonId)
-            ->where('status', 'processed')
-            ->whereIn('cost_center_variety_id', $ccvIds)
-            ->sum('kg_dispatched');
+            ->join('production_dispatch_cost_centers as pdcc', 'pdcc.production_dispatch_id', '=', 'production_dispatches.id')
+            ->where('production_dispatches.team_id', $teamId)
+            ->where('production_dispatches.season_id', $seasonId)
+            ->where('production_dispatches.status', 'processed')
+            ->whereIn('pdcc.cost_center_variety_id', $ccvIds)
+            ->sum('pdcc.kg_dispatched');
 
         return [
             'total' => round($total, 2),
@@ -83,18 +85,18 @@ class CompareCostCentersController extends Controller
     {
         $ccvIds = DB::table('cost_center_varieties')->where('cost_center_id', $ccId)->pluck('id');
 
-        $dispatchIds = DB::table('production_dispatches')
-            ->where('team_id', $teamId)
-            ->where('season_id', $seasonId)
-            ->where('status', 'processed')
-            ->whereIn('cost_center_variety_id', $ccvIds)
-            ->pluck('id');
-
+        // Cada guía aporta al cuartel en proporción a los kg que despachó de él
+        $share = DispatchAllocation::SHARE_SQL;
         $rows = DB::table('production_dispatch_items')
-            ->whereIn('production_dispatch_id', $dispatchIds)
-            ->where('classification_type', 'caliber')
-            ->selectRaw('classification_value, SUM(kg) as kg')
-            ->groupBy('classification_value')
+            ->join('production_dispatches', 'production_dispatches.id', '=', 'production_dispatch_items.production_dispatch_id')
+            ->join('production_dispatch_cost_centers as pdcc', 'pdcc.production_dispatch_id', '=', 'production_dispatches.id')
+            ->where('production_dispatches.team_id', $teamId)
+            ->where('production_dispatches.season_id', $seasonId)
+            ->where('production_dispatches.status', 'processed')
+            ->whereIn('pdcc.cost_center_variety_id', $ccvIds)
+            ->where('production_dispatch_items.classification_type', 'caliber')
+            ->selectRaw("production_dispatch_items.classification_value, SUM(production_dispatch_items.kg * {$share}) as kg")
+            ->groupBy('production_dispatch_items.classification_value')
             ->orderByDesc('kg')
             ->get();
 

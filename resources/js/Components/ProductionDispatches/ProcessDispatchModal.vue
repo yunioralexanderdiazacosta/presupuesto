@@ -7,6 +7,7 @@ import ProcessForm from './ProcessForm.vue';
 const props = defineProps({
     show: Boolean,
     dispatch: Object,
+    lot: Object,
     classifications: Object,
     costCenterVarieties: Array,
 });
@@ -17,7 +18,7 @@ const processFormRef = ref(null);
 
 const form = useForm({
     process_date: '',
-    kg_received: '',
+    kg_to_process: '',
     kg_exported: '',
     kg_national: '',
     kg_industrial: '',
@@ -26,10 +27,10 @@ const form = useForm({
 });
 
 watch(() => props.show, (val) => {
-    if (val && props.dispatch) {
+    if (val && props.lot) {
         // Reset form - ProcessForm se encarga de cargar datos existentes en onMounted
         form.process_date = '';
-        form.kg_received = '';
+        form.kg_to_process = '';
         form.kg_exported = '';
         form.kg_national = '';
         form.kg_industrial = '';
@@ -43,8 +44,8 @@ function closeModal() {
 }
 
 function save() {
-    if (processFormRef.value?.kgReceivedExceeded) {
-        Swal.fire({ icon: 'warning', title: 'Kg excedidos', text: 'Los Kilos a Proceso no pueden superar los Kg Despachados.' });
+    if (processFormRef.value?.kgToProcessExceeded) {
+        Swal.fire({ icon: 'warning', title: 'Kg excedidos', text: 'Los Kilos a Proceso no pueden superar los Kg Recepcionados del lote.' });
         return;
     }
     if (processFormRef.value?.anyTypeExceeded()) {
@@ -55,9 +56,9 @@ function save() {
         Swal.fire({ icon: 'warning', title: 'Kg excedidos', text: 'La suma de Exportación + Nacional + Industrial + Descarte no puede superar los Kilos a Proceso.' });
         return;
     }
-    form.put(route('production-dispatches.process', props.dispatch.id), {
+    form.put(route('production-lots.process', props.lot.id), {
         onSuccess: () => {
-            Swal.fire({ icon: 'success', title: 'Procesado', text: 'Despacho procesado correctamente', timer: 1200, showConfirmButton: false });
+            Swal.fire({ icon: 'success', title: 'Procesado', text: 'Lote procesado correctamente', timer: 1200, showConfirmButton: false });
             emit('saved');
             closeModal();
         },
@@ -84,6 +85,7 @@ function save() {
                         ref="processFormRef"
                         :form="form"
                         :dispatch="dispatch"
+                        :lot="lot"
                         :classifications="classifications"
                         :costCenterVarieties="costCenterVarieties"
                     />

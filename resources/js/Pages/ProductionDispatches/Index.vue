@@ -9,6 +9,7 @@ import EditDispatchModal from '@/Components/ProductionDispatches/EditDispatchMod
 import ProcessDispatchModal from '@/Components/ProductionDispatches/ProcessDispatchModal.vue';
 import ManageCatalogsModal from '@/Components/ProductionDispatches/ManageCatalogsModal.vue';
 import ViewDispatchDetailModal from '@/Components/ProductionDispatches/ViewDispatchDetailModal.vue';
+import ReceiveLotModal from '@/Components/ProductionDispatches/ReceiveLotModal.vue';
 
 const props = defineProps({
     dispatches: Object,
@@ -31,6 +32,11 @@ const links = [
 const term = ref('');
 const statusFilter = ref('');
 
+// Cuarteles de la guía (una guía puede llevar varios)
+function ccvsOf(item) {
+    return (item.cost_centers || []).map(c => c.cost_center_variety).filter(Boolean);
+}
+
 const filteredRows = computed(() => {
     if (!props.dispatches || !props.dispatches.data) return [];
     let rows = props.dispatches.data;
@@ -42,14 +48,14 @@ const filteredRows = computed(() => {
     if (term.value) {
         const search = term.value.toLowerCase();
         rows = rows.filter(item => {
-            const ccName = item.cost_center_variety?.cost_center?.name?.toLowerCase() || '';
-            const variety = item.cost_center_variety?.variety?.name?.toLowerCase() || '';
+            const ccName = ccvsOf(item).map(c => (c.cost_center?.name || '').toLowerCase()).join(' ');
+            const variety = ccvsOf(item).map(c => (c.variety?.name || '').toLowerCase()).join(' ');
             const exporter = item.exporter?.name?.toLowerCase() || '';
             const packing = item.packing_house?.name?.toLowerCase() || '';
             const guide = item.guide_number?.toLowerCase() || '';
-            const lot = item.lot_number?.toLowerCase() || '';
-            const carrier = item.carrier?.toLowerCase() || '';
-            return ccName.includes(search) || variety.includes(search) || exporter.includes(search) || packing.includes(search) || guide.includes(search) || lot.includes(search) || carrier.includes(search);
+            const lots = (item.lots || []).map(l => (l.lot_number || '').toLowerCase()).join(' ');
+            const carrier = item.carrier?.name?.toLowerCase() || '';
+            return ccName.includes(search) || variety.includes(search) || exporter.includes(search) || packing.includes(search) || guide.includes(search) || lots.includes(search) || carrier.includes(search);
         });
     }
 
@@ -61,31 +67,40 @@ const totalKgDispatched = computed(() => {
     if (!props.dispatches?.data) return 0;
     return props.dispatches.data.reduce((sum, d) => sum + Number(d.kg_dispatched || 0), 0);
 });
+const totalKgReceived = computed(() => {
+    if (!props.dispatches?.data) return 0;
+    return props.dispatches.data.reduce((sum, d) => sum + lotsKgReceived(d), 0);
+});
 const totalKgExported = computed(() => {
     if (!props.dispatches?.data) return 0;
     return props.dispatches.data.reduce((sum, d) => sum + Number(d.kg_exported || 0), 0);
 });
-const totalKgWaste = computed(() => {
+const countPending = computed(() => {
     if (!props.dispatches?.data) return 0;
-    return props.dispatches.data.reduce((sum, d) => sum + Number(d.kg_waste || 0), 0);
-});
-const countDispatched = computed(() => {
-    if (!props.dispatches?.data) return 0;
-    return props.dispatches.data.filter(d => d.status === 'dispatched').length;
+    return props.dispatches.data.filter(d => d.status !== 'processed').length;
 });
 const countProcessed = computed(() => {
     if (!props.dispatches?.data) return 0;
     return props.dispatches.data.filter(d => d.status === 'processed').length;
 });
 
+function lotsKgReceived(dispatch) {
+    return (dispatch.lots || []).reduce((sum, l) => sum + Number(l.kg_received || 0), 0);
+}
+
 const showCreateModal = ref(false);
 const showEditModal = ref(false);
 const showProcessModal = ref(false);
 const showCatalogsModal = ref(false);
+const showLotModal = ref(false);
 const editingDispatch = ref(null);
 const processingDispatch = ref(null);
+const processingLot = ref(null);
 const viewingDispatch = ref(null);
+const viewingLot = ref(null);
 const showViewDetailModal = ref(false);
+const lotDispatch = ref(null);
+const editingLot = ref(null);
 
 function openCreateModal() { showCreateModal.value = true; }
 function closeCreateModal() { showCreateModal.value = false; }
@@ -99,30 +114,46 @@ function closeEditModal() {
     editingDispatch.value = null;
 }
 
-function openProcessModal(dispatch) {
+function openLotModal(dispatch, lot = null) {
+    lotDispatch.value = dispatch;
+    editingLot.value = lot;
+    showLotModal.value = true;
+}
+function closeLotModal() {
+    showLotModal.value = false;
+    lotDispatch.value = null;
+    editingLot.value = null;
+}
+
+function openProcessModal(dispatch, lot) {
     processingDispatch.value = dispatch;
+    processingLot.value = lot;
     showProcessModal.value = true;
 }
 function closeProcessModal() {
     showProcessModal.value = false;
     processingDispatch.value = null;
+    processingLot.value = null;
 }
 
 function openCatalogsModal() { showCatalogsModal.value = true; }
 function closeCatalogsModal() { showCatalogsModal.value = false; }
 
-function openViewDetailModal(dispatch) {
+function openViewDetailModal(dispatch, lot) {
     viewingDispatch.value = dispatch;
+    viewingLot.value = lot;
     showViewDetailModal.value = true;
 }
 function closeViewDetailModal() {
     showViewDetailModal.value = false;
     viewingDispatch.value = null;
+    viewingLot.value = null;
 }
 
 function reloadAfterSave() {
     closeCreateModal();
     closeEditModal();
+    closeLotModal();
     closeProcessModal();
     router.reload({ preserveScroll: true });
 }
@@ -130,7 +161,7 @@ function reloadAfterSave() {
 function deleteDispatch(id) {
     Swal.fire({
         title: '¿Estás seguro?',
-        text: 'Esta acción no se puede deshacer',
+        text: 'Se eliminará la guía junto con sus lotes. Esta acción no se puede deshacer',
         icon: 'warning',
         showCancelButton: true,
         confirmButtonColor: '#d33',
@@ -151,27 +182,59 @@ function deleteDispatch(id) {
     });
 }
 
+function deleteLot(lot) {
+    Swal.fire({
+        title: '¿Eliminar lote?',
+        text: `Se eliminará el lote ${lot.lot_number}${lot.status === 'processed' ? ' junto con su proceso' : ''}. Esta acción no se puede deshacer`,
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonColor: '#d33',
+        cancelButtonColor: '#3085d6',
+        confirmButtonText: 'Sí, eliminar',
+        cancelButtonText: 'Cancelar'
+    }).then((result) => {
+        if (result.isConfirmed) {
+            router.delete(route('production-lots.delete', lot.id), {
+                preserveScroll: true,
+                onSuccess: () => {
+                    Swal.fire({ icon: 'success', title: 'Eliminado', text: 'Lote eliminado correctamente', timer: 1500, showConfirmButton: false });
+                },
+                onError: () => {
+                    Swal.fire({ icon: 'error', title: 'Error', text: 'No se pudo eliminar el lote' });
+                }
+            });
+        }
+    });
+}
+
 function formatNumber(val) {
     if (val === null || val === undefined) return '-';
     return Number(val).toLocaleString('es-CL');
 }
 
+const statusLabels = { dispatched: 'Despachado', received: 'En packing', processed: 'Procesado' };
+const statusClasses = {
+    dispatched: 'badge bg-warning text-dark',
+    received: 'badge bg-info text-dark',
+    processed: 'badge bg-success',
+};
+
 function statusLabel(status) {
-    return status === 'processed' ? 'Procesado' : 'Despachado';
+    return statusLabels[status] || statusLabels.dispatched;
 }
 
 function statusClass(status) {
-    return status === 'processed' ? 'badge bg-success' : 'badge bg-warning text-dark';
+    return statusClasses[status] || statusClasses.dispatched;
 }
 
-function getClassificationStatus(item) {
-    if (item.status !== 'processed' || !item.items || item.items.length === 0) return null;
+function getLotClassificationStatus(lot) {
+    if (lot.status !== 'processed' || !lot.items || lot.items.length === 0) return null;
     // Mismo criterio que el formulario de proceso: cada tipo se compara contra los Kg Exportados
-    const kgExported = Number(item.kg_exported) || 0;
+    const kgExported = Number(lot.kg_exported) || 0;
     if (kgExported === 0) return null;
 
     const totalsByType = {};
-    item.items.forEach(i => {
+    lot.items.forEach(i => {
         if (i.classification_type) {
             totalsByType[i.classification_type] = (totalsByType[i.classification_type] || 0) + Number(i.kg || 0);
         }
@@ -217,7 +280,7 @@ function getClassificationStatus(item) {
             <div class="card-body bg-body-tertiary">
                 <!-- Resumen -->
                 <div class="row mb-3">
-                    <div class="col-md-3 col-6 mb-2">
+                    <div class="col-md-2 col-6 mb-2">
                         <div class="card bg-light border h-100">
                             <div class="card-body py-2 px-3">
                                 <div class="d-flex justify-content-between align-items-center">
@@ -230,7 +293,20 @@ function getClassificationStatus(item) {
                             </div>
                         </div>
                     </div>
-                    <div class="col-md-3 col-6 mb-2">
+                    <div class="col-md-2 col-6 mb-2">
+                        <div class="card bg-light border h-100">
+                            <div class="card-body py-2 px-3">
+                                <div class="d-flex justify-content-between align-items-center">
+                                    <div>
+                                        <h6 class="mb-0 text-muted fs-10">Kg Recepcionados</h6>
+                                        <h4 class="mb-0 fw-bold text-info">{{ formatNumber(totalKgReceived) }}</h4>
+                                    </div>
+                                    <i class="fas fa-dolly fa-2x text-info opacity-50"></i>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-2 col-6 mb-2">
                         <div class="card bg-light border h-100">
                             <div class="card-body py-2 px-3">
                                 <div class="d-flex justify-content-between align-items-center">
@@ -248,21 +324,8 @@ function getClassificationStatus(item) {
                             <div class="card-body py-2 px-3">
                                 <div class="d-flex justify-content-between align-items-center">
                                     <div>
-                                        <h6 class="mb-0 text-muted fs-10">Kg Descarte</h6>
-                                        <h4 class="mb-0 fw-bold text-danger">{{ formatNumber(totalKgWaste) }}</h4>
-                                    </div>
-                                    <i class="fas fa-trash-alt fa-2x text-danger opacity-50"></i>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="col-md-2 col-6 mb-2">
-                        <div class="card bg-light border h-100">
-                            <div class="card-body py-2 px-3">
-                                <div class="d-flex justify-content-between align-items-center">
-                                    <div>
                                         <h6 class="mb-0 text-muted fs-10">Pendientes</h6>
-                                        <h4 class="mb-0 fw-bold text-warning">{{ countDispatched }}</h4>
+                                        <h4 class="mb-0 fw-bold text-warning">{{ countPending }}</h4>
                                     </div>
                                     <i class="fas fa-clock fa-2x text-warning opacity-50"></i>
                                 </div>
@@ -292,14 +355,15 @@ function getClassificationStatus(item) {
                     <div class="col-md-4">
                         <select v-model="statusFilter" class="form-select form-select-sm">
                             <option value="">Todos los estados</option>
-                            <option value="dispatched">Despachado (pendiente)</option>
+                            <option value="dispatched">Despachado (sin recepcionar)</option>
+                            <option value="received">En packing (con lotes por procesar)</option>
                             <option value="processed">Procesado</option>
                         </select>
                     </div>
                 </div>
 
                 <div class="table-responsive">
-                    <table class="table table-bordered table-striped table-hover table-sm fs-10 mb-0">
+                    <table class="table table-bordered table-hover table-sm fs-10 mb-0">
                         <thead class="table-primary">
                             <tr>
                                 <th>Estado</th>
@@ -309,57 +373,92 @@ function getClassificationStatus(item) {
                                 <th>Exportadora</th>
                                 <th>Packing</th>
                                 <th>N° Guía</th>
-                                <th>Lote</th>
                                 <th class="text-end">Kg Desp.</th>
+                                <th>N° Lote</th>
+                                <th class="text-end">Kg Recep.</th>
                                 <th class="text-end">Kg Export.</th>
-                                <th class="text-end">Kg Desc.</th>
                                 <th class="text-center">Clasif.</th>
-                                <th style="width: 140px;">Acciones</th>
+                                <th class="text-center" style="width: 110px;">Acciones Lote</th>
+                                <th class="text-center" style="width: 110px;">Acciones Guía</th>
                             </tr>
                         </thead>
-                        <tbody>
-                            <tr v-for="item in filteredRows" :key="item.id">
-                                <td>
-                                    <span :class="statusClass(item.status)">{{ statusLabel(item.status) }}</span>
-                                </td>
-                                <td>{{ item.dispatch_date ? new Date(item.dispatch_date).toLocaleDateString('es-CL') : '-' }}</td>
-                                <td>{{ item.cost_center_variety?.cost_center?.name || '-' }}</td>
-                                <td>{{ item.cost_center_variety?.variety?.name || '-' }}</td>
-                                <td>{{ item.exporter?.name || '-' }}</td>
-                                <td>{{ item.packing_house?.name || '-' }}</td>
-                                <td>{{ item.guide_number }}</td>
-                                <td>{{ item.lot_number || '-' }}</td>
-                                <td class="text-end">{{ formatNumber(item.kg_dispatched) }}</td>
-                                <td class="text-end">{{ formatNumber(item.kg_exported) }}</td>
-                                <td class="text-end">{{ formatNumber(item.kg_waste) }}</td>
-                                <td class="text-center">
-                                    <span v-if="getClassificationStatus(item) === 'ok'" class="badge bg-success" title="Clasificaciones cuadradas">
-                                        <i class="fas fa-check"></i>
-                                    </span>
-                                    <span v-else-if="getClassificationStatus(item) === 'mismatch'" class="badge bg-danger" title="Clasificaciones no cuadran con Kg Exportados">
-                                        <i class="fas fa-exclamation-triangle"></i>
-                                    </span>
-                                    <span v-else class="text-muted">-</span>
-                                </td>
-                                <td>
+                        <!-- Un tbody por guía: cada lote es una fila y los datos de la guía se agrupan con rowspan -->
+                        <tbody v-for="item in filteredRows" :key="item.id" style="border-top: 2px solid #9da9bb;">
+                            <tr v-for="(lot, idx) in (item.lots && item.lots.length ? item.lots : [null])" :key="lot ? lot.id : 'sin-lote'">
+                                <template v-if="idx === 0">
+                                    <td :rowspan="Math.max(item.lots?.length || 0, 1)">
+                                        <span :class="statusClass(item.status)">{{ statusLabel(item.status) }}</span>
+                                    </td>
+                                    <td :rowspan="Math.max(item.lots?.length || 0, 1)">{{ item.dispatch_date ? new Date(item.dispatch_date).toLocaleDateString('es-CL') : '-' }}</td>
+                                    <td :rowspan="Math.max(item.lots?.length || 0, 1)">
+                                        <span class="text-nowrap" :title="ccvsOf(item).map(c => `${c.cost_center?.name || '-'} · ${c.variety?.name || '-'}`).join('\n')">
+                                            {{ ccvsOf(item)[0]?.cost_center?.name || '-' }}
+                                            <span v-if="ccvsOf(item).length > 1" class="badge bg-soft-primary text-primary ms-1">+{{ ccvsOf(item).length - 1 }}</span>
+                                        </span>
+                                    </td>
+                                    <td :rowspan="Math.max(item.lots?.length || 0, 1)">
+                                        <span class="text-nowrap" :title="ccvsOf(item).map(c => `${c.cost_center?.name || '-'} · ${c.variety?.name || '-'}`).join('\n')">
+                                            {{ ccvsOf(item)[0]?.variety?.name || '-' }}
+                                        </span>
+                                    </td>
+                                    <td :rowspan="Math.max(item.lots?.length || 0, 1)">{{ item.exporter?.name || '-' }}</td>
+                                    <td :rowspan="Math.max(item.lots?.length || 0, 1)">{{ item.packing_house?.name || '-' }}</td>
+                                    <td :rowspan="Math.max(item.lots?.length || 0, 1)">{{ item.guide_number }}</td>
+                                    <td class="text-end" :rowspan="Math.max(item.lots?.length || 0, 1)">{{ formatNumber(item.kg_dispatched) }}</td>
+                                </template>
+
+                                <template v-if="lot">
+                                    <td class="text-nowrap fw-semibold">
+                                        <i class="fas fa-circle me-1" :class="lot.status === 'processed' ? 'text-success' : 'text-info'" style="font-size: 0.5rem; vertical-align: middle;" :title="lot.status === 'processed' ? 'Procesado' : 'Pendiente de proceso'"></i>{{ lot.lot_number }}
+                                    </td>
+                                    <td class="text-end">{{ formatNumber(lot.kg_received) }}</td>
+                                    <td class="text-end">{{ lot.status === 'processed' ? formatNumber(lot.kg_exported) : '-' }}</td>
+                                    <td class="text-center">
+                                        <span v-if="getLotClassificationStatus(lot) === 'ok'" class="badge bg-success" title="Clasificaciones cuadradas">
+                                            <i class="fas fa-check"></i>
+                                        </span>
+                                        <span v-else-if="getLotClassificationStatus(lot) === 'mismatch'" class="badge bg-danger" title="Clasificaciones no cuadran con Kg Exportados">
+                                            <i class="fas fa-exclamation-triangle"></i>
+                                        </span>
+                                        <span v-else class="text-muted">-</span>
+                                    </td>
+                                    <td>
+                                        <div class="d-flex gap-1 justify-content-center">
+                                            <button v-if="lot.status === 'processed'" @click="openViewDetailModal(item, lot)" class="btn btn-sm btn-falcon-default p-0" title="Ver detalle del proceso" style="width: 24px; height: 24px;">
+                                                <i class="fas fa-eye text-info"></i>
+                                            </button>
+                                            <button @click="openProcessModal(item, lot)" class="btn btn-sm btn-falcon-default p-0" :title="lot.status === 'processed' ? 'Re-procesar lote' : 'Procesar lote'" style="width: 24px; height: 24px;">
+                                                <i class="fas fa-industry" :class="lot.status === 'processed' ? 'text-success' : 'text-warning'"></i>
+                                            </button>
+                                            <button @click="openLotModal(item, lot)" class="btn btn-sm btn-falcon-default p-0" title="Editar lote" style="width: 24px; height: 24px;">
+                                                <i class="fas fa-edit"></i>
+                                            </button>
+                                            <button @click="deleteLot(lot)" class="btn btn-sm btn-falcon-default p-0" title="Eliminar lote" style="width: 24px; height: 24px;">
+                                                <i class="fas fa-trash text-danger"></i>
+                                            </button>
+                                        </div>
+                                    </td>
+                                </template>
+                                <td v-else colspan="5" class="text-muted text-center">Sin recepcionar</td>
+
+                                <td v-if="idx === 0" :rowspan="Math.max(item.lots?.length || 0, 1)">
                                     <div class="d-flex gap-1 justify-content-center">
-                                        <button v-if="item.status === 'processed'" @click="openViewDetailModal(item)" class="btn btn-sm btn-falcon-default p-1" title="Ver detalle" style="width: 28px; height: 28px; display: flex; align-items: center; justify-content: center;">
-                                            <i class="fas fa-eye text-info"></i>
+                                        <button @click="openLotModal(item)" class="btn btn-sm btn-falcon-default p-1" title="Recepcionar lote" style="width: 28px; height: 28px; display: flex; align-items: center; justify-content: center;">
+                                            <i class="fas fa-dolly text-primary"></i>
                                         </button>
-                                        <button @click="openProcessModal(item)" class="btn btn-sm btn-falcon-default p-1" :title="item.status === 'processed' ? 'Re-procesar' : 'Procesar'" style="width: 28px; height: 28px; display: flex; align-items: center; justify-content: center;">
-                                            <i class="fas fa-industry" :class="item.status === 'processed' ? 'text-success' : 'text-warning'"></i>
-                                        </button>
-                                        <button @click="openEditModal(item)" class="btn btn-sm btn-falcon-default p-1" title="Editar despacho" style="width: 28px; height: 28px; display: flex; align-items: center; justify-content: center;">
+                                        <button @click="openEditModal(item)" class="btn btn-sm btn-falcon-default p-1" title="Editar guía" style="width: 28px; height: 28px; display: flex; align-items: center; justify-content: center;">
                                             <i class="fas fa-edit"></i>
                                         </button>
-                                        <button @click="deleteDispatch(item.id)" class="btn btn-sm btn-falcon-default p-1" title="Eliminar" style="width: 28px; height: 28px; display: flex; align-items: center; justify-content: center;">
+                                        <button @click="deleteDispatch(item.id)" class="btn btn-sm btn-falcon-default p-1" title="Eliminar guía" style="width: 28px; height: 28px; display: flex; align-items: center; justify-content: center;">
                                             <i class="fas fa-trash text-danger"></i>
                                         </button>
                                     </div>
                                 </td>
                             </tr>
-                            <tr v-if="filteredRows.length === 0">
-                                <td colspan="13" class="text-center text-muted">No hay despachos registrados.</td>
+                        </tbody>
+                        <tbody v-if="filteredRows.length === 0">
+                            <tr>
+                                <td colspan="14" class="text-center text-muted">No hay despachos registrados.</td>
                             </tr>
                         </tbody>
                     </table>
@@ -407,10 +506,19 @@ function getClassificationStatus(item) {
             @saved="reloadAfterSave"
         />
 
+        <ReceiveLotModal
+            :show="showLotModal"
+            :dispatch="lotDispatch"
+            :lot="editingLot"
+            @close="closeLotModal"
+            @saved="reloadAfterSave"
+        />
+
         <ProcessDispatchModal
-            v-if="processingDispatch"
+            v-if="processingDispatch && processingLot"
             :show="showProcessModal"
             :dispatch="processingDispatch"
+            :lot="processingLot"
             :classifications="props.classifications"
             :costCenterVarieties="props.costCenterVarieties"
             @close="closeProcessModal"
@@ -426,6 +534,7 @@ function getClassificationStatus(item) {
         <ViewDispatchDetailModal
             :show="showViewDetailModal"
             :dispatch="viewingDispatch"
+            :lot="viewingLot"
             :classifications="props.classifications"
             :costCenterVarieties="props.costCenterVarieties"
             @close="closeViewDetailModal"

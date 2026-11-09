@@ -1,7 +1,8 @@
 <script setup>
-import { ref, watch } from 'vue';
+import { ref, computed, watch } from 'vue';
 import axios from 'axios';
 import Swal from 'sweetalert2';
+import Multiselect from '@vueform/multiselect';
 
 const props = defineProps({
     form: { type: Object, required: true },
@@ -16,6 +17,37 @@ const props = defineProps({
 const emit = defineEmits(['update:form']);
 
 const form = props.form;
+
+// Cuarteles de la guía: cada uno con los kg que aportó. Los kg de la guía son la suma.
+const selectedIds = computed({
+    get: () => form.cost_centers.map(c => c.cost_center_variety_id),
+    set: (ids) => {
+        form.cost_centers = (ids || []).map(id =>
+            form.cost_centers.find(c => String(c.cost_center_variety_id) === String(id))
+            || { cost_center_variety_id: id, kg_dispatched: '' }
+        );
+    },
+});
+
+function optionOf(id) {
+    return props.costCenterVarieties.find(o => String(o.value) === String(id));
+}
+
+// Todos los cuarteles de una guía deben ser del mismo frutal (las clasificaciones dependen de él)
+const selectedFruitId = computed(() => {
+    const first = form.cost_centers[0];
+    return first ? optionOf(first.cost_center_variety_id)?.fruit_id ?? null : null;
+});
+
+const ccvOptions = computed(() => props.costCenterVarieties.map(o => ({
+    value: o.value,
+    label: o.label,
+    disabled: selectedFruitId.value !== null && String(o.fruit_id) !== String(selectedFruitId.value),
+})));
+
+const totalKg = computed(() =>
+    Math.round(form.cost_centers.reduce((sum, c) => sum + (parseFloat(c.kg_dispatched) || 0), 0) * 100) / 100
+);
 
 const exporterOptions = ref(props.exporters);
 const packingHouseOptions = ref(props.packingHouses);
@@ -106,11 +138,36 @@ watch(form, () => emit('update:form', form), { deep: true });
             <div class="card-body py-2">
                 <div class="row g-2">
                     <div class="col-md-12">
-                        <label class="form-label small mb-1">Cuartel - Variedad</label>
-                        <select v-model="form.cost_center_variety_id" class="form-select form-select-sm" required>
-                            <option :value="''" disabled>Seleccione cuartel...</option>
-                            <option v-for="opt in costCenterVarieties" :key="opt.value" :value="opt.value">{{ opt.label }}</option>
-                        </select>
+                        <label class="form-label small mb-1">Cuarteles - Variedad</label>
+                        <Multiselect
+                            v-model="selectedIds"
+                            :options="ccvOptions"
+                            mode="tags"
+                            :searchable="true"
+                            :close-on-select="false"
+                            placeholder="Seleccione uno o más cuarteles..."
+                            noOptionsText="Sin cuarteles"
+                            noResultsText="Sin resultados"
+                            class="multiselect-sm"
+                        />
+                        <small v-if="selectedFruitId !== null" class="text-muted">Solo se pueden combinar cuarteles del mismo frutal.</small>
+                        <div v-if="form.errors.cost_centers" class="text-danger small">{{ form.errors.cost_centers }}</div>
+                    </div>
+                    <div v-if="form.cost_centers.length" class="col-md-12">
+                        <div class="border rounded bg-white p-2">
+                            <div v-for="(line, index) in form.cost_centers" :key="line.cost_center_variety_id" class="row g-2 align-items-center mb-1">
+                                <div class="col-md-8 small">{{ optionOf(line.cost_center_variety_id)?.label || line.cost_center_variety_id }}</div>
+                                <div class="col-md-4">
+                                    <div class="input-group input-group-sm">
+                                        <input type="number" v-model="line.kg_dispatched" class="form-control text-end" step="0.01" min="0" placeholder="Kg" required
+                                            :class="{ 'is-invalid': form.errors[`cost_centers.${index}.kg_dispatched`] }" />
+                                        <span class="input-group-text">kg</span>
+                                    </div>
+                                    <div v-if="form.errors[`cost_centers.${index}.kg_dispatched`]" class="text-danger small">{{ form.errors[`cost_centers.${index}.kg_dispatched`] }}</div>
+                                </div>
+                            </div>
+                            <div class="text-end small fw-bold border-top pt-1">Total guía: {{ totalKg.toLocaleString('es-CL') }} kg</div>
+                        </div>
                     </div>
                     <div class="col-md-6">
                         <div class="d-flex align-items-center justify-content-between mb-1">
@@ -147,21 +204,13 @@ watch(form, () => emit('update:form', form), { deep: true });
             </div>
             <div class="card-body py-2">
                 <div class="row g-2">
-                    <div class="col-md-3">
+                    <div class="col-md-6">
                         <label class="form-label small mb-1">Fecha Despacho</label>
                         <input type="date" v-model="form.dispatch_date" class="form-control form-control-sm" required />
                     </div>
-                    <div class="col-md-3">
+                    <div class="col-md-6">
                         <label class="form-label small mb-1">N° Guía Despacho</label>
                         <input type="text" v-model="form.guide_number" class="form-control form-control-sm" required />
-                    </div>
-                    <div class="col-md-3">
-                        <label class="form-label small mb-1">N° Lote / Partida</label>
-                        <input type="text" v-model="form.lot_number" class="form-control form-control-sm" />
-                    </div>
-                    <div class="col-md-3">
-                        <label class="form-label small mb-1">Kg Despachados</label>
-                        <input type="number" v-model="form.kg_dispatched" class="form-control form-control-sm" step="0.01" min="0" required />
                     </div>
                 </div>
             </div>

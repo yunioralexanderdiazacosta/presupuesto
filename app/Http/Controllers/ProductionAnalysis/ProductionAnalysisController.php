@@ -9,7 +9,7 @@ use App\Models\CostCenterVariety;
 use App\Models\Estimate;
 use App\Models\EstimateStatus;
 use App\Models\Fruit;
-use App\Models\ProductionDispatch;
+use App\Support\DispatchAllocation;
 use Illuminate\Support\Facades\Auth;
 use Inertia\Inertia;
 
@@ -52,11 +52,8 @@ class ProductionAnalysisController extends Controller
             ->get(['cost_center_variety_id', 'estimate_status_id', 'kilos_ha'])
             ->groupBy('cost_center_variety_id');
 
-        // Los kg vaciados a proceso y exportados solo existen en guías ya procesadas
-        $dispatchesByCcv = ProductionDispatch::where('season_id', $seasonId)
-            ->where('team_id', $user->team_id)
-            ->get(['cost_center_variety_id', 'status', 'kg_dispatched', 'kg_received', 'kg_exported'])
-            ->groupBy('cost_center_variety_id');
+        // Los kg vaciados a proceso y exportados solo existen en guías ya procesadas; cada guía se reparte entre sus cuarteles
+        $dispatchesByCcv = DispatchAllocation::forSeason($user->team_id, $seasonId)->groupBy('ccv_id');
 
         $rows = $costCenterVarieties->map(function ($ccv) use ($estimatesByCcv, $dispatchesByCcv) {
             $surface = (float) $ccv->surface;

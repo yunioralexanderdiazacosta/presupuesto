@@ -18,13 +18,11 @@ const props = defineProps({
 const emit = defineEmits(['close', 'saved']);
 
 const form = useForm({
-    cost_center_variety_id: '',
+    cost_centers: [],
     exporter_id: '',
     packing_house_id: '',
     dispatch_date: '',
     guide_number: '',
-    lot_number: '',
-    kg_dispatched: '',
     bin_type_id: '',
     bins_quantity: '',
     box_type_id: '',
@@ -37,13 +35,14 @@ const form = useForm({
 
 watch(() => props.show, (val) => {
     if (val && props.dispatch) {
-        form.cost_center_variety_id = props.dispatch.cost_center_variety_id;
+        form.cost_centers = (props.dispatch.cost_centers || []).map(c => ({
+            cost_center_variety_id: c.cost_center_variety_id,
+            kg_dispatched: Number(c.kg_dispatched),
+        }));
         form.exporter_id = props.dispatch.exporter_id;
         form.packing_house_id = props.dispatch.packing_house_id;
         form.dispatch_date = props.dispatch.dispatch_date;
         form.guide_number = props.dispatch.guide_number;
-        form.lot_number = props.dispatch.lot_number || '';
-        form.kg_dispatched = props.dispatch.kg_dispatched;
         form.bin_type_id = props.dispatch.bin_type_id || '';
         form.bins_quantity = props.dispatch.bins_quantity || '';
         form.box_type_id = props.dispatch.box_type_id || '';

@@ -11,6 +11,7 @@ class ProductionDispatchItem extends Model
 
     protected $fillable = [
         'production_dispatch_id',
+        'production_lot_id',
         'classification_type',
         'classification_value',
         'kg',
@@ -21,5 +22,10 @@ class ProductionDispatchItem extends Model
     public function productionDispatch()
     {
         return $this->belongsTo(ProductionDispatch::class);
+    }
+
+    public function productionLot()
+    {
+        return $this->belongsTo(ProductionLot::class);
     }
 }

@@ -9,7 +9,7 @@ use App\Models\CompanyReason;
 use App\Models\CostCenterVariety;
 use App\Models\Fruit;
 use App\Models\FruitClassificationType;
-use App\Models\ProductionDispatch;
+use App\Support\DispatchAllocation;
 use App\Models\ProductionDispatchItem;
 use Illuminate\Support\Facades\Auth;
 use Inertia\Inertia;
@@ -43,29 +43,30 @@ class ClassificationAnalysisController extends Controller
             ->where('team_id', $user->team_id)
             ->get();
 
-        // Solo guías procesadas: sin proceso no se conocen los kg exportados ni su clasificación
-        $dispatchesByCcv = ProductionDispatch::where('season_id', $seasonId)
-            ->where('team_id', $user->team_id)
+        // Solo guías procesadas: sin proceso no se conocen los kg exportados ni su clasificación.
+        // Cada guía se reparte entre sus cuarteles según los kg despachados de cada uno.
+        $dispatchesByCcv = DispatchAllocation::forSeason($user->team_id, $seasonId)
             ->where('status', 'processed')
-            ->get(['cost_center_variety_id', 'kg_exported'])
-            ->groupBy('cost_center_variety_id');
+            ->groupBy('ccv_id');
 
+        $share = DispatchAllocation::SHARE_SQL;
         $itemsByCcv = ProductionDispatchItem::query()
             ->join('production_dispatches', 'production_dispatches.id', '=', 'production_dispatch_items.production_dispatch_id')
+            ->join('production_dispatch_cost_centers as pdcc', 'pdcc.production_dispatch_id', '=', 'production_dispatches.id')
             ->where('production_dispatches.team_id', $user->team_id)
             ->where('production_dispatches.season_id', $seasonId)
             ->where('production_dispatches.status', 'processed')
             ->groupBy(
-                'production_dispatches.cost_center_variety_id',
+                'pdcc.cost_center_variety_id',
                 'production_dispatch_items.classification_type',
                 'production_dispatch_items.classification_value'
             )
             ->selectRaw(
-                'production_dispatches.cost_center_variety_id as ccv_id,
+                "pdcc.cost_center_variety_id as ccv_id,
                  production_dispatch_items.classification_type as type,
                  production_dispatch_items.classification_value as value,
-                 SUM(production_dispatch_items.kg) as kg,
-                 COALESCE(SUM(production_dispatch_items.boxes), 0) as boxes'
+                 SUM(production_dispatch_items.kg * {$share}) as kg,
+                 COALESCE(SUM(production_dispatch_items.boxes * {$share}), 0) as boxes"
             )
             ->get()
             ->groupBy('ccv_id');

@@ -88,16 +88,16 @@ class ProductionDispatchSeeder extends Seeder
                 $useBins = rand(0, 1) === 1;
                 $useBoxes = !$useBins || rand(0, 1) === 1;
 
-                ProductionDispatch::create([
-                    'cost_center_variety_id' => $ccvIds[array_rand($ccvIds)],
+                $kgDispatched = rand(500, 8000) + (rand(0, 99) / 100);
+
+                $dispatch = ProductionDispatch::create([
                     'exporter_id' => $exporterIds[array_rand($exporterIds)],
                     'packing_house_id' => $packingIds[array_rand($packingIds)],
                     'team_id' => $teamId,
                     'season_id' => $seasonId,
                     'dispatch_date' => Carbon::now()->subDays(rand(1, 120))->toDateString(),
                     'guide_number' => sprintf('SEED-%d-%03d', $teamId, $i),
-                    'lot_number' => sprintf('L%d-%04d', $teamId, rand(1000, 9999)),
-                    'kg_dispatched' => rand(500, 8000) + (rand(0, 99) / 100),
+                    'kg_dispatched' => $kgDispatched,
                     'bin_type_id' => $useBins ? $binIds[array_rand($binIds)] : null,
                     'bins_quantity' => $useBins ? rand(5, 40) : null,
                     'box_type_id' => $useBoxes ? $boxIds[array_rand($boxIds)] : null,
@@ -107,6 +107,11 @@ class ProductionDispatchSeeder extends Seeder
                     'license_plate' => sprintf('%s%s-%02d', chr(rand(65, 90)), chr(rand(65, 90)), rand(10, 99)),
                     'observations' => rand(0, 1) ? 'Despacho de ejemplo generado automáticamente.' : null,
                     'status' => 'dispatched',
+                ]);
+
+                $dispatch->costCenters()->create([
+                    'cost_center_variety_id' => $ccvIds[array_rand($ccvIds)],
+                    'kg_dispatched' => $kgDispatched,
                 ]);
             }
 

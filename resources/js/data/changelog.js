@@ -8,6 +8,20 @@
 export const changelog = [
   {
     fecha: '2026-11-08',
+    titulo: 'Cosecha — Despachos: guía, recepción de lote y proceso por separado',
+    items: [
+      'El N° de lote ya no se pide al crear la guía de despacho, porque lo asigna el packing al recibir la fruta.',
+      'Nuevo botón "Recepcionar lote" en cada guía: registra el N° de lote, la fecha de recepción y los kilos recepcionados, y muestra la diferencia contra los kilos de la guía.',
+      'Una guía puede tener uno o más lotes, y cada lote se procesa por separado (kilos a proceso, exportación, nacional, industrial, descarte y clasificación).',
+      'Los kilos a proceso ahora se comparan contra los kilos recepcionados del lote, no contra los de la guía.',
+      'La tabla muestra cada lote en su propia fila, con el N° de lote en una columna aparte, sus kilos recepcionados, exportados y descarte, y los datos de la guía agrupados a la izquierda; la guía queda "Procesada" cuando todos sus lotes están procesados.',
+      'Los lotes y procesos ya ingresados se conservaron: cada guía existente quedó con su lote.',
+      'Una guía de despacho ahora puede llevar más de un cuartel: en "Nuevo despacho" se seleccionan varios cuarteles (del mismo frutal) y se indican los kilos que aportó cada uno; los kilos de la guía son la suma.',
+      'En los análisis de producción, clasificación y comparación de cuarteles, lo recepcionado, exportado y clasificado de cada lote se reparte entre los cuarteles de la guía según los kilos que despachó cada uno.',
+    ]
+  },
+  {
+    fecha: '2026-11-08',
     titulo: 'Cosecha — Análisis de Clasificación (calibre, color y calidad)',
     items: [
       'Nueva pantalla "Análisis de Clasificación" en el menú Cosecha: muestra los kilos, el porcentaje, los kilos por hectárea y las cajas de cada calibre, color o calidad por variedad y cuartel.',

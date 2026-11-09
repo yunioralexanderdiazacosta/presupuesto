@@ -4,6 +4,7 @@ import { computed } from 'vue';
 const props = defineProps({
     show: Boolean,
     dispatch: Object,
+    lot: Object,
     classifications: Object,
     costCenterVarieties: Array,
 });
@@ -13,11 +14,10 @@ const emit = defineEmits(['close']);
 const typeLabels = { caliber: 'Calibre', color: 'Color', quality: 'Calidad' };
 const typeIcons = { caliber: 'fa-ruler', color: 'fa-palette', quality: 'fa-star' };
 
-// Obtener fruit_id del despacho
+// Frutal de la guía: todos sus cuarteles son del mismo frutal
 const selectedFruitId = computed(() => {
-    if (!props.dispatch?.cost_center_variety_id) return null;
-    const ccv = props.costCenterVarieties?.find(c => String(c.value) === String(props.dispatch.cost_center_variety_id));
-    return ccv ? ccv.fruit_id : null;
+    const first = props.dispatch?.cost_centers?.[0]?.cost_center_variety;
+    return first?.fruit_id ?? null;
 });
 
 // Clasificaciones filtradas por frutal
@@ -28,9 +28,9 @@ const currentClassifications = computed(() => {
 
 // Agrupar items del dispatch por tipo
 const itemsByType = computed(() => {
-    if (!props.dispatch?.items) return {};
+    if (!props.lot?.items) return {};
     const grouped = {};
-    props.dispatch.items.forEach(item => {
+    props.lot.items.forEach(item => {
         if (!grouped[item.classification_type]) grouped[item.classification_type] = [];
         grouped[item.classification_type].push(item);
     });
@@ -38,7 +38,7 @@ const itemsByType = computed(() => {
 });
 
 function getItemKg(type, value) {
-    const item = props.dispatch?.items?.find(
+    const item = props.lot?.items?.find(
         i => i.classification_type === type && i.classification_value === value
     );
     return item ? Number(item.kg || 0) : 0;
@@ -59,13 +59,13 @@ function formatDate(dateStr) {
 </script>
 
 <template>
-    <div class="modal fade show" tabindex="-1" style="display:block; background:rgba(0,0,0,0.2);" v-if="show && dispatch">
+    <div class="modal fade show" tabindex="-1" style="display:block; background:rgba(0,0,0,0.2);" v-if="show && dispatch && lot">
         <div class="modal-dialog modal-lg">
             <div class="modal-content" style="background-color: #f8f9fa;">
                 <div class="modal-header bg-white border-bottom">
                     <h5 class="modal-title d-flex align-items-center">
                         <i class="fas fa-eye text-primary me-2 fs-8"></i>
-                        Detalle del Proceso — Guía {{ dispatch.guide_number }}
+                        Detalle del Proceso — Lote {{ lot.lot_number }} — Guía {{ dispatch.guide_number }}
                     </h5>
                     <button type="button" class="btn-close" @click="emit('close')"></button>
                 </div>
@@ -74,18 +74,15 @@ function formatDate(dateStr) {
                     <div class="card border mb-3">
                         <div class="card-body py-2 px-3">
                             <div class="d-flex flex-wrap align-items-center gap-2">
-                                <span class="badge bg-soft-primary text-primary px-2 py-1">
-                                    <i class="fas fa-map-marker-alt me-1"></i>{{ dispatch.cost_center_variety?.cost_center?.name || '-' }}
-                                </span>
-                                <span class="badge bg-soft-success text-success px-2 py-1">
-                                    {{ dispatch.cost_center_variety?.variety?.name || '-' }}
-                                    <small v-if="dispatch.cost_center_variety?.fruit"> ({{ dispatch.cost_center_variety.fruit.name }})</small>
+                                <span v-for="c in dispatch.cost_centers" :key="c.id" class="badge bg-soft-primary text-primary px-2 py-1">
+                                    <i class="fas fa-map-marker-alt me-1"></i>{{ c.cost_center_variety?.cost_center?.name || '-' }}
+                                    <small>· {{ c.cost_center_variety?.variety?.name || '-' }}<template v-if="c.cost_center_variety?.fruit"> ({{ c.cost_center_variety.fruit.name }})</template></small>
                                 </span>
                                 <span class="badge bg-soft-info text-info px-2 py-1">
                                     <i class="fas fa-building me-1"></i>{{ dispatch.exporter?.name || '-' }}
                                 </span>
                                 <span class="badge bg-soft-secondary text-secondary px-2 py-1">
-                                    <i class="fas fa-tag me-1"></i>Lote: {{ dispatch.lot_number || '-' }}
+                                    <i class="fas fa-dolly me-1"></i>{{ formatNumber(lot.kg_received) }} kg recepcionados
                                 </span>
                                 <span class="badge bg-soft-warning text-warning px-2 py-1 ms-auto">
                                     <i class="fas fa-weight-hanging me-1"></i>{{ formatNumber(dispatch.kg_dispatched) }} kg desp.
@@ -99,43 +96,43 @@ function formatDate(dateStr) {
                         <div class="col-md-2">
                             <div class="text-center p-2 border rounded bg-white">
                                 <small class="text-muted d-block">Fecha Proceso</small>
-                                <span class="fw-bold small">{{ formatDate(dispatch.process_date) }}</span>
+                                <span class="fw-bold small">{{ formatDate(lot.process_date) }}</span>
                             </div>
                         </div>
                         <div class="col-md-2">
                             <div class="text-center p-2 border rounded bg-white">
                                 <small class="text-muted d-block">Kg Proceso</small>
-                                <span class="fw-bold small">{{ formatNumber(dispatch.kg_received) }}</span>
+                                <span class="fw-bold small">{{ formatNumber(lot.kg_to_process) }}</span>
                             </div>
                         </div>
                         <div class="col-md-2">
                             <div class="text-center p-2 border rounded bg-white">
                                 <small class="text-muted d-block">Kg Export.</small>
-                                <span class="fw-bold small text-success">{{ formatNumber(dispatch.kg_exported) }}</span>
+                                <span class="fw-bold small text-success">{{ formatNumber(lot.kg_exported) }}</span>
                             </div>
                         </div>
                         <div class="col-md-2">
                             <div class="text-center p-2 border rounded bg-white">
                                 <small class="text-muted d-block">Kg Nacional</small>
-                                <span class="fw-bold small text-info">{{ formatNumber(dispatch.kg_national) }}</span>
+                                <span class="fw-bold small text-info">{{ formatNumber(lot.kg_national) }}</span>
                             </div>
                         </div>
                         <div class="col-md-2">
                             <div class="text-center p-2 border rounded bg-white">
                                 <small class="text-muted d-block">Kg Industrial</small>
-                                <span class="fw-bold small text-warning">{{ formatNumber(dispatch.kg_industrial) }}</span>
+                                <span class="fw-bold small text-warning">{{ formatNumber(lot.kg_industrial) }}</span>
                             </div>
                         </div>
                         <div class="col-md-2">
                             <div class="text-center p-2 border rounded bg-white">
                                 <small class="text-muted d-block">Kg Descarte</small>
-                                <span class="fw-bold small text-danger">{{ formatNumber(dispatch.kg_waste) }}</span>
+                                <span class="fw-bold small text-danger">{{ formatNumber(lot.kg_waste) }}</span>
                             </div>
                         </div>
                     </div>
 
                     <!-- Desglose por Clasificación -->
-                    <template v-if="dispatch.items && dispatch.items.length > 0">
+                    <template v-if="lot.items && lot.items.length > 0">
                         <h6 class="fw-bold mb-2">
                             <i class="fas fa-chart-pie me-1"></i>Desglose por Clasificación
                         </h6>

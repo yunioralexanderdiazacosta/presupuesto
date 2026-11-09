@@ -260,7 +260,10 @@ use App\Http\Controllers\CostCenterAnalysis\CompareCostCentersController;
 use App\Http\Controllers\ProductionDispatches\StoreProductionDispatchController;
 use App\Http\Controllers\ProductionDispatches\UpdateProductionDispatchController;
 use App\Http\Controllers\ProductionDispatches\DeleteProductionDispatchController;
-use App\Http\Controllers\ProductionDispatches\ProcessProductionDispatchController;
+use App\Http\Controllers\ProductionLots\StoreProductionLotController;
+use App\Http\Controllers\ProductionLots\UpdateProductionLotController;
+use App\Http\Controllers\ProductionLots\DeleteProductionLotController;
+use App\Http\Controllers\ProductionLots\ProcessProductionLotController;
 // Rutas para Production Summaries (resumen de producción)
 use App\Http\Controllers\ProductionSummaries\ProductionSummaryController;
 use App\Http\Controllers\ProductionSummaries\StoreProductionSummaryController;
@@ -1068,7 +1071,10 @@ Route::middleware([
     Route::post('/production-dispatches', StoreProductionDispatchController::class)->name('production-dispatches.store');
     Route::put('/production-dispatches/{productionDispatch}', UpdateProductionDispatchController::class)->name('production-dispatches.update');
     Route::delete('/production-dispatches/{productionDispatch}', DeleteProductionDispatchController::class)->name('production-dispatches.delete');
-    Route::put('/production-dispatches/{productionDispatch}/process', ProcessProductionDispatchController::class)->name('production-dispatches.process');
+    Route::post('/production-dispatches/{productionDispatch}/lots', StoreProductionLotController::class)->name('production-lots.store');
+    Route::put('/production-lots/{productionLot}', UpdateProductionLotController::class)->name('production-lots.update');
+    Route::delete('/production-lots/{productionLot}', DeleteProductionLotController::class)->name('production-lots.delete');
+    Route::put('/production-lots/{productionLot}/process', ProcessProductionLotController::class)->name('production-lots.process');
 
     // Resumen Diario de Cosecha
     Route::get('/daily-harvest-summary', DailyHarvestSummaryController::class)->name('daily-harvest-summary.index');

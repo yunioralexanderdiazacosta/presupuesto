@@ -108,12 +108,13 @@ class CostCenterAnalysisController extends Controller
     private function getKilosPorCuartel($teamId, $seasonId, $ccIds)
     {
         return DB::table('production_dispatches')
-            ->join('cost_center_varieties', 'production_dispatches.cost_center_variety_id', '=', 'cost_center_varieties.id')
+            ->join('production_dispatch_cost_centers as pdcc', 'pdcc.production_dispatch_id', '=', 'production_dispatches.id')
+            ->join('cost_center_varieties', 'pdcc.cost_center_variety_id', '=', 'cost_center_varieties.id')
             ->where('production_dispatches.team_id', $teamId)
             ->where('production_dispatches.season_id', $seasonId)
             ->where('production_dispatches.status', 'processed')
             ->whereIn('cost_center_varieties.cost_center_id', $ccIds)
-            ->selectRaw('cost_center_varieties.cost_center_id as cc_id, SUM(production_dispatches.kg_dispatched) as kg')
+            ->selectRaw('cost_center_varieties.cost_center_id as cc_id, SUM(pdcc.kg_dispatched) as kg')
             ->groupBy('cost_center_varieties.cost_center_id')
             ->pluck('kg', 'cc_id');
     }

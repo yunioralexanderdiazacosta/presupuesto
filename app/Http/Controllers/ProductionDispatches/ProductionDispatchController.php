@@ -28,15 +28,15 @@ class ProductionDispatchController extends Controller
         }
 
         $dispatches = ProductionDispatch::with([
-                'costCenterVariety.costCenter',
-                'costCenterVariety.variety',
-                'costCenterVariety.fruit',
+                'costCenters.costCenterVariety.costCenter',
+                'costCenters.costCenterVariety.variety',
+                'costCenters.costCenterVariety.fruit',
                 'exporter',
                 'packingHouse',
                 'binType',
                 'boxType',
                 'carrier',
-                'items',
+                'lots' => fn($q) => $q->with('items')->orderBy('reception_date')->orderBy('id'),
             ])
             ->where('team_id', $user->team_id)
             ->where('season_id', $seasonId)

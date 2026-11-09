@@ -10,7 +10,6 @@ class ProductionDispatch extends Model
     use HasFactory;
 
     protected $fillable = [
-        'cost_center_variety_id',
         'exporter_id',
         'packing_house_id',
         'season_id',
@@ -18,7 +17,6 @@ class ProductionDispatch extends Model
         // Etapa 1: Despacho
         'dispatch_date',
         'guide_number',
-        'lot_number',
         'kg_dispatched',
         'bin_type_id',
         'bins_quantity',
@@ -29,7 +27,7 @@ class ProductionDispatch extends Model
         'license_plate',
         'observations',
         'status',
-        // Etapa 2: Proceso
+        // Totales calculados desde los lotes (ver syncFromLots). kg_received = kg a proceso de los lotes procesados.
         'process_date',
         'kg_received',
         'kg_exported',
@@ -43,9 +41,10 @@ class ProductionDispatch extends Model
         'process_date' => 'date',
     ];
 
-    public function costCenterVariety()
+    /** Cuarteles que aportan fruta a la guía, con los kg de cada uno. kg_dispatched de la guía es su suma. */
+    public function costCenters()
     {
-        return $this->belongsTo(CostCenterVariety::class);
+        return $this->hasMany(ProductionDispatchCostCenter::class);
     }
 
     public function exporter()
@@ -71,6 +70,40 @@ class ProductionDispatch extends Model
     public function items()
     {
         return $this->hasMany(ProductionDispatchItem::class);
+    }
+
+    public function lots()
+    {
+        return $this->hasMany(ProductionLot::class);
+    }
+
+    /**
+     * Recalcula estado y totales de la guía a partir de sus lotes.
+     * Los análisis de producción leen estos totales, por eso se mantienen en la guía.
+     * dispatched = sin lotes, received = con lotes pendientes de proceso, processed = todos procesados.
+     */
+    public function syncFromLots(): void
+    {
+        $lots = $this->lots()->get();
+        $processed = $lots->where('status', 'processed');
+
+        $status = match (true) {
+            $lots->isEmpty() => 'dispatched',
+            $processed->count() === $lots->count() => 'processed',
+            default => 'received',
+        };
+
+        $sum = fn(string $field) => $processed->isEmpty() ? null : round((float) $processed->sum($field), 2);
+
+        $this->update([
+            'status' => $status,
+            'process_date' => $processed->max('process_date'),
+            'kg_received' => $sum('kg_to_process'),
+            'kg_exported' => $sum('kg_exported'),
+            'kg_national' => $sum('kg_national'),
+            'kg_industrial' => $sum('kg_industrial'),
+            'kg_waste' => $sum('kg_waste'),
+        ]);
     }
 
     public function binType()

@@ -17,13 +17,11 @@ const props = defineProps({
 const emit = defineEmits(['close', 'saved']);
 
 const form = useForm({
-    cost_center_variety_id: '',
+    cost_centers: [],
     exporter_id: '',
     packing_house_id: '',
     dispatch_date: '',
     guide_number: '',
-    lot_number: '',
-    kg_dispatched: '',
     bin_type_id: '',
     bins_quantity: '',
     box_type_id: '',

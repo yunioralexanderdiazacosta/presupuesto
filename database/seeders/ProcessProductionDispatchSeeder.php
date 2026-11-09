@@ -21,7 +21,7 @@ class ProcessProductionDispatchSeeder extends Seeder
     public function run(): void
     {
         foreach ($this->teamIds as $teamId) {
-            $dispatches = ProductionDispatch::with('costCenterVariety')
+            $dispatches = ProductionDispatch::with('costCenters.costCenterVariety')
                 ->where('team_id', $teamId)
                 ->where('guide_number', 'like', 'SEED-%')
                 ->whereIn('status', ['dispatched', 'processed'])
@@ -59,7 +59,7 @@ class ProcessProductionDispatchSeeder extends Seeder
         }
 
         // Calibres a usar: del catálogo del team para el frutal, o genéricos.
-        $fruitId = $dispatch->costCenterVariety->fruit_id ?? null;
+        $fruitId = $dispatch->costCenters->first()?->costCenterVariety?->fruit_id;
         $calibers = FruitClassificationType::where('team_id', $teamId)
             ->where('type', 'caliber')
             ->when($fruitId, fn($q) => $q->where('fruit_id', $fruitId))
@@ -77,20 +77,29 @@ class ProcessProductionDispatchSeeder extends Seeder
         $items = $this->buildItems($calibers, $kgExported);
 
         DB::transaction(function () use ($dispatch, $kgReceived, $kgExported, $kgNational, $kgIndustrial, $kgWaste, $items) {
-            $dispatch->update([
+            // Todo proceso cuelga de un lote recepcionado de la guía
+            $dispatch->lots()->each(fn($lot) => $lot->delete());
+
+            $lot = $dispatch->lots()->create([
+                'team_id' => $dispatch->team_id,
+                'season_id' => $dispatch->season_id,
+                'lot_number' => sprintf('L%d-%04d', $dispatch->team_id, $dispatch->id),
+                'reception_date' => Carbon::parse($dispatch->dispatch_date)->addDay()->toDateString(),
+                'kg_received' => $kgReceived,
                 'status' => 'processed',
                 'process_date' => Carbon::parse($dispatch->dispatch_date)->addDays(rand(1, 5))->toDateString(),
-                'kg_received' => $kgReceived,
+                'kg_to_process' => $kgReceived,
                 'kg_exported' => $kgExported,
                 'kg_national' => $kgNational,
                 'kg_industrial' => $kgIndustrial,
                 'kg_waste' => $kgWaste,
             ]);
 
-            $dispatch->items()->delete();
             foreach ($items as $item) {
-                $dispatch->items()->create($item);
+                $lot->items()->create($item + ['production_dispatch_id' => $dispatch->id]);
             }
+
+            $dispatch->syncFromLots();
         });
     }
 

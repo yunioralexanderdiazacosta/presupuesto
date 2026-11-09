@@ -4,6 +4,7 @@ import { computed, watch, nextTick, onMounted } from 'vue';
 const props = defineProps({
     form: { type: Object, required: true },
     dispatch: { type: Object, required: true },
+    lot: { type: Object, required: true },
     classifications: { type: Object, default: () => ({}) },
     costCenterVarieties: { type: Array, default: () => [] },
 });
@@ -12,29 +13,31 @@ const emit = defineEmits(['update:form']);
 
 const form = props.form;
 
-// Cargar datos existentes si el despacho ya fue procesado
+// Cargar datos existentes si el lote ya fue procesado; si no, propone todo lo recepcionado
 function loadExistingData() {
-    if (props.dispatch?.status === 'processed') {
-        form.process_date = props.dispatch.process_date || '';
-        form.kg_received = Number(props.dispatch.kg_received) || '';
-        form.kg_exported = Number(props.dispatch.kg_exported) || '';
-        form.kg_national = Number(props.dispatch.kg_national) || '';
-        form.kg_industrial = Number(props.dispatch.kg_industrial) || '';
-        form.kg_waste = Number(props.dispatch.kg_waste) || '';
-        form.items = (props.dispatch.items || []).map(item => ({
+    if (props.lot?.status === 'processed') {
+        form.process_date = props.lot.process_date || '';
+        form.kg_to_process = Number(props.lot.kg_to_process) || '';
+        form.kg_exported = Number(props.lot.kg_exported) || '';
+        form.kg_national = Number(props.lot.kg_national) || '';
+        form.kg_industrial = Number(props.lot.kg_industrial) || '';
+        form.kg_waste = Number(props.lot.kg_waste) || '';
+        form.items = (props.lot.items || []).map(item => ({
             classification_type: item.classification_type,
             classification_value: item.classification_value,
             kg: Number(item.kg) || 0,
             boxes: item.boxes,
         }));
+    } else {
+        form.process_date = new Date().toLocaleDateString('en-CA');
+        form.kg_to_process = Number(props.lot.kg_received) || '';
     }
 }
 
-// Obtener fruit_id del despacho
+// Frutal de la guía: todos sus cuarteles son del mismo frutal
 const selectedFruitId = computed(() => {
-    if (!props.dispatch?.cost_center_variety_id) return null;
-    const ccv = props.costCenterVarieties.find(c => String(c.value) === String(props.dispatch.cost_center_variety_id));
-    return ccv ? ccv.fruit_id : null;
+    const first = props.dispatch?.cost_centers?.[0]?.cost_center_variety;
+    return first?.fruit_id ?? null;
 });
 
 // Clasificaciones filtradas por frutal
@@ -137,25 +140,25 @@ function itemPct(type, value) {
     return kgLimit.value > 0 && kg > 0 ? ((kg / kgLimit.value) * 100).toFixed(1) + '%' : '';
 }
 
-// Tope absoluto: Kg Despachados
-const kgDispatched = computed(() => n(props.dispatch.kg_dispatched));
+// Tope absoluto: Kg Recepcionados del lote en el packing
+const kgReceivedLot = computed(() => n(props.lot.kg_received));
 
-// Validación: Kilos a Proceso no puede superar Kg Despachados
-const kgReceivedExceeded = computed(() => {
-    const received = n(form.kg_received);
-    return received > 0 && received > kgDispatched.value;
+// Validación: Kilos a Proceso no puede superar los Kg Recepcionados
+const kgToProcessExceeded = computed(() => {
+    const toProcess = n(form.kg_to_process);
+    return toProcess > 0 && toProcess - kgReceivedLot.value > 0.001;
 });
 
-// Validación: Export+Nacional+Industrial+Descarte <= Kilos a Proceso (y <= Kg Despachados)
+// Validación: Export+Nacional+Industrial+Descarte <= Kilos a Proceso (y <= Kg Recepcionados)
 const kgBreakdownTotal = computed(() => {
     return n(form.kg_exported) + n(form.kg_national) + n(form.kg_industrial) + n(form.kg_waste);
 });
 const kgBreakdownLimit = computed(() => {
-    const received = n(form.kg_received);
-    return received > 0 ? Math.min(received, kgDispatched.value) : kgDispatched.value;
+    const toProcess = n(form.kg_to_process);
+    return toProcess > 0 ? Math.min(toProcess, kgReceivedLot.value) : kgReceivedLot.value;
 });
 const kgBreakdownExceeded = computed(() => {
-    return kgBreakdownTotal.value > 0 && kgBreakdownTotal.value > kgBreakdownLimit.value;
+    return kgBreakdownTotal.value > 0 && kgBreakdownTotal.value - kgBreakdownLimit.value > 0.001;
 });
 const kgBreakdownRemaining = computed(() => {
     return Math.max(0, kgBreakdownLimit.value - kgBreakdownTotal.value);
@@ -165,7 +168,7 @@ const kgBreakdownPercent = computed(() => {
     return (kgBreakdownTotal.value / kgBreakdownLimit.value) * 100;
 });
 
-defineExpose({ anyTypeExceeded, kgBreakdownExceeded, kgReceivedExceeded, ensureItemsInitialized });
+defineExpose({ anyTypeExceeded, kgBreakdownExceeded, kgToProcessExceeded, ensureItemsInitialized });
 
 watch(form, () => emit('update:form', form), { deep: true });
 </script>
@@ -176,24 +179,17 @@ watch(form, () => emit('update:form', form), { deep: true });
         <div class="card border mb-3">
             <div class="card-body py-2 px-3">
                 <div class="d-flex flex-wrap align-items-center gap-2">
-                    <span class="badge bg-soft-primary text-primary px-2 py-1">
-                        <i class="fas fa-map-marker-alt me-1"></i>{{ dispatch.cost_center_variety?.cost_center?.name || '-' }}
-                    </span>
-                    <span class="badge bg-soft-success text-success px-2 py-1">
-                        {{ dispatch.cost_center_variety?.variety?.name || '-' }}
-                        <small v-if="dispatch.cost_center_variety?.fruit"> ({{ dispatch.cost_center_variety.fruit.name }})</small>
-                    </span>
                     <span class="badge bg-soft-info text-info px-2 py-1">
                         <i class="fas fa-building me-1"></i>{{ dispatch.exporter?.name || '-' }}
                     </span>
                     <span class="badge bg-soft-secondary text-secondary px-2 py-1">
-                        <i class="fas fa-tag me-1"></i>Lote: {{ dispatch.lot_number || '-' }}
+                        <i class="fas fa-tag me-1"></i>Lote: {{ lot.lot_number }}
                     </span>
                     <span class="badge bg-soft-secondary text-secondary px-2 py-1">
-                        <i class="fas fa-file-alt me-1"></i>Guía: {{ dispatch.guide_number }}
+                        <i class="fas fa-file-alt me-1"></i>Guía: {{ dispatch.guide_number }} ({{ fmt(dispatch.kg_dispatched) }} kg)
                     </span>
                     <span class="badge bg-soft-warning text-warning px-2 py-1 ms-auto">
-                        <i class="fas fa-weight-hanging me-1"></i>{{ fmt(dispatch.kg_dispatched) }} kg
+                        <i class="fas fa-weight-hanging me-1"></i>{{ fmt(lot.kg_received) }} kg recepcionados
                     </span>
                 </div>
             </div>
@@ -208,10 +204,10 @@ watch(form, () => emit('update:form', form), { deep: true });
 
             <!-- Kilos a Proceso -->
             <div class="col-md-3">
-                <label class="form-label small mb-1">Kilos a Proceso <small class="text-muted">(máx {{ kgDispatched }})</small></label>
-                <input type="number" v-model.number="form.kg_received" class="form-control form-control-sm" step="0.01" min="0" :max="kgDispatched" required
-                    :class="{'is-invalid': kgReceivedExceeded}" />
-                <div v-if="kgReceivedExceeded" class="invalid-feedback">No puede superar los {{ kgDispatched }} kg despachados</div>
+                <label class="form-label small mb-1">Kilos a Proceso <small class="text-muted">(máx {{ fmt(kgReceivedLot) }})</small></label>
+                <input type="number" v-model.number="form.kg_to_process" class="form-control form-control-sm" step="0.01" min="0" :max="kgReceivedLot" required
+                    :class="{'is-invalid': kgToProcessExceeded}" />
+                <div v-if="kgToProcessExceeded" class="invalid-feedback">No puede superar los {{ fmt(kgReceivedLot) }} kg recepcionados</div>
             </div>
 
             <!-- Kg Exportación -->
