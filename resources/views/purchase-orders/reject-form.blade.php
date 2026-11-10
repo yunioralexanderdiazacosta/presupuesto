@@ -118,7 +118,7 @@
             </div>
         </div>
 
-        <form method="POST" action="{{ route('purchase-orders.reject', $purchaseOrder) }}">
+        <form method="POST" action="{{ request()->fullUrl() }}">
             @csrf
             <div class="form-group">
                 <label for="rejection_reason">Motivo del rechazo (opcional):</label>

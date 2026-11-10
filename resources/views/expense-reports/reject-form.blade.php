@@ -41,7 +41,7 @@
             </div>
         </div>
 
-        <form method="POST" action="{{ route('expense-reports.reject', $expenseReport) }}">
+        <form method="POST" action="{{ request()->fullUrl() }}">
             @csrf
             <div class="form-group">
                 <label for="rejection_reason">Motivo del rechazo (opcional):</label>

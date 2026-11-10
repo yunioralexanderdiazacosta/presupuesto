@@ -8,6 +8,13 @@
 export const changelog = [
   {
     fecha: '2026-11-10',
+    titulo: 'Rendiciones y Órdenes de Compra — Rechazo desde el correo',
+    items: [
+      'Corregido el error "Acceso no disponible / invalid signature" al confirmar el rechazo de una rendición o de una orden de compra desde el enlace del correo.',
+    ]
+  },
+  {
+    fecha: '2026-11-10',
     titulo: 'Remuneraciones — Nivel 3 completo en Horas Extras, Labores y Bonos',
     items: [
       'Al elegir el Nivel 3 en Horas Extras, Labores y Bonos mensuales ahora aparecen también los de Cosecha, Administración y General (por ejemplo "Cos. mano de obra"), no solo los de "Mano de obra".',
