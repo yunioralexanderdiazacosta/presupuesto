@@ -157,7 +157,7 @@ class MonthlyBonusController extends Controller
             ->select('l3.id', 'l3.name')
             ->where('l1.team_id', $user->team_id)
             ->where('l1.season_id', $seasonId)
-            ->where('l2.name', 'mano de obra')
+            ->where('l2.name', 'like', '%mano de obra%')
             ->orderBy('l3.name')
             ->get()
             ->map(fn($l) => ['value' => $l->id, 'label' => $l->name]);

@@ -7,6 +7,13 @@
 
 export const changelog = [
   {
+    fecha: '2026-11-10',
+    titulo: 'Remuneraciones — Nivel 3 completo en Horas Extras, Labores y Bonos',
+    items: [
+      'Al elegir el Nivel 3 en Horas Extras, Labores y Bonos mensuales ahora aparecen también los de Cosecha, Administración y General (por ejemplo "Cos. mano de obra"), no solo los de "Mano de obra".',
+    ]
+  },
+  {
     fecha: '2026-11-08',
     titulo: 'Cosecha — Despachos: guía, recepción de lote y proceso por separado',
     items: [
