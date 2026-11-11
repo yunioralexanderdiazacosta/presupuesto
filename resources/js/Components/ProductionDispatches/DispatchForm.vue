@@ -8,6 +8,7 @@ const props = defineProps({
     form: { type: Object, required: true },
     costCenterVarieties: { type: Array, default: () => [] },
     exporters: { type: Array, default: () => [] },
+    companyReasons: { type: Array, default: () => [] },
     packingHouses: { type: Array, default: () => [] },
     binTypes: { type: Array, default: () => [] },
     boxTypes: { type: Array, default: () => [] },
@@ -26,6 +27,14 @@ const selectedIds = computed({
             form.cost_centers.find(c => String(c.cost_center_variety_id) === String(id))
             || { cost_center_variety_id: id, kg_dispatched: '' }
         );
+
+        // Sugiere la razón social del cuartel mientras no se haya elegido una
+        if (!form.company_reason_id && form.cost_centers.length) {
+            const suggested = optionOf(form.cost_centers[0].cost_center_variety_id)?.company_reason_id;
+            if (suggested && props.companyReasons.some(r => String(r.value) === String(suggested))) {
+                form.company_reason_id = suggested;
+            }
+        }
     },
 });
 
@@ -168,6 +177,14 @@ watch(form, () => emit('update:form', form), { deep: true });
                             </div>
                             <div class="text-end small fw-bold border-top pt-1">Total guía: {{ totalKg.toLocaleString('es-CL') }} kg</div>
                         </div>
+                    </div>
+                    <div class="col-md-12">
+                        <label class="form-label small mb-1">Razón Social que emite la guía</label>
+                        <select v-model="form.company_reason_id" class="form-select form-select-sm" :class="{ 'is-invalid': form.errors.company_reason_id }" required>
+                            <option :value="''" disabled>Seleccione razón social...</option>
+                            <option v-for="opt in companyReasons" :key="opt.value" :value="opt.value">{{ opt.label }}</option>
+                        </select>
+                        <div v-if="form.errors.company_reason_id" class="text-danger small">{{ form.errors.company_reason_id }}</div>
                     </div>
                     <div class="col-md-6">
                         <div class="d-flex align-items-center justify-content-between mb-1">

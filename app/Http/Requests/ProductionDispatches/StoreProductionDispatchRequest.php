@@ -27,6 +27,10 @@ class StoreProductionDispatchRequest extends FormRequest
                 Rule::exists('cost_center_varieties', 'id')->where('team_id', $teamId)->where('season_id', $seasonId),
             ],
             'cost_centers.*.kg_dispatched' => 'required|numeric|min:0.01',
+            'company_reason_id' => [
+                'required',
+                Rule::exists('company_reasons', 'id')->where('team_id', $teamId),
+            ],
             'exporter_id' => 'required|exists:exporters,id',
             'packing_house_id' => 'required|exists:packing_houses,id',
             'dispatch_date' => 'required|date',
@@ -46,6 +50,8 @@ class StoreProductionDispatchRequest extends FormRequest
     {
         return [
             'cost_centers.required' => 'Seleccione al menos un cuartel.',
+            'company_reason_id.required' => 'Seleccione la razón social que emite la guía.',
+            'company_reason_id.exists' => 'La razón social seleccionada no es válida.',
             'cost_centers.*.cost_center_variety_id.distinct' => 'Un cuartel no puede repetirse en la misma guía.',
             'cost_centers.*.kg_dispatched.required' => 'Indique los kg de cada cuartel.',
             'cost_centers.*.kg_dispatched.min' => 'Los kg de cada cuartel deben ser mayores a 0.',

@@ -17,6 +17,7 @@ const activeTab = ref('exporters');
 const exporters = ref([]);
 const loadingExporters = ref(false);
 const exporterForm = useForm({ name: '', rut: '', contact: '' });
+const editingExporterId = ref(null);
 
 async function loadExporters() {
     loadingExporters.value = true;
@@ -29,15 +30,36 @@ async function loadExporters() {
 }
 
 function saveExporter() {
-    exporterForm.post(route('exporters.store'), {
+    const wasEditing = editingExporterId.value !== null;
+    const options = {
         preserveScroll: true,
         onSuccess: () => {
             exporterForm.reset();
+            editingExporterId.value = null;
             loadExporters();
-            Swal.fire({ icon: 'success', title: 'Exportadora creada', timer: 1000, showConfirmButton: false });
+            Swal.fire({ icon: 'success', title: wasEditing ? 'Exportadora actualizada' : 'Exportadora creada', timer: 1000, showConfirmButton: false });
         },
         onError: () => Swal.fire('Error', 'No se pudo guardar', 'error'),
-    });
+    };
+
+    if (editingExporterId.value !== null) {
+        exporterForm.put(route('exporters.update', editingExporterId.value), options);
+    } else {
+        exporterForm.post(route('exporters.store'), options);
+    }
+}
+
+function editExporter(exporter) {
+    editingExporterId.value = exporter.value;
+    exporterForm.name = exporter.name;
+    exporterForm.rut = exporter.rut || '';
+    exporterForm.contact = exporter.contact || '';
+}
+
+function cancelEditExporter() {
+    editingExporterId.value = null;
+    exporterForm.reset();
+    exporterForm.clearErrors();
 }
 
 function deleteExporter(id) {
@@ -62,6 +84,7 @@ function deleteExporter(id) {
 const packingHouses = ref([]);
 const loadingPackings = ref(false);
 const packingForm = useForm({ name: '', address: '' });
+const editingPackingHouseId = ref(null);
 
 async function loadPackingHouses() {
     loadingPackings.value = true;
@@ -74,15 +97,35 @@ async function loadPackingHouses() {
 }
 
 function savePackingHouse() {
-    packingForm.post(route('packing-houses.store'), {
+    const wasEditing = editingPackingHouseId.value !== null;
+    const options = {
         preserveScroll: true,
         onSuccess: () => {
             packingForm.reset();
+            editingPackingHouseId.value = null;
             loadPackingHouses();
-            Swal.fire({ icon: 'success', title: 'Packing creado', timer: 1000, showConfirmButton: false });
+            Swal.fire({ icon: 'success', title: wasEditing ? 'Packing actualizado' : 'Packing creado', timer: 1000, showConfirmButton: false });
         },
         onError: () => Swal.fire('Error', 'No se pudo guardar', 'error'),
-    });
+    };
+
+    if (editingPackingHouseId.value !== null) {
+        packingForm.put(route('packing-houses.update', editingPackingHouseId.value), options);
+    } else {
+        packingForm.post(route('packing-houses.store'), options);
+    }
+}
+
+function editPackingHouse(packingHouse) {
+    editingPackingHouseId.value = packingHouse.value;
+    packingForm.name = packingHouse.name;
+    packingForm.address = packingHouse.address || '';
+}
+
+function cancelEditPackingHouse() {
+    editingPackingHouseId.value = null;
+    packingForm.reset();
+    packingForm.clearErrors();
 }
 
 function deletePackingHouse(id) {
@@ -200,6 +243,8 @@ watch(() => props.show, (val) => {
 const binTypes = ref([]);
 const loadingBinTypes = ref(false);
 const binTypeForm = ref({ name: '' });
+const editingBinTypeId = ref(null);
+const editingBinTypeIsActive = ref(true);
 
 async function loadBinTypes() {
     loadingBinTypes.value = true;
@@ -213,18 +258,38 @@ async function loadBinTypes() {
 
 async function saveBinType() {
     if (!binTypeForm.value.name) return;
+    const wasEditing = editingBinTypeId.value !== null;
     try {
-        await axios.post(route('bin-types.store'), binTypeForm.value);
+        if (editingBinTypeId.value !== null) {
+            await axios.put(route('bin-types.update', editingBinTypeId.value), {
+                name: binTypeForm.value.name,
+                is_active: editingBinTypeIsActive.value,
+            });
+        } else {
+            await axios.post(route('bin-types.store'), binTypeForm.value);
+        }
         binTypeForm.value.name = '';
+        editingBinTypeId.value = null;
         loadBinTypes();
-        Swal.fire({ icon: 'success', title: 'Tipo de bin creado', timer: 1000, showConfirmButton: false });
+        Swal.fire({ icon: 'success', title: wasEditing ? 'Tipo de bin actualizado' : 'Tipo de bin creado', timer: 1000, showConfirmButton: false });
     } catch {
         Swal.fire('Error', 'No se pudo guardar', 'error');
     }
 }
 
+function editBinType(item) {
+    editingBinTypeId.value = item.value;
+    editingBinTypeIsActive.value = item.is_active !== false;
+    binTypeForm.value.name = item.name || item.label;
+}
+
+function cancelEditBinType() {
+    editingBinTypeId.value = null;
+    binTypeForm.value.name = '';
+}
+
 function toggleBinType(item) {
-    axios.put(route('bin-types.update', item.value), { name: item.label, is_active: !item.is_active }).then(() => {
+    axios.put(route('bin-types.update', item.value), { name: item.name || item.label, is_active: !item.is_active }).then(() => {
         loadBinTypes();
     }).catch(() => Swal.fire('Error', 'No se pudo actualizar', 'error'));
 }
@@ -251,6 +316,8 @@ function deleteBinType(id) {
 const boxTypes = ref([]);
 const loadingBoxTypes = ref(false);
 const boxTypeForm = ref({ name: '' });
+const editingBoxTypeId = ref(null);
+const editingBoxTypeIsActive = ref(true);
 
 async function loadBoxTypes() {
     loadingBoxTypes.value = true;
@@ -264,18 +331,38 @@ async function loadBoxTypes() {
 
 async function saveBoxType() {
     if (!boxTypeForm.value.name) return;
+    const wasEditing = editingBoxTypeId.value !== null;
     try {
-        await axios.post(route('box-types.store'), boxTypeForm.value);
+        if (editingBoxTypeId.value !== null) {
+            await axios.put(route('box-types.update', editingBoxTypeId.value), {
+                name: boxTypeForm.value.name,
+                is_active: editingBoxTypeIsActive.value,
+            });
+        } else {
+            await axios.post(route('box-types.store'), boxTypeForm.value);
+        }
         boxTypeForm.value.name = '';
+        editingBoxTypeId.value = null;
         loadBoxTypes();
-        Swal.fire({ icon: 'success', title: 'Tipo de caja creado', timer: 1000, showConfirmButton: false });
+        Swal.fire({ icon: 'success', title: wasEditing ? 'Tipo de caja actualizado' : 'Tipo de caja creado', timer: 1000, showConfirmButton: false });
     } catch {
         Swal.fire('Error', 'No se pudo guardar', 'error');
     }
 }
 
+function editBoxType(item) {
+    editingBoxTypeId.value = item.value;
+    editingBoxTypeIsActive.value = item.is_active !== false;
+    boxTypeForm.value.name = item.name || item.label;
+}
+
+function cancelEditBoxType() {
+    editingBoxTypeId.value = null;
+    boxTypeForm.value.name = '';
+}
+
 function toggleBoxType(item) {
-    axios.put(route('box-types.update', item.value), { name: item.label, is_active: !item.is_active }).then(() => {
+    axios.put(route('box-types.update', item.value), { name: item.name || item.label, is_active: !item.is_active }).then(() => {
         loadBoxTypes();
     }).catch(() => Swal.fire('Error', 'No se pudo actualizar', 'error'));
 }
@@ -302,6 +389,8 @@ function deleteBoxType(id) {
 const carriers = ref([]);
 const loadingCarriers = ref(false);
 const carrierForm = ref({ name: '' });
+const editingCarrierId = ref(null);
+const editingCarrierIsActive = ref(true);
 
 async function loadCarriers() {
     loadingCarriers.value = true;
@@ -315,18 +404,38 @@ async function loadCarriers() {
 
 async function saveCarrier() {
     if (!carrierForm.value.name) return;
+    const wasEditing = editingCarrierId.value !== null;
     try {
-        await axios.post(route('carriers.store'), carrierForm.value);
+        if (editingCarrierId.value !== null) {
+            await axios.put(route('carriers.update', editingCarrierId.value), {
+                name: carrierForm.value.name,
+                is_active: editingCarrierIsActive.value,
+            });
+        } else {
+            await axios.post(route('carriers.store'), carrierForm.value);
+        }
         carrierForm.value.name = '';
+        editingCarrierId.value = null;
         loadCarriers();
-        Swal.fire({ icon: 'success', title: 'Transportista creado', timer: 1000, showConfirmButton: false });
+        Swal.fire({ icon: 'success', title: wasEditing ? 'Transportista actualizado' : 'Transportista creado', timer: 1000, showConfirmButton: false });
     } catch {
         Swal.fire('Error', 'No se pudo guardar', 'error');
     }
 }
 
+function editCarrier(item) {
+    editingCarrierId.value = item.value;
+    editingCarrierIsActive.value = item.is_active !== false;
+    carrierForm.value.name = item.name || item.label;
+}
+
+function cancelEditCarrier() {
+    editingCarrierId.value = null;
+    carrierForm.value.name = '';
+}
+
 function toggleCarrier(item) {
-    axios.put(route('carriers.update', item.value), { name: item.label, is_active: !item.is_active }).then(() => {
+    axios.put(route('carriers.update', item.value), { name: item.name || item.label, is_active: !item.is_active }).then(() => {
         loadCarriers();
     }).catch(() => Swal.fire('Error', 'No se pudo actualizar', 'error'));
 }
@@ -409,22 +518,30 @@ function deleteCarrier(id) {
                                 <input v-model="exporterForm.contact" type="text" class="form-control form-control-sm" placeholder="Contacto (opcional)" />
                             </div>
                             <div class="col-md-2">
-                                <button class="btn btn-sm btn-primary w-100" @click="saveExporter" :disabled="!exporterForm.name || exporterForm.processing">
-                                    <i class="fas fa-plus me-1"></i>Agregar
-                                </button>
+                                <div class="d-flex gap-1">
+                                    <button class="btn btn-sm btn-primary flex-grow-1" @click="saveExporter" :disabled="!exporterForm.name || exporterForm.processing">
+                                        <i :class="editingExporterId !== null ? 'fas fa-save me-1' : 'fas fa-plus me-1'"></i>{{ editingExporterId !== null ? 'Guardar' : 'Agregar' }}
+                                    </button>
+                                    <button v-if="editingExporterId !== null" class="btn btn-sm btn-light" @click="cancelEditExporter" title="Cancelar edición">
+                                        <i class="fas fa-times"></i>
+                                    </button>
+                                </div>
                             </div>
                         </div>
                         <div class="table-responsive">
                             <table class="table table-sm table-bordered fs-10 mb-0">
                                 <thead class="table-light">
-                                    <tr><th>Nombre</th><th>RUT</th><th>Contacto</th><th style="width:60px;"></th></tr>
+                                    <tr><th>Nombre</th><th>RUT</th><th>Contacto</th><th style="width:80px;"></th></tr>
                                 </thead>
                                 <tbody>
-                                    <tr v-for="e in exporters" :key="e.value">
-                                        <td>{{ e.label }}</td>
+                                    <tr v-for="e in exporters" :key="e.value" :class="{ 'table-warning': String(editingExporterId) === String(e.value) }">
+                                        <td>{{ e.name }}</td>
                                         <td>{{ e.rut || '-' }}</td>
                                         <td>{{ e.contact || '-' }}</td>
                                         <td class="text-center">
+                                            <button class="btn btn-sm p-1" @click="editExporter(e)" title="Editar">
+                                                <i class="fas fa-pen text-primary"></i>
+                                            </button>
                                             <button class="btn btn-sm p-1" @click="deleteExporter(e.value)" title="Eliminar">
                                                 <i class="fas fa-times text-danger"></i>
                                             </button>
@@ -448,21 +565,29 @@ function deleteCarrier(id) {
                                 <input v-model="packingForm.address" type="text" class="form-control form-control-sm" placeholder="Dirección (opcional)" />
                             </div>
                             <div class="col-md-2">
-                                <button class="btn btn-sm btn-primary w-100" @click="savePackingHouse" :disabled="!packingForm.name || packingForm.processing">
-                                    <i class="fas fa-plus me-1"></i>Agregar
-                                </button>
+                                <div class="d-flex gap-1">
+                                    <button class="btn btn-sm btn-primary flex-grow-1" @click="savePackingHouse" :disabled="!packingForm.name || packingForm.processing">
+                                        <i :class="editingPackingHouseId !== null ? 'fas fa-save me-1' : 'fas fa-plus me-1'"></i>{{ editingPackingHouseId !== null ? 'Guardar' : 'Agregar' }}
+                                    </button>
+                                    <button v-if="editingPackingHouseId !== null" class="btn btn-sm btn-light" @click="cancelEditPackingHouse" title="Cancelar edición">
+                                        <i class="fas fa-times"></i>
+                                    </button>
+                                </div>
                             </div>
                         </div>
                         <div class="table-responsive">
                             <table class="table table-sm table-bordered fs-10 mb-0">
                                 <thead class="table-light">
-                                    <tr><th>Nombre</th><th>Dirección</th><th style="width:60px;"></th></tr>
+                                    <tr><th>Nombre</th><th>Dirección</th><th style="width:80px;"></th></tr>
                                 </thead>
                                 <tbody>
-                                    <tr v-for="p in packingHouses" :key="p.value">
+                                    <tr v-for="p in packingHouses" :key="p.value" :class="{ 'table-warning': String(editingPackingHouseId) === String(p.value) }">
                                         <td>{{ p.label }}</td>
                                         <td>{{ p.address || '-' }}</td>
                                         <td class="text-center">
+                                            <button class="btn btn-sm p-1" @click="editPackingHouse(p)" title="Editar">
+                                                <i class="fas fa-pen text-primary"></i>
+                                            </button>
                                             <button class="btn btn-sm p-1" @click="deletePackingHouse(p.value)" title="Eliminar">
                                                 <i class="fas fa-times text-danger"></i>
                                             </button>
@@ -483,25 +608,33 @@ function deleteCarrier(id) {
                                 <input v-model="binTypeForm.name" type="text" class="form-control form-control-sm" placeholder="Nombre del tipo de bin" />
                             </div>
                             <div class="col-md-4">
-                                <button class="btn btn-sm btn-primary w-100" @click="saveBinType" :disabled="!binTypeForm.name">
-                                    <i class="fas fa-plus me-1"></i>Agregar
-                                </button>
+                                <div class="d-flex gap-1">
+                                    <button class="btn btn-sm btn-primary flex-grow-1" @click="saveBinType" :disabled="!binTypeForm.name">
+                                        <i :class="editingBinTypeId !== null ? 'fas fa-save me-1' : 'fas fa-plus me-1'"></i>{{ editingBinTypeId !== null ? 'Guardar' : 'Agregar' }}
+                                    </button>
+                                    <button v-if="editingBinTypeId !== null" class="btn btn-sm btn-light" @click="cancelEditBinType" title="Cancelar edición">
+                                        <i class="fas fa-times"></i>
+                                    </button>
+                                </div>
                             </div>
                         </div>
                         <div class="table-responsive">
                             <table class="table table-sm table-bordered fs-10 mb-0">
                                 <thead class="table-light">
-                                    <tr><th>Nombre</th><th style="width:80px;">Estado</th><th style="width:60px;"></th></tr>
+                                    <tr><th>Nombre</th><th style="width:80px;">Estado</th><th style="width:80px;"></th></tr>
                                 </thead>
                                 <tbody>
-                                    <tr v-for="b in binTypes" :key="b.value">
+                                    <tr v-for="b in binTypes" :key="b.value" :class="{ 'table-warning': String(editingBinTypeId) === String(b.value) }">
                                         <td>{{ b.label }}</td>
                                         <td class="text-center">
                                             <div class="form-check form-switch d-flex justify-content-center mb-0">
-                                                <input class="form-check-input" type="checkbox" :checked="b.is_active !== false" @change="toggleBinType(b)" />
+                                                <input class="form-check-input" type="checkbox" :checked="b.is_active !== false" :disabled="String(editingBinTypeId) === String(b.value)" @change="toggleBinType(b)" />
                                             </div>
                                         </td>
                                         <td class="text-center">
+                                            <button class="btn btn-sm p-1" @click="editBinType(b)" title="Editar">
+                                                <i class="fas fa-pen text-primary"></i>
+                                            </button>
                                             <button class="btn btn-sm p-1" @click="deleteBinType(b.value)" title="Eliminar">
                                                 <i class="fas fa-times text-danger"></i>
                                             </button>
@@ -522,25 +655,33 @@ function deleteCarrier(id) {
                                 <input v-model="boxTypeForm.name" type="text" class="form-control form-control-sm" placeholder="Nombre del tipo de caja" />
                             </div>
                             <div class="col-md-4">
-                                <button class="btn btn-sm btn-primary w-100" @click="saveBoxType" :disabled="!boxTypeForm.name">
-                                    <i class="fas fa-plus me-1"></i>Agregar
-                                </button>
+                                <div class="d-flex gap-1">
+                                    <button class="btn btn-sm btn-primary flex-grow-1" @click="saveBoxType" :disabled="!boxTypeForm.name">
+                                        <i :class="editingBoxTypeId !== null ? 'fas fa-save me-1' : 'fas fa-plus me-1'"></i>{{ editingBoxTypeId !== null ? 'Guardar' : 'Agregar' }}
+                                    </button>
+                                    <button v-if="editingBoxTypeId !== null" class="btn btn-sm btn-light" @click="cancelEditBoxType" title="Cancelar edición">
+                                        <i class="fas fa-times"></i>
+                                    </button>
+                                </div>
                             </div>
                         </div>
                         <div class="table-responsive">
                             <table class="table table-sm table-bordered fs-10 mb-0">
                                 <thead class="table-light">
-                                    <tr><th>Nombre</th><th style="width:80px;">Estado</th><th style="width:60px;"></th></tr>
+                                    <tr><th>Nombre</th><th style="width:80px;">Estado</th><th style="width:80px;"></th></tr>
                                 </thead>
                                 <tbody>
-                                    <tr v-for="b in boxTypes" :key="b.value">
+                                    <tr v-for="b in boxTypes" :key="b.value" :class="{ 'table-warning': String(editingBoxTypeId) === String(b.value) }">
                                         <td>{{ b.label }}</td>
                                         <td class="text-center">
                                             <div class="form-check form-switch d-flex justify-content-center mb-0">
-                                                <input class="form-check-input" type="checkbox" :checked="b.is_active !== false" @change="toggleBoxType(b)" />
+                                                <input class="form-check-input" type="checkbox" :checked="b.is_active !== false" :disabled="String(editingBoxTypeId) === String(b.value)" @change="toggleBoxType(b)" />
                                             </div>
                                         </td>
                                         <td class="text-center">
+                                            <button class="btn btn-sm p-1" @click="editBoxType(b)" title="Editar">
+                                                <i class="fas fa-pen text-primary"></i>
+                                            </button>
                                             <button class="btn btn-sm p-1" @click="deleteBoxType(b.value)" title="Eliminar">
                                                 <i class="fas fa-times text-danger"></i>
                                             </button>
@@ -561,25 +702,33 @@ function deleteCarrier(id) {
                                 <input v-model="carrierForm.name" type="text" class="form-control form-control-sm" placeholder="Nombre del transportista" />
                             </div>
                             <div class="col-md-4">
-                                <button class="btn btn-sm btn-primary w-100" @click="saveCarrier" :disabled="!carrierForm.name">
-                                    <i class="fas fa-plus me-1"></i>Agregar
-                                </button>
+                                <div class="d-flex gap-1">
+                                    <button class="btn btn-sm btn-primary flex-grow-1" @click="saveCarrier" :disabled="!carrierForm.name">
+                                        <i :class="editingCarrierId !== null ? 'fas fa-save me-1' : 'fas fa-plus me-1'"></i>{{ editingCarrierId !== null ? 'Guardar' : 'Agregar' }}
+                                    </button>
+                                    <button v-if="editingCarrierId !== null" class="btn btn-sm btn-light" @click="cancelEditCarrier" title="Cancelar edición">
+                                        <i class="fas fa-times"></i>
+                                    </button>
+                                </div>
                             </div>
                         </div>
                         <div class="table-responsive">
                             <table class="table table-sm table-bordered fs-10 mb-0">
                                 <thead class="table-light">
-                                    <tr><th>Nombre</th><th style="width:80px;">Estado</th><th style="width:60px;"></th></tr>
+                                    <tr><th>Nombre</th><th style="width:80px;">Estado</th><th style="width:80px;"></th></tr>
                                 </thead>
                                 <tbody>
-                                    <tr v-for="c in carriers" :key="c.value">
+                                    <tr v-for="c in carriers" :key="c.value" :class="{ 'table-warning': String(editingCarrierId) === String(c.value) }">
                                         <td>{{ c.label }}</td>
                                         <td class="text-center">
                                             <div class="form-check form-switch d-flex justify-content-center mb-0">
-                                                <input class="form-check-input" type="checkbox" :checked="c.is_active !== false" @change="toggleCarrier(c)" />
+                                                <input class="form-check-input" type="checkbox" :checked="c.is_active !== false" :disabled="String(editingCarrierId) === String(c.value)" @change="toggleCarrier(c)" />
                                             </div>
                                         </td>
                                         <td class="text-center">
+                                            <button class="btn btn-sm p-1" @click="editCarrier(c)" title="Editar">
+                                                <i class="fas fa-pen text-primary"></i>
+                                            </button>
                                             <button class="btn btn-sm p-1" @click="deleteCarrier(c.value)" title="Eliminar">
                                                 <i class="fas fa-times text-danger"></i>
                                             </button>

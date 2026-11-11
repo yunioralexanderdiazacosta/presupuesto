@@ -14,10 +14,12 @@ class GetPackingHousesController extends Controller
 
         return PackingHouse::where('team_id', $user->team_id)
             ->orderBy('name')
-            ->get(['id', 'name'])
+            ->get(['id', 'name', 'address'])
             ->map(fn($p) => [
                 'value' => $p->id,
                 'label' => $p->name,
+                'name' => $p->name,
+                'address' => $p->address,
             ]);
     }
 }

@@ -8,6 +8,7 @@ const props = defineProps({
     show: Boolean,
     costCenterVarieties: Array,
     exporters: Array,
+    companyReasons: Array,
     packingHouses: Array,
     binTypes: Array,
     boxTypes: Array,
@@ -18,6 +19,7 @@ const emit = defineEmits(['close', 'saved']);
 
 const form = useForm({
     cost_centers: [],
+    company_reason_id: '',
     exporter_id: '',
     packing_house_id: '',
     dispatch_date: '',
@@ -71,6 +73,7 @@ function save() {
                         :form="form"
                         :costCenterVarieties="costCenterVarieties"
                         :exporters="exporters"
+                        :companyReasons="companyReasons"
                         :packingHouses="packingHouses"
                         :binTypes="binTypes"
                         :boxTypes="boxTypes"

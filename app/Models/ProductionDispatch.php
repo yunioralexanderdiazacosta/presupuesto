@@ -11,6 +11,7 @@ class ProductionDispatch extends Model
 
     protected $fillable = [
         'exporter_id',
+        'company_reason_id',
         'packing_house_id',
         'season_id',
         'team_id',
@@ -50,6 +51,12 @@ class ProductionDispatch extends Model
     public function exporter()
     {
         return $this->belongsTo(Exporter::class);
+    }
+
+    /** Razón social que emite la guía de despacho. */
+    public function companyReason()
+    {
+        return $this->belongsTo(CompanyReason::class);
     }
 
     public function packingHouse()

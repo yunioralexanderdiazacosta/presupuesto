@@ -14,10 +14,13 @@ class GetExportersController extends Controller
 
         return Exporter::where('team_id', $user->team_id)
             ->orderBy('name')
-            ->get(['id', 'name', 'rut'])
+            ->get(['id', 'name', 'rut', 'contact'])
             ->map(fn($e) => [
                 'value' => $e->id,
                 'label' => $e->name . ($e->rut ? ' (' . $e->rut . ')' : ''),
+                'name' => $e->name,
+                'rut' => $e->rut,
+                'contact' => $e->contact,
             ]);
     }
 }

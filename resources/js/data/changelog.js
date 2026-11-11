@@ -7,6 +7,39 @@
 
 export const changelog = [
   {
+    fecha: '2026-11-11',
+    titulo: 'Cosecha — Despachos: razón social que emite la guía',
+    items: [
+      'Al crear o editar un despacho ahora es obligatorio indicar la razón social que emite la guía de despacho. Al elegir el cuartel se sugiere la razón social del cuartel, y se puede cambiar.',
+      'La razón social aparece en la tabla de despachos, en el detalle del lote, en el buscador y en el Excel, y el filtro "Razón Social" de la pantalla usa la que emite la guía.',
+      'Las guías ya ingresadas quedaron con la razón social de su cuartel; si no corresponde, se corrige con "Editar guía".',
+    ]
+  },
+  {
+    fecha: '2026-11-11',
+    titulo: 'Cosecha — Despachos de Producción: todas las guías y nuevos filtros',
+    items: [
+      'La pantalla de Despachos de Producción ahora muestra todas las guías de la temporada en una sola lista, sin páginas.',
+      'Nuevos filtros por Sucursal, Razón Social, Variedad y rango de fechas de despacho (Desde / Hasta), además del estado y la búsqueda por texto.',
+      'Los totales de arriba y el Excel se calculan con las guías que quedan después de aplicar los filtros. Botón "Limpiar" para quitar todos los filtros.',
+    ]
+  },
+  {
+    fecha: '2026-11-11',
+    titulo: 'Cosecha — Exportar Despachos de Producción a Excel',
+    items: [
+      'Nuevo botón "Excel" en Despachos de Producción que descarga lo mismo que muestra la tabla (una fila por lote), respetando la búsqueda y el filtro de estado aplicados.',
+    ]
+  },
+  {
+    fecha: '2026-11-11',
+    titulo: 'Cosecha — Edición de catálogos de producción',
+    items: [
+      'Ahora puedes corregir los nombres, RUT, contactos y direcciones de exportadoras y packings, además de los nombres de tipos de bins, tipos de cajas y transportistas.',
+      'Al editar un catálogo se conservan su estado activo o inactivo y los datos que no estás modificando.',
+    ]
+  },
+  {
     fecha: '2026-11-10',
     titulo: 'Rendiciones y Órdenes de Compra — Rechazo desde el correo',
     items: [

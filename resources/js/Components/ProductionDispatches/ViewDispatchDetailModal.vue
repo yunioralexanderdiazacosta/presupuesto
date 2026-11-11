@@ -78,6 +78,9 @@ function formatDate(dateStr) {
                                     <i class="fas fa-map-marker-alt me-1"></i>{{ c.cost_center_variety?.cost_center?.name || '-' }}
                                     <small>· {{ c.cost_center_variety?.variety?.name || '-' }}<template v-if="c.cost_center_variety?.fruit"> ({{ c.cost_center_variety.fruit.name }})</template></small>
                                 </span>
+                                <span class="badge bg-soft-info text-info px-2 py-1" v-if="dispatch.company_reason">
+                                    <i class="fas fa-file-invoice me-1"></i>{{ dispatch.company_reason.name }}
+                                </span>
                                 <span class="badge bg-soft-info text-info px-2 py-1">
                                     <i class="fas fa-building me-1"></i>{{ dispatch.exporter?.name || '-' }}
                                 </span>

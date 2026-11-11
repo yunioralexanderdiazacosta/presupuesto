@@ -3,6 +3,8 @@
 namespace App\Http\Controllers\ProductionDispatches;
 
 use App\Http\Controllers\Controller;
+use App\Models\Branch;
+use App\Models\CompanyReason;
 use App\Models\ProductionDispatch;
 use App\Models\CostCenterVariety;
 use App\Models\Exporter;
@@ -32,6 +34,7 @@ class ProductionDispatchController extends Controller
                 'costCenters.costCenterVariety.variety',
                 'costCenters.costCenterVariety.fruit',
                 'exporter',
+                'companyReason:id,name,rut',
                 'packingHouse',
                 'binType',
                 'boxType',
@@ -41,18 +44,41 @@ class ProductionDispatchController extends Controller
             ->where('team_id', $user->team_id)
             ->where('season_id', $seasonId)
             ->latest('dispatch_date')
-            ->paginate(20);
+            ->get();
 
         // Centros de costo con sus variedades (para el select anidado)
-        $costCenterVarieties = CostCenterVariety::with(['costCenter', 'variety', 'fruit'])
+        $costCenterVarietyModels = CostCenterVariety::with(['costCenter', 'variety', 'fruit'])
             ->where('team_id', $user->team_id)
             ->where('season_id', $seasonId)
-            ->get()
+            ->get();
+
+        // Opciones de los filtros de la vista
+        $branches = Branch::where('season_id', $seasonId)
+            ->where('team_id', $user->team_id)
+            ->orderBy('name')
+            ->get(['id', 'name'])
+            ->map(fn($b) => ['value' => $b->id, 'label' => $b->name]);
+
+        $companyReasons = CompanyReason::where('team_id', $user->team_id)
+            ->orderBy('name')
+            ->get(['id', 'name'])
+            ->map(fn($c) => ['value' => $c->id, 'label' => $c->name]);
+
+        $varieties = $costCenterVarietyModels
+            ->filter(fn($ccv) => $ccv->variety)
+            ->unique('variety_id')
+            ->sortBy(fn($ccv) => $ccv->variety->name)
+            ->map(fn($ccv) => ['value' => $ccv->variety_id, 'label' => $ccv->variety->name])
+            ->values();
+
+        $costCenterVarieties = $costCenterVarietyModels
             ->map(fn($ccv) => [
                 'value' => $ccv->id,
                 'label' => ($ccv->costCenter->name ?? '') . ' - ' . ($ccv->variety->name ?? '') . ' (' . ($ccv->fruit->name ?? '') . ')',
                 'fruit_id' => $ccv->fruit_id,
-            ]);
+                'company_reason_id' => $ccv->costCenter->company_reason_id ?? null,
+            ])
+            ->values();
 
         $exporters = Exporter::where('team_id', $user->team_id)
             ->orderBy('name')
@@ -110,6 +136,9 @@ class ProductionDispatchController extends Controller
 
         return Inertia::render('ProductionDispatches/Index', [
             'dispatches' => $dispatches,
+            'branches' => $branches,
+            'companyReasons' => $companyReasons,
+            'varieties' => $varieties,
             'costCenterVarieties' => $costCenterVarieties,
             'exporters' => $exporters,
             'packingHouses' => $packingHouses,

@@ -37,6 +37,12 @@ function exportExcel() {
       const obj = {};
       props.headers.forEach(h => {
         const rawValue = getValueByPath(row, h.key);
+
+        // type: 'text' conserva el valor tal cual (ej. N° de guía o lote con ceros o puntos)
+        if (h.type === 'text') {
+          obj[h.label] = rawValue === null || rawValue === undefined ? '' : String(rawValue);
+          return;
+        }
         
         // Si el valor ya es un número, usarlo directamente sin conversión
         if (typeof rawValue === 'number') {

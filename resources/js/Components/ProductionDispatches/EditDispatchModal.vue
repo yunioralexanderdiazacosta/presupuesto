@@ -9,6 +9,7 @@ const props = defineProps({
     dispatch: Object,
     costCenterVarieties: Array,
     exporters: Array,
+    companyReasons: Array,
     packingHouses: Array,
     binTypes: Array,
     boxTypes: Array,
@@ -19,6 +20,7 @@ const emit = defineEmits(['close', 'saved']);
 
 const form = useForm({
     cost_centers: [],
+    company_reason_id: '',
     exporter_id: '',
     packing_house_id: '',
     dispatch_date: '',
@@ -39,6 +41,7 @@ watch(() => props.show, (val) => {
             cost_center_variety_id: c.cost_center_variety_id,
             kg_dispatched: Number(c.kg_dispatched),
         }));
+        form.company_reason_id = props.dispatch.company_reason_id || '';
         form.exporter_id = props.dispatch.exporter_id;
         form.packing_house_id = props.dispatch.packing_house_id;
         form.dispatch_date = props.dispatch.dispatch_date;
@@ -88,6 +91,7 @@ function save() {
                         :form="form"
                         :costCenterVarieties="costCenterVarieties"
                         :exporters="exporters"
+                        :companyReasons="companyReasons"
                         :packingHouses="packingHouses"
                         :binTypes="binTypes"
                         :boxTypes="boxTypes"
