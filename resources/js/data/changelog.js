@@ -8,6 +8,14 @@
 export const changelog = [
   {
     fecha: '2026-11-18',
+    titulo: 'Dashboard — "Cosecha" aparecía duplicada en el gráfico por Nivel 1',
+    items: [
+      'Corregido: en el gráfico "Totales agrupados por Nivel 1" el ítem Cosecha aparecía en dos barras. Algunas cosechas estaban asociadas a una subfamilia de otra temporada y ahora quedaron asociadas a la de la temporada activa. Los totales no cambian.',
+      'Al crear o editar una cosecha ahora se valida que la subfamilia pertenezca a la temporada activa.',
+    ]
+  },
+  {
+    fecha: '2026-11-18',
     titulo: 'Usuarios — Módulos de Cosecha en el acceso por módulos',
     items: [
       'Al restringir los módulos de un usuario (o de una empresa) ahora aparecen todas las vistas de Cosecha: Resumen Diario de Cosecha, Análisis de Cosecha y Análisis de Clasificación.',

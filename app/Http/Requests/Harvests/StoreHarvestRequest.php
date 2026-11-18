@@ -2,6 +2,7 @@
 
 namespace App\Http\Requests\Harvests;
 
+use App\Rules\SubfamilyInActiveSeason;
 use Illuminate\Foundation\Http\FormRequest;
 
 class StoreHarvestRequest extends FormRequest
@@ -24,7 +25,7 @@ class StoreHarvestRequest extends FormRequest
         $inversionId = \App\Models\Operation::whereRaw('LOWER(name) LIKE ?', ['%inversion%'])->value('id');
         return [
             'cc' => 'required',
-            'subfamily_id' => 'required',
+            'subfamily_id' => ['required', new SubfamilyInActiveSeason('Cosecha')],
             'operation_id' => 'required|exists:operations,id',
             'investment_id' => $inversionId ? "nullable|exists:investments,id|required_if:operation_id,{$inversionId}" : 'nullable|exists:investments,id',
             'products' => 'required|array',

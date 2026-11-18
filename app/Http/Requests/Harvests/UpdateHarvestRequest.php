@@ -2,6 +2,7 @@
 
 namespace App\Http\Requests\Harvests;
 
+use App\Rules\SubfamilyInActiveSeason;
 use Illuminate\Foundation\Http\FormRequest;
 
 class UpdateHarvestRequest extends FormRequest
@@ -26,7 +27,7 @@ class UpdateHarvestRequest extends FormRequest
             'product_name' => 'required',
             'quantity' => 'required',
             'price' => 'required',
-            'subfamily_id' => 'required',
+            'subfamily_id' => ['required', new SubfamilyInActiveSeason('Cosecha')],
             'operation_id' => 'required|exists:operations,id',
             'investment_id' => $inversionId ? "nullable|exists:investments,id|required_if:operation_id,{$inversionId}" : 'nullable|exists:investments,id',
             'unit_id' => 'required',
