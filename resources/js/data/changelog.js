@@ -7,6 +7,14 @@
 
 export const changelog = [
   {
+    fecha: '2026-11-18',
+    titulo: 'Usuarios — Módulos de Cosecha en el acceso por módulos',
+    items: [
+      'Al restringir los módulos de un usuario (o de una empresa) ahora aparecen todas las vistas de Cosecha: Resumen Diario de Cosecha, Análisis de Cosecha y Análisis de Clasificación.',
+      'El grupo "Producción" del selector de módulos pasó a llamarse "Cosecha", igual que en el menú lateral.',
+    ]
+  },
+  {
     fecha: '2026-11-11',
     titulo: 'Cosecha — Despachos: razón social que emite la guía',
     items: [

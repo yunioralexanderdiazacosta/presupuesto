@@ -19,7 +19,7 @@ class ModuleAccess
     /** Primer nivel del menú lateral => submenús (campo 'section' del catálogo) que agrupa. */
     public const GROUPS = [
         'Presupuestos' => ['Presupuestos', 'Presupuestar por CC'],
-        'Gestión' => ['Gestión', 'Registro de Gastos', 'Salidas', 'Agroquímicos', 'Fertilizantes', 'Producción', 'Maquinarias'],
+        'Gestión' => ['Gestión', 'Registro de Gastos', 'Salidas', 'Agroquímicos', 'Fertilizantes', 'Cosecha', 'Maquinarias'],
         'Remuneraciones' => ['Remuneraciones'],
         'Evaluación de Proyectos' => ['Planificación'],
         'Parámetros' => ['Parámetros'],
