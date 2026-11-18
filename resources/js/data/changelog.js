@@ -12,6 +12,7 @@ export const changelog = [
     items: [
       'Al restringir los módulos de un usuario (o de una empresa) ahora aparecen todas las vistas de Cosecha: Resumen Diario de Cosecha, Análisis de Cosecha y Análisis de Clasificación.',
       'El grupo "Producción" del selector de módulos pasó a llamarse "Cosecha", igual que en el menú lateral.',
+      'Corregido: los usuarios con módulos restringidos que tenían "Ingresar Cosecha" no podían guardar, editar ni eliminar lotes en "Recepcionar lote".',
     ]
   },
   {
