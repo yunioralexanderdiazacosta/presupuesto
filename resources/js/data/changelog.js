@@ -7,6 +7,25 @@
 
 export const changelog = [
   {
+    fecha: '2026-11-19',
+    titulo: 'Cosecha — Barra de acceso directo entre vistas',
+    items: [
+      'Ahora Ingresar Cosecha, Resumen Diario, Análisis de Cosecha y Análisis de Clasificación tienen una barra de pestañas arriba para pasar de una vista a otra sin volver al menú lateral. Se quitaron los botones que saltaban entre Análisis de Cosecha y Clasificación, porque la barra los reemplaza.',
+      'La barra solo muestra las vistas a las que el usuario tiene acceso.',
+      'Corregido: los usuarios con módulos restringidos que tenían "Ingresar Cosecha" ahora también pueden guardar, editar y eliminar procesos de lotes.',
+    ]
+  },
+  {
+    fecha: '2026-11-19',
+    titulo: 'Despachos de Producción — Un proceso para varios lotes',
+    items: [
+      'Ahora un proceso del packing se registra una sola vez aunque incluya varios lotes, incluso de guías distintas: en "Procesar lotes" puedes agregar los lotes, indicar los kilos que aporta cada uno y el sistema reparte automáticamente exportación, nacional, industrial, descarte y clasificaciones en proporción a esos kilos.',
+      'El proceso lleva un N° de proceso que ingresa el usuario, y antes de guardar se muestra cómo quedará repartido cada lote.',
+      'Un lote puede participar en más de un proceso: se muestra su saldo sin procesar y no se permite aportar más kilos de los disponibles.',
+      'Los procesos ya registrados se mantienen: cada lote procesado quedó como un proceso de un solo lote y se puede corregir o eliminar desde el mismo botón de proceso.',
+    ]
+  },
+  {
     fecha: '2026-11-18',
     titulo: 'Dashboard — "Cosecha" aparecía duplicada en el gráfico por Nivel 1',
     items: [

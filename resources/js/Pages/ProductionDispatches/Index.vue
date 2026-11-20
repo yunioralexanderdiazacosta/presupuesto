@@ -5,6 +5,7 @@ import { router, Head } from '@inertiajs/vue3';
 import Multiselect from '@vueform/multiselect';
 import AppLayout from '@/Layouts/AppLayout.vue';
 import Breadcrumb from '@/Components/Breadcrumb.vue';
+import HarvestNavBar from '@/Components/Harvest/HarvestNavBar.vue';
 import ExportExcelButton from '@/Components/ExportExcelButton.vue';
 import CreateDispatchModal from '@/Components/ProductionDispatches/CreateDispatchModal.vue';
 import EditDispatchModal from '@/Components/ProductionDispatches/EditDispatchModal.vue';
@@ -15,6 +16,7 @@ import ReceiveLotModal from '@/Components/ProductionDispatches/ReceiveLotModal.v
 
 const props = defineProps({
     dispatches: Array,
+    processes: { type: Array, default: () => [] },
     costCenterVarieties: Array,
     exporters: Array,
     packingHouses: Array,
@@ -123,6 +125,12 @@ const countProcessed = computed(() => scopedRows.value.filter(d => d.status === 
 
 function lotsKgReceived(dispatch) {
     return (dispatch.lots || []).reduce((sum, l) => sum + Number(l.kg_received || 0), 0);
+}
+
+// Kg recepcionados que aún no entran a ningún proceso (solo lotes ya procesados, parcial o totalmente)
+function lotSaldo(lot) {
+    if (lot.status !== 'processed') return 0;
+    return Number(lot.kg_received || 0) - Number(lot.kg_to_process || 0);
 }
 
 const showCreateModal = ref(false);
@@ -343,11 +351,12 @@ function getLotClassificationStatus(lot) {
     <Head :title="title" />
     <AppLayout>
         <Breadcrumb :links="links" />
+        <HarvestNavBar />
         <div class="card my-3">
-            <div class="card-header">
+            <div class="card-header py-2">
                 <div class="row flex-between-center">
                     <div class="col-6 col-sm-auto d-flex align-items-center pe-0">
-                        <h5 class="fs-9 mb-0 text-nowrap py-2 py-xl-0">
+                        <h5 class="fs-9 mb-0 text-nowrap">
                             <i class="fas fa-truck-loading me-2"></i>{{ title }}
                         </h5>
                     </div>
@@ -561,7 +570,10 @@ function getLotClassificationStatus(lot) {
                                     <td class="text-nowrap fw-semibold">
                                         <i class="fas fa-circle me-1" :class="lot.status === 'processed' ? 'text-success' : 'text-info'" style="font-size: 0.5rem; vertical-align: middle;" :title="lot.status === 'processed' ? 'Procesado' : 'Pendiente de proceso'"></i>{{ lot.lot_number }}
                                     </td>
-                                    <td class="text-end">{{ formatNumber(lot.kg_received) }}</td>
+                                    <td class="text-end">
+                                        {{ formatNumber(lot.kg_received) }}
+                                        <small v-if="lotSaldo(lot) > 0.01" class="d-block text-warning" :title="'Saldo sin procesar: ' + formatNumber(lotSaldo(lot)) + ' kg'">saldo {{ formatNumber(lotSaldo(lot)) }}</small>
+                                    </td>
                                     <td class="text-end">{{ lot.status === 'processed' ? formatNumber(lot.kg_exported) : '-' }}</td>
                                     <td class="text-center">
                                         <span v-if="getLotClassificationStatus(lot) === 'ok'" class="badge bg-success" title="Clasificaciones cuadradas">
@@ -577,7 +589,7 @@ function getLotClassificationStatus(lot) {
                                             <button v-if="lot.status === 'processed'" @click="openViewDetailModal(item, lot)" class="btn btn-sm btn-falcon-default p-0" title="Ver detalle del proceso" style="width: 24px; height: 24px;">
                                                 <i class="fas fa-eye text-info"></i>
                                             </button>
-                                            <button @click="openProcessModal(item, lot)" class="btn btn-sm btn-falcon-default p-0" :title="lot.status === 'processed' ? 'Re-procesar lote' : 'Procesar lote'" style="width: 24px; height: 24px;">
+                                            <button @click="openProcessModal(item, lot)" class="btn btn-sm btn-falcon-default p-0" :title="lot.status === 'processed' ? 'Procesos del lote' : 'Procesar lote'" style="width: 24px; height: 24px;">
                                                 <i class="fas fa-industry" :class="lot.status === 'processed' ? 'text-success' : 'text-warning'"></i>
                                             </button>
                                             <button @click="openLotModal(item, lot)" class="btn btn-sm btn-falcon-default p-0" title="Editar lote" style="width: 24px; height: 24px;">
@@ -658,7 +670,8 @@ function getLotClassificationStatus(lot) {
             :dispatch="processingDispatch"
             :lot="processingLot"
             :classifications="props.classifications"
-            :costCenterVarieties="props.costCenterVarieties"
+            :dispatches="props.dispatches"
+            :processes="props.processes"
             @close="closeProcessModal"
             @saved="reloadAfterSave"
         />
@@ -674,6 +687,7 @@ function getLotClassificationStatus(lot) {
             :dispatch="viewingDispatch"
             :lot="viewingLot"
             :classifications="props.classifications"
+            :processes="props.processes"
             :costCenterVarieties="props.costCenterVarieties"
             @close="closeViewDetailModal"
         />

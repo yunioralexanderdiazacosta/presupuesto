@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\Branch;
 use App\Models\CompanyReason;
 use App\Models\ProductionDispatch;
+use App\Models\ProductionProcess;
 use App\Models\CostCenterVariety;
 use App\Models\Exporter;
 use App\Models\PackingHouse;
@@ -134,8 +135,17 @@ class ProductionDispatchController extends Controller
             ->orderBy('name')
             ->get(['id', 'name']);
 
+        // Procesos de la temporada con la parte de cada lote y sus clasificaciones (para editarlos)
+        $processes = ProductionProcess::with(['allocations', 'items'])
+            ->where('team_id', $user->team_id)
+            ->where('season_id', $seasonId)
+            ->orderByDesc('process_date')
+            ->orderByDesc('id')
+            ->get();
+
         return Inertia::render('ProductionDispatches/Index', [
             'dispatches' => $dispatches,
+            'processes' => $processes,
             'branches' => $branches,
             'companyReasons' => $companyReasons,
             'varieties' => $varieties,

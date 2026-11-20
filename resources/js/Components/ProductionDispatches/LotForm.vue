@@ -39,6 +39,9 @@ const difference = computed(() => Math.round((totalReceived.value - kgDispatched
                     <span class="badge bg-soft-secondary text-secondary px-2 py-1">
                         <i class="fas fa-file-alt me-1"></i>Guía: {{ dispatch.guide_number }}
                     </span>
+                    <span v-if="dispatch.company_reason" class="badge bg-soft-info text-info px-2 py-1">
+                        <i class="fas fa-file-invoice me-1"></i>{{ dispatch.company_reason.name }}
+                    </span>
                     <span class="badge bg-soft-warning text-warning px-2 py-1 ms-auto">
                         <i class="fas fa-weight-hanging me-1"></i>{{ fmt(dispatch.kg_dispatched) }} kg en guía
                     </span>

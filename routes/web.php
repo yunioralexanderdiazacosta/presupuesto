@@ -263,7 +263,9 @@ use App\Http\Controllers\ProductionDispatches\DeleteProductionDispatchController
 use App\Http\Controllers\ProductionLots\StoreProductionLotController;
 use App\Http\Controllers\ProductionLots\UpdateProductionLotController;
 use App\Http\Controllers\ProductionLots\DeleteProductionLotController;
-use App\Http\Controllers\ProductionLots\ProcessProductionLotController;
+use App\Http\Controllers\ProductionProcesses\StoreProductionProcessController;
+use App\Http\Controllers\ProductionProcesses\UpdateProductionProcessController;
+use App\Http\Controllers\ProductionProcesses\DeleteProductionProcessController;
 // Rutas para Production Summaries (resumen de producción)
 use App\Http\Controllers\ProductionSummaries\ProductionSummaryController;
 use App\Http\Controllers\ProductionSummaries\StoreProductionSummaryController;
@@ -1074,7 +1076,9 @@ Route::middleware([
     Route::post('/production-dispatches/{productionDispatch}/lots', StoreProductionLotController::class)->name('production-lots.store');
     Route::put('/production-lots/{productionLot}', UpdateProductionLotController::class)->name('production-lots.update');
     Route::delete('/production-lots/{productionLot}', DeleteProductionLotController::class)->name('production-lots.delete');
-    Route::put('/production-lots/{productionLot}/process', ProcessProductionLotController::class)->name('production-lots.process');
+    Route::post('/production-processes', StoreProductionProcessController::class)->name('production-processes.store');
+    Route::put('/production-processes/{productionProcess}', UpdateProductionProcessController::class)->name('production-processes.update');
+    Route::delete('/production-processes/{productionProcess}', DeleteProductionProcessController::class)->name('production-processes.delete');
 
     // Resumen Diario de Cosecha
     Route::get('/daily-harvest-summary', DailyHarvestSummaryController::class)->name('daily-harvest-summary.index');

@@ -12,6 +12,7 @@ class ProductionDispatchItem extends Model
     protected $fillable = [
         'production_dispatch_id',
         'production_lot_id',
+        'production_process_id',
         'classification_type',
         'classification_value',
         'kg',

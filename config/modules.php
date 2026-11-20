@@ -42,7 +42,7 @@ return [
     ['key' => 'application-orders.index', 'label' => 'Salida Agroquímicos', 'section' => 'Agroquímicos', 'prefixes' => ['agrochemical-outflows.', 'libro-campo.', 'api.products.']],
     ['key' => 'fertilizer-orders.index', 'label' => 'Salida Fertilizantes', 'section' => 'Fertilizantes', 'prefixes' => ['fertilizer-outflows.']],
     ['key' => 'estimates.index', 'label' => 'Estimaciones', 'section' => 'Gestión', 'prefixes' => ['estimate-status.']],
-    ['key' => 'production-dispatches.index', 'label' => 'Ingresar Cosecha', 'section' => 'Cosecha',     'prefixes' => ['production-lots.', 'bin-types.', 'box-types.', 'carriers.', 'exporters.', 'packing-houses.', 'productions.', 'api.bin-types', 'api.box-types', 'api.carriers', 'api.exporters', 'api.packing-houses', 'api.fruit-classifications.']],
+    ['key' => 'production-dispatches.index', 'label' => 'Ingresar Cosecha', 'section' => 'Cosecha',     'prefixes' => ['production-lots.', 'production-processes.', 'bin-types.', 'box-types.', 'carriers.', 'exporters.', 'packing-houses.', 'productions.', 'api.bin-types', 'api.box-types', 'api.carriers', 'api.exporters', 'api.packing-houses', 'api.fruit-classifications.']],
     ['key' => 'daily-harvest-summary.index', 'label' => 'Resumen Diario de Cosecha', 'section' => 'Cosecha'],
     ['key' => 'production-analysis.index', 'label' => 'Análisis de Cosecha', 'section' => 'Cosecha'],
     ['key' => 'production-analysis.classifications', 'label' => 'Análisis de Clasificación (Calibre, Color)', 'section' => 'Cosecha', 'prefixes' => ['production-analysis.classification-groups.']],

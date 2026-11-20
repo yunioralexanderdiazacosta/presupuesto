@@ -1,11 +1,12 @@
 <script setup>
 import { ref, computed, watch, onMounted, onBeforeUnmount, nextTick } from 'vue';
-import { Head, Link } from '@inertiajs/vue3';
+import { Head } from '@inertiajs/vue3';
 import Multiselect from '@vueform/multiselect';
 import { Chart, registerables } from 'chart.js';
 import '@/chartTheme';
 import AppLayout from '@/Layouts/AppLayout.vue';
 import Breadcrumb from '@/Components/Breadcrumb.vue';
+import HarvestNavBar from '@/Components/Harvest/HarvestNavBar.vue';
 import ExportExcelButton from '@/Components/ExportExcelButton.vue';
 
 Chart.register(...registerables);
@@ -375,20 +376,17 @@ const excelFilename = computed(() =>
     <Head :title="title" />
     <AppLayout :title="title">
         <Breadcrumb :links="links" />
+        <HarvestNavBar />
         <div class="card my-3">
-            <div class="card-header">
+            <div class="card-header py-2">
                 <div class="row flex-between-center">
                     <div class="col-6 col-sm-auto d-flex align-items-center pe-0">
-                        <h5 class="fs-9 mb-0 text-nowrap py-2 py-xl-0">
+                        <h5 class="fs-9 mb-0 text-nowrap">
                             <i class="fas fa-chart-bar me-2"></i>{{ title }}
                         </h5>
                     </div>
                     <div class="col-6 col-sm-auto ms-auto text-end ps-0">
                         <div class="d-flex align-items-center gap-2">
-                            <Link :href="route('production-analysis.classifications')" class="btn btn-falcon-default btn-sm">
-                                <span class="fas fa-sort-amount-down" data-fa-transform="shrink-3 down-2"></span>
-                                <span class="d-none d-sm-inline-block ms-1">Clasificación</span>
-                            </Link>
                             <ExportExcelButton
                                 v-if="enrichedRows.length > 0"
                                 :data="excelData"
@@ -413,7 +411,7 @@ const excelFilename = computed(() =>
                             placeholder="Todas las sucursales"
                             :searchable="true"
                             :close-on-select="false"
-                            class="multiselect-blue"
+                            class="multiselect-blue multiselect-filter"
                         />
                     </div>
                     <div class="col-md-3">
@@ -425,7 +423,7 @@ const excelFilename = computed(() =>
                             placeholder="Todas las razones sociales"
                             :searchable="true"
                             :close-on-select="false"
-                            class="multiselect-blue"
+                            class="multiselect-blue multiselect-filter"
                         />
                     </div>
                     <div class="col-md-2">
@@ -436,7 +434,7 @@ const excelFilename = computed(() =>
                             placeholder="Seleccione especie..."
                             :searchable="true"
                             :can-clear="false"
-                            class="multiselect-blue"
+                            class="multiselect-blue multiselect-filter"
                         />
                     </div>
                     <div class="col-md-4">
@@ -447,7 +445,7 @@ const excelFilename = computed(() =>
                             placeholder="Seleccione estimación..."
                             :searchable="true"
                             :can-clear="false"
-                            class="multiselect-blue"
+                            class="multiselect-blue multiselect-filter"
                         />
                     </div>
                 </div>
@@ -691,3 +689,32 @@ const excelFilename = computed(() =>
         </div>
     </AppLayout>
 </template>
+
+<style>
+/* Filtros: mismo alto y tamaño de letra que los inputs form-control-sm */
+.multiselect.multiselect-filter {
+    --ms-font-size: 0.875rem;
+    --ms-line-height: 1.5;
+    --ms-py: 0.1875rem;
+    --ms-px: 0.75rem;
+    --ms-tag-font-size: 0.75rem;
+    --ms-tag-line-height: 1.25rem;
+    --ms-tag-py: 0;
+    --ms-tag-px: 0.4rem;
+    --ms-option-font-size: 0.8rem;
+    --ms-option-py: 0.2rem;
+    min-height: calc(1.5em + 0.375rem + 2px);
+    font-size: 0.875rem;
+}
+.multiselect.multiselect-filter .multiselect-tags {
+    margin-top: 0;
+    padding-left: 0;
+}
+.multiselect.multiselect-filter .multiselect-tag {
+    margin: 0 0.25rem 0 0;
+}
+.multiselect.multiselect-filter .multiselect-placeholder,
+.multiselect.multiselect-filter .multiselect-search input {
+    font-size: 0.875rem;
+}
+</style>

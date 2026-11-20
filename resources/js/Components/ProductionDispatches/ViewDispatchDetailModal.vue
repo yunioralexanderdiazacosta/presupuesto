@@ -6,6 +6,7 @@ const props = defineProps({
     dispatch: Object,
     lot: Object,
     classifications: Object,
+    processes: { type: Array, default: () => [] },
     costCenterVarieties: Array,
 });
 
@@ -38,18 +39,33 @@ const itemsByType = computed(() => {
 });
 
 function getItemKg(type, value) {
-    const item = props.lot?.items?.find(
-        i => i.classification_type === type && i.classification_value === value
-    );
-    return item ? Number(item.kg || 0) : 0;
+    // Un lote puede tener ítems de varios procesos: se suman
+    return (props.lot?.items || [])
+        .filter(i => i.classification_type === type && i.classification_value === value)
+        .reduce((sum, i) => sum + Number(i.kg || 0), 0);
 }
+
+// Procesos en los que participó el lote, con los kg que aportó a cada uno
+const lotProcesses = computed(() => {
+    if (!props.lot) return [];
+    return (props.processes || [])
+        .map(p => ({
+            id: p.id,
+            number: p.process_number,
+            kg: (p.allocations || [])
+                .filter(a => String(a.production_lot_id) === String(props.lot.id))
+                .reduce((sum, a) => sum + Number(a.kg_to_process || 0), 0),
+            matches: (p.allocations || []).some(a => String(a.production_lot_id) === String(props.lot.id)),
+        }))
+        .filter(p => p.matches);
+});
 
 function totalKgByType(type) {
     return (itemsByType.value[type] || []).reduce((sum, i) => sum + Number(i.kg || 0), 0);
 }
 
 function formatNumber(val) {
-    return Number(val || 0).toLocaleString('es-CL');
+    return Number(val || 0).toLocaleString('es-CL', { maximumFractionDigits: 2 });
 }
 
 function formatDate(dateStr) {
@@ -83,6 +99,9 @@ function formatDate(dateStr) {
                                 </span>
                                 <span class="badge bg-soft-info text-info px-2 py-1">
                                     <i class="fas fa-building me-1"></i>{{ dispatch.exporter?.name || '-' }}
+                                </span>
+                                <span v-for="p in lotProcesses" :key="p.id" class="badge bg-soft-success text-success px-2 py-1">
+                                    <i class="fas fa-industry me-1"></i>Proceso {{ p.number }} · {{ formatNumber(p.kg) }} kg
                                 </span>
                                 <span class="badge bg-soft-secondary text-secondary px-2 py-1">
                                     <i class="fas fa-dolly me-1"></i>{{ formatNumber(lot.kg_received) }} kg recepcionados
@@ -140,13 +159,14 @@ function formatDate(dateStr) {
                             <i class="fas fa-chart-pie me-1"></i>Desglose por Clasificación
                         </h6>
 
-                        <div v-for="(values, type) in currentClassifications" :key="type" class="mb-3">
-                            <span class="fw-semibold small">
-                                <i class="fas me-1" :class="typeIcons[type] || 'fa-tag'"></i>
-                                {{ typeLabels[type] || type }}
-                            </span>
+                        <div v-for="(values, type) in currentClassifications" :key="type" class="card border mb-2">
+                            <div class="card-header py-2 px-3">
+                                <span class="fw-semibold">
+                                    <i class="fas me-2 text-primary" :class="typeIcons[type] || 'fa-tag'"></i>{{ typeLabels[type] || type }}
+                                </span>
+                            </div>
 
-                            <div class="table-responsive mt-1">
+                            <div class="table-responsive">
                                 <table class="table table-sm table-bordered fs-10 mb-0">
                                     <thead class="table-light">
                                         <tr>
