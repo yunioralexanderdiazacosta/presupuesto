@@ -7,6 +7,13 @@
 
 export const changelog = [
   {
+    fecha: '2026-11-20',
+    titulo: 'Rendiciones — Búsqueda rápida de proveedor',
+    items: [
+      'Al agregar un ítem a una rendición, el campo Proveedor ahora permite escribir para filtrar la lista y encontrar el proveedor más rápido.',
+    ]
+  },
+  {
     fecha: '2026-11-19',
     titulo: 'Cosecha — Barra de acceso directo entre vistas',
     items: [

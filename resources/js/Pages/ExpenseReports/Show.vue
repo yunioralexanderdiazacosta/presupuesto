@@ -3,6 +3,7 @@ import { ref, computed, onMounted } from 'vue';
 import { Link, useForm, router } from '@inertiajs/vue3';
 import AppLayout from '@/Layouts/AppLayout.vue';
 import CreateSupplierModal from '@/Components/Suppliers/CreateSupplierModal.vue';
+import Multiselect from '@vueform/multiselect';
 import Swal from 'sweetalert2';
 import axios from 'axios';
 
@@ -785,19 +786,19 @@ const pendingAmount = computed(() => formatCurrency(props.report.pending_amount)
                             <form @submit.prevent="submitItem">
                                 <div class="row g-2">
                                     <!-- Fecha -->
-                                    <div class="col-6 col-md-4">
+                                    <div class="col-6 col-md-2">
                                         <label class="form-label small mb-1">Fecha <span class="text-danger">*</span></label>
                                         <input type="date" v-model="itemForm.date" class="form-control form-control-sm" required>
                                     </div>
 
                                     <!-- Monto -->
-                                    <div class="col-6 col-md-4">
+                                    <div class="col-6 col-md-3">
                                         <label class="form-label small mb-1">Monto ($) <span class="text-danger">*</span></label>
                                         <input type="number" v-model="itemForm.amount" class="form-control form-control-sm" min="1" required placeholder="0">
                                     </div>
 
                                     <!-- Proveedor -->
-                                    <div class="col-12 col-md-4">
+                                    <div class="col-12 col-md-7">
                                         <div class="d-flex justify-content-between align-items-center mb-1">
                                             <label class="form-label small mb-0">Proveedor <span class="text-danger">*</span></label>
                                             <button
@@ -810,10 +811,16 @@ const pendingAmount = computed(() => formatCurrency(props.report.pending_amount)
                                                 <i class="fas fa-plus-circle"></i>
                                             </button>
                                         </div>
-                                        <select v-model="itemForm.supplier_id" class="form-select form-select-sm">
-                                            <option value="" disabled selected>Seleccione...</option>
-                                            <option v-for="s in supplierOptions" :key="s.value" :value="s.value">{{ s.label }}</option>
-                                        </select>
+                                        <Multiselect
+                                            v-model="itemForm.supplier_id"
+                                            :options="supplierOptions"
+                                            :searchable="true"
+                                            :can-clear="false"
+                                            placeholder="Seleccione..."
+                                            no-options-text="Sin proveedores"
+                                            no-results-text="Sin resultados"
+                                            class="multiselect-sm"
+                                        />
                                     </div>
 
                                     <!-- Tipo Documento -->
@@ -1032,5 +1039,18 @@ const pendingAmount = computed(() => formatCurrency(props.report.pending_amount)
         </Teleport>
     </AppLayout>
 </template>
+
+<style>
+.multiselect.multiselect-sm {
+    --ms-font-size: 0.875rem;
+    --ms-line-height: 1.5;
+    --ms-py: 0.1875rem;
+    --ms-px: 0.75rem;
+    --ms-option-font-size: 0.875rem;
+    --ms-option-py: 0.25rem;
+    --ms-border-width: var(--falcon-border-width, 1px);
+    min-height: calc(1.5em + 0.375rem + calc(var(--falcon-border-width, 1px) * 2));
+}
+</style>
 
 
