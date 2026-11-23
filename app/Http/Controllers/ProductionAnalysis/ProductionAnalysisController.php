@@ -79,6 +79,7 @@ class ProductionAnalysisController extends Controller
                 'guides' => $dispatches->count(),
                 'guides_processed' => $processed->count(),
                 'kg_dispatched' => round((float) $dispatches->sum('kg_dispatched'), 2),
+                'kg_lots' => round((float) $dispatches->sum('kg_lots'), 2),
                 'kg_received' => round((float) $processed->sum('kg_received'), 2),
                 'kg_exported' => round((float) $processed->sum('kg_exported'), 2),
             ];

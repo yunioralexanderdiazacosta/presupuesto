@@ -110,7 +110,7 @@ const enrichedRows = computed(() =>
             return {
                 ...r,
                 kg_estimated: estimated,
-                pctDispatched: pct(r.kg_dispatched, estimated),
+                pctLots: pct(r.kg_lots, estimated),
                 pctExported: pct(r.kg_exported, estimated),
                 pctExportOfProcess: pct(r.kg_exported, num(r.kg_received)),
                 kgHaEstimated: perHa(estimated, num(r.surface)),
@@ -123,12 +123,12 @@ function sumRows(list) {
     const t = list.reduce((acc, r) => {
         acc.surface += num(r.surface);
         acc.estimated += r.kg_estimated;
-        acc.dispatched += num(r.kg_dispatched);
+        acc.lots += num(r.kg_lots);
         acc.received += num(r.kg_received);
         acc.exported += num(r.kg_exported);
         return acc;
-    }, { surface: 0, estimated: 0, dispatched: 0, received: 0, exported: 0 });
-    t.pctDispatched = pct(t.dispatched, t.estimated);
+    }, { surface: 0, estimated: 0, lots: 0, received: 0, exported: 0 });
+    t.pctLots = pct(t.lots, t.estimated);
     t.pctExported = pct(t.exported, t.estimated);
     // % de lo vaciado a proceso que terminó como exportación
     t.pctExportOfProcess = pct(t.exported, t.received);
@@ -151,7 +151,7 @@ const groups = computed(() => {
             ...g,
             rows: g.rows.sort((a, b) => a.cost_center_name.localeCompare(b.cost_center_name)),
             totals: sumRows(g.rows),
-            hasOver: g.rows.some(r => isOver(r.pctDispatched) || isOver(r.pctExported)),
+            hasOver: g.rows.some(r => isOver(r.pctLots) || isOver(r.pctExported)),
         }))
         .sort((a, b) => a.name.localeCompare(b.name));
 });
@@ -209,10 +209,12 @@ watch(selectedFruitId, () => {
 
 const grandTotals = computed(() => sumRows(enrichedRows.value));
 
-// Cuarteles que ya superaron la estimación (guía o exportado)
+// Cuarteles que ya superaron la estimación (kg recepcionados en lotes o exportado)
 const overRows = computed(() =>
-    enrichedRows.value.filter(r => isOver(r.pctDispatched) || isOver(r.pctExported))
+    enrichedRows.value.filter(r => isOver(r.pctLots) || isOver(r.pctExported))
 );
+
+const showOverDetail = ref(false);
 
 // ── Gráficos ──
 const pieCanvas = ref(null);
@@ -222,7 +224,7 @@ let barChart = null;
 
 const palette = ['#2c7be5', '#00d27a', '#f5803e', '#e63757', '#6f42c1', '#27bcfd', '#f5c242', '#748194', '#d63384', '#198754'];
 
-const hasChartData = computed(() => groups.value.some(g => g.totals.dispatched > 0 || g.totals.received > 0 || g.totals.exported > 0));
+const hasChartData = computed(() => groups.value.some(g => g.totals.lots > 0 || g.totals.received > 0 || g.totals.exported > 0));
 
 function renderCharts() {
     pieChart?.destroy();
@@ -238,7 +240,7 @@ function renderCharts() {
             data: {
                 labels,
                 datasets: [{
-                    data: groups.value.map(g => g.totals.dispatched),
+                    data: groups.value.map(g => g.totals.lots),
                     backgroundColor: groups.value.map((_, i) => palette[i % palette.length]),
                 }],
             },
@@ -306,8 +308,8 @@ const excelHeaders = [
     { label: 'Cuartel', key: 'costCenter' },
     { label: 'Superficie (ha)', key: 'surface', type: 'number' },
     { label: 'Kg Estimados', key: 'estimated', type: 'number' },
-    { label: 'Kg Guía', key: 'dispatched', type: 'number' },
-    { label: '% Avance Guía', key: 'pctDispatched', type: 'number' },
+    { label: 'Kg Recepcionados (Lote)', key: 'lots', type: 'number' },
+    { label: '% Avance Recep.', key: 'pctLots', type: 'number' },
     { label: 'Kg Vaciados a Proceso', key: 'received', type: 'number' },
     { label: 'Kg Exportados', key: 'exported', type: 'number' },
     { label: '% Exportado s/ Proceso', key: 'pctExportOfProcess', type: 'number' },
@@ -326,8 +328,8 @@ const excelData = computed(() => {
             costCenter: r.cost_center_name,
             surface: num(r.surface),
             estimated: r.kg_estimated,
-            dispatched: num(r.kg_dispatched),
-            pctDispatched: round1(r.pctDispatched),
+            lots: num(r.kg_lots),
+            pctLots: round1(r.pctLots),
             received: num(r.kg_received),
             exported: num(r.kg_exported),
             pctExportOfProcess: round1(r.pctExportOfProcess),
@@ -340,8 +342,8 @@ const excelData = computed(() => {
             costCenter: '',
             surface: g.totals.surface,
             estimated: g.totals.estimated,
-            dispatched: g.totals.dispatched,
-            pctDispatched: round1(g.totals.pctDispatched),
+            lots: g.totals.lots,
+            pctLots: round1(g.totals.pctLots),
             received: g.totals.received,
             exported: g.totals.exported,
             pctExportOfProcess: round1(g.totals.pctExportOfProcess),
@@ -355,8 +357,8 @@ const excelData = computed(() => {
         costCenter: '',
         surface: grandTotals.value.surface,
         estimated: grandTotals.value.estimated,
-        dispatched: grandTotals.value.dispatched,
-        pctDispatched: round1(grandTotals.value.pctDispatched),
+        lots: grandTotals.value.lots,
+        pctLots: round1(grandTotals.value.pctLots),
         received: grandTotals.value.received,
         exported: grandTotals.value.exported,
         pctExportOfProcess: round1(grandTotals.value.pctExportOfProcess),
@@ -468,8 +470,8 @@ const excelFilename = computed(() =>
                         <div class="col-6 col-md-3">
                             <div class="card h-100 p-1 border">
                                 <div class="card-body py-2 px-3 text-center">
-                                    <div class="text-muted small">Kg Guía</div>
-                                    <div class="fs-7 fw-bold">{{ fmt(grandTotals.dispatched) }}</div>
+                                    <div class="text-muted small">Kg Recepcionados (Lote)</div>
+                                    <div class="fs-7 fw-bold">{{ fmt(grandTotals.lots) }}</div>
                                 </div>
                             </div>
                         </div>
@@ -496,18 +498,24 @@ const excelFilename = computed(() =>
                     </div>
 
                     <template v-else>
-                    <!-- Alerta: cuarteles que superan la estimación -->
-                    <div v-if="overRows.length > 0" class="alert alert-danger py-2 mb-3">
-                        <div class="fw-bold">
-                            <i class="fas fa-exclamation-triangle me-1"></i>
-                            {{ overRows.length }} {{ overRows.length === 1 ? 'cuartel superó' : 'cuarteles superaron' }} la estimación "{{ selectedStatusLabel }}"
+                    <!-- Cuarteles que superan la estimación: resumen compacto, detalle bajo demanda -->
+                    <div v-if="overRows.length > 0" class="alert alert-success py-2 mb-3">
+                        <div class="d-flex align-items-center justify-content-between gap-2">
+                            <div class="fw-bold">
+                                <i class="fas fa-check-circle me-1"></i>
+                                {{ overRows.length }} {{ overRows.length === 1 ? 'cuartel superó' : 'cuarteles superaron' }} la estimación "{{ selectedStatusLabel }}"
+                            </div>
+                            <button type="button" class="btn btn-link btn-sm p-0 text-success text-nowrap" @click="showOverDetail = !showOverDetail">
+                                {{ showOverDetail ? 'Ocultar detalle' : 'Ver detalle' }}
+                                <i class="fas fa-chevron-down fa-xs ms-1" :class="{ 'fa-rotate-180': showOverDetail }"></i>
+                            </button>
                         </div>
-                        <ul class="mb-0 ps-3 fs-10">
+                        <ul v-if="showOverDetail" class="mb-0 mt-1 ps-3 fs-10" style="max-height: 200px; overflow-y: auto;">
                             <li v-for="r in overRows" :key="r.ccv_id">
                                 <strong>{{ r.cost_center_name }}</strong> ({{ r.variety_name }}):
                                 estimado {{ fmt(r.kg_estimated) }} kg —
-                                <span v-if="isOver(r.pctDispatched)">guía {{ fmt(r.kg_dispatched) }} kg ({{ fmtPct(r.pctDispatched) }})</span>
-                                <span v-if="isOver(r.pctDispatched) && isOver(r.pctExported)"> · </span>
+                                <span v-if="isOver(r.pctLots)">recepcionado {{ fmt(r.kg_lots) }} kg ({{ fmtPct(r.pctLots) }})</span>
+                                <span v-if="isOver(r.pctLots) && isOver(r.pctExported)"> · </span>
                                 <span v-if="isOver(r.pctExported)">exportado {{ fmt(r.kg_exported) }} kg ({{ fmtPct(r.pctExported) }})</span>
                             </li>
                         </ul>
@@ -518,7 +526,7 @@ const excelFilename = computed(() =>
                         <div class="col-lg-5">
                             <div class="card h-100 border">
                                 <div class="card-header py-2">
-                                    <h6 class="mb-0 fs-10"><i class="fas fa-chart-pie me-1"></i>Kg Guía por variedad</h6>
+                                    <h6 class="mb-0 fs-10"><i class="fas fa-chart-pie me-1"></i>Kg Recepcionados (Lote) por variedad</h6>
                                 </div>
                                 <div class="card-body" style="height: 320px;">
                                     <canvas ref="pieCanvas"></canvas>
@@ -551,12 +559,21 @@ const excelFilename = computed(() =>
                                     <th>Variedad / Cuartel</th>
                                     <th class="text-end">Superficie (ha)</th>
                                     <th class="text-end">Kg Estimados</th>
-                                    <th class="text-end">Kg Guía</th>
-                                    <th class="text-end">% Avance Guía</th>
+                                    <th class="text-end">Kg Recepcionados (Lote)</th>
+                                    <th class="text-end">
+                                        % Avance Recep.
+                                        <i class="fas fa-info-circle text-muted ms-1" style="cursor: help;" title="Cuánto de la estimación ya recibió el packing: Kg Recepcionados ÷ Kg Estimados."></i>
+                                    </th>
                                     <th class="text-end">Kg Vaciados a Proceso</th>
                                     <th class="text-end">Kg Exportados</th>
-                                    <th class="text-end">% Exportado s/ Proceso</th>
-                                    <th class="text-end">% Avance Exportado</th>
+                                    <th class="text-end">
+                                        % Exportado s/ Proceso
+                                        <i class="fas fa-info-circle text-muted ms-1" style="cursor: help;" title="Rendimiento de exportación: de lo vaciado a proceso, qué porcentaje salió como exportación (Kg Exportados ÷ Kg Vaciados a Proceso)."></i>
+                                    </th>
+                                    <th class="text-end">
+                                        % Avance Exportado
+                                        <i class="fas fa-info-circle text-muted ms-1" style="cursor: help;" title="Cuánto de la estimación ya se exportó: Kg Exportados ÷ Kg Estimados."></i>
+                                    </th>
                                 </tr>
                             </thead>
                             <tbody>
@@ -565,38 +582,38 @@ const excelFilename = computed(() =>
                                         <td class="text-nowrap">
                                             <i class="fas fa-chevron-right fa-xs me-2" :class="{ 'fa-rotate-90': isExpanded(g.key) }"></i>{{ g.name }}
                                             <span class="badge bg-light text-dark border ms-1 fw-normal">{{ g.rows.length }} {{ g.rows.length === 1 ? 'cuartel' : 'cuarteles' }}</span>
-                                            <i v-if="g.hasOver && !isExpanded(g.key)" class="fas fa-exclamation-triangle text-danger ms-1" title="Hay cuarteles que superan la estimación"></i>
+                                            <i v-if="g.hasOver && !isExpanded(g.key)" class="fas fa-check-circle text-success ms-1" title="Hay cuarteles que superan la estimación"></i>
                                         </td>
                                         <td class="text-end">{{ fmtSurface(g.totals.surface) }}</td>
                                         <td class="text-end">{{ fmt(g.totals.estimated) }}</td>
-                                        <td class="text-end">{{ fmt(g.totals.dispatched) }}</td>
+                                        <td class="text-end">{{ fmt(g.totals.lots) }}</td>
                                         <td class="text-end">
-                                            <span v-if="isOver(g.totals.pctDispatched)" class="badge bg-danger" title="Supera la estimación"><i class="fas fa-exclamation-triangle me-1"></i>{{ fmtPct(g.totals.pctDispatched) }}</span>
-                                            <span v-else>{{ fmtPct(g.totals.pctDispatched) }}</span>
+                                            <span v-if="isOver(g.totals.pctLots)" class="badge bg-success" title="Supera la estimación"><i class="fas fa-check-circle me-1"></i>{{ fmtPct(g.totals.pctLots) }}</span>
+                                            <span v-else>{{ fmtPct(g.totals.pctLots) }}</span>
                                         </td>
                                         <td class="text-end">{{ fmt(g.totals.received) }}</td>
                                         <td class="text-end">{{ fmt(g.totals.exported) }}</td>
                                         <td class="text-end">{{ fmtPct(g.totals.pctExportOfProcess) }}</td>
                                         <td class="text-end">
-                                            <span v-if="isOver(g.totals.pctExported)" class="badge bg-danger" title="Supera la estimación"><i class="fas fa-exclamation-triangle me-1"></i>{{ fmtPct(g.totals.pctExported) }}</span>
+                                            <span v-if="isOver(g.totals.pctExported)" class="badge bg-success" title="Supera la estimación"><i class="fas fa-check-circle me-1"></i>{{ fmtPct(g.totals.pctExported) }}</span>
                                             <span v-else>{{ fmtPct(g.totals.pctExported) }}</span>
                                         </td>
                                     </tr>
                                     <template v-if="isExpanded(g.key)">
-                                        <tr v-for="r in g.rows" :key="r.ccv_id" :class="{ 'table-danger': isOver(r.pctDispatched) || isOver(r.pctExported) }">
+                                        <tr v-for="r in g.rows" :key="r.ccv_id" :class="{ 'table-success': isOver(r.pctLots) || isOver(r.pctExported) }">
                                             <td class="ps-5">{{ r.cost_center_name }}</td>
                                             <td class="text-end">{{ fmtSurface(r.surface) }}</td>
                                             <td class="text-end">{{ r.kg_estimated ? fmt(r.kg_estimated) : '-' }}</td>
-                                            <td class="text-end">{{ r.kg_dispatched ? fmt(r.kg_dispatched) : '-' }}</td>
+                                            <td class="text-end">{{ r.kg_lots ? fmt(r.kg_lots) : '-' }}</td>
                                             <td class="text-end">
-                                                <span v-if="isOver(r.pctDispatched)" class="badge bg-danger" title="Supera la estimación"><i class="fas fa-exclamation-triangle me-1"></i>{{ fmtPct(r.pctDispatched) }}</span>
-                                                <span v-else>{{ fmtPct(r.pctDispatched) }}</span>
+                                                <span v-if="isOver(r.pctLots)" class="badge bg-success" title="Supera la estimación"><i class="fas fa-check-circle me-1"></i>{{ fmtPct(r.pctLots) }}</span>
+                                                <span v-else>{{ fmtPct(r.pctLots) }}</span>
                                             </td>
                                             <td class="text-end">{{ r.kg_received ? fmt(r.kg_received) : '-' }}</td>
                                             <td class="text-end">{{ r.kg_exported ? fmt(r.kg_exported) : '-' }}</td>
                                             <td class="text-end">{{ fmtPct(r.pctExportOfProcess) }}</td>
                                             <td class="text-end">
-                                                <span v-if="isOver(r.pctExported)" class="badge bg-danger" title="Supera la estimación"><i class="fas fa-exclamation-triangle me-1"></i>{{ fmtPct(r.pctExported) }}</span>
+                                                <span v-if="isOver(r.pctExported)" class="badge bg-success" title="Supera la estimación"><i class="fas fa-check-circle me-1"></i>{{ fmtPct(r.pctExported) }}</span>
                                                 <span v-else>{{ fmtPct(r.pctExported) }}</span>
                                             </td>
                                         </tr>
@@ -608,16 +625,16 @@ const excelFilename = computed(() =>
                                     <td>TOTAL</td>
                                     <td class="text-end">{{ fmtSurface(grandTotals.surface) }}</td>
                                     <td class="text-end">{{ fmt(grandTotals.estimated) }}</td>
-                                    <td class="text-end">{{ fmt(grandTotals.dispatched) }}</td>
+                                    <td class="text-end">{{ fmt(grandTotals.lots) }}</td>
                                     <td class="text-end">
-                                        <span v-if="isOver(grandTotals.pctDispatched)" class="badge bg-danger" title="Supera la estimación"><i class="fas fa-exclamation-triangle me-1"></i>{{ fmtPct(grandTotals.pctDispatched) }}</span>
-                                        <span v-else>{{ fmtPct(grandTotals.pctDispatched) }}</span>
+                                        <span v-if="isOver(grandTotals.pctLots)" class="badge bg-success" title="Supera la estimación"><i class="fas fa-check-circle me-1"></i>{{ fmtPct(grandTotals.pctLots) }}</span>
+                                        <span v-else>{{ fmtPct(grandTotals.pctLots) }}</span>
                                     </td>
                                     <td class="text-end">{{ fmt(grandTotals.received) }}</td>
                                     <td class="text-end">{{ fmt(grandTotals.exported) }}</td>
                                     <td class="text-end">{{ fmtPct(grandTotals.pctExportOfProcess) }}</td>
                                     <td class="text-end">
-                                        <span v-if="isOver(grandTotals.pctExported)" class="badge bg-danger" title="Supera la estimación"><i class="fas fa-exclamation-triangle me-1"></i>{{ fmtPct(grandTotals.pctExported) }}</span>
+                                        <span v-if="isOver(grandTotals.pctExported)" class="badge bg-success" title="Supera la estimación"><i class="fas fa-check-circle me-1"></i>{{ fmtPct(grandTotals.pctExported) }}</span>
                                         <span v-else>{{ fmtPct(grandTotals.pctExported) }}</span>
                                     </td>
                                 </tr>
@@ -626,7 +643,7 @@ const excelFilename = computed(() =>
                     </div>
 
                     <small class="text-muted d-block mt-2">
-                        Kg Estimados = kilos/ha × superficie. % Exportado s/ Proceso = Kg Exportados ÷ Kg Vaciados a Proceso. % Avance = Kg Guía (o Kg Exportados) ÷ Kg Estimados; se marca en rojo si supera el 100%. Kg Guía incluye todas las guías despachadas; Kg Vaciados a Proceso y Kg Exportados solo consideran guías procesadas.
+                        Kg Estimados = kilos/ha × superficie. % Exportado s/ Proceso = Kg Exportados ÷ Kg Vaciados a Proceso. % Avance = Kg Recepcionados (o Kg Exportados) ÷ Kg Estimados; se marca en verde si supera el 100%. Kg Recepcionados (Lote) son los kilos recibidos por el packing en los lotes, repartidos entre los cuarteles de cada guía según lo despachado de cada uno; Kg Vaciados a Proceso y Kg Exportados solo consideran guías procesadas.
                     </small>
 
                     <!-- Kilos por hectárea -->

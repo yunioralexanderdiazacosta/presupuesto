@@ -7,6 +7,16 @@
 
 export const changelog = [
   {
+    fecha: '2026-11-23',
+    titulo: 'Análisis de Cosecha — Avance contra la estimación según kilos recepcionados',
+    items: [
+      'El avance contra la estimación ahora se calcula con los kilos recepcionados por el packing en los lotes (más real), en vez de los kilos de la guía de despacho.',
+      'La alerta de cuarteles que superaron la estimación ahora es verde (es una buena noticia) y se muestra compacta: una sola línea con el total y un botón "Ver detalle" para desplegar la lista.',
+      'Las tablas marcan en verde los cuarteles y variedades que superan la estimación.',
+      'Los encabezados % Avance Recep., % Exportado s/ Proceso y % Avance Exportado ahora tienen un ícono de ayuda (ⓘ) que explica en una frase qué mide cada columna.',
+    ]
+  },
+  {
     fecha: '2026-11-20',
     titulo: 'Rendiciones — Búsqueda rápida de proveedor',
     items: [
