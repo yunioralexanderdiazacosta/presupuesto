@@ -8,6 +8,23 @@
 export const changelog = [
   {
     fecha: '2026-11-23',
+    titulo: 'Estimaciones — Copiar una estimación al crear un nombre nuevo',
+    items: [
+      'Al crear un nuevo nombre de estimación ahora puedes elegir "Copiar una existente": se copian los kilos/ha y las observaciones de otra estimación de la misma especie, para no digitar todo de nuevo. Luego puedes ajustar cada valor. La lista muestra cuántos cuarteles y variedades tiene cada estimación.',
+      'El nuevo nombre queda seleccionado automáticamente al guardar.',
+      'Se corrigió el error "Error al guardar" al crear un nombre de estimación; ahora, si hay un problema (por ejemplo un nombre repetido), el mensaje indica el motivo.',
+      'Se rediseñó la ventana "Nuevo nombre de estimación" con un formato más claro.',
+    ]
+  },
+  {
+    fecha: '2026-11-23',
+    titulo: 'Cosecha — "Nacional" ahora se llama "Comercial"',
+    items: [
+      'En Procesar lote y en el detalle de la guía, el campo "Nacional" ahora se muestra como "Comercial", igual que en los mensajes de validación de kilos.',
+    ]
+  },
+  {
+    fecha: '2026-11-23',
     titulo: 'Análisis de Cosecha — Avance contra la estimación según kilos recepcionados',
     items: [
       'El avance contra la estimación ahora se calcula con los kilos recepcionados por el packing en los lotes (más real), en vez de los kilos de la guía de despacho.',

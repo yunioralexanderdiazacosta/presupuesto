@@ -106,7 +106,7 @@ class FormProductionProcessRequest extends FormRequest
             if ($kgBreakdown - $kgToProcess > 0.001) {
                 $validator->errors()->add(
                     'kg_exported',
-                    'La suma de Exportación + Nacional + Industrial + Descarte (' . number_format($kgBreakdown, 2, ',', '.') . ') supera los Kilos a Proceso (' . number_format($kgToProcess, 2, ',', '.') . ').'
+                    'La suma de Exportación + Comercial + Industrial + Descarte (' . number_format($kgBreakdown, 2, ',', '.') . ') supera los Kilos a Proceso (' . number_format($kgToProcess, 2, ',', '.') . ').'
                 );
             }
 

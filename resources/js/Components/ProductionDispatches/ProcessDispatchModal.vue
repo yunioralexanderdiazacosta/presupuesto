@@ -50,7 +50,7 @@ function save() {
         return;
     }
     if (processFormRef.value?.kgBreakdownExceeded) {
-        Swal.fire({ icon: 'warning', title: 'Kg excedidos', text: 'La suma de Exportación + Nacional + Industrial + Descarte no puede superar los Kilos a Proceso.' });
+        Swal.fire({ icon: 'warning', title: 'Kg excedidos', text: 'La suma de Exportación + Comercial + Industrial + Descarte no puede superar los Kilos a Proceso.' });
         return;
     }
 

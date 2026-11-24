@@ -2,41 +2,67 @@
 namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
+use App\Http\Requests\Estimates\StoreEstimateStatusRequest;
 use App\Models\Estimate;
 use App\Models\CostCenterVariety;
 use App\Models\Fruit;
 use App\Models\EstimateStatus;
+use App\Traits\CheckSeasonLocked;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
 use Inertia\Inertia;
 
 class EstimatesController extends Controller
 {
+    use CheckSeasonLocked;
+
     /**
-     * Guarda un nuevo estado de estimación (EstimateStatus) desde el frontend.
+     * Crea un nombre de estimación (EstimateStatus). Si viene copy_from_id, copia además los kilos/ha y
+     * observaciones de esa estimación para la temporada y equipo activos, así no hay que digitarlos de nuevo.
      */
-    public function storeEstimateStatus(Request $request)
+    public function storeEstimateStatus(StoreEstimateStatusRequest $request)
     {
         $user = Auth::user();
+        $seasonId = session('season_id');
+        $copyFromId = $request->input('copy_from_id');
 
-        $request->validate([
-            'name' => 'required|string|max:255',
-            'fruit_id' => 'required|exists:fruits,id',
-        ]);
-
-        $fruit = Fruit::where('id', $request->fruit_id)
-            ->where('team_id', $user->team_id)
-            ->first();
-
-        if (!$fruit) {
-            return response()->json(['error' => 'Fruta no válida para este equipo.'], 403);
+        if ($copyFromId) {
+            $this->abortIfSeasonLocked();
         }
 
-        $status = EstimateStatus::create([
-            'name' => $request->name,
-            'fruit_id' => $request->fruit_id,
-        ]);
+        $copied = 0;
 
-        return response()->json($status);
+        $status = DB::transaction(function () use ($request, $user, $seasonId, $copyFromId, &$copied) {
+            $status = EstimateStatus::create([
+                'name' => trim($request->input('name')),
+                'fruit_id' => $request->input('fruit_id'),
+            ]);
+
+            if ($copyFromId) {
+                $sources = Estimate::where('estimate_status_id', $copyFromId)
+                    ->where('season_id', $seasonId)
+                    ->where('team_id', $user->team_id)
+                    ->orderBy('id')
+                    ->get()
+                    ->unique('cost_center_variety_id');
+
+                foreach ($sources as $source) {
+                    Estimate::create([
+                        'estimate_status_id' => $status->id,
+                        'cost_center_variety_id' => $source->cost_center_variety_id,
+                        'kilos_ha' => $source->kilos_ha,
+                        'observations' => $source->observations ?? '',
+                        'season_id' => $seasonId,
+                        'team_id' => $user->team_id,
+                    ]);
+                    $copied++;
+                }
+            }
+
+            return $status;
+        });
+
+        return response()->json(array_merge($status->toArray(), ['copied' => $copied]));
     }
 
     public function __invoke(Request $request)

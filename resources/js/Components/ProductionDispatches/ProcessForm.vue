@@ -255,7 +255,7 @@ function itemPct(type, value) {
     return kgLimit.value > 0 && kg > 0 ? ((kg / kgLimit.value) * 100).toFixed(1) + '%' : '';
 }
 
-// Export+Nacional+Industrial+Descarte <= Kilos a Proceso
+// Export+Comercial+Industrial+Descarte <= Kilos a Proceso
 const kgBreakdownTotal = computed(() => n(form.kg_exported) + n(form.kg_national) + n(form.kg_industrial) + n(form.kg_waste));
 const kgBreakdownExceeded = computed(() => kgBreakdownTotal.value > 0 && kgBreakdownTotal.value - kgToProcess.value > 0.001);
 const kgBreakdownRemaining = computed(() => Math.max(0, kgToProcess.value - kgBreakdownTotal.value));
@@ -399,7 +399,7 @@ watch(form, () => emit('update:form', form), { deep: true });
             </div>
 
             <div class="col-md-3">
-                <label class="form-label small mb-1">Kg Nacional</label>
+                <label class="form-label small mb-1">Kg Comercial</label>
                 <input type="number" v-model.number="form.kg_national" class="form-control form-control-sm" step="0.01" min="0"
                     :class="{'is-invalid': kgBreakdownExceeded}" />
             </div>
@@ -502,7 +502,7 @@ watch(form, () => emit('update:form', form), { deep: true });
                             <th>Lote</th>
                             <th class="text-end">Kg Proceso</th>
                             <th class="text-end">Exportación</th>
-                            <th class="text-end">Nacional</th>
+                            <th class="text-end">Comercial</th>
                             <th class="text-end">Industrial</th>
                             <th class="text-end">Descarte</th>
                         </tr>

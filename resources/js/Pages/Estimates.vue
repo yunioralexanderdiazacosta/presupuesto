@@ -1,10 +1,11 @@
 <script setup>
-import { ref, computed, watch } from 'vue';
+import { ref, computed, watch, nextTick } from 'vue';
 import { usePage, router } from '@inertiajs/vue3';
 import AppLayout from '@/Layouts/AppLayout.vue';
 import Multiselect from '@vueform/multiselect';
 import Swal from 'sweetalert2';
 import ExportExcelButton from '@/Components/ExportExcelButton.vue';
+import CreateEstimateStatusModal from '@/Components/Estimates/CreateEstimateStatusModal.vue';
 
 const page = usePage();
 const costCenterVarieties = computed(() => page.props.costCenterVarieties || []);
@@ -57,37 +58,21 @@ watch(estimateStatusOptions, (opts) => {
 
 // ── Crear EstimateStatus ──
 const showStatusModal = ref(false);
-const nuevoNombre = ref('');
-const nuevoFruitId = ref('');
 
 function openStatusModal() {
-    nuevoFruitId.value = selectedFruitId.value;
-    nuevoNombre.value = '';
     showStatusModal.value = true;
 }
 
-function guardarEstimateStatus() {
-    if (!nuevoNombre.value || !nuevoFruitId.value) return;
-    fetch(route('estimate-status.store'), {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-            'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content'),
-            'Accept': 'application/json',
+// Tras crear (y copiar) se recargan nombres y estimaciones y se deja seleccionada la nueva
+function onStatusSaved(status) {
+    router.reload({
+        only: ['estimate_statuses', 'estimates'],
+        onSuccess: async () => {
+            selectedFruitId.value = status.fruit_id;
+            await nextTick();
+            selectedEstimateStatusId.value = status.id;
         },
-        body: JSON.stringify({ name: nuevoNombre.value, fruit_id: nuevoFruitId.value })
-    })
-    .then(res => res.json())
-    .then(data => {
-        if (data && data.id) {
-            showStatusModal.value = false;
-            Swal.fire({ icon: 'success', title: 'Nombre de estimación creado', showConfirmButton: false, timer: 1200 });
-            router.reload({ only: ['estimate_statuses'] });
-        } else {
-            Swal.fire('Error', data.error || 'Error al guardar', 'error');
-        }
-    })
-    .catch(() => Swal.fire('Error', 'Error al guardar', 'error'));
+    });
 }
 
 // ── Tabla editable ──
@@ -533,40 +518,15 @@ function handleDelete(row) {
             </div>
         </div>
 
-        <!-- Modal para crear nombre de estimación -->
-        <div v-if="showStatusModal" class="modal fade show d-block" tabindex="-1" style="background: rgba(0,0,0,0.4); z-index: 1050;">
-            <div class="modal-dialog modal-dialog-centered">
-                <div class="modal-content border-0 shadow">
-                    <div class="modal-header bg-body-tertiary">
-                        <h5 class="modal-title"><i class="fas fa-tag me-2"></i>Nuevo nombre de estimación</h5>
-                        <button type="button" class="btn-close" @click="showStatusModal = false"></button>
-                    </div>
-                    <div class="modal-body">
-                        <div class="mb-3">
-                            <label class="form-label fw-bold">Nombre</label>
-                            <input v-model="nuevoNombre" class="form-control" placeholder="Ej: Estimación Marzo" />
-                        </div>
-                        <div class="mb-3">
-                            <label class="form-label fw-bold">Especie</label>
-                            <Multiselect
-                                v-model="nuevoFruitId"
-                                :options="fruitOptions"
-                                placeholder="Seleccione especie..."
-                                :searchable="true"
-                                :can-clear="false"
-                                class="multiselect-blue"
-                            />
-                        </div>
-                    </div>
-                    <div class="modal-footer">
-                        <button class="btn btn-secondary btn-sm" @click="showStatusModal = false">Cancelar</button>
-                        <button class="btn btn-falcon-default btn-sm" @click="guardarEstimateStatus" :disabled="!nuevoNombre || !nuevoFruitId">
-                            <i class="fas fa-save me-1"></i> Guardar
-                        </button>
-                    </div>
-                </div>
-            </div>
-        </div>
+        <CreateEstimateStatusModal
+            :show="showStatusModal"
+            :fruit-options="fruitOptions"
+            :estimate-statuses="estimate_statuses"
+            :estimates="estimates"
+            :default-fruit-id="selectedFruitId"
+            @close="showStatusModal = false"
+            @saved="onStatusSaved"
+        />
     </AppLayout>
 </template>
 

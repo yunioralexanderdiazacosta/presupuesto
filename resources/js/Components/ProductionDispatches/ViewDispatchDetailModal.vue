@@ -135,7 +135,7 @@ function formatDate(dateStr) {
                         </div>
                         <div class="col-md-2">
                             <div class="text-center p-2 border rounded bg-white">
-                                <small class="text-muted d-block">Kg Nacional</small>
+                                <small class="text-muted d-block">Kg Comercial</small>
                                 <span class="fw-bold small text-info">{{ formatNumber(lot.kg_national) }}</span>
                             </div>
                         </div>
