@@ -95,6 +95,7 @@ class InvoicesController extends Controller
                 'id'                => $invoice->id,
                 'date'              => $invoice->date,
                 'due_date'          => $invoice->due_date,
+                'created_at'        => $invoice->created_at?->format('d/m/Y H:i'),
                 'supplier'          => $invoice->supplier,
                 'companyReason'     => $invoice->companyReason,
                 'type_document'     => $invoice->typeDocument ? $invoice->typeDocument->name : null,

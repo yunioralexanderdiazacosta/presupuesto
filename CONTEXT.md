@@ -215,6 +215,15 @@ Cada temporada tiene una o más **versiones de presupuesto** (`budget_versions`)
 - **Rendidor** ya no es un rol: es un usuario restringido solo a `expense-reports.index`.
 - **Agregar un módulo nuevo**: registrarlo en `config/modules.php` con sus `prefixes` de apoyo; si no está en el catálogo, un usuario restringido no podrá entrar.
 
+### Conexión con asistentes de IA (servidor MCP de solo lectura)
+- **Qué es**: botón «Conectar con IA» (`AppLayout.vue` → `Components/Mcp/McpConnectModal.vue`) que entrega la URL del servidor MCP (`APP_URL/mcp`) para conectar Claude, ChatGPT, Copilot o Gemini. El asistente consulta facturas y pagos con los permisos del usuario que autoriza.
+- **Autorización**: OAuth 2.1 con PKCE sobre Laravel Passport 12 (Laravel 10 no admite `laravel/mcp` ni Passport 13). Las rutas por defecto de Passport están desactivadas (`AuthServiceProvider::register`); solo existen las de `routes/mcp.php`: metadatos `/.well-known/*`, registro dinámico de clientes `/oauth/register` (solo clientes públicos con `redirect_uri` en la lista blanca de `config/mcp.php`), `/oauth/authorize` (pantalla `Pages/Mcp/Authorize.vue`), `/oauth/token` y `/mcp`.
+- **Aislamiento**: los tokens Passport solo se aceptan en `/mcp` (guard `api`, alcance `mcp:read`); no sirven para el resto del sistema. Cada herramienta (`app/Services/Mcp/Tools`) filtra por `team_id` del usuario y `season_id` (la temporada indicada debe ser de su empresa; si no se indica, la predeterminada) y exige que el módulo `invoice-payments.index` no esté bloqueado (`ModuleAccess`).
+- **Cifras**: salen de `Invoice::calculateDebt()` (misma fuente que «Pago de Facturas»). Las herramientas solo leen; nunca deben escribir.
+- **Agregar una herramienta**: extender `McpTool`, registrarla en `McpServer::defaultTools()` y cubrirla en `tests/Feature/Mcp/McpServerTest.php`. Evitar devolver textos libres (observaciones) para no exponer contenido que pueda actuar como instrucciones al asistente.
+- **Revocación y auditoría**: el usuario revoca desde el mismo modal (`mcp.connections.*`); una cuenta suspendida pierde el acceso al instante. Cada consulta queda en `storage/logs/mcp.log` (canal `mcp`). Comandos programados: `passport:purge` y `mcp:prune-clients`.
+- **Pruebas**: `tests/Feature/Mcp` corre solo contra una base `*_test` (usa `DatabaseTransactions`): `$env:DB_DATABASE='presupuesto_test'; php artisan test --filter=McpServerTest`. `php artisan serve` ignora ese override; para probar a mano usar `php -S` con el script `vendor/laravel/framework/src/Illuminate/Foundation/resources/server.php`.
+
 ## Notas adicionales
 - Si tienes dudas sobre la lógica o reglas, consulta este archivo antes de implementar cambios.
 - Actualiza este archivo si agregas reglas o flujos nuevos.

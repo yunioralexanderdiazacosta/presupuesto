@@ -73,6 +73,15 @@ return [
             'replace_placeholders' => true,
         ],
 
+        // Auditoría de las conexiones con asistentes de IA (registro de clientes y consultas MCP)
+        'mcp' => [
+            'driver' => 'daily',
+            'path' => storage_path('logs/mcp.log'),
+            'level' => 'info',
+            'days' => 90,
+            'replace_placeholders' => true,
+        ],
+
         'slack' => [
             'driver' => 'slack',
             'url' => env('LOG_SLACK_WEBHOOK_URL'),

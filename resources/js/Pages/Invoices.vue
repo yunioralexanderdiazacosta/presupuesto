@@ -324,6 +324,7 @@ const excelResumenData = computed(() => {
         total: Math.round(parseMoney(i.total)),
         expense_report: i.expense_report || '',
         user_name: i.user_name || '',
+        created_at: i.created_at || '',
     }));
 });
 
@@ -680,6 +681,7 @@ const formatCurrency = (value) => {
                                         { label: 'Total', key: 'total' },
                                         { label: 'Rendición', key: 'expense_report' },
                                         { label: 'Digitado por', key: 'user_name' },
+                                        { label: 'Fecha de creación', key: 'created_at' },
                                     ]"
                                     class="btn btn-falcon-default btn-sm"
                                     style="font-size: 0.7rem;"
@@ -774,6 +776,7 @@ const formatCurrency = (value) => {
                                 <th class="text-end" style="white-space:nowrap;">Total</th>
                                 <th style="white-space:nowrap;">Rendición</th>
                                 <th style="white-space:nowrap;">Digitado por</th>
+                                <th style="white-space:nowrap;">Fecha de creación</th>
                                 <!--end::Table row-->
                             </template>
                             <!--end::Table head-->
@@ -907,6 +910,7 @@ invoice, index
                                             <span v-if="invoice.user_name" class="text-muted">{{ invoice.user_name }}</span>
                                             <span v-else class="text-muted">—</span>
                                         </td>
+                                        <td style="white-space:nowrap;">{{ invoice.created_at || '—' }}</td>
                                     </tr>
                                 </template>
                                 <!-- Ver más -->

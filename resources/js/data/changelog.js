@@ -7,6 +7,28 @@
 
 export const changelog = [
   {
+    fecha: '2026-11-25',
+    titulo: 'Rendiciones de Gastos — Las rendiciones aprobadas o pagadas ya no se pueden eliminar',
+    items: [
+      'Se ocultó el botón de eliminar en las rendiciones aprobadas o pagadas, y el sistema tampoco permite eliminarlas por otra vía. Solo se pueden eliminar las que están en borrador, enviadas o rechazadas.',
+    ]
+  },
+  {
+    fecha: '2026-11-25',
+    titulo: 'Facturas — Nueva columna "Fecha de creación"',
+    items: [
+      'En la tabla Resumen de Facturas ahora se muestra la fecha y hora en que se creó cada registro (formato dd/mm/aaaa hh:mm).',
+      'La nueva columna también se incluye en el Excel exportado.',
+    ]
+  },
+  {
+    fecha: '2026-11-25',
+    titulo: 'Conexión con IA — Botón «Conectar con IA» (próximamente)',
+    items: [
+      'Se agregó el botón «Conectar con IA» en la barra superior. Por ahora está inactivo: pronto podrás conectar tu asistente de IA para consultar tus facturas y pagos en modo solo lectura.',
+    ]
+  },
+  {
     fecha: '2026-11-23',
     titulo: 'Estimaciones — Copiar una estimación al crear un nombre nuevo',
     items: [

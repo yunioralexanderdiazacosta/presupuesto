@@ -9,7 +9,8 @@ use Illuminate\Support\Facades\Http;
 use App\Models\Season;
 use App\Support\ModuleAccess;
 use App\Support\ActiveBudgetVersion;
-
+use App\Services\Mcp\McpTool;
+use App\Support\Mcp\McpUrls;
 class HandleInertiaRequests extends Middleware
 {
     /**
@@ -102,6 +103,16 @@ class HandleInertiaRequests extends Middleware
                     'blockedUris' => ModuleAccess::blockedUris($user),
                     'neutralUris' => ModuleAccess::neutralUris($user),
                 ];
+            },
+            // Conexión con asistentes de IA (botón "Conectar con IA"): solo si el usuario puede ver facturas y pagos
+            'mcp' => function () {
+                $user = Auth::user();
+
+                if (!config('mcp.enabled') || !$user || ModuleAccess::isBlockedFor($user, McpTool::MODULE)) {
+                    return null;
+                }
+
+                return ['url' => McpUrls::server(), 'scope' => config('mcp.scope')];
             },
             'flash' => [
                 'error' => fn () => $request->session()->get('error'),

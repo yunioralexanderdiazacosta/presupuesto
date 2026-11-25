@@ -53,6 +53,9 @@ const submitCreate = () => {
 };
 
 // ─── Eliminar rendición ─────────────────────
+// Una rendición aprobada o pagada ya no se puede eliminar (el backend lo valida también)
+const canDelete = (report) => !['aprobada', 'pagada'].includes(report.status);
+
 const deleteReport = (report) => {
     Swal.fire({
         title: `¿Eliminar ${report.number}?`,
@@ -181,6 +184,7 @@ const statusOptions = [
                                         <i class="fas fa-print"></i>
                                     </a>
                                     <button 
+                                        v-if="canDelete(report)"
                                         class="btn btn-sm btn-falcon-default" 
                                         @click="deleteReport(report)"
                                         v-tooltip="'Eliminar'"
@@ -226,6 +230,7 @@ const statusOptions = [
                                     <i class="fas fa-print"></i>
                                 </a>
                                 <button 
+                                    v-if="canDelete(report)"
                                     class="btn btn-sm btn-falcon-default" 
                                     @click="deleteReport(report)"
                                 >

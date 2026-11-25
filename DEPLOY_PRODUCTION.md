@@ -59,6 +59,11 @@ npm run build
 # Ejecutar migraciones
 php artisan migrate --force
 
+# Conexión con IA (OAuth/MCP): generar las llaves de Passport (una sola vez; no se versionan)
+php artisan passport:keys
+# Alternativa sin archivos: definir PASSPORT_PRIVATE_KEY y PASSPORT_PUBLIC_KEY en el .env
+# Importante: APP_URL debe ser la URL pública con https (se usa para publicar las direcciones OAuth/MCP)
+
 # Cachear configuración
 php artisan config:cache
 php artisan route:cache

@@ -3,6 +3,11 @@ import { computed, ref, watch, nextTick } from 'vue';
 import { router, Link, usePage } from '@inertiajs/vue3';
 import JetDropdownLink from '@/Components/DropdownLink.vue';
 import { onMounted, onUnmounted } from 'vue';
+import McpConnectModal from '@/Components/Mcp/McpConnectModal.vue';
+
+const openMcpModal = () => {
+    $('#mcpConnectModal').modal('show');
+};
 
 // Flags compartidos via Inertia
 const { hasCostCenter, hasVariety, hasFruit, hasCompanyReason, hasSeason, hasParcel, hasLevel3 } = usePage().props;
@@ -1155,6 +1160,15 @@ const navigateTo = (routeName) => {
           </li>
         </ul>
         <ul class="navbar-nav navbar-nav-icons ms-auto flex-row align-items-center">
+           <li v-if="$page.props.mcp" class="nav-item me-2">
+            <!-- Inactivo de momento: para habilitarlo, quitar `disabled` y restaurar @click="openMcpModal" -->
+            <span class="d-inline-block" v-tooltip="'Próximamente'">
+              <button type="button" class="btn btn-falcon-default btn-sm" disabled>
+                <span class="fas fa-plug me-1"></span>
+                <span class="d-none d-md-inline">Conectar con IA</span>
+              </button>
+            </span>
+          </li>
            <li class="nav-item me-2 d-none d-md-block">
             <span class="d-inline-flex align-items-center bg-white shadow-sm border rounded-pill px-3 py-1 mb-1 text-secondary fw-semibold fs-10 bg-opacity-15">
               <span class="fas fa-dollar-sign me-2"></span>
@@ -1199,6 +1213,8 @@ const navigateTo = (routeName) => {
           </li>
         </ul>
         </nav>
+
+       <McpConnectModal v-if="false" />
 
        <slot></slot>
     </div>

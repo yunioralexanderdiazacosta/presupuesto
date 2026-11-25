@@ -28,10 +28,20 @@ class RouteServiceProvider extends ServiceProvider
             return Limit::perMinute(60)->by($request->user()?->id ?: $request->ip());
         });
 
+        // Conexión con asistentes de IA (MCP)
+        RateLimiter::for('mcp', fn (Request $request) => Limit::perMinute(config('mcp.rate_limit_per_minute'))
+            ->by($request->user()?->id ?: $request->ip()));
+        RateLimiter::for('mcp-register', fn (Request $request) => Limit::perHour(30)->by($request->ip()));
+        RateLimiter::for('mcp-token', fn (Request $request) => Limit::perMinute(60)->by($request->ip()));
+
         $this->routes(function () {
             Route::middleware('api')
                 ->prefix('api')
                 ->group(base_path('routes/api.php'));
+
+            if (config('mcp.enabled')) {
+                require base_path('routes/mcp.php');
+            }
 
             Route::middleware('web')
                 ->group(base_path('routes/web.php'));

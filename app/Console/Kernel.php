@@ -13,6 +13,10 @@ class Kernel extends ConsoleKernel
     protected function schedule(Schedule $schedule): void
     {
         // $schedule->command('inspire')->hourly();
+
+        // Conexión con asistentes de IA: depura tokens vencidos/revocados y clientes sin uso
+        $schedule->command('passport:purge')->daily();
+        $schedule->command('mcp:prune-clients')->daily();
     }
 
     /**

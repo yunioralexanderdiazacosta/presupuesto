@@ -40,6 +40,7 @@ class ModuleAccess
 
     protected const ALWAYS_PREFIXES = [
         'sidebar.',
+        'mcp.',
         'profile', 'user-profile-information', 'user-password',
         'two-factor', 'other-browser-sessions', 'current-user',
     ];

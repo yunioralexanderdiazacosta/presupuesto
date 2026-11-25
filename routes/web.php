@@ -93,6 +93,10 @@ use App\Http\Controllers\Products2\DeleteProduct2Controller;
     use App\Http\Controllers\InvoicePayments\UpdateInvoicePaymentController;
     use App\Http\Controllers\InvoicePayments\DeleteInvoicePaymentController;
 
+// Rutas para Conexión con IA (MCP)
+    use App\Http\Controllers\Mcp\ListMcpConnectionsController;
+    use App\Http\Controllers\Mcp\RevokeMcpConnectionController;
+
 // Rutas para Rendiciones de Gastos
     use App\Http\Controllers\ExpenseReports\ExpenseReportController;
     use App\Http\Controllers\ExpenseReports\StoreExpenseReportController;
@@ -921,6 +925,10 @@ Route::middleware([
     });
     Route::get('/select-budge', SelectBudgetController::class)->name('select.budget');
     Route::post('/select-season/save', SaveSeasonController::class)->name('select.seasons.save');
+
+    // Conexiones con asistentes de IA (el usuario ve y revoca las suyas)
+    Route::get('/mcp/connections', ListMcpConnectionsController::class)->name('mcp.connections.index');
+    Route::delete('/mcp/connections/{client}', RevokeMcpConnectionController::class)->name('mcp.connections.revoke');
 
     Route::get('/weather', [WeatherController::class, 'show'])->name('weather');
 

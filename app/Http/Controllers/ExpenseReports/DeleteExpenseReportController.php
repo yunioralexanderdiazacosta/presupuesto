@@ -18,6 +18,11 @@ class DeleteExpenseReportController extends Controller
             abort(403);
         }
 
+        if (in_array($expenseReport->status, ['aprobada', 'pagada'], true)) {
+            return redirect()->route('expense-reports.index')
+                ->with('error', "La rendición {$expenseReport->number} está {$expenseReport->status_label} y no se puede eliminar.");
+        }
+
         // Eliminar archivos físicos de los items
         foreach ($expenseReport->items as $item) {
             if ($item->receipt_path) {
