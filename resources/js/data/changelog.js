@@ -8,6 +8,14 @@
 export const changelog = [
   {
     fecha: '2026-11-25',
+    titulo: 'Facturas — Aviso de factura duplicada antes de guardar',
+    items: [
+      'Al ingresar o editar una factura, en cuanto están el proveedor y el número de documento el sistema avisa si ese documento ya existe, para no digitar toda la factura y descubrirlo recién al guardar.',
+      'El aviso aparece en línea bajo el número de documento (con un enlace para ver la factura existente) y como mensaje emergente al elegir el proveedor, salir del campo o cargar el PDF.',
+    ]
+  },
+  {
+    fecha: '2026-11-25',
     titulo: 'Rendiciones de Gastos — Las rendiciones aprobadas o pagadas ya no se pueden eliminar',
     items: [
       'Se ocultó el botón de eliminar en las rendiciones aprobadas o pagadas, y el sistema tampoco permite eliminarlas por otra vía. Solo se pueden eliminar las que están en borrador, enviadas o rechazadas.',

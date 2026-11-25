@@ -1,7 +1,7 @@
 
 
 <script setup>
-import { ref, watch, nextTick, computed } from 'vue';
+import { ref, watch, nextTick, computed, onBeforeUnmount } from 'vue';
 import { usePage } from '@inertiajs/vue3';
 import Multiselect from "@vueform/multiselect";
 import TextInput from "@/Components/TextInput.vue";
@@ -18,6 +18,11 @@ const props = defineProps({
     protectedProductIds: {
         type: Array,
         default: () => []
+    },
+    // ID de la factura que se está editando (se excluye del aviso de duplicado)
+    invoiceId: {
+        type: [Number, String],
+        default: null
     },
 });
 
@@ -101,6 +106,85 @@ watch(
         }
     }
 );
+
+// Aviso previo de factura duplicada: mismo proveedor + mismo N° de documento (igual criterio que al guardar)
+const duplicateInvoice = ref(null);
+let duplicateTimer = null;
+let duplicateRequestId = 0;
+let duplicatePendingAlert = false;
+let duplicateAlertedKey = null;
+
+const escapeHtml = (value) => String(value ?? '').replace(/[&<>"']/g, (c) => (
+    { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]
+));
+
+const checkDuplicateInvoice = async (showAlert = false) => {
+    const supplierId = props.form.supplier_id;
+    const number = String(props.form.number_document ?? '').trim();
+
+    if (!supplierId || !number) {
+        duplicateRequestId++;
+        duplicateInvoice.value = null;
+        return;
+    }
+
+    const requestId = ++duplicateRequestId;
+    const key = `${supplierId}|${number}`;
+
+    try {
+        const response = await axios.get(route('invoices.check-duplicate'), {
+            params: { supplier_id: supplierId, number_document: number, exclude_id: props.invoiceId || undefined },
+        });
+
+        // Se ignora la respuesta si el usuario ya cambió el proveedor o el número
+        if (requestId !== duplicateRequestId) return;
+
+        duplicateInvoice.value = response.data.exists ? response.data.invoice : null;
+
+        if (response.data.exists && showAlert && duplicateAlertedKey !== key) {
+            duplicateAlertedKey = key;
+            const inv = response.data.invoice;
+            Swal.fire({
+                icon: 'warning',
+                title: 'Esta factura ya existe',
+                html: `
+                    <div class="text-start">
+                        Ya hay un documento <strong>N° ${escapeHtml(inv.number_document)}</strong> registrado para este proveedor
+                        (${escapeHtml(inv.type_document || 'documento')}, ${escapeHtml(inv.date)}, temporada ${escapeHtml(inv.season || '—')}).
+                        <br><br>Revisa antes de seguir digitando para no repetir el trabajo.
+                    </div>
+                `,
+                confirmButtonText: 'Entendido',
+                confirmButtonColor: '#2c7be5',
+            });
+        }
+    } catch (error) {
+        if (requestId === duplicateRequestId) duplicateInvoice.value = null;
+        console.error('Error al verificar factura duplicada:', error);
+    }
+};
+
+const scheduleDuplicateCheck = (showAlert = false) => {
+    duplicatePendingAlert = duplicatePendingAlert || showAlert;
+    clearTimeout(duplicateTimer);
+    duplicateTimer = setTimeout(() => {
+        const alertNow = duplicatePendingAlert;
+        duplicatePendingAlert = false;
+        checkDuplicateInvoice(alertNow);
+    }, 500);
+};
+
+// Al escribir el número solo se muestra el aviso en línea; al elegir proveedor (o al extraer del PDF) además se alerta
+watch(() => props.form.number_document, () => scheduleDuplicateCheck(false));
+watch(() => props.form.supplier_id, () => scheduleDuplicateCheck(true));
+
+const checkDuplicateOnBlur = () => {
+    clearTimeout(duplicateTimer);
+    duplicatePendingAlert = false;
+    checkDuplicateInvoice(true);
+};
+
+onBeforeUnmount(() => clearTimeout(duplicateTimer));
 
 // Detectar error de factura duplicada
 watch(
@@ -453,8 +537,15 @@ const storeSupplier = async () => {
                         v-model="form.number_document"
                         class="form-control form-control-solid"
                         type="text"
-                        :class="{ 'is-invalid': form.errors.number_document }"
+                        :class="{ 'is-invalid': form.errors.number_document || duplicateInvoice }"
+                        @blur="checkDuplicateOnBlur"
                     />
+                    <div v-if="duplicateInvoice" class="text-danger small mt-1">
+                        <i class="fas fa-exclamation-triangle me-1"></i>
+                        Ya existe este documento para el proveedor
+                        ({{ duplicateInvoice.type_document || 'documento' }} del {{ duplicateInvoice.date }}, temporada {{ duplicateInvoice.season || '—' }}).
+                        <a :href="duplicateInvoice.url" target="_blank" rel="noopener">Ver factura</a>
+                    </div>
                     <InputError
                         class="mt-2"
                         :message="form.errors.number_document"

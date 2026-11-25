@@ -149,7 +149,7 @@ const msgSuccess = (msg) => {
 
 				<form id="kt_invoice_form" @submit.prevent="update()">
 					<!--begin::Form-->
-					<FormInvoice :form="form" :protectedProductIds="props.protectedProductIds" />
+					<FormInvoice :form="form" :invoiceId="props.invoice.id" :protectedProductIds="props.protectedProductIds" />
 					<!--end::Form-->
 					<div class="mt-4 d-flex justify-content-end gap-2">
 						<button @click="router.get(route('invoices.index'))" type="button" class="btn btn-secondary">
