@@ -23,6 +23,8 @@ const props = defineProps({
     }
 });
 
+const emit = defineEmits(['save-order']);
+
 // ==== PRODUCTOS ====
 const sortProducts = (list) => [...(list || [])].sort((a, b) => a.label.localeCompare(b.label, 'es'));
 const productsOptions = ref(sortProducts(props.products));
@@ -80,9 +82,13 @@ watch(() => newProduct.value.product_id, (productId) => {
     if (productId) {
         const product = productsOptions.value.find(p => String(p.value) === String(productId));
         if (product) {
-            newProduct.value.unit_id = product.unit_id || '';
-            newProduct.value.carencia = product.carencia ?? '';
-            newProduct.value.reingreso = product.reingreso ?? '';
+            const original = editingProductIndex.value !== null
+                ? props.form.products[editingProductIndex.value]
+                : null;
+            const isOriginalProduct = original && String(original.product_id) === String(productId);
+            newProduct.value.unit_id = isOriginalProduct ? original.unit_id : (product.unit_id || '');
+            newProduct.value.carencia = isOriginalProduct ? original.carencia : (product.carencia ?? '');
+            newProduct.value.reingreso = isOriginalProduct ? original.reingreso : (product.reingreso ?? '');
             productHasCarencia.value = product.carencia !== null && product.carencia !== undefined && product.carencia !== '';
             productHasReingreso.value = product.reingreso !== null && product.reingreso !== undefined && product.reingreso !== '';
         }
@@ -93,7 +99,7 @@ watch(() => newProduct.value.product_id, (productId) => {
         productHasCarencia.value = true;
         productHasReingreso.value = true;
     }
-});
+}, { flush: 'sync' });
 
 const showSaveToProduct = computed(() => {
     return newProduct.value.product_id && (!productHasCarencia.value || !productHasReingreso.value);
@@ -219,55 +225,56 @@ const previewSimplifiedQuantity = computed(() => {
     };
 });
 
-function addProduct() {
+function applyProduct() {
     if (!newProduct.value.product_id) {
         Swal.fire('Error', 'Debe seleccionar un producto', 'error');
-        return;
+        return false;
     }
     
     if (newProduct.value.tipo_dosis === 'por_hectarea' && !newProduct.value.dosis_por_hectarea) {
         Swal.fire('Error', 'Debe ingresar la dosis por hectárea', 'error');
-        return;
+        return false;
     }
     
     if (newProduct.value.tipo_dosis === 'por_100_litros' && !newProduct.value.dosis_por_100) {
         Swal.fire('Error', 'Debe ingresar la dosis por 100 litros', 'error');
-        return;
+        return false;
     }
-    
-    // Si estamos editando, actualizar el producto existente
-    if (editingProductIndex.value !== null) {
-        props.form.products[editingProductIndex.value] = { ...newProduct.value };
-        Swal.fire({
-            icon: 'success',
-            title: 'Producto actualizado',
-            timer: 1500,
-            showConfirmButton: false
-        });
-        cancelEditProduct();
-        return;
-    }
-    
-    // Verificar si el producto ya existe (solo al agregar nuevo)
-    const exists = props.form.products.find(p => String(p.product_id) === String(newProduct.value.product_id));
+
+    const exists = props.form.products.some((p, index) =>
+        index !== editingProductIndex.value && String(p.product_id) === String(newProduct.value.product_id)
+    );
     if (exists) {
         Swal.fire('Advertencia', 'Este producto ya fue agregado', 'warning');
-        return;
+        return false;
     }
-    
-    props.form.products.push({ ...newProduct.value });
-    
-    // Resetear form
-    newProduct.value = {
-        product_id: '',
-        unit_id: '',
-        tipo_dosis: 'por_hectarea',
-        dosis_por_100: '',
-        dosis_por_hectarea: '',
-        carencia: '',
-        reingreso: '',
-    };
-    selectedProduct.value = null;
+
+    if (editingProductIndex.value !== null) {
+        props.form.products[editingProductIndex.value] = { ...newProduct.value };
+    } else {
+        props.form.products.push({ ...newProduct.value });
+    }
+    cancelEditProduct();
+    return true;
+}
+
+async function addProduct() {
+    const wasEditing = editingProductIndex.value !== null;
+    if (!applyProduct() || !wasEditing) return;
+
+    if (props.isEditing) {
+        const result = await Swal.fire({
+            icon: 'question',
+            title: 'Producto actualizado en el formulario',
+            text: '¿Desea guardar ahora todos los cambios de la orden?',
+            showCancelButton: true,
+            confirmButtonText: 'Guardar orden',
+            cancelButtonText: 'Seguir editando',
+        });
+        if (result.isConfirmed) emit('save-order');
+    } else {
+        Swal.fire('Producto actualizado en el formulario', 'Guarde la orden para conservar los cambios.', 'info');
+    }
 }
 
 function editProduct(index) {
@@ -311,7 +318,18 @@ function cancelEditProduct() {
     productHasReingreso.value = true;
 }
 
+function applyPendingProduct() {
+    return editingProductIndex.value === null || applyProduct();
+}
+
+defineExpose({ applyPendingProduct, cancelEditProduct });
+
 function removeProduct(index) {
+    if (editingProductIndex.value === index) {
+        cancelEditProduct();
+    } else if (editingProductIndex.value !== null && editingProductIndex.value > index) {
+        editingProductIndex.value--;
+    }
     props.form.products.splice(index, 1);
 }
 

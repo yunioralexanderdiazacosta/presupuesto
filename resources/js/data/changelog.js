@@ -7,6 +7,14 @@
 
 export const changelog = [
   {
+    fecha: '2026-11-28',
+    titulo: 'Órdenes de aplicación — Guardado al editar productos',
+    items: [
+      'Al actualizar un producto puede guardar la orden inmediatamente o seguir editándola.',
+      'Al guardar la orden se incluyen los cambios pendientes del producto y se muestran los errores para poder corregirlos.',
+    ]
+  },
+  {
     fecha: '2026-11-25',
     titulo: 'Facturas — Aviso de factura duplicada antes de guardar',
     items: [

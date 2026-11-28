@@ -70,6 +70,8 @@ Este proyecto es un sistema de gestión presupuestaria agrícola desarrollado en
 
 ### Sistema de Unidades en Application Orders
 
+Al editar un producto, los cambios se incorporan al formulario de la orden. Se ofrece guardar la orden inmediatamente o seguir editando; al guardar la orden también se incorpora cualquier edición de producto pendiente.
+
 **Regla fundamental**: Las órdenes de aplicación (`application_orders`) SIEMPRE trabajan con la **unidad base del producto**.
 
 **Filosofía del sistema:**

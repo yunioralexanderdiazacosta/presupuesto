@@ -18,6 +18,7 @@ const props = defineProps({
 });
 
 const emit = defineEmits(['close']);
+const orderForm = ref(null);
 
 const form = useForm({
     date: '',
@@ -40,6 +41,7 @@ const form = useForm({
 watch(() => props.show, (val) => {
     if (val) {
         form.reset();
+        orderForm.value?.cancelEditProduct();
         form.status = 'pendiente';
         // Establecer fecha actual por defecto
         const today = new Date();
@@ -69,6 +71,8 @@ function closeModal() {
 }
 
 function save() {
+    if (form.processing || !orderForm.value?.applyPendingProduct()) return;
+
     // Validaciones básicas
     if (form.products.length === 0) {
         Swal.fire('Error', 'Debe agregar al menos un producto', 'error');
@@ -117,6 +121,7 @@ function save() {
 
                 <div class="modal-body">
                     <ApplicationOrderForm
+                        ref="orderForm"
                         :form="form"
                         :products="products"
                         :cost-centers="costCenters"

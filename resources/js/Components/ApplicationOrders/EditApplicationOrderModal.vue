@@ -19,6 +19,7 @@ const props = defineProps({
 });
 
 const emit = defineEmits(['close']);
+const orderForm = ref(null);
 
 const form = useForm({
     date: '',
@@ -39,10 +40,10 @@ const form = useForm({
 });
 
 watch(() => props.show, (val) => {
-    console.log('EditApplicationOrderModal watch - show:', val, 'order:', props.order);
     if (val && props.order) {
         // Limpiar errores previos
         form.clearErrors();
+        orderForm.value?.cancelEditProduct();
         
         // Formatear fecha para input date (solo YYYY-MM-DD)
         const formatDate = (dateString) => {
@@ -83,38 +84,25 @@ watch(() => props.show, (val) => {
             surface: occ.cost_center?.surface || 0,
         }));
         
-        console.log('Intentando abrir modal editApplicationOrderModal');
-        setTimeout(() => {
-            const modalElement = document.getElementById('editApplicationOrderModal');
-            const modal = new bootstrap.Modal(modalElement);
-            modal.show();
-        }, 100);
+        $('#editApplicationOrderModal').modal('show');
     } else if (!val) {
-        console.log('Cerrando modal editApplicationOrderModal');
-        const modalElement = document.getElementById('editApplicationOrderModal');
-        const modalInstance = bootstrap.Modal.getInstance(modalElement);
-        if (modalInstance) {
-            modalInstance.hide();
-        }
+        $('#editApplicationOrderModal').modal('hide');
     }
 });
 
 onMounted(() => {
-    const modalElement = document.getElementById('editApplicationOrderModal');
-    modalElement.addEventListener('hidden.bs.modal', () => {
+    $('#editApplicationOrderModal').on('hidden.bs.modal', () => {
         emit('close');
     });
 });
 
 function closeModal() {
-    const modalElement = document.getElementById('editApplicationOrderModal');
-    const modalInstance = bootstrap.Modal.getInstance(modalElement);
-    if (modalInstance) {
-        modalInstance.hide();
-    }
+    $('#editApplicationOrderModal').modal('hide');
 }
 
 function save() {
+    if (form.processing || !orderForm.value?.applyPendingProduct()) return;
+
     // Validaciones básicas
     if (form.products.length === 0) {
         Swal.fire('Error', 'Debe agregar al menos un producto', 'error');
@@ -128,8 +116,9 @@ function save() {
 
     form.put(route('application-orders.update', props.order.id), {
         preserveScroll: true,
-        preserveState: false,
+        preserveState: true,
         onSuccess: () => {
+            closeModal();
             Swal.fire({
                 icon: 'success',
                 title: '¡Éxito!',
@@ -137,14 +126,13 @@ function save() {
                 timer: 2000,
                 showConfirmButton: false
             });
-            closeModal();
         },
         onError: (errors) => {
             console.error('Errores de validación:', errors);
             Swal.fire({
                 icon: 'error',
                 title: 'Error',
-                text: 'Por favor revise los datos ingresados',
+                text: Object.values(errors).flat().join('\n') || 'Por favor revise los datos ingresados.',
             });
         }
     });
@@ -164,6 +152,7 @@ function save() {
 
                 <div class="modal-body">
                     <ApplicationOrderForm
+                        ref="orderForm"
                         :form="form"
                         :products="products"
                         :cost-centers="costCenters"
@@ -175,6 +164,7 @@ function save() {
                         :machineries="machineries"
                         :operators="operators"
                         :is-editing="true"
+                        @save-order="save"
                     />
                 </div>
 
@@ -189,7 +179,7 @@ function save() {
                         :disabled="form.processing"
                     >
                         <i class="fas fa-save me-1"></i>
-                        {{ form.processing ? 'Actualizando...' : 'Actualizar' }}
+                        {{ form.processing ? 'Actualizando...' : 'Actualizar orden' }}
                     </button>
                 </div>
             </div>
